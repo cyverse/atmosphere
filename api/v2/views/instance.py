@@ -9,7 +9,7 @@ from core.query import only_current
 from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
-from service.instance import launch_instance, destroy_instance, run_instance_action
+from service.instance import launch_instance, destroy_instance, run_instance_action, update_instance_metadata
 from threepio import logger
 
 #Things that go bump
@@ -52,6 +52,22 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         return qs.filter(only_current())
 
     @detail_route(methods=['post'])
+    def update_metadata(self, request, pk=None):
+        """
+        Until a better method comes about, we will handle Updating metadata here.
+        """
+        data = request.data
+        metadata = data.pop('metadata')
+        instance_id = pk
+        instance = find_instance(instance_id)
+        try:
+            update_instance_metadata(instance, metadata)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as exc:
+            logger.exception("Error occurred updating v2 instance metadata")
+            return Response(exc.message, status=status.HTTP_409_CONFLICT)
+
+    @detail_route(methods=['post'])
     def action(self, request, pk=None):
         """
         Until a better method comes about, we will handle InstanceActions here.
@@ -81,10 +97,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return invalid_creds(identity)
         except HypervisorCapacityError as hce:
             return over_capacity(hce)
-        except OverQuotaError as oqe:
+        except (OverQuotaError, OverAllocationError) as oqe:
             return over_quota(oqe)
-        except OverAllocationError as oae:
-            return over_quota(oae)
         except SizeNotAvailable as snae:
             return size_not_available(snae)
         except (socket_error, ConnectionFailure):
@@ -127,7 +141,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
                 user,
                 identity_uuid,
                 instance.provider_alias)
-            serialized_instance = InstanceSerializer(core_instance, context={'request':self.request}, data={}, partial=True)
+            serialized_instance = InstanceSerializer(
+                core_instance, context={
+                    'request': self.request},
+                data={}, partial=True)
             if not serialized_instance.is_valid():
                 return Response(serialized_instance.data,
                                 status=status.HTTP_400_BAD_REQUEST)

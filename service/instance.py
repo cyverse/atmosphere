@@ -1353,8 +1353,14 @@ arg = '{
     init_script_contents += instance_config + "\nmain(arg)"
     return init_script_contents
 
+def update_instance_metadata(core_instance, data={}, replace=False):
+    identity = core_instance.created_by_identity
+    instance_id = core_instance.provider_alias
+    esh_driver = get_cached_driver(identity=identity)
+    esh_instance = esh_driver.get_instance(instance_id)
+    return _update_instance_metadata(esh_driver, esh_instance, data, replace)
 
-def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
+def _update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     """
     NOTE: This will NOT WORK for TAGS until openstack
     allows JSONArrays as values for metadata!

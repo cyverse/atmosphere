@@ -36,7 +36,7 @@ from service.deploy import check_process, wrap_script, echo_test_script,\
     deploy_to as ansible_deploy_to
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
-from service.instance import update_instance_metadata
+from service.instance import _update_instance_metadata
 from service.networking import _generate_ssh_kwargs
 
 
@@ -1098,7 +1098,7 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata,
         instance = driver.get_instance(instance_alias)
         if not instance:
             return
-        return update_instance_metadata(
+        return _update_instance_metadata(
             driver, instance, data=metadata, replace=replace_metadata)
         celery_logger.debug("update_metadata task finished at %s." % datetime.now())
     except Exception as exc:
