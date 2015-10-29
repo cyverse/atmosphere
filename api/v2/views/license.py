@@ -1,7 +1,8 @@
-from core.models import License
 from api.v2.serializers.details import LicenseSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
+from core.models import License
+
 
 class LicenseViewSet(MultipleFieldLookup, AuthViewSet):
 
@@ -20,4 +21,7 @@ class LicenseViewSet(MultipleFieldLookup, AuthViewSet):
         Filter out tags for deleted instances
         """
         user_id = self.request.user.id
-        return License.objects.filter(created_by_id=user_id)
+        qs = License.objects.all()
+        if 'created' in self.request.query_params:
+            qs = qs.filter(created_by_id=user_id)
+        return qs
