@@ -31,6 +31,7 @@ from .status_type import StatusTypeViewSet
 from .email import FeedbackEmailViewSet, SupportEmailViewSet, ResourceEmailViewSet
 from .emulate import TokenEmulateViewSet, SessionEmulateViewSet
 from .tag import TagViewSet
+from .token import TokenViewSet
 from .user import UserViewSet
 from .volume import VolumeViewSet
 from .metric import MetricViewSet
