@@ -100,6 +100,7 @@ AUTHENTICATION = {
 # # Use MockLoginBackend first!
 # AUTHENTICATION_BACKENDS = (
 #     'iplantauth.authBackends.MockLoginBackend',
+#     'django.contrib.auth.backends.ModelBackend',  # Required to login to 'admin' if you use *ONLY* MockLoginBackend
 # ) + AUTHENTICATION_BACKENDS
 # CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
