@@ -14,4 +14,4 @@ class LicenseSummarySerializer(serializers.HyperlinkedModelSerializer):
     )
     class Meta:
         model = License
-        fields = ('id', 'uuid', 'title', 'type', 'text')
+        fields = ('id', 'url', 'uuid', 'title', 'type', 'text')
