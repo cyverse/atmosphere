@@ -73,6 +73,9 @@ class BootScript(models.Model):
         content = req.content
         return content
 
+    def __unicode__(self):
+        return "%s <%s>" % (self.title, self.script_type)
+
     class Meta:
         db_table = 'boot_script'
         app_label = 'core'
@@ -80,14 +83,14 @@ class BootScript(models.Model):
 
 class ApplicationVersionBootScript(models.Model):
     """
-    Represents the M2M table auto-created by 'application_version.licenses'
+    Represents the M2M table auto-created by 'applicationversion.bootscripts'
     """
     applicationversion = models.ForeignKey("ApplicationVersion")
     bootscript = models.ForeignKey(BootScript)
 
     def __unicode__(self):
         return "(ApplicationVersion:%s - BootScript:%s) " %\
-            (self.application_version, self.bootscript.title)
+            (self.applicationversion, self.bootscript.title)
 
     class Meta:
         db_table = 'application_version_boot_scripts'

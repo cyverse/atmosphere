@@ -55,7 +55,7 @@ class ApplicationVersionLicense(models.Model):
 
     def __unicode__(self):
         return "(ApplicationVersion:%s - License:%s) " %\
-            (self.application_version, self.license.title)
+            (self.applicationversion, self.license.title)
 
     class Meta:
         db_table = 'application_version_licenses'
