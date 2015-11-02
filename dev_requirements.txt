@@ -1,5 +1,6 @@
 -r requirements.txt
 coverage==3.7.1
+colorama==0.3.3 # used by ./configure
 django-sslserver #NOTE: Debugs requests real-time.
 django-debug-toolbar  #NOTE: Profiles SQL/CPU time of requests real-time.
 django-jenkins==0.17.0
