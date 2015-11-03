@@ -50,12 +50,13 @@ class ApplicationVersionLicense(models.Model):
     """
     Represents the M2M table auto-created by 'application_version.licenses'
     """
-    applicationversion = models.ForeignKey("ApplicationVersion")
+    image_version = models.ForeignKey("ApplicationVersion",
+                                      db_column='applicationversion_id')
     license = models.ForeignKey(License)
 
     def __unicode__(self):
         return "(ApplicationVersion:%s - License:%s) " %\
-            (self.applicationversion, self.license.title)
+            (self.image_version, self.license.title)
 
     class Meta:
         db_table = 'application_version_licenses'
