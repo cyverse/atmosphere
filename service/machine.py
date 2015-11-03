@@ -8,6 +8,7 @@ import operator
 from threepio import logger
 
 from core import models
+from core.query import only_current_source
 from service.cache import get_cached_driver
 from service.driver import get_account_driver
 from core.models.application import create_application, update_application
@@ -195,24 +196,112 @@ def upload_privacy_data(machine_request, new_machine):
     tenant_list = machine_request.get_access_list()
     # All in the list will be added as 'sharing' the OStack img
     # All tenants already sharing the OStack img will be added to this list
-    return sync_membership(accounts, img, new_machine, tenant_list)
+    return sync_machine_membership(accounts, img, new_machine, tenant_list)
 
 
 def add_membership(image_version, group):
     """
     This function will add *all* users in the group
     to *all* providers/machines using this image_version
+    O(N^2)
     """
-    return
+    for provider_machine in image_version.machines.filter(only_current_source()):
+        prov = provider_machine.instance_source.provider
+        accounts = get_account_driver(prov)
+        if not accounts:
+            raise NotImplemented("Account Driver could not be created for %s" % prov)
+        accounts.clear_cache()
+        admin_driver = accounts.admin_driver  # cache has been cleared
+        if not admin_driver:
+            raise NotImplemented("Admin Driver could not be created for %s" % prov)
+        img = accounts.get_image(provider_machine.identifier)
+        projects = get_current_projects_for_image(accounts, img.id)
+        for identity_membership in group.identitymembership_set.all():
+            if identity_membership.identity.provider != prov:
+                continue
+            # Get project name from the identity's credential-list
+            project_name = identity_membership.identity.get_credential('ex_project_name')
+            project = accounts.get_project(project_name)
+            if project and project in projects:
+                continue
+            # Share with the *database* first!
+            obj, created = models.ApplicationMembership.objects.get_or_create(
+                group=group,
+                application=provider_machine.application)
+            if created:
+                print "Created new ApplicationMembership: %s" \
+                    % (obj,)
+            obj, created = models.ApplicationVersionMembership.objects.get_or_create(
+                group=group,
+                image_version=provider_machine.application_version)
+            if created:
+                print "Created new ApplicationVersionMembership: %s" \
+                    % (obj,)
+            obj, created = models.ProviderMachineMembership.objects.get_or_create(
+                group=group,
+                provider_machine=provider_machine)
+            if created:
+                print "Created new ProviderMachineMembership: %s" \
+                    % (obj,)
+            # Share with the *cloud* last!
+            accounts.image_manager.share_image(img, project_name)
+            logger.info("Added Cloud Access: %s-%s"
+                        % (img, project_name))
+            continue
+
 
 def remove_membership(image_version, group):
     """
     This function will remove *all* users in the group
     to *all* providers/machines using this image_version
     """
+    for provider_machine in image_version.machines.filter(only_current_source()):
+        prov = provider_machine.instance_source.provider
+        accounts = get_account_driver(prov)
+        if not accounts:
+            raise NotImplemented("Account Driver could not be created for %s" % prov)
+        accounts.clear_cache()
+        admin_driver = accounts.admin_driver  # cache has been cleared
+        if not admin_driver:
+            raise NotImplemented("Admin Driver could not be created for %s" % prov)
+        img = accounts.get_image(provider_machine.identifier)
+        projects = get_current_projects_for_image(accounts, img.id)
+        for identity_membership in group.identitymembership_set.all():
+            if identity_membership.identity.provider != prov:
+                continue
+            # Get project name from the identity's credential-list
+            project_name = identity_membership.identity.get_credential(
+                    'ex_project_name')
+            project = accounts.get_project(project_name)
+            if project and project not in projects:
+                continue
+            # Perform a *DATABASE* remove first.
+            models.ApplicationMembership.objects.filter(
+                group=group,
+                application=provider_machine.application).delete()
+            logger.info("Removed ApplicationMembership: %s-%s"
+                        % (provider_machine.application, group))
+            models.ApplicationVersionMembership.objects.filter(
+                group=group,
+                image_version=provider_machine.application_version).delete()
+            logger.info("Removed ApplicationVersionMembership: %s-%s"
+                        % (provider_machine.application_version, group))
+            models.ProviderMachineMembership.objects.filter(
+                group=group,
+                provider_machine=provider_machine).delete()
+            logger.info("Removed ProviderMachineMembership: %s-%s"
+                        % (provider_machine, group))
+            # Perform a *CLOUD* remove last.
+            accounts.image_manager.unshare_image(img, project_name)
+            logger.info("Removed Cloud Access: %s-%s"
+                        % (img, project_name))
     return
 
-def sync_membership(accounts, glance_image, new_machine, tenant_list):
+def sync_machine_membership(accounts, glance_image, new_machine, tenant_list):
+    """
+    This function will check that *all* tenants in 'tenant_list'
+     have been added to OpenStack and DB-level access controls
+    """
     tenant_list = sync_cloud_access(accounts, glance_image, names=tenant_list)
     # Make private on the DB level
     make_private(accounts.image_manager,
@@ -230,17 +319,23 @@ def share_with_self(private_userlist, username):
     return private_userlist
 
 
-def sync_cloud_access(accounts, img, names=None):
+def get_current_projects_for_image(accounts, image_id):
     projects = []
+    shared_with = accounts.image_manager.shared_images_for(
+        image_id=image_id)
+    projects = [accounts.get_project_by_id(member.member_id)
+                for member in shared_with]
+    return projects
+
+
+def sync_cloud_access(accounts, img, names=None):
     shared_with = accounts.image_manager.shared_images_for(
         image_id=img.id)
     # Find tenants who are marked as 'sharing' on openstack but not on DB
     # Or just in One-line..
-    projects = [
-        accounts.get_project_by_id(
-            member.member_id) for member in shared_with]
+    projects = get_current_projects_for_image(accounts, img.id)
     # Any names who aren't already on the image should be added
-    # Find names who are marekd as 'sharing' on DB but not on OpenStack
+    # Find names who are marked as 'sharing' on DB but not on OpenStack
     for name in names:
         project = accounts.get_project(name)
         if project and project not in projects:
@@ -252,8 +347,6 @@ def sync_cloud_access(accounts, img, names=None):
 
 
 def make_private(image_manager, image, provider_machine, tenant_list=[]):
-    # Circ.Dep. DO NOT MOVE UP!!
-
     if image.is_public:
         print "Marking image %s private" % image.id
         image_manager.update_image(image, is_public=False)
