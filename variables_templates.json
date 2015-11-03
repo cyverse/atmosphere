@@ -17,6 +17,7 @@
             "nginx-jenkins",
             "nginx-lb"
         ],
+        "uwsgi.ini": ["atmo.uwsgi"],
         "secrets.py": [
             "secrets.py"
         ]
@@ -57,6 +58,10 @@
         "nginx-lb": [
             "extras/nginx/locations/lb.conf.j2",
             "extras/nginx/locations/lb.conf"
+        ],
+        "atmo.uwsgi": [
+            "extras/uwsgi/atmo.uwsgi.ini.j2",
+            "extras/uwsgi/atmo.uwsgi.ini"
         ],
         "secrets.py": [
             "atmosphere/settings/secrets.py.j2",
