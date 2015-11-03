@@ -13,12 +13,12 @@ class VersionFilter(django_filters.FilterSet):
 
     def filter_owner(self, queryset, value):
         return queryset.filter(
-            Q(application_version__created_by__username=value) |
-            Q(application_version__application__created_by__username=value)
+            Q(image_version__created_by__username=value) |
+            Q(image_version__application__created_by__username=value)
         )
     def filter_by_uuid(self, queryset, value):
         # NOTE: Remove this *HACK* once django_filters supports UUID as PK fields
-        return queryset.filter(application_version__id=value)
+        return queryset.filter(image_version__id=value)
 
     class Meta:
         model = ImageVersionMembership
@@ -40,4 +40,4 @@ class ImageVersionMembershipViewSet(MultipleFieldLookup, AuthViewSet):
         Filter out tags for deleted versions
         """
         return ImageVersionMembership.objects.filter(
-            application_version__created_by=self.request.user)
+            image_version__created_by=self.request.user)

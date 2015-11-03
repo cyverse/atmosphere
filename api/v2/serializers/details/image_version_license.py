@@ -9,33 +9,13 @@ from api.v2.serializers.summaries import (
     ImageVersionSummarySerializer, LicenseSummarySerializer)
 from api.v2.serializers.fields.base import ModelRelatedField
 
-class ImageVersionRelatedField(serializers.PrimaryKeyRelatedField):
-
-    def get_queryset(self):
-        return ImageVersion.objects.all()
-
-    def to_representation(self, value):
-        image_version = ImageVersion.objects.get(pk=value.pk)
-        serializer = ImageVersionSummarySerializer(
-            image_version,
-            context=self.context)
-        return serializer.data
-
-
-class LicenseRelatedField(serializers.PrimaryKeyRelatedField):
-
-    def get_queryset(self):
-        return License.objects.all()
-
-    def to_representation(self, value):
-        license = License.objects.get(pk=value.pk)
-        serializer = LicenseSummarySerializer(license, context=self.context)
-        return serializer.data
-
 
 class ImageVersionLicenseSerializer(serializers.HyperlinkedModelSerializer):
-    image_version = ImageVersionRelatedField(
-        queryset=ImageVersion.objects.none())
+    image_version = ModelRelatedField(
+        queryset=ImageVersion.objects.all(),
+        serializer_class=ImageVersionSummarySerializer,
+        style={'base_template': 'input.html'},
+        required=False)
     license = ModelRelatedField(
         queryset=License.objects.all(),
         serializer_class=LicenseSummarySerializer,

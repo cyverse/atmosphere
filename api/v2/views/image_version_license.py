@@ -32,11 +32,6 @@ class ImageVersionLicenseViewSet(AuthViewSet):
     queryset = ImageVersionLicense.objects.none()
     serializer_class = ImageVersionLicenseSerializer
     filter_class = VersionFilter
-    #def get_serializer_class(self):
-    #    if self.action != 'create':
-    #        return ImageVersionLicenseSerializer
-    #    return POST_ImageVersionLicenseSerializer
-
 
     def get_queryset(self):
         """

@@ -85,12 +85,14 @@ class ApplicationVersionBootScript(models.Model):
     """
     Represents the M2M table auto-created by 'applicationversion.bootscripts'
     """
-    applicationversion = models.ForeignKey("ApplicationVersion")
-    bootscript = models.ForeignKey(BootScript)
+    image_version = models.ForeignKey("ApplicationVersion",
+                                      db_column='applicationversion_id')
+    boot_script = models.ForeignKey(BootScript,
+                                    db_column="bootscript_id")
 
     def __unicode__(self):
         return "(ApplicationVersion:%s - BootScript:%s) " %\
-            (self.applicationversion, self.bootscript.title)
+            (self.image_version, self.boot_script.title)
 
     class Meta:
         db_table = 'application_version_boot_scripts'
