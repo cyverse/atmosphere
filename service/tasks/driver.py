@@ -392,6 +392,7 @@ def deploy_failed(
       default_retry_delay=128,
       ignore_result=True)
 def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
+    #  Run once on 'ubuntu', once on 'centos', once on 'root' then retry!
     try:
         celery_logger.debug("deploy_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)

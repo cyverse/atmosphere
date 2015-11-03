@@ -11,8 +11,8 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
-from authentication.protocol.ldap import lookupEmail
+from iplantauth.decorators import api_auth_token_required
+from iplantauth.protocol.ldap import lookupEmail
 
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
@@ -34,7 +34,7 @@ class Feedback(APIView):
         """
         Creates a new feedback email and sends it to admins
         """
-        data = request.DATA
+        data = request.data
         required = ['message',]
         missing_keys = valid_post_data(data, required)
         if missing_keys:
@@ -56,7 +56,7 @@ class QuotaEmail(APIView):
         """
         Creates a new Quota Request email and sends it to admins
         """
-        data = request.DATA
+        data = request.data
         required = ['quota', 'reason']
         missing_keys = valid_post_data(data, required)
         if missing_keys:
@@ -78,7 +78,7 @@ class SupportEmail(APIView):
         """
         Creates a new support email and sends it to admins
         """
-        data = request.DATA
+        data = request.data
         required = ['message','subject']
         missing_keys = valid_post_data(data, required)
         if missing_keys:
