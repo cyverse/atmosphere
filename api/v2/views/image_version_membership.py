@@ -41,3 +41,13 @@ class ImageVersionMembershipViewSet(MultipleFieldLookup, AuthViewSet):
         """
         return ImageVersionMembership.objects.filter(
             image_version__created_by=self.request.user)
+
+    #def perform_destroy(self):
+    #    data = serializer.data
+    #    user = self.request.user
+    #    # service call: 'remove_member' on cloud providers using this version.
+
+    #def perform_create(self):
+    #    data = serializer.data
+    #    user = self.request.user
+    #    # service call: 'add_member' on cloud providers using this version.

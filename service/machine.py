@@ -198,6 +198,20 @@ def upload_privacy_data(machine_request, new_machine):
     return sync_membership(accounts, img, new_machine, tenant_list)
 
 
+def add_membership(image_version, group):
+    """
+    This function will add *all* users in the group
+    to *all* providers/machines using this image_version
+    """
+    return
+
+def remove_membership(image_version, group):
+    """
+    This function will remove *all* users in the group
+    to *all* providers/machines using this image_version
+    """
+    return
+
 def sync_membership(accounts, glance_image, new_machine, tenant_list):
     tenant_list = sync_cloud_access(accounts, glance_image, names=tenant_list)
     # Make private on the DB level
