@@ -57,7 +57,6 @@ class MultipleFieldLookup(object):
             filter_chain = reduce(operator.or_, query_list)
         except TypeError:
             raise Http404
-
         obj = get_object_or_404(queryset, filter_chain)
         self.check_object_permissions(self.request, obj)
         return obj

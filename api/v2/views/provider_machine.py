@@ -52,7 +52,7 @@ class ProviderMachineViewSet(MultipleFieldLookup, OwnerUpdateViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
-    lookup_fields = ("id", "instance_source.identifier")
+    lookup_fields = ("id", "instance_source__identifier")
     queryset = ProviderMachine.objects.none()
     serializer_class = ProviderMachineSerializer
     search_fields = (

@@ -105,7 +105,7 @@ class ProviderMachineAdmin(admin.ModelAdmin):
 class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
     list_display = ["id", "_app_name", "_start_date", "_app_private", "group"]
     list_filter = [
-        "application_version__application__name",
+        "image_version__application__name",
         "group__name"
     ]
 

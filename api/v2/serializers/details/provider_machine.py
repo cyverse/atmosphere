@@ -4,7 +4,7 @@ from api.v2.serializers.summaries import (
         ImageSummarySerializer, ImageVersionSummarySerializer,
         ProviderSummarySerializer, UserSummarySerializer,
         LicenseSummarySerializer)
-#from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
+from api.v2.serializers.fields.base import InstanceSourceHyperlinkedIdentityField
 
 
 class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
@@ -23,7 +23,7 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
         read_only=True,
         many=True)  # NEW
     # NOTE: this is still using ID instead of UUID -- due to abstract classes and use of getattr in L271 of rest_framework/relations.py, this is a 'kink' that has not been worked out yet.
-    url = serializers.HyperlinkedIdentityField(
+    url = InstanceSourceHyperlinkedIdentityField(
         view_name='api:v2:providermachine-detail',
     )
 
