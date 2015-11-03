@@ -33,6 +33,7 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
                                      required=False)
     uuid = serializers.CharField(source='instance_source.identifier',
                                  read_only=True)
+    # NOTE: this is still using ID instead of UUID -- due to abstract classes and use of getattr in L271 of rest_framework/relations.py, this is a 'kink' that has not been worked out yet.
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:volume-detail',
     )
