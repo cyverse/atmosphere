@@ -450,8 +450,10 @@ def monitor_instances_for(provider_id, users=None,
 
     # DEVNOTE: Potential slowdown running multiple functions
     # Break this out when instance-caching is enabled
+    running_total = 0
     for username in sorted(instance_map.keys()):
         running_instances = instance_map[username]
+        running_total += len(running_instances)
         identity = _get_identity_from_tenant_name(provider, username)
         if identity and running_instances:
             try:
@@ -480,6 +482,7 @@ def monitor_instances_for(provider_id, users=None,
             print_logs, start_date, end_date)
     if print_logs:
         celery_logger.removeHandler(consolehandler)
+    return running_total
 
 
 @task(name="monitor_sizes")
