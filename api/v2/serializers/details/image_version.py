@@ -14,7 +14,6 @@ from api.v2.serializers.fields import (
 
 
 class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
-
     """
     Serializer for ApplicationVersion (aka 'image_version')
     """
@@ -44,6 +43,8 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         serializer_class=ImageSummarySerializer,
         style={'base_template': 'input.html'})
     start_date = serializers.DateTimeField()
+    min_mem = serializers.CharField(source='threshold.memory_min', read_only = True)
+    min_cpu = serializers.CharField(source='threshold.cpu_min', read_only = True)
     end_date = serializers.DateTimeField(allow_null=True)
 
     class Meta:
@@ -51,6 +52,6 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         view_name = 'api:v2:providermachine-detail'
         fields = ('id', 'parent', 'name', 'change_log',
                   'image', 'machines', 'allow_imaging',
-                  'licenses', 'membership', 'scripts',
+                  'licenses', 'membership', 'min_mem', 'min_cpu', 'scripts',
                   'user', 'identity',
                   'start_date', 'end_date')
