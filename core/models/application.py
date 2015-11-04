@@ -599,12 +599,12 @@ class ApplicationThreshold(models.Model):
         blank=True,
         null=True)
     memory_min = models.IntegerField(default=0)
-    storage_min = models.IntegerField(default=0)
+    cpu_min = models.IntegerField(default=0)
 
     def __unicode__(self):
-        return "%s requires >%s MB memory, >%s GB disk" % (self.application,
+        return "%s requires >%s MB memory, >%s CPU" % (self.application_version,
                                                            self.memory_min,
-                                                           self.storage_min)
+                                                           self.cpu_min)
 
     class Meta:
         db_table = 'application_threshold'
