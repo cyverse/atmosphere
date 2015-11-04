@@ -6,7 +6,7 @@ from boto.ec2.regioninfo import RegionInfo
 from urlparse import urlparse
 from boto import connect_ec2
 from dateutil import parser
-from authentication.protocol.ldap import lookupUser
+from iplantauth.protocol.ldap import lookupUser
 import subprocess
 import sys
 import datetime

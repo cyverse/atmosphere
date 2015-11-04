@@ -16,7 +16,7 @@ from threepio import logger
 from atmosphere import settings
 from core.models import IdentityMembership, MachineRequest
 
-from authentication.protocol.ldap import lookupEmail, lookupUser
+from iplantauth.protocol.ldap import lookupEmail, lookupUser
 from core.tasks import send_email as send_email_task
 
 
@@ -131,7 +131,7 @@ def send_email(subject, body, from_email, to, cc=None,
 
 
 def email_admin(request, subject, message,
-                cc_user=True, request_tracker=False, data={}):
+                cc_user=True, request_tracker=False):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
@@ -144,8 +144,6 @@ def email_admin(request, subject, message,
              location,
              user, remote_ip,
              user_agent, resolution)
-    if data:
-        body += "\nUser Interface:%s\nServer:%s" % (data.get('user-interface'), data.get('server'))
     return email_to_admin(subject, body, user, user_email, cc_user=cc_user,
                           request_tracker=request_tracker)
 
@@ -434,37 +432,6 @@ def resource_request_email(request, username, new_resource, reason):
     logger.info(body)
     email_success = email_admin(request, subject, body, cc_user=False)
     return {"email_sent": email_success}
-
-
-def feedback_email(request, username, user_email, message, data):
-    """
-    Sends an email Bto support based on feedback from a client machine
-
-    Returns a response.
-    """
-    user = User.objects.get(username=username)
-    subject = 'Subject: Atmosphere Client Feedback from %s' % username
-    context = {
-        "user": user,
-        "feedback": message,
-    }
-    body = render_to_string("core/email/feedback.html",
-                            context=Context(context))
-    email_success = email_admin(request, subject, body, request_tracker=True, data=data)
-    if email_success:
-        resp = {'result':
-                {'code': 'success',
-                    'meta': '',
-                    'value': (
-                        'Thank you for your feedback! '
-                        'Support has been notified.')}}
-    else:
-        resp = {'result':
-                {'code': 'failed',
-                 'meta': '',
-                 'value': 'Failed to send feedback!'}}
-    return resp
-
 
 def support_email(request, subject, message):
     """

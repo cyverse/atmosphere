@@ -19,15 +19,19 @@ class InstanceViewSet(AuthViewSet):
     filter_fields = ('created_by__id', 'projects')
     http_method_names = ['get', 'put', 'patch', 'head', 'options', 'trace']
 
+    def list(self, request, *args, **kwargs):
+        return super(InstanceViewSet, self).list(request, *args, **kwargs)
+
     def get_queryset(self):
         """
         Filter projects by current user.
         """
         user = self.request.user
         identity_ids = user.current_identities.values_list('id',flat=True)
+        qs = Instance.objects.filter(created_by_identity__in=identity_ids)
         if 'archived' in self.request.QUERY_PARAMS:
-            return Instance.objects.filter(created_by_identity__in=identity_ids)
-        return Instance.objects.filter(only_current(), created_by_identity__in=identity_ids)
+            return qs
+        return qs.filter(only_current())
 
     def perform_destroy(self, instance):
         return V1Instance().delete(self.request,

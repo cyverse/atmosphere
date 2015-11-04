@@ -10,8 +10,8 @@ from django.http import HttpResponseRedirect
 from threepio import logger
 
 from atmosphere import settings
-from authentication.decorators import atmo_login_required
-from authentication.models import Token as AuthToken
+from iplantauth.decorators import atmo_login_required
+from iplantauth.models import Token as AuthToken
 from core.models import AtmosphereUser as DjangoUser
 
 

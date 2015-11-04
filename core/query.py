@@ -2,20 +2,19 @@ from django.db.models import Q
 from django.utils import timezone
 
 
-def only_active_provider(now_time=None):
+def only_active_provider():
     """
-    Use this query on any model with a 'provider.end_date'
+    Use this query on any model with a 'provider.active'
     to limit the objects to those
-    that have not past their end_date
+    that have an active provider
     """
-    if not now_time:
-        now_time = timezone.now()
     return Q(provider__active=True)
 
 
 def only_current_provider(now_time=None):
     """
-    Filters the current active providers.
+    Filters 'current' providers by removing those
+    who have exceeded their end-date.
     """
     if not now_time:
         now_time = timezone.now()

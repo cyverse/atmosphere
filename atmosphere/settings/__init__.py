@@ -81,12 +81,12 @@ INSTALLED_APPS = (
     #'sslserver',
 
     # iPlant apps
+    'iplantauth',
     'rtwo',
 
     # atmosphere apps
     'api',
     'allocation',
-    'authentication',
     'service',
     'core',
 )
@@ -125,6 +125,8 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',
+    # #For profile/debugging
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -144,12 +146,13 @@ AUTH_USER_MODEL = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
-    'authentication.authBackends.AuthTokenLoginBackend',
+    #'iplantauth.authBackends.GlobusOAuthLoginBackend',
+    'iplantauth.authBackends.AuthTokenLoginBackend',
     # For Web-Access
-    'authentication.authBackends.CASLoginBackend',
-    'authentication.authBackends.SAMLLoginBackend',
-    # For Service-Access
-    'authentication.authBackends.LDAPLoginBackend',
+    'iplantauth.authBackends.CASLoginBackend',
+    'iplantauth.authBackends.SAMLLoginBackend',
+    ## For Service-Access
+    'iplantauth.authBackends.LDAPLoginBackend',
 )
 
 # django-cors-headers
@@ -311,10 +314,11 @@ REST_FRAMEWORK = {
         'api.renderers.JPEGRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'authentication.token.JWTTokenAuthentication',
-        'authentication.token.OAuthTokenAuthentication',
-        'authentication.token.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'iplantauth.token.TokenAuthentication', # Generic Tokens
+        'iplantauth.token.JWTTokenAuthentication', # WSO2 + JWT
+        'iplantauth.token.OAuthTokenAuthentication', # CAS
+        'iplantauth.token.GlobusOAuthTokenAuthentication',   # Globus
+        'rest_framework.authentication.SessionAuthentication',  # Session
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,                 # Default to 20

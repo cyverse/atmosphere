@@ -60,4 +60,5 @@ router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.MembershipViewSet, base_name='group')
 router.register(r'volumes', views.VolumeViewSet, base_name='volume')
 
-urlpatterns = patterns('', url(r'^', include(router.urls)),)
+urlpatterns = [ url(r'^email/feedback', views.FeedbackView.as_view()) ]
+urlpatterns += patterns('', url(r'^', include(router.urls)),)

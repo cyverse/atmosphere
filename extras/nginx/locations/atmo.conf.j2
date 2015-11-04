@@ -23,5 +23,6 @@ location / {
    if ($request_uri ~ "^/$") {
       return 301 https://$host/application;
    }
+   uwsgi_read_timeout 300;
    uwsgi_pass unix:///tmp/atmosphere.sock;
 }
