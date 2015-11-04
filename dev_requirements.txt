@@ -4,6 +4,7 @@ colorama==0.3.3 # used by ./configure
 django-sslserver #NOTE: Debugs requests real-time.
 django-jenkins==0.17.0
 django-nose
+emoji==0.3.6
 factory-boy==2.4.1
 flake8
 flower==0.7.3 #TODO: Do we need a specific version here? -steve
