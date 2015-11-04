@@ -10,7 +10,7 @@ from django.template import Context
 
 from threepio import logger
 
-from authentication.protocol.ldap import lookupEmail
+from iplantauth.protocol.ldap import lookupEmail
 
 from core.email import email_admin, resource_request_email
 from core.models import AtmosphereUser as User
