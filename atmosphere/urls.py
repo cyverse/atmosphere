@@ -39,7 +39,7 @@ urlpatterns = patterns(
     url(r'^admin/', include(admin.site.urls)))
 
 
-if settings.DEBUG:
+if settings.DEBUG and 'debug_toolbar.middleware.DebugToolbarMiddleware' in settings.MIDDLEWARE_CLASSES:
     try:
         import debug_toolbar
         urlpatterns += (
