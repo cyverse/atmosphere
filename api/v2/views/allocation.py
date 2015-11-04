@@ -12,4 +12,4 @@ class AllocationViewSet(AuthViewSet):
 
     queryset = Allocation.objects.all()
     serializer_class = AllocationSerializer
-    http_method_names = ['get', 'head', 'options', 'trace']
+    http_method_names = ['post', 'get', 'head', 'options', 'trace']
