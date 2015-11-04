@@ -1,4 +1,24 @@
----
-Full Name: {{user.get_full_name}}
-Feedback: {{feedback}}
----
+Name: {{ user.get_full_name }} ({{ user.get_username }})
+
+Feedback: {{ feedback }}
+
+Provider: {{ provider }}
+
+User-interface: {{ ui }}
+
+Server: {{ server }}
+
+Instances:
+{% for i in instances %}
+    Name: {{ i.name }}
+    ID: {{ i.provider_alias }}
+    Image: {{ i.provider_machine.identifier }}
+    IP: {{ i.ip_address }}
+{% endfor %}
+
+Volumes:
+{% for v in volumes %}
+    Name: {{ v.name }}
+    ID: {{ v.identifier }}
+    Size: {{ v.size }}
+{% endfor %}

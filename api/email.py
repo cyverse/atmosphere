@@ -11,8 +11,8 @@ from libcloud.common.types import InvalidCredsError
 
 from threepio import logger
 
-from authentication.decorators import api_auth_token_required
-from authentication.protocol.ldap import lookupEmail
+from iplantauth.decorators import api_auth_token_required
+from iplantauth.protocol.ldap import lookupEmail
 
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume

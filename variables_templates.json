@@ -1,0 +1,71 @@
+{
+    "SECTION_MAPPING": {
+        "apache2": [
+            "apache"
+        ],
+        "celeryd.default": [
+            "celeryd.default"
+        ],
+        "local.py": [
+            "local.py"
+        ],
+        "nginx": [
+            "nginx",
+            "nginx-site",
+            "nginx-atmo",
+            "nginx-flower", 
+            "nginx-jenkins",
+            "nginx-lb"
+        ],
+        "uwsgi.ini": ["atmo.uwsgi"],
+        "secrets.py": [
+            "secrets.py"
+        ]
+    },
+    "CONFIG_FILES": {
+        "apache": [
+            "extras/apache/atmo.conf.j2",
+            "extras/apache/atmo.conf"
+        ],
+        "celeryd.default": [
+            "extras/init.d/celeryd.default.dist.j2",
+            "extras/init.d/celeryd.default"
+        ],
+        "local.py": [
+            "atmosphere/settings/local.py.j2",
+            "atmosphere/settings/local.py"
+        ],
+        "nginx": [
+            "extras/nginx/Makefile.j2",
+            "extras/nginx/Makefile"
+        ],
+        "nginx-site": [
+            "extras/nginx/site.conf.j2",
+            "extras/nginx/site.conf"
+        ],
+        "nginx-atmo": [
+            "extras/nginx/locations/atmo.conf.j2",
+            "extras/nginx/locations/atmo.conf"
+        ],
+        "nginx-flower": [
+            "extras/nginx/locations/flower.conf.j2",
+            "extras/nginx/locations/flower.conf"
+        ],
+        "nginx-jenkins": [
+            "extras/nginx/locations/jenkins.conf.j2",
+            "extras/nginx/locations/jenkins.conf"
+        ],
+        "nginx-lb": [
+            "extras/nginx/locations/lb.conf.j2",
+            "extras/nginx/locations/lb.conf"
+        ],
+        "atmo.uwsgi": [
+            "extras/uwsgi/atmo.uwsgi.ini.j2",
+            "extras/uwsgi/atmo.uwsgi.ini"
+        ],
+        "secrets.py": [
+            "atmosphere/settings/secrets.py.j2",
+            "atmosphere/settings/secrets.py"
+        ]
+    }
+}
