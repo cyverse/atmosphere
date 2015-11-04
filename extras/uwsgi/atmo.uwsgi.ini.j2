@@ -1,0 +1,16 @@
+[uwsgi]
+check-static = {{ PATH_TO_ATMOSPHERE }}
+chdir = {{ PATH_TO_ATMOSPHERE }}
+home = {{ VIRTUALENV_PATH }}
+module = atmosphere.wsgi
+master = true
+socket = /tmp/atmosphere.sock
+thunder-lock = true
+enable-threads = true
+processes = 16
+uid = {{ UWSGI_USER }}
+gid = {{ UWSGI_GROUP }}
+{% if LOCAL_DEV %}chmod-socket = 776{% endif %}
+vacuum = true
+max-requests = 10
+daemonize = {{ UWSGI_LOG_PATH }}
