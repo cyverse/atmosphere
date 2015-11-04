@@ -65,11 +65,11 @@ try:
     import emoji
 except ImportError:
     class EmojiMock:
-        def emojize(text, use_aliases=False):
+        def emojize(self, text, use_aliases=False):
             return ''
-
     # mock to avoid forcing module installations
     emoji = EmojiMock()
+
 
 
 # name of the common variable section, this section is *merged* into
