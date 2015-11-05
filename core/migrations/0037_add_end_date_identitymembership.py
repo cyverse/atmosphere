@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0032_alter_machine_request'),
+        ('core', '0036_complete_the_uuid_merge'),
     ]
 
     operations = [
