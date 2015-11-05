@@ -10,12 +10,12 @@ from rest_framework.viewsets import ViewSet
 from rest_framework import status
 from uuid import uuid4
 from api import permissions
-from api.v2.exceptions import failure_response
 from api.v2.serializers.details import TokenSerializer
 from iplantauth.models import create_token
 from atmosphere.settings import secrets
 from core.models import AtmosphereUser
 from threepio import logger
+
 
 class TokenEmulateViewSet(ViewSet):
     lookup_field = 'username'
@@ -24,13 +24,13 @@ class TokenEmulateViewSet(ViewSet):
 
     def retrieve(self, *args, **kwargs):
         user = self.request.user
-        data = self.request.data
+        # data = self.request.data
         username = kwargs.get('username')
         expireDate = timezone.now() + secrets.TOKEN_EXPIRY_TIME
         new_token = create_token(
                 username,
                 token_key='EMULATED-'+str(uuid4()),
-                #remote_ip=request.META['REMOTE_ADDR'], Requires iplantauth >0.0.9
+                remote_ip=request.META['REMOTE_ADDR'],
                 token_expire=expireDate,
                 issuer="DRF-EmulatedToken-%s" % user.username)
         serialized_data = TokenSerializer(new_token, context={'request':self.request}).data
@@ -40,7 +40,7 @@ class TokenEmulateViewSet(ViewSet):
 class SessionEmulateViewSet(TokenEmulateViewSet):
     def retrieve(self, *args, **kwargs):
         user = self.request.user
-        data = self.request.data
+        # data = self.request.data
         username = kwargs.get('username')
         if username == user.username:
             # This will clear the emulation
@@ -75,7 +75,7 @@ def emulate_session(request, username=None):
             username,
             token_key='EMULATED-'+str(uuid4()),
             token_expire=expireDate,
-            #remote_ip=request.META['REMOTE_ADDR'], Requires iplantauth >0.0.9
+            remote_ip=request.META['REMOTE_ADDR'],
             issuer="DRF-EmulatedSession-%s" % user.username)
         token.save()
         # Keep original emulator if it exists, or use the last known username

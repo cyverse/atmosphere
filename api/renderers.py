@@ -22,9 +22,14 @@ class JPEGRenderer(renderers.BaseRenderer):
 
 
 class BrowsableAPIRenderer(renderers.BrowsableAPIRenderer):
-    """Render Browsable API without fomrs."""
+    """
+    'Custom' Browsable API Renderer
+
+    By setting 'display_edit_forms' to False in the context,
+    you can display the API without forms.
+    """
 
     def get_context(self, *args, **kwargs):
-        ctx = super(BrowsableAPIRenderer,self).get_context(*args, **kwargs)
-        #ctx['display_edit_forms'] = False
+        ctx = super(BrowsableAPIRenderer, self).get_context(*args, **kwargs)
+        # ctx['display_edit_forms'] = False
         return ctx

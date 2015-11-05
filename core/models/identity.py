@@ -318,11 +318,8 @@ class Identity(models.Model):
         }
 
     def __unicode__(self):
-        output = "%s %s - Credentials" % (self.provider_id, self.created_by_id)
-        #output += "Credentials {"
-        #for c in self.credential_set.order_by('key'):
-        #    output += "%s, " % (c.key,)
-        #output = output[:-2] + "}"
+        #TODO: Replace this with (self.provider, self.created_by) once DRF unicode error fixed.
+        output = "%s %s" % (self.provider_id, self.created_by_id)
         return output
 
     class Meta:

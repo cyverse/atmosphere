@@ -2,7 +2,6 @@ from core.models import PlatformType
 
 from api.v2.serializers.details import PlatformTypeSerializer
 from api.v2.views.base import AuthViewSet
-from api.v2.views.mixins import MultipleFieldLookup
 
 
 class PlatformTypeViewSet(AuthViewSet):
