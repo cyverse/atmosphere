@@ -35,4 +35,3 @@ from .token import TokenViewSet
 from .user import UserViewSet
 from .volume import VolumeViewSet
 from .metric import MetricViewSet
-from .email import FeedbackView
