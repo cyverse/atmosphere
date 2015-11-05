@@ -8,7 +8,7 @@ import uuid
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0031_set_membership_and_created_by'),
+        ('core', '0032_alter_machine_request'),
     ]
 
     operations = [
