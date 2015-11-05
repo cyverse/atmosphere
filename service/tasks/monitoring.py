@@ -424,9 +424,18 @@ def monitor_instances():
         monitor_instances_for.apply_async(args=[p.id])
 
 
+@task(name="monitor_instances")
+def monitor_instance_allocations():
+    """
+    Update instances for each active provider.
+    """
+    for p in Provider.get_active():
+        monitor_instances_for.apply_async(args=[p.id], check_allocations=True)
+
+
 @task(name="monitor_instances_for")
 def monitor_instances_for(provider_id, users=None,
-                          print_logs=False, start_date=None, end_date=None):
+                          print_logs=False, check_allocations=False, start_date=None, end_date=None):
     """
     Run the set of tasks related to monitoring instances for a provider.
     Optionally, provide a list of usernames to monitor
@@ -477,9 +486,10 @@ def monitor_instances_for(provider_id, users=None,
         core_instances = _cleanup_missing_instances(
             identity,
             core_running_instances)
-        allocation_result = user_over_allocation_enforcement(
-            provider, username,
-            print_logs, start_date, end_date)
+        if check_allocations:
+            allocation_result = user_over_allocation_enforcement(
+                provider, username,
+                print_logs, start_date, end_date)
     if print_logs:
         celery_logger.removeHandler(consolehandler)
     return running_total

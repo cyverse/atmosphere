@@ -412,10 +412,15 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=30),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
+    "monitor_instance_allocations": {
+        "task": "monitor_instance_allocations",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+    },
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule": timedelta(minutes=2),
-        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+        "options": {"expires": 2 * 60, "time_limit": 2 * 60}
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
