@@ -19,7 +19,9 @@ from core.models.provider import Provider
 from core.models.quota import Quota
 from core.models.user import AtmosphereUser
 
-from core.query import only_active_memberships
+from core.query import (
+        only_active_memberships, only_active_provider, only_current_provider
+    )
 
 class Group(DjangoGroup):
 

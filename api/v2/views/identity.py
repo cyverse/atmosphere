@@ -1,5 +1,4 @@
 from core.models import Identity, Group
-from core.query import only_current_provider
 
 from api.v2.serializers.details import IdentitySerializer
 from api.v2.views.base import AuthViewSet

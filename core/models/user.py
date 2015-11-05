@@ -4,7 +4,6 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from core.query import only_current_provider
 from threepio import logger
 
 
