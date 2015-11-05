@@ -40,7 +40,7 @@ class AtmosphereUser(AbstractUser):
         Set, save and return an active selected_identity for the user.
         """
         # Return previously selected identity
-        if self.selected_identity and self.selected_identity.is_active(self):
+        if self.selected_identity and self.selected_identity.is_active(user=self):
             return self.selected_identity
         else:
             self.selected_identity = get_default_identity(self.username)
