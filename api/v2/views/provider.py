@@ -21,6 +21,7 @@ class ProviderViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     serializer_class = ProviderSerializer
     http_method_names = ['get', 'head', 'options', 'trace']
 
+
     def get_permissions(self):
         method = self.request.method
         if method == 'DELETE' or method == 'PUT':
@@ -50,7 +51,7 @@ class ProviderViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     @detail_route()
     def sizes(self, *args, **kwargs):
         provider = self.get_object()
-        self.get_queryset = super(viewsets.ModelViewSet, self).get_queryset
+        self.get_queryset = super(viewsets.ReadOnlyModelViewSet, self).get_queryset
         self.queryset = provider.size_set.get_queryset()
         self.serializer_class = SizeSummarySerializer
         return self.list(self, *args, **kwargs)

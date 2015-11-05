@@ -4,6 +4,7 @@ from .boot_script import BootScriptViewSet
 from .credential import CredentialViewSet
 from .group import GroupViewSet
 from .identity import IdentityViewSet
+from .identity_membership import IdentityMembershipViewSet
 from .image import ImageViewSet
 from .image_bookmark import ImageBookmarkViewSet
 from .image_tag import ImageTagViewSet

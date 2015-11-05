@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from core.models import Allocation, AllocationStrategy
-from core.query import _active_identity_membership
+from core.query import only_active_memberships
 
 from api.v1.serializers import AllocationSerializer, AllocationResultSerializer
 from api.v1.views.base import AuthAPIView
@@ -96,7 +96,7 @@ class MonitoringList(AuthAPIView):
         """
         user = request.user
         allocation_results = []
-        memberships = _active_identity_membership(user)
+        memberships = only_active_memberships(user)
         for membership in memberships:
             strat = AllocationStrategy.objects.get(
                 provider=membership.identity.provider)

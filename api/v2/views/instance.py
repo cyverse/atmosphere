@@ -45,10 +45,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         Filter projects by current user.
         """
         user = self.request.user
-        qs = Instance.objects.filter(created_by=user)
-        if 'archived' in self.request.query_params:
+        identity_ids = user.current_identities.values_list('id',flat=True)
+        qs = Instance.objects.filter(created_by_identity__in=identity_ids)
+        if 'archived' in self.request.QUERY_PARAMS:
             return qs
-        # Return current results
         return qs.filter(only_current())
 
     @detail_route(methods=['post'])

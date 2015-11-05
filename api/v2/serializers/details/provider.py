@@ -25,12 +25,19 @@ class PlatformTypeSerializer(serializers.HyperlinkedModelSerializer):
 
 class ProviderSerializer(serializers.HyperlinkedModelSerializer):
     name = serializers.CharField(source='location')
-    type = ProviderTypeSerializer()
-    virtualization = PlatformTypeSerializer()
-    sizes = SizeSummarySerializer(source='size_set', many=True)
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:provider-detail',
     )
+    type = ProviderTypeSerializer()
+    virtualization = PlatformTypeSerializer()
+    sizes = SizeSummarySerializer(source='size_set', many=True)
+    is_admin = serializers.SerializerMethodField()
+
+    def get_is_admin(self, provider):
+        user = self.context['request'].user
+        if user.is_staff or user.is_superuser:
+            return True
+        return False
 
     class Meta:
         model = Provider
@@ -48,4 +55,5 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
             'sizes',
             'start_date',
             'end_date',
+            'is_admin',
         )

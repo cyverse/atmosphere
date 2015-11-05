@@ -80,6 +80,6 @@ def get_groups_using_credential(cred_key, cred_value, provider):
     all_affected_members = []
     for cred in credentials_found:
         affected_identity = cred.identity
-        affected_membership = affected_identity.identitymembership_set.all()
+        affected_membership = affected_identity.identity_memberships.all()
         all_affected_members.extend(affected_membership)
     return all_affected_members
