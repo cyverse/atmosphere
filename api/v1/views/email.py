@@ -3,13 +3,15 @@ Atmosphere api email
 """
 from rest_framework.response import Response
 from rest_framework import status
-from django.conf import settings
+from django.template.loader import render_to_string
+from django.template import Context
 
 from threepio import logger
 
 from iplantauth.protocol.ldap import lookupEmail
 
-from core.email import email_admin, feedback_email, resource_request_email
+from core.models import AtmosphereUser as User
+from core.email import email_admin, resource_request_email
 
 from api import failure_response
 from api.v1.views.base import AuthAPIView
@@ -25,7 +27,7 @@ class Feedback(AuthAPIView):
         """
         Creates a new feedback email and sends it to admins.
         """
-        required = ["message","user-interface"]
+        required = ["message", "user-interface"]
         missing_keys = check_missing_keys(request.data, required)
         if missing_keys:
             return keys_not_found(missing_keys)
@@ -36,14 +38,34 @@ class Feedback(AuthAPIView):
                              request.data)
         return Response(result, status=status.HTTP_201_CREATED)
 
-    def _email(self, request, username, user_email, message, data):
+    def _email(self, request, username, user_email, message):
         """
-        Sends an email Bto support based on feedback from a client machine
+        Sends an email to support based on feedback from a client machine
 
         Returns a response.
         """
-        data['server'] = settings.SERVER_URL
-        return feedback_email(request, username, user_email, message, data)
+        user = User.objects.get(username=username)
+        subject = 'Subject: Atmosphere Client Feedback from %s' % username
+        context = {
+            "user": user,
+            "feedback": message
+        }
+        body = render_to_string("core/email/feedback.html",
+                                context=Context(context))
+        email_success = email_admin(request, subject, body, request_tracker=True)
+        if email_success:
+            resp = {'result':
+                    {'code': 'success',
+                        'meta': '',
+                        'value': (
+                            'Thank you for your feedback! '
+                            'Support has been notified.')}}
+        else:
+            resp = {'result':
+                    {'code': 'failed',
+                     'meta': '',
+                     'value': 'Failed to send feedback!'}}
+        return resp
 
 
 class QuotaEmail(AuthAPIView):
@@ -94,7 +116,7 @@ class SupportEmail(AuthAPIView):
                              request.data)
         return Response(result, status=status.HTTP_201_CREATED)
 
-    def _email(self, request, subject, message, data):
+    def _email(self, request, subject, message):
         """
         Sends an email to support.
 
@@ -105,8 +127,7 @@ class SupportEmail(AuthAPIView):
 
         Returns a response.
         """
-        data['server'] = settings.SERVER_URL
-        email_success = email_admin(request, subject, message, data=data)
+        email_success = email_admin(request, subject, message)
         return {"email_sent": email_success}
 
 

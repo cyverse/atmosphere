@@ -61,6 +61,17 @@ pip install -r dev_requirements.txt
     Style = StyleMock()
 
 
+try:
+    import emoji
+except ImportError:
+    class EmojiMock:
+        def emojize(text, use_aliases=False):
+            return ''
+
+    # mock to avoid forcing module installations
+    emoji = EmojiMock()
+
+
 # name of the common variable section, this section is *merged* into
 # all other defined sections within the variables file.
 COMMON_KEY = 'COMMON'
@@ -131,6 +142,45 @@ def generate_new_key():
         string.digits +
         "!@#$%^&*(-_=+)") for _ in range(50))
     return new_key
+
+
+
+def _has_errors(messages):
+    return len(_scan_messages(messages, 'e')) != 0
+
+
+def _has_warnings(messages):
+    return len(_scan_messages(messages, 'w')) != 0
+
+
+def _scan_messages(messages, output_code):
+    return [c for c, _ in messages if c == output_code]
+
+
+def completed():
+    completed = '%s%sCOMPLETED.%s' % (Fore.BLACK, Back.WHITE, Style.RESET_ALL)
+    thumbsup = emoji.emojize(':thumbs_up_sign:')
+    return '\n%s %s' % (completed, thumbsup)
+
+
+def warnings():
+    warnings = '%s%sWARNINGS PRESENT.%s' % (Fore.BLACK, Back.YELLOW, Style.RESET_ALL)
+    warn_sign = emoji.emojize(':ticket:', use_aliases=True)
+    return '\n%s %s' % (warnings, warn_sign)
+
+
+def passed(text):
+    succeeded = '%s%sSUCCEEDED.%s' % (Fore.BLACK, Back.GREEN, Style.RESET_ALL)
+    checkmark = emoji.emojize(':white_check_mark:', use_aliases=True)
+    return '%s%s%s\n%s %s' % (Fore.GREEN, text, Style.RESET_ALL,
+        succeeded, checkmark)
+
+
+def failed(text):
+    failed = '%s%sFAILED.%s' % (Fore.BLACK, Back.RED, Style.RESET_ALL)
+    borkbork = emoji.emojize(':no_entry_sign:')
+    return '%s%s%s\n%s %s' % (Fore.RED, text, Style.RESET_ALL,
+        failed, borkbork)
 
 
 def _populate_variable_namespace(vars, includes):
@@ -218,6 +268,18 @@ def _get_variables(variables_file=VARIABLES_PATH):
                  'variables from %s' % (variables_file))])
 
 
+def _section_check(vars, distrib):
+    messages = []
+    v = Set(vars)
+    d = Set(distrib)
+    sections = d.difference(v)
+    for section in sections:
+        messages.append(('e',
+            'Local variables.ini missing section: %s'
+            % (section)))
+    return (len(sections) == 0, messages)
+
+
 def _compare_variables_distribution():
     variables_ini, msg_var_ini = _get_variables()
     variables_dist, msg_var_dist = _get_variables(VARIABLES_PATH+'.dist')
@@ -225,6 +287,11 @@ def _compare_variables_distribution():
 
     if variables_ini and variables_dist:
         messages = []
+
+        success, msgs = _section_check(variables_ini.keys(),
+            variables_dist.keys())
+        if not success:
+            return (success, msgs)
 
         unused_dist_ns = _populate_variable_namespace(variables_dist,
             SECTION_MAPPING.keys())
@@ -239,7 +306,7 @@ def _compare_variables_distribution():
                     'Missing shared variables section, [%s].'
                     % (e.message)))
 
-        return (unused_dist_ns, messages)
+        return (unused_dist_ns, messages + msgs)
     else:
         return (False, msg_var_ini + msg_var_dist)
 
@@ -401,10 +468,19 @@ def generate_configs(mapping, dry_run, backup=True):
      ... give some background on `mapping` and what it is doing
      ...
     """
+
     print 'Testing for preconditions...\n'
     success, messages = _check_paths()
     if not success:
+        print_messages(messages)
         return (success, 3)
+
+    # verify treats `warnings` as errors, but in this usages
+    # we want only want to halt when `'e'` messages are present.
+    success, messages = _verify_variables_file()
+    if _has_errors(messages):
+        print_messages(messages)
+        return (success, 4)
 
     success, messages = _handle_preconditions(mapping)
     print_messages(messages)
@@ -509,43 +585,10 @@ def print_verify():
         print passed('Verification complete.')
     else:
         print_messages(messages)
-        errors = [e for e, _ in messages if e == 'e']
-        if errors:
+        if _has_errors(messages):
             print failed('')
         else:
             print warnings()
-
-
-def _has_errors(messages):
-    return len(_scan_messages(messages, 'e')) != 0
-
-
-def _has_warnings(messages):
-    return len(_scan_messages(messages, 'w')) != 0
-
-
-def _scan_messages(messages, output_code):
-    return [c for c, _ in messages if c == output_code]
-
-
-def completed():
-    completed = '%s%sCOMPLETED.%s' % (Fore.BLACK, Back.WHITE, Style.RESET_ALL)
-    return '\n%s' % (completed)
-
-
-def warnings():
-    warnings = '%s%sWARNINGS PRESENT.%s' % (Fore.BLACK, Back.YELLOW, Style.RESET_ALL)
-    return '\n%s' % (warnings)
-
-
-def passed(text):
-    succeeded = '%s%sSUCCEEDED.%s' % (Fore.BLACK, Back.GREEN, Style.RESET_ALL)
-    return '%s%s%s\n%s' % (Fore.GREEN, text, Style.RESET_ALL, succeeded)
-
-
-def failed(text):
-    failed = '%s%sFAILED.%s' % (Fore.BLACK, Back.RED, Style.RESET_ALL)
-    return '%s%s%s\n%s' % (Fore.RED, text, Style.RESET_ALL, failed)
 
 
 def main():
