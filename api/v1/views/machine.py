@@ -207,7 +207,7 @@ class Machine(AuthAPIView):
         # TODO: Determine who is allowed to edit machines besides
         # core_machine.owner
         user = request.user
-        data = request.DATA
+        data = request.data
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -231,7 +231,7 @@ class Machine(AuthAPIView):
             logger.info('metadata = %s' % data)
             update_machine_metadata(esh_driver, esh_machine, data)
             machine = serializer.save()
-            if 'created_by_identity' in request.DATA:
+            if 'created_by_identity' in request.data:
                 identity = machine.created_by_identity
                 update_application_owner(
                     core_machine.application_version.application,
@@ -304,9 +304,9 @@ class MachineLicense(AuthAPIView):
         core_machine.owner
         """
         user = request.user
-        data = request.DATA
+        data = request.data
 
-        logger.info('data = %s' % request.DATA)
+        logger.info('data = %s' % request.data)
         core_machine = ProviderMachine.objects.filter(
             provider__uuid=provider_uuid,
             identifier=machine_id)

@@ -25,7 +25,7 @@ class Application(models.Model):
     sequence of versions. The created_by field here is used for logging only;
     do not rely on it for permissions; use ApplicationMembership instead.
     """
-    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     name = models.CharField(max_length=256)
     # TODO: Dynamic location for upload_to
     icon = models.ImageField(upload_to="applications", null=True, blank=True)
@@ -581,6 +581,7 @@ class ApplicationScore(models.Model):
 
 
 class ApplicationBookmark(models.Model):
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     user = models.ForeignKey('AtmosphereUser', related_name="bookmarks")
     application = models.ForeignKey(Application, related_name="bookmarks")
 

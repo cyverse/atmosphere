@@ -2,9 +2,10 @@ from django.db.models import Q
 import django_filters
 
 from core.models import ApplicationVersionMembership as ImageVersionMembership
-
+from service.machine import add_membership, remove_membership
 from api.v2.serializers.details import ImageVersionMembershipSerializer
 from api.v2.views.base import AuthViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 class VersionFilter(django_filters.FilterSet):
     version_id = django_filters.MethodFilter(action='filter_by_uuid')
@@ -12,12 +13,12 @@ class VersionFilter(django_filters.FilterSet):
 
     def filter_owner(self, queryset, value):
         return queryset.filter(
-            Q(application_version__created_by__username=value) |
-            Q(application_version__application__created_by__username=value)
+            Q(image_version__created_by__username=value) |
+            Q(image_version__application__created_by__username=value)
         )
     def filter_by_uuid(self, queryset, value):
         # NOTE: Remove this *HACK* once django_filters supports UUID as PK fields
-        return queryset.filter(application_version__id=value)
+        return queryset.filter(image_version__id=value)
 
     class Meta:
         model = ImageVersionMembership
@@ -38,4 +39,15 @@ class ImageVersionMembershipViewSet(AuthViewSet):
         Filter out tags for deleted versions
         """
         return ImageVersionMembership.objects.filter(
-            application_version__created_by=self.request.user)
+            image_version__created_by=self.request.user)
+
+    def perform_destroy(self, instance):
+        remove_membership(instance.image_version, instance.group)
+        instance.delete()
+
+    def perform_create(self, serializer):
+        image_version = serializer.validated_data['image_version']
+        group = serializer.validated_data['group']
+        add_membership(image_version, group)
+        serializer.save()
+

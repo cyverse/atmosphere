@@ -11,6 +11,7 @@ from core.models import IdentityMembership
 from core.models.status_type import StatusType
 
 from api.permissions import ApiAuthOptional, ApiAuthRequired, InMaintenance
+from api.v2.views.mixins import MultipleFieldLookup
 
 
 def unresolved_requests_only(fn):
@@ -67,7 +68,7 @@ class OwnerUpdateViewSet(AuthViewSet):
                         " handled by the subclass of OwnerUpdateViewSet")
 
 
-class BaseRequestViewSet(AuthViewSet):
+class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     Base class ViewSet to handle requests
@@ -75,6 +76,7 @@ class BaseRequestViewSet(AuthViewSet):
 
     admin_serializer_class = None
     model = None
+    lookup_fields = ("id", "uuid")
 
     def get_queryset(self):
         """

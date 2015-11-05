@@ -19,7 +19,7 @@ class Identity(models.Model):
     to authenticate against a single provider
     """
 
-    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     created_by = models.ForeignKey("AtmosphereUser")
     provider = models.ForeignKey("Provider")
 
@@ -318,11 +318,8 @@ class Identity(models.Model):
         }
 
     def __unicode__(self):
-        output = "%s %s - " % (self.provider, self.created_by.username)
-        output += "Credentials {"
-        for c in self.credential_set.order_by('key'):
-            output += "%s, " % (c.key,)
-        output = output[:-2] + "}"
+        #TODO: Replace this with (self.provider, self.created_by) once DRF unicode error fixed.
+        output = "%s %s" % (self.provider_id, self.created_by_id)
         return output
 
     class Meta:

@@ -76,7 +76,7 @@ class NotificationList(MaintenanceAPIView):
         POST a notification to the creator, dependent on the action
         TODO: Record launched activity in log/db for profiling later
         """
-        params = request.DATA
+        params = request.data
         logger.info(request)
         logger.info(params)
         action = params.get('action', 'instance_launched')

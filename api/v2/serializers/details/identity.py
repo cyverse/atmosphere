@@ -6,6 +6,8 @@ from api.v2.serializers.summaries import (
     UserSummarySerializer,
     ProviderSummarySerializer
 )
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
+
 
 class IdentitySerializer(serializers.HyperlinkedModelSerializer):
     quota = QuotaSummarySerializer(source='get_quota')
@@ -13,14 +15,15 @@ class IdentitySerializer(serializers.HyperlinkedModelSerializer):
     usage = serializers.SerializerMethodField()
     user = UserSummarySerializer(source='created_by')
     provider = ProviderSummarySerializer()
-
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:identity-detail',
+    )
     def get_usage(self, identity):
         return identity.get_allocation_usage()
 
 
     class Meta:
         model = Identity
-        view_name = 'api:v2:identity-detail'
         fields = ('id',
                   'uuid',
                   'url',

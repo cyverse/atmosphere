@@ -7,6 +7,7 @@ from core.models import InstanceStatusHistory
 
 from api.v2.serializers.details import InstanceStatusHistorySerializer
 from api.v2.views.base import AuthReadOnlyViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 class InstanceStatusHistoryFilter(django_filters.FilterSet):
     instance = django_filters.MethodFilter(action='filter_instance_id')
@@ -28,7 +29,7 @@ class InstanceStatusHistoryFilter(django_filters.FilterSet):
 
 
 
-class InstanceStatusHistoryViewSet(AuthReadOnlyViewSet):
+class InstanceStatusHistoryViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
 
     """
     API endpoint that allows instance tags to be viewed
@@ -37,6 +38,7 @@ class InstanceStatusHistoryViewSet(AuthReadOnlyViewSet):
     serializer_class = InstanceStatusHistorySerializer
     ordering = ('-start_date', 'instance__id')
     ordering_fields = ('start_date', 'instance__id')
+    lookup_fields = ("id", "uuid")
     filter_class = InstanceStatusHistoryFilter
     filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
 

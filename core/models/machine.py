@@ -5,7 +5,7 @@ from hashlib import md5
 
 from django.db import models
 from django.utils import timezone
-from django.core.exceptions import ObjectDoesNotExist as DoesNotExist
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist as DoesNotExist
 from threepio import logger
 
 from core.models.abstract import BaseSource
@@ -380,6 +380,18 @@ def add_to_cache(provider_machine):
     #    provider_machine.identifier)] = provider_machine
     return provider_machine
 
+
+def find_provider_machine(identifier, provider_uuid):
+    try:
+        if type(identifier) == int:
+            machine = ProviderMachine.objects.get(pk=identifier)
+        else:
+            machine = ProviderMachine.objects.get(instance_source__identifier=identifier)
+        return machine
+    except ProviderMachine.DoesNotExist:
+        return None
+    except MultipleObjectsReturned:
+        raise MultipleObjectsReturned("Identifier %s is ambiguous. Use the 'pk' value")
 
 def get_provider_machine(identifier, provider_uuid):
     try:

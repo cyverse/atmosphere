@@ -11,6 +11,7 @@ class ImageTagViewSet(AuthViewSet):
     """
     queryset = ImageTag.objects.all()
     serializer_class = ImageTagSerializer
+
     filter_fields = ('application__id',)
 
     def get_queryset(self):

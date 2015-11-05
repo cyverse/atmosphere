@@ -28,7 +28,7 @@ class Authentication(APIView):
         return Response(serialized_data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        data = request.DATA
+        data = request.data
         username = data.get('username', None)
         password = data.get('password', None)
         if not username:

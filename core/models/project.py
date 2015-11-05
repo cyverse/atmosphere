@@ -18,7 +18,7 @@ class Project(models.Model):
       * Instance
       * Volume
     """
-    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True)
     start_date = models.DateTimeField(default=timezone.now)
@@ -40,10 +40,8 @@ class Project(models.Model):
             pk__in=self.instances.values_list("id"))
 
     def __unicode__(self):
-        return "%s Owner:%s: Apps:%s Instances:%s Volumes:%s"\
-            % (self.name, self.owner,
-               self.applications.all(), self.instances.all(),
-               self.volumes.all())
+        return "%s Owner ID:%s" \
+            % (self.name, self.owner_id)
 
     def has_running_resources(self):
         now_date = timezone.now()

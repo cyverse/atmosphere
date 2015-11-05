@@ -41,6 +41,7 @@ class BootScript(models.Model):
     BootScripts can be created as an isolated unit, before they are associated
     with a specific application or instance.
     """
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     title = models.CharField(max_length=128)
     created_by = models.ForeignKey("AtmosphereUser")
     script_type = models.ForeignKey(ScriptType)
@@ -60,7 +61,7 @@ class BootScript(models.Model):
         return slugify(self.title).replace('-', '_')
 
     def get_text(self):
-        if self.script_type.name == 'Raw Text':
+        if self.script_type.name == 'Full Text':
             return self.script_text
         elif self.script_type.name == 'URL':
             return self._text_from_url()
@@ -72,6 +73,9 @@ class BootScript(models.Model):
         content = req.content
         return content
 
+    def __unicode__(self):
+        return "%s <%s>" % (self.title, self.script_type)
+
     class Meta:
         db_table = 'boot_script'
         app_label = 'core'
@@ -79,14 +83,16 @@ class BootScript(models.Model):
 
 class ApplicationVersionBootScript(models.Model):
     """
-    Represents the M2M table auto-created by 'application_version.licenses'
+    Represents the M2M table auto-created by 'applicationversion.bootscripts'
     """
-    applicationversion = models.ForeignKey("ApplicationVersion")
-    bootscript = models.ForeignKey(BootScript)
+    image_version = models.ForeignKey("ApplicationVersion",
+                                      db_column='applicationversion_id')
+    boot_script = models.ForeignKey(BootScript,
+                                    db_column="bootscript_id")
 
     def __unicode__(self):
         return "(ApplicationVersion:%s - BootScript:%s) " %\
-            (self.application_version, self.bootscript.title)
+            (self.image_version, self.boot_script.title)
 
     class Meta:
         db_table = 'application_version_boot_scripts'
@@ -143,5 +149,13 @@ def _save_scripts_to_instance(instance, boot_script_list):
             instance.scripts.remove(old_script)
     # Add all new scripts
     for script_id in boot_script_list:
-        script = BootScript.objects.get(id=script_id)
+        try:
+            script = BootScript.objects.get(uuid=script_id)
+        except BootScript.DoesNotExist:
+            # This 2nd-attempt can be removed when API v1 is removed
+            try:
+                script = BootScript.objects.get(id=script_id)
+            except BootScript.DoesNotExist:
+                continue
+
         script.instances.add(instance)

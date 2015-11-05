@@ -1,6 +1,6 @@
 from core.models import Volume
 from rest_framework import serializers
-from api.v2.serializers.fields import ModelRelatedField
+from api.v2.serializers.fields.base import ModelRelatedField, InstanceSourceHyperlinkedIdentityField
 from api.v2.serializers.summaries import (
     IdentitySummarySerializer,
     ProviderSummarySerializer,
@@ -26,18 +26,21 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSummarySerializer(source='instance_source.created_by',
                                  read_only=True)
 
-    uuid = serializers.CharField(source='instance_source.identifier',
-                                 read_only=True)
-
     projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     snapshot_id = serializers.CharField(write_only=True, allow_blank=True,
                                         required=False)
     image_id = serializers.CharField(write_only=True, allow_blank=True,
                                      required=False)
+    uuid = serializers.CharField(source='instance_source.identifier',
+                                 read_only=True)
+    # NOTE: this is still using ID instead of UUID -- due to abstract classes and use of getattr in L271 of rest_framework/relations.py, this is a 'kink' that has not been worked out yet.
+    url = InstanceSourceHyperlinkedIdentityField(
+        view_name='api:v2:volume-detail',
+    )
 
     class Meta:
         model = Volume
-        view_name = 'api:v2:volume-detail'
+
         read_only_fields = ("user", "uuid", "start_date", "end_date")
         fields = (
             'id',
