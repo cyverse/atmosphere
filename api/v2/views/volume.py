@@ -3,14 +3,20 @@ import pytz
 from django.utils import timezone
 from libcloud.common.types import InvalidCredsError, MalformedResponseError
 from rest_framework import exceptions
+from rest_framework.decorators import detail_route
+from rest_framework.response import Response
+from rest_framework import status
 
 from api.v2.serializers.details import VolumeSerializer, UpdateVolumeSerializer
 from api.v2.views.base import AuthViewSet
-from core.models import Volume
+from api.v2.views.mixins import MultipleFieldLookup
+
+from core.models.volume import Volume, find_volume
 from core.query import only_current_source
-from service.volume import create_volume_or_fail, destroy_volume_or_fail
+from service.volume import create_volume_or_fail, destroy_volume_or_fail, update_volume_metadata
 from service.exceptions import OverQuotaError
 from rtwo.exceptions import ConnectionFailure
+from threepio import logger
 
 UPDATE_METHODS = ("PUT", "PATCH")
 
@@ -26,11 +32,12 @@ class VolumeFilter(django_filters.FilterSet):
         fields = ['min_size', 'max_size', 'projects']
 
 
-class VolumeViewSet(AuthViewSet):
+class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.
     """
+    lookup_fields = ("id", "instance_source__identifier")
     serializer_class = VolumeSerializer
     filter_class = VolumeFilter
     http_method_names = ('get', 'post', 'put', 'patch', 'delete',
@@ -50,6 +57,22 @@ class VolumeViewSet(AuthViewSet):
         return Volume.objects.filter(
             only_current_source(),
             instance_source__created_by_identity__in=identity_ids)
+
+    @detail_route(methods=['post'])
+    def update_metadata(self, request, pk=None):
+        """
+        Until a better method comes about, we will handle Updating metadata here.
+        """
+        data = request.data
+        metadata = data.pop('metadata')
+        volume_id = pk
+        volume = find_volume(volume_id)
+        try:
+            update_volume_metadata(volume, metadata)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as exc:
+            logger.exception("Error occurred updating v2 volume metadata")
+            return Response(exc.message, status=status.HTTP_409_CONFLICT)
 
     def perform_create(self, serializer):
         data = serializer.validated_data

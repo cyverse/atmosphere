@@ -31,7 +31,7 @@ class AllocationList(AuthAPIView):
         """
         Creates a new Allocation
         """
-        data = request.DATA
+        data = request.data
         serializer = AllocationSerializer(data=data)
 
         if serializer.is_valid():
@@ -59,7 +59,7 @@ class AllocationDetail(AuthAPIView):
         """
         Updates the specified Allocation
         """
-        data = request.DATA
+        data = request.data
         allocation = get_object_or_404(Allocation, id=quota_id)
         serializer = AllocationSerializer(allocation, data=data)
 
@@ -73,7 +73,7 @@ class AllocationDetail(AuthAPIView):
         """
         Partially updates the specified Allocation
         """
-        data = request.DATA
+        data = request.data
         allocation = get_object_or_404(Allocation, id=quota_id)
         serializer = AllocationSerializer(allocation, data=data, partial=True)
 

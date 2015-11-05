@@ -84,9 +84,9 @@ class MachineRequestList(AuthAPIView):
 
     def _create_image(self, request, provider_uuid, identity_uuid):
         _permission_to_act(identity_uuid, "Imaging")
-        # request.DATA is r/o
+        # request.data is r/o
         # Copy allows for editing
-        data = copy.deepcopy(request.DATA)
+        data = copy.deepcopy(request.data)
         data.update({'owner': data.get('created_for', request.user.username)})
         if data.get('vis', 'public') != 'public':
             user_list = data.get('shared_with', '')
@@ -175,7 +175,7 @@ class MachineRequest(AuthAPIView):
         """
         # Meta data changes in 'pending' are OK
         # Status change 'pending' --> 'cancel' are OK
-        data = request.DATA
+        data = request.data
         try:
             machine_request = CoreMachineRequest.objects.get(
                 id=machine_request_id)
@@ -199,7 +199,7 @@ class MachineRequest(AuthAPIView):
         """
         # Meta data changes in 'pending' are OK
         # Status change 'pending' --> 'cancel' are OK
-        data = request.DATA
+        data = request.data
         try:
             machine_request = CoreMachineRequest.objects.get(
                 id=machine_request_id)

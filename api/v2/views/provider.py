@@ -9,14 +9,14 @@ from api.permissions import CloudAdminRequired
 from api.v2.serializers.details import ProviderSerializer
 from api.v2.serializers.summaries import SizeSummarySerializer
 from api.v2.views.base import AuthReadOnlyViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 
-class ProviderViewSet(AuthReadOnlyViewSet):
-
+class ProviderViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
-
+    lookup_fields = ("id", "uuid")
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
     http_method_names = ['get', 'head', 'options', 'trace']

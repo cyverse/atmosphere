@@ -1,3 +1,4 @@
+# flake8: noqa
 from .allocation import AllocationSummarySerializer
 from .group import GroupSummarySerializer
 from .membership import MembershipSummarySerializer
@@ -17,16 +18,3 @@ from .status_type import StatusTypeSummarySerializer
 from .tag import TagSummarySerializer
 from .user import UserSummarySerializer
 from .volume import VolumeSummarySerializer
-
-__all__ = (
-    AllocationSummarySerializer,
-    IdentitySummarySerializer, ImageSummarySerializer,
-    ImageVersionSummarySerializer, InstanceSummarySerializer,
-    InstanceSuperSummarySerializer, LicenseSummarySerializer, MembershipSummarySerializer,
-    BootScriptSummarySerializer, ProjectSummarySerializer,
-    GroupSummarySerializer,
-    ProviderSummarySerializer, ProviderMachineSummarySerializer,
-    QuotaSummarySerializer, SizeSummarySerializer,
-    StatusTypeSummarySerializer, TagSummarySerializer,
-    UserSummarySerializer, VolumeSummarySerializer
-)

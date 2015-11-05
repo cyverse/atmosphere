@@ -1,12 +1,8 @@
-from socket import error as socket_error
 from django.utils import timezone
 from django.db.models import Q
 
 from rest_framework import status
 from rest_framework.response import Response
-
-from rtwo.exceptions import ConnectionFailure
-from libcloud.common.types import InvalidCredsError, MalformedResponseError
 
 from threepio import logger
 
@@ -16,22 +12,23 @@ from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.tag import Tag as CoreTag
-from core.models.volume import convert_esh_volume
 from core.models.provider import Provider
 
 from service import task
 from service.cache import get_cached_instances,\
     invalidate_cached_instances
 from service.driver import prepare_driver
-from service.instance import redeploy_init, reboot_instance,\
-    launch_instance, resize_instance, confirm_resize,\
-    start_instance, resume_instance,\
-    stop_instance, suspend_instance,\
-    shelve_instance, unshelve_instance, offload_instance
-from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    VolumeAttachConflict, VolumeMountConflict,\
-    UnderThresholdError, ActionNotAllowed
+from service.instance import (
+    run_instance_action,
+    launch_instance)
+from service.exceptions import (
+    OverAllocationError, OverQuotaError,
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
+    VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist,
+    UnderThresholdError, ActionNotAllowed,
+    # Technically owned by another
+    socket_error, ConnectionFailure, InvalidCredsError, MalformedResponseError
+    )
 
 from api import failure_response, invalid_creds,\
     connection_failure, malformed_response,\
@@ -139,7 +136,7 @@ class InstanceList(AuthAPIView):
         the URL for the newly created instance
         I.e: url = "/provider/1/instance/1/i-12345678"
         """
-        data = request.DATA
+        data = request.data
         user = request.user
         # Check the data is valid
         missing_keys = valid_post_data(data)
@@ -158,7 +155,7 @@ class InstanceList(AuthAPIView):
         try:
             logger.debug(data)
             core_instance = launch_instance(
-                user, provider_uuid, identity_uuid,
+                user, identity_uuid,
                 size_alias, machine_alias,
                 ex_availability_zone=hypervisor_name,
                 deploy=deploy, **data)
@@ -422,154 +419,32 @@ class InstanceAction(AuthAPIView):
         including necessary parameters.
         """
         # Service-specific call to action
-        action_params = request.DATA
+        action_params = request.data
         if not action_params.get('action', None):
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
                 'POST request to /action require a BODY with \'action\'.')
         result_obj = None
         user = request.user
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
-        if not esh_driver:
-            return invalid_creds(provider_uuid, identity_uuid)
-
-        try:
-            esh_instance = esh_driver.get_instance(instance_id)
-        except (socket_error, ConnectionFailure):
-            return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
-            return invalid_creds(provider_uuid, identity_uuid)
-        except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
-        if not esh_instance:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                'Instance %s no longer exists' % (instance_id,))
+        identity = Identity.objects.get(uuid=identity_uuid)
         action = action_params['action']
         try:
-            if 'volume' in action:
-                volume_id = action_params.get('volume_id')
-                mount_location = action_params.get('mount_location', None)
-                device = action_params.get('device', None)
-                if 'attach_volume' == action:
-                    if mount_location == 'null' or mount_location == 'None':
-                        mount_location = None
-                    if device == 'null' or device == 'None':
-                        device = None
-                    if esh_instance.extra['status'] != 'active':
-                        return failure_response(
-                            status.HTTP_400_BAD_REQUEST,
-                            'Instance %s must be active before attaching '
-                            'a volume. '
-                            'Retry request when volume is active.'
-                            % (instance_id,))
-                    task.attach_volume_task(esh_driver,
-                                            esh_instance.alias,
-                                            volume_id,
-                                            device,
-                                            mount_location)
-                elif 'mount_volume' == action:
-                    task.mount_volume_task(esh_driver,
-                                           esh_instance.alias,
-                                           volume_id, device,
-                                           mount_location)
-                elif 'unmount_volume' == action:
-                    (result, error_msg) =\
-                        task.unmount_volume_task(esh_driver,
-                                                 esh_instance.alias,
-                                                 volume_id, device,
-                                                 mount_location)
-                elif 'detach_volume' == action:
-                    if esh_instance.extra['status'] != 'active':
-                        return failure_response(
-                            status.HTTP_400_BAD_REQUEST,
-                            'Instance %s must be active before detaching '
-                            'a volume. '
-                            'Retry request when volume is active.'
-                            % (instance_id,))
-                    (result, error_msg) =\
-                        task.detach_volume_task(esh_driver,
-                                                esh_instance.alias,
-                                                volume_id)
-                    if not result and error_msg:
-                        # Return reason for failed detachment
-                        return failure_response(
-                            status.HTTP_400_BAD_REQUEST,
-                            error_msg)
-                # Task complete, convert the volume and return the object
-                esh_volume = esh_driver.get_volume(volume_id)
-                core_volume = convert_esh_volume(esh_volume,
-                                                 provider_uuid,
-                                                 identity_uuid,
-                                                 user)
-                result_obj =\
-                    VolumeSerializer(core_volume,
-                                     context={"request": request}).data
-            elif 'resize' == action:
-                size_alias = action_params.get('size', '')
-                if isinstance(size_alias, int):
-                    size_alias = str(size_alias)
-                resize_instance(esh_driver, esh_instance, size_alias,
-                                provider_uuid, identity_uuid, user)
-            elif 'confirm_resize' == action:
-                confirm_resize(esh_driver, esh_instance,
-                               provider_uuid, identity_uuid, user)
-            elif 'revert_resize' == action:
-                esh_driver.revert_resize_instance(esh_instance)
-            elif 'redeploy' == action:
-                redeploy_init(esh_driver, esh_instance)
-            elif 'resume' == action:
-                result_obj = resume_instance(esh_driver, esh_instance,
-                                             provider_uuid, identity_uuid,
-                                             user)
-            elif 'suspend' == action:
-                result_obj = suspend_instance(esh_driver, esh_instance,
-                                              provider_uuid, identity_uuid,
-                                              user)
-            elif 'shelve' == action:
-                result_obj = shelve_instance(esh_driver, esh_instance,
-                                             provider_uuid, identity_uuid,
-                                             user)
-            elif 'unshelve' == action:
-                result_obj = unshelve_instance(esh_driver, esh_instance,
-                                               provider_uuid, identity_uuid,
-                                               user)
-            elif 'shelve_offload' == action:
-                result_obj = offload_instance(esh_driver, esh_instance)
-            elif 'start' == action:
-                start_instance(esh_driver, esh_instance,
-                               provider_uuid, identity_uuid, user)
-            elif 'stop' == action:
-                stop_instance(esh_driver, esh_instance,
-                              provider_uuid, identity_uuid, user)
-            elif 'reset_network' == action:
-                esh_driver.reset_network(esh_instance)
-            elif 'console' == action:
-                result_obj = esh_driver._connection\
-                                       .ex_vnc_console(esh_instance)
-            elif 'reboot' == action:
-                reboot_type = action_params.get('reboot_type', 'SOFT')
-                reboot_instance(esh_driver, esh_instance,
-                                identity_uuid, user, reboot_type)
-            elif 'rebuild' == action:
-                machine_alias = action_params.get('machine_alias', '')
-                machine = esh_driver.get_machine(machine_alias)
-                esh_driver.rebuild_instance(esh_instance, machine)
-            else:
-                return failure_response(
-                    status.HTTP_400_BAD_REQUEST,
-                    'Unable to to perform action %s.' % (action))
+            result_obj = run_instance_action(user, identity, instance_id, action, action_params)
             api_response = {
                 'result': 'success',
-                'message': 'The requested action <%s> was run successfully'
-                % action_params['action'],
+                'message': 'The requested action <%s> was run successfully' % (action_params['action'],),
                 'object': result_obj,
             }
             response = Response(api_response, status=status.HTTP_200_OK)
             return response
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid, identity_uuid)
+        except InstanceDoesNotExist as dne:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                'Instance %s no longer exists' % (dne.message,))
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
         except HypervisorCapacityError as hce:
             return over_capacity(hce)
         except OverQuotaError as oqe:
@@ -577,7 +452,7 @@ class InstanceAction(AuthAPIView):
         except OverAllocationError as oae:
             return over_quota(oae)
         except SizeNotAvailable as snae:
-            return size_not_availabe(snae)
+            return size_not_available(snae)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
@@ -672,7 +547,7 @@ class Instance(AuthAPIView):
     def patch(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, update metadata about the instance"""
         user = request.user
-        data = request.DATA
+        data = request.data
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -696,7 +571,7 @@ class Instance(AuthAPIView):
         serializer = InstanceSerializer(
             core_instance, data=data,
             context={"request": request}, partial=True)
-        identity=Identity.objects.get(uuid=identity_uuid)
+        identity = Identity.objects.get(uuid=identity_uuid)
         provider = identity.provider
 
         if serializer.is_valid():
@@ -722,7 +597,7 @@ class Instance(AuthAPIView):
     def put(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, update metadata about the instance"""
         user = request.user
-        data = request.DATA
+        data = request.data
         # Ensure item exists on the server first
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
@@ -871,7 +746,7 @@ class InstanceTagList(AuthAPIView):
         Status Code: 400 Body: Errors (Duplicate/Invalid Name)
         """
         user = request.user
-        data = request.DATA.copy()
+        data = request.data.copy()
         if 'name' not in data:
             return Response("Missing 'name' in POST data",
                             status=status.HTTP_400_BAD_REQUEST)
@@ -965,7 +840,7 @@ def instance_not_found(instance_id):
         'Instance %s does not exist' % instance_id)
 
 
-def size_not_availabe(sna_exception):
+def size_not_available(sna_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         sna_exception.message)

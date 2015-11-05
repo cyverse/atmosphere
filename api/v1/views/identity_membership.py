@@ -25,7 +25,7 @@ class IdentityMembershipList(AuthAPIView):
         Create a new identity member (ADMINS & OWNERS GROUP LEADERS ONLY)
         """
         user = request.user
-        data = request.DATA
+        data = request.data
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
             group_name = data['group']

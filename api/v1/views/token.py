@@ -32,7 +32,7 @@ class TokenEmulate(AuthAPIView):
         Create a new token in the database on behalf of 'username'
         Returns success 201 Created - Body is JSON and contains
         """
-        params = request.DATA
+        params = request.data
         user = request.user
         if not username:
             return Response("Username was not provided",

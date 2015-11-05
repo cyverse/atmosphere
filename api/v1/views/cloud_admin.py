@@ -117,7 +117,7 @@ class CloudAdminImagingRequest(APIView):
                             % machine_request_id,
                             status=status.HTTP_404_NOT_FOUND)
 
-        data = request.DATA
+        data = request.data
         # Behavior will remove 'status' if its being updated.
         # Status should only be updated if denied or skipped.
         # Status of 'approve','continue' will use the machine_request.status
@@ -179,7 +179,7 @@ class CloudAdminAccountList(APIView):
 
         """
         user = request.user
-        data = request.DATA
+        data = request.data
         try:
             provider_uuid = data['provider']
             provider = Provider.objects.get(
@@ -252,7 +252,7 @@ class CloudAdminInstanceActionList(APIView):
         """
         Create a new "ProviderInstanceAction"
         """
-        data = request.DATA
+        data = request.data
         serializer = POST_ProviderInstanceActionSerializer(data=data)
         if serializer.is_valid():
             new_action = serializer.save()
@@ -287,7 +287,7 @@ class CloudAdminInstanceAction(APIView):
         """
         Return a list of ALL users found on provider_uuid
         """
-        data = request.DATA
+        data = request.data
         try:
             p_instance_action = ProviderInstanceAction.objects.get(
                 id=provider_instance_action_id)

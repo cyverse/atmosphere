@@ -1,6 +1,6 @@
-Django==1.8.2
+Django==1.8.5
 django-cors-headers==0.12.0
-djangorestframework==3.1.2
+djangorestframework==3.2.4
 djangorestframework-jsonp==1.0.0
 djangorestframework-xml==1.0.1
 djangorestframework-yaml==1.0.2
@@ -35,7 +35,7 @@ python-ldap==2.4.19
 uWSGI==2.0.9
 
 ## ours
-django-iplant-auth==0.0.6
+django-iplant-auth==0.0.11
 threepio==0.2.0
 rtwo==0.2.14
 caslib.py==2.2.2

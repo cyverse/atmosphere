@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from core.models.boot_script import BootScript, ScriptType
 from core.models.user import AtmosphereUser
-
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
@@ -16,7 +16,9 @@ class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
         source='script_type',
         slug_field='name',
         queryset=ScriptType.objects.all())
-
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:bootscript-detail',
+    )
     def create(self, validated_data):
 
         if 'created_by' not in validated_data:
@@ -27,4 +29,4 @@ class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = BootScript
-        fields = ('id', 'created_by', 'title', 'text', 'type')
+        fields = ('id', 'url', 'uuid', 'created_by', 'title', 'text', 'type')

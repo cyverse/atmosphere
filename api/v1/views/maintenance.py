@@ -72,7 +72,7 @@ class MaintenanceRecord(AuthOptionalAPIView):
         """
         Update a maintenance record.
         """
-        data = request.DATA
+        data = request.data
         try:
             record = CoreMaintenanceRecord.objects.get(id=record_id)
         except CoreMaintenanceRecord.DoesNotExist:
@@ -91,7 +91,7 @@ class MaintenanceRecord(AuthOptionalAPIView):
         """
         Update a maintenance record.
         """
-        data = request.DATA
+        data = request.data
         try:
             record = CoreMaintenanceRecord.objects.get(id=record_id)
         except CoreMaintenanceRecord.DoesNotExist:

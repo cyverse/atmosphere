@@ -11,6 +11,7 @@ from api.v2.serializers.summaries import (
     ImageVersionSummarySerializer)
 from api.v2.serializers.fields import (
     ProviderMachineRelatedField, ModelRelatedField)
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
@@ -45,11 +46,13 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         style={'base_template': 'input.html'})
     start_date = serializers.DateTimeField()
     end_date = serializers.DateTimeField(allow_null=True)
-
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:imageversion-detail',
+        uuid_field='id'
+    )
     class Meta:
         model = ImageVersion
-        view_name = 'api:v2:providermachine-detail'
-        fields = ('id', 'parent', 'name', 'change_log',
+        fields = ('id', 'url', 'parent', 'name', 'change_log',
                   'image', 'machines', 'allow_imaging',
                   'licenses', 'membership', 'scripts',
                   'user', 'identity',

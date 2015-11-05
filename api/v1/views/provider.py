@@ -68,7 +68,7 @@ class Provider(APIView):
 
     def patch(self, request, provider_uuid):
         user = request.user
-        data = request.DATA
+        data = request.data
         try:
             provider = CoreProvider.objects.get(
                 cloudadministrator__user=user,

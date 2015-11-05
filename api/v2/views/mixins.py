@@ -37,7 +37,14 @@ class MultipleFieldLookup(object):
         filter_fields = []
         for field_name in self.lookup_fields:
             try:
-                field = queryset.model._meta.get_field(field_name)
+                if '.' not in field_name and '__' not in field_name:
+                    field = queryset.model._meta.get_field(field_name)
+                else:
+                    #NOTE: This allows for 'x__y' or 'x.y' support
+                    field_split_list = field_name.replace('__','.').split('.')
+                    field = queryset.model._meta.get_field(field_split_list[0])
+                    for n_field in field_split_list[1:]:
+                        field = field.related_model._meta.get_field(n_field)
             except models.FieldDoesNotExist:
                 raise Exception(
                     "The lookup field `%s` does not exist for the model %s."
@@ -50,7 +57,6 @@ class MultipleFieldLookup(object):
             filter_chain = reduce(operator.or_, query_list)
         except TypeError:
             raise Http404
-
         obj = get_object_or_404(queryset, filter_chain)
         self.check_object_permissions(self.request, obj)
         return obj

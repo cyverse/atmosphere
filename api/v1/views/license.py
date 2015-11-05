@@ -23,7 +23,7 @@ class LicenseList(AuthAPIView):
         return Response(serialized_data)
 
     def post(self, request):
-        data = request.DATA
+        data = request.data
         data['created_by'] = request.user
         serializer = POST_LicenseSerializer(
             data=data,
@@ -51,7 +51,7 @@ class License(AuthAPIView):
         return self._update_license(request, license_id, partial=True)
 
     def _update_license(self, request, license_id, partial=False):
-        data = request.DATA
+        data = request.data
         license = get_object_or_404(CoreLicense, id=license_id)
         serializer = LicenseSerializer(
             license, context={"request": request},

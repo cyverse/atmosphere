@@ -3,6 +3,7 @@ Strategy (implemented as Django DB based models)
 """
 from dateutil.relativedelta import relativedelta
 
+from uuid import uuid4
 from django.db import models
 from django.utils import timezone
 
@@ -20,6 +21,7 @@ class Allocation(models.Model):
     a User/Group. Allocations are set at the Identity Level
     in IdentityMembership.
     """
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     # One week
     threshold = models.IntegerField(null=True,
                                     blank=True,

@@ -23,8 +23,7 @@ class CloudAdministrator(models.Model):
         (Suspend/Shutoff/Email/etc.)
     This class only applies to Private clouds!
     """
-    uuid = models.CharField(max_length=36, default=uuid.uuid4,
-                            unique=True, editable=False)
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     user = models.ForeignKey(AtmosphereUser)
     provider = models.ForeignKey(Provider)
 

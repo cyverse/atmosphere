@@ -33,10 +33,11 @@ class TagRelatedField(serializers.PrimaryKeyRelatedField):
 class InstanceTagSerializer(serializers.HyperlinkedModelSerializer):
     instance = InstanceRelatedField(queryset=Instance.objects.none())
     tag = TagRelatedField(queryset=Tag.objects.none())
-
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:instancetag-detail',
+    )
     class Meta:
         model = InstanceTag
-        view_name = 'api:v2:instancetag-detail'
         fields = (
             'id',
             'url',

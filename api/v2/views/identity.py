@@ -2,13 +2,15 @@ from core.models import Identity, Group
 
 from api.v2.serializers.details import IdentitySerializer
 from api.v2.views.base import AuthViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 
-class IdentityViewSet(AuthViewSet):
+class IdentityViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.
     """
+    lookup_fields = ("id", "uuid")
     queryset = Identity.objects.all()
     serializer_class = IdentitySerializer
     http_method_names = ['get', 'head', 'options', 'trace']

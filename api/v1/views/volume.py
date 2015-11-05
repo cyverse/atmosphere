@@ -24,7 +24,7 @@ from service.cache import get_cached_volumes
 from service.driver import prepare_driver
 from service.volume import create_volume,\
     create_bootable_volume,\
-    update_volume_metadata
+    _update_volume_metadata
 from service.exceptions import OverQuotaError
 from service.volume import create_volume
 
@@ -71,7 +71,7 @@ class VolumeSnapshot(AuthAPIView):
         Updates DB values for volume
         """
         user = request.user
-        data = request.DATA
+        data = request.data
 
         missing_keys = valid_snapshot_post_data(data)
         if missing_keys:
@@ -235,7 +235,7 @@ class VolumeList(AuthAPIView):
         driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        data = request.DATA
+        data = request.data
         missing_keys = valid_volume_post_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
@@ -331,7 +331,7 @@ class Volume(AuthAPIView):
         Updates DB values for volume
         """
         user = request.user
-        data = request.DATA
+        data = request.data
         # Ensure volume exists
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
@@ -356,7 +356,7 @@ class Volume(AuthAPIView):
                                       partial=True)
         if serializer.is_valid():
             serializer.save()
-            update_volume_metadata(
+            _update_volume_metadata(
                 esh_driver, esh_volume, data)
             response = Response(serializer.data)
             return response
@@ -370,7 +370,7 @@ class Volume(AuthAPIView):
         Updates DB values for volume
         """
         user = request.user
-        data = request.DATA
+        data = request.data
 
         # Ensure volume exists
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
@@ -395,7 +395,7 @@ class Volume(AuthAPIView):
                                       context={'request': request})
         if serializer.is_valid():
             serializer.save()
-            update_volume_metadata(
+            _update_volume_metadata(
                 esh_driver, esh_volume, data)
             response = Response(serializer.data)
             return response
@@ -457,7 +457,7 @@ class BootVolume(AuthAPIView):
 
     def post(self, request, provider_uuid, identity_uuid, volume_id=None):
         user = request.user
-        data = request.DATA
+        data = request.data
 
         missing_keys = valid_launch_data(data)
         if missing_keys:
