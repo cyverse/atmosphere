@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0032_auto_20150925_1239'),
+        ('core', '0038_update_fields_application_version_identity_memberships_and_no_default_statustype')
     ]
 
     operations = [
