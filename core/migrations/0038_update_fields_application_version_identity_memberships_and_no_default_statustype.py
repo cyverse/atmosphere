@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0037_add_end_date_identitymembership'),
+        ('core', '0037_add_end_date_identitymembership_instance_atmosphereuser'),
     ]
 
     operations = [

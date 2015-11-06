@@ -12,6 +12,11 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
+            model_name='atmosphereuser',
+            name='end_date',
+            field=models.DateTimeField(null=True, blank=True),
+        ),
+        migrations.AddField(
             model_name='identitymembership',
             name='end_date',
             field=models.DateTimeField(null=True, blank=True),
