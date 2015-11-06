@@ -47,7 +47,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         user = self.request.user
         identity_ids = user.current_identities.values_list('id',flat=True)
         qs = Instance.objects.filter(created_by_identity__in=identity_ids)
-        if 'archived' in self.request.QUERY_PARAMS:
+        if 'archived' in self.request.query_params:
             return qs
         return qs.filter(only_current())
 

@@ -27,7 +27,7 @@ class BaseRequest(models.Model):
     Base model which represents a request object
     """
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
-    status = models.ForeignKey(StatusType, default=get_status_type_id)
+    status = models.ForeignKey(StatusType)
 
     # Associated creator and identity
     created_by = models.ForeignKey(User)

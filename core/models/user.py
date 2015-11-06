@@ -12,6 +12,7 @@ from threepio import logger
 class AtmosphereUser(AbstractUser):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
+    end_date = models.DateTimeField(null=True, blank=True)
 
     def group_ids(self):
         return self.group_set.values_list('id', flat=True)
