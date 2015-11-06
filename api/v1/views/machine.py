@@ -148,7 +148,7 @@ class MachineSearch(AuthListAPIView):
         """
         """
         user = self.request.user
-        query = self.request.QUERY_PARAMS.get('query')
+        query = self.request.query_params.get('query')
         identity_uuid = self.kwargs['identity_uuid']
 
         if not query:

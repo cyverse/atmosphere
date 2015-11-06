@@ -259,7 +259,7 @@ class InstanceHistoryDetail(AuthAPIView):
         Authentication required, Retrieve a list of previously launched
         instances.
         """
-        params = request.QUERY_PARAMS.copy()
+        params = request.query_params.copy()
         user = User.objects.filter(username=request.user)
         if user and len(user) > 0:
             user = user[0]
@@ -309,7 +309,7 @@ class InstanceStatusHistoryDetail(AuthAPIView):
         Authentication required, Retrieve a list of previously launched
         instances.
         """
-        params = request.QUERY_PARAMS.copy()
+        params = request.query_params.copy()
         user = User.objects.filter(username=request.user)
         if user and len(user) > 0:
             user = user[0]
