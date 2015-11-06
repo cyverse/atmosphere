@@ -13,7 +13,7 @@ class ProjectVolumeViewSet(AuthViewSet):
     API endpoint that allows instance actions to be viewed or edited.
     """
 
-    queryset = ProjectVolume.objects.all()
+    queryset = ProjectVolume.objects.none()
     serializer_class = ProjectVolumeSerializer
     filter_fields = ('project__id',)
 

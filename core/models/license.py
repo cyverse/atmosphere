@@ -1,4 +1,5 @@
 from django.db import models
+from uuid import uuid4
 
 from core.models.user import AtmosphereUser
 from core.models.match import PatternMatch
@@ -26,6 +27,7 @@ class License(models.Model):
 
     """
     """
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     title = models.CharField(max_length=256)
     license_type = models.ForeignKey(LicenseType)
     license_text = models.TextField()
@@ -48,12 +50,13 @@ class ApplicationVersionLicense(models.Model):
     """
     Represents the M2M table auto-created by 'application_version.licenses'
     """
-    applicationversion = models.ForeignKey("ApplicationVersion")
+    image_version = models.ForeignKey("ApplicationVersion",
+                                      db_column='applicationversion_id')
     license = models.ForeignKey(License)
 
     def __unicode__(self):
         return "(ApplicationVersion:%s - License:%s) " %\
-            (self.application_version, self.license.title)
+            (self.image_version, self.license.title)
 
     class Meta:
         db_table = 'application_version_licenses'

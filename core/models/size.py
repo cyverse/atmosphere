@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.utils import timezone
 from core.models.provider import Provider
@@ -9,6 +11,7 @@ class Size(models.Model):
     """
     # Special field that is filled out when converting an esh_size
     esh = None
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     alias = models.CharField(max_length=256)
     name = models.CharField(max_length=256)
     provider = models.ForeignKey(Provider)
@@ -59,7 +62,7 @@ class Size(models.Model):
             self.alias,
             self.id,
             self.name,
-            self.provider,
+            self.provider_id,
             self.cpu,
             self.mem,
             self.disk,

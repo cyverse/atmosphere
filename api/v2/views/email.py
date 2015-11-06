@@ -1,46 +1,69 @@
 """
-Atmosphere api email
+ RESTful Email API
 """
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
+
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.template import Context
 
-from threepio import logger
+from rest_framework.response import Response
+from rest_framework.viewsets import ViewSet
+from rest_framework import status
 
-from iplantauth.protocol.ldap import lookupEmail
+from api import permissions
+from api.v2.exceptions import failure_response
 
 from core.email import email_admin, resource_request_email
 from core.models import AtmosphereUser as User
 from core.models import Instance, Volume
 
-from api import failure_response
-from api.permissions import ApiAuthRequired, InMaintenance
 
-class FeedbackView(APIView):
+class EmailViewSet(ViewSet):
+    permission_classes = (permissions.ApiAuthRequired,)
+    required_keys = []
 
-    """
-    Post feedback via RESTful API
-    """
-
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,)
-
-    def post(self, request):
-        """
-        Creates a new feedback email and sends it to admins.
-        """
-        required = ["message", "user-interface"]
-        missing_keys = check_missing_keys(request.DATA, required)
+    def create(self, *args, **kwargs):
+        user = self.request.user
+        data = self.request.data
+        missing_keys = self.check_missing_keys(data, self.required_keys)
         if missing_keys:
-            return keys_not_found(missing_keys)
-        result = self._email(request,
-                             request.user.username,
-                             lookupEmail(request.user.username),
-                             request.DATA)
-        return Response(result, status=status.HTTP_201_CREATED)
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Missing required POST data variables : %s" % missing_keys)
+        # Inject SERVER_URL settings
+        data['server'] = settings.SERVER_URL
+        result = self._email(user, data)
+        return result
+
+    def check_missing_keys(self, data, required_keys):
+        """
+        Return any missing required post key names.
+        """
+        return [key for key in required_keys
+                # Key must exist and have a non-empty value.
+                if key not in data or
+                (isinstance(data[key], str) and len(data[key]) > 0)]
+
+    def _email(self, user, data):
+        raise NotImplemented("This function to be implemented by the subclass")
+
+
+class SupportEmailViewSet(EmailViewSet):
+    required_keys = ["message", "subject", "user-interface"]
+
+    def _email(self, user, data):
+        subject = data.pop('subject')
+        message = data.pop('message')
+        email_success = email_admin(
+            self.request, subject, message, data=data)
+        email_response = {"email_sent": email_success}
+        if not email_success:
+            return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
+        return Response(email_response, status=status.HTTP_200_OK)
+
+
+class FeedbackEmailViewSet(EmailViewSet):
+    required_keys = ["message", "user-interface"]
 
     def _email(self, request, username, user_email, data):
         """
@@ -52,12 +75,12 @@ class FeedbackView(APIView):
         subject = 'Subject: Atmosphere Client Feedback from %s' % username
 
         instances = Instance.objects \
-                .filter(created_by=user.id) \
-                .filter(end_date__exact=None)
+            .filter(created_by=user.id) \
+            .filter(end_date__exact=None)
 
         volumes = Volume.objects \
-                .filter(instance_source__created_by__username=username) \
-                .filter(instance_source__end_date__isnull=True)
+            .filter(instance_source__created_by__username=username) \
+            .filter(instance_source__end_date__isnull=True)
 
         context = {
             "user": user,
@@ -70,7 +93,8 @@ class FeedbackView(APIView):
         }
         body = render_to_string("core/email/feedback.html",
                                 context=Context(context))
-        email_success = email_admin(request, subject, body, request_tracker=True)
+        email_success = email_admin(
+            request, subject, body, request_tracker=True)
         if email_success:
             resp = {'result':
                     {'code': 'success',
@@ -85,81 +109,16 @@ class FeedbackView(APIView):
                      'value': 'Failed to send feedback!'}}
         return resp
 
-# class QuotaEmail(AuthAPIView):
-# 
-#     """
-#     Post Quota Email via RESTful API.
-#     """
-# 
-#     def post(self, request):
-#         """
-#         Creates a new Quota Request email and sends it to admins.
-#         """
-#         required = ["quota", "reason"]
-#         missing_keys = check_missing_keys(request.DATA, required)
-#         if missing_keys:
-#             return keys_not_found(missing_keys)
-#         logger.debug("request.DATA = %s" % (str(request.DATA)))
-#         result = self._email(request,
-#                              request.user.username,
-#                              request.DATA["quota"],
-#                              request.DATA["reason"])
-#         return Response(result, status=status.HTTP_201_CREATED)
-# 
-#     def _email(self, request, username, new_resource, reason):
-#         """
-#         Processes resource request increases. Sends email to atmo@iplantc.org
-# 
-#         Returns a response.
-#         """
-#         return resource_request_email(request, username, new_resource, reason)
-# 
-# 
-# class SupportEmail(AuthAPIView):
-# 
-#     def post(self, request):
-#         """
-#         Creates a new support email and sends it to admins.
-# 
-#         Post Support Email via RESTful API
-#         """
-#         required = ["message", "subject","user-interface"]
-#         missing_keys = check_missing_keys(request.DATA, required)
-#         if missing_keys:
-#             return keys_not_found(missing_keys)
-#         result = self._email(request,
-#                              request.DATA["subject"],
-#                              request.DATA["message"],
-#                              request.DATA)
-#         return Response(result, status=status.HTTP_201_CREATED)
-# 
-#     def _email(self, request, subject, message, data):
-#         """
-#         Sends an email to support.
-# 
-#         POST Params expected:
-#         * user
-#         * message
-#         * subject
-# 
-#         Returns a response.
-#         """
-#         data['server'] = settings.SERVER_URL
-#         email_success = email_admin(request, subject, message, data=data)
-#         return {"email_sent": email_success}
 
+class ResourceEmailViewSet(EmailViewSet):
+    required_keys = ["quota", "reason"]
 
-def check_missing_keys(data, required_keys):
-    """
-    Return any missing required post key names.
-    """
-    return [key for key in required_keys
-            # Key must exist and have a non-empty value.
-            if key not in data or
-            (isinstance(data[key], str) and len(data[key]) > 0)]
-
-
-def keys_not_found(missing_keys):
-    return failure_response(
-        status.HTTP_400_BAD_REQUEST,
-        "Missing required POST data variables : %s" % missing_keys)
+    def _email(self, user, data):
+        quota = data.pop('quota')
+        reason = data.pop('reason')
+        email_response = resource_request_email(
+            self.request, user.username, quota, reason)
+        if not email_response.get('email_sent', False):
+            return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(email_response, status=status.HTTP_200_OK)

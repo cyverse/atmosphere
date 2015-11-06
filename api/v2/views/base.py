@@ -10,7 +10,11 @@ from core import exceptions as core_exceptions
 from core.models import IdentityMembership
 from core.models.status_type import StatusType
 
-from api.permissions import ApiAuthOptional, ApiAuthRequired, InMaintenance
+from api.permissions import (
+        ApiAuthOptional, ApiAuthRequired,
+        InMaintenance, CloudAdminRequired
+    )
+from api.v2.views.mixins import MultipleFieldLookup
 
 
 def unresolved_requests_only(fn):
@@ -37,6 +41,12 @@ class AuthViewSet(ModelViewSet):
     http_method_names = ['get', 'put', 'patch', 'post',
                          'delete', 'head', 'options', 'trace']
     permission_classes = (InMaintenance,
+                          ApiAuthRequired,)
+
+
+class AdminAuthViewSet(AuthViewSet):
+    permission_classes = (InMaintenance,
+                          CloudAdminRequired,
                           ApiAuthRequired,)
 
 
@@ -67,7 +77,7 @@ class OwnerUpdateViewSet(AuthViewSet):
                         " handled by the subclass of OwnerUpdateViewSet")
 
 
-class BaseRequestViewSet(AuthViewSet):
+class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     Base class ViewSet to handle requests
@@ -75,6 +85,7 @@ class BaseRequestViewSet(AuthViewSet):
 
     admin_serializer_class = None
     model = None
+    lookup_fields = ("id", "uuid")
 
     def get_queryset(self):
         """
@@ -107,6 +118,7 @@ class BaseRequestViewSet(AuthViewSet):
         identity_id = serializer.initial_data.get("identity")
         status, _ = StatusType.objects.get_or_create(name="pending")
         try:
+            # NOTE: This is *NOT* going to be a sufficient query when sharing..
             membership = IdentityMembership.objects.get(identity=identity_id)
             instance = serializer.save(
                 membership=membership,
@@ -130,7 +142,7 @@ class BaseRequestViewSet(AuthViewSet):
                 % identity_id
             )
             raise exceptions.ParseError(detail=message)
-        except Exception as e:
+        except Exception:
             message = {
                 "An error was encoutered when submitting the request."
             }

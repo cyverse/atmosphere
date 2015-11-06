@@ -3,6 +3,7 @@ from rest_framework import serializers
 from api.v2.serializers.summaries import InstanceSummarySerializer,\
     VolumeSummarySerializer, ImageSummarySerializer
 from api.v2.serializers.fields import UserRelatedField
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
@@ -16,10 +17,12 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     # the owner.name route so the API doesn't break when we start adding users
     # to groups owner = UserSerializer(source='owner.user_set.first')
     owner = UserRelatedField(source='owner.name')
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:project-detail',
+    )
 
     class Meta:
         model = Project
-        view_name = 'api:v2:project-detail'
         fields = (
             'id',
             'uuid',

@@ -1,14 +1,16 @@
+import uuid
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from core.query import only_current_provider
 from threepio import logger
 
 
 class AtmosphereUser(AbstractUser):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
 
     def group_ids(self):
@@ -19,15 +21,26 @@ class AtmosphereUser(AbstractUser):
 
     def user_quota(self):
         identity = self.select_identity()
-        identity_member = identity.identitymembership_set.all()[0]
+        identity_member = identity.identity_memberships.all()[0]
         return identity_member.quota
+
+    @property
+    def current_identities(self):
+        from core.models import Identity
+        all_identities = Identity.objects.none()
+        for group in self.group_set.all():
+            all_identities |= group.current_identities.all()
+        return all_identities
+
+    def can_use_identity(self, identity_id):
+        return self.current_identities.filter(id=identity_id).count() > 0
 
     def select_identity(self):
         """
         Set, save and return an active selected_identity for the user.
         """
         # Return previously selected identity
-        if self.selected_identity and self.selected_identity.is_active():
+        if self.selected_identity and self.selected_identity.is_active(user=self):
             return self.selected_identity
         else:
             self.selected_identity = get_default_identity(self.username)
@@ -85,9 +98,7 @@ def get_default_provider(username):
         from core.models.group import get_user_group
         from core.models.provider import Provider
         group = get_user_group(username)
-        provider_ids = group.identities.filter(
-            only_current_provider(),
-            provider__active=True).values_list(
+        provider_ids = group.current_identities.values_list(
             'provider',
             flat=True)
         provider = Provider.objects.filter(
@@ -115,7 +126,7 @@ def get_default_identity(username, provider=None):
     try:
         from core.models.group import get_user_group
         group = get_user_group(username)
-        identities = group.identities.all()
+        identities = group.current_identities.all()
         if provider:
             if provider.is_active():
                 identities = identities.filter(provider=provider)
@@ -126,7 +137,7 @@ def get_default_identity(username, provider=None):
                 raise "Inactive Provider provided for get_default_identity "
         else:
             default_provider = get_default_provider(username)
-            default_identity = group.identities.filter(
+            default_identity = group.current_identities.filter(
                 provider=default_provider)
             if not default_identity:
                 logger.error("User %s has no identities on Provider %s" % (username, default_provider))

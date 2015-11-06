@@ -38,7 +38,7 @@ class Profile(AuthAPIView):
         """
         user = request.user
         profile = user.userprofile
-        mutable_data = request.DATA.copy()
+        mutable_data = request.data.copy()
         if "selected_identity" in mutable_data:
             user_data = {"selected_identity":
                          mutable_data.pop("selected_identity")}

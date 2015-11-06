@@ -373,7 +373,7 @@ def update_mount_location(new_mount_location,
         if not new_mount_location:
             return
         volume_metadata = volume.extra['metadata']
-        return volume_service.update_volume_metadata(
+        return volume_service._update_volume_metadata(
             driver, volume,
             metadata={'mount_location': new_mount_location})
         celery_logger.debug(
@@ -399,7 +399,7 @@ def update_volume_metadata(driverCls, provider,
         volume = driver.get_volume(volume_alias)
         if not volume:
             return
-        return volume_service.update_volume_metadata(
+        return volume_service._update_volume_metadata(
             driver, volume,
             metadata=metadata)
         celery_logger.debug("volume_metadata task finished at %s." % datetime.now())
@@ -428,7 +428,7 @@ def mount_failed(task_uuid, driverCls, provider, identity, volume_id,
             tmp_status = 'umount_error'
         else:
             tmp_status = 'mount_error'
-        return volume_service.update_volume_metadata(
+        return volume_service._update_volume_metadata(
             driver, volume,
             metadata={'tmp_status': tmp_status})
         celery_logger.debug("mount_failed task finished at %s." % datetime.now())

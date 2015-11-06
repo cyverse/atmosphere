@@ -20,16 +20,11 @@ def get_identity_list(user, provider=None):
     try:
         group = Group.objects.get(name=user.username)
         if provider:
-            identity_list = group.identities.filter(
-                provider=provider,
-                # Active providers only
-                provider__active=True)
+            # Implicit: Active,non-end dated providers.
+            identity_list = group.current_identities.filter(
+                provider=provider)
         else:
-            identity_list = group.identities.filter(
-                # Non-end dated providers as search base
-                only_current_provider(),
-                # Active providers only
-                provider__active=True)
+            identity_list = group.current_identities.all()
         return identity_list
     except Group.DoesNotExist:
         logger.warn("Group %s DoesNotExist" % user.username)

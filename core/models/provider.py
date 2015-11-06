@@ -9,14 +9,15 @@ from django.core.exceptions import ValidationError
 
 from rtwo.provider import EucaProvider, OSProvider
 
+import uuid
 from uuid import uuid4
-
 
 class PlatformType(models.Model):
 
     """
     Keep track of Virtualization Platform via type
     """
+
     name = models.CharField(max_length=256)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
@@ -72,8 +73,9 @@ class Provider(models.Model):
         "Stop",
         "Terminate",
         "Shelve", "Shelve Offload"]
+
     # Fields
-    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     location = models.CharField(max_length=256)
     description = models.TextField(blank=True)
     type = models.ForeignKey(ProviderType)

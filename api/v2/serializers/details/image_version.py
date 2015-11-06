@@ -11,6 +11,7 @@ from api.v2.serializers.summaries import (
     ImageVersionSummarySerializer)
 from api.v2.serializers.fields import (
     ProviderMachineRelatedField, ModelRelatedField)
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
@@ -46,11 +47,13 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     min_mem = serializers.CharField(source='threshold.memory_min', read_only = True)
     min_cpu = serializers.CharField(source='threshold.cpu_min', read_only = True)
     end_date = serializers.DateTimeField(allow_null=True)
-
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:imageversion-detail',
+        uuid_field='id'
+    )
     class Meta:
         model = ImageVersion
-        view_name = 'api:v2:providermachine-detail'
-        fields = ('id', 'parent', 'name', 'change_log',
+        fields = ('id', 'url', 'parent', 'name', 'change_log',
                   'image', 'machines', 'allow_imaging',
                   'licenses', 'membership', 'min_mem', 'min_cpu', 'scripts',
                   'user', 'identity',

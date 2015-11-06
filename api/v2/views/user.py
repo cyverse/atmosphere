@@ -1,6 +1,7 @@
 from core.models import AtmosphereUser
 from api.v2.serializers.details import UserSerializer
 from api.v2.views.base import AuthViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 from rest_framework.filters import SearchFilter
 from django.utils import six
@@ -34,11 +35,12 @@ class MinLengthRequiredSearchFilter(SearchFilter):
         fields = ["username", "email"]
 
 
-class UserViewSet(AuthViewSet):
+class UserViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     API endpoint that allows users to be viewed or edited.
     """
+    lookup_fields = ("id", "uuid")
     max_page_size = 10000
     max_page_size_query_param = 1000
     queryset = AtmosphereUser.objects.all()

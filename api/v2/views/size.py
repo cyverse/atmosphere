@@ -5,14 +5,14 @@ from core.query import only_current, only_current_provider
 
 from api.v2.serializers.details import SizeSerializer
 from api.v2.views.base import AuthReadOnlyViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 
-class SizeViewSet(AuthReadOnlyViewSet):
-
+class SizeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
-
+    lookup_fields = ("id", "uuid")
     queryset = Size.objects.all()
     serializer_class = SizeSerializer
     filter_fields = ('provider__id',)
@@ -35,7 +35,7 @@ class SizeViewSet(AuthReadOnlyViewSet):
                 provider__active=True).values_list('provider', flat=True)
 
         # Switch based on query
-        if 'archived' in self.request.QUERY_PARAMS:
+        if 'archived' in self.request.query_params:
             return Size.objects.filter(
                 provider__id__in=provider_ids)
         else:

@@ -1,6 +1,7 @@
 from core.models import Volume
 from rest_framework import serializers
 from .identity import IdentitySummarySerializer
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class VolumeSummarySerializer(serializers.HyperlinkedModelSerializer):
@@ -12,10 +13,12 @@ class VolumeSummarySerializer(serializers.HyperlinkedModelSerializer):
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date')
     uuid = serializers.CharField(source='instance_source.identifier')
-
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:volume-detail',
+        uuid_field='identifier',
+    )
     class Meta:
         model = Volume
-        view_name = 'api:v2:volume-detail'
         fields = (
             'id',
             'uuid',

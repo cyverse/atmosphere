@@ -1,7 +1,8 @@
-from core.models import License, LicenseType
+from core.models import License, LicenseType, AtmosphereUser
 from api.v2.serializers.fields import ModelRelatedField
 from api.v2.serializers.summaries import LicenseTypeSummarySerializer
 from rest_framework import serializers
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class LicenseSerializer(serializers.HyperlinkedModelSerializer):
@@ -12,6 +13,12 @@ class LicenseSerializer(serializers.HyperlinkedModelSerializer):
         queryset=LicenseType.objects.all(),
         serializer_class=LicenseTypeSummarySerializer,
         style={'base_template': 'input.html'})
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:license-detail',
+    )
+    created_by = serializers.SlugRelatedField(
+        slug_field='username', queryset=AtmosphereUser.objects.all(),
+        required=False)
 
     def create(self, validated_data):
 
@@ -23,5 +30,4 @@ class LicenseSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = License
-        view_name = 'api:v2:license-detail'
-        fields = ('id', 'title', 'text', 'type')
+        fields = ('id', 'url', 'uuid', 'created_by', 'title', 'text', 'type')

@@ -35,11 +35,7 @@ class MaintenanceRecordList(AuthOptionalAPIView):
         if user and not isinstance(user, AnonymousUser):
             groups = user.group_set.all()
             for group in groups:
-                provider_ids = group.identities.filter(
-                    only_current_provider(),
-                    provider__active=True).values_list('provider',
-                                                       flat=True)
-                providers = Provider.objects.filter(id__in=provider_ids)
+                providers = group.current_providers.all()
                 for p in providers:
                     if active_records:
                         records |= CoreMaintenanceRecord.active(p)
@@ -76,7 +72,7 @@ class MaintenanceRecord(AuthOptionalAPIView):
         """
         Update a maintenance record.
         """
-        data = request.DATA
+        data = request.data
         try:
             record = CoreMaintenanceRecord.objects.get(id=record_id)
         except CoreMaintenanceRecord.DoesNotExist:
@@ -95,7 +91,7 @@ class MaintenanceRecord(AuthOptionalAPIView):
         """
         Update a maintenance record.
         """
-        data = request.DATA
+        data = request.data
         try:
             record = CoreMaintenanceRecord.objects.get(id=record_id)
         except CoreMaintenanceRecord.DoesNotExist:

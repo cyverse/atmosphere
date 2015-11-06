@@ -1,6 +1,8 @@
 """
 Service Quota model for atmosphere.
 """
+import uuid
+
 from django.db import models
 
 
@@ -10,6 +12,7 @@ class Quota(models.Model):
     Quota limits the amount of resources that can be used for a User/Group
     Quotas are set at the Identity Level in IdentityMembership
     """
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     cpu = models.IntegerField(
         null=True,
         blank=True,
