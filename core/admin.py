@@ -42,6 +42,20 @@ class MaintenanceAdmin(admin.ModelAdmin):
                     "end_date", "disable_login")
 
 
+@admin.register(models.ApplicationVersion)
+class ImageVersionAdmin(admin.ModelAdmin):
+    search_fields = [
+        "name","application__name",
+    ]
+    actions = [end_date_object, ]
+    list_display = (
+        "id",
+        "name",
+        "application",
+        "start_date",
+        "end_date",
+    )
+
 @admin.register(models.Quota)
 class QuotaAdmin(admin.ModelAdmin):
     list_display = (
@@ -495,5 +509,6 @@ class GroupAdmin(admin.ModelAdmin):
 
 
 # For adding 'new' registrations
+admin.site.register(models.ApplicationThreshold)
 admin.site.register(models.Credential)
 admin.site.register(models.ProviderType)
