@@ -29,7 +29,6 @@ class MachineRequestViewSet(BaseRequestViewSet):
         status, _ = StatusType.objects.get_or_create(name="pending")
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
-            import ipdb;ipdb.set_trace()
             instance = serializer.save(
                 membership=membership,
                 status=status,

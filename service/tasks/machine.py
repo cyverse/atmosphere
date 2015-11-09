@@ -1,7 +1,7 @@
 import time
 
 from django.utils import timezone
-from threepio import celery_logger
+from threepio import celery_logger, logger
 
 from celery.decorators import task
 from celery.result import allow_join_result
