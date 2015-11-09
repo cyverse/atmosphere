@@ -111,11 +111,11 @@ class BaseRequestViewSet(AuthViewSet):
             instance = serializer.save(
                 membership=membership,
                 status=status,
-                old_status="processing",
                 created_by=self.request.user
             )
             self.submit_action(instance)
-        except core_exceptions.ProviderLimitExceeded:
+        except (core_exceptions.ProviderLimitExceeded,  # NOTE: DEPRECATED -- REMOVE SOON, USE BELOW.
+                core_exception.RequestLimitExceeded):
             message = "Only one active request is allowed per provider."
             raise exceptions.MethodNotAllowed('create', detail=message)
         except core_exceptions.InvalidMembership:
@@ -131,9 +131,7 @@ class BaseRequestViewSet(AuthViewSet):
             )
             raise exceptions.ParseError(detail=message)
         except Exception as e:
-            message = {
-                "An error was encoutered when submitting the request."
-            }
+            message = str(e)
             raise exceptions.ParseError(detail=message)
 
     @unresolved_requests_only
