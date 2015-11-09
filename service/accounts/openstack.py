@@ -2,6 +2,7 @@
 UserManager:
   Remote Openstack  Admin controls..
 """
+import random
 import time
 from hashlib import sha1
 from urlparse import urlparse
@@ -26,6 +27,13 @@ from core.models.identity import Identity
 
 from service.accounts.base import CachedAccountDriver
 
+
+def get_random_uid(userid):
+    """
+    Given a string (Username) return a value < MAX_SUBNET
+    """
+    MAX_SUBNET = 4064
+    return int(random.uniform(1, MAX_SUBNET))
 
 class AccountDriver(CachedAccountDriver):
     user_manager = None
@@ -338,7 +346,7 @@ class AccountDriver(CachedAccountDriver):
             username,
             self.hashpass(username),
             project_name,
-            get_unique_number=get_uid_number,
+            get_unique_number=get_random_uid,
             dns_nameservers=dns_nameservers,
             **net_args)
         return True
@@ -378,7 +386,7 @@ class AccountDriver(CachedAccountDriver):
             username,
             password,
             project_name,
-            get_unique_number=get_uid_number,
+            get_unique_number=get_random_uid,
             dns_nameservers=dns_nameservers,
             **net_args)
 

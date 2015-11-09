@@ -2,7 +2,6 @@
 Basic LDAP functions.
 """
 from __future__ import absolute_import
-
 import ldap as ldap_driver
 
 from threepio import logger
