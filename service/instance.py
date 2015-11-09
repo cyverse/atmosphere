@@ -1198,10 +1198,10 @@ def check_application_threshold(
         raise UnderThresholdError("This application requires >=%s GB of RAM."
                                   " Please re-launch with a larger size."
                                   % int(threshold.memory_min / 1024))
-    if esh_size.disk < threshold.storage_min:
-        raise UnderThresholdError("This application requires >=%s GB of Disk."
+    if esh_size.cpu < threshold.cpu_min:
+        raise UnderThresholdError("This application requires >=%s CPU."
                                   " Please re-launch with a larger size."
-                                  % threshold.storage_min)
+                                  % threshold.cpu_min)
     return
 
 
