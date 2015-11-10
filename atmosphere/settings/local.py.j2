@@ -84,6 +84,13 @@ AUTHENTICATION = {
     #LDAP
     "LDAP_SERVER": '{{ LDAP_SERVER }}',
     "LDAP_SERVER_DN": '{{ LDAP_SERVER_DN }}',
+    {% if JWT_INSTALL %}
+    # WSO2 + JWT
+    "JWT_SP_PUBLIC_KEY_FILE" :'{{ JWT_PUBLIC_KEY }}',
+    "JWT_CLIENT_KEY" :'{{ JWT_CLIENT_KEY }}',
+    "JWT_CLIENT_SECRET" :'{{ JWT_CLIENT_SECRET }}',
+    {% endif %}
+
 
     #GLOBUS
     "GLOBUS_OAUTH_ID": '{{ GLOBUS_OAUTH_ID }}',
