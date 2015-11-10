@@ -394,7 +394,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
                             context=Context(context))
     # Send staff url if not approved
     if not auto_approve:
-        namespace = "api:v1:cloud-admin-imaging-request-detail"
+        namespace = "api:v2:machinerequest-detail"
         base_url = reverse(namespace, args=(machine_request_id,))
         context["view"] = base_url
         context["approve"] = "%s/approve" % base_url

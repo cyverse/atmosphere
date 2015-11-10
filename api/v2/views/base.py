@@ -123,11 +123,11 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
             instance = serializer.save(
                 membership=membership,
                 status=status,
-                old_status="processing",
                 created_by=self.request.user
             )
             self.submit_action(instance)
-        except core_exceptions.ProviderLimitExceeded:
+        except (core_exceptions.ProviderLimitExceeded,  # NOTE: DEPRECATED -- REMOVE SOON, USE BELOW.
+                core_exceptions.RequestLimitExceeded):
             message = "Only one active request is allowed per provider."
             raise exceptions.MethodNotAllowed('create', detail=message)
         except core_exceptions.InvalidMembership:
@@ -142,10 +142,8 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
                 % identity_id
             )
             raise exceptions.ParseError(detail=message)
-        except Exception:
-            message = {
-                "An error was encoutered when submitting the request."
-            }
+        except Exception as e:
+            message = str(e)
             raise exceptions.ParseError(detail=message)
 
     @unresolved_requests_only
