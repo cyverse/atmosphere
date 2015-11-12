@@ -158,28 +158,28 @@ def _scan_messages(messages, output_code):
 
 
 def completed():
-    completed = '%s%sCOMPLETED.%s' % (Fore.BLACK, Back.WHITE, Style.RESET_ALL)
-    thumbsup = emoji.emojize(':thumbs_up_sign:')
-    return '\n%s %s' % (completed, thumbsup)
+    completed = u'%s%sCOMPLETED.%s' % (Fore.BLACK, Back.WHITE, Style.RESET_ALL)
+    thumbsup = emoji.emojize(u':thumbs_up_sign:')
+    return u'\n%s %s' % (completed, thumbsup)
 
 
 def warnings():
-    warnings = '%s%sWARNINGS PRESENT.%s' % (Fore.BLACK, Back.YELLOW, Style.RESET_ALL)
-    warn_sign = emoji.emojize(':ticket:', use_aliases=True)
-    return '\n%s %s' % (warnings, warn_sign)
+    warnings = u'%s%sWARNINGS PRESENT.%s' % (Fore.BLACK, Back.YELLOW, Style.RESET_ALL)
+    warn_sign = emoji.emojize(u':ticket:', use_aliases=True)
+    return u'\n%s %s' % (warnings, warn_sign)
 
 
 def passed(text):
-    succeeded = '%s%sSUCCEEDED.%s' % (Fore.BLACK, Back.GREEN, Style.RESET_ALL)
-    checkmark = emoji.emojize(':white_check_mark:', use_aliases=True)
-    return '%s%s%s\n%s %s' % (Fore.GREEN, text, Style.RESET_ALL,
+    succeeded = u'%s%sSUCCEEDED.%s' % (Fore.BLACK, Back.GREEN, Style.RESET_ALL)
+    checkmark = emoji.emojize(u':white_check_mark:', use_aliases=True)
+    return u'%s%s%s\n%s %s' % (Fore.GREEN, text, Style.RESET_ALL,
         succeeded, checkmark)
 
 
 def failed(text):
-    failed = '%s%sFAILED.%s' % (Fore.BLACK, Back.RED, Style.RESET_ALL)
-    borkbork = emoji.emojize(':no_entry_sign:')
-    return '%s%s%s\n%s %s' % (Fore.RED, text, Style.RESET_ALL,
+    failed = u'%s%sFAILED.%s' % (Fore.BLACK, Back.RED, Style.RESET_ALL)
+    borkbork = emoji.emojize(u':no_entry_sign:')
+    return u'%s%s%s\n%s %s' % (Fore.RED, text, Style.RESET_ALL,
         failed, borkbork)
 
 
@@ -265,7 +265,8 @@ def _get_variables(variables_file=VARIABLES_PATH):
     except Exception as e:
         return (False,
                 [('e', 'Unable to get or parse '
-                 'variables from %s' % (variables_file))])
+                 'variables from %s:\n\t%s' %
+                 (variables_file, e.message))])
 
 
 def _section_check(vars, distrib):
@@ -639,11 +640,11 @@ def main():
             print 'Dry run is complete. No output operations performed.'
 
         gen_files = [CONFIG_FILES[cg][1] for cg in configs_info[1]]
-        print passed('Successfully generated configs:\n\t- %s\n' %
-            ('\n\t- '.join(gen_files)))
+        print passed(u'Successfully generated configs:\n\t- %s\n' %
+            (u'\n\t- '.join(gen_files)))
         sys.exit(exit_code)
     else:
-        print failed('Configuration files were not generated.\n')
+        print failed(u'Configuration files were not generated.\n')
         sys.exit(exit_code)
 
 
