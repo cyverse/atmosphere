@@ -61,17 +61,6 @@ pip install -r dev_requirements.txt
     Style = StyleMock()
 
 
-try:
-    import emoji
-except ImportError:
-    class EmojiMock:
-        def emojize(self, text, use_aliases=False):
-            return ''
-    # mock to avoid forcing module installations
-    emoji = EmojiMock()
-
-
-
 # name of the common variable section, this section is *merged* into
 # all other defined sections within the variables file.
 COMMON_KEY = 'COMMON'
@@ -158,29 +147,25 @@ def _scan_messages(messages, output_code):
 
 
 def completed():
-    completed = u'%s%sCOMPLETED.%s' % (Fore.BLACK, Back.WHITE, Style.RESET_ALL)
-    thumbsup = emoji.emojize(u':thumbs_up_sign:')
-    return u'\n%s %s' % (completed, thumbsup)
+    completed = '%s%sCOMPLETED.%s' % (Fore.BLACK, Back.WHITE, Style.RESET_ALL)
+    return '\n%s' % (completed,)
 
 
 def warnings():
-    warnings = u'%s%sWARNINGS PRESENT.%s' % (Fore.BLACK, Back.YELLOW, Style.RESET_ALL)
-    warn_sign = emoji.emojize(u':ticket:', use_aliases=True)
-    return u'\n%s %s' % (warnings, warn_sign)
+    warnings = '%s%sWARNINGS PRESENT.%s' % (Fore.BLACK, Back.YELLOW, Style.RESET_ALL)
+    return '\n%s ' % (warnings, )
 
 
 def passed(text):
-    succeeded = u'%s%sSUCCEEDED.%s' % (Fore.BLACK, Back.GREEN, Style.RESET_ALL)
-    checkmark = emoji.emojize(u':white_check_mark:', use_aliases=True)
-    return u'%s%s%s\n%s %s' % (Fore.GREEN, text, Style.RESET_ALL,
-        succeeded, checkmark)
+    succeeded = '%s%sSUCCEEDED.%s' % (Fore.BLACK, Back.GREEN, Style.RESET_ALL)
+    return '%s%s%s\n%s ' % (Fore.GREEN, text, Style.RESET_ALL,
+        succeeded)
 
 
 def failed(text):
-    failed = u'%s%sFAILED.%s' % (Fore.BLACK, Back.RED, Style.RESET_ALL)
-    borkbork = emoji.emojize(u':no_entry_sign:')
-    return u'%s%s%s\n%s %s' % (Fore.RED, text, Style.RESET_ALL,
-        failed, borkbork)
+    failed = '%s%sFAILED.%s' % (Fore.BLACK, Back.RED, Style.RESET_ALL)
+    return '%s%s%s\n%s ' % (Fore.RED, text, Style.RESET_ALL,
+        failed)
 
 
 def _populate_variable_namespace(vars, includes):
@@ -640,11 +625,11 @@ def main():
             print 'Dry run is complete. No output operations performed.'
 
         gen_files = [CONFIG_FILES[cg][1] for cg in configs_info[1]]
-        print passed(u'Successfully generated configs:\n\t- %s\n' %
-            (u'\n\t- '.join(gen_files)))
+        print passed('Successfully generated configs:\n\t- %s\n' %
+            ('\n\t- '.join(gen_files)))
         sys.exit(exit_code)
     else:
-        print failed(u'Configuration files were not generated.\n')
+        print failed('Configuration files were not generated.\n')
         sys.exit(exit_code)
 
 
