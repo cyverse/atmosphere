@@ -61,17 +61,6 @@ pip install -r dev_requirements.txt
     Style = StyleMock()
 
 
-try:
-    import emoji
-except ImportError:
-    class EmojiMock:
-        def emojize(self, text, use_aliases=False):
-            return ''
-    # mock to avoid forcing module installations
-    emoji = EmojiMock()
-
-
-
 # name of the common variable section, this section is *merged* into
 # all other defined sections within the variables file.
 COMMON_KEY = 'COMMON'
@@ -159,28 +148,24 @@ def _scan_messages(messages, output_code):
 
 def completed():
     completed = '%s%sCOMPLETED.%s' % (Fore.BLACK, Back.WHITE, Style.RESET_ALL)
-    thumbsup = emoji.emojize(':thumbs_up_sign:')
-    return '\n%s %s' % (completed, thumbsup)
+    return '\n%s' % (completed,)
 
 
 def warnings():
     warnings = '%s%sWARNINGS PRESENT.%s' % (Fore.BLACK, Back.YELLOW, Style.RESET_ALL)
-    warn_sign = emoji.emojize(':ticket:', use_aliases=True)
-    return '\n%s %s' % (warnings, warn_sign)
+    return '\n%s ' % (warnings, )
 
 
 def passed(text):
     succeeded = '%s%sSUCCEEDED.%s' % (Fore.BLACK, Back.GREEN, Style.RESET_ALL)
-    checkmark = emoji.emojize(':white_check_mark:', use_aliases=True)
-    return '%s%s%s\n%s %s' % (Fore.GREEN, text, Style.RESET_ALL,
-        succeeded, checkmark)
+    return '%s%s%s\n%s ' % (Fore.GREEN, text, Style.RESET_ALL,
+        succeeded)
 
 
 def failed(text):
     failed = '%s%sFAILED.%s' % (Fore.BLACK, Back.RED, Style.RESET_ALL)
-    borkbork = emoji.emojize(':no_entry_sign:')
-    return '%s%s%s\n%s %s' % (Fore.RED, text, Style.RESET_ALL,
-        failed, borkbork)
+    return '%s%s%s\n%s ' % (Fore.RED, text, Style.RESET_ALL,
+        failed)
 
 
 def _populate_variable_namespace(vars, includes):
@@ -265,7 +250,8 @@ def _get_variables(variables_file=VARIABLES_PATH):
     except Exception as e:
         return (False,
                 [('e', 'Unable to get or parse '
-                 'variables from %s' % (variables_file))])
+                 'variables from %s:\n\t%s' %
+                 (variables_file, e.message))])
 
 
 def _section_check(vars, distrib):
