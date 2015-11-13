@@ -170,7 +170,8 @@ class BaseRequestViewSet(AuthViewSet):
 
             if instance.is_denied():
                 self.deny_action(instance)
-        except core_exceptions.ProviderLimitExceeded:
+        except (core_exceptions.ProviderLimitExceeded,,  # NOTE: DEPRECATED -- REMOVE SOON, USE BELOW.
+                core_exceptions.RequestLimitExceeded):
             message = "Only one active request is allowed per provider."
             raise exceptions.MethodNotAllowed('create', detail=message)
         except core_exceptions.InvalidMembership:
