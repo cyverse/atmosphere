@@ -37,19 +37,19 @@ $(DHPARAM):
 setup: setup-site setup-atmo setup-flower setup-jenkins setup-lb
 
 setup-site:
-	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-site
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/configure -c nginx:nginx-site
 
 setup-atmo:
-	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-atmo
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/configure -c nginx:nginx-atmo
 
 setup-flower:
-	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-flower
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/configure -c nginx:nginx-flower
 
 setup-jenkins:
-	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-flower
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/configure -c nginx:nginx-jenkins
 
 setup-lb:
-	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/scripts/generate_configs.py -c nginx-flower
+	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/configure -c nginx:nginx-lb
 
 $(COMBINED_CERT_PATH):
 	cat $(CERT_PATH) $(BUNDLE_PATH) > $(COMBINED_CERT_PATH)
