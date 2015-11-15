@@ -1,15 +1,19 @@
+import uuid
+
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from core.query import only_current_provider
 from threepio import logger
 
 
 class AtmosphereUser(AbstractUser):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     selected_identity = models.ForeignKey('Identity', blank=True, null=True)
+    end_date = models.DateTimeField(null=True, blank=True)
 
     def group_ids(self):
         return self.group_set.values_list('id', flat=True)
@@ -19,15 +23,26 @@ class AtmosphereUser(AbstractUser):
 
     def user_quota(self):
         identity = self.select_identity()
-        identity_member = identity.identitymembership_set.all()[0]
+        identity_member = identity.identity_memberships.all()[0]
         return identity_member.quota
+
+    @property
+    def current_identities(self):
+        from core.models import Identity
+        all_identities = Identity.objects.none()
+        for group in self.group_set.all():
+            all_identities |= group.current_identities.all()
+        return all_identities
+
+    def can_use_identity(self, identity_id):
+        return self.current_identities.filter(id=identity_id).count() > 0
 
     def select_identity(self):
         """
         Set, save and return an active selected_identity for the user.
         """
         # Return previously selected identity
-        if self.selected_identity and self.selected_identity.is_active():
+        if self.selected_identity and self.selected_identity.is_active(user=self):
             return self.selected_identity
         else:
             self.selected_identity = get_default_identity(self.username)
@@ -85,9 +100,7 @@ def get_default_provider(username):
         from core.models.group import get_user_group
         from core.models.provider import Provider
         group = get_user_group(username)
-        provider_ids = group.identities.filter(
-            only_current_provider(),
-            provider__active=True).values_list(
+        provider_ids = group.current_identities.values_list(
             'provider',
             flat=True)
         provider = Provider.objects.filter(
@@ -115,7 +128,12 @@ def get_default_identity(username, provider=None):
     try:
         from core.models.group import get_user_group
         group = get_user_group(username)
-        identities = group.identities.all()
+        if not group or not group.current_identities.all().count():
+            if settings.AUTO_CREATE_NEW_ACCOUNTS:
+                return create_first_identity(username, provider=provider)
+            else:
+                return None
+        identities = group.current_identities.all()
         if provider:
             if provider.is_active():
                 identities = identities.filter(provider=provider)
@@ -126,11 +144,11 @@ def get_default_identity(username, provider=None):
                 raise "Inactive Provider provided for get_default_identity "
         else:
             default_provider = get_default_provider(username)
-            default_identity = group.identities.filter(
+            default_identity = group.current_identities.filter(
                 provider=default_provider)
             if not default_identity:
                 logger.error("User %s has no identities on Provider %s" % (username, default_provider))
-                raise "No Identities on Provider %s for %s" % (default_provider,username)
+                raise Exception("No Identities on Provider %s for %s" % (default_provider, username))
             #Passing
             default_identity = default_identity[0]
             logger.debug(
@@ -140,3 +158,23 @@ def get_default_identity(username, provider=None):
     except Exception as e:
         logger.exception(e)
         return None
+
+def create_first_identity(username, provider=None):
+    from service.driver import get_account_driver
+    user = AtmosphereUser.objects.get(username=username)
+    if not provider:
+        provider = get_available_provider()
+    if not provider:
+        raise Exception("No currently active providers -- Could not create First identity")
+    accounts = get_account_driver(provider)
+    new_identity = accounts.create_account(user.username)
+    return new_identity
+
+def get_available_provider():
+    from core.models.provider import Provider
+    from core.query import only_current
+    available_providers = Provider.objects.filter(only_current(), active=True).order_by('id')
+    if not available_providers.count():
+        return None
+    # Strategy, for now, is to just pick the first one.
+    return available_providers[0]

@@ -29,10 +29,11 @@ class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
 class ProjectInstanceSerializer(serializers.HyperlinkedModelSerializer):
     project = ProjectRelatedField(queryset=Project.objects.none())
     instance = InstanceRelatedField(queryset=Instance.objects.none())
-
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:projectinstance-detail',
+    )
     class Meta:
         model = ProjectInstance
-        view_name = 'api:v2:projectinstance-detail'
         fields = (
             'id',
             'url',

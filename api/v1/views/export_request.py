@@ -41,8 +41,8 @@ class ExportRequestList(AuthAPIView):
         Add self to ExportRequestQueue
         Return to user with "queued"
         """
-        # request.DATA is r/o
-        data = copy.deepcopy(request.DATA)
+        # request.data is r/o
+        data = copy.deepcopy(request.data)
         owner = request.user.username
         # Staff members can export on users behalf..
         if data.get('created_for') and request.user.is_staff:
@@ -78,7 +78,7 @@ class ExportRequest(AuthAPIView):
         return response
 
     def patch(self, request, provider_uuid, identity_uuid, export_request_id):
-        data = request.DATA
+        data = request.data
         try:
             export_request = CoreExportRequest.objects.get(
                 id=export_request_id)
@@ -94,7 +94,7 @@ class ExportRequest(AuthAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, provider_uuid, identity_uuid, export_request_id):
-        data = request.DATA
+        data = request.data
         try:
             export_request = CoreExportRequest.objects.get(
                 id=export_request_id)

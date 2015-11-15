@@ -4,7 +4,7 @@ status_type - states which a request transitions through
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
-
+import uuid
 
 def get_status_type(status="pending"):
     """
@@ -27,6 +27,7 @@ class StatusType(models.Model):
     """
     Representation of a State
     """
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     name = models.CharField(max_length=32)
     description = models.CharField(max_length=256, default="", blank=True)
     start_date = models.DateTimeField(default=timezone.now)

@@ -6,14 +6,15 @@ from api.permissions import ApiAuthRequired, CloudAdminRequired,\
     InMaintenance
 from api.v2.serializers.summaries import TagSummarySerializer
 from api.v2.views.base import AuthOptionalViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 
-class TagViewSet(AuthOptionalViewSet):
+class TagViewSet(MultipleFieldLookup, AuthOptionalViewSet):
 
     """
     API endpoint that allows tags to be viewed or edited.
     """
-
+    lookup_fields = ("id", "uuid")
     queryset = Tag.objects.all()
     serializer_class = TagSummarySerializer
     max_paginate_by = 1000

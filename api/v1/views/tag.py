@@ -35,7 +35,7 @@ class TagList(AuthOptionalAPIView):
         Status Code: 400 Body: Errors (Duplicate/Invalid Name)
         """
         user = request.user
-        data = request.DATA.copy()
+        data = request.data.copy()
         same_name_tags = CoreTag.objects.filter(name__iexact=data['name'])
         if same_name_tags:
             return Response(['A tag with this name already exists: %s'
@@ -112,7 +112,7 @@ class Tag(AuthAPIView):
                 "a tag that is not yours."],
                 status=status.HTTP_400_BAD_REQUEST)
         # Allowed to update tags..
-        data = request.DATA.copy()
+        data = request.data.copy()
         if tag.user:
             data['user'] = tag.user
         else:

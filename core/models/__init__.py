@@ -5,7 +5,7 @@ Collection of models
 """
 from core.models.allocation_strategy import Allocation, AllocationStrategy
 from core.models.application import Application, ApplicationMembership,\
-    ApplicationScore, ApplicationBookmark
+    ApplicationScore, ApplicationBookmark, ApplicationThreshold
 from core.models.application_tag import ApplicationTag
 from core.models.application_version import ApplicationVersion, ApplicationVersionMembership
 from core.models.cloud_admin import CloudAdministrator

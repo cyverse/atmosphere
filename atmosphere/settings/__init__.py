@@ -125,8 +125,8 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',
-    # #For profile/debugging
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
+    #For profile/debugging
+    #'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -303,13 +303,12 @@ sys.stdout = sys.stderr
 # REST FRAMEWORK
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
-        # Included Renderers
+        # Included Renderers (In order of preference)
+        'api.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.JSONRenderer',
         'rest_framework_jsonp.renderers.JSONPRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_yaml.renderers.YAMLRenderer',
         'rest_framework_xml.renderers.XMLRenderer',
-        # Our Renderers
         'api.renderers.PNGRenderer',
         'api.renderers.JPEGRenderer',
     ),
@@ -372,13 +371,13 @@ CELERYD_TASK_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
 # - 2. Create a Queue,
 # - 3. Bind Queue to Exchange
 CELERY_QUEUES = (
-    Queue(
-        'default', Exchange('default'), routing_key='default'), Queue(
-            'email', Exchange('default'), routing_key='email.sending'), Queue(
-                'ssh_deploy', Exchange('deployment'), routing_key='long.deployment'), Queue(
-                    'fast_deploy', Exchange('deployment'), routing_key='short.deployment'), Queue(
-                        'imaging', Exchange('imaging'), routing_key='imaging'), Queue(
-                            'periodic', Exchange('periodic'), routing_key='periodic'), )
+    Queue('default', Exchange('default'), routing_key='default'),
+    Queue('email', Exchange('default'), routing_key='email.sending'),
+    Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
+    Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
+    Queue('imaging', Exchange('imaging'), routing_key='imaging'),
+    Queue('periodic', Exchange('periodic'), routing_key='periodic'),
+)
 CELERY_DEFAULT_QUEUE = 'default'
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_DEFAULT_EXCHANGE = 'default'

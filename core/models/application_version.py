@@ -31,7 +31,7 @@ class ApplicationVersion(models.Model):
     NOTE: Using this as the 'model' for DB moving to ID==UUID format.
     """
     # Required
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, unique=True, editable=False)
     application = models.ForeignKey("Application", related_name="versions")
     # NOTE: Parent is 'null' when this version was created by a STAFF user
     # (For Ex: imported an image, etc.)
@@ -155,18 +155,19 @@ class ApplicationVersionMembership(models.Model):
     NOTE: There IS underlying cloud implementation 9/10 times.
     That should be 'hooked' in here!
     """
-    application_version = models.ForeignKey(ApplicationVersion)
+    image_version = models.ForeignKey(ApplicationVersion,
+                                      db_column='application_version_id')
     group = models.ForeignKey('Group')
     can_share = models.BooleanField(default=False)
 
     def __unicode__(self):
         return "(ApplicationVersion:%s - Member:%s) " %\
-            (self.application_version, self.group.name)
+            (self.image_version, self.group.name)
 
     class Meta:
         db_table = 'application_version_membership'
         app_label = 'core'
-        unique_together = ('application_version', 'group')
+        unique_together = ('image_version', 'group')
 
 
 def get_version_for_machine(provider_uuid, identifier):
@@ -306,9 +307,9 @@ def transfer_membership(parent_version, new_version):
     if parent_version.membership.count():
         for member in parent_version.membership.all():
             old_membership = ApplicationVersionMembership.objects.get(
-                group=member, application_version=parent_version)
+                group=member, image_version=parent_version)
             membership, _ = ApplicationVersionMembership.objects.get_or_create(
-                application_version=new_version,
+                image_version=new_version,
                 group=old_membership.group,
                 can_share=old_membership.can_share)
 

@@ -332,7 +332,7 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
         account_driver.image_manager.share_image(cloud_machine, tenant_name.value)
 
 def add_application_membership(application, identity, dry_run=False):
-    for membership_obj in identity.identitymembership_set.all():
+    for membership_obj in identity.identity_memberships.all():
         # For every 'member' of this identity:
         group = membership_obj.member
         # Add an application membership if not already there
@@ -383,7 +383,7 @@ def update_membership(application, shared_identities):
             if identity exists on provider && identity NOT in current user list:
                 account_driver.add_user(identity.name)
     """
-    db_identity_membership = identity.identitymembership_set.all().distinct()
+    db_identity_membership = identity.identity_memberships.all().distinct()
     for db_identity_member in db_identity_membership:
         # For each group who holds this identity:
         #   grant them access to the now-private App, Version & Machine
@@ -567,7 +567,7 @@ def reset_provider_allocation(provider_id, default_allocation_id):
     for ident in provider.identity_set.all():
         if ident.created_by.is_staff or ident.created_by.is_superuser:
             continue
-        for membership in ident.identitymembership_set.all():
+        for membership in ident.identity_memberships.all():
             if membership.allocation_id == default_allocation.id:
                 continue
             if membership.allocation_id in exempt_allocation_list:

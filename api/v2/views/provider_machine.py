@@ -1,13 +1,16 @@
 from django.db.models import Q
 from django.contrib.auth.models import AnonymousUser
+from rest_framework.decorators import detail_route
 
 import django_filters
 
-from core.models import ProviderMachine, AccountProvider
+from core.models import AccountProvider
+from core.models.machine import ProviderMachine, find_provider_machine
 from core.query import only_current_source
 
 from api.v2.serializers.details import ProviderMachineSerializer
 from api.v2.views.base import OwnerUpdateViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 
 def get_admin_machines(user):
@@ -44,12 +47,12 @@ class ImageVersionFilter(django_filters.FilterSet):
         fields = ['image_id', 'version_id', 'created_by']
 
 
-class ProviderMachineViewSet(OwnerUpdateViewSet):
+class ProviderMachineViewSet(MultipleFieldLookup, OwnerUpdateViewSet):
 
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
-
+    lookup_fields = ("id", "instance_source__identifier")
     queryset = ProviderMachine.objects.none()
     serializer_class = ProviderMachineSerializer
     search_fields = (
@@ -73,6 +76,23 @@ class ProviderMachineViewSet(OwnerUpdateViewSet):
                 return self.http_method_names
         # Everyone else
         return ['get']
+
+    @detail_route(methods=['post'])
+    def update_metadata(self, request, pk=None):
+        """
+        Until a better method comes about, we will handle Updating metadata here.
+        """
+        data = request.data
+        metadata = data.pop('metadata')
+        provider_machine_id = pk
+        try:
+            provider_machine = find_provider_machine(provider_machine_id, provider=provider_id)
+            update_provider_machine_metadata(provider_machine, metadata)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as exc:
+            logger.exception("Error occurred updating v2 provider_machine metadata")
+            return Response(exc.message, status=status.HTTP_409_CONFLICT)
+
 
     def get_queryset(self):
         request_user = self.request.user

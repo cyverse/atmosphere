@@ -2,20 +2,30 @@ from django.db.models import Q
 from django.utils import timezone
 
 
-def only_active_provider(now_time=None):
+def only_active_provider():
     """
-    Use this query on any model with a 'provider.end_date'
+    Use this query on any model with a 'provider.active'
     to limit the objects to those
-    that have not past their end_date
+    that have an active provider
+    """
+    return Q(provider__active=True)
+
+
+def only_current_tokens(now_time=None):
+    """
+    Filters out inactive tokens.
     """
     if not now_time:
         now_time = timezone.now()
-    return Q(provider__active=True)
+    return (Q(expireTime__isnull=True) |
+            Q(expireTime__gt=now_time)) &\
+        Q(issuedTime__lt=now_time)
 
 
 def only_current_provider(now_time=None):
     """
-    Filters the current active providers.
+    Filters 'current' providers by removing those
+    who have exceeded their end-date.
     """
     if not now_time:
         now_time = timezone.now()
@@ -156,15 +166,31 @@ def only_current(now_time=None):
         Q(start_date__lt=now_time)
 
 
-def _active_identity_membership(user, now_time=None):
-    from core.models import IdentityMembership
+def only_active_provider_memberships(user=None, now_time=None):
     if not now_time:
         now_time = timezone.now()
-    return IdentityMembership.objects.filter(
+    query = (
         Q(identity__provider__end_date__isnull=True) |
-        Q(identity__provider__end_date__gt=now_time),
-        identity__provider__active=True,
-        member__user__username=user.username)
+        Q(identity__provider__end_date__gt=now_time)
+        ) & Q(identity__provider__active=True)
+    if user:
+        query = query & Q(member__user__username=user.username)
+    return query
+
+
+def only_active_memberships(user=None, now_time=None):
+    if not now_time:
+        now_time = timezone.now()
+    query = (
+        Q(identity__provider__end_date__isnull=True) |
+        Q(identity__provider__end_date__gt=now_time)
+        ) & (
+        Q(end_date__isnull=True) |
+        Q(end_date__gt=now_time)
+        ) & Q(identity__provider__active=True)
+    if user:
+        query = query & Q(member__user__username=user.username)
+    return query
 
 
 def _query_membership_for_user(user):

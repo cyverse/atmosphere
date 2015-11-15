@@ -25,7 +25,7 @@ class Application(models.Model):
     sequence of versions. The created_by field here is used for logging only;
     do not rely on it for permissions; use ApplicationMembership instead.
     """
-    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     name = models.CharField(max_length=256)
     # TODO: Dynamic location for upload_to
     icon = models.ImageField(upload_to="applications", null=True, blank=True)
@@ -581,6 +581,7 @@ class ApplicationScore(models.Model):
 
 
 class ApplicationBookmark(models.Model):
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     user = models.ForeignKey('AtmosphereUser', related_name="bookmarks")
     application = models.ForeignKey(Application, related_name="bookmarks")
 
@@ -599,12 +600,12 @@ class ApplicationThreshold(models.Model):
         blank=True,
         null=True)
     memory_min = models.IntegerField(default=0)
-    storage_min = models.IntegerField(default=0)
+    cpu_min = models.IntegerField(default=0)
 
     def __unicode__(self):
-        return "%s requires >%s MB memory, >%s GB disk" % (self.application,
+        return "%s requires >%s MB memory, >%s CPU" % (self.application_version,
                                                            self.memory_min,
-                                                           self.storage_min)
+                                                           self.cpu_min)
 
     class Meta:
         db_table = 'application_threshold'

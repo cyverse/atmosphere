@@ -25,7 +25,7 @@ class IdentityMembershipList(AuthAPIView):
         Create a new identity member (ADMINS & OWNERS GROUP LEADERS ONLY)
         """
         user = request.user
-        data = request.DATA
+        data = request.data
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
             group_name = data['group']
@@ -47,7 +47,7 @@ class IdentityMembershipList(AuthAPIView):
 
     def get(self, request, provider_uuid, identity_uuid, format=None):
         """
-        Return the credential information for this identity
+        Return the identity membership matching this provider+identity
         """
         # Sanity checks:
         # User is authenticated
@@ -55,11 +55,9 @@ class IdentityMembershipList(AuthAPIView):
         try:
             # User is a member of a group ( TODO: loop through all instead)
             group = user.group_set.get(name=user.username)
-            # NOTE: Provider_uuid no longer needed.
             # Group has access to the identity on an active,
             # currently-running provider
-            identity = group.identities.get(only_current_provider(),
-                                            provider__active=True,
+            identity = group.current_identities.get(
                                             uuid=identity_uuid)
             # All other members of the identity are visible
             id_members = CoreIdentityMembership.objects.filter(

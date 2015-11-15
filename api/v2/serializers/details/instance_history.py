@@ -6,6 +6,7 @@ from api.v2.serializers.summaries import (
     InstanceSuperSummarySerializer,
     ProviderSummarySerializer, ImageSummarySerializer)
 from api.v2.serializers.summaries.size import SizeRelatedField
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
@@ -29,12 +30,15 @@ class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
     image = ImageSummarySerializer(
         source='instance.provider_machine.application_version.application')
     status = serializers.SlugRelatedField(slug_field='name', read_only=True)
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:instancestatushistory-detail',
+    )
 
     class Meta:
         model = InstanceStatusHistory
-        view_name = 'api:v2:instancestatushistory-detail'
         fields = (
             'id',
+            'uuid',
             'url',
             'instance',
             'status',

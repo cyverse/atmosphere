@@ -9,17 +9,18 @@ from api.permissions import CloudAdminRequired
 from api.v2.serializers.details import ProviderSerializer
 from api.v2.serializers.summaries import SizeSummarySerializer
 from api.v2.views.base import AuthReadOnlyViewSet
+from api.v2.views.mixins import MultipleFieldLookup
 
 
-class ProviderViewSet(AuthReadOnlyViewSet):
-
+class ProviderViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """
-
+    lookup_fields = ("id", "uuid")
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
     http_method_names = ['get', 'head', 'options', 'trace']
+
 
     def get_permissions(self):
         method = self.request.method
@@ -50,7 +51,7 @@ class ProviderViewSet(AuthReadOnlyViewSet):
     @detail_route()
     def sizes(self, *args, **kwargs):
         provider = self.get_object()
-        self.get_queryset = super(viewsets.ModelViewSet, self).get_queryset
+        self.get_queryset = super(viewsets.ReadOnlyModelViewSet, self).get_queryset
         self.queryset = provider.size_set.get_queryset()
         self.serializer_class = SizeSummarySerializer
         return self.list(self, *args, **kwargs)

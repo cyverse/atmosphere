@@ -3,21 +3,20 @@ Tasks for driver operations.
 NOTE: At this point create options do not have a hard-set requirement for 'CoreIdentity'
 Delete/remove operations do. This should be investigated further..
 """
-from celery.contrib import rdb
 from operator import attrgetter
 import sys
 import re
 import time
 
 from django.conf import settings
+#NOTE: Why are we pulling for this explicitly? Test calling this straight from settings.ATMOSPHERE_PRIVATE_KEYFILE
+from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 from django.utils.timezone import datetime, timedelta
-from celery import chain
 from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
-from celery.task.schedules import crontab
 
-from libcloud.compute.types import Provider, NodeState, DeploymentError
+from libcloud.compute.types import DeploymentError
 
 #TODO: Internalize exception into RTwo
 from neutronclient.common.exceptions import BadRequest
@@ -26,22 +25,18 @@ from rtwo.exceptions import NonZeroDeploymentException
 from threepio import celery_logger, status_logger
 
 from celery import current_app as app
-from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
-from django.conf import settings
 
 from core.email import send_instance_email
-from core.ldap import get_uid_number as get_unique_number
 from core.models.boot_script import get_scripts_for_instance
 from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 
-from service.deploy import init, check_process, wrap_script, echo_test_script,\
+from service.deploy import check_process, wrap_script, echo_test_script,\
     deploy_to as ansible_deploy_to
-from service.driver import get_driver, get_esh_driver, get_account_driver
+from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
-from service.instance import update_instance_metadata
-from service.instance import _create_and_attach_port
+from service.instance import _update_instance_metadata
 from service.networking import _generate_ssh_kwargs
 
 
@@ -105,7 +100,6 @@ def wait_for_instance(
     status_query = "active" Match only one value, active
     status_query = ["active","suspended"] or match multiple values.
     """
-    from service import instance as instance_service
     try:
         celery_logger.debug("wait_for task started at %s." % datetime.now())
         if app.conf.CELERY_ALWAYS_EAGER:
@@ -367,8 +361,6 @@ def deploy_failed(
         instance_id,
         message=None,
         **celery_task_args):
-    from core.models.instance import Instance
-    from core.email import send_deploy_failed_email
     try:
         celery_logger.debug("deploy_failed task started at %s." % datetime.now())
         if task_uuid:
@@ -389,7 +381,6 @@ def deploy_failed(
         update_metadata.s(driverCls, provider, identity, instance.id,
                           metadata, replace_metadata=False).apply_async()
         # Send deploy email
-        core_instance = Instance.objects.get(provider_alias=instance_id)
         celery_logger.debug("deploy_failed task finished at %s." % datetime.now())
     except Exception as exc:
         celery_logger.warn(exc)
@@ -401,6 +392,7 @@ def deploy_failed(
       default_retry_delay=128,
       ignore_result=True)
 def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
+    #  Run once on 'ubuntu', once on 'centos', once on 'root' then retry!
     try:
         celery_logger.debug("deploy_to task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -462,8 +454,6 @@ def get_deploy_chain(
         password=None,
         redeploy=False,
         deploy=True):
-    from core.models.instance import Instance
-    instance_id = instance.id
     start_task = get_chain_from_build(
         driverCls, provider, identity, instance, username=username,
         password=password, redeploy=redeploy, deploy=deploy)
@@ -641,7 +631,6 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
     if redeploy:
         celery_logger.warn("WARNING: 'Redeploy' as an individual option is DEPRECATED, as 'ansible' is idempotent")
     start_chain = None
-    end_chain = None
     # Guarantee 'networking' passes deploy_ready_test first!
     deploy_ready_task = deploy_ready_test.si(
         driverCls, provider, identity, instance.id)
@@ -761,7 +750,6 @@ def deploy_boot_script(driverCls, provider, identity, instance_id,
 @task(name="boot_script_failed")
 def boot_script_failed(task_uuid, driverCls, provider, identity, instance_id,
                        **celery_task_args):
-    from core.models.instance import Instance
     try:
         celery_logger.debug("boot_script_failed task started at %s." % datetime.now())
         celery_logger.info("task_uuid=%s" % task_uuid)
@@ -776,8 +764,7 @@ def boot_script_failed(task_uuid, driverCls, provider, identity, instance_id,
         metadata={'tmp_status': 'boot_script_error'}
         update_metadata.s(driverCls, provider, identity, instance.id,
                           metadata, replace_metadata=False).apply_async()
-        # Send deploy email
-        core_instance = Instance.objects.get(provider_alias=instance_id)
+        # TODO: Send 'boot script failed' email
         celery_logger.debug(
             "boot_script_failed task finished at %s." %
             datetime.now())
@@ -839,50 +826,16 @@ def _get_boot_script_chain(driverCls, provider, identity, instance_id, remove_st
       ignore_result=True,
       max_retries=3)
 def destroy_instance(instance_alias, core_identity_uuid):
+    """
+    NOTE: Argument order flips here -- instance_alais is used as the first argument to make chaining this taks easier with celery.
+    """
     from service import instance as instance_service
-    from rtwo.driver import OSDriver
     try:
         celery_logger.debug("destroy_instance task started at %s." % datetime.now())
-        node_destroyed = instance_service.destroy_instance(
+        core_instance = instance_service.destroy_instance(
             core_identity_uuid, instance_alias)
-        core_identity = Identity.objects.get(uuid=core_identity_uuid)
-        driver = get_esh_driver(core_identity)
-        if isinstance(driver, OSDriver):
-            # Spawn off the last two tasks
-            celery_logger.debug("OSDriver Logic -- Remove floating ips and check"
-                         " for empty project")
-            driverCls = driver.__class__
-            provider = driver.provider
-            identity = driver.identity
-            instances = driver.list_instances()
-            active = [driver._is_active_instance(inst) for inst in instances]
-            if not active:
-                celery_logger.debug("Driver shows 0 of %s instances are active"
-                             % (len(instances),))
-                # For testing ONLY.. Test cases ignore countdown..
-                if app.conf.CELERY_ALWAYS_EAGER:
-                    celery_logger.debug("Eager task waiting 1 minute")
-                    time.sleep(60)
-                clean_task = clean_empty_ips.si(driverCls, provider, identity,
-                                                immutable=True, countdown=5)
-                remove_task = remove_empty_network.si(
-                    driverCls, provider, identity, core_identity_uuid,
-                    immutable=True, countdown=60)
-                clean_task.link(remove_task)
-                clean_task.apply_async()
-            else:
-                celery_logger.debug("Driver shows %s of %s instances are active"
-                             % (len(active), len(instances)))
-                # For testing ONLY.. Test cases ignore countdown..
-                if app.conf.CELERY_ALWAYS_EAGER:
-                    celery_logger.debug("Eager task waiting 15 seconds")
-                    time.sleep(15)
-                destroy_chain = clean_empty_ips.si(
-                    driverCls, provider, identity,
-                    immutable=True, countdown=5)
-                destroy_chain.apply_async()
         celery_logger.debug("destroy_instance task finished at %s." % datetime.now())
-        return node_destroyed
+        return core_instance
     except Exception as exc:
         celery_logger.exception(exc)
         destroy_instance.retry(exc=exc)
@@ -949,7 +902,6 @@ def _deploy_ready_failed_email_test(
     #100% - Send an Email to atmosphere to notify that a deployment failed
     #       Terminate the current chain, and call 'deploy_failed' task out of band.
     """
-    from core.models.instance import Instance
     from core.email import send_preemptive_deploy_failed_email
     core_instance = Instance.objects.get(provider_alias=instance_id)
     num_retries = current_request.retries
@@ -1127,7 +1079,6 @@ def check_process_task(driverCls, provider, identity,
     # we expect this task to fail often when the image is building
     # and large, uncached images can have a build time.
     """
-    from core.models.instance import Instance
     try:
         celery_logger.debug("check_process_task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
@@ -1177,7 +1128,7 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata,
         instance = driver.get_instance(instance_alias)
         if not instance:
             return
-        return update_instance_metadata(
+        return _update_instance_metadata(
             driver, instance, data=metadata, replace=replace_metadata)
         celery_logger.debug("update_metadata task finished at %s." % datetime.now())
     except Exception as exc:
@@ -1426,7 +1377,6 @@ def update_membership_for(provider_uuid):
 @task(name="update_membership")
 def update_membership():
     from core.models.provider import Provider as CoreProvider
-    from service.accounts.eucalyptus import AccountDriver as EucaAcctDriver
     for provider in CoreProvider.objects.all():
         update_membership_for.apply_async(args=[provider.uuid])
 
@@ -1451,7 +1401,6 @@ def test_instance_links(alias, uri):
 
 
 def update_links(instances):
-    from core.models import Instance
     updated = []
     linktest_results = test_active_instances(instances)
     for (instance_id, link_results) in linktest_results.items():

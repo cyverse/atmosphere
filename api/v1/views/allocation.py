@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from core.models import Allocation, AllocationStrategy
-from core.query import _active_identity_membership
+from core.query import only_active_memberships
 
 from api.v1.serializers import AllocationSerializer, AllocationResultSerializer
 from api.v1.views.base import AuthAPIView
@@ -31,7 +31,7 @@ class AllocationList(AuthAPIView):
         """
         Creates a new Allocation
         """
-        data = request.DATA
+        data = request.data
         serializer = AllocationSerializer(data=data)
 
         if serializer.is_valid():
@@ -59,7 +59,7 @@ class AllocationDetail(AuthAPIView):
         """
         Updates the specified Allocation
         """
-        data = request.DATA
+        data = request.data
         allocation = get_object_or_404(Allocation, id=quota_id)
         serializer = AllocationSerializer(allocation, data=data)
 
@@ -73,7 +73,7 @@ class AllocationDetail(AuthAPIView):
         """
         Partially updates the specified Allocation
         """
-        data = request.DATA
+        data = request.data
         allocation = get_object_or_404(Allocation, id=quota_id)
         serializer = AllocationSerializer(allocation, data=data, partial=True)
 
@@ -96,7 +96,7 @@ class MonitoringList(AuthAPIView):
         """
         user = request.user
         allocation_results = []
-        memberships = _active_identity_membership(user)
+        memberships = only_active_memberships(user)
         for membership in memberships:
             strat = AllocationStrategy.objects.get(
                 provider=membership.identity.provider)

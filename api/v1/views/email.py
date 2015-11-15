@@ -28,13 +28,14 @@ class Feedback(AuthAPIView):
         Creates a new feedback email and sends it to admins.
         """
         required = ["message", "user-interface"]
-        missing_keys = check_missing_keys(request.DATA, required)
+        missing_keys = check_missing_keys(request.data, required)
         if missing_keys:
             return keys_not_found(missing_keys)
         result = self._email(request,
                              request.user.username,
                              lookupEmail(request.user.username),
-                             request.DATA["message"])
+                             request.data["message"],
+                             request.data)
         return Response(result, status=status.HTTP_201_CREATED)
 
     def _email(self, request, username, user_email, message):
@@ -78,14 +79,14 @@ class QuotaEmail(AuthAPIView):
         Creates a new Quota Request email and sends it to admins.
         """
         required = ["quota", "reason"]
-        missing_keys = check_missing_keys(request.DATA, required)
+        missing_keys = check_missing_keys(request.data, required)
         if missing_keys:
             return keys_not_found(missing_keys)
-        logger.debug("request.DATA = %s" % (str(request.DATA)))
+        logger.debug("request.data = %s" % (str(request.data)))
         result = self._email(request,
                              request.user.username,
-                             request.DATA["quota"],
-                             request.DATA["reason"])
+                             request.data["quota"],
+                             request.data["reason"])
         return Response(result, status=status.HTTP_201_CREATED)
 
     def _email(self, request, username, new_resource, reason):
@@ -105,13 +106,14 @@ class SupportEmail(AuthAPIView):
 
         Post Support Email via RESTful API
         """
-        required = ["message", "subject"]
-        missing_keys = check_missing_keys(request.DATA, required)
+        required = ["message", "subject","user-interface"]
+        missing_keys = check_missing_keys(request.data, required)
         if missing_keys:
             return keys_not_found(missing_keys)
         result = self._email(request,
-                             request.DATA["subject"],
-                             request.DATA["message"])
+                             request.data["subject"],
+                             request.data["message"],
+                             request.data)
         return Response(result, status=status.HTTP_201_CREATED)
 
     def _email(self, request, subject, message):

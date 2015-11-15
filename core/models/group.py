@@ -1,7 +1,9 @@
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 """
 Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
+import uuid
 from math import floor, ceil
 
 from django.db import models
@@ -19,12 +21,16 @@ from core.models.provider import Provider
 from core.models.quota import Quota
 from core.models.user import AtmosphereUser
 
+from core.query import (
+        only_active_memberships, only_active_provider, only_current_provider
+    )
 
 class Group(DjangoGroup):
 
     """
     Extend the Django Group model to support 'membership'
     """
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     leaders = models.ManyToManyField('AtmosphereUser', through='Leadership')
     identities = models.ManyToManyField(Identity, through='IdentityMembership',
                                         blank=True)
@@ -43,6 +49,22 @@ class Group(DjangoGroup):
 
     def is_leader(self, test_user):
         return any(user for user in self.leaders.all() if user == test_user)
+
+    @property
+    def current_identity_memberships(self):
+        return self.identity_memberships.filter(only_active_memberships())
+
+    @property
+    def current_identities(self):
+        identity_ids = self.identity_memberships.filter(
+                only_active_memberships()).values_list('identity',flat=True)
+        return Identity.objects.filter(only_current_provider(), only_active_provider(), id__in=identity_ids)
+
+    @property
+    def current_providers(self):
+        provider_ids = self.identity_memberships.filter(
+                only_active_memberships()).values_list('identity__provider',flat=True)
+        return Provider.objects.filter(id__in=provider_ids)
 
     @classmethod
     def check_membership(cls, test_user, membership_groups):
@@ -90,6 +112,7 @@ class Group(DjangoGroup):
 
 
 class Leadership(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     user = models.ForeignKey('AtmosphereUser')
     group = models.ForeignKey(Group)
 
@@ -111,10 +134,12 @@ class IdentityMembership(models.Model):
     IdentityMembership allows group 'API access' to use a specific provider
     The identity is given a quota on how many resources can be allocated
     """
-    identity = models.ForeignKey(Identity)
-    member = models.ForeignKey(Group)
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    identity = models.ForeignKey(Identity, related_name='identity_memberships')
+    member = models.ForeignKey(Group, related_name='identity_memberships')
     quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
 
     @classmethod
     def get_membership_for(cls, groupname):
@@ -123,9 +148,17 @@ class IdentityMembership(models.Model):
         except Group.DoesNotExist:
             logger.warn("Group %s does not exist" % groupname)
         try:
-            return group.identitymembership_set.first()
-        except IdentityMembershipDoesNotExist:
+            return group.current_identity_memberships.first()
+        except IdentityMembership.DoesNotExist:
             logger.warn("%s is not a member of any identities" % groupname)
+
+    def is_active(self):
+        if not self.active:
+            return False
+        if self.end_date:
+            now = timezone.now()
+            return not(self.end_date < now)
+        return True
 
     def get_allocation_dict(self):
         if not self.allocation:
@@ -203,6 +236,7 @@ class InstanceMembership(models.Model):
     calls to terminate/request imaging/attach/detach *should* fail.
     (This can also be dictated by permission)
     """
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     instance = models.ForeignKey('Instance')
     owner = models.ForeignKey(Group)
 
@@ -215,4 +249,3 @@ class InstanceMembership(models.Model):
         unique_together = ('instance', 'owner')
 
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

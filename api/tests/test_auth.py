@@ -13,6 +13,8 @@ from api.tests import verify_expected_output
 from service.accounts.openstack import AccountDriver as OSAccounts
 
 # These tests do not apply when not using LDAP based auth.
+# TODO: Rewrite this to ensure that token api is available *WITHOUT* the need to test LDAP explicitly.
+
 # class TokenAPIClient(APIClient):
 #     token = None
 # 
@@ -27,7 +29,11 @@ from service.accounts.openstack import AccountDriver as OSAccounts
 #         }
 #         full_url = urljoin(settings.SERVER_URL, reverse_url)
 #         response = api_client.post(full_url, data, format='multipart')
-#         json_data = json.loads(response.content)
+#         content = response.content
+#         if content:
+#             json_data = json.loads(response.content)
+#         else:
+#             json_data = None
 #         return json_data
 # 
 #     def login(self, **credentials):

@@ -29,10 +29,11 @@ class VolumeRelatedField(serializers.PrimaryKeyRelatedField):
 class ProjectVolumeSerializer(serializers.HyperlinkedModelSerializer):
     project = ProjectRelatedField(queryset=Project.objects.none())
     volume = VolumeRelatedField(queryset=Volume.objects.none())
-
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:projectvolume-detail',
+    )
     class Meta:
         model = ProjectVolume
-        view_name = 'api:v2:projectvolume-detail'
         fields = (
             'id',
             'url',
