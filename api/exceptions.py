@@ -104,4 +104,3 @@ def over_allocation(allocation_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         allocation_exception.message)
-
