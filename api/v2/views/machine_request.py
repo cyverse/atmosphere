@@ -1,4 +1,5 @@
-from api import exceptions
+from rest_framework import exceptions
+
 from api.v2.serializers.details import MachineRequestSerializer,\
     UserMachineRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
@@ -24,8 +25,8 @@ class MachineRequestViewSet(BaseRequestViewSet):
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
         new_provider_id= serializer.initial_data['new_machine_provider']
-        new_owner_id=self.request.user.id
-        parent_machine_id = serializer.validated_data['instance'].provider_machine.id
+        new_owner=self.request.user
+        parent_machine = serializer.validated_data['instance'].provider_machine
         status, _ = StatusType.objects.get_or_create(name="pending")
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
@@ -34,9 +35,10 @@ class MachineRequestViewSet(BaseRequestViewSet):
                 status=status,
                 old_status="processing",
                 created_by=self.request.user,
-                new_machine_provider_id = new_provider_id,
-                new_machine_owner_id = new_owner_id,
-                parent_machine_id=parent_machine_id
+                #new_machine_provider_id = new_provider_id,
+                new_machine_owner = new_owner,
+                #parent_machine_id=parent_machine_id
+                parent_machine=parent_machine
             )
             self.submit_action(instance)
         except (core_exceptions.ProviderLimitExceeded,
@@ -57,7 +59,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
             raise exceptions.ParseError(detail=message)
         except Exception as e:
             message = {
-                "An error was encoutered when submitting the request."
+                "An error was encoutered when submitting the request: %s" % e
             }
             raise exceptions.ParseError(detail=message)
 
