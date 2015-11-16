@@ -20,7 +20,8 @@ class IdentityMembershipSerializer(serializers.HyperlinkedModelSerializer):
         model = IdentityMembership
         view_name = 'api:v2:identity-detail' # TODO: Make an identity-membership-detail
         fields = ('id',
-                  'url',
+                  #TODO: Re-add this in master:
+                  #'url',
                   'quota',
                   'allocation',
                   'end_date',
