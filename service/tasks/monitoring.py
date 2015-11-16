@@ -424,7 +424,7 @@ def monitor_instances():
         monitor_instances_for.apply_async(args=[p.id])
 
 
-@task(name="monitor_instances")
+@task(name="monitor_instance_allocations")
 def monitor_instance_allocations():
     """
     Update instances for each active provider.
