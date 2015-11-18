@@ -199,7 +199,7 @@ def prepare_driver(request, provider_uuid, identity_uuid,
             raise Exception(
                 "User %s is NOT the owner of Identity UUID: %s" %
                 (request.user.username, core_identity.uuid))
-    except (CoreIdentity.DoesNotExist, ValueError):
+    except (CoreIdentity.DoesNotExist, ValueError, Exception):
         logger.exception("Unable to prepare driver.")
         if raise_exception:
             raise
