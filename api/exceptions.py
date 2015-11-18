@@ -64,6 +64,8 @@ def connection_failure(provider_id, identity_id=None):
 class ServiceUnavailable(rest_exceptions.APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = _("Service Unavailable.")
+
+
 def instance_not_found(instance_id):
     return failure_response(
         status.HTTP_404_NOT_FOUND,

@@ -21,6 +21,7 @@ from service.driver import prepare_driver
 from service.instance import (
     run_instance_action,
     launch_instance)
+from service.tasks.driver import update_metadata
 from service.exceptions import (
     OverAllocationError, OverQuotaError,
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
@@ -33,6 +34,9 @@ from service.exceptions import (
 from api import failure_response, invalid_creds,\
     connection_failure, malformed_response,\
     emulate_user
+from api.exceptions import (
+    size_not_available, mount_failed, over_quota,
+    under_threshold, over_capacity, instance_not_found)
 from api.pagination import OptionalPagination
 from api.v1.serializers import InstanceStatusHistorySerializer,\
     InstanceSerializer, InstanceHistorySerializer, VolumeSerializer,\
@@ -166,7 +170,7 @@ class InstanceList(AuthAPIView):
         except OverAllocationError as oae:
             return over_quota(oae)
         except SizeNotAvailable as snae:
-            return size_not_availabe(snae)
+            return size_not_available(snae)
         except SecurityGroupNotCreated:
             return connection_failure(provider_uuid, identity_uuid)
         except (socket_error, ConnectionFailure):
@@ -622,12 +626,11 @@ class Instance(AuthAPIView):
         serializer = InstanceSerializer(core_instance, data=data,
                                         context={"request": request})
         identity = Identity.objects.get(uuid=identity_uuid)
-        provider = identity.provider
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             #NOTE: We shouldn't allow 'full replacement' of metadata..
             # We should also validate against potentional updating of 'atmo-used metadata'
-            update_metadata.s(driver_class, provider, identity, esh_instance.id,
+            update_metadata.s(esh_driver.__class__, esh_driver.provider, esh_driver.identity, esh_instance.id,
                               data, replace_metadata=False).apply()
             new_instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
@@ -637,7 +640,7 @@ class Instance(AuthAPIView):
                 serializer = InstanceSerializer(
                     new_instance,
                     context={"request": request})
-            invalidate_cached_instances(identity=identitty)
+            invalidate_cached_instances(identity=identity)
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
@@ -832,45 +835,3 @@ def keys_not_found(missing_keys):
     return failure_response(
         status.HTTP_400_BAD_REQUEST,
         'Missing data for variable(s): %s' % missing_keys)
-
-
-def instance_not_found(instance_id):
-    return failure_response(
-        status.HTTP_404_NOT_FOUND,
-        'Instance %s does not exist' % instance_id)
-
-
-def size_not_available(sna_exception):
-    return failure_response(
-        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-        sna_exception.message)
-
-
-def over_capacity(capacity_exception):
-    return failure_response(
-        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-        capacity_exception.message)
-
-
-def under_threshold(threshold_exception):
-    return failure_response(
-        status.HTTP_400_BAD_REQUEST,
-        threshold_exception.message)
-
-
-def over_quota(quota_exception):
-    return failure_response(
-        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-        quota_exception.message)
-
-
-def mount_failed(exception):
-    return failure_response(
-        status.HTTP_409_CONFLICT,
-        exception.message)
-
-
-def over_allocation(allocation_exception):
-    return failure_response(
-        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-        allocation_exception.message)
