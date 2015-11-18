@@ -1,7 +1,7 @@
 from api.v2.serializers.details import QuotaSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
-from api.permissions import CloudAdminOnly
+from api.permissions import CloudAdminRequired
 from core.models import Quota
 
 
@@ -17,6 +17,6 @@ class QuotaViewSet(MultipleFieldLookup, AuthViewSet):
     queryset = Quota.objects.all()
     serializer_class = QuotaSerializer
     permission_classes = (
-        CloudAdminOnly,
+        CloudAdminRequired,
     )
     http_method_names = ['get', 'post', 'head', 'options', 'trace']
