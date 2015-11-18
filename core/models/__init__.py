@@ -38,3 +38,4 @@ from core.models.t import T
 from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
+from core.models.ssh_key import SSHKey

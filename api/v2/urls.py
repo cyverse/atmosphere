@@ -58,5 +58,6 @@ router.register(r'tags', views.TagViewSet)
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.MembershipViewSet, base_name='group')
 router.register(r'volumes', views.VolumeViewSet, base_name='volume')
+router.register(r'ssh_keys', views.SSHKeyViewSet, base_name='ssh_key')
 
 urlpatterns = patterns('', url(r'^', include(router.urls)),)

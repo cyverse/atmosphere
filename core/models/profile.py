@@ -13,6 +13,7 @@ from hashlib import md5
 class UserProfile(models.Model):
     user = models.OneToOneField(AtmosphereUser, primary_key=True)
     # Backend Profile attributes
+    use_ssh_keys = models.BooleanField(default=False)
     send_emails = models.BooleanField(default=True)
     quick_launch = models.BooleanField(default=True)
     vnc_resolution = models.CharField(max_length=255, default='800x600')

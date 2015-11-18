@@ -28,38 +28,4 @@ from .status_type import StatusTypeSerializer
 from .tag import TagSerializer
 from .user import UserSerializer
 from .volume import VolumeSerializer, UpdateVolumeSerializer
-
-
-__all__ = (
-    "AllocationSerializer",
-    "BootScriptSerializer",
-    "IdentitySerializer",
-    "ImageBookmarkSerializer",
-    "ImageSerializer",
-    "ImageTagSerializer",
-    "ImageVersionSerializer",
-    "ImageVersionBootScriptSerializer",
-    "ImageVersionLicenseSerializer",
-    "ImageVersionMembershipSerializer",
-    "InstanceSerializer",
-    "InstanceTagSerializer",
-    "LicenseSerializer",
-    "MachineRequestSerializer",
-    "MembershipSerializer",
-    "PlatformTypeSerializer",
-    "ProjectInstanceSerializer",
-    "ProjectSerializer",
-    "ProjectVolumeSerializer",
-    "ProviderMachineSerializer",
-    "ProviderSerializer",
-    "ProviderTypeSerializer",
-    "QuotaSerializer",
-    "ResourceRequestSerializer",
-    "SizeSerializer",
-    "StatusTypeSerializer",
-    "TagSerializer",
-    "UpdateVolumeSerializer",
-    "UserResourceRequestSerializer",
-    "UserSerializer",
-    "VolumeSerializer"
-)
+from .ssh_key import SSHKeySerializer
