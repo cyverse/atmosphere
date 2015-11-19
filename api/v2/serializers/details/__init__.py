@@ -24,6 +24,7 @@ from .quota import QuotaSerializer
 from .resource_request import (
     ResourceRequestSerializer, UserResourceRequestSerializer)
 from .size import SizeSerializer
+from .ssh_key import SSHKeySerializer
 from .status_type import StatusTypeSerializer
 from .tag import TagSerializer
 from .user import UserSerializer

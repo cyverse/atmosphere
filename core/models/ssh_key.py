@@ -10,7 +10,7 @@ class SSHKey(models.Model):
 
     name = models.CharField(max_length=256)
     uuid = models.CharField(max_length=36, unique=True, default=uuid4)
-    pub_key = models.CharField(max_length=512)
+    pub_key = models.TextField()
     atmo_user = models.ForeignKey(AtmosphereUser)
 
     class Meta:
