@@ -133,7 +133,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
     def perform_destroy(self, instance):
         user = self.request.user
         identity_uuid = instance.created_by_identity.uuid
-        identity = Identity.objects.get(id=identity_uuid)
+        identity = Identity.objects.get(uuid=identity_uuid)
         try:
             # Test that there is not an attached volume BEFORE we destroy
             #NOTE: Although this is a task we are calling and waiting for response..
@@ -169,7 +169,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         name = data.get('name')
         boot_scripts = data.pop("scripts", [])
         identity_uuid = data.get('identity')
-        identity = Identity.objects.get(id=identity_uuid)
+        identity = Identity.objects.get(uuid=identity_uuid)
         source_alias = data.get('source_alias')
         size_alias = data.get('size_alias')
         deploy = data.get('deploy')
