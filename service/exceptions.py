@@ -4,6 +4,9 @@ Atmosphere service exceptions.
 """
 
 from ansible.errors import AnsibleError
+from socket import error as socket_error
+from rtwo.exceptions import ConnectionFailure
+from libcloud.common.types import InvalidCredsError, MalformedResponseError
 
 
 class ServiceException(Exception):
@@ -18,6 +21,24 @@ class ActionNotAllowed(ServiceException):
         self.message = message
         self.status_code = 409
         super(ActionNotAllowed, self).__init__()
+
+
+
+
+class InstanceDoesNotExist(ServiceException):
+
+    def __init__(self, instance_id):
+        self.message = instance_id
+        self.status_code = 404
+        super(UnderThresholdError, self).__init__()
+
+
+class InstanceDoesNotExist(ServiceException):
+
+    def __init__(self, instance_id):
+        self.message = instance_id
+        self.status_code = 404
+        super(UnderThresholdError, self).__init__()
 
 
 class UnderThresholdError(ServiceException):
@@ -104,11 +125,23 @@ class SizeNotAvailable(ServiceException):
         return "%s" % (self.message, )
 
 
+class VolumeDetachConflict(ServiceException):
+
+    def __init__(self, message):
+        self.message = message
+        super(VolumeDetachConflict, self).__init__()
+
+    def __str__(self):
+        return "%s" % (self.message, )
+
+
 class VolumeAttachConflict(ServiceException):
 
-    def __init__(self, instance_id, volume_id):
-        self.message = "Volume %s is still attached to instance %s"\
+    def __init__(self, instance_id=None, volume_id=None, message=None):
+        if not message:
+            message = "Volume %s is still attached to instance %s"\
             % (volume_id, instance_id)
+        self.message = message
         super(VolumeAttachConflict, self).__init__()
 
     def __str__(self):

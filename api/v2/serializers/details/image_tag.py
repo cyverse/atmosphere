@@ -31,10 +31,11 @@ class ImageTagSerializer(serializers.HyperlinkedModelSerializer):
         source='application',
         queryset=Image.objects.none())
     tag = TagRelatedField(queryset=Tag.objects.none())
-
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:applicationtag-detail',
+    )
     class Meta:
         model = ImageTag
-        view_name = 'api:v2:applicationtag-detail'
         fields = (
             'id',
             'url',

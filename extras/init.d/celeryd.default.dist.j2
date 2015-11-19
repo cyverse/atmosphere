@@ -22,7 +22,7 @@ CELERYD_OPTS="-Q:atmosphere-node_1 default,fast_deploy,ssh_deploy -c:atmosphere-
 CELERYD_NODES="atmosphere-node_1 atmosphere-node_2 atmosphere-node_3 atmosphere-node_4"
 CELERYD_NODES="$CELERYD_NODES atmosphere-fast_1 atmosphere-fast_2"
 CELERYD_NODES="$CELERYD_NODES atmosphere-long_1 atmosphere-long_2 atmosphere-long_3 atmosphere-long_4 atmosphere-long_5 atmosphere-long_6 atmosphere-long_7"
-CELERYD_NODES="$CELERYD_NODES imaging celery_periodic email""
+CELERYD_NODES="$CELERYD_NODES imaging celery_periodic email"
 
 CELERYD_OPTS="-Q:atmosphere-node_1 default -c:atmosphere-node_1 5 -O:atmosphere-node_1 fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_2 default -c:atmosphere-node_2 5 -O:atmosphere-node_2 fair"
@@ -95,8 +95,6 @@ CELERYD_MAX_TASKS_PER_CHILD="150"
 CELERYD_FLOWER="$CELERYD_CHDIR/manage.py celery flower"
 ADMIN_USER="flower_user"
 ADMIN_PASS="flower_pass"
-#Possibly not necessary?
-FLOWER_BROKER_OPT="--broker=amqp://broker_user:broker_pass@hostname:5672/virtualhost_name"
 #TODO:Change to Google+OAUTH2 VERY soon!
 FLOWER_AUTH_OPT="--basic_auth=$ADMIN_USER:$ADMIN_PASS"
 OAUTH2_ACCESS_LIST=""

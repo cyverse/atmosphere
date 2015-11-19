@@ -9,7 +9,7 @@ from service.accounts.eucalyptus import AccountDriver as EucaAccountDriver
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 from core.models import AtmosphereUser as User
 from core.models import Provider, Quota, Allocation, Identity, IdentityMembership
-from authentication.protocol.ldap import get_staff_users
+from iplantauth.protocol.ldap import get_staff_users
 import django
 django.setup()
 

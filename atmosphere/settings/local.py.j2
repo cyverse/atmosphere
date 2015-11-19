@@ -18,7 +18,11 @@ ENFORCING = True
 ENFORCING = False
 {% endif %}
 
-
+{% if AUTO_CREATE_NEW_ACCOUNTS %}
+AUTO_CREATE_NEW_ACCOUNTS = True
+{% else %}
+AUTO_CREATE_NEW_ACCOUNTS = False
+{% endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL }}
 # Logging level for dependencies.
@@ -84,16 +88,38 @@ AUTHENTICATION = {
     #LDAP
     "LDAP_SERVER": '{{ LDAP_SERVER }}',
     "LDAP_SERVER_DN": '{{ LDAP_SERVER_DN }}',
+    {% if JWT_INSTALL %}
+    # WSO2 + JWT
+    "JWT_SP_PUBLIC_KEY_FILE" :'{{ JWT_PUBLIC_KEY }}',
+    "JWT_CLIENT_KEY" :'{{ JWT_CLIENT_KEY }}',
+    "JWT_CLIENT_SECRET" :'{{ JWT_CLIENT_SECRET }}',
+    {% endif %}
+
 
     #GLOBUS
     "GLOBUS_OAUTH_ID": '{{ GLOBUS_OAUTH_ID }}',
     "GLOBUS_OAUTH_SECRET": '{{ GLOBUS_OAUTH_SECRET }}',
     "GLOBUS_OAUTH_CREDENTIALS_SCOPE": '{{ GLOBUS_OAUTH_CREDENTIALS_SCOPE }}',
-    "GLOBUS_OAUTH_AUTHENTICATION_SCOPE": '{{ GLOBUS_OAUTH_AUTHENTICATION_SCOPE }}',
+    "GLOBUS_OAUTH_ATMOSPHERE_SCOPE": '{{ GLOBUS_OAUTH_ATMOSPHERE_SCOPE }}',
     "GLOBUS_TOKEN_URL": '{{ GLOBUS_TOKEN_URL }}',
+    "GLOBUS_TOKENINFO_URL": '{{ GLOBUS_TOKENINFO_URL }}',
     "GLOBUS_AUTH_URL": '{{ GLOBUS_AUTH_URL}}',
 }
 
+{% if USE_MOCK_AUTH %}
+ALWAYS_AUTH_USER = "{{ MOCK_USER }}"
+# Use MockLoginBackend first!
+AUTHENTICATION_BACKENDS += (
+    'iplantauth.authBackends.MockLoginBackend',
+)
+{% else %}
+# MOCK - Uncomment these lines to allow one-user-only access. Useful for debug/development
+# ALWAYS_AUTH_USER = "test_user"
+# # Use MockLoginBackend first!
+# AUTHENTICATION_BACKENDS = (
+#     'iplantauth.authBackends.MockLoginBackend',
+# ) + AUTHENTICATION_BACKENDS
+{% endif %}
 # CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
 SERVICE_URL = SERVER_URL + '/CAS_serviceValidater?sendback=' + REDIRECT_URL + '/application/'

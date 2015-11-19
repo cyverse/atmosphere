@@ -9,6 +9,7 @@ from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 
 from core.models import AtmosphereUser as User
 from core.models.identity import Identity as CoreIdentity
+from core.models.size import convert_esh_size
 
 EucaProvider.set_meta()
 AWSProvider.set_meta()
@@ -198,7 +199,7 @@ def prepare_driver(request, provider_uuid, identity_uuid,
             raise Exception(
                 "User %s is NOT the owner of Identity UUID: %s" %
                 (request.user.username, core_identity.uuid))
-    except (CoreIdentity.DoesNotExist, ValueError):
+    except (CoreIdentity.DoesNotExist, ValueError, Exception):
         logger.exception("Unable to prepare driver.")
         if raise_exception:
             raise
@@ -225,3 +226,15 @@ def _retrieve_source(esh_driver, new_source_alias, source_hint):
     else:
         raise Exception("No Source found for Identifier %s"
                         % (source_hint, ))
+
+
+def get_occupancy(core_provider):
+    admin_driver = get_admin_driver(core_provider)
+    if not admin_driver:
+        raise Exception(
+            "The driver cannot be retrieved for this provider.")
+    meta_driver = admin_driver.meta(admin_driver=admin_driver)
+    esh_size_list = meta_driver.occupancy()
+    core_size_list = [convert_esh_size(size, core_provider.uuid)
+                      for size in esh_size_list]
+    return core_size_list

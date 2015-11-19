@@ -24,7 +24,7 @@ class UserProfile(models.Model):
 
     def user_quota(self):
         identity = get_default_identity(self.user.username)
-        identity_member = identity.identitymembership_set.all()[0]
+        identity_member = identity.identity_memberships.all()[0]
         return identity_member.get_quota_dict()
 
     def email_hash(self):

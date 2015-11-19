@@ -9,6 +9,7 @@ from api.v2.serializers.summaries import (
     QuotaSummarySerializer,
     StatusTypeSummarySerializer
 )
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class UserRelatedField(serializers.PrimaryKeyRelatedField):
@@ -135,6 +136,9 @@ class StatusTypeRelatedField(serializers.RelatedField):
 
 class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(read_only=True)
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:resourcerequest-detail',
+    )
     created_by = UserRelatedField(read_only=True)
     user = UserSummarySerializer(
         source='membership.identity.created_by',
@@ -171,7 +175,6 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = ResourceRequest
-        view_name = 'api:v2:resourcerequest-detail'
         fields = (
             'id',
             'uuid',
@@ -206,10 +209,11 @@ class UserResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     provider = ProviderSummarySerializer(
         source='membership.identity.provider',
         read_only=True)
-
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:resourcerequest-detail',
+    )
     class Meta:
         model = ResourceRequest
-        view_name = 'api:v2:resourcerequest-detail'
         fields = (
             'id',
             'uuid',

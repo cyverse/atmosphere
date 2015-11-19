@@ -31,7 +31,7 @@ class QuotaList(AuthAPIView):
         """
         Creates a new Quota
         """
-        data = request.DATA
+        data = request.data
         serializer = QuotaSerializer(data=data)
 
         if serializer.is_valid():
@@ -59,7 +59,7 @@ class QuotaDetail(AuthAPIView):
         """
         Updates the specified Quota
         """
-        data = request.DATA
+        data = request.data
         quota = get_object_or_404(Quota, id=quota_id)
         serializer = QuotaSerializer(quota, data=data)
 
@@ -73,7 +73,7 @@ class QuotaDetail(AuthAPIView):
         """
         Partially updates the specified Quota
         """
-        data = request.DATA
+        data = request.data
         quota = get_object_or_404(Quota, id=quota_id)
         serializer = QuotaSerializer(quota, data=data, partial=True)
 

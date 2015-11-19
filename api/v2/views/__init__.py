@@ -1,7 +1,10 @@
+# flake8: noqa
 from .allocation import AllocationViewSet
 from .boot_script import BootScriptViewSet
-from .group import MembershipViewSet
+from .credential import CredentialViewSet
+from .group import GroupViewSet
 from .identity import IdentityViewSet
+from .identity_membership import IdentityMembershipViewSet
 from .image import ImageViewSet
 from .image_bookmark import ImageBookmarkViewSet
 from .image_tag import ImageTagViewSet
@@ -14,6 +17,7 @@ from .instance_tag import InstanceTagViewSet
 from .instance_history import InstanceStatusHistoryViewSet
 from .license import LicenseViewSet
 from .machine_request import MachineRequestViewSet
+from .maintenance_record import MaintenanceRecordViewSet
 from .platform_type import PlatformTypeViewSet
 from .project import ProjectViewSet
 from .project_instance import ProjectInstanceViewSet
@@ -25,7 +29,10 @@ from .quota import QuotaViewSet
 from .resource_request import ResourceRequestViewSet
 from .size import SizeViewSet
 from .status_type import StatusTypeViewSet
+from .email import FeedbackEmailViewSet, SupportEmailViewSet, ResourceEmailViewSet
+from .emulate import TokenEmulateViewSet, SessionEmulateViewSet
 from .tag import TagViewSet
+from .token import TokenViewSet
 from .user import UserViewSet
 from .volume import VolumeViewSet
 from .metric import MetricViewSet

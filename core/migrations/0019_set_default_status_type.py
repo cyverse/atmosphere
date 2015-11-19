@@ -2,7 +2,20 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
-import core.models.status_type
+
+
+def apply_data_migration(apps, schema_editor):
+    StatusType = apps.get_model("core", "StatusType")
+    add_status_types(StatusType)
+
+
+def add_status_types(StatusType):
+    StatusType.objects.get_or_create(name="pending")
+    return
+
+
+def go_back(apps, schema_editor):
+    pass
 
 
 class Migration(migrations.Migration):
@@ -12,18 +25,20 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(
+            apply_data_migration, go_back),
         migrations.AlterField(
             model_name='allocationrequest',
             name='status',
             field=models.ForeignKey(
-                default=core.models.status_type.get_status_type_id,
+                default=1,
                 to='core.StatusType'),
         ),
         migrations.AlterField(
             model_name='quotarequest',
             name='status',
             field=models.ForeignKey(
-                default=core.models.status_type.get_status_type_id,
+                default=1,
                 to='core.StatusType'),
         ),
     ]

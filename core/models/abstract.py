@@ -3,6 +3,7 @@
   NOTE: These models should NEVER be created directly.
   See the respective sub-classes for complete implementation details.
 """
+import uuid
 from uuid import uuid4
 
 from django.db import models
@@ -25,8 +26,8 @@ class BaseRequest(models.Model):
     """
     Base model which represents a request object
     """
-    uuid = models.CharField(max_length=36, default=uuid4)
-    status = models.ForeignKey(StatusType, default=get_status_type_id)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
+    status = models.ForeignKey(StatusType)
 
     # Associated creator and identity
     created_by = models.ForeignKey(User)

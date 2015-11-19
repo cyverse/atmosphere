@@ -1,4 +1,4 @@
-from authentication.models import Token
+from iplantauth.models import Token
 from rest_framework import serializers
 
 

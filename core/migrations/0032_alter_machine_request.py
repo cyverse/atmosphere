@@ -36,6 +36,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='machinerequest',
             name='status',
-            field=models.ForeignKey(default=core.models.status_type.get_status_type_id, to='core.StatusType'),
+            field=models.ForeignKey(default=-1, to='core.StatusType'),
         ),
     ]

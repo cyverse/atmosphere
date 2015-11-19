@@ -1,7 +1,6 @@
 server {
     listen 80;
-    server_name {{ SERVER_URL }};
-    rewrite ^ https://$server_name$request_uri? permanent;
+    return 301 https://{{ SERVER_URL }}$request_uri;
 }
 
 server {

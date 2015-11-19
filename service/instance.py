@@ -21,9 +21,10 @@ from core.query import only_current
 from core.models.instance_source import InstanceSource
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
-from core.models.instance import convert_esh_instance, InstanceAction
+from core.models.instance import convert_esh_instance, find_instance, InstanceAction
 from core.models.size import convert_esh_size
 from core.models.machine import ProviderMachine
+from core.models.volume import convert_esh_volume
 from core.models.provider import AccountProvider, Provider, ProviderInstanceAction
 
 from atmosphere import settings
@@ -32,9 +33,12 @@ from atmosphere.settings import secrets
 from service.cache import get_cached_driver, invalidate_cached_instances
 from service.driver import _retrieve_source
 from service.licensing import _test_license
-from service.exceptions import OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    VolumeAttachConflict, UnderThresholdError, ActionNotAllowed
+from service.exceptions import (
+    OverAllocationError, OverQuotaError, SizeNotAvailable,
+    HypervisorCapacityError, SecurityGroupNotCreated,
+    VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
+    socket_error, ConnectionFailure, InstanceDoesNotExist, InvalidCredsError)
+
 from service.accounts.openstack import AccountDriver as OSAccountDriver
 
 
@@ -227,8 +231,7 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
                 % (esh_instance.id, result))
     if update_meta:
         driver_class = esh_driver.__class__
-        provider = esh_driver.provider
-        identity = es_driver.identity
+        identity = esh_driver.identity
 
         metadata={'public-ip': '', 'public-hostname': ''}
         update_metadata.s(driver_class, identity, esh_instance.id,
@@ -617,13 +620,106 @@ def offload_instance(esh_driver, esh_instance,
     return offloaded
 
 
-def destroy_instance(identity_uuid, instance_alias):
+def destroy_instance(user, core_identity_uuid, instance_alias):
+    """
+    Use this function to destroy an instance (From the API, or the REPL)
+    """
+    # TODO: Test how this f(n) works when called multiple times
+    success, esh_instance = _destroy_instance(
+        core_identity_uuid, instance_alias)
+    if not success and esh_instance:
+        raise Exception("Instance could not be destroyed")
+    elif esh_instance:
+        os_cleanup_networking(core_identity_uuid)
+        core_instance = end_date_instance(
+            user, esh_instance, core_identity_uuid)
+        return core_instance
+    else:
+        # Edge case - If you attempt to delete more than once...
+        core_instance = find_instance(instance_alias)
+        return core_instance
+
+
+def end_date_instance(user, esh_instance, core_identity_uuid):
+    # Retrieve the 'hopefully now deleted' instance and end date it.
+    identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
+    esh_driver = get_cached_driver(identity=identity)
+    try:
+        core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                             identity.provider.uuid,
+                                             identity.uuid,
+                                             user)
+        #NOTE: We may want to ensure instances are *actually* terminated prior to end dating them.
+        if core_instance:
+            core_instance.end_date_all()
+        return core_instance
+    except (socket_error, ConnectionFailure):
+        logger.exception("connection failure during destroy instance")
+        return None
+    except InvalidCredsError:
+        logger.exception("InvalidCredsError during destroy instance")
+        return None
+
+
+def os_cleanup_networking(core_identity_uuid):
+    """
+    NOTE: this relies on celery to 'kick these tasks off' as we return the destroyed instance back to the user.
+    """
+    from service.tasks.driver import clean_empty_ips, remove_empty_network
+    core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
+    driver = get_cached_driver(identity=core_identity)
+    if not isinstance(driver, OSDriver):
+        return
+    # Spawn off the last two tasks
+    logger.debug("OSDriver Logic -- Remove floating ips and check"
+                 " for empty project")
+    driverCls = driver.__class__
+    provider = driver.provider
+    identity = driver.identity
+    instances = driver.list_instances()
+    active_instances = [driver._is_active_instance(inst) for inst in instances]
+    if not active_instances:
+        logger.debug("Driver shows 0 of %s instances are active"
+                     % (len(instances),))
+        # For testing ONLY.. Test cases ignore countdown..
+        if app.conf.CELERY_ALWAYS_EAGER:
+            logger.debug("Eager task waiting 1 minute")
+            time.sleep(60)
+        clean_task = clean_empty_ips.si(driverCls, provider, identity,
+                                        immutable=True, countdown=5)
+        remove_task = remove_empty_network.si(
+            driverCls, provider, identity, core_identity_uuid,
+            immutable=True, countdown=60)
+        clean_task.link(remove_task)
+        clean_task.apply_async()
+    else:
+        logger.debug("Driver shows %s of %s instances are active"
+                     % (len(active_instances), len(instances)))
+        # For testing ONLY.. Test cases ignore countdown..
+        if app.conf.CELERY_ALWAYS_EAGER:
+            logger.debug("Eager task waiting 15 seconds")
+            time.sleep(15)
+        destroy_chain = clean_empty_ips.si(
+            driverCls, provider, identity,
+            immutable=True, countdown=5)
+        destroy_chain.apply_async()
+    return
+
+def _destroy_instance(identity_uuid, instance_alias):
+    """
+    Responsible for actually destroying the instance
+    Return:
+    Deleted, Instance
+    """
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
     esh_driver = get_cached_driver(identity=identity)
+    # Bail if driver cant be created
+    if not esh_driver:
+        return (False, None)
     instance = esh_driver.get_instance(instance_alias)
     # Bail if instance doesnt exist
     if not instance:
-        return None
+        return (True, None)
     if isinstance(esh_driver, OSDriver):
         try:
             # Openstack: Remove floating IP first
@@ -637,7 +733,7 @@ def destroy_instance(identity_uuid, instance_alias):
                     or "500 Internal Server Error" in exc.message):
                 raise
     node_destroyed = esh_driver._connection.destroy_node(instance)
-    return node_destroyed
+    return (node_destroyed, instance)
 
 
 # Private methods and helpers
@@ -713,8 +809,8 @@ def _pre_launch_validation(
         _test_for_licensing(machine, identity)
 
 
-def launch_instance(user, provider_uuid, identity_uuid,
-                    size_alias, source_alias, deploy=True,
+def launch_instance(user, identity_uuid,
+                    size_alias, source_alias, name, deploy=True,
                     **launch_kwargs):
     """
     USE THIS TO LAUNCH YOUR INSTANCE FROM THE REPL!
@@ -738,6 +834,8 @@ def launch_instance(user, provider_uuid, identity_uuid,
          size_alias,
          "Request Received"))
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
+    provider_uuid = identity.provider.uuid
+
     esh_driver = get_cached_driver(identity=identity)
 
     # May raise Exception("Size not available")
@@ -760,6 +858,7 @@ def launch_instance(user, provider_uuid, identity_uuid,
         esh_driver,
         boot_source,
         size,
+        name=name,
         deploy=deploy,
         **launch_kwargs)
     return core_instance
@@ -779,6 +878,7 @@ def _select_and_launch_source(
         esh_driver,
         boot_source,
         size,
+        name,
         deploy=True,
         **launch_kwargs):
     """
@@ -791,7 +891,7 @@ def _select_and_launch_source(
         #      use service/volume.py 'boot_volume'
         volume = _retrieve_source(esh_driver, boot_source.identifier, "volume")
         core_instance = launch_volume_instance(
-            esh_driver, identity, volume, size,
+            esh_driver, identity, volume, size, name,
             deploy=deploy, **launch_kwargs)
     elif boot_source.is_machine():
         machine = _retrieve_source(
@@ -799,7 +899,7 @@ def _select_and_launch_source(
             boot_source.identifier,
             "machine")
         core_instance = launch_machine_instance(
-            esh_driver, identity, machine, size,
+            esh_driver, identity, machine, size, name,
             deploy=deploy, **launch_kwargs)
     else:
         raise Exception("Boot source is of an unknown type")
@@ -1098,10 +1198,10 @@ def check_application_threshold(
         raise UnderThresholdError("This application requires >=%s GB of RAM."
                                   " Please re-launch with a larger size."
                                   % int(threshold.memory_min / 1024))
-    if esh_size.disk < threshold.storage_min:
-        raise UnderThresholdError("This application requires >=%s GB of Disk."
+    if esh_size.cpu < threshold.cpu_min:
+        raise UnderThresholdError("This application requires >=%s CPU."
                                   " Please re-launch with a larger size."
-                                  % threshold.storage_min)
+                                  % threshold.cpu_min)
     return
 
 
@@ -1253,8 +1353,14 @@ arg = '{
     init_script_contents += instance_config + "\nmain(arg)"
     return init_script_contents
 
+def update_instance_metadata(core_instance, data={}, replace=False):
+    identity = core_instance.created_by_identity
+    instance_id = core_instance.provider_alias
+    esh_driver = get_cached_driver(identity=identity)
+    esh_instance = esh_driver.get_instance(instance_id)
+    return _update_instance_metadata(esh_driver, esh_instance, data, replace)
 
-def update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
+def _update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
     """
     NOTE: This will NOT WORK for TAGS until openstack
     allows JSONArrays as values for metadata!
@@ -1409,3 +1515,140 @@ def _check_volume_attachment(driver, instance):
             if instance.alias == attachment['serverId']:
                 raise VolumeAttachConflict(instance.alias, vol.alias)
     return False
+
+
+def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_type, action_params):
+    from service import task
+    provider_uuid = identity.provider.uuid
+    identity_uuid = identity.uuid
+    instance_id = esh_instance.alias
+    volume_id = action_params.get('volume_id')
+    mount_location = action_params.get('mount_location')
+    device = action_params.get('device')
+    if mount_location == 'null' or mount_location == 'None':
+        mount_location = None
+    if device == 'null' or device == 'None':
+        device = None
+    if 'attach_volume' == action_type:
+        if esh_instance.extra['status'] != 'active':
+            raise VolumeAttachConflict(
+                message='Instance %s must be active before attaching '
+                'a volume. '
+                'Retry request when instance is active.'
+                % (instance_id,))
+        result = task.attach_volume_task(
+                esh_driver, esh_instance.alias,
+                volume_id, device, mount_location)
+    elif 'mount_volume' == action_type:
+        result = task.mount_volume_task(
+                esh_driver, esh_instance.alias,
+                volume_id, device, mount_location)
+    elif 'unmount_volume' == action_type:
+        (result, error_msg) =\
+            task.unmount_volume_task(esh_driver,
+                                     esh_instance.alias,
+                                     volume_id, device,
+                                     mount_location)
+    elif 'detach_volume' == action_type:
+        if esh_instance.extra['status'] != 'active':
+            raise VolumeDetachConflict(
+                'Instance %s must be active before detaching '
+                'a volume. '
+                'Retry request when instance is active.'
+                % (instance_id,))
+        (result, error_msg) =\
+            task.detach_volume_task(esh_driver,
+                                    esh_instance.alias,
+                                    volume_id)
+        if not result and error_msg:
+            # Return reason for failed detachment
+            raise VolumeDetachConflict(error_msg)
+    # Task complete, convert the volume and return the object
+    esh_volume = esh_driver.get_volume(volume_id)
+    core_volume = convert_esh_volume(esh_volume,
+                                     provider_uuid,
+                                     identity_uuid,
+                                     user)
+    return core_volume
+
+def run_instance_action(user, identity, instance_id, action_type, action_params):
+    """
+    Dev Notes:
+    Being used as the current 'interface' for running any InstanceAction
+    for both API v1 and V2. We will look at how to 'generalize' this pattern later.
+    """
+    esh_driver = get_cached_driver(identity=identity)
+    if not esh_driver:
+        raise InvalidCredsError("Driver could not be created")
+
+    esh_instance = esh_driver.get_instance(instance_id)
+    if not esh_instance:
+        raise InstanceDoesNotExist(instance_id)
+
+    if 'volume' in action_type:
+        # Take care of volume actions separately
+        result_obj = run_instance_volume_action(
+            user, identity, esh_driver, esh_instance,
+            action_type, action_params)
+        return result_obj
+    # Gather instance related parameters
+    provider_uuid = identity.provider.uuid
+    identity_uuid = identity.uuid
+    if 'resize' == action_type:
+        size_alias = action_params.get('size', '')
+        if isinstance(size_alias, int):
+            size_alias = str(size_alias)
+        result_obj = resize_instance(
+            esh_driver, esh_instance, size_alias,
+            provider_uuid, identity_uuid, user)
+    elif 'confirm_resize' == action_type:
+        result_obj = confirm_resize(
+            esh_driver, esh_instance,
+            provider_uuid, identity_uuid, user)
+    elif 'revert_resize' == action_type:
+        result_obj = esh_driver.revert_resize_instance(esh_instance)
+    elif 'redeploy' == action_type:
+        result_obj = redeploy_init(esh_driver, esh_instance)
+    elif 'resume' == action_type:
+        result_obj = resume_instance(esh_driver, esh_instance,
+                                     provider_uuid, identity_uuid,
+                                     user)
+    elif 'suspend' == action_type:
+        result_obj = suspend_instance(esh_driver, esh_instance,
+                                      provider_uuid, identity_uuid,
+                                      user)
+    elif 'shelve' == action_type:
+        result_obj = shelve_instance(esh_driver, esh_instance,
+                                     provider_uuid, identity_uuid,
+                                     user)
+    elif 'unshelve' == action_type:
+        result_obj = unshelve_instance(esh_driver, esh_instance,
+                                       provider_uuid, identity_uuid,
+                                       user)
+    elif 'shelve_offload' == action_type:
+        result_obj = offload_instance(esh_driver, esh_instance)
+    elif 'start' == action_type:
+        result_obj = start_instance(
+            esh_driver, esh_instance,
+            provider_uuid, identity_uuid, user)
+    elif 'stop' == action_type:
+        result_obj = stop_instance(
+            esh_driver, esh_instance,
+            provider_uuid, identity_uuid, user)
+    elif 'reset_network' == action_type:
+        esh_driver.reset_network(esh_instance)
+    elif 'console' == action_type:
+        result_obj = esh_driver._connection\
+                               .ex_vnc_console(esh_instance)
+    elif 'reboot' == action_type:
+        reboot_type = action_params.get('reboot_type', 'SOFT')
+        result_obj = reboot_instance(esh_driver, esh_instance,
+                                     identity_uuid, user, reboot_type)
+    elif 'rebuild' == action_type:
+        machine_alias = action_params.get('machine_alias', '')
+        machine = esh_driver.get_machine(machine_alias)
+        result_obj = esh_driver.rebuild_instance(esh_instance, machine)
+    else:
+        raise ActionNotAllowed(
+            'Unable to to perform action %s.' % (action_type))
+    return result_obj

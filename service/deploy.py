@@ -20,7 +20,7 @@ from threepio import logger, logging, deploy_logger
 from atmosphere import settings
 from atmosphere.settings import secrets
 
-from authentication.protocol import ldap
+from iplantauth.protocol import ldap
 
 from core.logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys

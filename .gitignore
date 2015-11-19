@@ -10,7 +10,7 @@ nohup.out
 *.log
 *.out
 *.pot
-*.json
+*/*.json
 *.org
 *.bak
 .*
@@ -35,6 +35,7 @@ extras/nginx/locations/atmo.conf
 extras/nginx/locations/flower.conf
 extras/nginx/locations/jenkins.conf
 extras/nginx/locations/lb.conf
+extras/uwsgi/atmo.uwsgi.ini
 tests/secrets
 n/service.log
 n/service.err
@@ -44,3 +45,5 @@ settings.py
 djcelery.schedulers.DatabaseScheduler
 /env
 variables.ini
+# generated file backups
+*.bak.[0-9]*_[0-9]*

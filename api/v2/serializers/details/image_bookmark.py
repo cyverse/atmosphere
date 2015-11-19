@@ -1,6 +1,7 @@
 from core.models import ApplicationBookmark as ImageBookmark, Application as Image
 from rest_framework import serializers
 from api.v2.serializers.summaries import UserSummarySerializer, ImageSummarySerializer
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class ImagePrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
@@ -18,7 +19,9 @@ class ImageBookmarkSerializer(serializers.HyperlinkedModelSerializer):
         source='application',
         queryset=Image.objects.all())
     user = UserSummarySerializer(read_only=True)
-
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:applicationbookmark-detail',
+    )
     def validate_image(self, value):
         """
         Check that the image has not already been bookmarked
@@ -35,5 +38,4 @@ class ImageBookmarkSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = ImageBookmark
-        view_name = 'api:v2:applicationbookmark-detail'
-        fields = ('id', 'url', 'image', 'user')
+        fields = ('id', 'uuid', 'url', 'image', 'user')

@@ -8,7 +8,7 @@ import gevent
 from atmosphere import settings
 from core.models import AtmosphereUser as User, Provider, Identity, Instance
 from core.query import only_current
-from authentication.models import Token
+from iplantauth.models import Token
 
 from gevent import monkey
 

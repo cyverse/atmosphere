@@ -22,15 +22,11 @@ class AtmoUserSerializer(serializers.ModelSerializer):
         logger.debug(selected_identity)
         groups = user.group_set.all()
         for g in groups:
-            for id_member in g.identitymembership_set.all():
+            for id_member in g.identity_memberships.all():
                 if id_member.identity == selected_identity:
-                    logger.info("Saving new identity:%s" % selected_identity)
-                    user.selected_identity = selected_identity
-                    user.save()
                     return selected_identity
-        raise serializers.ValidationError("User is not a member of"
-                                          "selected_identity: %s"
-                                          % selected_identity)
+        raise serializers.ValidationError( 
+                "User is not a member of selected_identity: %s" % selected_identity)
 
     class Meta:
         model = AtmosphereUser

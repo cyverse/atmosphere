@@ -10,7 +10,7 @@ from django.db import models
 
 from threepio import logger
 from uuid import uuid5, uuid4
-
+from core.query import only_active_memberships
 
 class Identity(models.Model):
 
@@ -19,7 +19,7 @@ class Identity(models.Model):
     to authenticate against a single provider
     """
 
-    uuid = models.CharField(max_length=36, unique=True, default=uuid4)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     created_by = models.ForeignKey("AtmosphereUser")
     provider = models.ForeignKey("Provider")
 
@@ -36,7 +36,7 @@ class Identity(models.Model):
         my_ids = Identity.objects.filter(
             created_by=user, provider=provider)
         for ident in my_ids:
-            membership_set = ident.identitymembership_set.all()
+            membership_set = ident.identity_memberships.all()
             membership_set.delete()
             ident.delete()
         group.delete()
@@ -62,7 +62,7 @@ class Identity(models.Model):
         shared = False
         leader_groups = django_user.group_set.get(leaders__in=[django_user])
         for group in leader_groups:
-            id_member = g.identitymembership_set.get(identity=self)
+            id_member = g.identity_memberships.get(identity=self)
             if not id_member:
                 continue
             # ASSERT: You have SHARED access to the identity
@@ -118,7 +118,7 @@ class Identity(models.Model):
         return existing_membership[0].delete()
 
     def get_membership(self):
-        identity_members = self.identitymembership_set.all()
+        identity_members = self.identity_memberships.all()
         group_names = [id_member.member for id_member in identity_members]
         # TODO: Add 'rules' if we want to hide specific users (staff, etc.)
         return group_names
@@ -236,7 +236,11 @@ class Identity(models.Model):
     def provider_uuid(self):
         return self.provider.uuid
 
-    def is_active(self):
+    def is_active(self, user=None):
+        if user:
+            return self.identity_memberships.filter(
+                only_active_memberships(),
+                member__user=user).count() > 0
         return self.provider.is_active()
 
     def creator_name(self):
@@ -265,11 +269,11 @@ class Identity(models.Model):
         return []
 
     def get_allocation(self):
-        id_member = self.identitymembership_set.all()[0]
+        id_member = self.identity_memberships.all()[0]
         return id_member.allocation
 
     def get_quota(self):
-        id_member = self.identitymembership_set.all()[0]
+        id_member = self.identity_memberships.all()[0]
         return id_member.quota
 
     def get_allocation_usage(self):
@@ -295,12 +299,12 @@ class Identity(models.Model):
 
 
     def get_allocation_dict(self):
-        id_member = self.identitymembership_set.all()[0]
+        id_member = self.identity_memberships.all()[0]
         allocation_dict = id_member.get_allocation_dict()
         return allocation_dict
 
     def get_quota_dict(self):
-        id_member = self.identitymembership_set.all()[0]
+        id_member = self.identity_memberships.all()[0]
         # See core/models/membership.py#IdentityMembership
         quota_dict = id_member.get_quota_dict()
         allocation_dict = self.get_allocation_dict()
@@ -318,11 +322,8 @@ class Identity(models.Model):
         }
 
     def __unicode__(self):
-        output = "%s %s - " % (self.provider, self.created_by.username)
-        output += "Credentials {"
-        for c in self.credential_set.order_by('key'):
-            output += "%s, " % (c.key,)
-        output = output[:-2] + "}"
+        #TODO: Replace this with (self.provider, self.created_by) once DRF unicode error fixed.
+        output = "%s %s" % (self.provider_id, self.created_by_id)
         return output
 
     class Meta:

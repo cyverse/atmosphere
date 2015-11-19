@@ -24,6 +24,9 @@ def end_date_object(modeladmin, request, queryset):
 end_date_object.short_description = 'Add end-date to objects'
 
 
+# For removing 'standard' registrations
+admin.site.unregister(DjangoGroup)
+
 @admin.register(models.NodeController)
 class NodeControllerAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
@@ -38,6 +41,20 @@ class MaintenanceAdmin(admin.ModelAdmin):
     list_display = ("title", "provider", "start_date",
                     "end_date", "disable_login")
 
+
+@admin.register(models.ApplicationVersion)
+class ImageVersionAdmin(admin.ModelAdmin):
+    search_fields = [
+        "name","application__name",
+    ]
+    actions = [end_date_object, ]
+    list_display = (
+        "id",
+        "name",
+        "application",
+        "start_date",
+        "end_date",
+    )
 
 @admin.register(models.Quota)
 class QuotaAdmin(admin.ModelAdmin):
@@ -105,7 +122,7 @@ class ProviderMachineAdmin(admin.ModelAdmin):
 class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
     list_display = ["id", "_app_name", "_start_date", "_app_private", "group"]
     list_filter = [
-        "application_version__application__name",
+        "image_version__application__name",
         "group__name"
     ]
 
@@ -483,10 +500,15 @@ class ResourceRequestAdmin(admin.ModelAdmin):
                 link=[tasks.close_request.si(obj), email_task],
                 link_error=tasks.set_request_as_failed.si(obj))
 
-# For adding 'new' registrations
-admin.site.register(models.Credential)
-admin.site.register(models.Group)
-admin.site.register(models.ProviderType)
 
-# For removing 'standard' registrations
-admin.site.unregister(DjangoGroup)
+@admin.register(models.Group)
+class GroupAdmin(admin.ModelAdmin):
+    readonly_fields = ('uuid',)
+    list_display = ('name', 'uuid',)
+    list_filter = ['name', ]
+
+
+# For adding 'new' registrations
+admin.site.register(models.ApplicationThreshold)
+admin.site.register(models.Credential)
+admin.site.register(models.ProviderType)

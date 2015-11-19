@@ -1,6 +1,7 @@
 """
   Instance model for atmosphere.
 """
+from uuid import uuid4
 from hashlib import md5
 from datetime import datetime, timedelta
 
@@ -185,6 +186,8 @@ class Instance(models.Model):
     # FIXME  Problems when setting a default.
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True, blank=True)
+
+    # Model Managers
     objects = models.Manager()  # The default manager.
     active_instances = ActiveInstancesManager()
 
@@ -206,10 +209,10 @@ class Instance(models.Model):
         # TODO: Profile Option
         # except InstanceStatusHistory.DoesNotExist:
         # TODO: Profile current choice
-        last_history = self.instancestatushistory_set.all().order_by(
-            '-start_date')
+        last_history = self.instancestatushistory_set.order_by(
+            '-start_date').first()
         if last_history:
-            return last_history[0]
+            return last_history
         else:
             unknown_size, _ = Size.objects.get_or_create(
                 name='Unknown Size', alias='N/A', provider=self.provider,
@@ -466,6 +469,12 @@ class Instance(models.Model):
             return None
 
     @property
+    def volume(self):
+        if self.source.is_volume():
+            return self.source.volume
+        return None
+
+    @property
     def provider_machine(self):
         if self.source.is_machine():
             return self.source.providermachine
@@ -502,7 +511,7 @@ class Instance(models.Model):
     def __unicode__(self):
         return "%s (Name:%s, Creator:%s, IP:%s)" %\
             (self.provider_alias, self.name,
-             self.created_by, self.ip_address)
+             self.created_by_id, self.ip_address)
 
     class Meta:
         db_table = "instance"
@@ -531,6 +540,7 @@ class InstanceStatusHistory(models.Model):
     Used to keep track of each change in instance status
     (Useful for time management)
     """
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     instance = models.ForeignKey(Instance)
     size = models.ForeignKey("Size", null=True, blank=True)
     status = models.ForeignKey(InstanceStatus)
@@ -668,7 +678,10 @@ Useful utility methods for the Core Model..
 
 
 def find_instance(instance_id):
-    core_instance = Instance.objects.filter(provider_alias=instance_id)
+    if type(instance_id) == int:
+        core_instance = Instance.objects.filter(id=instance_id)
+    else:
+        core_instance = Instance.objects.filter(provider_alias=instance_id)
     if len(core_instance) > 1:
         logger.warn(
             "Multiple instances returned for instance_id - %s" %

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from atmosphere.settings import secrets
-from authentication.models import create_token, lookupSessionToken
+from iplantauth.models import create_token, lookupSessionToken
 
 from api.permissions import ApiAuthIgnore
 from api.v1.serializers import TokenSerializer
@@ -28,7 +28,7 @@ class Authentication(APIView):
         return Response(serialized_data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        data = request.DATA
+        data = request.data
         username = data.get('username', None)
         password = data.get('password', None)
         if not username:
