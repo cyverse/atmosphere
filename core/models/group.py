@@ -51,6 +51,11 @@ class Group(DjangoGroup):
         return any(user for user in self.leaders.all() if user == test_user)
 
     @property
+    def identitymembership_set(self):
+        logger.warn("WARNING - THIS FIELD DEPRECATED for `identity_memberships` REPLACE THE REFERENCE USING THIS LINE")
+        return self.identity_memberships
+
+    @property
     def current_identity_memberships(self):
         return self.identity_memberships.filter(only_active_memberships())
 
