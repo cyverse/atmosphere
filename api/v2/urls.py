@@ -67,6 +67,7 @@ router.register(r'tokens', views.TokenViewSet, base_name='token')
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet, base_name='group')
 router.register(r'volumes', views.VolumeViewSet, base_name='volume')
+router.register(r'ssh_keys', views.SSHKeyViewSet, base_name='ssh_key')
 
 api_v2_urls = router.urls
 urlpatterns = patterns('', url(r'^', include(api_v2_urls)),)
