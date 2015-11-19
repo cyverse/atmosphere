@@ -65,13 +65,13 @@ class SupportEmailViewSet(EmailViewSet):
 class FeedbackEmailViewSet(EmailViewSet):
     required_keys = ["message", "user-interface"]
 
-    def _email(self, request, username, user_email, data):
+    def _email(self, user, data):
         """
         Sends an email to support based on feedback from a client machine
 
         Returns a response.
         """
-        user = User.objects.get(username=username)
+        username = user.username
         subject = 'Subject: Atmosphere Client Feedback from %s' % username
 
         instances = Instance.objects \
@@ -94,20 +94,23 @@ class FeedbackEmailViewSet(EmailViewSet):
         body = render_to_string("core/email/feedback.html",
                                 context=Context(context))
         email_success = email_admin(
-            request, subject, body, request_tracker=True)
+            self.request, subject, body, request_tracker=True)
+
         if email_success:
-            resp = {'result':
+            resp_status = status.HTTP_200_OK
+            email_response = {'result':
                     {'code': 'success',
                         'meta': '',
                         'value': (
                             'Thank you for your feedback! '
                             'Support has been notified.')}}
         else:
-            resp = {'result':
+            resp_status = status.HTTP_400_BAD_REQUEST
+            email_response = {'result':
                     {'code': 'failed',
                      'meta': '',
                      'value': 'Failed to send feedback!'}}
-        return resp
+        return Response(email_response, status=resp_status)
 
 
 class ResourceEmailViewSet(EmailViewSet):
