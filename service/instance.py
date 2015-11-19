@@ -1534,7 +1534,7 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
             raise VolumeAttachConflict(
                 message='Instance %s must be active before attaching '
                 'a volume. '
-                'Retry request when volume is active.'
+                'Retry request when instance is active.'
                 % (instance_id,))
         result = task.attach_volume_task(
                 esh_driver, esh_instance.alias,
