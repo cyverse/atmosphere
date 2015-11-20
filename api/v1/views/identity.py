@@ -1,13 +1,13 @@
+from rest_framework import status
 from rest_framework.response import Response
 
 from threepio import logger
 
-from core.query import only_current_provider
 from core.models.group import Group
 from core.models.identity import Identity as CoreIdentity
 from core.models.provider import Provider
 
-from api import failure_response, invalid_provider, invalid_provider_identity,
+from api import failure_response, invalid_provider, invalid_provider_identity
 from api.v1.serializers import IdentitySerializer, IdentityDetailSerializer
 from api.v1.views.base import AuthAPIView
 
@@ -49,7 +49,7 @@ def get_identity_list(user, provider=None):
         logger.warn("Group %s DoesNotExist" % user.username)
         return None
     except CoreIdentity.DoesNotExist:
-        logger.warn("Identity %s DoesNotExist" % identity_uuid)
+        logger.warn("Identity DoesNotExist for user %s" % user.username)
         return None
 
 
