@@ -90,8 +90,7 @@ def reboot_instance(
         _permission_to_act(identity_uuid, "Reboot")
     else:
         _permission_to_act(identity_uuid, "Hard Reboot")
-    size = _get_size(esh_driver, esh_instance)
-    check_quota(user.username, identity_uuid, size, resuming=True)
+    check_quota(user.username, identity_uuid, None, resuming=True)
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     # reboots take very little time..
     redeploy_init(esh_driver, esh_instance)
