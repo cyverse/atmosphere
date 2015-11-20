@@ -16,15 +16,24 @@ class SourceNotFound(Exception):
     """
     pass
 
+
 class RequestLimitExceeded(Exception):
     """
     A limit was exceeded for the specific request
     """
     pass
 
+
 class ProviderLimitExceeded(Exception):
 
     """
     A limit was exceeded for the specific provider
+    """
+    pass
+
+
+class ProviderNotActive(Exception):
+    """
+    The provider that was requested is not active
     """
     pass

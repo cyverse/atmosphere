@@ -13,6 +13,9 @@ from libcloud.common.types import InvalidCredsError, MalformedResponseError
 
 from threepio import logger
 
+from api.exceptions import failure_response, inactive_provider
+
+from core.exceptions import ProviderNotActive
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
 from core.models.provider import AccountProvider
@@ -43,7 +46,14 @@ class VolumeSnapshot(AuthAPIView):
     def get(self, request, provider_uuid, identity_uuid):
         """
         """
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
@@ -85,7 +95,14 @@ class VolumeSnapshot(AuthAPIView):
         metadata = data.get('metadata')
         snapshot_id = data.get('snapshot_id')
         # STEP 0 - Existence tests
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
@@ -158,7 +175,14 @@ class VolumeSnapshotDetail(AuthAPIView):
     def get(self, request, provider_uuid, identity_uuid, snapshot_id):
         """
         """
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         snapshot = esh_driver._connection.get_snapshot(snapshot_id)
@@ -172,7 +196,14 @@ class VolumeSnapshotDetail(AuthAPIView):
         Destroys the volume and updates the DB
         """
         # Ensure volume exists
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         snapshot = esh_driver._connection.get_snapshot(snapshot_id)
@@ -197,7 +228,14 @@ class VolumeList(AuthAPIView):
         Retrieves list of volumes and updates the DB
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         volume_list_method = esh_driver.list_volumes
@@ -232,7 +270,14 @@ class VolumeList(AuthAPIView):
         Creates a new volume and adds it to the DB
         """
         user = request.user
-        driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
         if not driver:
             return invalid_creds(provider_uuid, identity_uuid)
         data = request.data
@@ -295,7 +340,15 @@ class Volume(AuthAPIView):
         """
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
+
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
@@ -333,7 +386,15 @@ class Volume(AuthAPIView):
         user = request.user
         data = request.data
         # Ensure volume exists
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
+
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
@@ -373,7 +434,15 @@ class Volume(AuthAPIView):
         data = request.data
 
         # Ensure volume exists
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
+
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
@@ -410,7 +479,15 @@ class Volume(AuthAPIView):
         """
         user = request.user
         # Ensure volume exists
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
+
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:

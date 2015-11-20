@@ -7,7 +7,7 @@ from core.models.group import Group
 from core.models.identity import Identity as CoreIdentity
 from core.models.provider import Provider
 
-from api import failure_response, invalid_provider, invalid_provider_identity
+from api import failure_response, invalid_provider, invalid_provider_identity,
 from api.v1.serializers import IdentitySerializer, IdentityDetailSerializer
 from api.v1.views.base import AuthAPIView
 

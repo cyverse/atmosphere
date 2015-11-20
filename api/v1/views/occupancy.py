@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from core.models.provider import Provider
 from core.models.size import convert_esh_size
 
-from service.driver import get_esh_driver, get_admin_driver
+from service.driver import get_admin_driver
 
 from api import failure_response
 from api import connection_failure

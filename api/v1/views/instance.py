@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from threepio import logger
 
+from core.exceptions import ProviderNotActive
 from core.models import AtmosphereUser as User
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
@@ -35,7 +36,7 @@ from api import failure_response, invalid_creds,\
     connection_failure, malformed_response,\
     emulate_user
 from api.exceptions import (
-    size_not_available, mount_failed, over_quota,
+    inactive_provider, size_not_available, mount_failed, over_quota,
     under_threshold, over_capacity, instance_not_found)
 from api.pagination import OptionalPagination
 from api.v1.serializers import InstanceStatusHistorySerializer,\
@@ -808,8 +809,16 @@ class InstanceTagDetail(AuthAPIView):
         """
         Return the credential information for this tag
         """
-        core_instance = get_core_instance(request, provider_uuid,
-                                          identity_uuid, instance_id)
+        try:
+            core_instance = get_core_instance(request, provider_uuid,
+                                              identity_uuid, instance_id)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
+
         if not core_instance:
             instance_not_found(instance_id)
         try:
