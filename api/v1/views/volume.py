@@ -16,22 +16,18 @@ from threepio import logger
 from api.exceptions import failure_response, inactive_provider
 
 from core.exceptions import ProviderNotActive
-from core.models.identity import Identity
-from core.models.instance import convert_esh_instance
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
 from core.models.volume import Volume as CoreVolume
 from core.models.instance_source import InstanceSource
 
-from service.cache import get_cached_volumes
 from service.driver import prepare_driver
 from service.volume import create_volume,\
     create_bootable_volume,\
     _update_volume_metadata
 from service.exceptions import OverQuotaError
-from service.volume import create_volume
 
-from api import failure_response, invalid_creds, connection_failure,\
+from api import invalid_creds, connection_failure,\
     malformed_response
 from api.v1.serializers import VolumeSerializer, InstanceSerializer
 from api.v1.views.base import AuthAPIView
@@ -271,7 +267,7 @@ class VolumeList(AuthAPIView):
         """
         user = request.user
         try:
-            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+            driver = prepare_driver(request, provider_uuid, identity_uuid)
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
@@ -551,7 +547,7 @@ class BootVolume(AuthAPIView):
         try:
             core_instance = create_bootable_volume(
                 request.user, provider_uuid, identity_uuid,
-                name, size_id, source_alias, source_hint=key_name,
+                name, size_id, volume_id, source_hint=key_name,
                 **data)
         except Exception as exc:
             message = exc.message

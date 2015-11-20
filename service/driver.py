@@ -163,9 +163,7 @@ def get_esh_driver(core_identity, username=None):
     try:
         core_provider = core_identity.provider
         if not core_provider.is_active():
-            raise ProviderNotActive(
-                "Cannot create driver on an inactive provider:%s" %
-                (core_identity.provider,))
+            raise ProviderNotActive(core_identity.provider)
         esh_map = get_esh_map(core_provider)
         if not username:
             user = core_identity.created_by
