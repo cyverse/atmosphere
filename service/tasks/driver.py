@@ -825,7 +825,7 @@ def _get_boot_script_chain(driverCls, provider, identity, instance_id, remove_st
       default_retry_delay=15,
       ignore_result=True,
       max_retries=3)
-def destroy_instance(instance_alias, core_identity_uuid):
+def destroy_instance(user, instance_alias, core_identity_uuid):
     """
     NOTE: Argument order flips here -- instance_alais is used as the first argument to make chaining this taks easier with celery.
     """
@@ -833,7 +833,7 @@ def destroy_instance(instance_alias, core_identity_uuid):
     try:
         celery_logger.debug("destroy_instance task started at %s." % datetime.now())
         core_instance = instance_service.destroy_instance(
-            core_identity_uuid, instance_alias)
+            user, core_identity_uuid, instance_alias)
         celery_logger.debug("destroy_instance task finished at %s." % datetime.now())
         return core_instance
     except Exception as exc:

@@ -228,7 +228,7 @@ def _execute_provider_action(identity, user, instance, action_name):
                 identity.uuid,
                 user)
         elif action_name == 'Terminate':
-            destroy_instance(identity.uuid, instance)
+            destroy_instance(user, identity.uuid, instance)
         else:
             raise Exception("Encountered Unknown Action Named %s" % action)
     except ObjectDoesNotExist:
