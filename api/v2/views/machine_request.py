@@ -5,7 +5,8 @@ from api.v2.views.base import BaseRequestViewSet
 
 from core import exceptions as core_exceptions
 from core.email import send_denied_resource_email
-from core.models import MachineRequest, IdentityMembership
+from core.models import MachineRequest, IdentityMembership, AtmosphereUser,\
+    Provider, ProviderMachine
 from core.models.status_type import StatusType
 from core.email import requestImaging
 
@@ -20,6 +21,25 @@ class MachineRequestViewSet(BaseRequestViewSet):
     filter_fields = ('status__id', 'status__name', 'new_machine_owner__username')
 
     def perform_create(self, serializer):
+
+        # Only allow one open request per instance
+        q = MachineRequest.objects.filter(
+                created_by__id=self.request.user.id
+            ).exclude(
+                status__name="failed"
+            ).exclude(
+                status__name="rejected"
+            ).exclude(
+                status__name="failed"
+            ).exclude(
+                status__name="closed"
+            ).filter(
+                instance_id = serializer.validated_data['instance'].id
+            )
+
+        if len(q) > 0:
+            raise core_exceptions.RequestLimitExceeded("Only one open request per instance is allowed.")
+
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
@@ -34,9 +54,9 @@ class MachineRequestViewSet(BaseRequestViewSet):
                 status=status,
                 old_status="processing",
                 created_by=self.request.user,
-                new_machine_provider_id = new_provider_id,
-                new_machine_owner_id = new_owner_id,
-                parent_machine_id=parent_machine_id
+                new_machine_provider = Provider.objects.get(id=new_provider_id),
+                new_machine_owner = AtmosphereUser.objects.get(id=new_owner_id),
+                parent_machine = ProviderMachine.objects.get(id=parent_machine_id)
             )
             self.submit_action(instance)
         except (core_exceptions.ProviderLimitExceeded,
