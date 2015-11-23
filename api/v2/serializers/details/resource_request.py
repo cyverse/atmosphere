@@ -196,7 +196,7 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
 
 class UserResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     def validate_status(self, value):
-        if value not in ['pending', 'closed']:
+        if str(value) not in ["pending", "closed"]:
             raise serializers.ValidationError("Users can only open and close requests.")
         return value
 
