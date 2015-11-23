@@ -19,7 +19,14 @@ class ResourceRequestViewSet(BaseRequestViewSet):
     model = ResourceRequest
     serializer_class = UserResourceRequestSerializer
     admin_serializer_class = ResourceRequestSerializer
-    filter_fields = ('status__id', 'status__name')
+    filter_fields = ('status__id', 'status__name', 'created_by__username')
+
+    def close_action(self, instance):
+        """
+        Add an end date to a request and take no further action
+        """
+        self.end_date = timezone.now()
+        self.save()
 
     def submit_action(self, instance):
         """
