@@ -90,8 +90,7 @@ def reboot_instance(
         _permission_to_act(identity_uuid, "Reboot")
     else:
         _permission_to_act(identity_uuid, "Hard Reboot")
-    size = _get_size(esh_driver, esh_instance)
-    check_quota(user.username, identity_uuid, size, resuming=True)
+    check_quota(user.username, identity_uuid, None, resuming=True)
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     # reboots take very little time..
     redeploy_init(esh_driver, esh_instance)
@@ -1534,7 +1533,7 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
             raise VolumeAttachConflict(
                 message='Instance %s must be active before attaching '
                 'a volume. '
-                'Retry request when volume is active.'
+                'Retry request when instance is active.'
                 % (instance_id,))
         result = task.attach_volume_task(
                 esh_driver, esh_instance.alias,

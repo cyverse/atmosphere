@@ -91,10 +91,13 @@ def check_over_quota(username, identity_uuid, esh_size=None, resuming=False):
     cur_suspended = current['suspended_count']
 
     # Add new size to current, check user quota
+    new_cpu = cur_cpu
+    new_ram = cur_ram
+    new_disk = cur_disk
     if esh_size:
-        new_cpu = cur_cpu + esh_size.cpu
-        new_ram = cur_ram + esh_size.ram
-        new_disk = cur_disk + esh_size.disk
+        new_cpu += esh_size.cpu
+        new_ram += esh_size.ram
+        new_disk += esh_size.disk
         logger.debug("Quota including size: %s"
                      % ({'cpu': cur_cpu, 'ram': cur_ram,
                          'disk': cur_disk}))

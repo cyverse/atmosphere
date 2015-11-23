@@ -1,8 +1,9 @@
 from core.models import (
-    BootScript, Identity, Instance,
+    BootScript, Identity, Instance, InstanceSource,
     Provider, ProviderMachine, Project,
     Size, Volume)
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from api.v2.serializers.fields.base import ReprSlugRelatedField
 
 class InstanceSerializer(serializers.ModelSerializer):
@@ -12,11 +13,19 @@ class InstanceSerializer(serializers.ModelSerializer):
     This serializer should *never* be returned to the user.
     instead, the core instance should be re-serialized into a 'details serializer'
     """
-    identity = serializers.SlugRelatedField(source='created_by_identity', slug_field='uuid', queryset=Identity.objects.all())
-    provider_uuid = serializers.SlugRelatedField(source='created_by_identity.provider', slug_field='uuid', read_only=True)
+    identity = serializers.SlugRelatedField(
+        source='created_by_identity', slug_field='uuid',
+        queryset=Identity.objects.all())
+    provider_uuid = serializers.SlugRelatedField(
+        source='created_by_identity.provider', slug_field='uuid',
+        read_only=True)
     name = serializers.CharField()
-    project = serializers.SlugRelatedField(source="projects", slug_field="uuid", queryset=Project.objects.all())
-    scripts = serializers.SlugRelatedField(slug_field="uuid", many=True, required=False, queryset=BootScript.objects.all())
+    project = serializers.SlugRelatedField(
+        source="projects", slug_field="uuid", queryset=Project.objects.all(),
+        required=False, allow_null=True)
+    scripts = serializers.SlugRelatedField(
+        slug_field="uuid", queryset=BootScript.objects.all(),
+        many=True, required=False)
     #NOTE: These 'alias' point to the 'cloud/native IDs' NOT the db-UUID!
     #NOTE: source_alias should belong to volume.identifier or providermachine.identifier
     source_alias = serializers.CharField(source="source__identifier")
@@ -25,6 +34,37 @@ class InstanceSerializer(serializers.ModelSerializer):
     deploy = serializers.BooleanField(default=True)
     extra = serializers.DictField(required=False)
 
+    def to_internal_value(self, data):
+        """
+        Overwrite to force custom logic required before accepting data to launch an instance.
+        1. check of identity prior to checking size_alias or source_alias
+        NOTE: This is required because we have identical alias' on multiple providers, so we must first filter-down based on the identity requested for launching the instance.
+        2. Check source_alias is either a Volume or a ProviderMachine before continuing.
+        """
+        # For now-- It's okay to omit this.
+        project = data.get('project')
+        if not project:
+            data['project'] = None
+
+        identity_uuid = data.get('identity')
+        if not identity_uuid:
+            raise ValidationError({
+                'identity': 'This field is required.'
+            })
+        provider_queryset = self.fields['provider_uuid'].queryset
+
+        source_alias = data.get('source_alias')
+        if not source_alias:
+            raise ValidationError({
+                'source_alias': 'This field is required.'
+            })
+        source = InstanceSource.get_source(
+            source_alias, queryset=provider_queryset)
+        if not source:
+            raise ValidationError({
+                'source_alias': 'Value %s did not match a ProviderMachine or Volume.' % source_alias
+            })
+        return super(InstanceSerializer, self).to_internal_value(data)
 
     def __init__(self, *args, **kwargs):
         """
