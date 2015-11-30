@@ -31,5 +31,5 @@ from .size import SizeSerializer
 from .status_type import StatusTypeSerializer
 from .tag import TagSerializer
 from .token import TokenSerializer
-from .user import UserSerializer
+from .user import AdminUserSerializer, UserSerializer
 from .volume import VolumeSerializer, UpdateVolumeSerializer

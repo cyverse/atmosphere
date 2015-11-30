@@ -1,7 +1,7 @@
 from core.models import AtmosphereUser
 from api.permissions import ApiAuthRequired, CloudAdminRequired,\
     InMaintenance
-from api.v2.serializers.details import UserSerializer
+from api.v2.serializers.details import UserSerializer, AdminUserSerializer
 from api.v2.views.base import AdminAuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
@@ -55,8 +55,9 @@ class UserViewSet(MultipleFieldLookup, AdminAuthViewSet):
     search_fields = ('^username',)  # NOTE: ^ == Startswith searching
 
     def get_serializer_class(self):
-        if self.request.method in UPDATE_METHODS:
-            return SimpleUpdateUserSerializer
+        if self.request.method in UPDATE_METHODS or \
+                (self.request.user.is_staff or self.request.user.is_superuser):
+            return AdminUserSerializer
         return self.serializer_class
 
     def get_permissions(self):

@@ -15,6 +15,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
             'uuid',
             'url',
             'username',
+            'end_date',
             # 'first_name',
             # 'last_name',
             # 'email',
@@ -23,8 +24,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
             # 'date_joined'
         )
 
-
-class SimpleUpdateUserSerializer(UserSerializer):
+class AdminUserSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:atmosphereuser-detail',
     )
@@ -37,4 +37,10 @@ class SimpleUpdateUserSerializer(UserSerializer):
             'url',
             'username',
             'end_date',
+            'is_staff',
+            'is_superuser',
+            'email',
+            # 'first_name',
+            # 'last_name',
+            # 'date_joined'
         )

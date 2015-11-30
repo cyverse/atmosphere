@@ -19,7 +19,7 @@ router.register(r'email_request_resources', views.ResourceEmailViewSet, base_nam
 router.register(r'emulate_token', views.TokenEmulateViewSet, base_name='emulate-token')
 router.register(r'emulate_session', views.SessionEmulateViewSet, base_name='emulate-session')
 router.register(r'identities', views.IdentityViewSet)
-router.register(r'identity_memberships', views.IdentityMembershipViewSet)
+router.register(r'identity_memberships', views.IdentityMembershipViewSet, base_name='identitymembership')
 router.register(r'images', views.ImageViewSet, base_name='application')
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
 router.register(r'image_tags', views.ImageTagViewSet)
