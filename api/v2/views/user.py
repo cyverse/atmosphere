@@ -1,6 +1,8 @@
 from core.models import AtmosphereUser
+from api.permissions import ApiAuthRequired, CloudAdminRequired,\
+    InMaintenance
 from api.v2.serializers.details import UserSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AdminAuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 from rest_framework.filters import SearchFilter
@@ -8,6 +10,8 @@ from django.utils import six
 from django.db.models import Q
 import operator
 from functools import reduce
+
+UPDATE_METHODS = ["PUT", "PATCH"]
 
 
 class MinLengthRequiredSearchFilter(SearchFilter):
@@ -35,7 +39,7 @@ class MinLengthRequiredSearchFilter(SearchFilter):
         fields = ["username", "email"]
 
 
-class UserViewSet(MultipleFieldLookup, AuthViewSet):
+class UserViewSet(MultipleFieldLookup, AdminAuthViewSet):
 
     """
     API endpoint that allows users to be viewed or edited.
@@ -46,5 +50,22 @@ class UserViewSet(MultipleFieldLookup, AuthViewSet):
     queryset = AtmosphereUser.objects.all()
     serializer_class = UserSerializer
     filter_backends = (MinLengthRequiredSearchFilter,)
-    http_method_names = ['get', 'head', 'options', 'trace']
+    http_method_names = ['get', 'put', 'patch',
+                         'head', 'options', 'trace']
     search_fields = ('^username',)  # NOTE: ^ == Startswith searching
+
+    def get_serializer_class(self):
+        if self.request.method in UPDATE_METHODS:
+            return SimpleUpdateUserSerializer
+        return self.serializer_class
+
+    def get_permissions(self):
+        # Read-only for authenticated users
+        if self.request.method is "":
+            self.permission_classes = (ApiAuthRequired,
+                                       InMaintenance,)
+        # CloudAdmin required for PUT/PATCH
+        if self.request.method in UPDATE_METHODS:
+            self.permission_classes = (CloudAdminRequired,
+                                       InMaintenance,)
+        return super(UserViewSet, self).get_permissions()
