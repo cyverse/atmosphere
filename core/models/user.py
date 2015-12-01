@@ -26,6 +26,18 @@ class AtmosphereUser(AbstractUser):
         return identity_member.quota
 
     @property
+    def is_enabled(self):
+        """
+        User is enabled if:
+        1. They do not have an end_date
+        _OR_ They have an end_date that is not past the current time
+        2. The 'is_active' flag is True
+        """
+        now_time = timezone.now()
+        return self.is_active and \
+            (not self.end_date or self.end_date > now_time)
+
+    @property
     def current_identities(self):
         from core.models import Identity
         all_identities = Identity.objects.none()

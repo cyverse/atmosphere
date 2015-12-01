@@ -37,6 +37,7 @@ class AdminUserSerializer(serializers.HyperlinkedModelSerializer):
             'url',
             'username',
             'end_date',
+            'is_active',
             'is_staff',
             'is_superuser',
             'email',

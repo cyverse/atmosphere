@@ -11,7 +11,7 @@ from core.models import IdentityMembership
 from core.models.status_type import StatusType
 
 from api.permissions import (
-        ApiAuthOptional, ApiAuthRequired,
+        ApiAuthOptional, ApiAuthRequired, EnabledUserRequired,
         InMaintenance, CloudAdminRequired
     )
 from api.v2.views.mixins import MultipleFieldLookup
@@ -41,12 +41,14 @@ class AuthViewSet(ModelViewSet):
     http_method_names = ['get', 'put', 'patch', 'post',
                          'delete', 'head', 'options', 'trace']
     permission_classes = (InMaintenance,
+                          EnabledUserRequired,
                           ApiAuthRequired,)
 
 
 class AdminAuthViewSet(AuthViewSet):
     permission_classes = (InMaintenance,
                           CloudAdminRequired,
+                          EnabledUserRequired,
                           ApiAuthRequired,)
 
 

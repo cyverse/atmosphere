@@ -44,9 +44,18 @@ class ProjectOwnerRequired(permissions.BasePermission):
 
 
 class ApiAuthRequired(permissions.BasePermission):
+    message = "The requested user could not be authenticated."
 
     def has_permission(self, request, view):
         return request.user.is_authenticated()
+
+
+class EnabledUserRequired(permissions.BasePermission):
+    message = "The account you are using has been disabled. "\
+        "Please contact your Cloud Administrator for more information."
+
+    def has_permission(self, request, view):
+        return request.user.is_enabled
 
 
 def _get_administrator_account(user, admin_uuid):
