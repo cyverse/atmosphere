@@ -144,7 +144,7 @@ def get_provider_credentials():
 
     print "What is the Authentication Scheme (Openstack ONLY -- Default:'2.0_password')?"
     ex_force_auth_version = raw_input("ex_force_auth_version for the provider: ")
-    if ex_force_auth_version not in ['2.0_password','3.0_password']:
+    if ex_force_auth_version not in ['2.0_password','3.x_password']:
         ex_force_auth_version = '2.0_password'
 
     #TODO: Validation to avoid 'hard-to-reason-about' errors from rtwo.
