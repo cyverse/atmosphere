@@ -1,3 +1,5 @@
+import re
+
 from core.models import AtmosphereUser
 from api.permissions import ApiAuthRequired, CloudAdminRequired,\
     InMaintenance
@@ -23,6 +25,16 @@ class MinLengthRequiredSearchFilter(SearchFilter):
             return queryset
         orm_lookups = [self.construct_search(six.text_type(search_field))
                        for search_field in search_fields]
+        # NOTE: Moving up 'orm_lookups' to use outside of 'search='
+        for idx, _search_field in enumerate(search_fields):
+            # Replace "^", "~", and other special characters
+            search_field = re.sub('[^A-Za-z0-9]+', '', _search_field)
+            if search_field in request.GET:
+                search_value = request.GET[search_field]
+                query = Q(**{orm_lookups[idx]: search_value})
+                queryset = queryset.filter(query)
+
+        #NOTE: This code only executed if 'search=' in request.GET
         for search_term in self.get_search_terms(request):
             # Skip 'search_term' if its  too small to evaluate.
             if len(search_term) < min_length:
@@ -32,6 +44,7 @@ class MinLengthRequiredSearchFilter(SearchFilter):
                           for orm_lookup in orm_lookups]
             reduced_query = reduce(operator.or_, or_queries)
             queryset = queryset.filter(reduced_query).distinct()
+
         return queryset
 
     class Meta:
