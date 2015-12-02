@@ -178,7 +178,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
                 if self.request._method == "PATCH":
                     instance = serializer.save(status=StatusType.objects.get(id=serializer.initial_data['status']))
                 else:
-                    instance = serializer.save(end_date=timezone.now())
+                    instance = serializer.save()
 
             if instance.is_approved():
                 self.approve_action(instance)
