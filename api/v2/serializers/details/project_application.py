@@ -28,15 +28,17 @@ class ApplicationRelatedField(serializers.PrimaryKeyRelatedField):
 
 class ProjectApplicationSerializer(serializers.HyperlinkedModelSerializer):
     project = ProjectRelatedField(queryset=Project.objects.none())
-    application = ApplicationRelatedField(queryset=Application.objects.none())
+    image = ApplicationRelatedField(queryset=Application.objects.none(),
+                                    source='application')
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:projectapplication-detail',
     )
+
     class Meta:
         model = ProjectApplication
         fields = (
             'id',
             'url',
             'project',
-            'application'
+            'image'
         )
