@@ -43,8 +43,8 @@ class Project(models.Model):
             pk__in=self.instances.values_list("id"))
 
     def __unicode__(self):
-        return "%s Owner ID:%s" \
-            % (self.name, self.owner_id)
+        return "Name:%s Owner:%s" \
+            % (self.name, self.owner)
 
     def has_running_resources(self):
         now_date = timezone.now()

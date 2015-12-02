@@ -19,6 +19,7 @@ class ProjectExternalLinkViewSet(AuthViewSet):
         Filter out tags for deleted links
         """
         user = self.request.user
-        p_links = ProjectExternalLink.objects.filter(
-            external_link__created_by=user)
+        p_links = ProjectExternalLink.objects.filter(project__owner__user=user)
+        # p_links = ProjectExternalLink.objects.filter(
+        #    external_link__created_by=user)
         return p_links

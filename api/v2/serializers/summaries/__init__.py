@@ -7,6 +7,7 @@ from .image_version import ImageVersionSummarySerializer
 from .instance import InstanceSummarySerializer, InstanceSuperSummarySerializer
 from .license import LicenseSummarySerializer
 from .license_type import LicenseTypeSummarySerializer
+from .link import ExternalLinkSummarySerializer
 from .boot_script import BootScriptSummarySerializer
 from .project import ProjectSummarySerializer
 from .provider import ProviderSummarySerializer

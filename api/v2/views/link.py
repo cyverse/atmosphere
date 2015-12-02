@@ -25,6 +25,9 @@ class ExternalLinkViewSet(AuthOptionalViewSet):
     filter_class = LinkFilter
     filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
 
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
     def get_queryset(self):
         request_user = self.request.user
         return ExternalLink.objects.filter(created_by=request_user)

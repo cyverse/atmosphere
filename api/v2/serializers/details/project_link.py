@@ -1,42 +1,36 @@
 from core.models import ProjectExternalLink, Project, ExternalLink
 from rest_framework import serializers
-from api.v2.serializers.summaries import ProjectSummarySerializer
-from .link import ExternalLinkSerializer
-
-
-class ProjectRelatedField(serializers.PrimaryKeyRelatedField):
-
-    def get_queryset(self):
-        return Project.objects.all()
-
-    def to_representation(self, value):
-        project = Project.objects.get(pk=value.pk)
-        serializer = ProjectSummarySerializer(project, context=self.context)
-        return serializer.data
-
-
-class ExternalLinkRelatedField(serializers.PrimaryKeyRelatedField):
-
-    def get_queryset(self):
-        return ExternalLink.objects.all()
-
-    def to_representation(self, value):
-        link = ExternalLink.objects.get(pk=value.pk)
-        serializer = ExternalLinkSerializer(link, context=self.context)
-        return serializer.data
-
+from rest_framework.validators import UniqueTogetherValidator
+from api.v2.serializers.fields import ModelRelatedField
+from api.v2.serializers.summaries import (
+    ProjectSummarySerializer, ExternalLinkSummarySerializer)
 
 class ProjectExternalLinkSerializer(serializers.HyperlinkedModelSerializer):
-    project = ProjectRelatedField(queryset=Project.objects.none())
-    link = ExternalLinkRelatedField(queryset=ExternalLink.objects.none())
+    project = ModelRelatedField(
+        queryset=Project.objects.all(),
+        serializer_class=ProjectSummarySerializer,
+        style={'base_template': 'input.html'})
+    external_link = ModelRelatedField(
+        queryset=ExternalLink.objects.all(),
+        serializer_class=ExternalLinkSummarySerializer,
+        style={'base_template': 'input.html'},
+        source='externallink')
     url = serializers.HyperlinkedIdentityField(
-        view_name='api:v2:projectlink-detail',
+        view_name='api:v2:projectlinks-detail',
     )
+
     class Meta:
         model = ProjectExternalLink
+        validators = [
+            # TODO: Fix that 'application' leaks into real-world here.
+            UniqueTogetherValidator(
+                queryset=ProjectExternalLink.objects.all(),
+                fields=('project', 'externallink')
+                ),
+        ]
         fields = (
             'id',
             'url',
             'project',
-            'link'
+            'external_link'
         )

@@ -11,6 +11,7 @@ class ExternalLinkSerializer(serializers.HyperlinkedModelSerializer):
         view_name='api:v2:externallink-detail',
         uuid_field='id'
     )
+
     class Meta:
         model = ExternalLink
         fields = (
