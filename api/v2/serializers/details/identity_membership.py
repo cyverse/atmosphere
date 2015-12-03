@@ -8,17 +8,19 @@ from api.v2.serializers.summaries import (
     UserSummarySerializer,
 )
 
+
 class IdentityMembershipSerializer(serializers.HyperlinkedModelSerializer):
     quota = QuotaSummarySerializer()
     allocation = AllocationSummarySerializer()
     identity = IdentitySummarySerializer()
     user = UserSummarySerializer(source='identity.created_by')
     provider = ProviderSummarySerializer(source='identity.provider')
-
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:identitymembership-detail',
+    )
 
     class Meta:
         model = IdentityMembership
-        view_name = 'api:v2:identity-detail' # TODO: Make an identity-membership-detail
         fields = ('id',
                   'url',
                   'quota',
