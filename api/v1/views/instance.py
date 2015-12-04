@@ -33,6 +33,7 @@ from service.exceptions import (
 from api import failure_response, invalid_creds,\
     connection_failure, malformed_response,\
     emulate_user
+from api.exceptions import size_not_available
 from api.pagination import OptionalPagination
 from api.v1.serializers import InstanceStatusHistorySerializer,\
     InstanceSerializer, InstanceHistorySerializer, VolumeSerializer,\
@@ -166,7 +167,7 @@ class InstanceList(AuthAPIView):
         except OverAllocationError as oae:
             return over_quota(oae)
         except SizeNotAvailable as snae:
-            return size_not_availabe(snae)
+            return size_not_available(snae)
         except SecurityGroupNotCreated:
             return connection_failure(provider_uuid, identity_uuid)
         except (socket_error, ConnectionFailure):
@@ -838,13 +839,6 @@ def instance_not_found(instance_id):
     return failure_response(
         status.HTTP_404_NOT_FOUND,
         'Instance %s does not exist' % instance_id)
-
-
-def size_not_available(sna_exception):
-    return failure_response(
-        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-        sna_exception.message)
-
 
 def over_capacity(capacity_exception):
     return failure_response(
