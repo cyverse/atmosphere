@@ -610,6 +610,8 @@ class AccountDriver(CachedAccountDriver):
         """
         net_args = self.provider_creds.copy()
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
+        if '/v2.0' not in net_args['auth_url']:
+            net_args['auth_url'] += "/v2.0"
         return net_args
 
     def _build_network_creds(self, credentials):
@@ -631,8 +633,8 @@ class AccountDriver(CachedAccountDriver):
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
         net_args.pop("location", None)
         net_args.pop("ex_project_name", None)
-
-        if 'v2' not in net_args['auth_url']:
+        net_args.pop("ex_force_auth_version",None)
+        if '/v2.0' not in net_args['auth_url']:
            net_args["auth_url"] += "/v2.0"
 
         return net_args
@@ -656,6 +658,7 @@ class AccountDriver(CachedAccountDriver):
                 raise ValueError(
                     "ImageManager is missing a Required Argument: %s" %
                     required_arg)
+        img_args.pop("ex_force_auth_version",None)
 
         if 'v2.0/tokens' not in img_args['auth_url']:
            img_args["auth_url"] += "/v2.0/tokens"
@@ -680,6 +683,7 @@ class AccountDriver(CachedAccountDriver):
            user_args["auth_url"] += "/v2.0/"
         user_args.get("region_name")
         # Removable args:
+        user_args.pop("ex_force_auth_version",None)
         user_args.pop("admin_url", None)
         user_args.pop("location", None)
         user_args.pop("router_name", None)
