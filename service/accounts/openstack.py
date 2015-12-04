@@ -617,6 +617,7 @@ class AccountDriver(CachedAccountDriver):
         Credentials - dict()
 
         return the credentials required to build a "NetworkManager" object
+        NOTE: Expects auth_url to be '/v2.0'
         """
         net_args = credentials.copy()
         # Required:
@@ -631,6 +632,9 @@ class AccountDriver(CachedAccountDriver):
         net_args.pop("location", None)
         net_args.pop("ex_project_name", None)
 
+        if 'v2' not in net_args['auth_url']:
+           net_args["auth_url"] += "/v2.0"
+
         return net_args
 
     def _build_image_creds(self, credentials):
@@ -638,6 +642,7 @@ class AccountDriver(CachedAccountDriver):
         Credentials - dict()
 
         return the credentials required to build a "UserManager" object
+        NOTE: Expects auth_url to be '/v2.0/tokens'
         """
         img_args = credentials.copy()
         # Required:
@@ -652,6 +657,8 @@ class AccountDriver(CachedAccountDriver):
                     "ImageManager is missing a Required Argument: %s" %
                     required_arg)
 
+        if 'v2.0/tokens' not in img_args['auth_url']:
+           img_args["auth_url"] += "/v2.0/tokens"
         return img_args
 
     def _build_user_creds(self, credentials):
@@ -659,6 +666,7 @@ class AccountDriver(CachedAccountDriver):
         Credentials - dict()
 
         return the credentials required to build a "UserManager" object
+        NOTE: Expects auth_url to be '/v2.0'
         """
         user_args = credentials.copy()
         # Required args:
@@ -668,6 +676,8 @@ class AccountDriver(CachedAccountDriver):
 
         user_args["auth_url"] = user_args.get("auth_url")\
             .replace("/tokens", "")
+        if 'v2' not in user_args['auth_url']:
+           user_args["auth_url"] += "/v2.0/"
         user_args.get("region_name")
         # Removable args:
         user_args.pop("admin_url", None)
