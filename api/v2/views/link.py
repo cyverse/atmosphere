@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import filters
 import django_filters
 
@@ -30,4 +31,6 @@ class ExternalLinkViewSet(AuthOptionalViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
+        if type(request_user) == AnonymousUser:
+            return ExternalLink.objects.none()
         return ExternalLink.objects.filter(created_by=request_user)
