@@ -23,28 +23,28 @@ fi
 CELERY_DEFAULT="/etc/default/celeryd"
 
 if [ ! -f  $CELERY_INITD ]; then
-    echo "MISSING DEPEDENCY: Expected celery service file $CELERY_INITD missing"
+    echo "MISSING DEPENDENCY: Expected celery service file $CELERY_INITD missing"
     echo "For Ubuntu:"
     echo "ln -s /opt/dev/atmosphere/extras/init.d/ubuntu.celeryd $CELERY_INITD"
     echo "For CentOS:"
     echo "ln -s /opt/dev/atmosphere/extras/init.d/centos.celeryd $CELERY_INITD"
     exit 1
 elif [ ! -f  $CELERYBEAT_INITD ]; then
-    echo "MISSING DEPEDENCY: Expected celery service file $CELERYBEAT_INITD missing"
+    echo "MISSING DEPENDENCY: Expected celery service file $CELERYBEAT_INITD missing"
     echo "For Ubuntu:"
     echo "ln -s /opt/dev/atmosphere/extras/init.d/ubuntu.celerybeat $CELERYBEAT_INITD"
     exit 1
 elif [ ! -f  $CELERY_DEFAULT ]; then
-    echo "MISSING DEPEDENCY: Celery config file $CELERY_DEFAULT missing."
+    echo "MISSING DEPENDENCY: Celery config file $CELERY_DEFAULT missing."
     echo "cp /opt/dev/atmosphere/extras/init.d/celeryd.default.dist /opt/dev/atmosphere/extras/init.d/celeryd.default"
     echo "ln -s /opt/dev/atmosphere/extras/init.d/celeryd.default $CELERY_DEFAULT"
     exit 1
 elif [ ! -f  $TASK_MGR_SERVICE ]; then
-    echo "MISSING DEPEDENCY: Init file for $TASK_MGR_SERVICE missing."
+    echo "MISSING DEPENDENCY: Init file for $TASK_MGR_SERVICE missing."
     echo "sudo apt-get install $TASK_MGR"
     exit 1
 elif [ ! -f  $WEB_INITD ]; then
-    echo "MISSING DEPEDENCY: Expected apache service file $WEB_INITD missing"
+    echo "MISSING DEPENDENCY: Expected apache service file $WEB_INITD missing"
     exit 1
 fi
 
