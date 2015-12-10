@@ -54,8 +54,11 @@ status)
     service uwsgi status atmo.uwsgi
     printf "Troposphere uwsgi..\n"
     service uwsgi status trop.uwsgi
+    printf "Status $WEB_SERVICE..\n"
     service $WEB_SERVICE status
+    printf "Status Redis..\n"
     service redis-server status
+    printf "Status Celery..\n"
     service celeryd status
     service celerybeat status
 ;;
