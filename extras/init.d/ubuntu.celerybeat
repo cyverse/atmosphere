@@ -249,36 +249,33 @@ start_beat () {
 }
 
 check_status () {
-    my_exitcode=0
-    found_pids=0
-
-    local one_failed=
-    for pid_file in "$CELERYD_PID_DIR"/*.pid; do
-        if [ ! -r $pid_file ]; then
-            echo "${SCRIPT_NAME} is stopped: no pids were found"
-            one_failed=true
-            break
-        fi
-
-        local node=`basename "$pid_file" .pid`
+    local failed=
+    local pid_file=$CELERYBEAT_PID_FILE
+    if [ ! -e $pid_file ]; then
+        echo "${SCRIPT_NAME} is down: no pid file found"
+        failed=true
+    elif [ ! -r $pid_file ]; then
+        echo "${SCRIPT_NAME} is in unknown state, user cannot read pid file."
+        failed=true
+    else
         local pid=`cat "$pid_file"`
         local cleaned_pid=`echo "$pid" | sed -e 's/[^0-9]//g'`
         if [ -z "$pid" ] || [ "$cleaned_pid" != "$pid" ]; then
-            echo "bad pid file ($pid_file)"
-            one_failed=true
+            echo "${SCRIPT_NAME}: bad pid file ($pid_file)"
+            failed=true
         else
             local failed=
             kill -0 $pid 2> /dev/null || failed=true
             if [ "$failed" ]; then
-                echo "${SCRIPT_NAME} (node $node) (pid $pid) is stopped, but pid file exists!"
-                one_failed=true
+                echo "${SCRIPT_NAME} (pid $pid) is down, but pid file exists!"
+                failed=true
             else
-                echo "${SCRIPT_NAME} (node $node) (pid $pid) is running..."
+                echo "${SCRIPT_NAME} (pid $pid) is up..."
             fi
         fi
-    done
+    fi
 
-    [ "$one_failed" ] && exit 1 || exit 0
+    [ "$failed" ] && exit 1 || exit 0
 }
 
 case "$1" in
