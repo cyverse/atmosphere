@@ -18,7 +18,11 @@ ENFORCING = True
 ENFORCING = False
 {% endif %}
 
-
+{% if AUTO_CREATE_NEW_ACCOUNTS %}
+AUTO_CREATE_NEW_ACCOUNTS = True
+{% else %}
+AUTO_CREATE_NEW_ACCOUNTS = False
+{% endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL }}
 # Logging level for dependencies.
