@@ -50,12 +50,14 @@ fi
 
 case "$1" in
 status)
+    printf "Atmosphere uwsgi..\n"
+    service uwsgi status atmo.uwsgi
+    printf "Troposphere uwsgi..\n"
+    service uwsgi status trop.uwsgi
     service $WEB_SERVICE status
     service redis-server status
     service celeryd status
     service celerybeat status
-    service uwsgi status atmo.uwsgi
-    service uwsgi status trop.uwsgi
 ;;
 full-start | start)
     printf "Starting $NAME...\n"
