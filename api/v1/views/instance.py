@@ -227,18 +227,6 @@ def _filter_instance_history(history_instance_list, params):
     return history_instance_list
 
 
-def _further_process_result(request, action, result):
-    """
-    Provide additional serialization if the `action` has a
-    `result` requiring processing.
-    """
-    if 'volume' in action:
-        return VolumeSerializer(result,
-                                context={"request": request}).data
-    else:
-        return result
-
-
 class InstanceHistory(AuthListAPIView):
 
     """Instance history for a specific user."""
@@ -361,6 +349,20 @@ class InstanceStatusHistoryDetail(AuthAPIView):
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
+
+
+
+
+def _further_process_result(request, action, result):
+    """
+    Provide additional serialization if the `action` has a
+    `result` requiring processing.
+    """
+    if 'volume' in action:
+        return VolumeSerializer(result,
+                                context={"request": request}).data
+    else:
+        return result
 
 
 class InstanceAction(AuthAPIView):
