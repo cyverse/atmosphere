@@ -65,7 +65,6 @@ class MachineRequestViewSet(BaseRequestViewSet):
             instance = serializer.save(
                 membership=membership,
                 status=status,
-                old_status="pending",
                 created_by=self.request.user,
                 new_machine_provider = new_machine_provider,
                 new_machine_owner = new_machine_owner,
