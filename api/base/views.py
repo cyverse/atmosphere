@@ -1,8 +1,8 @@
 """
-Atmosphere API version service.
+Atmosphere API Common/Base views.
 
 """
-from rest_framework.views import APIView
+from rest_framework import viewsets, mixins
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
@@ -15,11 +15,12 @@ except ImportError:
 from api.permissions import InMaintenance
 
 
-class Version(APIView):
+class VersionViewSet(mixins.ListModelMixin,
+                     viewsets.GenericViewSet):
     permission_classes = (IsAuthenticatedOrReadOnly,
                           InMaintenance)
 
-    def get(self, request, format=None):
+    def list(self, request, *args, **kwargs):
         """
         This request will retrieve Atmosphere's version,
         including the latest update to the code base and the date the
@@ -27,11 +28,13 @@ class Version(APIView):
         """
         return Response(get_version("all"))
 
-class DeployVersion(APIView):
+
+class DeployVersionViewSet(mixins.ListModelMixin,
+                           viewsets.GenericViewSet):
     permission_classes = (IsAuthenticatedOrReadOnly,
                           InMaintenance)
 
-    def get(self, request, format=None):
+    def list(self, request, format=None):
         """
         This request will retrieve Atmosphere's version,
         including the latest update to the code base and the date the
