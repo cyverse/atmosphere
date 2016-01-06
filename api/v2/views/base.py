@@ -11,7 +11,7 @@ from core.models import IdentityMembership
 from core.models.status_type import StatusType
 
 from api.permissions import (
-        ApiAuthOptional, ApiAuthRequired,
+        ApiAuthOptional, ApiAuthRequired, EnabledUserRequired,
         InMaintenance, CloudAdminRequired
     )
 from api.v2.views.mixins import MultipleFieldLookup
@@ -41,12 +41,14 @@ class AuthViewSet(ModelViewSet):
     http_method_names = ['get', 'put', 'patch', 'post',
                          'delete', 'head', 'options', 'trace']
     permission_classes = (InMaintenance,
+                          EnabledUserRequired,
                           ApiAuthRequired,)
 
 
 class AdminAuthViewSet(AuthViewSet):
     permission_classes = (InMaintenance,
                           CloudAdminRequired,
+                          EnabledUserRequired,
                           ApiAuthRequired,)
 
 
@@ -175,10 +177,16 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
                 instance = serializer.save(end_date=timezone.now(),
                                            membership=membership)
             else:
-                instance = serializer.save(end_date=timezone.now())
+                if self.request._method == "PATCH":
+                    instance = serializer.save(status=StatusType.objects.get(id=serializer.initial_data['status']))
+                else:
+                    instance = serializer.save()
 
             if instance.is_approved():
                 self.approve_action(instance)
+
+            if instance.is_closed():
+                self.close_action(instance)
 
             if instance.is_denied():
                 self.deny_action(instance)

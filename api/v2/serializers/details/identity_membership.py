@@ -9,6 +9,9 @@ from api.v2.serializers.summaries import (
 )
 
 class IdentityMembershipSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:identitymembership-detail',
+    )
     quota = QuotaSummarySerializer()
     allocation = AllocationSummarySerializer()
     identity = IdentitySummarySerializer()

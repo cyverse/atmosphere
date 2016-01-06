@@ -248,7 +248,35 @@ start_beat () {
                 --pidfile="$CELERYBEAT_PID_FILE"
 }
 
+check_status () {
+    local failed=
+    local pid_file=$CELERYBEAT_PID_FILE
+    if [ ! -e $pid_file ]; then
+        echo "${SCRIPT_NAME} is down: no pid file found"
+        failed=true
+    elif [ ! -r $pid_file ]; then
+        echo "${SCRIPT_NAME} is in unknown state, user cannot read pid file."
+        failed=true
+    else
+        local pid=`cat "$pid_file"`
+        local cleaned_pid=`echo "$pid" | sed -e 's/[^0-9]//g'`
+        if [ -z "$pid" ] || [ "$cleaned_pid" != "$pid" ]; then
+            echo "${SCRIPT_NAME}: bad pid file ($pid_file)"
+            failed=true
+        else
+            local failed=
+            kill -0 $pid 2> /dev/null || failed=true
+            if [ "$failed" ]; then
+                echo "${SCRIPT_NAME} (pid $pid) is down, but pid file exists!"
+                failed=true
+            else
+                echo "${SCRIPT_NAME} (pid $pid) is up..."
+            fi
+        fi
+    fi
 
+    [ "$failed" ] && exit 1 || exit 0
+}
 
 case "$1" in
     start)
@@ -259,6 +287,9 @@ case "$1" in
     stop)
         check_paths
         stop_beat
+    ;;
+    status)
+        check_status
     ;;
     reload|force-reload)
         echo "Use start+stop"
@@ -279,7 +310,7 @@ case "$1" in
         check_paths
     ;;
     *)
-        echo "Usage: /etc/init.d/${SCRIPT_NAME} {start|stop|restart|create-paths}"
+        echo "Usage: /etc/init.d/${SCRIPT_NAME} {start|stop|status|restart|create-paths}"
         exit 64  # EX_USAGE
     ;;
 esac
