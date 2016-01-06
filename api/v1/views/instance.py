@@ -32,6 +32,7 @@ from service.exceptions import OverAllocationError, OverQuotaError,\
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
     VolumeAttachConflict, VolumeMountConflict,\
     UnderThresholdError, ActionNotAllowed
+from service.tasks.driver import update_metadata
 
 from api import failure_response, invalid_creds,\
     connection_failure, malformed_response,\
