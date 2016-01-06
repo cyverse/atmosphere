@@ -111,7 +111,8 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     def validate(self, data):
 
         # set the parent machine
-        parent_machine = ProviderMachine.objects.get(id=data['instance'].source_id)
+        parent_machine = ProviderMachine.objects.get(instance_source__id=data['instance'].source_id,
+                                                     instance_source__provider=data['instance'].provider)
         data['parent_machine'] = parent_machine
         
         # make sure user has access to the new provider
