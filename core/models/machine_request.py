@@ -145,7 +145,7 @@ class MachineRequest(BaseRequest):
 
     def new_version_threshold(self):
         return {'memory': self.new_version_memory_min,
-                'disk': self.new_version_storage_min}
+                'cpu': self.new_version_cpu_min}
 
     def get_request_status(self):
         return self.status.name
@@ -168,13 +168,13 @@ class MachineRequest(BaseRequest):
             threshold = ApplicationThreshold(application=application)
 
         threshold.memory_min = self.new_version_memory_min
-        threshold.storage_min = self.new_version_storage_min
+        threshold.storage_min = self.new_version_cpu_min
         threshold.save()
         return threshold
 
     def has_threshold(self):
         return self.new_version_memory_min > 0\
-            or self.new_version_storage_min > 0
+            or self.new_version_cpu_min > 0
 
     def _get_meta_name(self):
         """
