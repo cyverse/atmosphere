@@ -6,6 +6,7 @@ import os
 
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 
 from rest_framework.pagination import PageNumberPagination
@@ -28,7 +29,7 @@ from service.driver import prepare_driver
 from service.machine import update_machine_metadata
 from service.search import search, CoreSearchProvider
 
-from api import failure_response, invalid_creds, malformed_response, connection_failure
+from api import invalid_provider_identity, failure_response, invalid_creds, malformed_response, connection_failure
 from api.pagination import OptionalPagination
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.v1.serializers import ProviderMachineSerializer,\
@@ -42,6 +43,10 @@ def provider_filtered_machines(request, provider_uuid,
     Return all filtered machines. Uses the most common,
     default filtering method.
     """
+    identity = Identity.objects.filter(uuid=identity_uuid)
+    if not identity:
+        raise ObjectDoesNotExist()
+
     try:
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
     except Exception:
@@ -54,6 +59,7 @@ def provider_filtered_machines(request, provider_uuid,
 
     if not esh_driver:
         raise InvalidCredsError()
+
     logger.debug(esh_driver)
 
     return list_filtered_machines(esh_driver, provider_uuid, request_user)
@@ -100,6 +106,8 @@ class MachineList(AuthAPIView):
             return malformed_response(provider_uuid, identity_uuid)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
+        except ObjectDoesNotExist:
+            return invalid_provider_identity(provider_uuid, identity_uuid)
         except Exception as e:
             logger.exception("Unexpected exception for user:%s"
                              % request_user)
