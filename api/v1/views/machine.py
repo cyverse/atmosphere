@@ -53,8 +53,7 @@ def provider_filtered_machines(request, provider_uuid,
         esh_driver = None
 
     if not esh_driver:
-        return invalid_creds(provider_uuid, identity_uuid)
-
+        raise InvalidCredsError()
     logger.debug(esh_driver)
 
     return list_filtered_machines(esh_driver, provider_uuid, request_user)
