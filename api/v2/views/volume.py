@@ -7,10 +7,12 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework import status
 
+from api.exceptions import (inactive_provider)
 from api.v2.serializers.details import VolumeSerializer, UpdateVolumeSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
+from core.exceptions import ProviderNotActive
 from core.models.volume import Volume, find_volume
 from core.query import only_current_source
 from service.volume import create_volume_or_fail, destroy_volume_or_fail, update_volume_metadata
@@ -96,6 +98,8 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
                             user=self.request.user)
         except InvalidCredsError as e:
             raise exceptions.PermissionDenied(detail=e.message)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)
 
@@ -106,5 +110,7 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
             instance.save()
         except InvalidCredsError as e:
             raise exceptions.PermissionDenied(detail=e.message)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)

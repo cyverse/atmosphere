@@ -3,9 +3,12 @@ from api.v2.serializers.details import MachineRequestSerializer,\
     UserMachineRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
 
+from django.db.models import Q
+
 from core import exceptions as core_exceptions
 from core.email import send_denied_resource_email
-from core.models import MachineRequest, IdentityMembership
+from core.models import MachineRequest, IdentityMembership, AtmosphereUser,\
+    Provider, ProviderMachine
 from core.models.status_type import StatusType
 from core.email import requestImaging
 
@@ -20,6 +23,17 @@ class MachineRequestViewSet(BaseRequestViewSet):
     filter_fields = ('status__id', 'status__name', 'new_machine_owner__username')
 
     def perform_create(self, serializer):
+
+        q = MachineRequest.objects.filter((Q(created_by__id=self.request.user.id) &\
+            Q(instance_id=serializer.validated_data['instance'].id) &\
+            ~Q(status__name="failed") &\
+            ~Q(status__name="rejected") &\
+            ~Q(status__name="failed") &\
+            ~Q(status__name="closed")))
+
+        if len(q) > 0:
+            raise core_exceptions.RequestLimitExceeded("Only one open request per instance is allowed.")
+
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
@@ -27,16 +41,35 @@ class MachineRequestViewSet(BaseRequestViewSet):
         new_owner_id=self.request.user.id
         parent_machine_id = serializer.validated_data['instance'].provider_machine.id
         status, _ = StatusType.objects.get_or_create(name="pending")
+        new_machine_provider = Provider.objects.filter(id=new_provider_id)
+        new_machine_owner = AtmosphereUser.objects.filter(id=new_owner_id)
+        parent_machine = ProviderMachine.objects.filter(id=parent_machine_id)
+
+        if new_machine_provider.count(): 
+            new_machine_provider = new_machine_provider[0]
+        else:
+            raise exceptions.ParseError(detail="Could not retrieve new machine provider.")
+
+        if new_machine_owner.count():
+            new_machine_owner = new_machine_owner[0]
+        else:
+            raise exceptions.ParseError(detail="Could not retrieve new machine owner.")
+        
+        if parent_machine.count():
+            parent_machine = parent_machine[0]
+        else:
+            raise exceptions.ParseError(detail="Could not retrieve parent machine.")
+
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
             instance = serializer.save(
                 membership=membership,
                 status=status,
-                old_status="processing",
+                old_status="pending",
                 created_by=self.request.user,
-                new_machine_provider_id = new_provider_id,
-                new_machine_owner_id = new_owner_id,
-                parent_machine_id=parent_machine_id
+                new_machine_provider = new_machine_provider,
+                new_machine_owner = new_machine_owner,
+                parent_machine = parent_machine
             )
             self.submit_action(instance)
         except (core_exceptions.ProviderLimitExceeded,
