@@ -196,6 +196,7 @@ class Instance(models.Model):
         return self.source.provider
 
     def get_projects(self, user):
+        #TODO: Replace with 'only_current'
         projects = self.projects.filter(
             Q(end_date=None) | Q(end_date__gt=timezone.now()),
             owner=user,
