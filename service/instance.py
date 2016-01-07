@@ -839,7 +839,6 @@ def launch_instance(user, identity_uuid,
 
     # May raise Exception("Size not available")
     size = check_size(esh_driver, size_alias, provider_uuid)
-
     # May raise Exception("Volume/Machine not available")
     boot_source = get_boot_source(user.username, identity_uuid, source_alias)
 
