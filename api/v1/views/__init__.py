@@ -1,3 +1,4 @@
+# flake8: noqa
 from api.v1.views.allocation import AllocationDetail, AllocationList, MonitoringList
 from api.v1.views.cloud_admin import\
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
@@ -35,7 +36,6 @@ from api.v1.views.size import SizeList, Size
 from api.v1.views.hypervisor import HypervisorList, HypervisorDetail
 from api.v1.views.tag import TagList, Tag
 from api.v1.views.token import TokenEmulate
-from api.v1.views.version import Version, DeployVersion
 from api.v1.views.volume import BootVolume,\
     VolumeSnapshot, VolumeSnapshotDetail,\
     VolumeList, Volume

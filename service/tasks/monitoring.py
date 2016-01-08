@@ -74,6 +74,15 @@ def monitor_machines():
         monitor_machines_for.apply_async(args=[p.id])
 
 
+@task(name="monitor_machines")
+def prune_machines():
+    """
+    Query the cloud and remove any machines that exist in the DB but can no longer be found.
+    """
+    for p in Provider.get_active():
+        prune_machines_for.apply_async(args=[p.id])
+
+
 @task(name="prune_machines_for")
 def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_removal=False):
     """

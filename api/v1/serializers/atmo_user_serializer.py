@@ -10,7 +10,7 @@ from .identity_related_field import IdentityRelatedField
 
 class AtmoUserSerializer(serializers.ModelSerializer):
     selected_identity = IdentityRelatedField(
-        source='select_identity', queryset=Identity.objects.all())
+        queryset=Identity.objects.all())
 
     def validate_selected_identity(self, selected_identity):
         """

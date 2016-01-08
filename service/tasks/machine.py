@@ -275,6 +275,10 @@ def process_request(new_image_id, machine_request_id):
     new_status, _ = StatusType.objects.get_or_create(name="processing")
     machine_request.status = new_status
     machine_request.old_status = 'processing - %s' % new_image_id
+    # HACK - TODO - replace with proper `default` in model
+    # PATCHED (lenards, 2015-12-21)
+    if machine_request.new_version_name is None:
+        machine_request.new_version_name = "1.0"
     machine_request.save()
     # TODO: Best if we could 'broadcast' this to all running
     # Apache WSGI procs && celery 'imaging' procs
