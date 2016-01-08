@@ -34,8 +34,7 @@ class Feedback(AuthAPIView):
         result = self._email(request,
                              request.user.username,
                              lookupEmail(request.user.username),
-                             request.data["message"],
-                             request.data)
+                             request.data["message"])
         return Response(result, status=status.HTTP_201_CREATED)
 
     def _email(self, request, username, user_email, message):
@@ -112,8 +111,7 @@ class SupportEmail(AuthAPIView):
             return keys_not_found(missing_keys)
         result = self._email(request,
                              request.data["subject"],
-                             request.data["message"],
-                             request.data)
+                             request.data["message"])
         return Response(result, status=status.HTTP_201_CREATED)
 
     def _email(self, request, subject, message):
