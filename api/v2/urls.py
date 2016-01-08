@@ -5,6 +5,7 @@ Routes for api v2 endpoints
 from django.conf.urls import patterns, include, url
 from rest_framework import routers
 from api.v2 import views
+from api.base import views as base_views
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register(
@@ -71,6 +72,10 @@ router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet, base_name='group')
 router.register(r'volumes', views.VolumeViewSet, base_name='volume')
 router.register(r'ssh_keys', views.SSHKeyViewSet, base_name='ssh_key')
+router.register(r'version', base_views.VersionViewSet,
+                base_name='version-atmo')
+router.register(r'deploy_version', base_views.DeployVersionViewSet,
+                base_name='version-deploy')
 
 api_v2_urls = router.urls
 urlpatterns = patterns('', url(r'^', include(api_v2_urls)),)

@@ -7,6 +7,7 @@ from django.conf.urls import patterns, url
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from api.v1 import views
+from api.base import views as base_views
 # Regex matching you'll use everywhere..
 id_match = '\d+'
 uuid_match = '[a-zA-Z0-9-]+'
@@ -197,8 +198,8 @@ urlpatterns = format_suffix_patterns(patterns(
         views.QuotaDetail.as_view(), name='quota-detail'),
 
 
-    url(r'^version$', views.Version.as_view()),
-    url(r'^deploy_version$', views.DeployVersion.as_view()),
+    url(r'^version$', base_views.VersionViewSet.as_view({'get':'list'}), name='v1-atmo'),
+    url(r'^deploy_version$', base_views.DeployVersionViewSet.as_view({'get':'list'}), name='v1-deploy'),
     url(r'^maintenance$',
         views.MaintenanceRecordList.as_view(),
         name='maintenance-record-list'),

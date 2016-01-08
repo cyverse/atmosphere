@@ -19,7 +19,7 @@ from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 from threepio import logger
 
-from core.models import AtmosphereUser as User
+from core.exceptions import ProviderNotActive
 from core.models.license import License
 from core.models.identity import Identity
 from core.models.machine import compare_core_machines, filter_core_machine,\
@@ -29,7 +29,9 @@ from service.driver import prepare_driver
 from service.machine import update_machine_metadata
 from service.search import search, CoreSearchProvider
 
-from api import invalid_provider_identity, failure_response, invalid_creds, malformed_response, connection_failure
+from api.exceptions import (
+    invalid_creds, malformed_response, connection_failure,
+    failure_response, inactive_provider, invalid_provider)
 from api.pagination import OptionalPagination
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.v1.serializers import ProviderMachineSerializer,\
@@ -100,6 +102,8 @@ class MachineList(AuthAPIView):
                                                                provider_uuid,
                                                                identity_uuid,
                                                                request_user)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except MalformedResponseError:
@@ -111,7 +115,7 @@ class MachineList(AuthAPIView):
         except Exception as e:
             logger.exception("Unexpected exception for user:%s"
                              % request_user)
-            return failure_response(status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return failure_response(status.HTTP_409_CONFLICT,
                                     e.message)
         serialized_data = ProviderMachineSerializer(filtered_machine_list,
                                                     request_user=request.user,
@@ -177,7 +181,15 @@ class Machine(AuthAPIView):
         (Lookup using the given provider/identity)
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
+
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         # TODO: Need to determine that identity_uuid is ALLOWED to
@@ -215,7 +227,15 @@ class Machine(AuthAPIView):
         # core_machine.owner
         user = request.user
         data = request.data
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
+
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         esh_machine = esh_driver.get_machine(machine_id)
@@ -261,7 +281,15 @@ class MachineIcon(AuthAPIView):
 
     def get(self, request, provider_uuid, identity_uuid, machine_id):
         user = request.user
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
+
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         # TODO: Need to determine that identity_uuid is ALLOWED to

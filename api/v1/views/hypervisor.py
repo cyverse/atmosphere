@@ -10,7 +10,7 @@ from rest_framework import status
 
 from core.models import Provider
 
-from service.driver import prepare_driver, get_admin_driver
+from service.driver import get_admin_driver
 
 from api import invalid_creds, connection_failure, failure_response
 from api.v1.views.base import AuthAPIView

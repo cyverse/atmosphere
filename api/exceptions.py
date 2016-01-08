@@ -24,7 +24,6 @@ def malformed_response(provider_id, identity_id):
         "Cloud Communications Error --"
         " Contact your Cloud Administrator OR try again later!")
 
-
 def invalid_provider(provider_id):
     log_message = 'Provider %s is inactive, disabled, or does not exist.'\
         % (provider_id, )
@@ -76,6 +75,12 @@ def size_not_available(sna_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         sna_exception.message)
+
+
+def inactive_provider(provider_exception):
+    return failure_response(
+        status.HTTP_409_CONFLICT,
+        provider_exception.message)
 
 
 def over_capacity(capacity_exception):
