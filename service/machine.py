@@ -297,6 +297,57 @@ def remove_membership(image_version, group):
                         % (img, project_name))
     return
 
+def add_membership(image_version, group):
+    """
+    This function will add *all* users in the group
+    to *all* providers/machines using this image_version
+    O(N^2)
+    """
+    for provider_machine in image_version.machines.filter(only_current_source()):
+        prov = provider_machine.instance_source.provider
+        accounts = get_account_driver(prov)
+        if not accounts:
+            raise NotImplemented("Account Driver could not be created for %s" % prov)
+        accounts.clear_cache()
+        admin_driver = accounts.admin_driver  # cache has been cleared
+        if not admin_driver:
+            raise NotImplemented("Admin Driver could not be created for %s" % prov)
+        img = accounts.get_image(provider_machine.identifier)
+        projects = get_current_projects_for_image(accounts, img.id)
+        for identity_membership in group.identitymembership_set.all():
+            if identity_membership.identity.provider != prov:
+                continue
+            # Get project name from the identity's credential-list
+            project_name = identity_membership.identity.get_credential('ex_project_name')
+            project = accounts.get_project(project_name)
+            if project and project in projects:
+                continue
+            # Share with the *database* first!
+            obj, created = models.ApplicationMembership.objects.get_or_create(
+                group=group,
+                application=provider_machine.application)
+            if created:
+                print "Created new ApplicationMembership: %s" \
+                    % (obj,)
+            obj, created = models.ApplicationVersionMembership.objects.get_or_create(
+                group=group,
+                application_version=provider_machine.application_version)
+            if created:
+                print "Created new ApplicationVersionMembership: %s" \
+                    % (obj,)
+            obj, created = models.ProviderMachineMembership.objects.get_or_create(
+                group=group,
+                provider_machine=provider_machine)
+            if created:
+                print "Created new ProviderMachineMembership: %s" \
+                    % (obj,)
+            # Share with the *cloud* last!
+            accounts.image_manager.share_image(img, project_name)
+            logger.info("Added Cloud Access: %s-%s"
+                        % (img, project_name))
+            continue # end the for loop
+
+
 def sync_machine_membership(accounts, glance_image, new_machine, tenant_list):
     """
     This function will check that *all* tenants in 'tenant_list'
@@ -306,6 +357,10 @@ def sync_machine_membership(accounts, glance_image, new_machine, tenant_list):
     # Make private on the DB level
     make_private(accounts.image_manager,
                  glance_image, new_machine, tenant_list)
+
+
+def sync_membership(accounts, glance_image, new_machine, tenant_list):
+    return sync_machine_membership(accounts glance_image, new_machine, tenant_list)
 
 
 def share_with_self(private_userlist, username):
@@ -318,6 +373,14 @@ def share_with_self(private_userlist, username):
     private_userlist.append(str(username))
     return private_userlist
 
+def get_current_projects_for_image(accounts, image_id):
+    projects = []
+    shared_with = accounts.image_manager.shared_images_for(
+        image_id=image_id)
+    projects = [accounts.get_project_by_id(member.member_id)
+                for member in shared_with]
+    return projects
+  
 
 def get_current_projects_for_image(accounts, image_id):
     projects = []
