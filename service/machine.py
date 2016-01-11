@@ -233,7 +233,7 @@ def add_membership(image_version, group):
                     % (obj,)
             obj, created = models.ApplicationVersionMembership.objects.get_or_create(
                 group=group,
-                image_version=provider_machine.application_version)
+                application_version=provider_machine.application_version)
             if created:
                 print "Created new ApplicationVersionMembership: %s" \
                     % (obj,)
@@ -283,7 +283,7 @@ def remove_membership(image_version, group):
                         % (provider_machine.application, group))
             models.ApplicationVersionMembership.objects.filter(
                 group=group,
-                image_version=provider_machine.application_version).delete()
+                application_version=provider_machine.application_version).delete()
             logger.info("Removed ApplicationVersionMembership: %s-%s"
                         % (provider_machine.application_version, group))
             models.ProviderMachineMembership.objects.filter(
