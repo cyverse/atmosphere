@@ -360,7 +360,7 @@ def sync_machine_membership(accounts, glance_image, new_machine, tenant_list):
 
 
 def sync_membership(accounts, glance_image, new_machine, tenant_list):
-    return sync_machine_membership(accounts glance_image, new_machine, tenant_list)
+    return sync_machine_membership(accounts, glance_image, new_machine, tenant_list)
 
 
 def share_with_self(private_userlist, username):
