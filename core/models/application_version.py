@@ -224,6 +224,8 @@ def create_unique_version(app, version, created_by, created_by_identity):
             logger.warn(
                 "Version %s is taken for Application %s" %
                 (version, app))
+            if not version:
+                version = "1"
             version += ".0"
 
 
