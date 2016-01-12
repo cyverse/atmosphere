@@ -319,10 +319,7 @@ REST_FRAMEWORK = {
         'iplantauth.token.GlobusOAuthTokenAuthentication',   # Globus
         'rest_framework.authentication.SessionAuthentication',  # Session
     ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,                 # Default to 20
-    # Allow client to override, using `?page_size=xxx`.
-    'PAGINATE_BY_PARAM': 'page_size',
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',
     'DEFAULT_FILTER_BACKENDS': (
         'rest_framework.filters.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter'
