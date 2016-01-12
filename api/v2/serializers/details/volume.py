@@ -14,6 +14,7 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
     description = serializers.CharField(required=False, allow_blank=True)
 
     identity = ModelRelatedField(source="instance_source.created_by_identity",
+                                 lookup_field="uuid",
                                  queryset=Identity.objects.all(),
                                  serializer_class=IdentitySummarySerializer,
                                  style={'base_template': 'input.html'})
@@ -21,7 +22,8 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
     provider = ModelRelatedField(source="instance_source.provider",
                                  queryset=Provider.objects.all(),
                                  serializer_class=ProviderSummarySerializer,
-                                 style={'base_template': 'input.html'})
+                                 style={'base_template': 'input.html'},
+                                 required=False)
 
     user = UserSummarySerializer(source='instance_source.created_by',
                                  read_only=True)

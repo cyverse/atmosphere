@@ -82,13 +82,15 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
         size = data.get('size')
         image_id = data.get('image')
         snapshot_id = data.get('snapshot')
+        description = data.get('description')
         instance_source = data.get("instance_source")
         identity = instance_source.get("created_by_identity")
-        provider = instance_source.get('provider')
+        provider = identity.provider
 
         try:
             esh_volume = create_volume_or_fail(name, size, self.request.user,
                                                provider, identity,
+                                               description=description,
                                                image_id=image_id,
                                                snapshot_id=snapshot_id)
             created_on = esh_volume.extra.get("createTime", timezone.now())
