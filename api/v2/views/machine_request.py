@@ -10,6 +10,7 @@ from core.models.status_type import StatusType
 from core.email import requestImaging
 
 from service.tasks.machine import start_machine_imaging
+from threepio import logger
 
 
 class MachineRequestViewSet(BaseRequestViewSet):    
@@ -57,8 +58,9 @@ class MachineRequestViewSet(BaseRequestViewSet):
             raise exceptions.ParseError(detail=message)
         except Exception as e:
             message = {
-                "An error was encoutered when submitting the request."
+                "An error was encoutered when submitting the request: %s" % e.message
             }
+            logger.exception(e)
             raise exceptions.ParseError(detail=message)
 
     def submit_action(self, instance):
