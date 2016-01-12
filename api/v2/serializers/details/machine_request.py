@@ -19,7 +19,7 @@ from api.v2.serializers.summaries import (
 from api.v2.serializers.fields import (
     ProviderMachineRelatedField, ModelRelatedField)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
-
+from api.validators import NoSpecialCharacters
 
 class UserRelatedField(serializers.PrimaryKeyRelatedField):
 
@@ -154,7 +154,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
        serializer_class=ProviderMachineSummarySerializer,
        style={'base_template': 'input.html'})
 
-    new_application_name = serializers.CharField()
+    new_application_name = serializers.CharField(validators=[NoSpecialCharacters('!"#$%&\'*+,/;<=>?@[\\]^_`{|}~')])
     new_application_description = serializers.CharField()
     old_status = serializers.CharField(required = False)
     new_application_visibility = serializers.CharField()
@@ -258,7 +258,7 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     old_status = serializers.CharField(required = False)
     new_version_memory_min = serializers.CharField()
     new_version_cpu_min = serializers.CharField()
-    new_application_name = serializers.CharField()
+    new_application_name = serializers.CharField(validators=[NoSpecialCharacters('!"#$%&\'*+,/;<=>?@[\\]^_`{|}~')])
     new_application_version = ImageVersionSummarySerializer(read_only=True)
     new_application_visibility = serializers.CharField()
     admin_message = serializers.CharField(read_only=True)
