@@ -21,6 +21,8 @@ class MachineRequestViewSet(BaseRequestViewSet):
     serializer_class = UserMachineRequestSerializer
     admin_serializer_class = MachineRequestSerializer
     filter_fields = ('status__id', 'status__name', 'new_machine_owner__username')
+    ordering_fields = ('start_date', 'end_date', 'new_machine_owner__username')
+    ordering = ('-start_date',)
 
     def perform_create(self, serializer):
 
