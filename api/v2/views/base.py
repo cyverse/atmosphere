@@ -24,6 +24,7 @@ def unresolved_requests_only(fn):
     @wraps(fn)
     def wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
+        #TODO: Logic needs 're-worked' here. MachineRequests in 'non-final' states should be allowed to be PATCH'ed for re-submission.
         if (hasattr(instance, "is_closed") and instance.is_closed()):
             message = (
                 "Method '%s' not allowed: "
