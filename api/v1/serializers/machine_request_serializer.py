@@ -5,6 +5,7 @@ from core.models.instance_source import InstanceSource
 from core.models.provider import Provider
 from core.models.boot_script import BootScript
 from core.models.license import License
+from api.validators import no_special_characters
 from rest_framework import serializers
 from .new_threshold_field import NewThresholdField
 from .boot_script_related_field import BootScriptRelatedField
@@ -33,7 +34,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     exclude_files = serializers.CharField(default="", required=False)
     shared_with = serializers.CharField(source="access_list", required=False)
 
-    name = serializers.CharField(source='new_application_name')
+    name = serializers.CharField(source='new_application_name', validators=[no_special_characters])
     provider = serializers.SlugRelatedField(
         slug_field='uuid', source='new_machine_provider',
         queryset=Provider.objects.all()
