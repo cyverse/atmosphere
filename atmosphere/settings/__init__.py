@@ -322,7 +322,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',
     'DEFAULT_FILTER_BACKENDS': (
         'rest_framework.filters.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter'
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter'
     )
 }
 LOGIN_REDIRECT_URL = "/api/v1"

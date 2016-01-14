@@ -160,7 +160,7 @@ def start_machine_imaging(machine_request, delay=False):
 
     # Task 5 = Terminate the new instance on completion
     destroy_task = destroy_instance.s(
-        admin_ident.uuid)
+        admin_ident.created_by, admin_ident.uuid)
     wait_for_task.link(destroy_task)
     wait_for_task.link_error(imaging_error_task)
     # Task 6 - Finally, email the user that their image is ready!
