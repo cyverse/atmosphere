@@ -37,7 +37,7 @@ uWSGI==2.0.9
 ## ours
 django-iplant-auth==0.1.2
 threepio==0.2.0
-rtwo==0.2.14
+rtwo==0.2.17
 caslib.py==2.2.2
 chromogenic==0.1.7
 subspace==0.1.6
