@@ -17,7 +17,6 @@ class TagViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     lookup_fields = ("id", "uuid")
     queryset = Tag.objects.all()
     serializer_class = TagSummarySerializer
-    max_paginate_by = 1000
 
     def perform_create(self, serializer):
         same_name_tags = Tag.objects.filter(

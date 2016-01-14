@@ -28,7 +28,7 @@ class InstanceSerializer(serializers.ModelSerializer):
         many=True, required=False)
     #NOTE: These 'alias' point to the 'cloud/native IDs' NOT the db-UUID!
     #NOTE: source_alias should belong to volume.identifier or providermachine.identifier
-    source_alias = serializers.CharField(source="source__identifier")
+    source_alias = serializers.SlugRelatedField(source="source", slug_field="identifier", queryset=InstanceSource.objects.all())
     size_alias = serializers.SlugRelatedField(source="instancestatushistory_set.size", slug_field="alias", queryset=Size.objects.all())
     # Optional kwargs to be inluded
     deploy = serializers.BooleanField(default=True)
@@ -41,17 +41,25 @@ class InstanceSerializer(serializers.ModelSerializer):
         NOTE: This is required because we have identical alias' on multiple providers, so we must first filter-down based on the identity requested for launching the instance.
         2. Check source_alias is either a Volume or a ProviderMachine before continuing.
         """
-        # For now-- It's okay to omit this.
-        project = data.get('project')
-        if not project:
-            data['project'] = None
 
         identity_uuid = data.get('identity')
         if not identity_uuid:
             raise ValidationError({
                 'identity': 'This field is required.'
             })
-        provider_queryset = self.fields['provider_uuid'].queryset
+        size_queryset = self.fields['size_alias'].queryset
+        source_queryset = self.fields['source_alias'].queryset
+
+        size_alias = data.get('size_alias')
+        if not size_alias:
+            raise ValidationError({
+                'size_alias': 'This field is required.'
+            })
+        size = size_queryset.filter(alias=size_alias)
+        if not size:
+            raise ValidationError({
+                'size_alias': 'Value %s did not match a Size.' % size_alias
+            })
 
         source_alias = data.get('source_alias')
         if not source_alias:
@@ -59,7 +67,7 @@ class InstanceSerializer(serializers.ModelSerializer):
                 'source_alias': 'This field is required.'
             })
         source = InstanceSource.get_source(
-            source_alias, queryset=provider_queryset)
+            source_alias, queryset=source_queryset)
         if not source:
             raise ValidationError({
                 'source_alias': 'Value %s did not match a ProviderMachine or Volume.' % source_alias
@@ -84,17 +92,19 @@ class InstanceSerializer(serializers.ModelSerializer):
         project_f = self.fields['project']
         provider_f = self.fields['provider_uuid']
         size_f = self.fields['size_alias']
-
+        source_f = self.fields['source_alias']
         provider_queryset = Provider.objects.filter(identity__uuid=identity_uuid)
         if not provider_queryset:
             project_f.queryset = project_f.queryset.none()
             size_f.queryset = size_f.queryset.none()
+            source_f.queryset = source_f.queryset.none()
         elif len(provider_queryset) > 1:
             raise Exception("Implementation Error -- Only ever expected one value here! Fix this line!")
         else:
             #ASSERT: Queryset is EXACTLY ONE value.
+            provider_f.queryset = provider_queryset
             provider_uuid = provider_queryset.first().uuid
-            #project_f.queryset = project_f.queryset.filter(owner__user=request_user)
+            source_f.queryset = source_f.queryset.filter(provider__uuid=provider_uuid)
             size_f.queryset = size_f.queryset.filter(provider__uuid=provider_uuid)
         super (InstanceSerializer, self).__init__(*args, **kwargs)
 

@@ -1,5 +1,5 @@
 from functools import wraps
-
+from threepio import logger
 from django.utils import timezone
 
 from rest_framework import exceptions, status
@@ -209,8 +209,9 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
             raise exceptions.ParseError(detail=message)
         except Exception as e:
             message = {
-                "An error was encoutered when updating the request."
+                "An error was encoutered when updating the request: %s" % e.message
             }
+            logger.exception(e)
             raise exceptions.ParseError(detail=message)
 
 
