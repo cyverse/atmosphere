@@ -359,6 +359,20 @@ class InstanceStatusHistoryDetail(AuthAPIView):
         return response
 
 
+
+
+def _further_process_result(request, action, result):
+    """
+    Provide additional serialization if the `action` has a
+    `result` requiring processing.
+    """
+    if 'volume' in action:
+        return VolumeSerializer(result,
+                                context={"request": request}).data
+    else:
+        return result
+
+
 class InstanceAction(AuthAPIView):
 
     """
@@ -442,11 +456,7 @@ class InstanceAction(AuthAPIView):
         action = action_params['action']
         try:
             result_obj = run_instance_action(user, identity, instance_id, action, action_params)
-            #DEVNOTE: If volume -- Use a serializer here -- THIS IS A HOTFIX! Fix this in v2 and moving forward!!
-            if 'volume' in action:
-                core_volume = result_obj
-                result_obj = VolumeSerializer(core_volume, context={"request": request}).data
-
+            result_obj = _further_process_result(request, action, result_obj)
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully' % (action_params['action'],),
