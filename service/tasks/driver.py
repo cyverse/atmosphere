@@ -1343,6 +1343,8 @@ def update_membership_for(provider_uuid):
         celery_logger.warn("Encountered unknown ProviderType:%s, expected"
                     " [Openstack] " % (provider.type.name,))
         return
+    if not acct_driver:
+        raise Exception("Encountered error creating driver -- check 'get_account_driver'")
     images = acct_driver.list_all_images()
     changes = 0
     for img in images:
