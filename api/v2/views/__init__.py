@@ -1,6 +1,7 @@
 # flake8: noqa
 from .allocation import AllocationViewSet
 from .boot_script import BootScriptViewSet
+from .base import BaseRequestViewSet
 from .credential import CredentialViewSet
 from .group import GroupViewSet
 from .identity import IdentityViewSet
@@ -16,10 +17,13 @@ from .instance import InstanceViewSet
 from .instance_tag import InstanceTagViewSet
 from .instance_history import InstanceStatusHistoryViewSet
 from .license import LicenseViewSet
+from .link import ExternalLinkViewSet
 from .machine_request import MachineRequestViewSet
 from .maintenance_record import MaintenanceRecordViewSet
 from .platform_type import PlatformTypeViewSet
 from .project import ProjectViewSet
+from .project_application import ProjectApplicationViewSet
+from .project_link import ProjectExternalLinkViewSet
 from .project_instance import ProjectInstanceViewSet
 from .project_volume import ProjectVolumeViewSet
 from .provider import ProviderViewSet

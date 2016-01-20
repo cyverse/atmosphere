@@ -825,9 +825,9 @@ def _get_boot_script_chain(driverCls, provider, identity, instance_id, remove_st
       default_retry_delay=15,
       ignore_result=True,
       max_retries=3)
-def destroy_instance(user, instance_alias, core_identity_uuid):
+def destroy_instance(instance_alias, user, core_identity_uuid):
     """
-    NOTE: Argument order flips here -- instance_alais is used as the first argument to make chaining this taks easier with celery.
+    NOTE: Argument order changes here -- instance_alais is used as the first argument to make chaining this taks easier with celery.
     """
     from service import instance as instance_service
     try:

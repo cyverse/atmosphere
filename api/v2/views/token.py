@@ -17,7 +17,6 @@ class TokenViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     lookup_fields = ("key",)
     queryset = Token.objects.all()
     serializer_class = TokenSerializer
-    max_paginate_by = 1000
     permission_classes = (ApiAuthRequired,
                           InMaintenance,)
 

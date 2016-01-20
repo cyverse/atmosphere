@@ -1,8 +1,4 @@
-from django.contrib.auth.models import AnonymousUser
-
 from core.models import Application as Image
-from core.models import AtmosphereUser, AccountProvider
-from core.query import only_current, only_current_apps
 
 from api import permissions
 from api.v2.serializers.details import ImageSerializer
@@ -19,7 +15,7 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
 
     http_method_names = ['get', 'put', 'patch', 'head', 'options', 'trace']
 
-    filter_fields = ('created_by__username', 'tags__name')
+    filter_fields = ('created_by__username', 'tags__name', 'projects__id')
 
     permission_classes = (permissions.InMaintenance,
                           permissions.ApiAuthOptional,

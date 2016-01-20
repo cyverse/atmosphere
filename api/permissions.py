@@ -2,6 +2,7 @@
 Atmosphere API's extension of DRF permissions.
 """
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import permissions
 
 from threepio import logger
@@ -55,6 +56,8 @@ class EnabledUserRequired(permissions.BasePermission):
         "Please contact your Cloud Administrator for more information."
 
     def has_permission(self, request, view):
+        if isinstance(request.user, AnonymousUser):
+            return False
         return request.user.is_enabled
 
 

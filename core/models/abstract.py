@@ -46,7 +46,7 @@ class BaseRequest(models.Model):
         """
         Only allow one active request per provider
         """
-        if not self.pk and self.is_active(self.membership):
+        if not self.pk and self.is_active(self.membership) and self.has_current_requests(self.membership):
             raise ProviderLimitExceeded(
                 "The number of open requests has been exceeded.")
 
@@ -55,6 +55,13 @@ class BaseRequest(models.Model):
                 "This membership does not belong to the user")
 
         super(BaseRequest, self).save(*args, **kwargs)
+
+    @classmethod
+    def has_current_requests(cls, identity_membership):
+        """
+        Return if the object currently has non end-dated objects
+        """
+        return cls.objects.filter(only_current()).count() > 0
 
     @classmethod
     def is_active(cls, identity_membership):

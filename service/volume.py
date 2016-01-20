@@ -88,6 +88,7 @@ def create_volume_or_fail(name, size, user, provider, identity,
 
     #: Create the volume or raise an exception
     _, volume = create_volume(driver, identity.uuid, name, size,
+                              description=description,
                               snapshot=snapshot, image=image,
                               raise_exception=True)
     return volume

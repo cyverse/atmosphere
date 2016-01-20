@@ -1,5 +1,5 @@
 from functools import wraps
-
+from threepio import logger
 from django.utils import timezone
 
 from rest_framework import exceptions, status
@@ -24,6 +24,7 @@ def unresolved_requests_only(fn):
     @wraps(fn)
     def wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
+        #TODO: Logic needs 're-worked' here. MachineRequests in 'non-final' states should be allowed to be PATCH'ed for re-submission.
         if (hasattr(instance, "is_closed") and instance.is_closed()):
             message = (
                 "Method '%s' not allowed: "
@@ -177,10 +178,16 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
                 instance = serializer.save(end_date=timezone.now(),
                                            membership=membership)
             else:
-                instance = serializer.save(end_date=timezone.now())
+                if self.request._method == "PATCH":
+                    instance = serializer.save(status=StatusType.objects.get(id=serializer.initial_data['status']))
+                else:
+                    instance = serializer.save()
 
             if instance.is_approved():
                 self.approve_action(instance)
+
+            if instance.is_closed():
+                self.close_action(instance)
 
             if instance.is_denied():
                 self.deny_action(instance)
@@ -202,8 +209,9 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
             raise exceptions.ParseError(detail=message)
         except Exception as e:
             message = {
-                "An error was encoutered when updating the request."
+                "An error was encoutered when updating the request: %s" % e.message
             }
+            logger.exception(e)
             raise exceptions.ParseError(detail=message)
 
 

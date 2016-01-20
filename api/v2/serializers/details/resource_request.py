@@ -195,9 +195,14 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class UserResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
+    def validate_status(self, value):
+        if str(value) not in ["pending", "closed"]:
+            raise serializers.ValidationError("Users can only open and close requests.")
+        return value
+
     quota = QuotaRelatedField(read_only=True)
     allocation = AllocationRelatedField(read_only=True)
-    status = StatusTypeRelatedField(read_only=True)
+    status = StatusTypeRelatedField(queryset = StatusType.objects.all(), default=StatusType.objects.get(name="pending"))
     admin_message = serializers.CharField(read_only=True)
     uuid = serializers.CharField(read_only=True)
     created_by = UserRelatedField(read_only=True)

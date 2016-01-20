@@ -7,10 +7,12 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework import status
 
+from api.exceptions import (inactive_provider)
 from api.v2.serializers.details import VolumeSerializer, UpdateVolumeSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
+from core.exceptions import ProviderNotActive
 from core.models.volume import Volume, find_volume
 from core.query import only_current_source
 from service.volume import create_volume_or_fail, destroy_volume_or_fail, update_volume_metadata
@@ -80,13 +82,15 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
         size = data.get('size')
         image_id = data.get('image')
         snapshot_id = data.get('snapshot')
+        description = data.get('description')
         instance_source = data.get("instance_source")
         identity = instance_source.get("created_by_identity")
-        provider = instance_source.get('provider')
+        provider = identity.provider
 
         try:
             esh_volume = create_volume_or_fail(name, size, self.request.user,
                                                provider, identity,
+                                               description=description,
                                                image_id=image_id,
                                                snapshot_id=snapshot_id)
             created_on = esh_volume.extra.get("createTime", timezone.now())
@@ -96,6 +100,8 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
                             user=self.request.user)
         except InvalidCredsError as e:
             raise exceptions.PermissionDenied(detail=e.message)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)
 
@@ -106,5 +112,7 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
             instance.save()
         except InvalidCredsError as e:
             raise exceptions.PermissionDenied(detail=e.message)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)

@@ -39,11 +39,12 @@ class GetListTests(APITestCase):
         response = self.view(self.request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 4)
+        self.assertEquals(len(data), 5)
         self.assertIn('id', data)
         self.assertIn('uuid', data)
         self.assertIn('url', data)
         self.assertIn('username', data)
+        self.assertIn('end_date', data)
 
 
 class GetDetailTests(APITestCase):
@@ -72,11 +73,12 @@ class GetDetailTests(APITestCase):
         response = self.view(self.request, pk=self.user.id)
         data = response.data
 
-        self.assertEquals(len(data), 4)
+        self.assertEquals(len(data), 5)
         self.assertIn('id', data)
         self.assertIn('uuid', data)
         self.assertIn('url', data)
         self.assertIn('username', data)
+        self.assertIn('end_date', data)
 
 
 class CreateTests(APITestCase):
@@ -87,8 +89,8 @@ class CreateTests(APITestCase):
 
 class UpdateTests(APITestCase):
 
-    def test_endpoint_does_not_exist(self):
-        self.assertTrue('put' not in UserViewSet.http_method_names)
+    def test_endpoint_does_exist(self):
+        self.assertTrue('put' in UserViewSet.http_method_names)
 
 
 class DeleteTests(APITestCase):

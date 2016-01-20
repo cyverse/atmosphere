@@ -16,6 +16,8 @@ from threepio import logger
 from service.driver import prepare_driver
 
 from api import failure_response, invalid_creds
+from api.exceptions import inactive_provider
+from core.exceptions import ProviderNotActive
 from api.v1.views.base import AuthAPIView
 
 
@@ -29,7 +31,15 @@ class Meta(AuthAPIView):
         """
         Returns all available URLs based on the user profile.
         """
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
+
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         data = add_user_urls(request, provider_uuid, identity_uuid)
@@ -101,7 +111,14 @@ class MetaAction(AuthAPIView):
                 status.HTTP_400_BAD_REQUEST,
                 'Action is not supported.'
             )
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         esh_meta = esh_driver.meta()

@@ -16,9 +16,12 @@ from .instance_tag import InstanceTagSerializer
 from .instance_history import InstanceStatusHistorySerializer
 from .instance import InstanceSerializer
 from .license import LicenseSerializer
+from .link import ExternalLinkSerializer
 from .maintenance_record import MaintenanceRecordSerializer
 from .machine_request import (MachineRequestSerializer, UserMachineRequestSerializer)
 from .project import ProjectSerializer
+from .project_application import ProjectApplicationSerializer
+from .project_link import ProjectExternalLinkSerializer
 from .project_instance import ProjectInstanceSerializer
 from .project_volume import ProjectVolumeSerializer
 from .provider import (ProviderSerializer, ProviderTypeSerializer,

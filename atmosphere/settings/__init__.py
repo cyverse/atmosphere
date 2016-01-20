@@ -319,13 +319,11 @@ REST_FRAMEWORK = {
         'iplantauth.token.GlobusOAuthTokenAuthentication',   # Globus
         'rest_framework.authentication.SessionAuthentication',  # Session
     ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,                 # Default to 20
-    # Allow client to override, using `?page_size=xxx`.
-    'PAGINATE_BY_PARAM': 'page_size',
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',
     'DEFAULT_FILTER_BACKENDS': (
         'rest_framework.filters.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter'
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter'
     )
 }
 LOGIN_REDIRECT_URL = "/api/v1"
@@ -397,6 +395,12 @@ CELERYBEAT_SCHEDULE = {
         "task": "check_image_membership",
         "schedule": timedelta(minutes=60),
         "options": {"expires": 10 * 60, "time_limit": 2 * 60}
+    },
+    "prune_machines": {
+        "task": "prune_machines",
+        # Every day of the week @ 12am (Midnight)
+        "schedule": crontab(hour="0", minute="0", day_of_week="*"),
+        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
     "monitor_machines": {
         "task": "monitor_machines",

@@ -2,6 +2,7 @@ from uuid import uuid4
 from django.db import models
 from django.utils import timezone
 from core.models.application import Application
+from core.models.link import ExternalLink
 from core.models.instance import Instance
 from core.models.group import Group
 from core.models.volume import Volume
@@ -30,6 +31,8 @@ class Project(models.Model):
                                        blank=True)
     volumes = models.ManyToManyField(Volume, related_name="projects",
                                      blank=True)
+    links = models.ManyToManyField(ExternalLink, related_name="projects",
+                                          blank=True)
 
     def active_volumes(self):
         return self.volumes.model.active_volumes.filter(
@@ -40,8 +43,8 @@ class Project(models.Model):
             pk__in=self.instances.values_list("id"))
 
     def __unicode__(self):
-        return "%s Owner ID:%s" \
-            % (self.name, self.owner_id)
+        return "Name:%s Owner:%s" \
+            % (self.name, self.owner)
 
     def has_running_resources(self):
         now_date = timezone.now()

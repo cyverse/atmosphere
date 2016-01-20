@@ -160,7 +160,7 @@ def start_machine_imaging(machine_request, delay=False):
 
     # Task 5 = Terminate the new instance on completion
     destroy_task = destroy_instance.s(
-        admin_ident.uuid)
+        admin_ident.created_by, admin_ident.uuid)
     wait_for_task.link(destroy_task)
     wait_for_task.link_error(imaging_error_task)
     # Task 6 - Finally, email the user that their image is ready!
@@ -275,6 +275,10 @@ def process_request(new_image_id, machine_request_id):
     new_status, _ = StatusType.objects.get_or_create(name="processing")
     machine_request.status = new_status
     machine_request.old_status = 'processing - %s' % new_image_id
+    # HACK - TODO - replace with proper `default` in model
+    # PATCHED (lenards, 2015-12-21)
+    if machine_request.new_version_name is None:
+        machine_request.new_version_name = "1.0"
     machine_request.save()
     # TODO: Best if we could 'broadcast' this to all running
     # Apache WSGI procs && celery 'imaging' procs
