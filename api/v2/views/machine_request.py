@@ -44,24 +44,6 @@ class MachineRequestViewSet(BaseRequestViewSet):
         new_owner=self.request.user
         parent_machine = serializer.validated_data['instance'].provider_machine
         status, _ = StatusType.objects.get_or_create(name="pending")
-        new_machine_provider = Provider.objects.filter(id=new_provider_id)
-        new_machine_owner = AtmosphereUser.objects.filter(id=new_owner_id)
-        parent_machine = ProviderMachine.objects.filter(id=parent_machine_id)
-
-        if new_machine_provider.count(): 
-            new_machine_provider = new_machine_provider[0]
-        else:
-            raise exceptions.ParseError(detail="Could not retrieve new machine provider.")
-
-        if new_machine_owner.count():
-            new_machine_owner = new_machine_owner[0]
-        else:
-            raise exceptions.ParseError(detail="Could not retrieve new machine owner.")
-        
-        if parent_machine.count():
-            parent_machine = parent_machine[0]
-        else:
-            raise exceptions.ParseError(detail="Could not retrieve parent machine.")
 
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
