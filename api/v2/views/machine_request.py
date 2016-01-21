@@ -40,7 +40,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
-        new_provider= serializer.validated_data['new_machine_provider']
+        new_provider_id = serializer.initial_data['new_machine_provider']
         new_owner=self.request.user
         parent_machine = serializer.validated_data['instance'].provider_machine
         status, _ = StatusType.objects.get_or_create(name="pending")
@@ -51,7 +51,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
                 membership=membership,
                 status=status,
                 created_by=self.request.user,
-                new_machine_provider=new_provider,
+                new_machine_provider_id=new_provider_id,
                 new_machine_owner=new_owner,
                 parent_machine=parent_machine
             )
