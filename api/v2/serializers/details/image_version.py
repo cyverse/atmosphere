@@ -1,6 +1,6 @@
 from core.models import ApplicationVersion as ImageVersion
 from core.models import Application as Image
-from core.models import License, BootScript
+from core.models import License, BootScript, ProviderMachine, ApplicationThreshold
 from rest_framework import serializers
 from api.v2.serializers.summaries import (
     BootScriptSummarySerializer,
@@ -8,7 +8,8 @@ from api.v2.serializers.summaries import (
     UserSummarySerializer,
     ImageSummarySerializer,
     IdentitySummarySerializer,
-    ImageVersionSummarySerializer)
+    ImageVersionSummarySerializer,
+    ProviderMachineSummarySerializer)
 from api.v2.serializers.fields import (
     ProviderMachineRelatedField, ModelRelatedField)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
@@ -37,15 +38,17 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         many=True)  # NEW
     user = UserSummarySerializer(source='created_by')
     identity = IdentitySummarySerializer(source='created_by_identity')
-    machines = ProviderMachineRelatedField(many=True)
+    machines = ModelRelatedField(many=True, queryset=ProviderMachine.objects.all(),
+        serializer_class=ProviderMachineSummarySerializer,
+        style={'base_template': 'input.html'})
     image = ModelRelatedField(
         source='application',
         queryset=Image.objects.all(),
         serializer_class=ImageSummarySerializer,
         style={'base_template': 'input.html'})
     start_date = serializers.DateTimeField()
-    min_mem = serializers.CharField(source='threshold.memory_min', read_only = True)
-    min_cpu = serializers.CharField(source='threshold.cpu_min', read_only = True)
+    min_mem = serializers.IntegerField(source='threshold.memory_min')
+    min_cpu = serializers.IntegerField(source='threshold.cpu_min')
     end_date = serializers.DateTimeField(allow_null=True)
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:imageversion-detail',
@@ -58,3 +61,24 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
                   'licenses', 'membership', 'min_mem', 'min_cpu', 'scripts',
                   'user', 'identity',
                   'start_date', 'end_date')
+
+    def update(self, instance, validated_data):
+        current_threshold = instance.application.get_threshold()
+        current_mem_min = current_threshold.memory_min
+        current_cpu_min = current_threshold.cpu_min
+
+        try:
+            new_mem_min = validated_data.get('threshold')['memory_min']
+        except:
+            new_mem_min = current_mem_min
+
+        try:
+            new_cpu_min = validated_data.get('threshold')['cpu_min']
+        except:
+            new_cpu_min = current_cpu_min
+
+        # get item at 0 to retireve the item itself, we don't care if it was created
+        new_threshold = ApplicationThreshold.objects.get_or_create(memory_min=new_mem_min, cpu_min=new_cpu_min)[0]
+        instance.threshold = new_threshold
+        instance.save()
+        return instance
