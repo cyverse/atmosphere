@@ -64,8 +64,16 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
 
     def update(self, instance, validated_data):
         current_threshold = instance.application.get_threshold()
-        current_mem_min = current_threshold.memory_min
-        current_cpu_min = current_threshold.cpu_min
+
+        try:
+            current_mem_min = current_threshold.memory_min
+        except:
+            current_mem_min = None
+
+        try:
+            current_cpu_min = current_threshold.cpu_min
+        except:
+            current_cpu_min = None
 
         try:
             new_mem_min = validated_data.get('threshold')['memory_min']
