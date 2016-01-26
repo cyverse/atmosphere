@@ -80,8 +80,8 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
         data = serializer.validated_data
         name = data.get('name')
         size = data.get('size')
-        image_id = data.get('image')
-        snapshot_id = data.get('snapshot')
+        image_id = data.get('image_id')
+        snapshot_id = data.get('snapshot_id')
         description = data.get('description')
         instance_source = data.get("instance_source")
         identity = instance_source.get("created_by_identity")
@@ -103,6 +103,9 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
             return inactive_provider(pna)
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)
+        except Exception as exc:
+            logger.exception("Error occurred creating a v2 volume")
+            return Response(exc.message, status=status.HTTP_409_CONFLICT)
 
     def perform_destroy(self, instance):
         try:
