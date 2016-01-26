@@ -53,11 +53,12 @@ def _update_volume_metadata(esh_driver, esh_volume,
 
 
 def restrict_size_by_image(size, image):
-    image_size = image._connection.get_size(image._image)
+    image_bytes = image._image.extra['image_size']
+    image_size = int(image_bytes / 1024.0**3)
     if size > image_size + 4:
         raise exceptions.VolumeError(
             "Volumes created from images cannot exceed "
-            "more than 4GB greater than the size of the image:%s GB"
+            "more than 4GB greater than the size of the image:(%s GB)"
             % size)
 
 
