@@ -82,7 +82,7 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
 
         instance_source = validated_data.get("instance_source")
         identity = instance_source.get("created_by_identity")
-        provider = instance_source.get('provider')
+        provider = identity.provider
 
         source = InstanceSource.objects.create(
             identifier=identifier,

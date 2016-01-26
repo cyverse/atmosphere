@@ -86,7 +86,6 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
         instance_source = data.get("instance_source")
         identity = instance_source.get("created_by_identity")
         provider = identity.provider
-
         try:
             esh_volume = create_volume_or_fail(name, size, self.request.user,
                                                provider, identity,
