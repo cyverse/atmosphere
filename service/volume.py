@@ -1,4 +1,3 @@
-from collections import namedtuple
 from threepio import logger
 
 from core.models.quota import get_quota, has_storage_count_quota,\
@@ -6,13 +5,10 @@ from core.models.quota import get_quota, has_storage_count_quota,\
 from core.models.identity import Identity
 
 from service.cache import get_cached_driver
-from service.driver import _retrieve_source, prepare_driver
+from service.driver import _retrieve_source, get_esh_driver
 
 from service import exceptions
 from service.instance import boot_volume_instance
-
-# FIXME: fix prepare_driver to take a user directly
-Request = namedtuple("request", ["user"])
 
 
 def update_volume_metadata(core_volume, metadata={}):
@@ -66,13 +62,10 @@ def restrict_size_by_image(size, image):
 
 
 def create_volume_or_fail(name, size, user, provider, identity,
-                          image_id=None, snapshot_id=None):
+                          description=None, image_id=None, snapshot_id=None):
     snapshot = None
     image = None
-    # FIXME: fix prepare_driver to take a user directly
-    request = Request(user)
-    driver = prepare_driver(request, provider.uuid, identity.uuid,
-                            raise_exception=True)
+    driver = get_esh_driver(identity, username=user.username)
 
     if snapshot_id:
         snapshot = driver._connection.ex_get_snapshot(image_id)
@@ -127,12 +120,8 @@ def destroy_volume_or_fail(volume, user, cascade=False):
                     (defaults is False)
     :type cascade: ``bool``
     """
-    provider = volume.instance_source.provider
     identity = volume.instance_source.created_by_identity
-    # FIXME: fix prepare_driver to take a user directly
-    request = Request(user)
-    driver = prepare_driver(request, provider.uuid, identity.uuid,
-                            raise_exception=True)
+    driver = get_esh_driver(identity, username=user.username)
 
     # retrieve volume or fail with not found
     esh_volume = driver.get_volume(volume.identifier)
