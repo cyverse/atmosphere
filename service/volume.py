@@ -53,7 +53,12 @@ def _update_volume_metadata(esh_driver, esh_volume,
 
 
 def restrict_size_by_image(size, image):
-    image_bytes = image._image.extra['image_size']
+    image_bytes = image._image.extra.get('image_size', None)
+    if not image_bytes:
+        raise exceptions.VolumeError(
+            "Cannot determine size of the image %s: "
+            "Expected rtwo.machine.OSMachine to include "
+            "'image_size' key in the 'extra' fields." % (image.name,))
     image_size = int(image_bytes / 1024.0**3)
     if size > image_size + 4:
         raise exceptions.VolumeError(
