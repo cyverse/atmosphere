@@ -103,7 +103,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         except:
             new_cpu_min = current_cpu_min
 
-        if not instance.get_threshold():
+        if not current_threshold:
             new_threshold = ApplicationThreshold.objects.create(
                 application_version=instance,
                 memory_min=new_mem_min,
@@ -114,4 +114,4 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
             new_threshold.cpu_min = new_cpu_min
             new_threshold.save()
 
-        instance.threshold = new_threshold
+        validated_data['threshold'] = new_threshold
