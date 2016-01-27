@@ -74,6 +74,7 @@ class ApplicationVersion(models.Model):
                                self.start_date)
 
     def get_threshold(self):
+        from core.models.application import ApplicationThreshold
         try:
             return self.threshold
         except ApplicationThreshold.DoesNotExist:
