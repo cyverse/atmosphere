@@ -166,12 +166,6 @@ class Application(models.Model):
             ).order_by('instance_source__start_date').last()
         return last
 
-    def get_threshold(self):
-        try:
-            return self.latest_version.threshold
-        except ApplicationThreshold.DoesNotExist:
-            return None
-
     def get_projects(self, user):
         projects = self.projects.filter(
             only_current(),

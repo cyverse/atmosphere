@@ -63,7 +63,12 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
                   'start_date', 'end_date')
 
     def update(self, instance, validated_data):
-        current_threshold = instance.application.get_threshold()
+        if 'min_cpu' in self.initial_data or 'min_mem' in self.initial_data:
+            self.update_threshold(instance, validated_data)
+        return super(ImageVersionSerializer, self).update(instance, validated_data)
+
+    def update_threshold(self, instance, validated_data):
+        current_threshold = instance.get_threshold()
 
         try:
             current_mem_min = current_threshold.memory_min
@@ -85,8 +90,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         except:
             new_cpu_min = current_cpu_min
 
-        # get item at 0 to retireve the item itself, we don't care if it was created
-        new_threshold = ApplicationThreshold.objects.get_or_create(memory_min=new_mem_min, cpu_min=new_cpu_min)[0]
-        instance.threshold = new_threshold
-        instance.save()
-        return instance
+        new_threshold, _ = ApplicationThreshold.objects.get_or_create(
+            application_version=instance,
+            memory_min=new_mem_min,
+            cpu_min=new_cpu_min)
