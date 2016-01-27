@@ -39,6 +39,12 @@ class Application(models.Model):
     created_by_identity = models.ForeignKey(Identity, null=True)
 
     @property
+    def all_versions(self):
+        version_set = ApplicationVersion.objects.filter(
+            application=self)
+        return version_set
+
+    @property
     def all_machines(self):
         from core.models import ProviderMachine
         providermachine_set = ProviderMachine.objects.filter(
