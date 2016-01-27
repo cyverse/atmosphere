@@ -104,7 +104,8 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)
         except Exception as exc:
-            logger.exception("Error occurred creating a v2 volume")
+            logger.exception("Error occurred creating a v2 volume -- User:%s"
+                             % self.request.user)
             return Response(exc.message, status=status.HTTP_409_CONFLICT)
 
     def perform_destroy(self, instance):
@@ -118,3 +119,7 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
             return inactive_provider(pna)
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)
+        except Exception as exc:
+            logger.exception("Error occurred deleting a v2 volume -- User:%s"
+                             % self.request.user)
+            return Response(exc.message, status=status.HTTP_409_CONFLICT)
