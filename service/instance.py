@@ -1188,8 +1188,11 @@ def check_application_threshold(
     application = Application.objects.filter(
         versions__machines__instance_source__identifier=boot_source.identifier,
         versions__machines__instance_source__provider=core_identity.provider).distinct().get()
-    threshold = application.latest_version.get_threshold()
-#TODO: This is *NOT* good logic. Instead, look at 'boot_source' and determine what ApplicationVersion (If any) it belongs to. THEN use that version to 'get_threshold().
+    try:
+        threshold = boot_source.current_source.application_version.get_threshold()
+    except:
+        threshold = application.latest_version.get_threshold()
+
     if not threshold:
         return
     # NOTE: Should be MB to MB test
