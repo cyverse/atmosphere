@@ -61,13 +61,7 @@ class Application(models.Model):
         if not now:
             now = timezone.now()
         for version in self.versions.all():
-            for machine in version.machines.all():
-                if not machine.end_date:
-                    machine.end_date = now
-                    machine.save()
-            if not version.end_date:
-                version.end_date = now
-                version.save()
+            version.end_date_all(now)
         if not self.end_date:
             self.end_date = now
             self.save()
