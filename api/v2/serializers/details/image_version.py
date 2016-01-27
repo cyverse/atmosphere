@@ -67,18 +67,31 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
             self.update_threshold(instance, validated_data)
         return super(ImageVersionSerializer, self).update(instance, validated_data)
 
+    def validate_min_cpu(self, value):
+        if value < 0 or value > 16:
+            raise serializers.ValidationError(
+                "Value of CPU must be between 1 & 16")
+        return value
+
+    def validate_min_mem(self, value):
+        if value < 0 or value > 32 * 1024:
+            raise serializers.ValidationError(
+                "Value of mem must be between 1 & 32 GB")
+        return value
+
+
     def update_threshold(self, instance, validated_data):
         current_threshold = instance.get_threshold()
 
         try:
             current_mem_min = current_threshold.memory_min
         except:
-            current_mem_min = None
+            current_mem_min = 0
 
         try:
             current_cpu_min = current_threshold.cpu_min
         except:
-            current_cpu_min = None
+            current_cpu_min = 0
 
         try:
             new_mem_min = validated_data.get('threshold')['memory_min']
@@ -90,7 +103,15 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         except:
             new_cpu_min = current_cpu_min
 
-        new_threshold, _ = ApplicationThreshold.objects.get_or_create(
-            application_version=instance,
-            memory_min=new_mem_min,
-            cpu_min=new_cpu_min)
+        if not instance.get_threshold():
+            new_threshold = ApplicationThreshold.objects.create(
+                application_version=instance,
+                memory_min=new_mem_min,
+                cpu_min=new_cpu_min)
+        else:
+            new_threshold = ApplicationThreshold.objects.get(application_version=instance)
+            new_threshold.memory_min = new_mem_min
+            new_threshold.cpu_min = new_cpu_min
+            new_threshold.save()
+
+        instance.threshold = new_threshold
