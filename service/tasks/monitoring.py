@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Count
 
 from celery.decorators import task
 
@@ -11,6 +11,7 @@ from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import get_or_create_provider_machine, ProviderMachine
 from core.models.application import Application, ApplicationMembership
+from core.models.application_version import ApplicationVersion
 from core.models import Allocation, Credential
 
 from service.monitoring import\
@@ -91,22 +92,24 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_remo
     NOTE: BEFORE CALLING THIS TASK you should ensure that the AccountProvider can see ALL images. Failure to do so will result in any unseen image to be prematurely end-dated and removed from the API/UI.
     """
     provider = Provider.objects.get(id=provider_id)
-
     if print_logs:
         import logging
         import sys
         consolehandler = logging.StreamHandler(sys.stdout)
         consolehandler.setLevel(logging.DEBUG)
         celery_logger.addHandler(consolehandler)
+    mach_count = ver_count = app_count = 0
+    now = timezone.now()
+    celery_logger.info("Starting prune_machines for Provider %s @ %s"
+                       % (provider, now))
 
     if provider.is_active():
         account_driver = get_account_driver(provider)
         db_machines = ProviderMachine.objects.filter(only_current_source(), instance_source__provider=provider)
-        all_projects_map = tenant_id_to_name_map(account_driver)
         cloud_machines = account_driver.list_all_images()
     else:
         db_machines = ProviderMachine.objects.filter(
-                source_in_range(),
+                source_in_range(),  # like 'only_current..' w/o active_provider
                 instance_source__provider=provider)
         cloud_machines = []
     # Don't do anything if cloud machines == [None,[]]
@@ -118,8 +121,41 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_remo
     for machine in db_machines:
         cloud_match = [mach for mach in cloud_machine_ids if mach == machine.identifier]
         if not cloud_match:
-            remove_machine(machine, dry_run=dry_run)
+            remove_machine(machine, now, dry_run=dry_run)
+            mach_count += 1
+    # Loop 2 and 3 - Capture all (still-active) versions without machines, and all applications without versions.
+    # These are 'outliers' and mainly here for safety-check purposes.
+    versions_without_machines = ApplicationVersion.objects.filter(machines__isnull=True, end_date__isnull=True)
+    apps_without_versions = Application.objects.filter(versions__isnull=True, end_date__isnull=True)
+    for ver in versions_without_machines:
+        ver.end_date_all(now)
+        ver_count += 1
+    for app in apps_without_versions:
+        app.end_date_all(now)
+        app_count += 1
 
+    #Loop4 - All 'Application' DB objects require >=1 Version with >=1 ProviderMachine (ACTIVE!)
+    # Apps that don't meet this criteria should be end-dated.
+    improperly_enddated_apps = Application.objects.annotate(
+        num_versions=Count('versions'), num_machines=Count('versions__machines')
+    ).filter(
+        # Contains at least one version without an end-date OR
+        (Q(num_versions__gt=0) & Q(versions__end_date__isnull=True)) |
+        # conatins at least one machine without an end-date
+        (
+            Q(num_machines__gt=0) &
+            Q(versions__machines__instance_source__end_date__isnull=True)
+        ),
+        # AND application has already been end-dated.
+        end_date__isnull=False
+    )
+
+    for app in improperly_enddated_apps:
+        app.end_date_all(now)
+        app_count += 1
+
+    celery_logger.info("prune_machines completed for Provider %s : %s Applications, %s versions and %s machines pruned."
+                       % (provider, app_count, ver_count, mach_count))
     if print_logs:
         celery_logger.removeHandler(consolehandler)
 
