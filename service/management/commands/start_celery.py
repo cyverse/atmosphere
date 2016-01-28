@@ -10,4 +10,5 @@ class Command(BaseCommand):
         if not os.path.isfile(logfile):
             with open(logfile, 'w+') as f:
                 f.close()
+        os.environ["C_FORCE_ROOT"] = "1"
         call(("celery worker --app=atmosphere --loglevel=INFO -c 5 --logfile=%s" % logfile).split())
