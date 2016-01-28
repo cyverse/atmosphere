@@ -787,7 +787,7 @@ def _get_boot_script_chain(driverCls, provider, identity, instance_id, core_iden
     if not scripts:
         return first_task, end_task
     script_zero = deploy_boot_script.si(
-        driverCls, provider, identity, core_identity.created_by.username, _inject_env_script(), "Inject ENV variables")
+        driverCls, provider, identity, core_identity.created_by.username, _inject_env_script(core_identity.created_by.username), "Inject ENV variables")
     first_task = script_zero
     end_task = script_zero # For now, its first and last. this will change.
     total = len(scripts)

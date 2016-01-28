@@ -482,19 +482,20 @@ def wrap_script(script_text, script_name):
         script_text, name=full_script_name)
 
 
-def _inject_env_script():
+def _inject_env_script(username):
     """
     This is the 'raw script' that will be used to prepare the environment.
+    t
     TODO: Find a better home for this. Probably use ansible for this.
     """
     return """
 #!/bin/bash -x
-atmo_user="sgregory"
-env_file='/etc/environment'
+atmo_user="%s"
+env_file="%s"
 env_vars=`cat $env_file`
 if [[ $env_vars == *"ATMO_USER="* ]]; then
-    sed -i "s/ATMO_USER=.*/ATMO_USER=$atmo_user/" $env_file
+    sed -i "s/ATMO_USER=.*/ATMO_USER=\"$atmo_user\"/" $env_file
 else
-    echo "ATMO_USER=$atmo_user" >> $env_file
+    echo "ATMO_USER=\"$atmo_user\"" >> $env_file
 fi
-    """
+    """ % (username, "~/.bashrc")
