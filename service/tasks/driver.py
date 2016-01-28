@@ -32,7 +32,7 @@ from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 
-from service.deploy import check_process, wrap_script, echo_test_script,\
+from service.deploy import check_process, _inject_env_script, wrap_script, echo_test_script,\
     deploy_to as ansible_deploy_to
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
@@ -408,7 +408,7 @@ def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
       default_retry_delay=20,
       ignore_result=True,
       max_retries=3)
-def deploy_init_to(driverCls, provider, identity, instance_id,
+def deploy_init_to(driverCls, provider, identity, instance_id, core_identity,
                    username=None, password=None, redeploy=False, deploy=True,
                    *args, **kwargs):
     try:
@@ -423,7 +423,7 @@ def deploy_init_to(driverCls, provider, identity, instance_id,
         image_metadata = driver._connection\
                                .ex_get_image_metadata(instance.source)
         deploy_chain = get_deploy_chain(
-            driverCls, provider, identity, instance,
+            driverCls, provider, identity, instance, core_identity,
             username=username, password=password,
             redeploy=redeploy, deploy=deploy)
         celery_logger.debug(
@@ -450,13 +450,14 @@ def get_deploy_chain(
         provider,
         identity,
         instance,
+        core_identity,
         username=None,
         password=None,
         redeploy=False,
         deploy=True):
     start_task = get_chain_from_build(
-        driverCls, provider, identity, instance, username=username,
-        password=password, redeploy=redeploy, deploy=deploy)
+        driverCls, provider, identity, instance, core_identity,
+        username=username, password=password, redeploy=redeploy, deploy=deploy)
     return start_task
 
 
@@ -465,6 +466,7 @@ def get_idempotent_deploy_chain(
         provider,
         identity,
         instance,
+        core_identity,
         username):
     """
     Takes an instance in ANY 'tmp_status' (Just launched or long-launched and recently started)
@@ -499,6 +501,7 @@ def get_idempotent_deploy_chain(
             provider,
             identity,
             instance,
+            core_identity,
             username=username,
             redeploy=False)
     elif tmp_status == 'networking':
@@ -510,6 +513,7 @@ def get_idempotent_deploy_chain(
             provider,
             identity,
             instance,
+            core_identity,
             username=username,
             redeploy=False)
     elif not instance.ip:
@@ -521,6 +525,7 @@ def get_idempotent_deploy_chain(
             provider,
             identity,
             instance,
+            core_identity,
             username=username,
             redeploy=False)
     elif tmp_status in ['deploying', 'deploy_error']:
@@ -532,6 +537,7 @@ def get_idempotent_deploy_chain(
             provider,
             identity,
             instance,
+            core_identity,
             username=username,
             redeploy=False)
     else:
@@ -557,9 +563,9 @@ def get_remove_status_chain(driverCls, provider, identity, instance):
     return start_chain
 
 
-def get_chain_from_build(driverCls, provider, identity, instance,
-                         username=None, password=None, redeploy=False,
-                         deploy=True):
+def get_chain_from_build(
+        driverCls, provider, identity, instance, core_identity,
+        username=None, password=None, redeploy=False, deploy=True):
     """
     Wait for instance to go to active.
     THEN Initialize the networking for the instance
@@ -569,7 +575,7 @@ def get_chain_from_build(driverCls, provider, identity, instance,
         instance.id, driverCls, provider, identity, "active")
     start_chain = wait_active_task
     network_start = get_chain_from_active_no_ip(
-        driverCls, provider, identity, instance, username=username,
+        driverCls, provider, identity, instance, core_identity, username=username,
         password=password, redeploy=redeploy, deploy=deploy)
     start_chain.link(network_start)
     return start_chain
@@ -589,9 +595,9 @@ def print_chain(start_task, idx=0):
         mystr += print_chain(task, idx+1)
     return mystr
 
-def get_chain_from_active_no_ip(driverCls, provider, identity, instance,
-                                username=None, password=None, redeploy=False,
-                                deploy=True):
+def get_chain_from_active_no_ip(
+        driverCls, provider, identity, instance, core_identity,
+        username=None, password=None, redeploy=False, deploy=True):
     """
     Initialize the networking for the instance
     THEN deploy to the box.
@@ -613,16 +619,16 @@ def get_chain_from_active_no_ip(driverCls, provider, identity, instance,
         start_chain.link(floating_task)
     end_chain = floating_task
     deploy_start = get_chain_from_active_with_ip(
-        driverCls, provider, identity, instance,
+        driverCls, provider, identity, instance, core_identity,
         username=username, password=password,
         redeploy=redeploy, deploy=deploy)
     end_chain.link(deploy_start)
     return start_chain
 
 
-def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
-                                  username=None, password=None,
-                                  redeploy=False, deploy=True):
+def get_chain_from_active_with_ip(
+        driverCls, provider, identity, instance, core_identity,
+        username=None, password=None, redeploy=False, deploy=True):
     """
     Use Case: Instance has (or will be at start of this chain) an IP && is active.
     Goal: if 'Deploy' - Update metadata to inform you will be deploying
@@ -671,7 +677,7 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
         driverCls, provider, identity, instance.id)
     # JUST before we finish, check for boot_scripts_chain
     boot_chain_start, boot_chain_end = _get_boot_script_chain(
-        driverCls, provider, identity, instance.id)
+        driverCls, provider, identity, instance.id, core_identity)
     # (SUCCESS_)LINKS and ERROR_LINKS
     deploy_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance.id))
@@ -700,6 +706,7 @@ def get_chain_from_active_with_ip(driverCls, provider, identity, instance,
       max_retries=10)
 def deploy_boot_script(driverCls, provider, identity, instance_id,
                        script_text, script_name, **celery_task_args):
+    # TODO: This should be ansible-ized. Ansible will have already executed prior to this task running.
     # Note: Splitting preperation (Of the MultiScriptDeployment) and execution
     # This makes it easier to output scripts for debugging of users.
     try:
@@ -773,12 +780,16 @@ def boot_script_failed(task_uuid, driverCls, provider, identity, instance_id,
         boot_script_failed.retry(exc=exc)
 
 
-def _get_boot_script_chain(driverCls, provider, identity, instance_id, remove_status=False):
+def _get_boot_script_chain(driverCls, provider, identity, instance_id, core_identity, remove_status=False):
     core_instance = Instance.objects.get(provider_alias=instance_id)
     scripts = get_scripts_for_instance(core_instance)
     first_task = end_task = None
     if not scripts:
         return first_task, end_task
+    script_zero = deploy_boot_script.si(
+        driverCls, provider, identity, core_identity.created_by.username, _inject_env_script(), "Inject ENV variables")
+    first_task = script_zero
+    end_task = script_zero # For now, its first and last. this will change.
     total = len(scripts)
     for idx, script in enumerate(scripts):
         # Name the status
@@ -790,8 +801,6 @@ def _get_boot_script_chain(driverCls, provider, identity, instance_id, remove_st
         init_script_status_task = update_metadata.si(
             driverCls, provider, identity, instance_id,
             {'tmp_status': script_text})
-        if idx == 0:
-            first_task = init_script_status_task
         if end_task:
             end_task.link(init_script_status_task)
         # Execute script
@@ -805,6 +814,7 @@ def _get_boot_script_chain(driverCls, provider, identity, instance_id, remove_st
         deploy_script_task.link_error(
             boot_script_failed.s(driverCls, provider, identity, instance_id))
         if idx + 1 == total and remove_status:
+            # We do something different if this is 'the last task' in the chain.
             clear_script_status_task = update_metadata.si(
                 driverCls, provider, identity, instance_id,
                 {'tmp_status': ''})
@@ -847,6 +857,9 @@ def destroy_instance(instance_alias, user, core_identity_uuid):
       max_retries=10)
 def deploy_script(driverCls, provider, identity, instance_id,
                   script, **celery_task_args):
+    """
+    #TODO: Should this be ansible now?
+    """
     try:
         celery_logger.debug("deploy_script task started at %s." % datetime.now())
         # Check if instance still exists
@@ -888,7 +901,6 @@ def _generate_stats(current_request, task_class):
     return "Attempts made: %s (over %s) "\
         "Attempts Remaining: %s (ETA to Failure: %s)"\
         % (num_retries, delta_time, remaining_retries, failure_eta)
-
 
 def _deploy_ready_failed_email_test(
         driver,
@@ -1049,6 +1061,7 @@ def check_process_task(driverCls, provider, identity,
     #NOTE: While this looks like a large number (250 ?!) of retries
     # we expect this task to fail often when the image is building
     # and large, uncached images can have a build time.
+    # TODO: This should be ansible-ized. Ansible will have already run by the time this process is started.
     """
     try:
         celery_logger.debug("check_process_task started at %s." % datetime.now())

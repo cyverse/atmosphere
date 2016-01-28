@@ -474,9 +474,27 @@ def wrap_script(script_text, script_name):
     * Chmod the file
     * Execute and redirect output to stdout/stderr to logfile.
     """
-    logfile = "/var/log/atmo/post_boot_scripts.log"
+    # logfile = "/var/log/atmo/post_boot_scripts.log"
     # kludge: weirdness without the str cast...
     script_text = str(script_text)
     full_script_name = "./deploy_boot_script_%s.sh"
     return ScriptDeployment(
         script_text, name=full_script_name)
+
+
+def _inject_env_script():
+    """
+    This is the 'raw script' that will be used to prepare the environment.
+    TODO: Find a better home for this. Probably use ansible for this.
+    """
+    return """
+#!/bin/bash -x
+atmo_user="sgregory"
+env_file='/etc/environment'
+env_vars=`cat $env_file`
+if [[ $env_vars == *"ATMO_USER="* ]]; then
+    sed -i "s/ATMO_USER=.*/ATMO_USER=$atmo_user/" $env_file
+else
+    echo "ATMO_USER=$atmo_user" >> $env_file
+fi
+    """
