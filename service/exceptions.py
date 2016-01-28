@@ -30,15 +30,7 @@ class InstanceDoesNotExist(ServiceException):
     def __init__(self, instance_id):
         self.message = instance_id
         self.status_code = 404
-        super(UnderThresholdError, self).__init__()
-
-
-class InstanceDoesNotExist(ServiceException):
-
-    def __init__(self, instance_id):
-        self.message = instance_id
-        self.status_code = 404
-        super(UnderThresholdError, self).__init__()
+        super(InstanceDoesNotExist, self).__init__()
 
 
 class UnderThresholdError(ServiceException):
