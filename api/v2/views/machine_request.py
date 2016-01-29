@@ -44,6 +44,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
         new_provider_id = serializer.initial_data['new_machine_provider']
         new_owner=self.request.user
         parent_machine = serializer.validated_data['instance'].provider_machine
+        new_provider = parent_machine.provider # this is a HACK! REMOVE THIS!
         status, _ = StatusType.objects.get_or_create(name="pending")
 
         try:
@@ -52,7 +53,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
                 membership=membership,
                 status=status,
                 created_by=self.request.user,
-                new_machine_provider_id=new_provider_id,
+                new_machine_provider=new_provider,
                 new_machine_owner=new_owner,
                 parent_machine=parent_machine
             )
