@@ -1,21 +1,18 @@
 """
 Deploy methods for Atmosphere
 """
-from functools import wraps
 import os
-import sys
 import time
 
+from django.utils.text import slugify
 from django.utils.timezone import datetime
 
 from libcloud.compute.deployment import Deployment, ScriptDeployment,\
     MultiStepDeployment
 
-import redis
-
 import subspace
 
-from threepio import logger, logging, deploy_logger
+from threepio import logger, deploy_logger
 
 from atmosphere import settings
 from atmosphere.settings import secrets
