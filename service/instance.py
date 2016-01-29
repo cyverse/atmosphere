@@ -93,7 +93,7 @@ def reboot_instance(
     check_quota(user.username, identity_uuid, None, resuming=True)
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     # reboots take very little time..
-    core_identity = CoreIdentity.objects.get(uuid=identity_uuid))
+    core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     redeploy_init(esh_driver, esh_instance, core_identity)
 
 
@@ -1608,7 +1608,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     elif 'revert_resize' == action_type:
         result_obj = esh_driver.revert_resize_instance(esh_instance)
     elif 'redeploy' == action_type:
-        result_obj = redeploy_init(esh_driver, esh_instance)
+        result_obj = redeploy_init(esh_driver, esh_instance, identity)
     elif 'resume' == action_type:
         result_obj = resume_instance(esh_driver, esh_instance,
                                      provider_uuid, identity_uuid,

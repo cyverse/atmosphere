@@ -474,7 +474,7 @@ def wrap_script(script_text, script_name):
     # logfile = "/var/log/atmo/post_boot_scripts.log"
     # kludge: weirdness without the str cast...
     script_text = str(script_text)
-    full_script_name = "./deploy_boot_script_%s.sh"
+    full_script_name = "./deploy_boot_script_%s.sh" % slugify(script_name)
     return ScriptDeployment(
         script_text, name=full_script_name)
 
@@ -485,8 +485,8 @@ def _inject_env_script(username):
     t
     TODO: Find a better home for this. Probably use ansible for this.
     """
-    return """
-#!/bin/bash -x
+    return \
+"""#!/bin/bash -x
 atmo_user="%s"
 env_file="%s"
 env_vars=`cat $env_file`
@@ -495,4 +495,4 @@ if [[ $env_vars == *"ATMO_USER="* ]]; then
 else
     echo "ATMO_USER=\"$atmo_user\"" >> $env_file
 fi
-    """ % (username, "~/.bashrc")
+    """ % (username, "$HOME/.bashrc")

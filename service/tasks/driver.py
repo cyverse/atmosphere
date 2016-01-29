@@ -684,7 +684,6 @@ def get_chain_from_active_with_ip(
     deploy_ready_task.link(deploy_meta_task)
     deploy_meta_task.link(deploy_task)
     # ready -> metadata -> deployment..
-
     if boot_chain_start and boot_chain_end:
         # ..deployment -> scripts -> ..
         deploy_task.link(boot_chain_start)
@@ -787,14 +786,14 @@ def _get_boot_script_chain(driverCls, provider, identity, instance_id, core_iden
     if not scripts:
         return first_task, end_task
     script_zero = deploy_boot_script.si(
-        driverCls, provider, identity, core_identity.created_by.username, _inject_env_script(core_identity.created_by.username), "Inject ENV variables")
+        driverCls, provider, identity, instance_id, _inject_env_script(core_identity.created_by.username), "Inject ENV variables")
     first_task = script_zero
     end_task = script_zero # For now, its first and last. this will change.
     total = len(scripts)
     for idx, script in enumerate(scripts):
         # Name the status
-        if total > 1:
-            script_text = "running_boot_script: #%s/%s" % (idx + 1, total)
+        if total > 2:
+            script_text = "running_boot_script: #%s/%s" % (idx+1, total-1)
         else:
             script_text = "running_boot_script"
         # Update the status

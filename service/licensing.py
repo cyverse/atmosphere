@@ -19,7 +19,7 @@ def create_license(title, description, created_by, allow_imaging=True):
     if is_url(description):
         license_type = LicenseType.objects.get(name="URL")
     else:
-        license_type = LicenseType.objects.get(name="Full Text")
+        license_type = LicenseType.objects.get(name="Raw Text")
     new_license = License(
         title=title,
         license_type=license_type,
