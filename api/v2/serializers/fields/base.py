@@ -67,7 +67,6 @@ class DebugHyperlinkedIdentityField(serializers.HyperlinkedIdentityField):
     def get_url(self, obj, view_name, request, format):
         """
         """
-        import ipdb;ipdb.set_trace()
         # Unsaved objects will not yet have a valid URL.
         if hasattr(obj, 'pk') and obj.pk is None:
             return None
