@@ -1,4 +1,5 @@
-from api import exceptions
+from api import exceptions as api_exceptions
+from rest_framework import exceptions
 from api.v2.serializers.details import MachineRequestSerializer,\
     UserMachineRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
