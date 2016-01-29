@@ -80,15 +80,16 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
         data = serializer.validated_data
         name = data.get('name')
         size = data.get('size')
-        image_id = data.get('image')
-        snapshot_id = data.get('snapshot')
+        image_id = data.get('image_id')
+        snapshot_id = data.get('snapshot_id')
+        description = data.get('description')
         instance_source = data.get("instance_source")
         identity = instance_source.get("created_by_identity")
-        provider = instance_source.get('provider')
-
+        provider = identity.provider
         try:
             esh_volume = create_volume_or_fail(name, size, self.request.user,
                                                provider, identity,
+                                               description=description,
                                                image_id=image_id,
                                                snapshot_id=snapshot_id)
             created_on = esh_volume.extra.get("createTime", timezone.now())
@@ -102,6 +103,10 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
             return inactive_provider(pna)
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)
+        except Exception as exc:
+            logger.exception("Error occurred creating a v2 volume -- User:%s"
+                             % self.request.user)
+            return Response(exc.message, status=status.HTTP_409_CONFLICT)
 
     def perform_destroy(self, instance):
         try:
@@ -114,3 +119,7 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
             return inactive_provider(pna)
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)
+        except Exception as exc:
+            logger.exception("Error occurred deleting a v2 volume -- User:%s"
+                             % self.request.user)
+            return Response(exc.message, status=status.HTTP_409_CONFLICT)

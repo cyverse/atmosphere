@@ -1,7 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import ProgrammingError
 from rest_framework import exceptions
 from rest_framework import serializers
-
 
 class ModelRelatedField(serializers.RelatedField):
     """
@@ -40,7 +40,8 @@ class ModelRelatedField(serializers.RelatedField):
             identifier = data
         try:
             return queryset.get(**{self.lookup_field: identifier})
-        except (TypeError, ValueError, ObjectDoesNotExist):
+        except (TypeError, ValueError,
+                ProgrammingError, ObjectDoesNotExist):
             raise exceptions.ValidationError(
                 "%s with Field: %s '%s' does not exist."
                 % (self.queryset.model.__name__, self.lookup_field, identifier)

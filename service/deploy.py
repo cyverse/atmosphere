@@ -1,21 +1,18 @@
 """
 Deploy methods for Atmosphere
 """
-from functools import wraps
 import os
-import sys
 import time
 
+from django.utils.text import slugify
 from django.utils.timezone import datetime
 
 from libcloud.compute.deployment import Deployment, ScriptDeployment,\
     MultiStepDeployment
 
-import redis
-
 import subspace
 
-from threepio import logger, logging, deploy_logger
+from threepio import logger, deploy_logger
 
 from atmosphere import settings
 from atmosphere.settings import secrets
@@ -23,6 +20,8 @@ from atmosphere.settings import secrets
 from iplantauth.protocol import ldap
 
 from core.logging import create_instance_logger
+from core.models.ssh_key import get_user_ssh_keys
+from core.models import AtmosphereUser as User
 
 from service.exceptions import AnsibleDeployException
 
@@ -105,8 +104,16 @@ def deploy_to(instance_ip, username, instance_id):
     my_limit = {"hostname": hostname, "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
     host_list = settings.ANSIBLE_HOST_FILE
+
+    user_keys = []
+    user = User.objects.get(username=username)
+    if user.userprofile.use_ssh_keys:
+        user_keys = [ k.pub_key for k in get_user_ssh_keys(username)]
+
     extra_vars = {"ATMOUSERNAME": username,
-                  "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE}
+                  "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
+                  "USERSSHKEYS": user_keys}
+
     pbs = subspace.playbook.get_playbooks(deploy_playbooks,
                                           host_list=host_list,
                                           limit=my_limit,
@@ -464,9 +471,28 @@ def wrap_script(script_text, script_name):
     * Chmod the file
     * Execute and redirect output to stdout/stderr to logfile.
     """
-    logfile = "/var/log/atmo/post_boot_scripts.log"
+    # logfile = "/var/log/atmo/post_boot_scripts.log"
     # kludge: weirdness without the str cast...
     script_text = str(script_text)
-    full_script_name = "./deploy_boot_script_%s.sh"
+    full_script_name = "./deploy_boot_script_%s.sh" % slugify(script_name)
     return ScriptDeployment(
         script_text, name=full_script_name)
+
+
+def _inject_env_script(username):
+    """
+    This is the 'raw script' that will be used to prepare the environment.
+    t
+    TODO: Find a better home for this. Probably use ansible for this.
+    """
+    return \
+"""#!/bin/bash -x
+atmo_user="%s"
+env_file="%s"
+env_vars=`cat $env_file`
+if [[ $env_vars == *"ATMO_USER="* ]]; then
+    sed -i "s/ATMO_USER=.*/ATMO_USER=\"$atmo_user\"/" $env_file
+else
+    echo "ATMO_USER=\"$atmo_user\"" >> $env_file
+fi
+    """ % (username, "$HOME/.bashrc")

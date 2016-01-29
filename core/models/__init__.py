@@ -15,8 +15,11 @@ from core.models.group import Group, IdentityMembership,\
     InstanceMembership, Leadership
 from core.models.identity import Identity
 from core.models.instance_tag import InstanceTag
+from core.models.link import ExternalLink
 from core.models.profile import UserProfile
 from core.models.project import Project
+from core.models.project_application import ProjectApplication
+from core.models.project_link import ProjectExternalLink
 from core.models.project_instance import ProjectInstance
 from core.models.project_volume import ProjectVolume
 from core.models.provider import AccountProvider, ProviderType, PlatformType,\
@@ -38,3 +41,4 @@ from core.models.t import T
 from core.models.tag import Tag
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
+from core.models.ssh_key import SSHKey
