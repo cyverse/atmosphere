@@ -14,7 +14,7 @@ django-celery==3.1.16
 
 gevent==1.0.1
 
-apache-libcloud==0.17.0
+apache-libcloud==0.20.1
 requests==2.7
 python-dateutil==1.4.1
 pytz==2015.4
@@ -35,9 +35,9 @@ python-ldap==2.4.19
 uWSGI==2.0.9
 
 ## ours
-django-iplant-auth==0.1.3
+django-iplant-auth==0.1.4
 threepio==0.2.0
-rtwo==0.2.16
+rtwo==0.2.19
 caslib.py==2.2.2
 chromogenic==0.1.7
 subspace==0.1.6
