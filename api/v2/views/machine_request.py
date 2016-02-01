@@ -1,5 +1,5 @@
 from api import exceptions as api_exceptions
-from rest_framework import exceptions
+from rest_framework import exceptions as rest_exceptions
 from api.v2.serializers.details import MachineRequestSerializer,\
     UserMachineRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
@@ -17,7 +17,7 @@ from service.tasks.machine import start_machine_imaging
 from threepio import logger
 
 
-class MachineRequestViewSet(BaseRequestViewSet):    
+class MachineRequestViewSet(BaseRequestViewSet):
     queryset = MachineRequest.objects.none()
     model = MachineRequest
     serializer_class = UserMachineRequestSerializer
@@ -32,20 +32,37 @@ class MachineRequestViewSet(BaseRequestViewSet):
             Q(instance_id=serializer.validated_data['instance'].id) &\
             ~Q(status__name="failed") &\
             ~Q(status__name="rejected") &\
-            ~Q(status__name="failed") &\
             ~Q(status__name="closed")))
 
         if len(q) > 0:
-            raise core_exceptions.RequestLimitExceeded("Only one open request per instance is allowed.")
+            message = "Only one active request is allowed per provider."
+            raise rest_exceptions.MethodNotAllowed('create', detail=message)
 
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
-        new_provider_id = serializer.initial_data['new_machine_provider']
+        new_provider= serializer.validated_data['new_machine_provider']
         new_owner=self.request.user
         parent_machine = serializer.validated_data['instance'].provider_machine
-        new_provider = parent_machine.provider # this is a HACK! REMOVE THIS!
         status, _ = StatusType.objects.get_or_create(name="pending")
+        new_machine_provider = Provider.objects.filter(id=new_provider.id)
+        new_machine_owner = AtmosphereUser.objects.filter(id=new_owner.id)
+        parent_machine = ProviderMachine.objects.filter(id=parent_machine.id)
+
+        if new_machine_provider.count():
+            new_machine_provider = new_machine_provider[0]
+        else:
+            raise rest_exceptions.ParseError(detail="Could not retrieve new machine provider.")
+
+        if new_machine_owner.count():
+            new_machine_owner = new_machine_owner[0]
+        else:
+            raise rest_exceptions.ParseError(detail="Could not retrieve new machine owner.")
+
+        if parent_machine.count():
+            parent_machine = parent_machine[0]
+        else:
+            raise rest_exceptions.ParseError(detail="Could not retrieve parent machine.")
 
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
@@ -61,25 +78,25 @@ class MachineRequestViewSet(BaseRequestViewSet):
         except (core_exceptions.ProviderLimitExceeded,
                 core_exceptions.RequestLimitExceeded):
             message = "Only one active request is allowed per provider."
-            raise exceptions.MethodNotAllowed('create', detail=message)
+            raise rest_exceptions.MethodNotAllowed('create', detail=message)
         except core_exceptions.InvalidMembership:
             message = (
                 "The user '%s' is not a valid member."
                 % self.request.user.username
             )
-            raise exceptions.ParseError(detail=message)
+            raise rest_exceptions.ParseError(detail=message)
         except IdentityMembership.DoesNotExist:
             message = (
                 "The identity '%s' does not have a membership"
                 % identity_id
             )
-            raise exceptions.ParseError(detail=message)
+            raise rest_exceptions.ParseError(detail=message)
         except Exception as e:
             message = {
                 "An error was encoutered when submitting the request: %s" % e.message
             }
             logger.exception(e)
-            raise exceptions.ParseError(detail=message)
+            raise rest_exceptions.ParseError(detail=message)
 
     def submit_action(self, instance):
         """
