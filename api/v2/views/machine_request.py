@@ -41,9 +41,13 @@ class MachineRequestViewSet(BaseRequestViewSet):
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
-        new_provider= serializer.validated_data['new_machine_provider']
+
+        #TODO: This is likely the 'acceptable' way to do it post-kk. Bring this back!
+        #new_provider= serializer.validated_data['new_machine_provider']
         new_owner=self.request.user
         parent_machine = serializer.validated_data['instance'].provider_machine
+        # TODO: This is a hack that can be removed POST-kk
+        new_provider = parent_machine.provider # <--
         status, _ = StatusType.objects.get_or_create(name="pending")
         new_machine_provider = Provider.objects.filter(id=new_provider.id)
         new_machine_owner = AtmosphereUser.objects.filter(id=new_owner.id)
