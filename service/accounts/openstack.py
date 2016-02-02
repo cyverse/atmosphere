@@ -9,7 +9,10 @@ from urlparse import urlparse
 
 from django.db.models import Max
 
-from novaclient.v1_1 import client as nova_client
+try:
+    from novaclient.v1_1 import client as nova_client
+except ImportError:
+    from novaclient.v2 import client as nova_client
 from novaclient.exceptions import OverLimit
 from neutronclient.common.exceptions import NeutronClientException
 from requests.exceptions import ConnectionError
