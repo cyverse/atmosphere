@@ -25,8 +25,8 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         """
         Add an end date to a request and take no further action
         """
-        self.end_date = timezone.now()
-        self.save()
+        instance.end_date = timezone.now()
+        instance.save()
 
     def submit_action(self, instance):
         """
@@ -43,8 +43,8 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         """
         Updates the resource for the request
         """
-        self.end_date = timezone.now()
-        self.save()
+        instance.end_date = timezone.now()
+        instance.save()
         membership = instance.membership
         membership.quota = instance.quota or membership.quota
         membership.allocation = instance.allocation or membership.allocation
