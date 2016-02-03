@@ -147,6 +147,10 @@ class InstanceList(AuthAPIView):
         size_alias = data.pop("size_alias")
         machine_alias = data.pop("machine_alias")
         hypervisor_name = data.pop("hypervisor", None)
+        if hypervisor_name:
+            # Previous method passed this with 'None' but that fails now.
+            # This check will only add the ex_ value if it is 'truthy'.
+            data['ex_hypervisor_name'] = hypervisor_name
         deploy = data.pop("deploy", True)
         if type(deploy) in [str, unicode] and deploy.lower() == "false":
             deploy = False
@@ -158,7 +162,6 @@ class InstanceList(AuthAPIView):
             core_instance = launch_instance(
                 user, identity_uuid,
                 size_alias, machine_alias,
-                ex_availability_zone=hypervisor_name,
                 deploy=deploy, **data)
         except UnderThresholdError as ute:
             return under_threshold(ute)
