@@ -18,7 +18,11 @@ ENFORCING = True
 ENFORCING = False
 {% endif %}
 
-
+{% if AUTO_CREATE_NEW_ACCOUNTS %}
+AUTO_CREATE_NEW_ACCOUNTS = True
+{% else %}
+AUTO_CREATE_NEW_ACCOUNTS = False
+{% endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL }}
 # Logging level for dependencies.
@@ -99,7 +103,8 @@ AUTHENTICATION = {
     "GLOBUS_OAUTH_ATMOSPHERE_SCOPE": '{{ GLOBUS_OAUTH_ATMOSPHERE_SCOPE }}',
     "GLOBUS_TOKEN_URL": '{{ GLOBUS_TOKEN_URL }}',
     "GLOBUS_TOKENINFO_URL": '{{ GLOBUS_TOKENINFO_URL }}',
-    "GLOBUS_AUTH_URL": '{{ GLOBUS_AUTH_URL}}',
+    "GLOBUS_AUTH_URL": '{{ GLOBUS_AUTH_URL }}',
+    "GLOBUS_MAPPING_FILE": '{{ GLOBUS_MAPPING_FILE }}',
 }
 
 {% if USE_MOCK_AUTH %}
@@ -114,6 +119,7 @@ AUTHENTICATION_BACKENDS += (
 # # Use MockLoginBackend first!
 # AUTHENTICATION_BACKENDS = (
 #     'iplantauth.authBackends.MockLoginBackend',
+#     'django.contrib.auth.backends.ModelBackend',  # Required to login to 'admin' if you use *ONLY* MockLoginBackend
 # ) + AUTHENTICATION_BACKENDS
 {% endif %}
 # CASLIB

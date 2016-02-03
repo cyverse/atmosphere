@@ -142,9 +142,16 @@ def get_provider_credentials():
     print "What is the region_name for the provider?"
     region_name = raw_input("region_name for the provider: ")
 
+    print "What is the Authentication Scheme (Openstack ONLY -- Default:'2.0_password')?"
+    ex_force_auth_version = raw_input("ex_force_auth_version for the provider: ")
+    if ex_force_auth_version not in ['2.0_password','3.x_password']:
+        ex_force_auth_version = '2.0_password'
+
+    #TODO: Validation to avoid 'hard-to-reason-about' errors from rtwo.
     return {
         "admin_url": admin_url,
         "auth_url": auth_url,
+        "ex_force_auth_version": ex_force_auth_version,
         "router_name": router_name,
         "region_name": region_name
     }
@@ -252,6 +259,7 @@ def main():
     new_provider = create_provider(provider_info)
     create_provider_credentials(new_provider, provider_credentials)
     create_admin(new_provider, admin_info)
+    print "You still need to create an AllocationStrategy. Go into the admin panel and select a Strategy *BEFORE* you use Atmosphere"
 
 if __name__ == "__main__":
     main()

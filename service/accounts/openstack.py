@@ -2,13 +2,17 @@
 UserManager:
   Remote Openstack  Admin controls..
 """
+import random
 import time
 from hashlib import sha1
 from urlparse import urlparse
 
 from django.db.models import Max
 
-from novaclient.v1_1 import client as nova_client
+try:
+    from novaclient.v1_1 import client as nova_client
+except ImportError:
+    from novaclient.v2 import client as nova_client
 from novaclient.exceptions import OverLimit
 from neutronclient.common.exceptions import NeutronClientException
 from requests.exceptions import ConnectionError
@@ -26,6 +30,13 @@ from core.models.identity import Identity
 
 from service.accounts.base import CachedAccountDriver
 
+
+def get_random_uid(userid):
+    """
+    Given a string (Username) return a value < MAX_SUBNET
+    """
+    MAX_SUBNET = 4064
+    return int(random.uniform(1, MAX_SUBNET))
 
 class AccountDriver(CachedAccountDriver):
     user_manager = None
@@ -338,7 +349,7 @@ class AccountDriver(CachedAccountDriver):
             username,
             self.hashpass(username),
             project_name,
-            get_unique_number=get_uid_number,
+            get_unique_number=get_random_uid,
             dns_nameservers=dns_nameservers,
             **net_args)
         return True
@@ -378,7 +389,7 @@ class AccountDriver(CachedAccountDriver):
             username,
             password,
             project_name,
-            get_unique_number=get_uid_number,
+            get_unique_number=get_random_uid,
             dns_nameservers=dns_nameservers,
             **net_args)
 
@@ -602,6 +613,8 @@ class AccountDriver(CachedAccountDriver):
         """
         net_args = self.provider_creds.copy()
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
+        if '/v2.0' not in net_args['auth_url']:
+            net_args['auth_url'] += "/v2.0"
         return net_args
 
     def _build_network_creds(self, credentials):
@@ -609,6 +622,7 @@ class AccountDriver(CachedAccountDriver):
         Credentials - dict()
 
         return the credentials required to build a "NetworkManager" object
+        NOTE: Expects auth_url to be '/v2.0'
         """
         net_args = credentials.copy()
         # Required:
@@ -622,6 +636,9 @@ class AccountDriver(CachedAccountDriver):
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
         net_args.pop("location", None)
         net_args.pop("ex_project_name", None)
+        net_args.pop("ex_force_auth_version",None)
+        if '/v2.0' not in net_args['auth_url']:
+           net_args["auth_url"] += "/v2.0"
 
         return net_args
 
@@ -630,6 +647,7 @@ class AccountDriver(CachedAccountDriver):
         Credentials - dict()
 
         return the credentials required to build a "UserManager" object
+        NOTE: Expects auth_url to be '/v2.0/tokens'
         """
         img_args = credentials.copy()
         # Required:
@@ -643,7 +661,10 @@ class AccountDriver(CachedAccountDriver):
                 raise ValueError(
                     "ImageManager is missing a Required Argument: %s" %
                     required_arg)
+        img_args.pop("ex_force_auth_version",None)
 
+        if 'v2.0/tokens' not in img_args['auth_url']:
+           img_args["auth_url"] += "/v2.0/tokens"
         return img_args
 
     def _build_user_creds(self, credentials):
@@ -651,6 +672,7 @@ class AccountDriver(CachedAccountDriver):
         Credentials - dict()
 
         return the credentials required to build a "UserManager" object
+        NOTE: Expects auth_url to be '/v2.0'
         """
         user_args = credentials.copy()
         # Required args:
@@ -660,8 +682,11 @@ class AccountDriver(CachedAccountDriver):
 
         user_args["auth_url"] = user_args.get("auth_url")\
             .replace("/tokens", "")
+        if 'v2' not in user_args['auth_url']:
+           user_args["auth_url"] += "/v2.0/"
         user_args.get("region_name")
         # Removable args:
+        user_args.pop("ex_force_auth_version",None)
         user_args.pop("admin_url", None)
         user_args.pop("location", None)
         user_args.pop("router_name", None)

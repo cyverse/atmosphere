@@ -28,7 +28,7 @@ def main():
         Force = True
 
     if not args.provider:
-        provider = Provider.objects.get(location='iPlant Cloud - Tucson')
+        provider = Provider.objects.get(location='Jetstream - Indiana')
     else:
         provider = Provider.objects.get(id=args.provider)
 

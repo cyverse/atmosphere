@@ -250,7 +250,8 @@ def _get_variables(variables_file=VARIABLES_PATH):
     except Exception as e:
         return (False,
                 [('e', 'Unable to get or parse '
-                 'variables from %s' % (variables_file))])
+                 'variables from %s:\n\t%s' %
+                 (variables_file, e.message))])
 
 
 def _section_check(vars, distrib):

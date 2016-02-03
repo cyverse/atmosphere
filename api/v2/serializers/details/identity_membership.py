@@ -21,7 +21,8 @@ class IdentityMembershipSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = IdentityMembership
         fields = ('id',
-                  'url',
+                  #TODO: Re-add this in master:
+                  #'url',
                   'quota',
                   'allocation',
                   'end_date',

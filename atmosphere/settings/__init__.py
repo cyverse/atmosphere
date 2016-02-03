@@ -39,7 +39,7 @@ ALLOWED_HOSTS = [unicode(SERVER_URL.replace('https://', ''))]
 
 # NOTE: first admin will be sender of atmo emails.
 ADMINS = (
-    ('Atmosphere Admin', 'atmo@iplantcollaborative.org'),
+    #('Atmosphere Admin', 'atmo@iplantcollaborative.org'),
     ('Steven Gregory', 'esteve@iplantcollaborative.org'),
     ('Atmosphere Alerts', 'atmo-alerts@iplantcollaborative.org'),
 )
@@ -146,13 +146,13 @@ AUTH_USER_MODEL = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
-    #'iplantauth.authBackends.GlobusOAuthLoginBackend',
+    'iplantauth.authBackends.GlobusOAuthLoginBackend',
     'iplantauth.authBackends.AuthTokenLoginBackend',
     # For Web-Access
-    'iplantauth.authBackends.CASLoginBackend',
-    'iplantauth.authBackends.SAMLLoginBackend',
+    #'iplantauth.authBackends.CASLoginBackend',
+    #'iplantauth.authBackends.SAMLLoginBackend',
     ## For Service-Access
-    'iplantauth.authBackends.LDAPLoginBackend',
+    #'iplantauth.authBackends.LDAPLoginBackend',
 )
 
 # django-cors-headers
@@ -314,9 +314,10 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'iplantauth.token.TokenAuthentication', # Generic Tokens
-        'iplantauth.token.JWTTokenAuthentication', # WSO2 + JWT
-        'iplantauth.token.OAuthTokenAuthentication', # CAS
-        'iplantauth.token.GlobusOAuthTokenAuthentication',   # Globus
+        # 'iplantauth.token.JWTTokenAuthentication',  # WSO2+JWT
+        # 'iplantauth.token.OAuthTokenAuthentication',  # CAS
+        'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
+        # 'iplantauth.token.TokenAuthentication',  # Generic Tokens
         'rest_framework.authentication.SessionAuthentication',  # Session
     ),
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',
@@ -405,7 +406,8 @@ CELERYBEAT_SCHEDULE = {
     "monitor_machines": {
         "task": "monitor_machines",
         # Every day of the week @ 1am
-        "schedule": crontab(hour="1", minute="0", day_of_week="*"),
+        #"schedule": crontab(hour="1", minute="0", day_of_week="*"),
+        "schedule": timedelta(minutes=30),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
     "monitor_sizes": {
@@ -413,10 +415,15 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=30),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
-    "monitor_instances": {
-        "task": "monitor_instances",
+    "monitor_instance_allocations": {
+        "task": "monitor_instance_allocations",
         "schedule": timedelta(minutes=15),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+    },
+    "monitor_instances": {
+        "task": "monitor_instances",
+        "schedule": timedelta(minutes=2),
+        "options": {"expires": 2 * 60, "time_limit": 2 * 60}
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
