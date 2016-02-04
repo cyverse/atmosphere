@@ -2,6 +2,7 @@ from api.v2.serializers.details import InstanceSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
+from core.exceptions import ProviderNotActive
 from core.models import Instance, Identity
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
@@ -9,16 +10,22 @@ from core.query import only_current
 from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
-from service.instance import launch_instance, destroy_instance, run_instance_action, update_instance_metadata
+from service.instance import (
+    launch_instance, destroy_instance, run_instance_action,
+    update_instance_metadata)
 from threepio import logger
-
-#Things that go bump
-from api.v2.exceptions import failure_response, invalid_creds, connection_failure
-from api.exceptions import over_quota, under_threshold, size_not_available, over_capacity, mount_failed
+# Things that go bump
+from api.v2.exceptions import (
+    failure_response, invalid_creds, connection_failure)
+from api.exceptions import (
+    over_quota, under_threshold, size_not_available,
+    over_capacity, mount_failed, inactive_provider)
 from libcloud.common.types import InvalidCredsError
-from service.exceptions import ActionNotAllowed, OverAllocationError, OverQuotaError,\
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,\
-    UnderThresholdError, VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist
+from service.exceptions import (
+    ActionNotAllowed, OverAllocationError, OverQuotaError,
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
+    UnderThresholdError, VolumeAttachConflict, VolumeMountConflict,
+    InstanceDoesNotExist)
 from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 
@@ -97,6 +104,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return invalid_creds(identity)
         except HypervisorCapacityError as hce:
             return over_capacity(hce)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
         except (OverQuotaError, OverAllocationError) as oqe:
             return over_quota(oqe)
         except SizeNotAvailable as snae:
@@ -133,7 +142,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
     def perform_destroy(self, instance):
         user = self.request.user
         identity_uuid = instance.created_by_identity.uuid
-        identity = Identity.objects.get(id=identity_uuid)
+        identity = Identity.objects.get(uuid=identity_uuid)
         try:
             # Test that there is not an attached volume BEFORE we destroy
             #NOTE: Although this is a task we are calling and waiting for response..
@@ -169,7 +178,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         name = data.get('name')
         boot_scripts = data.pop("scripts", [])
         identity_uuid = data.get('identity')
-        identity = Identity.objects.get(id=identity_uuid)
+        identity = Identity.objects.get(uuid=identity_uuid)
         source_alias = data.get('source_alias')
         size_alias = data.get('size_alias')
         deploy = data.get('deploy')
@@ -188,10 +197,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
                 _save_scripts_to_instance(instance, boot_scripts)
         except UnderThresholdError as ute:
             return under_threshold(ute)
-        except OverQuotaError as oqe:
+        except (OverQuotaError, OverAllocationError) as oqe:
             return over_quota(oqe)
-        except OverAllocationError as oae:
-            return over_quota(oae)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
         except SizeNotAvailable as snae:
             return size_not_available(snae)
         except HypervisorCapacityError as hce:

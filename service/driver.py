@@ -7,6 +7,7 @@ from rtwo.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 
+from core.exceptions import ProviderNotActive
 from core.models import AtmosphereUser as User
 from core.models.identity import Identity as CoreIdentity
 from core.models.size import convert_esh_size
@@ -161,6 +162,8 @@ def get_esh_provider(core_provider, username=None):
 def get_esh_driver(core_identity, username=None):
     try:
         core_provider = core_identity.provider
+        if not core_provider.is_active():
+            raise ProviderNotActive(core_identity.provider)
         esh_map = get_esh_map(core_provider)
         if not username:
             user = core_identity.created_by
@@ -189,14 +192,10 @@ def prepare_driver(request, provider_uuid, identity_uuid,
     try:
         core_identity = CoreIdentity.objects.get(provider__uuid=provider_uuid,
                                                  uuid=identity_uuid)
-        if not core_identity.provider.is_active():
-            raise ValueError(
-                "Provider %s is NOT active. Driver not created." %
-                (core_identity.provider,))
         if core_identity in request.user.identity_set.all():
             return get_esh_driver(core_identity=core_identity)
         else:
-            raise Exception(
+            raise ValueError(
                 "User %s is NOT the owner of Identity UUID: %s" %
                 (request.user.username, core_identity.uuid))
     except (CoreIdentity.DoesNotExist, ValueError):

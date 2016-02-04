@@ -130,7 +130,7 @@ def send_email(subject, body, from_email, to, cc=None,
     return True
 
 
-def email_admin(request, subject, message,
+def email_admin(request, subject, message, data=None,
                 cc_user=True, request_tracker=False):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
@@ -139,8 +139,9 @@ def email_admin(request, subject, message,
     user_agent, remote_ip, location, resolution = request_info(request)
     user, user_email, user_name = lookup_user(request)
     # build email body.
-    body = u"%s\nLocation: %s\nSent From: %s - %s\nSent By: %s - %s"
+    body = u"%s\nData: %s\nLocation: %s\nSent From: %s - %s\nSent By: %s - %s"
     body %= (message,
+             data,
              location,
              user, remote_ip,
              user_agent, resolution)

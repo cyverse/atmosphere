@@ -12,8 +12,7 @@ class MaintenanceRecordViewSet(AuthOptionalViewSet):
     """
     API endpoint that allows records to be viewed or edited.
     """
-    http_method_names = ['get', 'put', 'patch', 'head', 'options', 'trace']
-    max_paginate_by = 1000
+    http_method_names = ['get', 'post', 'put', 'patch', 'head', 'options', 'trace']
     queryset = MaintenanceRecord.objects.order_by('-start_date')
     permission_classes = (CanEditOrReadOnly,)
     serializer_class = MaintenanceRecordSerializer

@@ -1,6 +1,7 @@
 # flake8: noqa
 from .allocation import AllocationViewSet
 from .boot_script import BootScriptViewSet
+from .base import BaseRequestViewSet
 from .credential import CredentialViewSet
 from .group import GroupViewSet
 from .identity import IdentityViewSet

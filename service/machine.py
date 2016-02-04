@@ -283,7 +283,7 @@ def remove_membership(image_version, group):
                         % (provider_machine.application, group))
             models.ApplicationVersionMembership.objects.filter(
                 group=group,
-                image_version=provider_machine.application_version).delete()
+                application_version=provider_machine.application_version).delete()
             logger.info("Removed ApplicationVersionMembership: %s-%s"
                         % (provider_machine.application_version, group))
             models.ProviderMachineMembership.objects.filter(
@@ -308,6 +308,10 @@ def sync_machine_membership(accounts, glance_image, new_machine, tenant_list):
                  glance_image, new_machine, tenant_list)
 
 
+def sync_membership(accounts, glance_image, new_machine, tenant_list):
+    return sync_machine_membership(accounts, glance_image, new_machine, tenant_list)
+
+
 def share_with_self(private_userlist, username):
     if not isinstance(private_userlist, list):
         raise Exception(
@@ -318,6 +322,14 @@ def share_with_self(private_userlist, username):
     private_userlist.append(str(username))
     return private_userlist
 
+def get_current_projects_for_image(accounts, image_id):
+    projects = []
+    shared_with = accounts.image_manager.shared_images_for(
+        image_id=image_id)
+    projects = [accounts.get_project_by_id(member.member_id)
+                for member in shared_with]
+    return projects
+  
 
 def get_current_projects_for_image(accounts, image_id):
     projects = []

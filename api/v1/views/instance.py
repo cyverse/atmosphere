@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from threepio import logger
 
+from core.exceptions import ProviderNotActive
 from core.models import AtmosphereUser as User
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
@@ -18,9 +19,6 @@ from service import task
 from service.cache import get_cached_instances,\
     invalidate_cached_instances
 from service.driver import prepare_driver
-from service.instance import (
-    run_instance_action,
-    launch_instance)
 from service.exceptions import (
     OverAllocationError, OverQuotaError,
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
@@ -29,11 +27,17 @@ from service.exceptions import (
     # Technically owned by another
     socket_error, ConnectionFailure, InvalidCredsError, MalformedResponseError
     )
+from service.instance import (
+    run_instance_action,
+    launch_instance)
+from service.tasks.driver import update_metadata
 
 from api import failure_response, invalid_creds,\
     connection_failure, malformed_response,\
     emulate_user
-from api.exceptions import size_not_available
+from api.exceptions import (
+    inactive_provider, size_not_available, mount_failed, over_quota,
+    under_threshold, over_capacity, instance_not_found)
 from api.pagination import OptionalPagination
 from api.v1.serializers import InstanceStatusHistorySerializer,\
     InstanceSerializer, InstanceHistorySerializer, VolumeSerializer,\
@@ -96,7 +100,14 @@ class InstanceList(AuthAPIView):
         Returns a list of all instances
         """
         user = request.user
-        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        try:
+            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         identity = Identity.objects.get(uuid=identity_uuid)
@@ -351,6 +362,20 @@ class InstanceStatusHistoryDetail(AuthAPIView):
         return response
 
 
+
+
+def _further_process_result(request, action, result):
+    """
+    Provide additional serialization if the `action` has a
+    `result` requiring processing.
+    """
+    if 'volume' in action:
+        return VolumeSerializer(result,
+                                context={"request": request}).data
+    else:
+        return result
+
+
 class InstanceAction(AuthAPIView):
 
     """
@@ -434,6 +459,7 @@ class InstanceAction(AuthAPIView):
         action = action_params['action']
         try:
             result_obj = run_instance_action(user, identity, instance_id, action, action_params)
+            result_obj = _further_process_result(request, action, result_obj)
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully' % (action_params['action'],),
@@ -443,6 +469,8 @@ class InstanceAction(AuthAPIView):
             return response
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
         except InstanceDoesNotExist as dne:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
@@ -507,23 +535,26 @@ class Instance(AuthAPIView):
         #       all the things that are 'inactive'
         try:
             provider = Provider.objects.get(uuid=provider_uuid)
+            if not provider.is_active():
+                raise ProviderNotActive(provider)
         except Provider.DoesNotExist:
             return invalid_creds(provider_uuid, identity_uuid)
-        if provider.is_active():
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+
+        # Cleared provider testing -- ready for driver prep.
+        try:
             esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
-            try:
-                esh_instance = esh_driver.get_instance(instance_id)
-            except (socket_error, ConnectionFailure):
-                return connection_failure(provider_uuid, identity_uuid)
-            except InvalidCredsError:
-                return invalid_creds(provider_uuid, identity_uuid)
-            except Exception as exc:
-                logger.exception("Encountered a generic exception. "
-                                 "Returning 409-CONFLICT")
-                return failure_response(status.HTTP_409_CONFLICT,
-                                        str(exc.message))
-        else:
-            esh_instance = None
+            esh_instance = esh_driver.get_instance(instance_id)
+        except (socket_error, ConnectionFailure):
+            return connection_failure(provider_uuid, identity_uuid)
+        except InvalidCredsError:
+            return invalid_creds(provider_uuid, identity_uuid)
+        except Exception as exc:
+            logger.exception("Encountered a generic exception. "
+                             "Returning 409-CONFLICT")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
 
         # NOTE: Especially THIS part below, where you end date all the
         #       things that are 'inactive'
@@ -626,12 +657,11 @@ class Instance(AuthAPIView):
         serializer = InstanceSerializer(core_instance, data=data,
                                         context={"request": request})
         identity = Identity.objects.get(uuid=identity_uuid)
-        provider = identity.provider
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             #NOTE: We shouldn't allow 'full replacement' of metadata..
             # We should also validate against potentional updating of 'atmo-used metadata'
-            update_metadata.s(driver_class, provider, identity, esh_instance.id,
+            update_metadata.s(esh_driver.__class__, esh_driver.provider, esh_driver.identity, esh_instance.id,
                               data, replace_metadata=False).apply()
             new_instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
@@ -641,7 +671,7 @@ class Instance(AuthAPIView):
                 serializer = InstanceSerializer(
                     new_instance,
                     context={"request": request})
-            invalidate_cached_instances(identity=identitty)
+            invalidate_cached_instances(identity=identity)
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
@@ -809,8 +839,16 @@ class InstanceTagDetail(AuthAPIView):
         """
         Return the credential information for this tag
         """
-        core_instance = get_core_instance(request, provider_uuid,
-                                          identity_uuid, instance_id)
+        try:
+            core_instance = get_core_instance(request, provider_uuid,
+                                              identity_uuid, instance_id)
+        except ProviderNotActive as pna:
+            return inactive_provider(pna)
+        except Exception as e:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                e.message)
+
         if not core_instance:
             instance_not_found(instance_id)
         try:
@@ -836,38 +874,3 @@ def keys_not_found(missing_keys):
     return failure_response(
         status.HTTP_400_BAD_REQUEST,
         'Missing data for variable(s): %s' % missing_keys)
-
-
-def instance_not_found(instance_id):
-    return failure_response(
-        status.HTTP_404_NOT_FOUND,
-        'Instance %s does not exist' % instance_id)
-
-def over_capacity(capacity_exception):
-    return failure_response(
-        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-        capacity_exception.message)
-
-
-def under_threshold(threshold_exception):
-    return failure_response(
-        status.HTTP_400_BAD_REQUEST,
-        threshold_exception.message)
-
-
-def over_quota(quota_exception):
-    return failure_response(
-        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-        quota_exception.message)
-
-
-def mount_failed(exception):
-    return failure_response(
-        status.HTTP_409_CONFLICT,
-        exception.message)
-
-
-def over_allocation(allocation_exception):
-    return failure_response(
-        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-        allocation_exception.message)

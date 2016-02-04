@@ -9,13 +9,12 @@ class MaintenanceRecordSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field='name',
         queryset=Provider.objects.all(),
         serializer_class=ProviderSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'},
+        required=False, allow_null=True)
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:maintenancerecord-detail',
+        read_only=True,
     )
-
-    def create(self, validated_data):
-        raise NotImplemented("Creating Maintenance Records from API is not allowed.")
 
     class Meta:
         model = MaintenanceRecord

@@ -19,7 +19,7 @@ from api.v2.serializers.summaries import (
 from api.v2.serializers.fields import (
     ProviderMachineRelatedField, ModelRelatedField)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
-
+from api.validators import NoSpecialCharacters
 
 class UserRelatedField(serializers.PrimaryKeyRelatedField):
 
@@ -111,9 +111,10 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     def validate(self, data):
 
         # set the parent machine
-        parent_machine = ProviderMachine.objects.get(id=data['instance'].source_id)
+        parent_machine = ProviderMachine.objects.get(instance_source__id=data['instance'].source_id,
+                                                     instance_source__provider=data['instance'].provider)
         data['parent_machine'] = parent_machine
-        
+
         # make sure user has access to the new provider
         user = data['new_machine_owner']
         provider = data['new_machine_provider']
@@ -153,7 +154,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
        serializer_class=ProviderMachineSummarySerializer,
        style={'base_template': 'input.html'})
 
-    new_application_name = serializers.CharField()
+    new_application_name = serializers.CharField(validators=[NoSpecialCharacters('!"#$%&\'*+,/;<=>?@[\\]^_`{|}~')])
     new_application_description = serializers.CharField()
     old_status = serializers.CharField(required = False)
     new_application_visibility = serializers.CharField()
@@ -257,7 +258,7 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     old_status = serializers.CharField(required = False)
     new_version_memory_min = serializers.CharField()
     new_version_cpu_min = serializers.CharField()
-    new_application_name = serializers.CharField()
+    new_application_name = serializers.CharField(validators=[NoSpecialCharacters('!"#$%&\'*+,/;<=>?@[\\]^_`{|}~')])
     new_application_version = ImageVersionSummarySerializer(read_only=True)
     new_application_visibility = serializers.CharField()
     admin_message = serializers.CharField(read_only=True)

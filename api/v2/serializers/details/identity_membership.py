@@ -14,11 +14,12 @@ class IdentityMembershipSerializer(serializers.HyperlinkedModelSerializer):
     identity = IdentitySummarySerializer()
     user = UserSummarySerializer(source='identity.created_by')
     provider = ProviderSummarySerializer(source='identity.provider')
-
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:v2:identitymembership-detail',
+    )
 
     class Meta:
         model = IdentityMembership
-        view_name = 'api:v2:identity-detail' # TODO: Make an identity-membership-detail
         fields = ('id',
                   #TODO: Re-add this in master:
                   #'url',

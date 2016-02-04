@@ -4,6 +4,22 @@ from rest_framework import exceptions as rest_exceptions
 from django.utils.translation import ugettext_lazy as _
 from threepio import logger, api_logger
 
+def bad_request(errors, prefix="", status=None):
+    """
+    Expects the output of 'serializer.errors':
+    errors = [{'name': 'This is an invalid name'}]
+    Returns *all* errors in a single string:
+    """
+    if not status:
+        status = status.HTTP_400_BAD_REQUEST
+    if type(status) != int:
+        raise Exception("Passed status '%s' is *NOT* an int!" % status)
+
+    error_str = ''.join(["%s%s:%s" % (prefix,key,val[0]) for (key,val) in serializer.errors.items()])
+    error_map = {"errors": [{"code": status, "message": error_str }]} # This is an expected format by atmo-airport.
+    return Response(error_map,
+                    status=status)
+
 def failure_response(status, message):
     """
     Return a djangorestframework Response object given an error
@@ -23,7 +39,6 @@ def malformed_response(provider_id, identity_id):
         status.HTTP_500_INTERNAL_SERVER_ERROR,
         "Cloud Communications Error --"
         " Contact your Cloud Administrator OR try again later!")
-
 
 def invalid_provider(provider_id):
     log_message = 'Provider %s is inactive, disabled, or does not exist.'\
@@ -64,6 +79,8 @@ def connection_failure(provider_id, identity_id=None):
 class ServiceUnavailable(rest_exceptions.APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = _("Service Unavailable.")
+
+
 def instance_not_found(instance_id):
     return failure_response(
         status.HTTP_404_NOT_FOUND,
@@ -74,6 +91,12 @@ def size_not_available(sna_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         sna_exception.message)
+
+
+def inactive_provider(provider_exception):
+    return failure_response(
+        status.HTTP_409_CONFLICT,
+        provider_exception.message)
 
 
 def over_capacity(capacity_exception):

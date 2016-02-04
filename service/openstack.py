@@ -51,7 +51,7 @@ def glance_update_machine_metadata(provider_machine, metadata={}):
         return
     props = g_image.properties
     extras = {
-        "application_version": str(provider_machine.version),
+        "application_version": str(provider_machine.application_version.name),
         "application_uuid": base_app.uuid,
         "application_name": _make_safe(base_app.name),
         "application_owner": base_app.created_by.username,

@@ -90,8 +90,7 @@ def reboot_instance(
         _permission_to_act(identity_uuid, "Reboot")
     else:
         _permission_to_act(identity_uuid, "Hard Reboot")
-    size = _get_size(esh_driver, esh_instance)
-    check_quota(user.username, identity_uuid, size, resuming=True)
+    check_quota(user.username, identity_uuid, None, resuming=True)
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     # reboots take very little time..
     redeploy_init(esh_driver, esh_instance)
@@ -840,7 +839,6 @@ def launch_instance(user, identity_uuid,
 
     # May raise Exception("Size not available")
     size = check_size(esh_driver, size_alias, provider_uuid)
-
     # May raise Exception("Volume/Machine not available")
     boot_source = get_boot_source(user.username, identity_uuid, source_alias)
 

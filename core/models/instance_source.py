@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 
 from core.exceptions import SourceNotFound
 from core.query import only_current
@@ -45,6 +45,23 @@ class InstanceSource(models.Model):
             # 3. (Seperately) Provider is active
             Q(provider__active=True))
         return query_args
+
+    @classmethod
+    def get_source(cls, source_alias, queryset=None):
+        """
+        Given the UUID, retrieve the source object.
+        """
+        if not queryset:
+            queryset = cls.current_sources()
+        try:
+            return queryset.get(identifier=source_alias)
+        except MultipleObjectsReturned:
+            raise Exception(
+                "Multiple sources use the identifier '%s' -- "
+                "pass a refined queryset to select the appropriate source"
+                % source_alias)
+        except ObjectDoesNotExist:
+            return None
 
     @classmethod
     def current_sources(cls):

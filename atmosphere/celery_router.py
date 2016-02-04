@@ -44,6 +44,7 @@ PERIODIC_TASKS = [
     "monitor_sizes", "monitor_sizes_for",
     "monitor_machines", "monitor_machines_for",
     "monitor_instances", "monitor_instances_for",
+    "prune_machines", "prune_machines_for",
     "check_image_membership", "update_membership_for",
     "clear_empty_ips", "clear_empty_ips_for",
     "remove_empty_networks_for",
