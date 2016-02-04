@@ -13,6 +13,7 @@ from threepio import logger
 from core.models.machine_request import MachineRequest as CoreMachineRequest
 from core.models import Provider
 from core.models import IdentityMembership
+from core.models.status_type import StatusType
 
 from service.instance import _permission_to_act
 from service.exceptions import ActionNotAllowed
@@ -22,6 +23,7 @@ from service.tasks.machine import start_machine_imaging
 from core.email import requestImaging
 
 from api import failure_response
+from api.exceptions import bad_request
 from api.v1.serializers import MachineRequestSerializer
 from api.v1.views.base import AuthAPIView
 
@@ -111,7 +113,8 @@ class MachineRequestList(AuthAPIView):
             serializer.validated_data['membership'] = identity_member
             serializer.validated_data['created_by'] = user
             self._permission_to_image(identity_uuid, instance)
-            machine_request = serializer.save()
+            pending_status = StatusType.objects.get(name='pending')
+            machine_request = serializer.save(status=pending_status)
             instance = machine_request.instance
             # NOTE: THIS IS A HACK -- While we enforce all images
             #       to go to iPlant Cloud - Tucson.
@@ -126,7 +129,6 @@ class MachineRequestList(AuthAPIView):
                 # Will skip this step if no provider is named
                 # iPlant Cloud - Tucson.
                 pass
-            serializer.save()
             # Object now has an ID for links..
             machine_request_id = machine_request.id
             active_provider = machine_request.active_provider()
@@ -138,8 +140,7 @@ class MachineRequestList(AuthAPIView):
             return Response(serializer.data,
                             status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return bad_request(serializer.errors, prefix="Invalid value for ")
 
 
 class MachineRequest(AuthAPIView):

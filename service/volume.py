@@ -1,4 +1,3 @@
-from collections import namedtuple
 from threepio import logger
 
 from core.models.quota import get_quota, has_storage_count_quota,\
@@ -6,13 +5,10 @@ from core.models.quota import get_quota, has_storage_count_quota,\
 from core.models.identity import Identity
 
 from service.cache import get_cached_driver
-from service.driver import _retrieve_source, prepare_driver
+from service.driver import _retrieve_source, get_esh_driver
 
 from service import exceptions
 from service.instance import boot_volume_instance
-
-# FIXME: fix prepare_driver to take a user directly
-Request = namedtuple("request", ["user"])
 
 
 def update_volume_metadata(core_volume, metadata={}):
@@ -57,22 +53,25 @@ def _update_volume_metadata(esh_driver, esh_volume,
 
 
 def restrict_size_by_image(size, image):
-    image_size = image._connection.get_size(image._image)
+    image_bytes = image._image.extra.get('image_size', None)
+    if not image_bytes:
+        raise exceptions.VolumeError(
+            "Cannot determine size of the image %s: "
+            "Expected rtwo.machine.OSMachine to include "
+            "'image_size' key in the 'extra' fields." % (image.name,))
+    image_size = int(image_bytes / 1024.0**3)
     if size > image_size + 4:
         raise exceptions.VolumeError(
             "Volumes created from images cannot exceed "
-            "more than 4GB greater than the size of the image:%s GB"
+            "more than 4GB greater than the size of the image:(%s GB)"
             % size)
 
 
 def create_volume_or_fail(name, size, user, provider, identity,
-                          image_id=None, snapshot_id=None):
+                          description=None, image_id=None, snapshot_id=None):
     snapshot = None
     image = None
-    # FIXME: fix prepare_driver to take a user directly
-    request = Request(user)
-    driver = prepare_driver(request, provider.uuid, identity.uuid,
-                            raise_exception=True)
+    driver = get_esh_driver(identity, username=user.username)
 
     if snapshot_id:
         snapshot = driver._connection.ex_get_snapshot(image_id)
@@ -127,12 +126,8 @@ def destroy_volume_or_fail(volume, user, cascade=False):
                     (defaults is False)
     :type cascade: ``bool``
     """
-    provider = volume.instance_source.provider
     identity = volume.instance_source.created_by_identity
-    # FIXME: fix prepare_driver to take a user directly
-    request = Request(user)
-    driver = prepare_driver(request, provider.uuid, identity.uuid,
-                            raise_exception=True)
+    driver = get_esh_driver(identity, username=user.username)
 
     # retrieve volume or fail with not found
     esh_volume = driver.get_volume(volume.identifier)
