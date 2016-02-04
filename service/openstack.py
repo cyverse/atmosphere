@@ -38,6 +38,35 @@ def _make_safe(unsafe_str):
     return unsafe_str.replace("\r\n", "\n").replace("\n", "_LINE_BREAK_")
 
 
+def generate_openrc(driver, file_loc):
+    project_domain = 'default'
+    user_domain = 'default'
+    tenant_name = project_name = driver.identity.get_groupname()
+    username = driver.identity.get_username()
+    password = driver.identity.credentials.get('secret')
+    provider_options = driver.provider.options
+    if not provider_options:
+        raise Exception("Expected to have a dict() 'options' stored in the 'provider' object. Please update this method!")
+    if not password:
+        raise Exception("Expected to have password stored in the 'secret' credential. Please update this method!")
+    identity_api_version = provider_options.get('ex_force_auth_version','2')[0]
+    version_prefix = "/v2.0" if ('2' in identity_api_version) else '/v3'
+    auth_url = provider_options.get('ex_force_auth_url','') + version_prefix
+    openrc_template = \
+"""export OS_PROJECT_DOMAIN_ID=%s
+export OS_USER_DOMAIN_ID=%s
+export OS_PROJECT_NAME=%s
+export OS_TENANT_NAME=%s
+export OS_USERNAME=%s
+export OS_PASSWORD=%s
+export OS_AUTH_URL=%s
+export OS_IDENTITY_API_VERSION=%s
+""" % (project_domain, user_domain, project_name, tenant_name,
+       username, password, auth_url, identity_api_version)
+    with open(file_loc,'w') as the_file:
+        the_file.write(openrc_template)
+
+
 def _make_unsafe(safe_str):
     return safe_str.replace("_LINE_BREAK_", "\n")
 

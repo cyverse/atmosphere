@@ -27,6 +27,14 @@ from core.models.identity import Identity
 from service.accounts.base import CachedAccountDriver
 
 
+def get_random_uid(userid):
+    """
+    Given a string (Username) return a value < MAX_SUBNET
+    """
+    MAX_SUBNET = 4064
+    return int(random.uniform(1, MAX_SUBNET))
+
+
 class AccountDriver(CachedAccountDriver):
     user_manager = None
     image_manager = None
@@ -338,7 +346,7 @@ class AccountDriver(CachedAccountDriver):
             username,
             self.hashpass(username),
             project_name,
-            get_unique_number=get_uid_number,
+            get_unique_number=get_random_uid,
             dns_nameservers=dns_nameservers,
             **net_args)
         return True
@@ -378,7 +386,7 @@ class AccountDriver(CachedAccountDriver):
             username,
             password,
             project_name,
-            get_unique_number=get_uid_number,
+            get_unique_number=get_random_uid,
             dns_nameservers=dns_nameservers,
             **net_args)
 
@@ -558,20 +566,30 @@ class AccountDriver(CachedAccountDriver):
         return "https://%s/horizon/auth/switch/%s/?next=/horizon/project/" %\
             (parsed_url.hostname, tenant_id)
 
+
     def get_openstack_clients(self, username, password=None, tenant_name=None):
-        # TODO: I could replace with identity.. but should I?
         from rtwo.drivers.common import _connect_to_openstack_sdk
-        user_creds = self._get_openstack_credentials(
+        # TODO: I could replace with identity.. but should I?
+        # Build credentials for each manager
+        all_creds = self._get_openstack_credentials(
             username, password, tenant_name)
-        neutron = self.network_manager.new_connection(**user_creds)
+        # Initialize managers with respective credentials
+        user_creds = self._build_user_creds(all_creds)
+        image_creds = self._build_image_creds(all_creds)
+        net_creds = self._build_network_creds(all_creds)
+        sdk_creds = self._build_sdk_creds(all_creds)
+
+        import ipdb;ipdb.set_trace()
+        openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
+        neutron = self.network_manager.new_connection(**net_creds)
         keystone, nova, glance = self.image_manager._new_connection(
-            **user_creds)
-        openstack_sdk = _connect_to_openstack_sdk(**user_creds)
+            **image_creds)
         return {
             "glance": glance,
             "keystone": keystone,
             "nova": nova,
             "neutron": neutron,
+            "openstack_sdk": openstack_sdk,
             "horizon": self._get_horizon_url(keystone.tenant_id)
         }
 
@@ -583,6 +601,7 @@ class AccountDriver(CachedAccountDriver):
             password = self.hashpass(tenant_name)
         user_creds = {
             "auth_url": self.user_manager.nova.client.auth_url,
+            "admin_url": self.user_manager.keystone._management_url,
             "region_name": self.user_manager.nova.client.region_name,
             "username": username,
             "password": password,
@@ -604,6 +623,8 @@ class AccountDriver(CachedAccountDriver):
         """
         net_args = self.provider_creds.copy()
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
+        if '/v2.0' not in net_args['auth_url']:
+            net_args['auth_url'] += "/v2.0"
         return net_args
 
     def _build_network_creds(self, credentials):
@@ -611,6 +632,7 @@ class AccountDriver(CachedAccountDriver):
         Credentials - dict()
 
         return the credentials required to build a "NetworkManager" object
+        NOTE: Expects auth_url to be '/v2.0'
         """
         net_args = credentials.copy()
         # Required:
@@ -624,7 +646,9 @@ class AccountDriver(CachedAccountDriver):
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
         net_args.pop("location", None)
         net_args.pop("ex_project_name", None)
-
+        net_args.pop("ex_force_auth_version", None)
+        if '/v2.0' not in net_args['auth_url']:
+            net_args["auth_url"] += "/v2.0"
         return net_args
 
     def _build_image_creds(self, credentials):
@@ -632,6 +656,7 @@ class AccountDriver(CachedAccountDriver):
         Credentials - dict()
 
         return the credentials required to build a "UserManager" object
+        NOTE: Expects auth_url to be '/v2.0/tokens'
         """
         img_args = credentials.copy()
         # Required:
@@ -645,7 +670,10 @@ class AccountDriver(CachedAccountDriver):
                 raise ValueError(
                     "ImageManager is missing a Required Argument: %s" %
                     required_arg)
+        img_args.pop("ex_force_auth_version",None)
 
+        if 'v2.0/tokens' not in img_args['auth_url']:
+            img_args["auth_url"] += "/v2.0/tokens"
         return img_args
 
     def _build_user_creds(self, credentials):
@@ -653,6 +681,7 @@ class AccountDriver(CachedAccountDriver):
         Credentials - dict()
 
         return the credentials required to build a "UserManager" object
+        NOTE: Expects auth_url to be '/v2.0'
         """
         user_args = credentials.copy()
         # Required args:
@@ -662,10 +691,42 @@ class AccountDriver(CachedAccountDriver):
 
         user_args["auth_url"] = user_args.get("auth_url")\
             .replace("/tokens", "")
+        if 'v2' not in user_args['auth_url']:
+            user_args["auth_url"] += "/v2.0/"
         user_args.get("region_name")
         # Removable args:
+        user_args.pop("ex_force_auth_version", None)
         user_args.pop("admin_url", None)
         user_args.pop("location", None)
         user_args.pop("router_name", None)
         user_args.pop("ex_project_name", None)
         return user_args
+
+    def _build_sdk_creds(self, credentials):
+        """
+        Credentials - dict()
+
+        return the credentials required to build an "Openstack SDK" connection
+        NOTE: Expects auth_url to be '/v2.0'
+        """
+        os_args = credentials.copy()
+        # Required args:
+        os_args.get("username")
+        os_args.get("password")
+        if 'tenant_name' in os_args and 'project_name' not in os_args:
+            os_args['project_name'] = os_args.get("tenant_name")
+
+        os_args["auth_url"] = os_args.get("auth_url")\
+            .replace("/tokens", "")
+        if 'v2' not in os_args['auth_url']:
+            os_args["auth_url"] += "/v2.0/"
+        os_args.get("region_name")
+        # Removable args:
+        os_args.pop("ex_force_auth_version", None)
+        os_args.pop("admin_url", None)
+        os_args.pop("location", None)
+        os_args.pop("router_name", None)
+        os_args.pop("ex_project_name", None)
+        os_args.pop("ex_tenant_name", None)
+        os_args.pop("tenant_name", None)
+        return os_args
