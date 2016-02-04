@@ -8,7 +8,7 @@ from urlparse import urlparse
 
 from django.db.models import Max
 
-from novaclient.v1_1 import client as nova_client
+from novaclient.v2 import client as nova_client
 from novaclient.exceptions import OverLimit
 from neutronclient.common.exceptions import NeutronClientException
 from requests.exceptions import ConnectionError
@@ -560,11 +560,13 @@ class AccountDriver(CachedAccountDriver):
 
     def get_openstack_clients(self, username, password=None, tenant_name=None):
         # TODO: I could replace with identity.. but should I?
+        from rtwo.drivers.common import _connect_to_openstack_sdk
         user_creds = self._get_openstack_credentials(
             username, password, tenant_name)
         neutron = self.network_manager.new_connection(**user_creds)
         keystone, nova, glance = self.image_manager._new_connection(
             **user_creds)
+        openstack_sdk = _connect_to_openstack_sdk(**user_creds)
         return {
             "glance": glance,
             "keystone": keystone,

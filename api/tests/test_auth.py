@@ -10,7 +10,7 @@ from urlparse import urljoin
 
 from atmosphere import settings
 from api.tests import verify_expected_output
-from service.accounts.openstack import AccountDriver as OSAccounts
+from service.accounts.openstack_manager import AccountDriver as OSAccounts
 
 # TODO: Rewrite this to ensure that token api is available *WITHOUT* the need to test LDAP explicitly.
 
