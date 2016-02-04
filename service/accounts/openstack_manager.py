@@ -579,7 +579,6 @@ class AccountDriver(CachedAccountDriver):
         net_creds = self._build_network_creds(all_creds)
         sdk_creds = self._build_sdk_creds(all_creds)
 
-        import ipdb;ipdb.set_trace()
         openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
         neutron = self.network_manager.new_connection(**net_creds)
         keystone, nova, glance = self.image_manager._new_connection(
