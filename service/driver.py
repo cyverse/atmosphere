@@ -95,7 +95,7 @@ def get_account_driver(provider):
     try:
         type_name = provider.get_type_name().lower()
         if 'openstack' in type_name:
-            from service.accounts.openstack import AccountDriver as\
+            from service.accounts.openstack_manager import AccountDriver as\
                 OSAccountDriver
             return OSAccountDriver(provider)
         elif 'eucalyptus' in type_name:

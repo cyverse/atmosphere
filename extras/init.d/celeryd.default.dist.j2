@@ -95,8 +95,6 @@ CELERYD_MAX_TASKS_PER_CHILD="150"
 CELERYD_FLOWER="$CELERYD_CHDIR/manage.py celery flower"
 ADMIN_USER="flower_user"
 ADMIN_PASS="flower_pass"
-#Possibly not necessary?
-#FLOWER_BROKER_OPT="--broker=amqp://broker_user:broker_pass@hostname:5672/virtualhost_name"
 #TODO:Change to Google+OAUTH2 VERY soon!
 FLOWER_AUTH_OPT="--basic_auth=$ADMIN_USER:$ADMIN_PASS"
 OAUTH2_ACCESS_LIST=""

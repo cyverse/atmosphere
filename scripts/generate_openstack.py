@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from atmosphere.settings import secrets
-from service.accounts.openstack import AccountDriver
+from service.accounts.openstack_manager import AccountDriver
 from core.models import AtmosphereUser as User
 from keystoneclient.exceptions import NotFound
 import django

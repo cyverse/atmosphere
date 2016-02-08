@@ -1,6 +1,8 @@
 from core.models import ResourceRequest
 from core import email
 
+from django.utils import timezone
+
 from api.v2.serializers.details import ResourceRequestSerializer,\
     UserResourceRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
@@ -17,7 +19,14 @@ class ResourceRequestViewSet(BaseRequestViewSet):
     model = ResourceRequest
     serializer_class = UserResourceRequestSerializer
     admin_serializer_class = ResourceRequestSerializer
-    filter_fields = ('status__id', 'status__name')
+    filter_fields = ('status__id', 'status__name', 'created_by__username')
+
+    def close_action(self, instance):
+        """
+        Add an end date to a request and take no further action
+        """
+        instance.end_date = timezone.now()
+        instance.save()
 
     def submit_action(self, instance):
         """
@@ -34,6 +43,8 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         """
         Updates the resource for the request
         """
+        instance.end_date = timezone.now()
+        instance.save()
         membership = instance.membership
         membership.quota = instance.quota or membership.quota
         membership.allocation = instance.allocation or membership.allocation
@@ -54,6 +65,8 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         """
         Notify the user that the request was denied
         """
+        self.end_date = timezone.now()
+        self.save()
         email.send_denied_resource_email(
             user=instance.created_by,
             request=instance.request,

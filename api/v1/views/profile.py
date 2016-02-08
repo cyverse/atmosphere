@@ -4,8 +4,7 @@ Atmosphere service instance rest api.
 """
 from rest_framework.response import Response
 
-from core.models.profile import UserProfile
-
+from django.utils import timezone
 from api.v1.views.base import AuthAPIView
 from api.v1.serializers import ProfileSerializer, AtmoUserSerializer
 
@@ -24,9 +23,16 @@ class Profile(AuthAPIView):
         Authentication Required, retrieve the users profile.
         """
         user = request.user
+        # THIS IS A HACK! -- This check covered by permissions in v2
+        if not user.is_enabled:
+            return Response(
+                "The account <%s> has been disabled by an Administrator. "
+                "Please contact your Cloud Administrator for more information."
+                % (user.username,), status=403)  # Forbidden
+
         profile = user.userprofile
         serialized_data = ProfileSerializer(profile).data
-        identity = user.select_identity()
+        user.select_identity()
         response = Response(serialized_data)
         return response
 

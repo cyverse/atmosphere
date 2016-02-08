@@ -6,6 +6,7 @@ import os
 
 from django.core.paginator import Paginator,\
     PageNotAnInteger, EmptyPage
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 
 from rest_framework.pagination import PageNumberPagination
@@ -30,7 +31,7 @@ from service.search import search, CoreSearchProvider
 
 from api.exceptions import (
     invalid_creds, malformed_response, connection_failure,
-    failure_response, inactive_provider)
+    failure_response, inactive_provider, invalid_provider)
 from api.pagination import OptionalPagination
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.v1.serializers import ProviderMachineSerializer,\
@@ -44,11 +45,22 @@ def provider_filtered_machines(request, provider_uuid,
     Return all filtered machines. Uses the most common,
     default filtering method.
     """
-    # NOTE: raises many types of exceptions
-    esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+    identity = Identity.objects.filter(uuid=identity_uuid)
+    if not identity:
+        raise ObjectDoesNotExist()
+
+    try:
+        esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+    except Exception:
+        # TODO: Observe the change of 'Fail loudly' here
+        # and clean up the noise, rather than hide it.
+        logger.exception(
+            "Driver could not be prepared - Provider: %s , Identity: %s"
+            % (provider_uuid, identity_uuid))
+        esh_driver = None
 
     if not esh_driver:
-        return invalid_creds(provider_uuid, identity_uuid)
+        raise InvalidCredsError()
 
     logger.debug(esh_driver)
 
@@ -98,6 +110,8 @@ class MachineList(AuthAPIView):
             return malformed_response(provider_uuid, identity_uuid)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
+        except ObjectDoesNotExist:
+            return invalid_provider_identity(provider_uuid, identity_uuid)
         except Exception as e:
             logger.exception("Unexpected exception for user:%s"
                              % request_user)

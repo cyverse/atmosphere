@@ -10,7 +10,7 @@ django.setup()
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
 
-from service.accounts.openstack import AccountDriver as OSAccountDriver
+from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
 
 libcloud.security.VERIFY_SSL_CERT = False

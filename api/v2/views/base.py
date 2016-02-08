@@ -11,7 +11,7 @@ from core.models import IdentityMembership
 from core.models.status_type import StatusType
 
 from api.permissions import (
-        ApiAuthOptional, ApiAuthRequired,
+        ApiAuthOptional, ApiAuthRequired, EnabledUserRequired,
         InMaintenance, CloudAdminRequired
     )
 from api.v2.views.mixins import MultipleFieldLookup
@@ -24,6 +24,7 @@ def unresolved_requests_only(fn):
     @wraps(fn)
     def wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
+        #TODO: Logic needs 're-worked' here. MachineRequests in 'non-final' states should be allowed to be PATCH'ed for re-submission.
         if (hasattr(instance, "is_closed") and instance.is_closed()):
             message = (
                 "Method '%s' not allowed: "
@@ -41,12 +42,14 @@ class AuthViewSet(ModelViewSet):
     http_method_names = ['get', 'put', 'patch', 'post',
                          'delete', 'head', 'options', 'trace']
     permission_classes = (InMaintenance,
+                          EnabledUserRequired,
                           ApiAuthRequired,)
 
 
 class AdminAuthViewSet(AuthViewSet):
     permission_classes = (InMaintenance,
                           CloudAdminRequired,
+                          EnabledUserRequired,
                           ApiAuthRequired,)
 
 
@@ -175,10 +178,15 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
                 instance = serializer.save(end_date=timezone.now(),
                                            membership=membership)
             else:
-                instance = serializer.save(end_date=timezone.now())
-
+                if self.request.method == "PATCH":
+                    instance = serializer.save(status=StatusType.objects.get(id=serializer.initial_data['status']))
+                else:
+                    instance = serializer.save()
             if instance.is_approved():
                 self.approve_action(instance)
+
+            if instance.is_closed():
+                self.close_action(instance)
 
             if instance.is_denied():
                 self.deny_action(instance)

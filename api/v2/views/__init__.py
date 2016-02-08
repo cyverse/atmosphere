@@ -17,10 +17,13 @@ from .instance import InstanceViewSet
 from .instance_tag import InstanceTagViewSet
 from .instance_history import InstanceStatusHistoryViewSet
 from .license import LicenseViewSet
+from .link import ExternalLinkViewSet
 from .machine_request import MachineRequestViewSet
 from .maintenance_record import MaintenanceRecordViewSet
 from .platform_type import PlatformTypeViewSet
 from .project import ProjectViewSet
+from .project_application import ProjectApplicationViewSet
+from .project_link import ProjectExternalLinkViewSet
 from .project_instance import ProjectInstanceViewSet
 from .project_volume import ProjectVolumeViewSet
 from .provider import ProviderViewSet
@@ -37,3 +40,4 @@ from .token import TokenViewSet
 from .user import UserViewSet
 from .volume import VolumeViewSet
 from .metric import MetricViewSet
+from .ssh_key import SSHKeyViewSet

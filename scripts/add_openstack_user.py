@@ -9,7 +9,7 @@ from iplantauth.protocol.ldap import is_atmo_user
 from core.email import send_new_provider_email
 from core.models import Provider
 
-from service.accounts.openstack import AccountDriver
+from service.accounts.openstack_manager import AccountDriver
 
 import django
 django.setup()

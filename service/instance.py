@@ -39,7 +39,7 @@ from service.exceptions import (
     VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
     socket_error, ConnectionFailure, InstanceDoesNotExist, InvalidCredsError)
 
-from service.accounts.openstack import AccountDriver as OSAccountDriver
+from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
 
 def _get_size(esh_driver, esh_instance):
@@ -1532,7 +1532,7 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
             raise VolumeAttachConflict(
                 message='Instance %s must be active before attaching '
                 'a volume. '
-                'Retry request when volume is active.'
+                'Retry request when instance is active.'
                 % (instance_id,))
         result = task.attach_volume_task(
                 esh_driver, esh_instance.alias,
