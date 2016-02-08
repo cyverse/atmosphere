@@ -14,7 +14,11 @@ django-celery==3.1.16
 
 gevent==1.0.1
 
+<<<<<<< HEAD
 apache-libcloud==0.20.1
+=======
+apache-libcloud==0.20.0
+>>>>>>> ll_include_openstack_sdk
 requests==2.7
 python-dateutil==1.4.1
 pytz==2015.4

@@ -159,7 +159,7 @@ def get_esh_provider(core_provider, username=None):
         raise
 
 
-def get_esh_driver(core_identity, username=None):
+def get_esh_driver(core_identity, username=None, **kwargs):
     try:
         core_provider = core_identity.provider
         if not core_provider.is_active():
@@ -171,6 +171,7 @@ def get_esh_driver(core_identity, username=None):
             user = User.objects.get(username=username)
         provider = get_esh_provider(core_provider, username=user.username)
         provider_creds = core_identity.provider.get_esh_credentials(provider)
+        provider_creds.update(kwargs)
         identity_creds = core_identity.get_credentials()
         identity = esh_map['identity'](provider, user=user, **identity_creds)
         driver = esh_map['driver'](provider, identity, **provider_creds)
