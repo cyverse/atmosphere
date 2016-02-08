@@ -447,6 +447,7 @@ class AccountDriver(CachedAccountDriver):
         """
         This should always map project to user
         For now, they are identical..
+        TODO: Make this intelligent. use keystone.
         """
         return username
 
@@ -542,15 +543,22 @@ class AccountDriver(CachedAccountDriver):
             trustor_project_name, trustor_username, trustor_domain_name,
             roles=[], impersonation=True):
         """
+        Trustee == Consumer
+        Trustor == Resource Owner
         Given the *names* of projects, users, and domains
-        gather all required information
+        gather all required information for a Trust-Create
         create a new trust object
 
         NOTE: we set impersonation to True
         -- it has a 'normal default' of False!
         """
-
         default_roles = [{"name": "admin"}]
+        trustor_domain = self.openstack_sdk.identity.find_domain(
+            trustor_domain_name)
+        if not trustor_domain:
+            raise ValueError("Could not find trustor domain named %s"
+                             % trustor_domain_name)
+
         trustee_domain = self.openstack_sdk.identity.find_domain(
             trustee_domain_name)
         if not trustee_domain:
@@ -562,9 +570,9 @@ class AccountDriver(CachedAccountDriver):
         # trustee_project = self.get_project(
         #    trustee_username, domain_name=trustee_domain.id)
         trustor_user = self.get_user(
-            trustor_username, domain_name=trustor_domain_name)
+            trustor_username, domain_id=trustor_domain.id)
         trustor_project = self.get_project(
-            trustor_project_name, domain_name=trustor_domain_name)
+            trustor_project_name, domain_id=trustor_domain.id)
 
         if not roles:
             roles = default_roles
@@ -617,7 +625,6 @@ class AccountDriver(CachedAccountDriver):
         We replicate that functionality to avoid operator-frustration.
         """
         domain_key = 'domain_name'
-        import ipdb;ipdb.set_trace()
         domain_name_or_id = kwargs.get(domain_key)
         if not domain_name_or_id:
             return kwargs
