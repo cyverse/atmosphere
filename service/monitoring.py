@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.utils import timezone
 from threepio import logger
 from core.models import AtmosphereUser as User
+from core.models import AccountProvider
 from core.models.allocation_strategy import Allocation as CoreAllocation
 from core.models.allocation_strategy import AllocationStrategy as CoreAllocationStrategy
 from core.models.credential import Credential
@@ -406,7 +407,15 @@ def _get_instance_owner_map(provider, users=None):
     admin_driver = get_cached_driver(provider=provider)
     accounts = get_account_driver(provider=provider)
     all_identities = _select_identities(provider, users)
-    all_instances = get_cached_instances(provider=provider)
+    acct_providers = AccountProvider.objects.filter(provider=provider)
+    if acct_providers:
+        account_identity = acct_providers[0].identity
+        provider = None
+    else:
+        account_identity = None
+
+
+    all_instances = get_cached_instances(provider=provider, identity=account_identity, force=True)
     #all_tenants = admin_driver._connection._keystone_list_tenants()
     all_tenants = accounts.list_projects()
     # Convert instance.owner from tenant-id to tenant-name all at once

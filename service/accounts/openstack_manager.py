@@ -167,7 +167,7 @@ class AccountDriver(CachedAccountDriver):
                 # 1. Create Project: should exist before creating user
                 project = self.user_manager.get_project(project_name)
                 if not project:
-                    project = self.user_manager.create_project(project_name)
+                    project = self.user_manager.create_project(project_name, domain='default')
 
                 # 2. Create User (And add them to the project)
                 user = self.get_user(username)
@@ -175,7 +175,7 @@ class AccountDriver(CachedAccountDriver):
                     logger.info("Creating account: %s - %s - %s"
                                 % (username, password, project))
                     user = self.user_manager.create_user(username, password,
-                                                         project)
+                                                         project, domain='default')
                 # 3.1 Include the admin in the project
                 # TODO: providercredential initialization of
                 #  "default_admin_role"
@@ -299,9 +299,9 @@ class AccountDriver(CachedAccountDriver):
         public_key - Contents of public key in OpenSSH format
         """
         clients = self.get_openstack_clients(username, password, project_name)
-        nova = clients["nova"]
-        keypair = nova.keypairs.create(
-            keyname,
+        osdk = clients["openstack_sdk"]
+        keypair = osdk.compute.create_keypair(
+            name=keyname,
             public_key=public_key)
         return keypair
 
@@ -652,7 +652,8 @@ class AccountDriver(CachedAccountDriver):
 
     def list_users(self, **kwargs):
         kwargs = self._parse_domain_kwargs(kwargs)
-        return self.openstack_sdk.identity.users(**kwargs)
+        domain_name = kwargs.pop('domain','default')
+        return self.user_manager.keystone.users.list(domain=domain_name, **kwargs)
 
     def list_usergroup_names(self):
         return [user.name for (user, project) in self.list_usergroups()]
