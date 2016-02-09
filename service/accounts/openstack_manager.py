@@ -218,8 +218,17 @@ class AccountDriver(CachedAccountDriver):
                             security_group_name, rules_list):
         # 4.1. Update the account quota to hold a larger number of
         # roles than what is necessary
-        user = self.user_manager.keystone.users.find(name=username)
-        project = self.user_manager.keystone.tenants.find(name=project_name)
+        # -- User:Openstack rev.
+        # user_matches = [u for u in self.openstack_sdk.identity.users(domain_id='default') if u.name == username]
+        # if not user_matches or len(user_matches) > 1:
+        #     raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
+        # user = user_matches[0]
+        # -- User:Keystone rev.
+        user_matches = [u for u in self.user_manager.keystone.users.list(domain='default') if u.name == username]
+        if not user_matches or len(user_matches) > 1:
+            raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
+        user = user_matches[0]
+        project = self.user_manager.keystone.projects.find(name=project_name)
         nc = self.user_manager.nova
         rule_max = max(len(rules_list), 100)
         nc.quotas.update(project.id, security_group_rules=rule_max)
@@ -270,8 +279,8 @@ class AccountDriver(CachedAccountDriver):
         public_key - Contents of public key in OpenSSH format
         """
         clients = self.get_openstack_clients(username, password, project_name)
-        nova = clients["nova"]
-        keypairs = nova.keypairs.list()
+        osdk = clients["openstack_sdk"]
+        keypairs = [kp for kp in osdk.compute.keypairs()]
         for kp in keypairs:
             if kp.name == keyname:
                 if kp.public_key != public_key:
@@ -701,8 +710,8 @@ class AccountDriver(CachedAccountDriver):
         if not password:
             password = self.hashpass(tenant_name)
         user_creds = {
-            "auth_url": self.user_manager.nova.client.auth_url,
-            "admin_url": self.user_manager.keystone._management_url,
+            "auth_url": self.user_manager.nova.client.auth_url.replace('/v3','').replace('/v2.0',''),
+            "admin_url": self.user_manager.keystone._management_url.replace('/v2.0','').replace('/v3',''),
             "region_name": self.user_manager.nova.client.region_name,
             "username": username,
             "password": password,
@@ -751,8 +760,8 @@ class AccountDriver(CachedAccountDriver):
         net_args.pop("ex_force_auth_version", None)
         auth_url = net_args.get('auth_url')
         net_args["auth_url"] = auth_url.replace("/v2.0","").replace("/tokens", "")
-        if '/v3' not in net_args['auth_url']:
-            net_args["auth_url"] += "/v3"
+        if '/v2.0' not in net_args['auth_url']:
+            net_args["auth_url"] += "/v2.0"
         return net_args
 
     def _build_image_creds(self, credentials):
@@ -776,14 +785,12 @@ class AccountDriver(CachedAccountDriver):
                     "ImageManager is missing a Required Argument: %s" %
                     required_arg)
         img_args.pop("ex_force_auth_version",None)
-        img_args['version'] = img_args.get("version",'v3')
+        img_args['version'] = img_args.get("version",'v2.0')
 
-        auth_url = img_args.get('auth_url')
-        #TODO: Replace with a 'strip to the hostname' instead
-        #TODO: See keystoneauth1 openstack for example of how to do this.
-        img_args["auth_url"] = auth_url.replace("/v2.0","").replace("/tokens", "")
-        if '/v3/' not in img_args['auth_url']:
-            img_args["auth_url"] += "/v3/"
+        img_args["auth_url"] = img_args.get('auth_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')
+        # img_args["admin_url"] = img_args.get('admin_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')
+        if 'v2.0/tokens' not in img_args['auth_url']:
+            img_args["auth_url"] += "/v2.0/tokens"
         return img_args
 
     def _build_user_creds(self, credentials):
