@@ -409,28 +409,6 @@ class AccountDriver(CachedAccountDriver):
             **net_args)
 
     # Useful methods called from above..
-    def get_or_create_user(self, username, password=None,
-                           project=None, admin=False):
-        user = self.get_user(username)
-        if user:
-            return user
-        user = self.create_user(username, password, usergroup, admin)
-        return user
-
-    def create_user(self, username,
-                    password=None, usergroup=True, admin=False):
-        if not password:
-            password = self.hashpass(username)
-        if usergroup:
-            (project, user, role) = self.user_manager.add_usergroup(
-                username, password, True, admin)
-        else:
-            user = self.user_manager.add_user(username, password)
-            project = self.user_manager.get_project(username)
-        # TODO: Instead, return user.get_user match, or call it if you have
-        # to..
-        return user
-
     def delete_account(self, username, projectname):
         self.os_delete_account(username, projectname)
         Identity.delete_identity(username, self.core_provider.location)
@@ -674,6 +652,7 @@ class AccountDriver(CachedAccountDriver):
                     usergroups.append((user, group))
                     break
         return usergroups
+
 
     def _get_horizon_url(self, tenant_id):
         parsed_url = urlparse(self.provider_creds["auth_url"])
