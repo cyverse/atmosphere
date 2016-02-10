@@ -195,7 +195,8 @@ def get_public_and_private_apps(provider):
         db_version = db_machine.application_version
         db_application = db_version.application
 
-        if cloud_machine.is_public:
+        #if cloud_machine.is_public:
+        if cloud_machine.get('visibility') == 'public':
             if db_application.private and db_application not in new_public_apps:
                 new_public_apps.append(db_application) #Distinct list..
             #Else the db app is public and no changes are necessary.
