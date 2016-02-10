@@ -408,7 +408,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
     return email_from_admin(user.username, subject, body)
 
 
-def resource_request_email(request, username, new_resource, reason):
+def resource_request_email(request, username, new_resource, reason, options):
     """
     Processes Resource request. Sends email to atmo@iplantc.org
 
@@ -420,6 +420,8 @@ def resource_request_email(request, username, new_resource, reason):
         member__in=user.group_set.all())
     admin_url = reverse('admin:core_identitymembership_change',
                         args=(membership.id,))
+    if 'admin_url' in options:
+        admin_url = options['admin_url']
 
     subject = "Atmosphere Resource Request - %s" % username
     context = {
