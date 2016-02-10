@@ -228,7 +228,7 @@ class AccountDriver(CachedAccountDriver):
         if not user_matches or len(user_matches) > 1:
             raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
         user = user_matches[0]
-        project = self.user_manager.keystone.projects.find(name=project_name)
+        project = self.user_manager.keystone.projects.find(name=project_name, domain_id='default')
         nc = self.user_manager.nova
         rule_max = max(len(rules_list), 100)
         nc.quotas.update(project.id, security_group_rules=rule_max)
