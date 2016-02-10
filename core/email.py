@@ -79,7 +79,7 @@ def lookup_user(request):
 
 def user_email_info(username):
     logger.debug("user = %s" % username)
-    user = AtmosphereUser.objects.get(username=username)
+    user = User.objects.get(username=username)
     user_name = user.get_full_name()
     user_email = user.email
     if not user.email:
@@ -165,9 +165,10 @@ def email_to_admin(
     elif not user_email:  # Username provided
         if isinstance(username, User):
             username = username.username
-        user_email = lookupEmail(username)
+        #user_email = lookupEmail(username)
+        user_email = user.email
         if not user_email:
-            user_email = "%s@iplantcollaborative.org" % username
+            user_email = "%s@jetstream-cloud.org" % username
     elif not username:  # user_email provided
         username = 'Unknown'
     if request_tracker or not cc_user:
@@ -188,7 +189,8 @@ def email_from_admin(username, subject, message, html=False):
         Returns True on success and False on failure.
     """
     from_name, from_email = admin_address()
-    user_email = lookupEmail(username)
+    #user_email = lookupEmail(username)
+    user_email = user.email
     if not user_email:
         user_email = "%s@iplantcollaborative.org" % username
     return send_email(subject, message,
@@ -210,7 +212,8 @@ def send_approved_resource_email(user, request, reason):
         "reason": reason
     }
     from_name, from_email = admin_address()
-    user_email = lookupEmail(user.username)
+    #user_email = lookupEmail(user.username)
+    user_email = user.email
     recipients = [email_address_str(user.username, user_email)]
     sender = email_address_str(from_name, from_email)
 
