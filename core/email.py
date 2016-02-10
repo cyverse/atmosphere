@@ -408,7 +408,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
     return email_from_admin(user.username, subject, body)
 
 
-def resource_request_email(request, username, new_resource, reason, options=None):
+def resource_request_email(request, username, new_resource, reason, options={}):
     """
     Processes Resource request. Sends email to atmo@iplantc.org
 
