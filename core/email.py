@@ -165,8 +165,10 @@ def email_to_admin(
     elif not user_email:  # Username provided
         if isinstance(username, User):
             username = username.username
-        #user_email = lookupEmail(username)
-        user_email = user.email
+            user_email = user.email
+        else:
+            user = User.objects.get(username=username)
+            user_email = user.email
         if not user_email:
             user_email = "%s@jetstream-cloud.org" % username
     elif not username:  # user_email provided
@@ -190,6 +192,7 @@ def email_from_admin(username, subject, message, html=False):
     """
     from_name, from_email = admin_address()
     #user_email = lookupEmail(username)
+    user = User.objects.get(username=username)
     user_email = user.email
     if not user_email:
         user_email = "%s@iplantcollaborative.org" % username
