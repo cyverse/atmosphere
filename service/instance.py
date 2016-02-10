@@ -1188,9 +1188,14 @@ def check_application_threshold(
     application = Application.objects.filter(
         versions__machines__instance_source__identifier=boot_source.identifier,
         versions__machines__instance_source__provider=core_identity.provider).distinct().get()
-    threshold = application.get_threshold()
+    try:
+        threshold = boot_source.current_source.application_version.get_threshold()
+    except:
+        return
+
     if not threshold:
         return
+    
     # NOTE: Should be MB to MB test
     if esh_size.ram < threshold.memory_min:
         raise UnderThresholdError("This application requires >=%s GB of RAM."

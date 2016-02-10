@@ -73,6 +73,13 @@ class ApplicationVersion(models.Model):
                                self.name,
                                self.start_date)
 
+    def get_threshold(self):
+        from core.models.application import ApplicationThreshold
+        try:
+            return self.threshold
+        except ApplicationThreshold.DoesNotExist:
+            return None
+
     def active_machines(self):
         """
         Show machines that are from an active provider and non-end-dated.
