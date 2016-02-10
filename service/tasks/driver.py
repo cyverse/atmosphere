@@ -983,7 +983,18 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         return 'centos'
     except (BaseException, Exception) as exc:
         pass
-    # Attempt #3 - SSH connection as root
+    # Attempt #3 - SSH connection as cirros
+    try:
+        kwargs = _generate_ssh_kwargs()
+        kwargs.update({'ssh_username': 'cirros', 'deploy': echo_test})
+        driver.deploy_to(instance, **kwargs)
+        celery_logger.debug(
+            "deploy_ready_test task %s/%s finished at %s." %
+            (current_count, total, datetime.now()))
+        return 'cirros'
+    except (BaseException, Exception) as exc:
+        pass
+    # Attempt #4 - SSH connection as root
     try:
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': echo_test})
