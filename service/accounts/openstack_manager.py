@@ -167,7 +167,7 @@ class AccountDriver(CachedAccountDriver):
                 # 1. Create Project: should exist before creating user
                 project = self.user_manager.get_project(project_name)
                 if not project:
-                    project = self.user_manager.create_project(project_name)
+                    project = self.user_manager.create_project(project_name, domain='default')
 
                 # 2. Create User (And add them to the project)
                 user = self.get_user(username)
@@ -175,7 +175,7 @@ class AccountDriver(CachedAccountDriver):
                     logger.info("Creating account: %s - %s - %s"
                                 % (username, password, project))
                     user = self.user_manager.create_user(username, password,
-                                                         project)
+                                                         project, domain='default')
                 # 3.1 Include the admin in the project
                 # TODO: providercredential initialization of
                 #  "default_admin_role"
@@ -228,7 +228,7 @@ class AccountDriver(CachedAccountDriver):
         if not user_matches or len(user_matches) > 1:
             raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
         user = user_matches[0]
-        project = self.user_manager.keystone.projects.find(name=project_name)
+        project = self.user_manager.keystone.projects.find(name=project_name, domain_id='default')
         nc = self.user_manager.nova
         rule_max = max(len(rules_list), 100)
         nc.quotas.update(project.id, security_group_rules=rule_max)
@@ -299,9 +299,9 @@ class AccountDriver(CachedAccountDriver):
         public_key - Contents of public key in OpenSSH format
         """
         clients = self.get_openstack_clients(username, password, project_name)
-        nova = clients["nova"]
-        keypair = nova.keypairs.create(
-            keyname,
+        osdk = clients["openstack_sdk"]
+        keypair = osdk.compute.create_keypair(
+            name=keyname,
             public_key=public_key)
         return keypair
 
@@ -409,28 +409,6 @@ class AccountDriver(CachedAccountDriver):
             **net_args)
 
     # Useful methods called from above..
-    def get_or_create_user(self, username, password=None,
-                           project=None, admin=False):
-        user = self.get_user(username)
-        if user:
-            return user
-        user = self.create_user(username, password, usergroup, admin)
-        return user
-
-    def create_user(self, username,
-                    password=None, usergroup=True, admin=False):
-        if not password:
-            password = self.hashpass(username)
-        if usergroup:
-            (project, user, role) = self.user_manager.add_usergroup(
-                username, password, True, admin)
-        else:
-            user = self.user_manager.add_user(username, password)
-            project = self.user_manager.get_project(username)
-        # TODO: Instead, return user.get_user match, or call it if you have
-        # to..
-        return user
-
     def delete_account(self, username, projectname):
         self.os_delete_account(username, projectname)
         Identity.delete_identity(username, self.core_provider.location)
@@ -652,7 +630,8 @@ class AccountDriver(CachedAccountDriver):
 
     def list_users(self, **kwargs):
         kwargs = self._parse_domain_kwargs(kwargs)
-        return self.openstack_sdk.identity.users(**kwargs)
+        domain_name = kwargs.pop('domain','default')
+        return self.user_manager.keystone.users.list(domain=domain_name, **kwargs)
 
     def list_usergroup_names(self):
         return [user.name for (user, project) in self.list_usergroups()]
@@ -673,6 +652,7 @@ class AccountDriver(CachedAccountDriver):
                     usergroups.append((user, group))
                     break
         return usergroups
+
 
     def _get_horizon_url(self, tenant_id):
         parsed_url = urlparse(self.provider_creds["auth_url"])

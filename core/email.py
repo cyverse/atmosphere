@@ -79,19 +79,11 @@ def lookup_user(request):
 
 def user_email_info(username):
     logger.debug("user = %s" % username)
-    ldap_attrs = lookupUser(username)
-    user_email = ldap_attrs.get('mail', [None])[0]
-    if not user_email:
-        raise Exception(
-            "Could not locate email address for User:%s - Attrs: %s" %
-            (username, ldap_attrs))
-    user_name = ldap_attrs.get('cn', [""])[0]
-    if not user_name:
-        user_name = "%s %s" % (ldap_attrs.get("displayName", [""])[0],
-                               ldap_attrs.get("sn", [""])[0])
-    if not user_name.strip(' '):
-        user_name = username
-
+    user = User.objects.get(username=username)
+    user_name = user.get_full_name()
+    user_email = user.email
+    if not user.email:
+        raise Exception("User %s missing REQUIRED email:" % user)
     return (username, user_email, user_name)
 
 
@@ -173,9 +165,12 @@ def email_to_admin(
     elif not user_email:  # Username provided
         if isinstance(username, User):
             username = username.username
-        user_email = lookupEmail(username)
+            user_email = user.email
+        else:
+            user = User.objects.get(username=username)
+            user_email = user.email
         if not user_email:
-            user_email = "%s@iplantcollaborative.org" % username
+            user_email = "%s@jetstream-cloud.org" % username
     elif not username:  # user_email provided
         username = 'Unknown'
     if request_tracker or not cc_user:
@@ -196,7 +191,9 @@ def email_from_admin(username, subject, message, html=False):
         Returns True on success and False on failure.
     """
     from_name, from_email = admin_address()
-    user_email = lookupEmail(username)
+    #user_email = lookupEmail(username)
+    user = User.objects.get(username=username)
+    user_email = user.email
     if not user_email:
         user_email = "%s@iplantcollaborative.org" % username
     return send_email(subject, message,
@@ -218,7 +215,8 @@ def send_approved_resource_email(user, request, reason):
         "reason": reason
     }
     from_name, from_email = admin_address()
-    user_email = lookupEmail(user.username)
+    #user_email = lookupEmail(user.username)
+    user_email = user.email
     recipients = [email_address_str(user.username, user_email)]
     sender = email_address_str(from_name, from_email)
 

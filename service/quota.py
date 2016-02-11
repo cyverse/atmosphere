@@ -26,7 +26,7 @@ def set_provider_quota(identity_uuid, limit_dict=None):
     if identity.provider.get_type_name().lower() == 'openstack':
         driver = get_cached_driver(identity=identity)
         username = identity.created_by.username
-        user_id = driver._connection._get_user_id()
+        user_id = driver._connection.key
         tenant_id = driver._connection._get_tenant_id()
         membership = IdentityMembership.objects.get(
             identity__uuid=identity_uuid,

@@ -179,6 +179,7 @@ def create_first_identity(username, provider=None):
     if not provider:
         raise Exception("No currently active providers -- Could not create First identity")
     accounts = get_account_driver(provider)
+    logger.info("Create NEW account for %s" % user.username)
     new_identity = accounts.create_account(user.username)
     return new_identity
 
