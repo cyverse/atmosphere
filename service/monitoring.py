@@ -353,8 +353,8 @@ def _cleanup_missing_instances(
                     " New History: %s" %
                     (inst.provider_alias,
                      count, history_names, new_history))
-        # Gather the updated values..
-        instances.append(inst)
+            # Gather the updated values..
+            instances.append(inst)
     # Return the updated list
     if fixed_instances:
         logger.warn("Cleaned up %s instances for %s"
