@@ -3,7 +3,7 @@ from core.models import MachineRequest, Provider, ProviderMachine,\
     ProviderMachineMembership, Group
 from core.models.credential import get_groups_using_credential
 from service.machine import process_machine_request, sync_image_access_list
-from service.accounts.openstack import AccountDriver as OSAccounts
+from service.accounts.openstack_manager import AccountDriver as OSAccounts
 from service.driver import get_admin_driver
 from api.machine import list_filtered_machines
 from django.db.models import Q

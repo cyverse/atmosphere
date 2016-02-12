@@ -10,7 +10,7 @@ except ImportError:
 
 from core.models import Provider, Identity
 
-from service.accounts.openstack import AccountDriver as OSAccountDriver
+from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 from service.driver import get_esh_driver
 from service.instance import network_init
 

@@ -2,7 +2,7 @@ from threepio import logger
 
 from core.models import IdentityMembership, Identity, Provider
 
-from service.accounts.openstack import AccountDriver
+from service.accounts.openstack_manager import AccountDriver
 from service.cache import get_cached_driver
 
 

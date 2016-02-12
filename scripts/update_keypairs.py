@@ -2,7 +2,7 @@
 
 from atmosphere import settings
 from core.models import Provider, Identity
-from service.accounts.openstack import AccountDriver as OSAccountDriver
+from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 from keystoneclient.apiclient.exceptions import Unauthorized
 import django
 django.setup()

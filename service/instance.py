@@ -39,7 +39,7 @@ from service.exceptions import (
     VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
     socket_error, ConnectionFailure, InstanceDoesNotExist, InvalidCredsError)
 
-from service.accounts.openstack import AccountDriver as OSAccountDriver
+from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
 
 def _get_size(esh_driver, esh_instance):
