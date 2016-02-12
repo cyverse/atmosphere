@@ -46,7 +46,8 @@ class BaseRequest(models.Model):
         """
         Only allow one active request per provider
         """
-        if not self.pk and self.is_active(self.membership) and self.has_current_requests(self.membership):
+        if not self.pk and self.is_active(self.membership)\
+                and self.has_current_requests(self.membership):
             raise ProviderLimitExceeded(
                 "The number of open requests has been exceeded.")
 
