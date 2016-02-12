@@ -157,15 +157,21 @@ class MachineRequest(BaseRequest):
         # created.
         return self.parent_machine.application
 
+    def get_version(self):
+        if self.new_machine:
+            return self.new_machine.application_version
+        return None
+
     def update_threshold(self):
-        application = self.get_app()
+        application_version = self.get_version()
         existing_threshold = ApplicationThreshold.objects.filter(
-            application=application)
+            application_version=application_version)
 
         if existing_threshold:
             threshold = existing_threshold[0]
         else:
-            threshold = ApplicationThreshold(application=application)
+            threshold = ApplicationThreshold(
+                application_version=application_version)
 
         threshold.memory_min = self.new_version_memory_min
         threshold.cpu_min = self.new_version_cpu_min
