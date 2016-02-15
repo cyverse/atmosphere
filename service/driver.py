@@ -217,7 +217,7 @@ def prepare_driver(request, provider_uuid, identity_uuid,
         return None
 
 
-def _retrieve_source(esh_driver, new_source_alias, source_hint):
+def _retrieve_source(esh_driver, new_source_alias, source_hint=None):
     source = None
     if not source_hint or source_hint == "machine":
         source = esh_driver.get_machine(new_source_alias)

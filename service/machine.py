@@ -391,7 +391,12 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
             name = tenant.name
         else:
             name = tenant
-        group = models.Group.objects.get(name=name)
+        try:
+            group = models.Group.objects.get(name=name)
+        except models.Group.DoesNotExist:
+            logger.warn("Group %s does not exist - Skipped sharing" % name)
+            pass
+
         obj, created = models.ApplicationMembership.objects.get_or_create(
             group=group,
             application=provider_machine.application)
