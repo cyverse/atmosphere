@@ -135,3 +135,4 @@ class MachineRequestViewSet(BaseRequestViewSet):
         """
         Silently close request
         """
+        pass
