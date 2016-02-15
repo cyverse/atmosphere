@@ -259,6 +259,7 @@ def add_membership(image_version, group):
                     % (obj,)
             # Share with the *cloud* last!
             accounts.image_manager.share_image(img, project_name)
+            accounts.accept_shared_image(img, project_name)
             logger.info("Added Cloud Access: %s-%s"
                         % (img, project_name))
             continue

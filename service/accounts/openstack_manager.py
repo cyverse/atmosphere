@@ -305,6 +305,21 @@ class AccountDriver(BaseAccountDriver):
             public_key=public_key)
         return keypair
 
+    def accept_shared_image(self, glance_image, project_name):
+        """
+        This is only required when sharing using 'the v2 api' on glance.
+        """
+        #NOTE: Abusing the 'project_name' == 'username' mapping. Future me will fix this.
+        clients = self.get_openstack_clients(project_name)
+        project = self.user_manager.get_project(project_name)
+        glance = clients["glance"]
+        glance.image_members.update(
+            glance_image.id, 
+            project.id,
+            'accepted')
+
+        
+
     def rebuild_security_groups(self, core_identity, rules_list=None):
         creds = self.parse_identity(core_identity)
         if not rules_list:
