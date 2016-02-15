@@ -197,8 +197,8 @@ def upload_privacy_data(machine_request, new_machine):
         is_public = img.get('visibility','N/A') == 'public'
 
     if is_public:
-        print "Marking image %s private" % image.id
-        image_manager.update_image(image, is_public=False)
+        print "Marking image %s private" % img.id
+        accounts.image_manager.update_image(img, visibility='private')
 
     accounts.clear_cache()
     admin_driver = accounts.admin_driver  # cache has been cleared
