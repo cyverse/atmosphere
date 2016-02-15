@@ -13,25 +13,48 @@ def glance_write_machine(provider_machine):
     """
     Using the provider_machine in the DB, save information to the Cloud.
     """
+    update_method = ""
     base_source = provider_machine.instance_source
     provider = base_source.provider
     base_app = provider_machine.application
     identifier = base_source.identifier
+    accounts = get_account_driver(provider)
     g_image = glance_image_for(provider.uuid, identifier)
     if not g_image:
         return
-    props = g_image.properties
-    extras = {
+    if hasattr(g_image, 'properties'):
+        props = g_image.properties
+        update_method = 'v2'
+    elif hasattr(g_image, 'items'):
+        props = dict(g_image.items())
+        update_method = 'v3'
+    else:
+        raise Exception(
+            "The method for 'introspecting an image' has changed!"
+            " Ask a programmer to fix this!")
+    # Do any updating that makes sense... Name. Metadata..
+    overrides = {
         "application_version": str(provider_machine.application_version.name),
-        "application_uuid": base_app.uuid,
+        "application_uuid": str(base_app.uuid),
         "application_name": _make_safe(base_app.name),
         "application_owner": base_app.created_by.username,
         "application_tags": json.dumps(
             [_make_safe(tag.name) for tag in base_app.tags.all()]),
-        "application_description": _make_safe(base_app.description)}
-    props.update(extras)
-    # Do any updating that makes sense... Name. Metadata..
-    g_image.update(name=base_app.name, properties=props)
+        "application_description": _make_safe(base_app.description)
+    }
+    if update_method == 'v2':
+        extras = {
+            'name': base_app.name,
+            'properties': overrides
+        }
+        props.update(extras)
+        g_image.update(props)
+    else:
+        overrides['name'] = base_app.name
+        accounts.image_manager.glance.images.update(
+            g_image.id, **overrides)
+    return True
+    
 
 
 def _make_safe(unsafe_str):
@@ -72,14 +95,25 @@ def _make_unsafe(safe_str):
 
 
 def glance_update_machine_metadata(provider_machine, metadata={}):
+    update_method = ""
     base_source = provider_machine.instance_source
     base_app = provider_machine.application
     identifier = base_source.identifier
+    accounts = get_account_driver(provider)
     g_image = glance_image_for(base_source.provider.uuid, identifier)
     if not g_image:
-        return
-    props = g_image.properties
-    extras = {
+        return False
+    if hasattr(g_image, 'properties'):
+        props = g_image.properties
+        update_method = 'v2'
+    elif hasattr(g_image, 'items'):
+        props = dict(g_image.items())
+        update_method = 'v3'
+    else:
+        raise Exception(
+            "The method for 'introspecting an image' has changed!"
+            " Ask a programmer to fix this!")
+    overrides = {
         "application_version": str(provider_machine.application_version.name),
         "application_uuid": base_app.uuid,
         "application_name": _make_safe(base_app.name),
@@ -87,9 +121,17 @@ def glance_update_machine_metadata(provider_machine, metadata={}):
         "application_tags": json.dumps(
             [_make_safe(tag.name) for tag in base_app.tags.all()]),
         "application_description": _make_safe(base_app.description)}
-    props.update(extras)
-    # Do any updating that makes sense... Name. Metadata..
-    g_image.update(name=base_app.name, properties=props)
+    overrides.update(metadata)
+
+    if update_method == 'v2':
+        extras = { 'properties': overrides }
+        props.update(extras)
+        g_image.update(name=base_app.name, properties=extras)
+    else:
+        accounts.image_manager.glance.images.update(
+            g_image.id, **overrides)
+    return True
+
 
 
 def glance_update_machine(new_machine):
