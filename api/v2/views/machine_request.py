@@ -130,3 +130,8 @@ class MachineRequestViewSet(BaseRequestViewSet):
         """
         Notify the user that the request was denied
         """
+
+    def close_action(self, instance):
+        """
+        Silently close request
+        """
