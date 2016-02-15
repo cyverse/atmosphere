@@ -1,3 +1,11 @@
+import uuid
+
+from core.exceptions import ProviderNotActive
+from core.models import AtmosphereUser as User
+from core.models.identity import Identity as CoreIdentity
+from core.models.provider import Provider as CoreProvider
+from core.models.size import convert_esh_size
+
 from threepio import logger
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
@@ -7,11 +15,8 @@ from rtwo.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 
-from core.exceptions import ProviderNotActive
-from core.models import AtmosphereUser as User
-from core.models.identity import Identity as CoreIdentity
-from core.models.size import convert_esh_size
 
+#TODO: Remove these ASAP -- Once we determine it will not be a problem.
 EucaProvider.set_meta()
 AWSProvider.set_meta()
 OSProvider.set_meta()
@@ -93,6 +98,8 @@ def get_account_driver(provider):
     Create an account driver for a given provider.
     """
     try:
+        if type(provider) == uuid.UUID:
+            provider = CoreProvider.objects.get(uuid=provider)
         type_name = provider.get_type_name().lower()
         if 'openstack' in type_name:
             from service.accounts.openstack_manager import AccountDriver as\
@@ -103,8 +110,12 @@ def get_account_driver(provider):
                 EucaAccountDriver
             return EucaAccountDriver(provider)
     except:
+        if type(provider) == uuid.UUID:
+            provider_str = "Provider with UUID %s" % provider
+        else:
+            provider_str = "Provider %s" % provider.location
         logger.exception("Account driver for provider %s not found." %
-                         (provider.location))
+                         (provider_str))
         return None
 
 
