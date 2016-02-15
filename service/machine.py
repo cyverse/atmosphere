@@ -180,12 +180,26 @@ def share_with_admins(private_userlist, provider_uuid):
 
 
 def upload_privacy_data(machine_request, new_machine):
+    """
+    ASSERT: The image in 'new_machine' SHOULD BE private
+    (Based on values in machine_request)
+    """
     prov = new_machine.provider
     accounts = get_account_driver(prov)
     if not accounts:
         print "Aborting import: Could not retrieve Account Driver "\
             "for Provider %s" % prov
         return
+    img = accounts.get_image(new_machine.identifier)
+    if hasattr(img, 'visibility'):  # Treated as an obj.
+        is_public = img.visibility == 'public'
+    elif hasattr(img, 'items'):  # Treated as a dict.
+        is_public = img.get('visibility','N/A') == 'public'
+
+    if is_public:
+        print "Marking image %s private" % image.id
+        image_manager.update_image(image, is_public=False)
+
     accounts.clear_cache()
     admin_driver = accounts.admin_driver  # cache has been cleared
     if not admin_driver:
@@ -359,9 +373,6 @@ def sync_cloud_access(accounts, img, names=None):
 
 
 def make_private(image_manager, image, provider_machine, tenant_list=[]):
-    if image.is_public:
-        print "Marking image %s private" % image.id
-        image_manager.update_image(image, is_public=False)
     if provider_machine.application.private is False:
         print "Marking application %s private" % provider_machine.application
         provider_machine.application.private = True
