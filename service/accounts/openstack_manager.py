@@ -30,7 +30,7 @@ from core.models import AtmosphereUser as User
 from core.ldap import get_uid_number
 from core.models.identity import Identity
 
-from service.accounts.base import CachedAccountDriver
+from service.accounts.base import BaseAccountDriver
 
 
 def get_random_uid(userid):
@@ -41,7 +41,7 @@ def get_random_uid(userid):
     return int(random.uniform(1, MAX_SUBNET))
 
 
-class AccountDriver(CachedAccountDriver):
+class AccountDriver(BaseAccountDriver):
     user_manager = None
     image_manager = None
     network_manager = None
