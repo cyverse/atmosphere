@@ -993,27 +993,29 @@ def _launch_volume(driver, identity, volume, size, userdata_content, network,
 def _launch_machine(driver, identity, machine, size,
                     name, userdata_content=None, network=None,
                     password=None, token=None, **kwargs):
-    if isinstance(driver.provider, EucaProvider):
-        # Create/deploy the instance -- NOTE: Name is passed in extras
-        logger.info("EUCA -- driver.create_instance EXTRAS:%s" % kwargs)
-        esh_instance = driver\
-            .create_instance(name=name, image=machine, size=size,
-                             ex_userdata=userdata_contents, **kwargs)
-    elif isinstance(driver.provider, OSProvider):
+    if isinstance(driver.provider, OSProvider):
         deploy = True
         #ex_metadata, ex_keyname
         extra_args = _extra_openstack_args(identity)
         kwargs.update(extra_args)
+        conn_kwargs = {'max_attempts': 1}
         logger.debug("OS driver.create_instance kwargs: %s" % kwargs)
         esh_instance = driver.create_instance(
             name=name, image=machine, size=size,
             token=token,
             networks=[network], ex_admin_pass=password,
+            ex_connection_kwargs=conn_kwargs,
             **kwargs)
         # Used for testing.. Eager ignores countdown
         if app.conf.CELERY_ALWAYS_EAGER:
             logger.debug("Eager Task, wait 1 minute")
             time.sleep(1 * 60)
+    elif isinstance(driver.provider, EucaProvider):
+        # Create/deploy the instance -- NOTE: Name is passed in extras
+        logger.info("EUCA -- driver.create_instance EXTRAS:%s" % kwargs)
+        esh_instance = driver\
+            .create_instance(name=name, image=machine, size=size,
+                             ex_userdata=userdata_contents, **kwargs)
     elif isinstance(driver.provider, AWSProvider):
         # TODO:Extra stuff needed for AWS provider here
         esh_instance = driver.deploy_instance(
