@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from core import exceptions as core_exceptions
-from core.models import IdentityMembership
+from core.models import IdentityMembership, CloudAdministrator
 from core.models.status_type import StatusType
 
 from api.permissions import (
@@ -24,8 +24,9 @@ def unresolved_requests_only(fn):
     @wraps(fn)
     def wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
+        user_can_act = request.user.is_staff or request.user.is_superuser or CloudAdministrator.objects.filter(user=request.user.id)
         #TODO: Logic needs 're-worked' here. MachineRequests in 'non-final' states should be allowed to be PATCH'ed for re-submission.
-        if (hasattr(instance, "is_closed") and instance.is_closed()):
+        if (hasattr(instance, "is_closed") and instance.is_closed() and not user_can_act):
             message = (
                 "Method '%s' not allowed: "
                 "the request has already been resolved."
