@@ -13,6 +13,7 @@ from core.models import MachineRequest, IdentityMembership, AtmosphereUser,\
 from core.models.status_type import StatusType
 from core.email import requestImaging
 
+from service.machine import share_with_admins, share_with_self, remove_duplicate_users
 from service.tasks.machine import start_machine_imaging
 from threepio import logger
 
@@ -46,8 +47,16 @@ class MachineRequestViewSet(BaseRequestViewSet):
         #new_provider= serializer.validated_data['new_machine_provider']
         new_owner=self.request.user
         parent_machine = serializer.validated_data['instance'].provider_machine
-        # TODO: This is a hack that can be removed POST-kk
-        new_provider = parent_machine.provider # <--
+
+        # TODO: This is a hack that can be removed POST-ll (When MachineRequest validates new_machine_provider)
+        new_provider = parent_machine.provider  # <--HACK!
+        access_list = []
+        
+        if serializer.initial_data.get("new_application_visibility") == "private":
+            share_with_admins(access_list, parent_machine.provider.uuid)
+            share_with_self(access_list, self.request.user.username)
+            access_list = remove_duplicate_users(access_list)
+
         status, _ = StatusType.objects.get_or_create(name="pending")
         new_machine_provider = Provider.objects.filter(id=new_provider.id)
         new_machine_owner = AtmosphereUser.objects.filter(id=new_owner.id)
@@ -76,6 +85,8 @@ class MachineRequestViewSet(BaseRequestViewSet):
                 created_by=self.request.user,
                 new_machine_provider=new_provider,
                 new_machine_owner=new_owner,
+                access_list = access_list,
+                old_status="pending",  # TODO: Is this required or will it default to pending?
                 parent_machine=parent_machine
             )
             self.submit_action(instance)
@@ -101,6 +112,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
             }
             logger.exception(e)
             raise rest_exceptions.ParseError(detail=message)
+
 
     def submit_action(self, instance):
         """
