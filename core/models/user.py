@@ -144,7 +144,7 @@ def get_default_identity(username, provider=None):
             if settings.AUTO_CREATE_NEW_ACCOUNTS:
                 new_identities = create_new_accounts(username, provider=provider)
                 if not new_identities:
-                    logger.error("%s has no identities. Functionality will be severely limeted." % username)
+                    logger.error("%s has no identities. Functionality will be severely limited." % username)
                     return None
                 return new_identites[0]
             else:
