@@ -39,6 +39,21 @@ def _match_tags_to_names(tag_names):
     return models.Tag.objects.filter(filters)
 
 
+def remove_duplicate_users(user_list):
+    users_dict = {}
+    to_return = []
+
+    for user in user_list:
+        # remove blanks
+        if user and user not in users_dict:
+            users_dict[user] = True
+
+    for user in users_dict.keys():
+        to_return.append(user)
+
+    return to_return
+
+
 def process_machine_request(machine_request, new_image_id, update_cloud=True):
     """
     NOTE: Current process accepts instance with source of 'Image' ONLY!
