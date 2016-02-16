@@ -62,7 +62,7 @@ class BootScript(models.Model):
 
     def get_text(self):
         if self.script_type.name == 'Raw Text':
-            return self.script_text.strip ()  # Remove whitespace
+            return self.script_text.strip()  # Remove whitespace
         elif self.script_type.name == 'URL':
             return self._text_from_url()
 
