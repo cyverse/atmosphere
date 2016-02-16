@@ -32,7 +32,7 @@ from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 
-from service.deploy import _inject_env_script, check_process, wrap_script, echo_test_script,\
+from service.deploy import inject_env_script, check_process, wrap_script, echo_test_script,\
     deploy_to as ansible_deploy_to
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
@@ -789,7 +789,7 @@ def _get_boot_script_chain(
         return first_task, end_task
     script_zero = deploy_boot_script.si(
             driverCls, provider, identity, instance_id,
-            _inject_env_script(core_identity.created_by.username),
+            inject_env_script(core_identity.created_by.username),
             "Inject ENV variables")
     first_task = script_zero
     end_task = script_zero # For now, its first and last. this will change.

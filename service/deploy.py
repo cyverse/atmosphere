@@ -6,6 +6,8 @@ import os
 import sys
 import time
 
+from django.template import Context
+from django.template.loader import render_to_string
 from django.utils.text import slugify
 from django.utils.timezone import datetime
 
@@ -473,19 +475,17 @@ def wrap_script(script_text, script_name):
         script_text, name=full_script_name)
 
 
-def _inject_env_script(username):
+def inject_env_script(username):
     """
     This is the 'raw script' that will be used to prepare the environment.
     TODO: Find a better home for this. Probably use ansible for this.
     """
-    return \
-        """#!/bin/bash -x
-atmo_user="%s"
-env_file="%s"
-env_vars=`cat $env_file`
-if [[ $env_vars == *"ATMO_USER="* ]]; then
-    sed -i "s/ATMO_USER=.*/ATMO_USER=\"$atmo_user\"/" $env_file
-else
-    echo "ATMO_USER=\"$atmo_user\"" >> $env_file
-fi
-""" % (username, "$HOME/.bashrc")
+    env_file = "$HOME/.bashrc"
+    template = "scripts/bash_inject_env.sh"
+    context = {
+        "username": username,
+        "env_file": env_file,
+    }
+    rendered_script = render_to_string(
+        template, context=Context(context))
+    return rendered_script
