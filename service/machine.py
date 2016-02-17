@@ -49,7 +49,7 @@ def remove_duplicate_users(user_list):
             users_dict[user] = True
 
     for user in users_dict.keys():
-        to_return.append(user)
+        to_return.append(str(user))
 
     return to_return
 
