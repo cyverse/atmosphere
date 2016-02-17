@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 
 def no_special_characters(value):
-    invalid_chars = '!"#$%&\'*+,/;<=>?@[\\]^_`{|}~'
+    invalid_chars = '!"#$%&\'*+,/;<=>?@[\\]^`{|}~'
     # Noteably ABSENT (These are "OKAY"): ()-.
     if any(char in invalid_chars for char in value):
         raise serializers.ValidationError(
