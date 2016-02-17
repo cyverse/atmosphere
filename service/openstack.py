@@ -155,10 +155,20 @@ def glance_update_machine(new_machine):
     if g_image:
         logger.debug("Found glance image for %s" % new_machine)
         # Never set private=False if it's set True in the DB.
-        if g_image.is_public is False:
-            new_app.private = True
-        g_end_date = glance_timestamp(g_image.deleted)
-        g_start_date = glance_timestamp(g_image.created_at)
+        if hasattr(g_image, 'is_public'):
+            #'v1' glance image has attrs
+            if g_image.is_public is False:
+                new_app.private = True
+            g_end_date = glance_timestamp(g_image.deleted)
+            g_start_date = glance_timestamp(g_image.created_at)
+        elif hasattr(g_image, 'items'):
+            #'v2' glance image is a dict.
+            if not g_image['is_public']:
+                new_app.private = True
+            g_end_date = glance_timestamp(g_image['deleted'])
+            g_start_date = glance_timestamp(g_image['created_at'])
+        else:
+            raise Exception("Glance image has changed. Ask a programmer for help!")
         if new_app.first_machine() is new_machine:
             logger.debug("Glance image represents App:%s" % new_app)
             new_app.created_by = owner.created_by
