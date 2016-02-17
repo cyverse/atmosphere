@@ -791,39 +791,40 @@ def _get_boot_script_chain(
             driverCls, provider, identity, instance_id,
             inject_env_script(core_identity.created_by.username),
             "Inject ENV variables")
-    first_task = script_zero
-    end_task = script_zero # For now, its first and last. this will change.
     total = len(scripts)
     for idx, script in enumerate(scripts):
         # Name the status
-        if total > 2:
-            script_text = "running_boot_script: #%s/%s" % (idx + 1, total - 1)
+        if total > 1:
+            script_text = "running_boot_script: #%s/%s" % (idx + 1, total)
         else:
             script_text = "running_boot_script"
         # Update the status
         init_script_status_task = update_metadata.si(
             driverCls, provider, identity, instance_id,
             {'tmp_status': script_text})
+        init_script_status_task.link_error(
+            boot_script_failed.s(driverCls, provider, identity, instance_id))
+
         # Execute script
         deploy_script_task = deploy_boot_script.si(
             driverCls, provider, identity, instance_id,
             script.get_text(), script.get_title_slug())
+        deploy_script_task.link_error(
+            boot_script_failed.s(driverCls, provider, identity, instance_id))
 
-        # Linking...
+        # Base case: First link
         if idx == 0:
-            first_task = init_script_status_task  # Always first
-            init_script_status_task.link(script_zero)  # Inject 'script zero'
-            script_zero.link(deploy_script_task)  # Link first script after it
+            first_task = script_zero  # Always first
+            script_zero.link(init_script_status_task)  # Link first script after it
             script_zero.link_error(
                 boot_script_failed.s(driverCls, provider, identity, instance_id))
         else:
-            init_script_status_task.link(deploy_script_task)
+	    # All other links: Add init to end_task (a deploy)
+            end_task.link(init_script_status_task)
 
-        init_script_status_task.link_error(
-            boot_script_failed.s(driverCls, provider, identity, instance_id))
-        deploy_script_task.link_error(
-            boot_script_failed.s(driverCls, provider, identity, instance_id))
-        if idx + 1 == total and remove_status:
+        init_script_status_task.link(deploy_script_task)
+
+        if idx == total - 1 and remove_status:
             # Actions are slightly different if this is the final task
             clear_script_status_task = update_metadata.si(
                 driverCls, provider, identity, instance_id,
