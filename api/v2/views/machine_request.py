@@ -9,7 +9,7 @@ from django.db.models import Q
 from core import exceptions as core_exceptions
 from core.email import send_denied_resource_email
 from core.models import MachineRequest, IdentityMembership, AtmosphereUser,\
-    Provider, ProviderMachine
+    Provider, ProviderMachine, Group
 from core.models.status_type import StatusType
 from core.email import requestImaging
 
@@ -26,6 +26,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
     filter_fields = ('status__id', 'status__name', 'new_machine_owner__username')
     ordering_fields = ('start_date', 'end_date', 'new_machine_owner__username')
     ordering = ('-start_date',)
+
 
     def perform_create(self, serializer):
 
@@ -51,11 +52,12 @@ class MachineRequestViewSet(BaseRequestViewSet):
 
         # TODO: This is a hack that can be removed POST-ll (When MachineRequest validates new_machine_provider)
         new_provider = parent_machine.provider  # <--HACK!
-        access_list = []
+
+        access_list = serializer.initial_data.get("access_list") or []
         visibility = serializer.initial_data.get("new_application_visibility") 
         if  visibility in ["select", "private"]:
             share_with_admins(access_list, parent_machine.provider.uuid)
-            share_with_self(access_list, self.request.user.username)
+            share_with_self(access_list, new_owner.username)
             access_list = remove_duplicate_users(access_list)
 
         status, _ = StatusType.objects.get_or_create(name="pending")
@@ -90,6 +92,18 @@ class MachineRequestViewSet(BaseRequestViewSet):
                 old_status="pending",  # TODO: Is this required or will it default to pending?
                 parent_machine=parent_machine
             )
+
+            for user in access_list:
+                user_obj = AtmosphereUser.objects.filter(username=user)
+                if user_obj.exists():
+                    user_group_id = user_obj[0].groups.filter(name=user)[0].id
+                    group = Group.objects.get(id=user_group_id)
+                    instance.new_version_membership.add(group)
+                else:
+                    logger.warn("WARNING: User %s does not have a user object" % user)
+
+            instance.save()
+
             self.submit_action(instance)
         except (core_exceptions.ProviderLimitExceeded,
                 core_exceptions.RequestLimitExceeded):
