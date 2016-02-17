@@ -185,7 +185,7 @@ class MachineRequest(BaseRequest):
     def migrate_access_to_membership_list(self, access_list):
         for user in access_list:
             # 'User' -> User -> Group -> Membership
-            user_qs = AtmosphereUser.objects.filter(username=user)
+            user_qs = User.objects.filter(username=user)
             if not user_qs.exists():
                 logger.warn("WARNING: User %s does not have a user object" % user)
                 continue
