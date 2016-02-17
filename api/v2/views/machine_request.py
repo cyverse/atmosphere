@@ -91,18 +91,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
                 old_status="pending",  # TODO: Is this required or will it default to pending?
                 parent_machine=parent_machine
             )
-
-            for user in access_list:
-                user_obj = AtmosphereUser.objects.filter(username=user)
-                if user_obj.exists():
-                    user_group_id = user_obj[0].groups.filter(name=user)[0].id
-                    group = Group.objects.get(id=user_group_id)
-                    instance.new_version_membership.add(group)
-                else:
-                    logger.warn("WARNING: User %s does not have a user object" % user)
-
-            instance.save()
-
+            instance.migrate_access_to_membership_list(access_list)
             self.submit_action(instance)
         except (core_exceptions.ProviderLimitExceeded,
                 core_exceptions.RequestLimitExceeded):

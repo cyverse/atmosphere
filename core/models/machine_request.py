@@ -182,6 +182,20 @@ class MachineRequest(BaseRequest):
         return self.new_version_memory_min > 0\
             or self.new_version_cpu_min > 0
 
+    def migrate_access_to_membership_list(self, access_list):
+        for user in access_list:
+            # 'User' -> User -> Group -> Membership
+            user_qs = AtmosphereUser.objects.filter(username=user)
+            if not user_qs.exists():
+                logger.warn("WARNING: User %s does not have a user object" % user)
+                continue
+            usergroup_qs = user_qs[0].group_set.filter(name=user)
+            if not usergroup_qs:
+                logger.warn("WARNING: User %s does not have a group object" % user)
+                continue
+            group = usergroup_qs[0]
+            self.new_version_membership.add(group)
+
     def _get_meta_name(self):
         """
         admin_<username>_<name_under_scored>_<mmddyyyy_hhmmss>
