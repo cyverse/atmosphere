@@ -5,7 +5,9 @@ from django.db.models import Q, Count
 
 from celery.decorators import task
 
-from core.query import only_current, only_current_machines, only_current_apps, only_current_source, source_in_range
+from core.query import (
+    only_current, only_current_source,
+    source_in_range, inactive_versions)
 from core.models.size import Size, convert_esh_size
 from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
@@ -14,10 +16,10 @@ from core.models.application import Application, ApplicationMembership
 from core.models.application_version import ApplicationVersion
 from core.models import Allocation, Credential
 
-from service.monitoring import\
-    _cleanup_missing_instances,\
-    _get_instance_owner_map, \
-    _get_identity_from_tenant_name
+from service.monitoring import (
+    _cleanup_missing_instances,
+    _get_instance_owner_map,
+    _get_identity_from_tenant_name)
 from service.monitoring import user_over_allocation_enforcement
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
@@ -63,7 +65,7 @@ def tenant_id_to_name_map(account_driver):
     OUTPUT: A dictionary with keys of ID and values of name
     """
     all_projects = account_driver.list_projects()
-    return {tenant.id : tenant.name for tenant in all_projects}
+    return {tenant.id: tenant.name for tenant in all_projects}
 
 
 @task(name="monitor_machines")
@@ -78,18 +80,23 @@ def monitor_machines():
 @task(name="monitor_machines")
 def prune_machines():
     """
-    Query the cloud and remove any machines that exist in the DB but can no longer be found.
+    Query the cloud and remove any machines
+    that exist in the DB but can no longer be found.
     """
     for p in Provider.get_active():
         prune_machines_for.apply_async(args=[p.id])
 
 
 @task(name="prune_machines_for")
-def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_removal=False):
+def prune_machines_for(
+        provider_id, print_logs=False, dry_run=False, forced_removal=False):
     """
     Look at the list of machines (as seen by the AccountProvider)
     if a machine cannot be found in the list, remove it.
-    NOTE: BEFORE CALLING THIS TASK you should ensure that the AccountProvider can see ALL images. Failure to do so will result in any unseen image to be prematurely end-dated and removed from the API/UI.
+    NOTE: BEFORE CALLING THIS TASK you should ensure
+    that the AccountProvider can see ALL images.
+    Failure to do so will result in any image unseen by the admin
+    to be prematurely end-dated and removed from the API/UI.
     """
     provider = Provider.objects.get(id=provider_id)
     now = timezone.now()
@@ -104,7 +111,8 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_remo
 
     if provider.is_active():
         account_driver = get_account_driver(provider)
-        db_machines = ProviderMachine.objects.filter(only_current_source(), instance_source__provider=provider)
+        db_machines = ProviderMachine.objects.filter(
+            only_current_source(), instance_source__provider=provider)
         cloud_machines = account_driver.list_all_images()
     else:
         db_machines = ProviderMachine.objects.filter(
@@ -592,10 +600,9 @@ def _remove_versions_without_machines(now=None):
     if not now:
         now = timezone.now()
     ver_count = 0
-    versions_without_machines = ApplicationVersion.objects.filter(machines__isnull=True, end_date__isnull=True)
-    for ver in versions_without_machines:
-        ver.end_date_all(now)
-        ver_count += 1
+    versions_without_machines = ApplicationVersion.objects.filter(
+        machines__isnull=True, end_date__isnull=True)
+    ver_count = _perform_end_date(versions_without_machines, now)
     return ver_count
 
 
@@ -603,36 +610,32 @@ def _remove_applications_without_versions(now=None):
     if not now:
         now = timezone.now()
     app_count = 0
-    apps_without_versions = Application.objects.filter(versions__isnull=True, end_date__isnull=True)
-    for app in apps_without_versions:
-        app.end_date_all(now)
-        app_count += 1
+    apps_without_versions = Application.objects.filter(
+        versions__isnull=True, end_date__isnull=True)
+    app_count = _perform_end_date(apps_without_versions, now)
     return app_count
 
 
 def _update_improperly_enddated_applications(now=None):
     if not now:
         now = timezone.now()
-    app_count = 0
     improperly_enddated_apps = Application.objects.annotate(
         num_versions=Count('versions'), num_machines=Count('versions__machines')
     ).filter(
-        # Contains at least one version without an end-date OR
-        (Q(num_versions__gt=0) & Q(versions__end_date__isnull=True)) |
-        # conatins at least one machine without an end-date
-        (
-            Q(num_machines__gt=0) &
-            Q(versions__machines__instance_source__end_date__isnull=True)
-        ),
+        inactive_versions(),
         # AND application has already been end-dated.
         end_date__isnull=False
     )
-
-    for app in improperly_enddated_apps:
-        app.end_date_all(now)
-        app_count += 1
+    app_count = _perform_end_date(improperly_enddated_apps, now)
     return app_count
 
+
+def _perform_end_date(queryset, end_dated_at):
+    count = 0
+    for model in queryset:
+        model.end_date_all(end_dated_at)
+        count += 1
+    return count
 
 def _share_image(account_driver, cloud_machine, identity, members, dry_run=False):
     """
