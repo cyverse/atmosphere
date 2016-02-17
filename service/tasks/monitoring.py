@@ -92,14 +92,13 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_remo
     NOTE: BEFORE CALLING THIS TASK you should ensure that the AccountProvider can see ALL images. Failure to do so will result in any unseen image to be prematurely end-dated and removed from the API/UI.
     """
     provider = Provider.objects.get(id=provider_id)
+    now = timezone.now()
     if print_logs:
         import logging
         import sys
         consolehandler = logging.StreamHandler(sys.stdout)
         consolehandler.setLevel(logging.DEBUG)
         celery_logger.addHandler(consolehandler)
-    mach_count = ver_count = app_count = 0
-    now = timezone.now()
     celery_logger.info("Starting prune_machines for Provider %s @ %s"
                        % (provider, now))
 
@@ -112,50 +111,31 @@ def prune_machines_for(provider_id, print_logs=False, dry_run=False, forced_remo
                 source_in_range(),  # like 'only_current..' w/o active_provider
                 instance_source__provider=provider)
         cloud_machines = []
+
     # Don't do anything if cloud machines == [None,[]]
     if not cloud_machines and not forced_removal:
         return
 
-    # Loop1 - End-date All machines in the DB that can NOT be found in the cloud.
-    cloud_machine_ids = [mach.id for mach in cloud_machines]
-    for machine in db_machines:
-        cloud_match = [mach for mach in cloud_machine_ids if mach == machine.identifier]
-        if not cloud_match:
-            remove_machine(machine, now, dry_run=dry_run)
-            mach_count += 1
-    # Loop 2 and 3 - Capture all (still-active) versions without machines, and all applications without versions.
+    # Loop 1 - End-date All machines in the DB that
+    # can NOT be found in the cloud.
+    mach_count = _end_date_missing_database_machines(
+        db_machines, cloud_machines, now=now, dry_run=dry_run)
+
+    # Loop 2 and 3 - Capture all (still-active) versions without machines,
+    # and all applications without versions.
     # These are 'outliers' and mainly here for safety-check purposes.
-    versions_without_machines = ApplicationVersion.objects.filter(machines__isnull=True, end_date__isnull=True)
-    apps_without_versions = Application.objects.filter(versions__isnull=True, end_date__isnull=True)
-    for ver in versions_without_machines:
-        ver.end_date_all(now)
-        ver_count += 1
-    for app in apps_without_versions:
-        app.end_date_all(now)
-        app_count += 1
+    ver_count = _remove_versions_without_machines(now=now)
+    app_count = _remove_applications_without_versions(now=now)
 
-    #Loop4 - All 'Application' DB objects require >=1 Version with >=1 ProviderMachine (ACTIVE!)
+    # Loop 4 - All 'Application' DB objects require
+    # >=1 Version with >=1 ProviderMachine (ACTIVE!)
     # Apps that don't meet this criteria should be end-dated.
-    improperly_enddated_apps = Application.objects.annotate(
-        num_versions=Count('versions'), num_machines=Count('versions__machines')
-    ).filter(
-        # Contains at least one version without an end-date OR
-        (Q(num_versions__gt=0) & Q(versions__end_date__isnull=True)) |
-        # conatins at least one machine without an end-date
-        (
-            Q(num_machines__gt=0) &
-            Q(versions__machines__instance_source__end_date__isnull=True)
-        ),
-        # AND application has already been end-dated.
-        end_date__isnull=False
-    )
+    app_count += _update_improperly_enddated_applications(now)
 
-    for app in improperly_enddated_apps:
-        app.end_date_all(now)
-        app_count += 1
-
-    celery_logger.info("prune_machines completed for Provider %s : %s Applications, %s versions and %s machines pruned."
-                       % (provider, app_count, ver_count, mach_count))
+    celery_logger.info(
+        "prune_machines completed for Provider %s : "
+        "%s Applications, %s versions and %s machines pruned."
+        % (provider, app_count, ver_count, mach_count))
     if print_logs:
         celery_logger.removeHandler(consolehandler)
 
@@ -358,26 +338,6 @@ def get_current_members(account_driver, machine, tenant_id_name_map):
         if tenant_name:
             current_tenants.append(tenant_name)
     return current_tenants
-
-def _share_image(account_driver, cloud_machine, identity, members, dry_run=False):
-    """
-    INPUT: use account_driver to share cloud_machine with identity (if not in 'members' list)
-    """
-    # Skip tenant-names who are NOT in the DB, and tenants who are already included
-    missing_tenant = identity.credential_set.filter(~Q(value__in=members), key='ex_tenant_name')
-    if missing_tenant.count() == 0:
-        #celery_logger.debug("SKIPPED _ Image %s already shared with %s" % (cloud_machine.id, identity))
-        return
-    elif missing_tenant.count() > 1:
-        raise Exception("Safety Check -- You should not be here")
-    tenant_name = missing_tenant[0]
-    if cloud_machine.is_public == True:
-        celery_logger.info("Making Machine %s private" % cloud_machine.id)
-        cloud_machine.update(is_public=False)
-
-    celery_logger.info("Sharing image %s<%s>: %s with %s" % (cloud_machine.id, cloud_machine.name, identity.provider.location, tenant_name.value))
-    if not dry_run:
-        account_driver.image_manager.share_image(cloud_machine, tenant_name.value)
 
 def add_application_membership(application, identity, dry_run=False):
     for membership_obj in identity.identity_memberships.all():
@@ -613,3 +573,84 @@ def reset_provider_allocation(provider_id, default_allocation_id):
             memberships_reset.append(membership)
             users_reset += 1
     return (users_reset, memberships_reset)
+
+
+def _end_date_missing_database_machines(db_machines, cloud_machines, now=None, dry_run=False):
+    if not now:
+        now = timezone.now()
+    mach_count = 0
+    cloud_machine_ids = [mach.id for mach in cloud_machines]
+    for machine in db_machines:
+        cloud_match = [mach for mach in cloud_machine_ids if mach == machine.identifier]
+        if not cloud_match:
+            remove_machine(machine, now, dry_run=dry_run)
+            mach_count += 1
+    return mach_count
+
+
+def _remove_versions_without_machines(now=None):
+    if not now:
+        now = timezone.now()
+    ver_count = 0
+    versions_without_machines = ApplicationVersion.objects.filter(machines__isnull=True, end_date__isnull=True)
+    for ver in versions_without_machines:
+        ver.end_date_all(now)
+        ver_count += 1
+    return ver_count
+
+
+def _remove_applications_without_versions(now=None):
+    if not now:
+        now = timezone.now()
+    app_count = 0
+    apps_without_versions = Application.objects.filter(versions__isnull=True, end_date__isnull=True)
+    for app in apps_without_versions:
+        app.end_date_all(now)
+        app_count += 1
+    return app_count
+
+
+def _update_improperly_enddated_applications(now=None):
+    if not now:
+        now = timezone.now()
+    app_count = 0
+    improperly_enddated_apps = Application.objects.annotate(
+        num_versions=Count('versions'), num_machines=Count('versions__machines')
+    ).filter(
+        # Contains at least one version without an end-date OR
+        (Q(num_versions__gt=0) & Q(versions__end_date__isnull=True)) |
+        # conatins at least one machine without an end-date
+        (
+            Q(num_machines__gt=0) &
+            Q(versions__machines__instance_source__end_date__isnull=True)
+        ),
+        # AND application has already been end-dated.
+        end_date__isnull=False
+    )
+
+    for app in improperly_enddated_apps:
+        app.end_date_all(now)
+        app_count += 1
+    return app_count
+
+
+def _share_image(account_driver, cloud_machine, identity, members, dry_run=False):
+    """
+    INPUT: use account_driver to share cloud_machine with identity (if not in 'members' list)
+    """
+    # Skip tenant-names who are NOT in the DB, and tenants who are already included
+    missing_tenant = identity.credential_set.filter(~Q(value__in=members), key='ex_tenant_name')
+    if missing_tenant.count() == 0:
+        #celery_logger.debug("SKIPPED _ Image %s already shared with %s" % (cloud_machine.id, identity))
+        return
+    elif missing_tenant.count() > 1:
+        raise Exception("Safety Check -- You should not be here")
+    tenant_name = missing_tenant[0]
+    if cloud_machine.is_public == True:
+        celery_logger.info("Making Machine %s private" % cloud_machine.id)
+        cloud_machine.update(is_public=False)
+
+    celery_logger.info("Sharing image %s<%s>: %s with %s" % (cloud_machine.id, cloud_machine.name, identity.provider.location, tenant_name.value))
+    if not dry_run:
+        account_driver.image_manager.share_image(cloud_machine, tenant_name.value)
+    return
