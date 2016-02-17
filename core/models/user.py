@@ -178,8 +178,7 @@ def get_default_identity(username, provider=None):
 def create_new_accounts(username, provider=None):
     from service.driver import get_account_driver
     user = AtmosphereUser.objects.get(username=username)
-    if not providers:
-        providers = get_available_providers()
+    providers = get_available_providers()
     if provider and provider not in providers:
         raise Exception("The provider %s is NOT in the list of currently active providers. Account will not be created" % provider)
     if not providers:
@@ -198,5 +197,5 @@ def create_new_accounts(username, provider=None):
 def get_available_providers():
     from core.models.provider import Provider
     from core.query import only_current
-    available_providers = Provider.objects.filter(only_current(), active=True).order_by('id')
+    available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
     return available_providers
