@@ -77,7 +77,7 @@ def _get_openstack_name_map(status_name, task_name, tmp_status):
                      % (task_name, new_status))
     elif tmp_status:
         # ASSERT: task_name = None
-        if tmp_status.contains('running_boot_script'):
+        if 'running_boot_script' in tmp_status:
             tmp_status = 'running_boot_script' # Avoid problems due to keeping track of scripts executed 1/2, 2/3, etc.
         new_status = OPENSTACK_TASK_STATUS_MAP.get(tmp_status)
         logger.debug(
