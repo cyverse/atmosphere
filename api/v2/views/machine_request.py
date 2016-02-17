@@ -52,8 +52,8 @@ class MachineRequestViewSet(BaseRequestViewSet):
         # TODO: This is a hack that can be removed POST-ll (When MachineRequest validates new_machine_provider)
         new_provider = parent_machine.provider  # <--HACK!
         access_list = []
-        
-        if serializer.initial_data.get("new_application_visibility") == "private":
+        visibility = serializer.initial_data.get("new_application_visibility") 
+        if  visibility in ["select", "private"]:
             share_with_admins(access_list, parent_machine.provider.uuid)
             share_with_self(access_list, self.request.user.username)
             access_list = remove_duplicate_users(access_list)
