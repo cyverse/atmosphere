@@ -24,9 +24,9 @@ def unresolved_requests_only(fn):
     @wraps(fn)
     def wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
-        user_can_act = request.user.is_staff or request.user.is_superuser or CloudAdministrator.objects.filter(user=request.user.id)
+        user_can_act = request.user.is_staff or request.user.is_superuser or CloudAdministrator.objects.filter(user=request.user.id).exists()
         #TODO: Logic needs 're-worked' here. MachineRequests in 'non-final' states should be allowed to be PATCH'ed for re-submission.
-        if (hasattr(instance, "is_closed") and instance.is_closed() and not user_can_act):
+        if (not user_can_act and hasattr(instance, "is_closed") and instance.is_closed()):
             message = (
                 "Method '%s' not allowed: "
                 "the request has already been resolved."
