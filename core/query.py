@@ -2,6 +2,18 @@ from django.db.models import Q
 from django.utils import timezone
 
 
+def inactive_versions():
+    return (
+        # Contains at least one version without an end-date OR
+        (Q(num_versions__gt=0) & Q(versions__end_date__isnull=True)) |
+        # conatins at least one machine without an end-date
+        (
+            Q(num_machines__gt=0) &
+            Q(versions__machines__instance_source__end_date__isnull=True)
+        )
+    )
+
+
 def only_active_provider():
     """
     Use this query on any model with a 'provider.active'
