@@ -130,6 +130,14 @@ class AccountDriver(BaseAccountDriver):
         self.user_manager = UserManager(**user_creds)
         self.image_manager = ImageManager(**image_creds)
         self.network_manager = NetworkManager(**net_creds)
+        ex_auth_version = sdk_creds.get("ex_force_auth_version", '2.0_password')
+        if ex_auth_version.startswith('2'):
+            self.identity_version = 2
+        elif ex_auth_version.startswith('3'):
+            self.identity_version = 3
+        else:
+            raise Exception("Could not determine identity_version of %s"
+                            % ex_auth_version)
         self.openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
 
     def create_account(self, username, password=None, project_name=None,
@@ -167,15 +175,21 @@ class AccountDriver(BaseAccountDriver):
                 # 1. Create Project: should exist before creating user
                 project = self.user_manager.get_project(project_name)
                 if not project:
-                    project = self.user_manager.create_project(project_name, domain='default')
+                    kwargs = {}
+                    if self.identity_version > 2:
+                        kwargs.update({'domain': 'default'})
+                    project = self.user_manager.create_project(project_name, **kwargs)
 
                 # 2. Create User (And add them to the project)
                 user = self.get_user(username)
                 if not user:
                     logger.info("Creating account: %s - %s - %s"
                                 % (username, password, project))
+                    kwargs = {}
+                    if self.identity_version > 2:
+                        kwargs.update({'domain': 'default'})
                     user = self.user_manager.create_user(username, password,
-                                                         project, domain='default')
+                                                         project, **kwargs)
                 # 3.1 Include the admin in the project
                 # TODO: providercredential initialization of
                 #  "default_admin_role"
@@ -218,17 +232,19 @@ class AccountDriver(BaseAccountDriver):
                             security_group_name, rules_list):
         # 4.1. Update the account quota to hold a larger number of
         # roles than what is necessary
-        # -- User:Openstack rev.
-        # user_matches = [u for u in self.openstack_sdk.identity.users(domain_id='default') if u.name == username]
-        # if not user_matches or len(user_matches) > 1:
-        #     raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
         # user = user_matches[0]
         # -- User:Keystone rev.
-        user_matches = [u for u in self.user_manager.keystone.users.list(domain='default') if u.name == username]
+        kwargs = {}
+        if self.identity_version > 2:
+            kwargs.update({'domain': 'default'})
+        user_matches = [u for u in self.user_manager.keystone.users.list(**kwargs) if u.name == username]
         if not user_matches or len(user_matches) > 1:
             raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
         user = user_matches[0]
-        project = self.user_manager.keystone.projects.find(name=project_name, domain_id='default')
+        kwargs = {}
+        if self.identity_version > 2:
+            kwargs.update({'domain_id': 'default'})
+        project = self.user_manager.keystone.projects.find(name=project_name, **kwargs)
         nc = self.user_manager.nova
         rule_max = max(len(rules_list), 100)
         nc.quotas.update(project.id, security_group_rules=rule_max)
@@ -537,7 +553,8 @@ class AccountDriver(BaseAccountDriver):
         return self.user_manager.get_project_by_id(project_id)
 
     def get_project(self, project_name, **kwargs):
-        kwargs = self._parse_domain_kwargs(kwargs)
+        if self.identity_version > 2:
+            kwargs = self._parse_domain_kwargs(kwargs)
         return self.user_manager.get_project(project_name, **kwargs)
 
     def _make_tenant_id_map(self):
@@ -597,7 +614,8 @@ class AccountDriver(BaseAccountDriver):
         return [t for t in self.openstack_sdk.identity.trusts()]
 
     def list_projects(self, **kwargs):
-        kwargs = self._parse_domain_kwargs(kwargs, domain_override='domain')
+        if self.identity_version > 2:
+            kwargs = self._parse_domain_kwargs(kwargs, domain_override='domain')
         return self.user_manager.list_projects(**kwargs)
 
     def list_roles(self, **kwargs):
@@ -607,7 +625,8 @@ class AccountDriver(BaseAccountDriver):
         return self.user_manager.keystone.roles.list(**kwargs)
 
     def get_role(self, role_name_or_id, **list_kwargs):
-        list_kwargs = self._parse_domain_kwargs(list_kwargs)
+        if self.identity_version > 2:
+            list_kwargs = self._parse_domain_kwargs(list_kwargs)
         role_list = self.list_roles(**list_kwargs)
         found_roles = [role for role in role_list if role.id == role_name_or_id or role.name == role_name_or_id]
         if not found_roles:
@@ -617,7 +636,8 @@ class AccountDriver(BaseAccountDriver):
         return found_roles[0]
 
     def get_user(self, user_name_or_id, **list_kwargs):
-        list_kwargs = self._parse_domain_kwargs(list_kwargs)
+        if self.identity_version > 2:
+            list_kwargs = self._parse_domain_kwargs(list_kwargs)
         user_list = self.list_users(**list_kwargs)
         found_users = [user for user in user_list if user.id == user_name_or_id or user.name == user_name_or_id]
         if not found_users:
@@ -644,9 +664,9 @@ class AccountDriver(BaseAccountDriver):
         return kwargs
 
     def list_users(self, **kwargs):
-        kwargs = self._parse_domain_kwargs(kwargs)
-        domain_name = kwargs.pop('domain','default')
-        return self.user_manager.keystone.users.list(domain=domain_name, **kwargs)
+        if self.identity_version > 2:
+            kwargs = self._parse_domain_kwargs(kwargs)
+        return self.user_manager.keystone.users.list(**kwargs)
 
     def list_usergroup_names(self):
         return [user.name for (user, project) in self.list_usergroups()]
@@ -685,7 +705,11 @@ class AccountDriver(BaseAccountDriver):
         net_creds = self._build_network_creds(all_creds)
         sdk_creds = self._build_sdk_creds(all_creds)
 
-        openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
+        if self.identity_version > 2:
+            openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
+        else:
+            openstack_sdk = None
+
         neutron = self.network_manager.new_connection(**net_creds)
         keystone, nova, glance = self.image_manager._new_connection(
             **image_creds)
@@ -780,13 +804,21 @@ class AccountDriver(BaseAccountDriver):
                 raise ValueError(
                     "ImageManager is missing a Required Argument: %s" %
                     required_arg)
-        img_args.pop("ex_force_auth_version",None)
-        img_args['version'] = img_args.get("version",'v2.0')
+        ex_auth_version = img_args.pop("ex_force_auth_version", '2.0_password')
+        # Supports v2.0 or v3 Identity
+        if ex_auth_version.startswith('2'):
+            auth_url_prefix = "/v2.0/tokens"
+            auth_version = 'v2.0'
+        elif ex_auth_version.startswith('3'):
+            auth_url_prefix = "/v3/tokens"
+            auth_version = 'v3'
+        img_args['version'] = auth_version
+        #img_args['version'] = img_args.get("version",'v2.0')
 
         img_args["auth_url"] = img_args.get('auth_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')
         # img_args["admin_url"] = img_args.get('admin_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')
-        if 'v2.0/tokens' not in img_args['auth_url']:
-            img_args["auth_url"] += "/v2.0/tokens"
+        if auth_url_prefix not in img_args['auth_url']:
+            img_args["auth_url"] += auth_url_prefix
         return img_args
 
     def _build_user_creds(self, credentials):
@@ -801,15 +833,22 @@ class AccountDriver(BaseAccountDriver):
         user_args.get("username")
         user_args.get("password")
         user_args.get("tenant_name")
+        ex_auth_version = user_args.pop("ex_force_auth_version", '2.0_password')
+        # Supports v2.0 or v3 Identity
+        if ex_auth_version.startswith('2'):
+            auth_url_prefix = "/v2.0/"
+            auth_version = 'v2.0'
+        elif ex_auth_version.startswith('3'):
+            auth_url_prefix = "/v3/"
+            auth_version = 'v3'
 
         auth_url = user_args.get('auth_url')
-        user_args["auth_url"] = auth_url.replace("/v2.0","").replace("/tokens", "")
-        if 'v3' not in user_args['auth_url']:
-            user_args["auth_url"] += "/v3/"
+        user_args["auth_url"] = auth_url.replace("/v2.0", "").replace("/tokens", "")
+        if auth_url_prefix not in user_args['auth_url']:
+            user_args["auth_url"] += auth_url_prefix
         user_args.get("region_name")
-        user_args['version'] = user_args.get("version",'v3')
+        user_args['version'] = user_args.get("version", auth_version)
         # Removable args:
-        user_args.pop("ex_force_auth_version", None)
         user_args.pop("admin_url", None)
         user_args.pop("location", None)
         user_args.pop("router_name", None)
@@ -832,10 +871,20 @@ class AccountDriver(BaseAccountDriver):
             os_args['project_name'] = os_args.get("tenant_name")
         os_args.get("region_name")
 
+        ex_auth_version = os_args.pop("ex_force_auth_version", '2.0_password')
+        # Supports v2.0 or v3 Identity
+        if ex_auth_version.startswith('2'):
+            auth_url_prefix = "/v2.0/"
+            auth_version = 'v2.0'
+        elif ex_auth_version.startswith('3'):
+            auth_url_prefix = "/v3/"
+            auth_version = 'v3'
+
         os_args["auth_url"] = os_args.get("auth_url")\
             .replace("/tokens", "")
-        if 'v3' not in os_args['admin_url']:
-            os_args["auth_url"] = os_args['admin_url'] + "/v3/"
+        if auth_version not in os_args['admin_url']:
+            #NOTE: Openstack 'auth_url' is ACTUALLY the admin url.
+            os_args["auth_url"] = os_args['admin_url'] + auth_version
         if 'project_domain_name' not in os_args:
             os_args['project_domain_name'] = 'default'
         if 'user_domain_name' not in os_args:
