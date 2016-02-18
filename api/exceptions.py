@@ -4,21 +4,21 @@ from rest_framework import exceptions as rest_exceptions
 from django.utils.translation import ugettext_lazy as _
 from threepio import logger, api_logger
 
-def bad_request(errors, prefix="", status=None):
+def bad_request(errors, prefix="", status_code=None):
     """
     Expects the output of 'serializer.errors':
     errors = [{'name': 'This is an invalid name'}]
     Returns *all* errors in a single string:
     """
-    if not status:
-        status = status.HTTP_400_BAD_REQUEST
-    if type(status) != int:
-        raise Exception("Passed status '%s' is *NOT* an int!" % status)
+    if not status_code:
+        status_code = int(status.HTTP_400_BAD_REQUEST)
+    if type(status_code) != int:
+        raise Exception("Passed status '%s' is *NOT* an int!" % status_code)
 
-    error_str = ''.join(["%s%s:%s" % (prefix,key,val[0]) for (key,val) in serializer.errors.items()])
-    error_map = {"errors": [{"code": status, "message": error_str }]} # This is an expected format by atmo-airport.
+    error_str = ''.join(["%s%s:%s" % (prefix,key,val[0]) for (key,val) in errors.items()])
+    error_map = {"errors": [{"code": status_code, "message": error_str }]} # This is an expected format by atmo-airport.
     return Response(error_map,
-                    status=status)
+                    status=status_code)
 
 def failure_response(status, message):
     """
