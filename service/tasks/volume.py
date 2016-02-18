@@ -299,7 +299,7 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
         celery_logger.debug("attach_task finished at %s." % datetime.now())
         return device
     except Exception as exc:
-        celery_logger.warn(exc)
+        celery_logger.exception(exc)
         attach_task.retry(exc=exc)
 
 

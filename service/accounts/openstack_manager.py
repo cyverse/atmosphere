@@ -566,7 +566,7 @@ class AccountDriver(CachedAccountDriver):
         neutron = self.network_manager.new_connection(**user_creds)
         keystone, nova, glance = self.image_manager._new_connection(
             **user_creds)
-        openstack_sdk = _connect_to_openstack_sdk(**user_creds)
+        ostack_handle = _connect_to_openstack_sdk(**user_creds)
         return {
             "glance": glance,
             "keystone": keystone,

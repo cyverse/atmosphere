@@ -60,6 +60,7 @@ class MachineRequestList(AuthAPIView):
                 "Machine Imaging has been "
                 "explicitly disabled on this provider.")
         except Exception as exc:
+            logger.exception(exc)
             return failure_response(
                 status.HTTP_400_BAD_REQUEST, exc.message)
 

@@ -74,11 +74,23 @@ class ApplicationVersion(models.Model):
                                self.start_date)
 
     def get_threshold(self):
+        #TODO: except ObjectDoesNotExist to avoid core import loop
         from core.models.application import ApplicationThreshold
         try:
             return self.threshold
         except ApplicationThreshold.DoesNotExist:
             return None
+
+    def end_date_all(self, now=None):
+        if not now:
+            now = timezone.now()
+        for machine in self.machines.all():
+            if not machine.end_date:
+                machine.end_date = now
+                machine.save()
+        if not self.end_date:
+            self.end_date = now
+            self.save()
 
     def active_machines(self):
         """
