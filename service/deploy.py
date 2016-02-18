@@ -6,6 +6,9 @@ import os
 import sys
 import time
 
+from django.template import Context
+from django.template.loader import render_to_string
+from django.utils.text import slugify
 from django.utils.timezone import datetime
 
 from libcloud.compute.deployment import Deployment, ScriptDeployment,\
@@ -474,9 +477,25 @@ def wrap_script(script_text, script_name):
     * Chmod the file
     * Execute and redirect output to stdout/stderr to logfile.
     """
-    logfile = "/var/log/atmo/post_boot_scripts.log"
+    # logfile = "/var/log/atmo/post_boot_scripts.log"
     # kludge: weirdness without the str cast...
     script_text = str(script_text)
-    full_script_name = "./deploy_boot_script_%s.sh"
+    full_script_name = "./deploy_boot_script_%s.sh" % (slugify(script_name),)
     return ScriptDeployment(
         script_text, name=full_script_name)
+
+
+def inject_env_script(username):
+    """
+    This is the 'raw script' that will be used to prepare the environment.
+    TODO: Find a better home for this. Probably use ansible for this.
+    """
+    env_file = "$HOME/.bashrc"
+    template = "scripts/bash_inject_env.sh"
+    context = {
+        "username": username,
+        "env_file": env_file,
+    }
+    rendered_script = render_to_string(
+        template, context=Context(context))
+    return rendered_script

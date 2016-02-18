@@ -41,7 +41,9 @@ OPENSTACK_TASK_STATUS_MAP = {
     # Atmosphere Task-specific lines
     'networking': 'networking',
     'deploying': 'deploying',
+    'running_boot_script': 'deploying',
     'deploy_error': 'deploy_error',
+    'boot_script_error': 'deploy_error',
 }
 OPENSTACK_ACTIVE_STATES = ['active']
 OPENSTACK_INACTIVE_STATES = ['build', 'suspended', 'shutoff', 'Unknown']
@@ -75,6 +77,8 @@ def _get_openstack_name_map(status_name, task_name, tmp_status):
                      % (task_name, new_status))
     elif tmp_status:
         # ASSERT: task_name = None
+        if 'running_boot_script' in tmp_status:
+            tmp_status = 'running_boot_script' # Avoid problems due to keeping track of scripts executed 1/2, 2/3, etc.
         new_status = OPENSTACK_TASK_STATUS_MAP.get(tmp_status)
         logger.debug(
             "Tmp_status provided:%s, Status maps to %s" %

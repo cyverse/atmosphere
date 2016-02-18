@@ -19,7 +19,7 @@ class BootScriptList(AuthAPIView):
     """
     BootScripts represent a script to be deployed on an instance and/or
     application after Atmosphere has finished deploying the instance.
-    BootScripts can be of type URL or Full Text.
+    BootScripts can be of type URL or Raw Text.
     """
 
     def get(self, request):

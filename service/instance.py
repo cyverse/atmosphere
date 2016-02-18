@@ -93,7 +93,8 @@ def reboot_instance(
     check_quota(user.username, identity_uuid, None, resuming=True)
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     # reboots take very little time..
-    redeploy_init(esh_driver, esh_instance)
+    core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
+    redeploy_init(esh_driver, esh_instance, core_identity)
 
 
 def resize_instance(esh_driver, esh_instance, size_alias,
@@ -357,8 +358,7 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
         core_identity.provider.id, core_identity.id, core_identity.created_by)
     task_four = deploy_init_to.si(
         esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, esh_instance.id,
-        redeploy=True)
+        esh_driver.identity, esh_instance.id, core_identity, redeploy=True)
     # Link em all together!
     task_one.link(task_two)
     task_two.link(task_three)
@@ -389,7 +389,7 @@ def redeploy_instance(
     return deploy_chain.apply_async()
 
 
-def redeploy_init(esh_driver, esh_instance):
+def redeploy_init(esh_driver, esh_instance, core_identity):
     """
     Use this function to kick off the async task when you ONLY want to deploy
     (No add fixed, No add floating)
@@ -398,7 +398,7 @@ def redeploy_init(esh_driver, esh_instance):
     logger.info("Add floating IP and Deploy")
     deploy_init_to.s(esh_driver.__class__, esh_driver.provider,
                      esh_driver.identity, esh_instance.id,
-                     redeploy=True).apply_async()
+                     core_identity, redeploy=True).apply_async()
 
 
 def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
@@ -423,11 +423,13 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
     init_task.link(fixed_ip_task)
     # Add float and re-deploy OR just add floating IP...
     if redeploy:
+        core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
         deploy_task = deploy_init_to.si(
             esh_driver.__class__,
             esh_driver.provider,
             esh_driver.identity,
             esh_instance.id,
+            core_identity,
             redeploy=True)
         fixed_ip_task.link(deploy_task)
     else:
@@ -1608,7 +1610,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     elif 'revert_resize' == action_type:
         result_obj = esh_driver.revert_resize_instance(esh_instance)
     elif 'redeploy' == action_type:
-        result_obj = redeploy_init(esh_driver, esh_instance)
+        result_obj = redeploy_init(esh_driver, esh_instance, identity)
     elif 'resume' == action_type:
         result_obj = resume_instance(esh_driver, esh_instance,
                                      provider_uuid, identity_uuid,

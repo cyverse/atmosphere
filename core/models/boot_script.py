@@ -61,8 +61,8 @@ class BootScript(models.Model):
         return slugify(self.title).replace('-', '_')
 
     def get_text(self):
-        if self.script_type.name == 'Full Text':
-            return self.script_text
+        if self.script_type.name == 'Raw Text':
+            return self.script_text.strip()  # Remove whitespace
         elif self.script_type.name == 'URL':
             return self._text_from_url()
 
@@ -123,8 +123,12 @@ def get_scripts_for_instance(instance):
     query_args = (Q(instances__provider_alias=instance.provider_alias),)
     if instance.source.is_machine():
         query_args = (
-            query_args[0] | Q(
-                applications__uuid=instance.source.providermachine.application.uuid),
+            query_args[0]
+            | Q(
+                applications__uuid=instance.source.providermachine.application.uuid)
+            | Q(
+                application_versions__id=instance.source.providermachine.application_version.id)
+            ,  # Note: Trailing comma on single-arg to force tuple-conversion
         )
     return BootScript.objects.filter(*query_args, **query_kwargs)
 

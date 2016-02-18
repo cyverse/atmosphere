@@ -25,9 +25,9 @@ def print_task_chain(start_link):
     next_link = start_link
     while next_link.options.get('link'):
         if start_link == next_link:
-            print next_link.values()[0],
+            print next_link.values()[1],
         next_link = next_link.options['link'][0]
-        print "--> %s" % next_link.values()[0],
+        print "--> %s" % next_link.values()[1],
 
 
 def deploy_init_task(driver, instance, identity,
@@ -40,6 +40,7 @@ def deploy_init_task(driver, instance, identity,
                                 driver.provider,
                                 driver.identity,
                                 instance.alias,
+                                identity,
                                 username,
                                 password,
                                 redeploy,
