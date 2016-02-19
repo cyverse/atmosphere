@@ -18,6 +18,11 @@ libcloud.security.VERIFY_SSL_CERT = False
 #      when it exists (A-N)
 
 
+def get_usernames(provider):
+    """
+    """
+    return Identity.objects.filter(provider=provider).values_list('created_by__username', flat=True)
+
 def get_members(groupname):
     """
     """
@@ -48,6 +53,8 @@ def main():
     parser.add_argument("--provider", type=int,
                         help="Atmosphere provider ID"
                         " to use when importing users.")
+    parser.add_argument("--rebuild", action="store_true",
+                        help="Rebuild all accounts that are in the provider")
     parser.add_argument("--users",
                         help="LDAP usernames to import. (comma separated)")
     parser.add_argument("--admin", action="store_true",
@@ -69,8 +76,12 @@ def main():
         raise Exception("Could not find an account driver for Provider with"
                         " type:%s" % type_name)
     if not args.users:
-        print "Retrieving all 'atmo-user' members in LDAP."
-        users = get_members('atmo-user')
+        if not args.rebuild:
+            print "Retrieving all 'atmo-user' members in LDAP."
+            users = get_members('atmo-user')
+        else:
+            print "Rebuilding all existing users."
+            users = get_usernames(provider)
     else:
         users = args.users.split(",")
     for user in users:
@@ -79,9 +90,10 @@ def main():
             id_exists = Identity.objects.filter(
                 created_by__username__iexact=user,
                 provider=provider)
-            if id_exists:
+            if id_exists and not args.rebuild:
+                print "%s Exists -- Skipping because rebuild flag is disabled" % user
                 continue
-            acct_driver.create_account(user, max_quota=args.admin)
+            acct_driver.create_account(user, role_name='user', max_quota=args.admin)
             added += 1
             if args.admin:
                 make_admin(user)
