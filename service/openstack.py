@@ -151,6 +151,7 @@ def glance_update_machine(new_machine):
     if owner:
         base_source.created_by = owner.created_by
         base_source.created_by_identity = owner
+        base_source.save()
     # If glance image, we can also infer some about the application
     if g_image:
         logger.debug("Found glance image for %s" % new_machine)
@@ -178,7 +179,7 @@ def glance_update_machine(new_machine):
         new_app.save()
         base_source.start_date = g_start_date
         base_source.end_date = g_end_date
-    base_source.save()
+        base_source.save()
     new_machine.save()
 
 
