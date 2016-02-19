@@ -183,7 +183,7 @@ class AccountDriver(BaseAccountDriver):
 
                 # 3.2 Check the user has been given an appropriate role
                 if not role_name:
-                    role_name = "_member_"
+                    role_name = "user"
                 self.user_manager.add_project_membership(
                     project_name, username, role_name)
 
