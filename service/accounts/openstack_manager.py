@@ -689,6 +689,8 @@ class AccountDriver(BaseAccountDriver):
         neutron = self.network_manager.new_connection(**net_creds)
         keystone, nova, glance = self.image_manager._new_connection(
             **image_creds)
+            **user_creds)
+
         return {
             "glance": glance,
             "keystone": keystone,
