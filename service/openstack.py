@@ -163,7 +163,7 @@ def glance_update_machine(new_machine):
             g_start_date = glance_timestamp(g_image.created_at)
         elif hasattr(g_image, 'items'):
             #'v2' glance image is a dict.
-            if not g_image['is_public']:
+            if not g_image['visibility'] == 'public':
                 new_app.private = True
             g_end_date = glance_timestamp(g_image['deleted'])
             g_start_date = glance_timestamp(g_image['created_at'])
