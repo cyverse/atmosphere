@@ -222,21 +222,22 @@ def glance_image_owner(provider_uuid, identifier, glance_image=None):
 
 
 def glance_timestamp(iso_8601_stamp):
-    if not iso_8601_stamp:
+    if not iso_8601_stamp or type(iso_8601_stamp) != str:
         return None
+    append_char = "Z" if iso_8601_stamp.endswith("Z") else ""
     try:
         datetime_obj = datetime.strptime(
             iso_8601_stamp,
-            '%Y-%m-%dT%H:%M:%S.%f')
+            '%Y-%m-%dT%H:%M:%S.%f'+append_char)
     except ValueError:
         try:
             datetime_obj = datetime.strptime(
                 iso_8601_stamp,
-                '%Y-%m-%dT%H:%M:%S')
+                '%Y-%m-%dT%H:%M:%S'+append_char)
         except ValueError:
             raise ValueError(
                 "Expected ISO8601 Timestamp in Format:"
-                " YYYY-MM-DDTHH:MM:SS[.sssss]")
+                " YYYY-MM-DDTHH:MM:SS[.sssss][Z]")
     # All Dates are UTC relative
     datetime_obj = datetime_obj.replace(tzinfo=pytz.utc)
     return datetime_obj
