@@ -418,10 +418,11 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
             provider = machine.instance_source.provider
             account_driver = memoized_driver(machine, account_drivers)
             image = account_driver.image_manager.get_image(image_id=machine.identifier)
-            if image and image.is_public == False:
+            image_is_public = image.is_public if hasattr(image,'is_public') else image.get('visibility','') == 'public'
+            if image and image_is_public == False:
                 celery_logger.info("Making Machine %s public" % image.id)
                 if not dry_run:
-                    image.update(is_public=True)
+                    account_driver.image_manager.glance.images.update(image.id, visibility='public')
     # Set top-level application to public (This will make all versions and PMs public too!)
     application.private = False
     celery_logger.info("Making Application %s public" % application.name)
@@ -660,9 +661,10 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
     elif missing_tenant.count() > 1:
         raise Exception("Safety Check -- You should not be here")
     tenant_name = missing_tenant[0]
-    if cloud_machine.is_public == True:
+    cloud_machine_is_public = cloud_machine.is_public if hasattr(cloud_machine,'is_public') else cloud_machine.get('visibility','') == 'public'
+    if cloud_machine_is_public == True:
         celery_logger.info("Making Machine %s private" % cloud_machine.id)
-        cloud_machine.update(is_public=False)
+        account_driver.image_manager.glance.images.update(cloud_machine.id, visibility='private')
 
     celery_logger.info("Sharing image %s<%s>: %s with %s" % (cloud_machine.id, cloud_machine.name, identity.provider.location, tenant_name.value))
     if not dry_run:
