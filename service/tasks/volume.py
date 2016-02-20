@@ -249,13 +249,8 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
     try:
         celery_logger.debug("attach_task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_id)
-        volume = driver.get_volume(volume_id)
-        # Step 1. Attach the volume
-        # NOTE: device_choice !== device 100%
-        driver.attach_volume(instance,
-                             volume,
-                             device_choice)
+        from service.volume import attach_volume  # TODO: Test pulling this up -- out of band
+        attach_volume(driver, instance_id, volume_id, device_choice=device_choice)
 
         # When the reslt returns the volume will be 'attaching'
         # We can't do anything until the volume is 'available/in-use'
