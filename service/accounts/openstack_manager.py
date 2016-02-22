@@ -33,6 +33,12 @@ from core.models.identity import Identity
 from service.accounts.base import BaseAccountDriver
 
 
+def get_unique_id(userid):
+    if 'iplantauth.authBackends.LDAPLoginBackend' in settings.AUTHENTICATION_BACKENDS:
+        return get_uid_number(userid)
+    else:
+        return get_random_uid(userid)
+
 def get_random_uid(userid):
     """
     Given a string (Username) return a value < MAX_SUBNET
@@ -295,8 +301,12 @@ class AccountDriver(BaseAccountDriver):
         public_key - Contents of public key in OpenSSH format
         """
         clients = self.get_openstack_clients(username, password, project_name)
-        osdk = clients["openstack_sdk"]
-        keypairs = [kp for kp in osdk.compute.keypairs()]
+        if self.identity_version == 2:
+            nova = clients["nova"]
+            keypairs = nova.keypairs.list()
+        else:
+            osdk = clients["openstack_sdk"]
+            keypairs = [kp for kp in osdk.compute.keypairs()]
         for kp in keypairs:
             if kp.name == keyname:
                 if kp.public_key != public_key:
@@ -315,10 +325,16 @@ class AccountDriver(BaseAccountDriver):
         public_key - Contents of public key in OpenSSH format
         """
         clients = self.get_openstack_clients(username, password, project_name)
-        osdk = clients["openstack_sdk"]
-        keypair = osdk.compute.create_keypair(
-            name=keyname,
-            public_key=public_key)
+        if self.identity_version == 2:
+            nova = clients["nova"]
+            keypair = nova.keypairs.create(
+                    keyname,
+                    public_key=public_key)
+        else:
+            osdk = clients["openstack_sdk"]
+            keypair = osdk.compute.create_keypair(
+                name=keyname,
+                public_key=public_key)
         return keypair
 
     def accept_shared_image(self, glance_image, project_name):
@@ -395,7 +411,7 @@ class AccountDriver(BaseAccountDriver):
             username,
             self.hashpass(username),
             project_name,
-            get_unique_number=get_random_uid,
+            get_unique_number=get_unique_id,
             dns_nameservers=dns_nameservers,
             **net_args)
         return True
@@ -435,7 +451,7 @@ class AccountDriver(BaseAccountDriver):
             username,
             password,
             project_name,
-            get_unique_number=get_random_uid,
+            get_unique_number=get_unique_id,
             dns_nameservers=dns_nameservers,
             **net_args)
 
@@ -729,7 +745,7 @@ class AccountDriver(BaseAccountDriver):
             tenant_name = self.get_project_name_for(username)
         if not password:
             password = self.hashpass(tenant_name)
-        user_creds = {
+        osdk_creds = {
             "auth_url": self.user_manager.nova.client.auth_url.replace('/v3','').replace('/v2.0',''),
             "admin_url": self.user_manager.keystone._management_url.replace('/v2.0','').replace('/v3',''),
             "region_name": self.user_manager.nova.client.region_name,
@@ -737,7 +753,7 @@ class AccountDriver(BaseAccountDriver):
             "password": password,
             "tenant_name": tenant_name
         }
-        return user_creds
+        return osdk_creds
 
     # Credential manipulaters
     def _libcloud_to_openstack(self, credentials):
@@ -753,9 +769,16 @@ class AccountDriver(BaseAccountDriver):
         NOTE: JETSTREAM auth_url to be '/v3'
         """
         net_args = self.provider_creds.copy()
-        net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
-        if '/v3' not in net_args['auth_url']:
-            net_args['auth_url'] += "/v3"
+        # NOTE: The neutron 'auth_url' is the ADMIN_URL
+        net_args["auth_url"] = net_args.pop("admin_url")\
+            .replace("/tokens", "").replace('/v2.0', '').replace('/v3', '')
+        if self.identity_version == 3:
+            auth_prefix = '/v3'
+        elif self.identity_version == 2:
+            auth_prefix = '/v2.0'
+
+        if auth_prefix not in net_args['auth_url']:
+            net_args['auth_url'] += auth_prefix
         return net_args
 
     def _build_network_creds(self, credentials):
@@ -773,15 +796,21 @@ class AccountDriver(BaseAccountDriver):
 
         net_args.get("router_name")
         net_args.get("region_name")
-        # Ignored:
+        # NOTE: The neutron 'auth_url' is the ADMIN_URL
         net_args["auth_url"] = net_args.pop("admin_url").replace("/tokens", "")
+        # Ignored:
         net_args.pop("location", None)
         net_args.pop("ex_project_name", None)
         net_args.pop("ex_force_auth_version", None)
         auth_url = net_args.get('auth_url')
-        net_args["auth_url"] = auth_url.replace("/v2.0","").replace("/tokens", "")
-        if '/v2.0' not in net_args['auth_url']:
-            net_args["auth_url"] += "/v2.0"
+        if self.identity_version == 3:
+            auth_prefix = '/v3'
+        elif self.identity_version == 2:
+            auth_prefix = '/v2.0'
+
+        net_args["auth_url"] = auth_url.replace("/v2.0", "").replace('/v3', '').replace("/tokens", "")
+        if auth_prefix not in net_args['auth_url']:
+            net_args["auth_url"] += auth_prefix
         return net_args
 
     def _build_image_creds(self, credentials):
@@ -813,10 +842,8 @@ class AccountDriver(BaseAccountDriver):
             auth_url_prefix = "/v3/tokens"
             auth_version = 'v3'
         img_args['version'] = auth_version
-        #img_args['version'] = img_args.get("version",'v2.0')
 
         img_args["auth_url"] = img_args.get('auth_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')
-        # img_args["admin_url"] = img_args.get('admin_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')
         if auth_url_prefix not in img_args['auth_url']:
             img_args["auth_url"] += auth_url_prefix
         return img_args
@@ -879,12 +906,13 @@ class AccountDriver(BaseAccountDriver):
         elif ex_auth_version.startswith('3'):
             auth_url_prefix = "/v3/"
             auth_version = 'v3'
-
         os_args["auth_url"] = os_args.get("auth_url")\
-            .replace("/tokens", "")
-        if auth_version not in os_args['admin_url']:
-            #NOTE: Openstack 'auth_url' is ACTUALLY the admin url.
-            os_args["auth_url"] = os_args['admin_url'] + auth_version
+            .replace("/tokens", "").replace('/v2.0', '').replace('/v3', '')
+
+        # NOTE: Openstack 'auth_url' is ACTUALLY the admin url.
+        if auth_url_prefix not in os_args['admin_url']:
+            os_args["auth_url"] = os_args['admin_url'] + auth_url_prefix
+
         if 'project_domain_name' not in os_args:
             os_args['project_domain_name'] = 'default'
         if 'user_domain_name' not in os_args:
