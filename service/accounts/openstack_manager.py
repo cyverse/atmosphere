@@ -127,6 +127,16 @@ class AccountDriver(BaseAccountDriver):
                         "provide the kwarg: location='provider_prefix'")
         # Build credentials for each manager
         self.credentials = all_creds
+
+        ex_auth_version = all_creds.get("ex_force_auth_version", '2.0_password')
+        if ex_auth_version.startswith('2'):
+            self.identity_version = 2
+        elif ex_auth_version.startswith('3'):
+            self.identity_version = 3
+        else:
+            raise Exception("Could not determine identity_version of %s"
+                            % ex_auth_version)
+
         user_creds = self._build_user_creds(all_creds)
         image_creds = self._build_image_creds(all_creds)
         net_creds = self._build_network_creds(all_creds)
@@ -136,14 +146,6 @@ class AccountDriver(BaseAccountDriver):
         self.user_manager = UserManager(**user_creds)
         self.image_manager = ImageManager(**image_creds)
         self.network_manager = NetworkManager(**net_creds)
-        ex_auth_version = sdk_creds.get("ex_force_auth_version", '2.0_password')
-        if ex_auth_version.startswith('2'):
-            self.identity_version = 2
-        elif ex_auth_version.startswith('3'):
-            self.identity_version = 3
-        else:
-            raise Exception("Could not determine identity_version of %s"
-                            % ex_auth_version)
         self.openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
 
     def create_account(self, username, password=None, project_name=None,
