@@ -58,7 +58,7 @@ def main():
     if args.provider:
         provider = Provider.objects.get(id=args.provider)
     else:
-        provider = Provider.objects.get(location='JetStream - Indiana')
+        provider = Provider.objects.get(location='iPlant Cloud - Tucson')
     print "Using Provider: %s" % provider
     type_name = provider.type.name.lower()
     if type_name == 'openstack':
