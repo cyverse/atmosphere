@@ -18,7 +18,7 @@ def main():
                         help="Image ID(s) to be repaired. (Comma-Separated)")
     args = parser.parse_args()
     if not args.provider:
-        provider = Provider.objects.get(location='Jetstream - Indiana')
+        provider = Provider.objects.get(location='Jetstream - Indiana University')
     else:
         provider = Provider.objects.get(id=args.provider)
     images = args.image_ids.split(",")

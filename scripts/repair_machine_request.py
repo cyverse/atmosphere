@@ -28,7 +28,7 @@ def main():
         Force = True
 
     if not args.provider:
-        provider = Provider.objects.get(location='Jetstream - Indiana')
+        provider = Provider.objects.get(location='Jetstream - Indiana University')
     else:
         provider = Provider.objects.get(id=args.provider)
 

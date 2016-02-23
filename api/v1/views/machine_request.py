@@ -118,17 +118,17 @@ class MachineRequestList(AuthAPIView):
             machine_request = serializer.save(status=pending_status)
             instance = machine_request.instance
             # NOTE: THIS IS A HACK -- While we enforce all images
-            #       to go to Jetstream - Indiana.
+            #       to go to Jetstream - Indiana University.
             # THIS CODE SHOULD BE REMOVED
             try:
                 tucson_provider = Provider.objects.get(
-                    location='Jetstream - Indiana')
+                    location='Jetstream - Indiana University')
                 if machine_request.new_machine_provider.location\
                    != tucson_provider.location:
                     machine_request.new_machine_provider = tucson_provider
             except:
                 # Will skip this step if no provider is named
-                # Jetstream - Indiana.
+                # Jetstream - Indiana University
                 pass
             # Object now has an ID for links..
             machine_request_id = machine_request.id

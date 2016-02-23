@@ -159,11 +159,25 @@ def configure_ansible(logger):
 
 def build_host_name(ip):
     """
-    iPlant-ism
+    Return the host name
+    * iPlant or jetstream
+    """
+    return jetstream_hostname(ip)
+
+
+def iplant_hostname(ip):
+    """
+    vmXXX-YYY
+    """
+    list_of_subnet = ip.split(".")
+    return "vm%s-%s" % (list_of_subnet[2], list_of_subnet[3])
+
+
+def jetstream_hostname(ip):
+    """
+    For now, return raw IP
     """
     return ip
-    #list_of_subnet = ip.split(".")
-    #return "vm%s-%s" % (list_of_subnet[2], list_of_subnet[3])
 
 
 def cache_bust(hostname):
