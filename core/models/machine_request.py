@@ -286,6 +286,8 @@ class MachineRequest(BaseRequest):
         old_provider = self.parent_machine.provider
         old_creds = old_provider.get_credentials()
         old_admin = old_provider.get_admin_identity().get_credentials()
+        if 'ex_force_auth_version' not in old_creds:
+            old_creds['ex_force_auth_version'] = '2.0_password'
         old_creds.update(old_admin)
 
         new_provider = self.new_machine_provider
@@ -293,18 +295,10 @@ class MachineRequest(BaseRequest):
             new_creds = old_creds.copy()
         else:
             new_creds = new_provider.get_credentials()
+            if 'ex_force_auth_version' not in new_creds:
+                new_creds['ex_force_auth_version'] = '2.0_password'
             new_admin = new_provider.get_admin_identity().get_credentials()
             new_creds.update(new_admin)
-	#NOTE: This should do something more reliable like 'ex_force_auth_version'
-        if 'v2' in old_creds['auth_url']:
-            old_creds['version'] = 'v2'
-        elif 'v3' in old_creds['auth_url']:
-            old_creds['version'] = 'v3'
-
-        if 'v2' in new_creds['auth_url']:
-            new_creds['version'] = 'v2'
-        elif 'v3' in new_creds['auth_url']:
-            new_creds['version'] = 'v3'
 
         return (old_creds, new_creds)
 
