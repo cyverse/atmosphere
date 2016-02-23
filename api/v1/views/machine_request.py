@@ -128,7 +128,7 @@ class MachineRequestList(AuthAPIView):
                     machine_request.new_machine_provider = tucson_provider
             except:
                 # Will skip this step if no provider is named
-                # iPlant Cloud - Tucson.
+                # iPlant Cloud - Tucson
                 pass
             # Object now has an ID for links..
             machine_request_id = machine_request.id

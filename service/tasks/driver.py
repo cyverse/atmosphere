@@ -950,10 +950,10 @@ def _deploy_ready_failed_email_test(
 
 
 @task(name="deploy_ready_test",
-      default_retry_delay=32,
+      default_retry_delay=64,
       # 16 second hard-set time limit. (NOTE:TOO LONG? -SG)
-      soft_time_limit=16,
-      max_retries=225  # Attempt up to two hours
+      soft_time_limit=32,
+      max_retries=125  # Attempt up to two hours
       )
 def deploy_ready_test(driverCls, provider, identity, instance_id,
                       **celery_task_args):
@@ -971,7 +971,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         "deploy_ready_test task %s/%s started at %s." %
         (current_count, total, datetime.now()))
     try:
-        # Check if instance still exists
+        # Sanity checks -- get your ducks in a row.
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
@@ -980,13 +980,53 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
                             "-- Going to keep trying anyway")
 
         echo_test = echo_test_script()
+    except (BaseException, Exception) as exc:
+        celery_logger.exception(exc)
+        _deploy_ready_failed_email_test(
+            driver, instance_id, exc.message, current.request, deploy_ready_test)
+        deploy_ready_test.retry(exc=exc)
+    # Attempt #1 - SSH connection as ubuntu
+    try:
+        kwargs = _generate_ssh_kwargs()
+        kwargs.update({'ssh_username': 'ubuntu', 'deploy': echo_test})
+        driver.deploy_to(instance, **kwargs)
+        celery_logger.debug(
+            "deploy_ready_test task %s/%s finished at %s." %
+            (current_count, total, datetime.now()))
+        return 'ubuntu'
+    except (BaseException, Exception) as exc:
+        pass
+    # Attempt #2 - SSH connection as centos
+    try:
+        kwargs = _generate_ssh_kwargs()
+        kwargs.update({'ssh_username': 'centos', 'deploy': echo_test})
+        driver.deploy_to(instance, **kwargs)
+        celery_logger.debug(
+            "deploy_ready_test task %s/%s finished at %s." %
+            (current_count, total, datetime.now()))
+        return 'centos'
+    except (BaseException, Exception) as exc:
+        pass
+    # Attempt #3 - SSH connection as cirros
+    try:
+        kwargs = _generate_ssh_kwargs()
+        kwargs.update({'ssh_username': 'cirros', 'deploy': echo_test})
+        driver.deploy_to(instance, **kwargs)
+        celery_logger.debug(
+            "deploy_ready_test task %s/%s finished at %s." %
+            (current_count, total, datetime.now()))
+        return 'cirros'
+    except (BaseException, Exception) as exc:
+        pass
+    # Attempt #4 - SSH connection as root
+    try:
         kwargs = _generate_ssh_kwargs()
         kwargs.update({'deploy': echo_test})
         driver.deploy_to(instance, **kwargs)
         celery_logger.debug(
             "deploy_ready_test task %s/%s finished at %s." %
             (current_count, total, datetime.now()))
-        return True
+        return 'root'
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
         _deploy_ready_failed_email_test(
@@ -1339,6 +1379,8 @@ def update_membership_for(provider_uuid):
         celery_logger.warn("Encountered unknown ProviderType:%s, expected"
                     " [Openstack] " % (provider.type.name,))
         return
+    if not acct_driver:
+        raise Exception("Encountered error creating driver -- check 'get_account_driver'")
     images = acct_driver.list_all_images()
     changes = 0
     for img in images:
@@ -1351,7 +1393,8 @@ def update_membership_for(provider_uuid):
         else:
             pm = pm[0]
         app_manager = pm.application_version.application.applicationmembership_set
-        if not img.is_public:
+        #if not img.is_public:
+        if img.get('visibility','') is not 'public':
             # Lookup members
             image_members = acct_driver.image_manager.shared_images_for(
                 image_id=img.id)

@@ -126,7 +126,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             )
 
         # make sure provider has imaging enabled
-        if not provider.public:
+        if not provider.active:
             raise exceptions.ValidationError(
                 "Provider %s does not allow imaging."
                 % (provider)

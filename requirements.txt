@@ -14,7 +14,7 @@ django-celery==3.1.16
 
 gevent==1.0.1
 
-apache-libcloud==0.17.0
+apache-libcloud==0.20.1
 requests==2.7
 python-dateutil==1.4.1
 pytz==2015.4
@@ -23,22 +23,15 @@ PyJWT==1.4.0
 
 python-logstash==0.4.5
 
-#Theirs (Could be Installed Manually on windows)
+#Theirs
 psycopg2==2.5.4
 python-ldap==2.4.19
-#pycrypto (Dependency inside of rtwo/rfive)
-#paramiko (Dependency inside of rtwo/rfive)
-
-#Theirs (Could NOT be installed on windows)
-# Fortunately, these requirements can be ignored on windows.
-#hiredis==0.1.4
 uWSGI==2.0.9
 
 ## ours
-django-iplant-auth==0.1.2
+django-iplant-auth==0.1.6
 threepio==0.2.0
-rtwo==0.3.0
+rtwo==0.3.6
 caslib.py==2.2.2
-chromogenic==0.1.8
+chromogenic==0.1.16
 subspace==0.1.6
-

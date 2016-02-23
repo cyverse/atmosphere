@@ -150,7 +150,7 @@ AUTHENTICATION_BACKENDS = (
     'iplantauth.authBackends.AuthTokenLoginBackend',
     # For Web-Access
     'iplantauth.authBackends.CASLoginBackend',
-    'iplantauth.authBackends.SAMLLoginBackend',
+    #'iplantauth.authBackends.SAMLLoginBackend',
     ## For Service-Access
     'iplantauth.authBackends.LDAPLoginBackend',
 )
@@ -314,9 +314,10 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'iplantauth.token.TokenAuthentication', # Generic Tokens
-        'iplantauth.token.JWTTokenAuthentication', # WSO2 + JWT
-        'iplantauth.token.OAuthTokenAuthentication', # CAS
-        'iplantauth.token.GlobusOAuthTokenAuthentication',   # Globus
+        # 'iplantauth.token.JWTTokenAuthentication',  # WSO2+JWT
+        'iplantauth.token.OAuthTokenAuthentication',  # CAS
+        #'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
+        # 'iplantauth.token.TokenAuthentication',  # Generic Tokens
         'rest_framework.authentication.SessionAuthentication',  # Session
     ),
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',
@@ -405,12 +406,18 @@ CELERYBEAT_SCHEDULE = {
     "monitor_machines": {
         "task": "monitor_machines",
         # Every day of the week @ 1am
-        "schedule": crontab(hour="1", minute="0", day_of_week="*"),
+        #"schedule": crontab(hour="1", minute="0", day_of_week="*"),
+        "schedule": timedelta(minutes=30),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
     "monitor_sizes": {
         "task": "monitor_sizes",
         "schedule": timedelta(minutes=30),
+        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+    },
+    "monitor_instance_allocations": {
+        "task": "monitor_instance_allocations",
+        "schedule": timedelta(minutes=15),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
     "monitor_instances": {

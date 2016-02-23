@@ -12,6 +12,7 @@ from atmosphere import settings
 from api.tests import verify_expected_output
 from service.accounts.openstack_manager import AccountDriver as OSAccounts
 
+# These tests do not apply when not using LDAP based auth.
 # TODO: Rewrite this to ensure that token api is available *WITHOUT* the need to test LDAP explicitly.
 
 # class TokenAPIClient(APIClient):
