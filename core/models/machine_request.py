@@ -295,6 +295,17 @@ class MachineRequest(BaseRequest):
             new_creds = new_provider.get_credentials()
             new_admin = new_provider.get_admin_identity().get_credentials()
             new_creds.update(new_admin)
+	#NOTE: This should do something more reliable like 'ex_force_auth_version'
+        if 'v2' in old_creds['auth_url']:
+            old_creds['version'] = 'v2'
+        elif 'v3' in old_creds['auth_url']:
+            old_creds['version'] = 'v3'
+
+        if 'v2' in new_creds['auth_url']:
+            new_creds['version'] = 'v2'
+        elif 'v3' in new_creds['auth_url']:
+            new_creds['version'] = 'v3'
+
         return (old_creds, new_creds)
 
     def prepare_manager(self):
