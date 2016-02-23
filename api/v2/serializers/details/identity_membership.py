@@ -10,9 +10,6 @@ from api.v2.serializers.summaries import (
 
 
 class IdentityMembershipSerializer(serializers.HyperlinkedModelSerializer):
-    url = serializers.HyperlinkedIdentityField(
-        view_name='api:v2:identitymembership-detail',
-    )
     quota = QuotaSummarySerializer()
     allocation = AllocationSummarySerializer()
     identity = IdentitySummarySerializer()
@@ -25,8 +22,7 @@ class IdentityMembershipSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = IdentityMembership
         fields = ('id',
-                  #TODO: Re-add this in master:
-                  #'url',
+                  'url',
                   'quota',
                   'allocation',
                   'end_date',
