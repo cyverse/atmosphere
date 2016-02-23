@@ -842,7 +842,7 @@ class AccountDriver(BaseAccountDriver):
                 raise ValueError(
                     "ImageManager is missing a Required Argument: %s" %
                     required_arg)
-        ex_auth_version = img_args.pop("ex_force_auth_version", '2.0_password')
+        ex_auth_version = img_args.get("ex_force_auth_version", '2.0_password')
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):
             auth_url_prefix = "/v2.0/tokens"
