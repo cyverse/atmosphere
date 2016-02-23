@@ -82,7 +82,7 @@ class MachineRequest(BaseRequest):
     new_version_forked = models.BooleanField(default=True)
     new_version_licenses = models.ManyToManyField(License, blank=True)
     new_version_scripts = models.ManyToManyField(BootScript, blank=True)
-    new_version_membership = models.ManyToManyField("Group")
+    new_version_membership = models.ManyToManyField("Group", blank=True)
 
     new_machine_provider = models.ForeignKey(Provider)
     new_machine_owner = models.ForeignKey(User, related_name="new_image_owner")

@@ -128,10 +128,18 @@ class AllocationStrategy(models.Model):
             cb = self.counting_behavior
             if cb.name == "1 Month - Calendar Window":
                 return self._first_of_month_window(now)
+            elif cb.name == "Count all time":
+                return self._count_all_time(identity, now)
             elif cb.name == "1 Month - Calendar Window - Anniversary":
                 return self._anniversary_window(identity, now)
         except CountingBehavior.DoesNotExist:
             return self._first_of_month_window(now)
+
+    def _count_all_time(self, identity, now=None):
+        if not now:
+            now = timezone.now()
+        user_join = identity.created_by.date_joined
+        return FixedWindow(user_join, now)
 
     def _anniversary_window(self, identity, now=None):
         if not now:
@@ -180,6 +188,9 @@ class AllocationStrategy(models.Model):
             elif rb.name == "Anniversary Date":
                 refresh_behaviors.append(
                     self._anniversary_month_refresh(identity, now))
+            elif rb.name == "No Refresh":
+                refresh_behaviors.append(
+                    self._no_refresh(identity))
             else:
                 continue
         return refresh_behaviors
@@ -196,6 +207,10 @@ class AllocationStrategy(models.Model):
             if user_join.day > now.day \
             else monthiversary - one_month
         return OneTimeRefresh(increase_date)
+
+    def _no_refresh(self, identity):
+        user_join = identity.created_by.date_joined
+        return OneTimeRefresh(user_join)
 
     def _first_of_month_refresh(self, now=None):
         if not now:

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from core import exceptions as core_exceptions
-from core.models import IdentityMembership
+from core.models import IdentityMembership, CloudAdministrator
 from core.models.status_type import StatusType
 
 from api.permissions import (

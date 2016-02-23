@@ -5,6 +5,7 @@ Atmosphere core email.
 from core.models import AtmosphereUser as User
 
 from django.core.urlresolvers import reverse
+from django.db.models import ObjectDoesNotExist
 from django.template import Context
 from django.template.loader import render_to_string
 from django.utils import timezone as django_timezone
@@ -16,7 +17,7 @@ from threepio import logger
 from atmosphere import settings
 from core.models import IdentityMembership, MachineRequest
 
-from iplantauth.protocol.ldap import lookupEmail, lookupUser
+from iplantauth.protocol.ldap import lookupEmail as ldapLookupEmail, lookupUser
 from core.tasks import send_email as send_email_task
 
 
@@ -66,7 +67,9 @@ def atmo_daemon_address():
 
 
 def lookup_user(request):
-    """ Return the username and email given a django request object.
+    """
+    Return the username and email given a django request object.
+    TODO: Remove this method _OR_ user_email_info
     """
     try:
         username = request.session.get('username', '')
@@ -77,8 +80,57 @@ def lookup_user(request):
     return user_email_info(username)
 
 
+def lookupEmail(username):
+    """
+    Given a username, return the email address
+    """
+    return ldapLookupEmail(username)
+
+
+def djangoLookupEmail(username):
+    """
+    Use Django's stored e-mail for user
+    return email address
+    """
+    try:
+        user = User.objects.get(username=username)
+        return user.email
+    except ObjectDoesNotExist:
+        return None
+    except Exception:
+        logger.exception("Something unexpected has happened -- See traceback")
+        return None
+
+
+def django_get_email_info(username):
+    """
+    Use Django's stored e-mail for user, then
+    Returns a 3-tuple of:
+    ("username", "email@address.com", "My Name")
+    """
+    user = User.objects.get(username=username)
+    user_name = user.get_full_name()
+    user_email = user.email
+    if not user.email:
+        raise Exception("User %s missing REQUIRED email:" % user)
+    return (username, user_email, user_name)
+
+
 def user_email_info(username):
+    """
+    Returns a 3-tuple of:
+    ("username", "email@address.com", "My Name")
+    """
     logger.debug("user = %s" % username)
+    return ldap_get_email_info(username)
+
+
+def ldap_get_email_info(username):
+    """
+    Use LDAP to query the e-mail, then
+    Returns a 3-tuple of:
+    ("username", "email@address.com", "My Name")
+    """
     ldap_attrs = lookupUser(username)
     user_email = ldap_attrs.get('mail', [None])[0]
     if not user_email:
@@ -91,7 +143,6 @@ def user_email_info(username):
                                ldap_attrs.get("sn", [""])[0])
     if not user_name.strip(' '):
         user_name = username
-
     return (username, user_email, user_name)
 
 
@@ -171,6 +222,7 @@ def email_to_admin(
     if not username and not user_email:
         username, user_email = sendto, sendto_email
     elif not user_email:  # Username provided
+        # TODO: Pass only strings, avoid passing 'User' object here.
         if isinstance(username, User):
             username = username.username
         user_email = lookupEmail(username)
