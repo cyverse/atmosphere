@@ -343,12 +343,12 @@ class AccountDriver(BaseAccountDriver):
         """
         This is only required when sharing using 'the v2 api' on glance.
         """
-        #NOTE: Abusing the 'project_name' == 'username' mapping. Future me will fix this.
+        # FIXME: Abusing the 'project_name' == 'username' mapping
         clients = self.get_openstack_clients(project_name)
         project = self.user_manager.get_project(project_name)
         glance = clients["glance"]
         glance.image_members.update(
-            glance_image.id, 
+            glance_image.id,
             project.id,
             'accepted')
 
@@ -579,6 +579,7 @@ class AccountDriver(BaseAccountDriver):
         all_projects = self.list_projects()
         tenant_id_map = {project.id: project.name for project in all_projects}
         return tenant_id_map
+
     def create_trust(
             self,
             trustee_project_name, trustee_username, trustee_domain_name,
