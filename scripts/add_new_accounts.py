@@ -11,7 +11,7 @@ from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
-
+from threepio import logger
 
 libcloud.security.VERIFY_SSL_CERT = False
 # TODO: Remove this and use 'get_members' in iplantauth/protocols/ldap.py
@@ -102,6 +102,7 @@ def main():
                 print "%s added." % (user)
         except Exception as e:
             print "Problem adding %s." % (user)
+            logger.exception(e)
             print e.message
     print "Total users added:%s" % (added)
 

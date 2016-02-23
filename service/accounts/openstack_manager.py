@@ -684,7 +684,6 @@ class AccountDriver(BaseAccountDriver):
         image_creds = self._build_image_creds(all_creds)
         net_creds = self._build_network_creds(all_creds)
         sdk_creds = self._build_sdk_creds(all_creds)
-
         openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
         neutron = self.network_manager.new_connection(**net_creds)
         keystone, nova, glance = self.image_manager._new_connection(
@@ -705,9 +704,16 @@ class AccountDriver(BaseAccountDriver):
             tenant_name = self.get_project_name_for(username)
         if not password:
             password = self.hashpass(tenant_name)
+        version = self.user_manager.keystone_version() 
+        if version == 2:
+            ex_version = '2.0_password'
+        elif version == 3:
+            ex_version = '3.x_password'
+
         user_creds = {
             "auth_url": self.user_manager.nova.client.auth_url.replace('/v3','').replace('/v2.0',''),
             "admin_url": self.user_manager.keystone._management_url.replace('/v2.0','').replace('/v3',''),
+            "ex_force_auth_version": ex_version,
             "region_name": self.user_manager.nova.client.region_name,
             "username": username,
             "password": password,
@@ -780,7 +786,7 @@ class AccountDriver(BaseAccountDriver):
                 raise ValueError(
                     "ImageManager is missing a Required Argument: %s" %
                     required_arg)
-        img_args.pop("ex_force_auth_version",None)
+        img_args.pop("ex_force_auth_version", None)
         img_args['version'] = img_args.get("version",'v2.0')
 
         img_args["auth_url"] = img_args.get('auth_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')
@@ -841,7 +847,7 @@ class AccountDriver(BaseAccountDriver):
         if 'user_domain_name' not in os_args:
             os_args['user_domain_name'] = 'default'
         if 'identity_api_version' not in os_args:
-            os_args['identity_api_version'] = 3
+            os_args['identity_api_version'] = 3 #NOTE: this is what we use to determine whether or not to make openstack_sdk
         # Removable args:
         os_args.pop("ex_force_auth_version", None)
         os_args.pop("admin_url", None)
