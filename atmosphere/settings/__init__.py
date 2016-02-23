@@ -314,10 +314,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'iplantauth.token.TokenAuthentication', # Generic Tokens
-        # 'iplantauth.token.JWTTokenAuthentication',  # WSO2+JWT
-        # 'iplantauth.token.OAuthTokenAuthentication',  # CAS
         'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
-        # 'iplantauth.token.TokenAuthentication',  # Generic Tokens
         'rest_framework.authentication.SessionAuthentication',  # Session
     ),
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',

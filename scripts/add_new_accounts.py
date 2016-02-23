@@ -11,11 +11,9 @@ from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
-
+from threepio import logger
 
 libcloud.security.VERIFY_SSL_CERT = False
-# TODO: Remove this and use 'get_members' in iplantauth/protocols/ldap.py
-#      when it exists (A-N)
 
 
 def get_usernames(provider):
@@ -65,7 +63,7 @@ def main():
     if args.provider:
         provider = Provider.objects.get(id=args.provider)
     else:
-        provider = Provider.objects.get(location='JetStream - Indiana')
+        provider = Provider.objects.get(location='Jetstream - Indiana University')
     print "Using Provider: %s" % provider
     type_name = provider.type.name.lower()
     if type_name == 'openstack':
@@ -101,7 +99,9 @@ def main():
             else:
                 print "%s added." % (user)
         except Exception as e:
+            logger.exception("Problem creating account")
             print "Problem adding %s." % (user)
+            logger.exception(e)
             print e.message
     print "Total users added:%s" % (added)
 

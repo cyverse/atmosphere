@@ -22,7 +22,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('users', type=str, nargs='+')
     args = parser.parse_args()
-    openstack_prov = Provider.objects.get(location='Jetstream - Indiana')
+    openstack_prov = Provider.objects.get(location='Jetstream - Indiana University')
     driver = AccountDriver(openstack_prov)
     success = 0
     for username in args.users:

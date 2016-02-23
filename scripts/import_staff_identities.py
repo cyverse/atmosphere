@@ -18,7 +18,7 @@ def main():
     """
     TODO: Add argparse, --delete : Deletes existing users in openstack (Never use in PROD)
     """
-    openstack = Provider.objects.get(location='Jetstream - Indiana')
+    openstack = Provider.objects.get(location='Jetstream - Indiana University')
     os_driver = OSAccountDriver(openstack)
     found = 0
     create = 0
