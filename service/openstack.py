@@ -1,7 +1,7 @@
 import pytz
 import json
 
-from django.utils.timezone import datetime
+from django.utils.timezone import datetime, now
 
 from threepio import logger
 
@@ -168,6 +168,9 @@ def glance_update_machine(new_machine):
                 new_app.private = True
             g_end_date = glance_timestamp(g_image.get('deleted',None))
             g_start_date = glance_timestamp(g_image['created_at'])
+        if not g_start_date:
+            logger.warn("Could not parse timestamp of 'created_at': %s" % g_image['created_at'])
+            g_start_date = now()
         else:
             raise Exception("Glance image has changed. Ask a programmer for help!")
         if new_app.first_machine() is new_machine:
