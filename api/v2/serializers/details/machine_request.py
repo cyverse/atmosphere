@@ -133,19 +133,20 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             )
 
         # TODO: make sure user has access to parent machine
-
         return data
 
     uuid = serializers.CharField(read_only=True)
     identity = IdentityRelatedField(source='membership.identity',
-                                    queryset=Identity.objects.none())
+                                    queryset=Identity.objects.none(),
+                                    style={'base_template': 'input.html'})
     instance = ModelRelatedField(
         queryset=Instance.objects.all(),
         serializer_class=InstanceSummarySerializer,
         style={'base_template': 'input.html'})
     status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
                                     allow_null=True,
-                                    required=False)
+                                    required=False,
+                                    style={'base_template': 'input.html'},)
     admin_message = serializers.CharField(read_only=True)
     parent_machine = ModelRelatedField(
        required = False, 
