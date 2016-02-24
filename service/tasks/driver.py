@@ -1208,17 +1208,7 @@ def add_floating_ip(driverCls, provider, identity,
         _update_status_log(instance, "Networking Complete")
         # TODO: Implement this as its own task, with the result from
         #'floating_ip' passed in. Add it to the deploy_chain before deploy_to
-        hostname = ""
-        if floating_ip.startswith('128.196'):
-            regex = re.compile(
-                "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."
-                "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
-            r = regex.search(floating_ip)
-            (one, two, three, four) = r.groups()
-            hostname = "vm%s-%s.iplantcollaborative.org" % (three, four)
-        else:
-            # Find a way to convert new floating IPs to hostnames..
-            hostname = floating_ip
+        hostname = build_host_name(floating_ip)
 
         metadata_update = {
             'public-hostname': hostname,
