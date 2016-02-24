@@ -195,12 +195,26 @@ def share_with_admins(private_userlist, provider_uuid):
 
 
 def upload_privacy_data(machine_request, new_machine):
+    """
+    ASSERT: The image in 'new_machine' SHOULD BE private
+    (Based on values in machine_request)
+    """
     prov = new_machine.provider
     accounts = get_account_driver(prov)
     if not accounts:
         print "Aborting import: Could not retrieve Account Driver "\
             "for Provider %s" % prov
         return
+    img = accounts.get_image(new_machine.identifier)
+    if hasattr(img, 'visibility'):  # Treated as an obj.
+        is_public = img.visibility == 'public'
+    elif hasattr(img, 'items'):  # Treated as a dict.
+        is_public = img.get('visibility','N/A') == 'public'
+
+    if is_public:
+        print "Marking image %s private" % img.id
+        accounts.image_manager.update_image(img, visibility='private')
+
     accounts.clear_cache()
     admin_driver = accounts.admin_driver  # cache has been cleared
     if not admin_driver:
@@ -260,6 +274,7 @@ def add_membership(image_version, group):
                     % (obj,)
             # Share with the *cloud* last!
             accounts.image_manager.share_image(img, project_name)
+            accounts.accept_shared_image(img, project_name)
             logger.info("Added Cloud Access: %s-%s"
                         % (img, project_name))
             continue
@@ -374,9 +389,6 @@ def sync_cloud_access(accounts, img, names=None):
 
 
 def make_private(image_manager, image, provider_machine, tenant_list=[]):
-    if image.is_public:
-        print "Marking image %s private" % image.id
-        image_manager.update_image(image, is_public=False)
     if provider_machine.application.private is False:
         print "Marking application %s private" % provider_machine.application
         provider_machine.application.private = True
@@ -394,7 +406,12 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
             name = tenant.name
         else:
             name = tenant
-        group = models.Group.objects.get(name=name)
+        try:
+            group = models.Group.objects.get(name=name)
+        except models.Group.DoesNotExist:
+            logger.warn("Group %s does not exist - Skipped sharing" % name)
+            pass
+
         obj, created = models.ApplicationMembership.objects.get_or_create(
             group=group,
             application=provider_machine.application)

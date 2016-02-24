@@ -142,7 +142,11 @@ def get_default_identity(username, provider=None):
         group = get_user_group(username)
         if not group or not group.current_identities.all().count():
             if settings.AUTO_CREATE_NEW_ACCOUNTS:
-                return create_first_identity(username, provider=provider)
+                new_identities = create_new_accounts(username, provider=provider)
+                if not new_identities:
+                    logger.error("%s has no identities. Functionality will be severely limited." % username)
+                    return None
+                return new_identites[0]
             else:
                 return None
         identities = group.current_identities.all()
@@ -171,22 +175,27 @@ def get_default_identity(username, provider=None):
         logger.exception(e)
         return None
 
-def create_first_identity(username, provider=None):
+def create_new_accounts(username, provider=None):
     from service.driver import get_account_driver
     user = AtmosphereUser.objects.get(username=username)
-    if not provider:
-        provider = get_available_provider()
-    if not provider:
+    providers = get_available_providers()
+    if provider and provider not in providers:
+        raise Exception("The provider %s is NOT in the list of currently active providers. Account will not be created" % provider)
+    if not providers:
         raise Exception("No currently active providers -- Could not create First identity")
-    accounts = get_account_driver(provider)
-    new_identity = accounts.create_account(user.username)
-    return new_identity
+    identities = []
+    for provider in providers:
+        try:
+            accounts = get_account_driver(provider)
+            logger.info("Create NEW account for %s" % user.username)
+            new_identity = accounts.create_account(user.username)
+            identities.append(new_identity)
+        except:
+            logger.exception("Could *NOT* Create NEW account for %s" % user.username)
+    return identities
 
-def get_available_provider():
+def get_available_providers():
     from core.models.provider import Provider
     from core.query import only_current
-    available_providers = Provider.objects.filter(only_current(), active=True).order_by('id')
-    if not available_providers.count():
-        return None
-    # Strategy, for now, is to just pick the first one.
-    return available_providers[0]
+    available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
+    return available_providers

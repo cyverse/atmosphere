@@ -53,6 +53,7 @@ JWT_INSTALL = ; False
 JWT_PUBLIC_KEY = ; /path/to/b64_key.pub
 JWT_CLIENT_KEY = ; client_key
 JWT_CLIENT_SECRET = ; client_secret
+GLOBUS_MAPPING_FILE = ; /path/to/globus-mapping-file
 GLOBUS_OAUTH_ID = ; globus_key
 GLOBUS_OAUTH_SECRET = ; globus_secret
 GLOBUS_OAUTH_SCOPE = ; scope_one

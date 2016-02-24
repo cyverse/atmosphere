@@ -53,11 +53,15 @@ class MachineRequestViewSet(BaseRequestViewSet):
 
     def perform_create(self, serializer):
 
-        q = MachineRequest.objects.filter((Q(created_by__id=self.request.user.id) &\
-            Q(instance_id=serializer.validated_data['instance'].id) &\
-            ~Q(status__name="failed") &\
-            ~Q(status__name="rejected") &\
-            ~Q(status__name="closed")))
+        q = MachineRequest.objects.filter(
+            (
+                Q(created_by__id=self.request.user.id) &
+                Q(instance_id=serializer.validated_data['instance'].id) &
+                ~Q(status__name="failed") &
+                ~Q(status__name="rejected") &
+                ~Q(status__name="completed") &
+                ~Q(status__name="closed")
+            ))
 
         if len(q) > 0:
             message = "Only one active request is allowed per provider."
@@ -66,15 +70,12 @@ class MachineRequestViewSet(BaseRequestViewSet):
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
-
-        #TODO: This is likely the 'acceptable' way to do it post-kk. Bring this back!
-        #new_provider= serializer.validated_data['new_machine_provider']
         new_owner=self.request.user
         parent_machine = serializer.validated_data['instance'].provider_machine
 
         # TODO: This is a hack that can be removed POST-ll (When MachineRequest validates new_machine_provider)
         new_provider = parent_machine.provider  # <--HACK!
-        
+
         access_list = serializer.initial_data.get("access_list") or []
         visibility = serializer.initial_data.get("new_application_visibility") 
         if  visibility in ["select", "private"]:
@@ -147,7 +148,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
         provider = instance.active_provider()
         pre_approved = provider.auto_imaging
         requestImaging(self.request, instance.id, auto_approve=pre_approved)
-        
+
         if pre_approved:
             status, _ = StatusType.objects.get_or_create(name="approved")
             instance.status = status
@@ -164,3 +165,9 @@ class MachineRequestViewSet(BaseRequestViewSet):
         """
         Notify the user that the request was denied
         """
+
+    def close_action(self, instance):
+        """
+        Silently close request
+        """
+        pass

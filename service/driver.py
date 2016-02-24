@@ -1,3 +1,11 @@
+import uuid
+
+from core.exceptions import ProviderNotActive
+from core.models import AtmosphereUser as User
+from core.models.identity import Identity as CoreIdentity
+from core.models.provider import Provider as CoreProvider
+from core.models.size import convert_esh_size
+
 from threepio import logger
 
 from rtwo.provider import AWSProvider, AWSUSEastProvider,\
@@ -7,11 +15,8 @@ from rtwo.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 
-from core.exceptions import ProviderNotActive
-from core.models import AtmosphereUser as User
-from core.models.identity import Identity as CoreIdentity
-from core.models.size import convert_esh_size
 
+#TODO: Remove these ASAP -- Once we determine it will not be a problem.
 EucaProvider.set_meta()
 AWSProvider.set_meta()
 OSProvider.set_meta()
@@ -93,6 +98,8 @@ def get_account_driver(provider):
     Create an account driver for a given provider.
     """
     try:
+        if type(provider) == uuid.UUID:
+            provider = CoreProvider.objects.get(uuid=provider)
         type_name = provider.get_type_name().lower()
         if 'openstack' in type_name:
             from service.accounts.openstack_manager import AccountDriver as\
@@ -103,8 +110,12 @@ def get_account_driver(provider):
                 EucaAccountDriver
             return EucaAccountDriver(provider)
     except:
+        if type(provider) == uuid.UUID:
+            provider_str = "Provider with UUID %s" % provider
+        else:
+            provider_str = "Provider %s" % provider.location
         logger.exception("Account driver for provider %s not found." %
-                         (provider.location))
+                         (provider_str))
         return None
 
 
@@ -159,7 +170,7 @@ def get_esh_provider(core_provider, username=None):
         raise
 
 
-def get_esh_driver(core_identity, username=None):
+def get_esh_driver(core_identity, username=None, **kwargs):
     try:
         core_provider = core_identity.provider
         if not core_provider.is_active():
@@ -171,6 +182,7 @@ def get_esh_driver(core_identity, username=None):
             user = User.objects.get(username=username)
         provider = get_esh_provider(core_provider, username=user.username)
         provider_creds = core_identity.provider.get_esh_credentials(provider)
+        provider_creds.update(kwargs)
         identity_creds = core_identity.get_credentials()
         identity = esh_map['identity'](provider, user=user, **identity_creds)
         driver = esh_map['driver'](provider, identity, **provider_creds)
@@ -205,7 +217,7 @@ def prepare_driver(request, provider_uuid, identity_uuid,
         return None
 
 
-def _retrieve_source(esh_driver, new_source_alias, source_hint):
+def _retrieve_source(esh_driver, new_source_alias, source_hint=None):
     source = None
     if not source_hint or source_hint == "machine":
         source = esh_driver.get_machine(new_source_alias)

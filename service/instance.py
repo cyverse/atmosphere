@@ -738,8 +738,8 @@ def _destroy_instance(identity_uuid, instance_alias):
 
 
 # Private methods and helpers
-def admin_get_instance(esh_driver, instance_id):
-    instance_list = esh_driver.list_all_instances()
+def admin_get_instance(admin_driver, instance_id):
+    instance_list = admin_driver.list_all_instances()
     esh_instance = [instance for instance in instance_list if
                     instance.id == instance_id]
     if not esh_instance:
