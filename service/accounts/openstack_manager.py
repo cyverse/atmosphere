@@ -567,6 +567,9 @@ class AccountDriver(BaseAccountDriver):
     def list_all_images(self, **kwargs):
         return self.image_manager.list_images(**kwargs)
 
+    def list_all_snapshots(self, **kwargs):
+        return [img for img in self.list_all_images(**kwargs) if 'snapshot' in img.get('image_type','image').lower()]
+
     def get_project_by_id(self, project_id):
         return self.user_manager.get_project_by_id(project_id)
 
