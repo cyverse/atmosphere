@@ -30,6 +30,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
     ordering_fields = ('start_date', 'end_date', 'new_machine_owner__username')
     ordering = ('-start_date',)
 
+    #TODO: find a better way to handle filtering than overriding BaseRequest get_queryset
     def get_queryset(self):
         """
         Return users requests or all the requests if the user is an admin.
