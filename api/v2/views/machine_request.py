@@ -5,6 +5,7 @@ from api.v2.serializers.details import MachineRequestSerializer,\
 from api.v2.views.base import BaseRequestViewSet
 
 from django.db.models import Q
+from django.utils import timezone
 
 from core import exceptions as core_exceptions
 from core.email import send_denied_resource_email
@@ -17,6 +18,8 @@ from service.machine import share_with_admins, share_with_self, remove_duplicate
 from service.tasks.machine import start_machine_imaging
 from threepio import logger
 
+from datetime import timedelta
+
 
 class MachineRequestViewSet(BaseRequestViewSet):
     queryset = MachineRequest.objects.none()
@@ -27,6 +30,27 @@ class MachineRequestViewSet(BaseRequestViewSet):
     ordering_fields = ('start_date', 'end_date', 'new_machine_owner__username')
     ordering = ('-start_date',)
 
+    #TODO: find a better way to handle filtering than overriding BaseRequest get_queryset
+    def get_queryset(self):
+        """
+        Return users requests or all the requests if the user is an admin.
+        """
+
+        assert self.model is not None, (
+            "%s should include a `model` attribute."
+            % self.__class__.__name__
+        )
+
+        to_return = MachineRequest.objects.filter((Q(start_date__gte=timezone.now() - timedelta(days=7)) |\
+            Q(status__name='pending')))
+
+        if self.request.query_params.get("all", "").lower() == "true":
+            to_return = MachineRequest.objects.all()
+
+        if self.request.user.is_staff:
+            return to_return.order_by('-start_date')
+    
+        return to_return.filter(created_by=self.request.user).order_by('-start_date')
 
     def perform_create(self, serializer):
 
