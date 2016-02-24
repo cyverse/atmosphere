@@ -32,8 +32,10 @@ from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
 
-from service.deploy import inject_env_script, check_process, wrap_script, echo_test_script,\
-    deploy_to as ansible_deploy_to
+from service.deploy import (
+    inject_env_script, check_process, wrap_script,
+    echo_test_script, build_host_name,
+    deploy_to as ansible_deploy_to)
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
 from service.instance import _update_instance_metadata
