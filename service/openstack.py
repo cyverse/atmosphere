@@ -152,9 +152,11 @@ def glance_update_machine(new_machine):
         base_source.created_by = owner.created_by
         base_source.created_by_identity = owner
         base_source.save()
+
     # If glance image, we can also infer some about the application
     if g_image:
         logger.debug("Found glance image for %s" % new_machine)
+
         # Never set private=False if it's set True in the DB.
         if hasattr(g_image, 'is_public'):
             #'v1' glance image has attrs
@@ -164,15 +166,16 @@ def glance_update_machine(new_machine):
             g_start_date = glance_timestamp(g_image.created_at)
         elif hasattr(g_image, 'items'):
             #'v2' glance image is a dict.
-            if not g_image['visibility'] == 'public':
+            if g_image.get('visibility','public') is not 'public':
                 new_app.private = True
             g_end_date = glance_timestamp(g_image.get('deleted',None))
             g_start_date = glance_timestamp(g_image['created_at'])
+        else:
+            raise Exception("Glance image has changed. Ask a programmer for help!")
+
         if not g_start_date:
             logger.warn("Could not parse timestamp of 'created_at': %s" % g_image['created_at'])
             g_start_date = now()
-        else:
-            raise Exception("Glance image has changed. Ask a programmer for help!")
         if new_app.first_machine() is new_machine:
             logger.debug("Glance image represents App:%s" % new_app)
             new_app.created_by = owner.created_by
@@ -244,31 +247,3 @@ def glance_timestamp(iso_8601_stamp):
     # All Dates are UTC relative
     datetime_obj = datetime_obj.replace(tzinfo=pytz.utc)
     return datetime_obj
-
-def generate_openrc(driver, file_loc):
-    project_domain = 'default'
-    user_domain = 'default'
-    tenant_name = project_name = driver.identity.get_groupname()
-    username = driver.identity.get_username()
-    password = driver.identity.credentials.get('secret')
-    provider_options = driver.provider.options
-    if not provider_options:
-        raise Exception("Expected to have a dict() 'options' stored in the 'provider' object. Please update this method!")
-    if not password:
-        raise Exception("Expected to have password stored in the 'secret' credential. Please update this method!")
-    identity_api_version = provider_options.get('ex_force_auth_version','2')[0]
-    version_prefix = "/v2.0" if ('2' in identity_api_version) else '/v3'
-    auth_url = provider_options.get('ex_force_auth_url','') + version_prefix
-    openrc_template = \
-"""export OS_PROJECT_DOMAIN_ID=%s
-export OS_USER_DOMAIN_ID=%s
-export OS_PROJECT_NAME=%s
-export OS_TENANT_NAME=%s
-export OS_USERNAME=%s
-export OS_PASSWORD=%s
-export OS_AUTH_URL=%s
-export OS_IDENTITY_API_VERSION=%s
-""" % (project_domain, user_domain, project_name, tenant_name,
-       username, password, auth_url, identity_api_version)
-    with open(file_loc,'w') as the_file:
-        the_file.write(openrc_template)

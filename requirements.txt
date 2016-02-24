@@ -33,5 +33,5 @@ django-iplant-auth==0.1.6
 threepio==0.2.0
 rtwo==0.3.7
 caslib.py==2.2.2
-chromogenic==0.1.16
+chromogenic==0.1.20
 subspace==0.1.6

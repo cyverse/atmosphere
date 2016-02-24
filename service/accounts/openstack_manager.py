@@ -252,7 +252,7 @@ class AccountDriver(BaseAccountDriver):
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain_id': 'default'})
-        project = self.user_manager.keystone.projects.find(name=project_name, **kwargs)
+        project = self.user_manager.keystone_projects().find(name=project_name, **kwargs)
         nc = self.user_manager.nova
         rule_max = max(len(rules_list), 100)
         nc.quotas.update(project.id, security_group_rules=rule_max)
@@ -566,6 +566,9 @@ class AccountDriver(BaseAccountDriver):
 
     def list_all_images(self, **kwargs):
         return self.image_manager.list_images(**kwargs)
+
+    def list_all_snapshots(self, **kwargs):
+        return [img for img in self.list_all_images(**kwargs) if 'snapshot' in img.get('image_type','image').lower()]
 
     def get_project_by_id(self, project_id):
         return self.user_manager.get_project_by_id(project_id)
