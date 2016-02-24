@@ -3,6 +3,7 @@ Deploy methods for Atmosphere
 """
 from functools import wraps
 import os
+import re
 import sys
 import time
 
@@ -165,19 +166,37 @@ def build_host_name(ip):
     return jetstream_hostname(ip)
 
 
+def split_ip_address(ip):
+    regex = re.compile(
+        "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."
+        "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
+    r = regex.search(ip)
+    (one, two, three, four) = r.groups()
+    return (one, two, three, four)
+
+
 def iplant_hostname(ip):
     """
     vmXXX-YYY
     """
-    list_of_subnet = ip.split(".")
-    return "vm%s-%s" % (list_of_subnet[2], list_of_subnet[3])
+    prefix = "vm"
+    separator = "-"
+    list_of_subnet = split_ip_address(ip)
+    return "%s%s%s%s.%s" % (
+         prefix, list_of_subnet[2], separator, list_of_subnet[3],
+         "iplantcollaborative.org")
 
 
 def jetstream_hostname(ip):
     """
     For now, return raw IP
     """
-    return ip
+    prefix = "js-"
+    separator = "-"
+    list_of_subnet = split_ip_address(ip)
+    return "%s%s%s%s.%s" % (
+         prefix, list_of_subnet[2], separator, list_of_subnet[3],
+         "jetstream-cloud.org")
 
 
 def cache_bust(hostname):
