@@ -658,8 +658,6 @@ class AccountDriver(BaseAccountDriver):
         return found_roles[0]
 
     def get_user(self, user_name_or_id, **list_kwargs):
-        if self.identity_version > 2:
-            list_kwargs = self._parse_domain_kwargs(list_kwargs)
         user_list = self.list_users(**list_kwargs)
         found_users = [user for user in user_list if user.id == user_name_or_id or user.name == user_name_or_id]
         if not found_users:
@@ -668,26 +666,33 @@ class AccountDriver(BaseAccountDriver):
             raise Exception("User name/id %s matched more than one value -- Fix the code" % (user_name_or_id,))
         return found_users[0]
 
-    def _parse_domain_kwargs(self, kwargs, domain_override='domain_id'):
+    def _parse_domain_kwargs(self, kwargs, domain_override='domain_id', default_domain='default'):
         """
         CLI's replace domain_name with the actual domain.
         We replicate that functionality to avoid operator-frustration.
         """
         domain_key = 'domain_name'
-        domain_name_or_id = kwargs.get(domain_key)
-        if not domain_name_or_id:
+        if self.identity_version <= 2:
             return kwargs
+        if domain_override in kwargs:
+            if domain_key in kwargs:
+                kwargs.pop(domain_key)
+            return kwargs
+        if domain_key not in kwargs:
+            kwargs[domain_key] = default_domain # Set to default domain
+
+        domain_name_or_id = kwargs.get(domain_key)
         domain = self.openstack_sdk.identity.find_domain(domain_name_or_id)
         if not domain:
             raise ValueError("Could not find domain %s by name or id."
                              % domain_name_or_id)
-        kwargs.pop(domain_key)
+        kwargs.pop(domain_key, '')
         kwargs[domain_override] = domain.id
         return kwargs
 
     def list_users(self, **kwargs):
         if self.identity_version > 2:
-            kwargs = self._parse_domain_kwargs(kwargs)
+            kwargs = self._parse_domain_kwargs(kwargs, domain_override='domain')
         return self.user_manager.keystone.users.list(**kwargs)
 
     def list_usergroup_names(self):
