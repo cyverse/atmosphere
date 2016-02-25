@@ -37,7 +37,7 @@ class InstanceStatusHistoryViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     queryset = InstanceStatusHistory.objects.all()
     serializer_class = InstanceStatusHistorySerializer
     ordering = ('-instance__start_date', 'instance__id')
-    ordering_fields = ('-instance__start_date', 'instance__id')
+    ordering_fields = ('start_date', 'instance__id')
     lookup_fields = ("id", "uuid")
     filter_class = InstanceStatusHistoryFilter
     filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
