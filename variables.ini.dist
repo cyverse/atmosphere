@@ -94,6 +94,7 @@ IRODS_PORT = ; 8000
 IRODS_ZONE = ; irods_zone
 IRODS_ADMIN_USER = ; irods_user
 IRODS_ADMIN_PASS = ; irods_password
+CHROMO_DEPLOYMENT_KEY = ; ssh-rsa AAA... example@deploykey.com
 LOCAL_STORAGE = ; /storage
 OPENSTACK_PROVIDER_KEY = ; OpenStack Provider
 OPENSTACK_ADMIN_KEY = ; admin_key

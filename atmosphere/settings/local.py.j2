@@ -4,7 +4,10 @@ Settings specific to the local deploy.
 import os
 import sys
 
+# This is used by dependencies (ex: chromogenic)
+# without exposing 'secret' settings in Debug mode.
 from atmosphere.settings import secrets
+SECRETS_MODULE = secrets
 
 globals().update(vars(sys.modules['atmosphere.settings']))
 
@@ -107,20 +110,56 @@ AUTHENTICATION = {
     "GLOBUS_MAPPING_FILE": '{{ GLOBUS_MAPPING_FILE }}',
 }
 
-{% if USE_MOCK_AUTH %}
-ALWAYS_AUTH_USER = "{{ MOCK_USER }}"
-# Use MockLoginBackend first!
-AUTHENTICATION_BACKENDS += (
-    'iplantauth.authBackends.MockLoginBackend',
-)
+{% if AUTH_ENABLE_MOCK %}
+ALWAYS_AUTH_USER = "{{ AUTH_MOCK_USER }}"
 {% else %}
 # MOCK - Uncomment these lines to allow one-user-only access. Useful for debug/development
 # ALWAYS_AUTH_USER = "test_user"
-# # Use MockLoginBackend first!
-# AUTHENTICATION_BACKENDS = (
-#     'iplantauth.authBackends.MockLoginBackend',
-#     'django.contrib.auth.backends.ModelBackend',  # Required to login to 'admin' if you use *ONLY* MockLoginBackend
-# ) + AUTHENTICATION_BACKENDS
+{% endif %}
+{% if AUTH_USE_OVERRIDE %}
+AUTHENTICATION_BACKENDS = (
+    {% if AUTH_ENABLE_MOCK %}
+    # Use MockLoginBackend first!
+    'iplantauth.authBackends.MockLoginBackend',
+    {% else %}
+    # MOCK - Uncomment these lines to allow one-user-only access. Useful for debug/development
+    # 'iplantauth.authBackends.MockLoginBackend',
+    # MOCK - Required to login to 'admin' if the *ONLY* backend is MockLoginBackend.
+    # 'django.contrib.auth.backends.ModelBackend',
+    {% endif %}
+
+    {% if AUTH_ENABLE_GLOBUS %}
+    # For Web-Access
+    'iplantauth.authBackends.GlobusOAuthLoginBackend',
+    'iplantauth.authBackends.AuthTokenLoginBackend',
+    # Required to login to 'admin' if the *ONLY* backend is GlobusLoginBackend
+    'django.contrib.auth.backends.ModelBackend',
+    {% endif %}
+
+    {% if AUTH_ENABLE_CAS %}
+    # For Web-Access
+    'iplantauth.authBackends.CASLoginBackend',
+    {% endif %}
+
+    {% if AUTH_ENABLE_LDAP %}
+    # For Service-Access
+    'iplantauth.authBackends.LDAPLoginBackend',
+    {% endif %}
+)
+# UPDATE REST_FRAMEWORK
+REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
+    {% if AUTH_ENABLE_GLOBUS %}
+    'iplantauth.token.TokenAuthentication',  # Generic Tokens
+    'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
+    'rest_framework.authentication.SessionAuthentication',  # Session
+    {% endif %}
+
+    {% if AUTH_ENABLE_CAS %}
+    'iplantauth.token.TokenAuthentication',  # Generic Tokens
+    'iplantauth.token.OAuthTokenAuthentication',  # CAS
+    'rest_framework.authentication.SessionAuthentication',  # Session
+    {% endif %}
+)
 {% endif %}
 # CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
