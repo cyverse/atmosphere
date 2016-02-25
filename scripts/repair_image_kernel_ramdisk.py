@@ -19,7 +19,7 @@ def main():
     args = parser.parse_args()
 
     if not args.provider:
-        provider = Provider.objects.get(location='Jetstream - Indiana')
+        provider = Provider.objects.get(location='iPlant Cloud - Tucson')
     else:
         provider = Provider.objects.get(id=args.provider)
     images = args.image_ids.split(",")

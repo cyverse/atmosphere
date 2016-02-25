@@ -39,6 +39,12 @@ class Application(models.Model):
     created_by_identity = models.ForeignKey(Identity, null=True)
 
     @property
+    def all_versions(self):
+        version_set = ApplicationVersion.objects.filter(
+            application=self)
+        return version_set
+
+    @property
     def all_machines(self):
         from core.models import ProviderMachine
         providermachine_set = ProviderMachine.objects.filter(
@@ -55,13 +61,7 @@ class Application(models.Model):
         if not now:
             now = timezone.now()
         for version in self.versions.all():
-            for machine in version.machines.all():
-                if not machine.end_date:
-                    machine.end_date = now
-                    machine.save()
-            if not version.end_date:
-                version.end_date = now
-                version.save()
+            version.end_date_all(now)
         if not self.end_date:
             self.end_date = now
             self.save()
@@ -129,6 +129,17 @@ class Application(models.Model):
                 shared_images | admin_images).distinct()
         return all_the_images
 
+    def _current_versions(self):
+        """
+        Return a list of current application versions.
+        NOTE: Defined as:
+                * The ApplicationVersion has not exceeded its end_date
+        """
+        version_set = self.all_versions
+        active_versions = version_set.filter(
+            only_current())
+        return active_versions
+
     def _current_machines(self, request_user=None):
         """
         Return a list of current provider machines.
@@ -165,12 +176,6 @@ class Application(models.Model):
             only_current_source()
             ).order_by('instance_source__start_date').last()
         return last
-
-    def get_threshold(self):
-        try:
-            return self.latest_version.threshold
-        except ApplicationThreshold.DoesNotExist:
-            return None
 
     def get_projects(self, user):
         projects = self.projects.filter(

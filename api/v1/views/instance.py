@@ -702,7 +702,6 @@ class Instance(AuthAPIView):
                                     str(exc.message))
         try:
             # Test that there is not an attached volume BEFORE we destroy
-
             task.destroy_instance_task(user, esh_instance, identity_uuid)
 
             invalidate_cached_instances(
@@ -722,6 +721,10 @@ class Instance(AuthAPIView):
             return connection_failure(provider_uuid, identity_uuid)
         except InvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
+        except InstanceDoesNotExist as dne:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                'Instance %s no longer exists' % (dne.message,))
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
                              "Returning 409-CONFLICT")

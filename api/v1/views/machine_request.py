@@ -60,6 +60,7 @@ class MachineRequestList(AuthAPIView):
                 "Machine Imaging has been "
                 "explicitly disabled on this provider.")
         except Exception as exc:
+            logger.exception(exc)
             return failure_response(
                 status.HTTP_400_BAD_REQUEST, exc.message)
 
@@ -117,17 +118,17 @@ class MachineRequestList(AuthAPIView):
             machine_request = serializer.save(status=pending_status)
             instance = machine_request.instance
             # NOTE: THIS IS A HACK -- While we enforce all images
-            #       to go to Jetstream - Indiana.
+            #       to go to iPlant Cloud - Tucson.
             # THIS CODE SHOULD BE REMOVED
             try:
                 tucson_provider = Provider.objects.get(
-                    location='Jetstream - Indiana')
+                    location='iPlant Cloud - Tucson')
                 if machine_request.new_machine_provider.location\
                    != tucson_provider.location:
                     machine_request.new_machine_provider = tucson_provider
             except:
                 # Will skip this step if no provider is named
-                # Jetstream - Indiana.
+                # iPlant Cloud - Tucson
                 pass
             # Object now has an ID for links..
             machine_request_id = machine_request.id

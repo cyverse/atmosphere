@@ -8,7 +8,7 @@ from threepio import logger
 
 import service
 
-from service.exceptions import DeviceBusyException, VolumeMountConflict
+from service.exceptions import DeviceBusyException, VolumeMountConflict, InstanceDoesNotExist
 
 from service.tasks.driver import deploy_to, deploy_init_to, add_floating_ip
 from service.tasks.driver import destroy_instance
@@ -25,9 +25,9 @@ def print_task_chain(start_link):
     next_link = start_link
     while next_link.options.get('link'):
         if start_link == next_link:
-            print next_link.values()[0],
+            print next_link.values()[1],
         next_link = next_link.options['link'][0]
-        print "--> %s" % next_link.values()[0],
+        print "--> %s" % next_link.values()[1],
 
 
 def deploy_init_task(driver, instance, identity,
@@ -40,6 +40,7 @@ def deploy_init_task(driver, instance, identity,
                                 driver.provider,
                                 driver.identity,
                                 instance.alias,
+                                identity,
                                 username,
                                 password,
                                 redeploy,
@@ -64,6 +65,8 @@ def add_floating_ip_task(driver, instance, *args, **kwargs):
 
 
 def destroy_instance_task(user, instance, identity_uuid, *args, **kwargs):
+    if not instance:
+        raise InstanceDoesNotExist(instance_id=identity_uuid)
     return destroy_instance.delay(
         instance.alias, user, identity_uuid, *args, **kwargs)
 

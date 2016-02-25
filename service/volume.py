@@ -105,12 +105,14 @@ def create_volume(esh_driver, identity_uuid, name, size,
             message="Maximum # of Storage Volumes Exceeded")
     # NOTE: Calling non-standard create_volume_obj so we know the ID
     # of newly created volume. Libcloud just returns 'True'... --Steve
+    conn_kwargs = {'max_attempts': 1}
     success, esh_volume = esh_driver.create_volume(
         size=size,
         name=name,
         metadata=metadata,
         snapshot=snapshot,
-        image=image)
+        image=image,
+        **conn_kwargs)
 
     if not success and raise_exception:
         raise exceptions.VolumeError("The volume failed to be created.")
