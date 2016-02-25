@@ -52,9 +52,9 @@ fi
 case "$1" in
 status)
     printf "Atmosphere uwsgi..\n"
-    service uwsgi status atmo.uwsgi
+    service uwsgi status atmosphere
     printf "Troposphere uwsgi..\n"
-    service uwsgi status trop.uwsgi
+    service uwsgi status troposphere
     service apache2 status
     service $TASK_MGR status
     service celeryd status
