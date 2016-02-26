@@ -22,7 +22,7 @@ from libcloud.compute.types import DeploymentError
 from neutronclient.common.exceptions import BadRequest
 from rtwo.exceptions import NonZeroDeploymentException
 
-from threepio import celery_logger, status_logger
+from threepio import celery_logger, status_logger, logger
 
 from celery import current_app as app
 
@@ -697,6 +697,7 @@ def get_chain_from_active_with_ip(
     # Only send emails when 'redeploy=False'
     if not redeploy:
         remove_status_chain.link(email_task)
+    celery_logger.info("Deploy Chain : %s" % print_chain(start_chain, idx=0))
     return start_chain
 
 

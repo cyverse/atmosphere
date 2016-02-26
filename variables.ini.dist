@@ -43,6 +43,12 @@ UWSGI_GROUP = ; www-data
 UWSGI_LOG_PATH = ; /var/log/uwsgi/atmosphere_uwsgi.log
 
 [local.py]
+AUTH_USE_OVERRIDE = ; True will override authentication set in __init__.py
+AUTH_MOCK_USER = ; testuser
+AUTH_ENABLE_MOCK = ; True
+AUTH_ENABLE_GLOBUS = ; False
+AUTH_ENABLE_CAS = ; False
+AUTH_ENABLE_LDAP = ; False
 ANSIBLE_ROOT = ; /path/to/atmosphere-ansible
 LOGOUT_REDIRECT_URL = ; /logout
 CAS_AUTH_PREFIX = ; /
@@ -95,6 +101,7 @@ IRODS_ZONE = ; irods_zone
 IRODS_ADMIN_USER = ; irods_user
 IRODS_ADMIN_PASS = ; irods_password
 LOCAL_STORAGE = ; /storage
+CHROMO_DEPLOYMENT_KEY = ; ssh-rsa AAA... example@deploykey.com
 OPENSTACK_PROVIDER_KEY = ; OpenStack Provider
 OPENSTACK_ADMIN_KEY = ; admin_key
 OPENSTACK_ADMIN_SECRET = ; admin_secret

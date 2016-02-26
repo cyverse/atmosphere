@@ -402,7 +402,7 @@ case "$1" in
         check_dev_null
         check_paths
         start_workers
-        kill_flower
+        #kill_flower
         start_flower
     ;;
 
