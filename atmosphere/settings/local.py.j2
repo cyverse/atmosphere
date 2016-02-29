@@ -127,7 +127,6 @@ AUTHENTICATION_BACKENDS = (
     # MOCK - Required to login to 'admin' if the *ONLY* backend is MockLoginBackend.
     # 'django.contrib.auth.backends.ModelBackend',
     {% endif %}
-
     {% if AUTH_ENABLE_GLOBUS %}
     # For Web-Access
     'iplantauth.authBackends.GlobusOAuthLoginBackend',
@@ -135,12 +134,10 @@ AUTHENTICATION_BACKENDS = (
     # Required to login to 'admin' if the *ONLY* backend is GlobusLoginBackend
     'django.contrib.auth.backends.ModelBackend',
     {% endif %}
-
     {% if AUTH_ENABLE_CAS %}
     # For Web-Access
     'iplantauth.authBackends.CASLoginBackend',
     {% endif %}
-
     {% if AUTH_ENABLE_LDAP %}
     # For Service-Access
     'iplantauth.authBackends.LDAPLoginBackend',
@@ -148,16 +145,13 @@ AUTHENTICATION_BACKENDS = (
 )
 # UPDATE REST_FRAMEWORK
 REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
+    'iplantauth.token.TokenAuthentication',  # Generic Tokens
+    'rest_framework.authentication.SessionAuthentication',  # Session
     {% if AUTH_ENABLE_GLOBUS %}
-    'iplantauth.token.TokenAuthentication',  # Generic Tokens
     'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
-    'rest_framework.authentication.SessionAuthentication',  # Session
     {% endif %}
-
     {% if AUTH_ENABLE_CAS %}
-    'iplantauth.token.TokenAuthentication',  # Generic Tokens
     'iplantauth.token.OAuthTokenAuthentication',  # CAS
-    'rest_framework.authentication.SessionAuthentication',  # Session
     {% endif %}
 )
 {% endif %}
