@@ -119,10 +119,19 @@ def only_current_apps(now_time=None):
         * ALL versions of this application have been end dated.
         """
         pass
+
     if not now_time:
         now_time = timezone.now()
     return _in_range() & _versions_in_range() & _machines_in_range() & _active_provider()
 
+
+def only_public_apps(now_time=None):
+    def _is_public():
+        return (Q(versions__machines__instance_source__provider__public=True))
+    if not now_time:
+        now_time = timezone.now()
+    return _is_public()
+    
 
 def only_current_machines_in_version(now_time=None):
     def _active_provider():
