@@ -44,7 +44,7 @@ Imports should be grouped into the sections below and in sorted order.
 
 ## License
 
-See LICENSE.txt for license information
+See [LICENSE.txt](LICENSE.txt) for license information
 
 ## Lead
 
