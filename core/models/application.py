@@ -10,7 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_current, only_current_apps, only_current_source
+from core.query import only_current, only_current_apps, only_public_apps, only_current_source
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
@@ -86,7 +86,7 @@ class Application(models.Model):
     @classmethod
     def public_apps(cls):
         public_images = Application.objects.filter(
-            only_current_apps(), private=False)
+            only_current_apps(), private=False).filter(only_public_apps())
         return public_images
 
     @classmethod
