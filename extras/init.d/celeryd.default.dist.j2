@@ -6,15 +6,7 @@ CELERY_APP="atmosphere"
 #   * celery_periodic
 #   * email
 
-#############
-# Development Settings (Single-Node!)
-#############
-
-CELERYD_NODES="atmosphere-node_1"
-CELERYD_NODES="$CELERYD_NODES imaging celery_periodic email"
-CELERYD_OPTS="-Q:atmosphere-node_1 default,fast_deploy,ssh_deploy -c:atmosphere-node_1 13 -O:atmosphere-node_1 fair"
-
-
+{% if USE_PRODUCTION %}
 #############
 # Production Settings (14 nodes!)
 #############
@@ -46,6 +38,15 @@ CELERYD_OPTS="$CELERYD_OPTS -Q:imaging imaging -c:imaging 1 -O:imaging fair"
 
 CELERYD_OPTS="$CELERYD_OPTS -Q:celery_periodic periodic -c:celery_periodic 3 -O:celery_periodic fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:email email -c:email 1 -O:email fair"
+{% else %}
+#############
+# Development Settings (Single-Node!)
+#############
+
+CELERYD_NODES="atmosphere-node_1"
+CELERYD_OPTS="-Q:atmosphere-node_1 default,fast_deploy,ssh_deploy,email,imaging,celery_periodic -c:atmosphere-node_1 13 -O:atmosphere-node_1 fair"
+
+{% endif %}
 
 #Our celery requires root access for sudo/chroot/mount
 C_FORCE_ROOT="True"

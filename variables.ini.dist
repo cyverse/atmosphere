@@ -120,3 +120,4 @@ ATMOSPHERE_LOCATION= ; /path/to/atmosphere
 SSL_LOCATION= ; /etc/ssl
 SSL_CERTIFICATE= ; selfsigned_server.crt
 SSL_KEY= ; selfsigned_server.key
+USE_PRODUCTION= ; True
