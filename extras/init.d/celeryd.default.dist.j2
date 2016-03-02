@@ -44,7 +44,7 @@ CELERYD_OPTS="$CELERYD_OPTS -Q:email email -c:email 1 -O:email fair"
 #############
 
 CELERYD_NODES="atmosphere-node_1"
-CELERYD_OPTS="-Q:atmosphere-node_1 default,fast_deploy,ssh_deploy,email,imaging,celery_periodic -c:atmosphere-node_1 13 -O:atmosphere-node_1 fair"
+CELERYD_OPTS="-Q default,fast_deploy,ssh_deploy,email,imaging,celery_periodic -c 13 -O fair"
 
 {% endif %}
 
