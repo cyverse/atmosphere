@@ -15,6 +15,7 @@ class SizeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     lookup_fields = ("id", "uuid")
     queryset = Size.objects.all()
     serializer_class = SizeSerializer
+    ordering = ("cpu", "mem", "disk", "root", "name")
     filter_fields = ('provider__id',)
 
     def get_queryset(self):
