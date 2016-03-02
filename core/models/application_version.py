@@ -189,11 +189,20 @@ class ApplicationVersionMembership(models.Model):
         unique_together = ('image_version', 'group')
 
 
-def get_version_for_machine(provider_uuid, identifier):
+def get_version_for_machine(provider_uuid, identifier, fuzzy=False):
+    """
+    Search for a matching version based on the identifier.
+    fuzzy - When replicating images across providers, use a 'fuzzy search'
+       to ensure provider machines are appropriately mapped to the
+       original 'parent' machine's version
+    """
+    if fuzzy:
+        query = Q(machines__instance_source__identifier=identifier)
+    else:
+        query = Q(machines__instance_source__provider__uuid=provider_uuid,
+                  machines__instance_source__identifier=identifier)
     try:
-        return ApplicationVersion.objects.filter(
-            machines__instance_source__provider__uuid=provider_uuid,
-            machines__instance_source__identifier=identifier)
+        return ApplicationVersion.objects.filter(query)
     except ApplicationVersion.DoesNotExist:
         return None
 
