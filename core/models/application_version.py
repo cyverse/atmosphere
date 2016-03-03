@@ -98,6 +98,49 @@ class ApplicationVersion(models.Model):
         """
         return self.machines.filter(only_current_source())
 
+    def _split_mail(self, email, unknown_str='unknown'):
+        return email.split('@')[1].split('.')[-1:][0] if email else unknown_str
+
+    def get_metrics(self, now_time=None):
+        """
+        # TODO: Consider how this question could be answered 
+        # with 'allocation' and the engine/routines used inside it..
+        """
+        if not now_time:
+            now_time = timezone.now()
+        machines = self.machines.all()
+        provider_map = {}
+        user_domain_map = {}
+        for prov_machine in machines:
+            instance_mgr = prov_machine.instance_source.instances
+
+            total_time = timezone.timedelta(0)
+            count = instance_mgr.count()
+            for instance in instance_mgr.all():
+                iid = instance.id
+                end_at = instance.end_date if instance.end_date else now_time
+                start_at = instance.start_date
+                user = instance.created_by
+                email_str = self._split_mail(user.email)
+                count = user_domain_map.get(email_str, 0)
+                count += 1
+                user_domain_map[email_str] = count
+
+                diff = max(end_at - start_at, timezone.timedelta(0))  # Guarantee positive results
+                total_time += diff
+            avg_time = total_time / count if count else timezone.timedelta(0)
+            key = prov_machine.provider.location
+            metrics = {
+                'count': count,
+                'total': total_time,
+                'avg_time': avg_time,
+            }
+            provider_map[key] = metrics
+        return {
+                'domains' : user_domain_map,
+                'providers': provider_map
+                }
+
     @classmethod
     def get_admin_image_versions(cls, user):
         """
