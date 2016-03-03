@@ -6,7 +6,7 @@ import django_filters
 
 from core.models import AccountProvider
 from core.models.machine import ProviderMachine, find_provider_machine
-from core.query import only_current_source, only_public_providers
+from core.query import only_current_source, only_public_providers, user_provider_machine_set
 
 from api.v2.serializers.details import ProviderMachineSerializer
 from api.v2.views.base import OwnerUpdateViewSet
@@ -107,10 +107,7 @@ class ProviderMachineViewSet(MultipleFieldLookup, OwnerUpdateViewSet):
                 only_current_source(),
                 members__in=request_user.group_set.values('id'))
             # NOTE: Showing 'my pms' EVEN if they are end-dated.
-            my_set = ProviderMachine.objects.filter(
-                Q(instance_source__provider_id__in=request_user.provider_ids()) |
-                Q(application_version__application__created_by=request_user) |
-                Q(instance_source__created_by=request_user))
+            my_set = ProviderMachine.objects.filter(user_provider_machine_set(request_user))
             if request_user.is_staff:
                 admin_set = get_admin_machines(request_user)
             else:

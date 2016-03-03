@@ -210,6 +210,13 @@ def only_active_memberships(user=None, now_time=None):
     return query
 
 
+def user_provider_machine_set(user):
+    query = (Q(instance_source__provider_id__in=user.provider_ids()) |
+        Q(application_version__application__created_by=user) |
+        Q(instance_source__created_by=user))
+    return query
+
+
 def _query_membership_for_user(user):
     """
     All *Memberhsips use 'group' as the keyname, this will check
