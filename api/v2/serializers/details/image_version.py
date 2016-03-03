@@ -10,9 +10,12 @@ from api.v2.serializers.summaries import (
     IdentitySummarySerializer,
     ImageVersionSummarySerializer,
     ProviderMachineSummarySerializer)
+    ImageVersionSummarySerializer)
 from api.v2.serializers.fields import (
     ProviderMachineRelatedField, ModelRelatedField)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
+from django.db.models import Q
+from django.contrib.auth.models import AnonymousUser
 
 
 class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
@@ -38,9 +41,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         many=True)  # NEW
     user = UserSummarySerializer(source='created_by')
     identity = IdentitySummarySerializer(source='created_by_identity')
-    machines = ModelRelatedField(many=True, queryset=ProviderMachine.objects.all(),
-        serializer_class=ProviderMachineSummarySerializer,
-        style={'base_template': 'input.html'})
+    machines = serializers.SerializerMethodField('get_machines_for_user')
     image = ModelRelatedField(
         source='application',
         queryset=Image.objects.all(),
@@ -54,6 +55,22 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         view_name='api:v2:imageversion-detail',
         uuid_field='id'
     )
+
+    def get_machines_for_user(self, obj):
+        """
+        Only show version as available on providers the user has access to
+        """
+        user = self.context['request'].user
+        if isinstance(user, AnonymousUser):
+            filtered = obj.machines.filter(Q(instance_source__provider__public=True))
+        else:
+            filtered = obj.machines.filter(Q(instance_source__provider_id__in=user.provider_ids()))
+        serializer = ProviderMachineSummarySerializer(
+           filtered,
+           context=self.context,
+           many=True)
+        return serializer.data
+
     class Meta:
         model = ImageVersion
         fields = ('id', 'url', 'parent', 'name', 'change_log',
