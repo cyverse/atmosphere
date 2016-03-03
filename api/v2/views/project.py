@@ -31,7 +31,7 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
             raise ValidationError(
                 "Cannot delete a project when it contains instances."
                 " To delete a project, all Images must be moved "
-                "to another project or deleted")
+                "to another project or removed from the project.")
         elif project.links.all().count() > 0:
             raise ValidationError(
                 "Cannot delete a project when it contains instances."
