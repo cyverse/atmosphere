@@ -6,6 +6,8 @@ from uuid import uuid4
 import requests
 import gevent
 
+import django; django.setup()
+
 from atmosphere import settings
 from core.models import AtmosphereUser as User, Provider, Identity
 from iplantauth.models import Token
@@ -16,10 +18,6 @@ from gevent import monkey
 # other greenlets
 monkey.patch_socket()
 monkey.patch_ssl()
-
-import django
-if django.VERSION >= (1, 7):
-    django.setup()
 
 
 def launch_instance(launch_url, headers, data, provider, user):
