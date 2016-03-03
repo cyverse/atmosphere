@@ -86,7 +86,7 @@ class Application(models.Model):
     @classmethod
     def public_apps(cls):
         public_images = Application.objects.filter(
-            only_current_apps(), only_public_apps(), private=False)
+            only_current_apps(), private=False).filter(only_public_apps())
         return public_images
 
     @classmethod
