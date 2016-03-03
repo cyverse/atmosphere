@@ -177,7 +177,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     #STEP 2: Find conflicts and report them.
     intersection = set(private_apps.keys()) & set(new_public_apps)
     if intersection:
-        raise Exception("These applications were listed as BOTH public && private apps. Manual conflict correction required: %s" % intersection)
+        celery_logger.error("These applications were listed as BOTH public && private apps. Manual conflict correction required: %s" % intersection)
 
     #STEP 3: Apply the changes at app-level
     #Memoization at this high of a level will help save time
@@ -219,8 +219,7 @@ def get_public_and_private_apps(provider):
         db_version = db_machine.application_version
         db_application = db_version.application
 
-        #if cloud_machine.is_public:
-        if cloud_machine.get('visibility') == 'public':
+        if cloud_machine.get('visibility') is 'public':
             if db_application.private and db_application not in new_public_apps:
                 new_public_apps.append(db_application) #Distinct list..
             #Else the db app is public and no changes are necessary.
@@ -293,11 +292,11 @@ def make_machines_private(application, identities, account_drivers={}, provider_
             provider = machine.instance_source.provider
             cloud_machine = memoized_image(account_driver, machine, image_maps)
             for identity in identities:
-                if identity.provider == provider:
+                if identity.provider is provider:
                     _share_image(account_driver, cloud_machine, identity, current_tenants, dry_run=dry_run)
                     add_application_membership(application, identity, dry_run=dry_run)
     # All the cloud work has been completed, so "lock down" the application.
-    if application.private == False:
+    if not application.private:
         application.private = True
         celery_logger.info("Making Application %s private" % application.name)
         if not dry_run:
@@ -418,10 +417,10 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
             provider = machine.instance_source.provider
             account_driver = memoized_driver(machine, account_drivers)
             image = account_driver.image_manager.get_image(image_id=machine.identifier)
-            if image and image.is_public == False:
+            if image and image.get('visibility') is not 'public':
                 celery_logger.info("Making Machine %s public" % image.id)
                 if not dry_run:
-                    image.update(is_public=True)
+                    image.update(visibility='public')
     # Set top-level application to public (This will make all versions and PMs public too!)
     application.private = False
     celery_logger.info("Making Application %s public" % application.name)
@@ -660,9 +659,9 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
     elif missing_tenant.count() > 1:
         raise Exception("Safety Check -- You should not be here")
     tenant_name = missing_tenant[0]
-    if cloud_machine.is_public == True:
+    if cloud_machine.get('visibility') is 'public':
         celery_logger.info("Making Machine %s private" % cloud_machine.id)
-        cloud_machine.update(is_public=False)
+        cloud_machine.update(visibility='private')
 
     celery_logger.info("Sharing image %s<%s>: %s with %s" % (cloud_machine.id, cloud_machine.name, identity.provider.location, tenant_name.value))
     if not dry_run:
