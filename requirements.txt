@@ -9,8 +9,9 @@ django-redis-cache==0.13.0
 redis==2.10.3
 
 Jinja2==2.8
-celery==3.1.18
-django-celery==3.1.16
+celery==3.1.20
+flower==0.8.4
+django-celery==3.1.17
 
 gevent==1.0.1
 

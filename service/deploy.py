@@ -4,6 +4,7 @@ Deploy methods for Atmosphere
 from functools import wraps
 import os
 import sys
+import subprocess
 import time
 
 from django.template import Context
@@ -511,3 +512,40 @@ def inject_env_script(username):
     rendered_script = render_to_string(
         template, context=Context(context))
     return rendered_script
+
+
+def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                stdin=None, dry_run=False, shell=False, bash_wrap=False,
+                block_log=False):
+    """
+    Using Popen, run any command at the system level and return the output and error streams
+    """
+    if bash_wrap:
+        # Wrap the entire command in '/bin/bash -c',
+        # This can sometimes help pesky commands
+        commandList = ['/bin/bash', '-c', ' '.join(commandList)]
+    out = None
+    err = None
+    cmd_str = ' '.join(commandList)
+    if dry_run:
+        # Bail before making the call
+        logging.debug("Mock Command: %s" % cmd_str)
+        return ('', '')
+    try:
+        if stdin:
+            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
+                                    stdin=subprocess.PIPE, shell=shell)
+        else:
+            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
+                                    shell=shell)
+        out, err = proc.communicate(input=stdin)
+    except Exception as e:
+        logging.exception(e)
+    if block_log:
+        # Leave before we log!
+        return (out, err)
+    if stdin:
+        logging.debug("%s STDIN: %s" % (cmd_str, stdin))
+    logging.debug("%s STDOUT: %s" % (cmd_str, out))
+    logging.debug("%s STDERR: %s" % (cmd_str, err))
+    return (out, err)
