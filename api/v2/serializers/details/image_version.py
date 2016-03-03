@@ -61,9 +61,11 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         Only show version as available on providers the user has access to
         """
         user = self.context['request'].user
+
+        filtered = obj.machines
         if isinstance(user, AnonymousUser):
             filtered = obj.machines.filter(Q(instance_source__provider__public=True))
-        else:
+        elif not user.is_staff:
             filtered = obj.machines.filter(Q(instance_source__provider_id__in=user.provider_ids()))
         serializer = ProviderMachineSummarySerializer(
            filtered,
