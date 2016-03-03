@@ -11,7 +11,7 @@ redis==2.10.3
 Jinja2==2.8
 celery==3.1.20
 flower==0.8.4
-django-celery==3.1.17
+django-celery==3.1.16
 
 gevent==1.0.1
 
