@@ -9,7 +9,7 @@ from api.v2.serializers.summaries import (
     ImageSummarySerializer,
     IdentitySummarySerializer,
     ImageVersionSummarySerializer,
-    ProviderMachineSummarySerializer)
+    ProviderMachineSummarySerializer,
     ImageVersionSummarySerializer)
 from api.v2.serializers.fields import (
     ProviderMachineRelatedField, ModelRelatedField)
