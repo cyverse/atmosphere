@@ -132,6 +132,44 @@ def deploy_to(instance_ip, username, instance_id):
     return pbs
 
 
+def ready_to_deploy(instance_ip, username, instance_id):
+    """
+    Use service.ansible to deploy to an instance.
+    """
+    if not check_ansible():
+        return []
+    logger = create_instance_logger(
+        deploy_logger,
+        instance_ip,
+        username,
+        instance_id)
+    hostname = build_host_name(instance_ip)
+    cache_bust(hostname)
+    configure_ansible(logger)
+    my_limit = {"hostname": hostname, "ip": instance_ip}
+    deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
+    host_list = settings.ANSIBLE_HOST_FILE
+
+    user_keys = []
+    user = User.objects.get(username=username)
+    if user.userprofile.use_ssh_keys:
+        user_keys = [ k.pub_key for k in get_user_ssh_keys(username)]
+
+    extra_vars = {"ATMOUSERNAME": username,
+                  "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
+                  "USERSSHKEYS": user_keys}
+
+    pbs = subspace.playbook.get_playbooks(deploy_playbooks,
+                                          host_list=host_list,
+                                          limit=my_limit,
+                                          extra_vars=extra_vars)
+    [pb.run() for pb in pbs if '05_ssh_setup' in pb.filename]  # FIXME: this is a HACK
+    log_playbook_summaries(logger, pbs, hostname)
+    raise_playbook_errors(pbs, hostname)
+    cache_bust(hostname)
+    return pbs
+
+
 def check_ansible():
     """
     If the playbooks and roles directory exist then ANSIBLE_* settings

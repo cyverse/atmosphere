@@ -33,9 +33,10 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.deploy import (
-    inject_env_script, check_process, wrap_script,
-    echo_test_script, build_host_name,
-    deploy_to as ansible_deploy_to)
+    inject_env_script, check_process, wrap_script, echo_test_script,
+    deploy_to as ansible_deploy_to, build_host_name
+    ready_to_deploy as ansible_ready_to_deploy
+    )
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
 from service.instance import _update_instance_metadata
@@ -988,52 +989,30 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         _deploy_ready_failed_email_test(
             driver, instance_id, exc.message, current.request, deploy_ready_test)
         deploy_ready_test.retry(exc=exc)
-    # Attempt #1 - SSH connection as ubuntu
+    # USE ANSIBLE
     try:
-        kwargs = _generate_ssh_kwargs()
-        kwargs.update({'ssh_username': 'ubuntu', 'deploy': echo_test})
-        driver.deploy_to(instance, **kwargs)
-        celery_logger.debug(
-            "deploy_ready_test task %s/%s finished at %s." %
-            (current_count, total, datetime.now()))
-        return 'ubuntu'
-    except (BaseException, Exception) as exc:
-        pass
-    # Attempt #2 - SSH connection as centos
-    try:
-        kwargs = _generate_ssh_kwargs()
-        kwargs.update({'ssh_username': 'centos', 'deploy': echo_test})
-        driver.deploy_to(instance, **kwargs)
-        celery_logger.debug(
-            "deploy_ready_test task %s/%s finished at %s." %
-            (current_count, total, datetime.now()))
-        return 'centos'
-    except (BaseException, Exception) as exc:
-        pass
-    # Attempt #3 - SSH connection as cirros
-    try:
-        kwargs = _generate_ssh_kwargs()
-        kwargs.update({'ssh_username': 'cirros', 'deploy': echo_test})
-        driver.deploy_to(instance, **kwargs)
-        celery_logger.debug(
-            "deploy_ready_test task %s/%s finished at %s." %
-            (current_count, total, datetime.now()))
-        return 'cirros'
-    except (BaseException, Exception) as exc:
-        pass
-    # Attempt #4 - SSH connection as root
-    try:
-        kwargs = _generate_ssh_kwargs()
-        kwargs.update({'deploy': echo_test})
-        driver.deploy_to(instance, **kwargs)
-        celery_logger.debug(
-            "deploy_ready_test task %s/%s finished at %s." %
-            (current_count, total, datetime.now()))
-        return 'root'
+        username = identity.user.username
+        playbooks = ansible_ready_to_deploy(instance.ip, username, instance_id)
+        _update_status_log(instance, "Ansible Finished (ready test) for %s." % instance.ip)
+        celery_logger.debug("deploy_ready_test task finished at %s." % datetime.now())
+    except AnsibleDeployException as exc:
+        deploy_ready_test.retry(exc=exc)
+    except DeploymentError as exc:
+        celery_logger.exception(exc)
+        full_deploy_output = _parse_steps_output(msd)
+        if isinstance(exc.value, NonZeroDeploymentException):
+            # The deployment was successful, but the return code on one or more
+            # steps is bad. Log the exception and do NOT try again!
+            raise NonZeroDeploymentException,\
+                "One or more Script(s) reported a NonZeroDeployment:%s"\
+                % full_deploy_output,\
+                sys.exc_info()[2]
+        # TODO: Check if all exceptions thrown at this time
+        # fall in this category, and possibly don't retry if
+        # you hit the Exception block below this.
+        deploy_ready_test.retry(exc=exc)
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
-        _deploy_ready_failed_email_test(
-            driver, instance_id, exc.message, current.request, deploy_ready_test)
         deploy_ready_test.retry(exc=exc)
 
 
