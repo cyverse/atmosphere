@@ -309,17 +309,27 @@ def validate_new_image(image_id, machine_request_id):
     # Attempt to launch using the admin_driver
     admin_driver.identity.user = admin_ident.created_by
     machine = admin_driver.get_machine(image_id)
-    small_size = admin_driver.list_sizes()[0]
-    instance = launch_machine_instance(
-        admin_driver, admin_ident,
-        machine, small_size,
-        'Automated Image Verification - %s' % image_id,
-        username='atmoadmin',
-        using_admin=True)
-    return instance.id
+    sorted_sizes = admin_driver.list_sizes()
+    size_index = 0
+    while size_index < len(sorted_sizes):
+        selected_size = sorted_sizes[size_index]
+        size_index += 1
+        try:
+            instance = launch_machine_instance(
+                admin_driver, admin_ident,
+                machine, selected_size,
+                'Automated Image Verification - %s' % image_id,
+                username='atmoadmin',
+                using_admin=True)
+            return instance.id
+        except Exception as exc:
+            # FIXME: Determine if this exception is based on 'size too small'
+            logger.warn(exc)
+            pass
+    raise Exception("Validation of new Image %s has *FAILED*" % image_id)
 
 
-@task(name='freeze_instance_task', ignore_result=False) 
+@task(name='freeze_instance_task', ignore_result=False)
 def freeze_instance_task(identity_id, instance_id, **celery_task_args):
     identity = Identity.objects.get(id=identity_id)
     driver = get_esh_driver(identity)
