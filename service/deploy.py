@@ -201,7 +201,11 @@ def build_host_name(ip):
     Return the host name
     * iPlant or raw
     """
-    return iplant_hostname(ip)
+    if not hasattr(settings, 'DEFAULT_IP_LOOKUP'):
+        return iplant_hostname(ip)
+    hostname_fn_str = settings.DEFAULT_IP_LOOKUP
+    hostname_fn = settings._get_method_for_string(hostname_fn_str, the_globals=globals())
+    return hostname_fn(ip)
 
 
 def iplant_hostname(ip):

@@ -101,6 +101,7 @@ DEFAULT_EMAIL_DOMAIN = ; iplantcollaborative.org
 DEFAULT_ALLOCATION_THRESHOLD = ; (7 * 24 * 60)  # In Minutes
 DEFAULT_ALLOCATION_DELTA = ; (365 * 24 * 60)  # In Minutes
 DEFAULT_KEYSTONE_ROLE = ; _member_
+DEFAULT_IP_LOOKUP = ; iplant_hostname
 
 [secrets.py]
 IRODS_HOST = ; irods.server.com
