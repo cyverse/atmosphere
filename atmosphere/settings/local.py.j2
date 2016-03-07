@@ -200,3 +200,6 @@ if has_logstash and LOGSTASH_HOST:
 {% if TESTING %}
 {% include "atmosphere/settings/testing.j2" %}
 {% endif %}
+
+REPLICATION_PROVIDER_LOCATION = {{ REPLICATION_PROVIDER_LOCATION }}
+MONTHLY_RESET_PROVIDER_LOCATIONS = {{ MONTHLY_RESET_PROVIDER_LOCATIONS }}

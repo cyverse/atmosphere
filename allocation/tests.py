@@ -33,9 +33,9 @@ from allocation.models import \
 
 # For testing..
 openstack = Provider(
-    name="iPlant Cloud - Tucson", identifier="4")
+    name="Openstack Cloud - Test", identifier="4")
 openstack_workshop = Provider(
-    name="iPlant Cloud Workshop - Tucson", identifier="5")
+    name="Openstack Cloud 2 - Test", identifier="5")
 
 random_machine = Machine(
     name="Not real machine",

@@ -4,11 +4,10 @@ for Core objects
 """
 from core.models import Allocation, Application, AtmosphereUser, Group,\
     Identity, IdentityMembership, \
-    Instance, InstanceStatus, InstanceStatusHistory,\
+    Instance, InstanceStatusHistory,\
     MachineRequest, Provider, \
     ProviderType, PlatformType, \
     ProviderMachine, Size, Quota
-from core.fields import VersionNumber
 from uuid import uuid4
 
 
@@ -18,11 +17,11 @@ def _new_providers():
     openstack_type = ProviderType.objects.get_or_create(
         name='OpenStack')[0]
     openstack = Provider.objects.get_or_create(
-        location="iPlant Cloud - Tucson",
+        location="Example OpenStack - Tucson",
         virtualization=kvm,
         type=openstack_type, public=True)[0]
     openstack_workshop = Provider.objects.get_or_create(
-        location="iPlant Cloud - Workshop",
+        location="Example OpenStack - Workshop",
         virtualization=kvm,
         type=openstack_type, public=True)[0]
     return {

@@ -1,7 +1,8 @@
 from datetime import timedelta
 
-from django.utils import timezone
+from django.conf import settings
 from django.db.models import Q, Count
+from django.utils import timezone
 
 from celery.decorators import task
 
@@ -565,11 +566,23 @@ def monthly_allocation_reset():
     * Which Allocation will be used as 'default'
     """
     default_allocation = Allocation.default_allocation()
-    provider = Provider.objects.get(location='iPlant Cloud - Tucson')
-    reset_provider_allocation.apply_async(
-        args=[
-            provider.id,
-            default_allocation.id])
+    provider_locations = None
+    # ensure a 'set' settings value
+    if hasattr(settings, 'MONTHLY_RESET_PROVIDER_LOCATIONS'):
+        provider_locations = settings.MONTHLY_RESET_PROVIDER_LOCATIONS
+    else:
+        raise Exception("settings.MONTHLY_RESET_PROVIDER_LOCATIONS has not been set. SKIPPING the monthly allocation reset.")
+
+    # Ensure settings value is a list
+    if not provider_locations or not isinstance(provider_locations, list):
+        raise Exception("Expected a list ([]) of provider locations to receive a monthly reset")
+    for location in provider_locations:
+        provider = Provider.objects.get(location=location)
+        reset_provider_allocation.apply_async(
+            args=[
+                provider.id,
+                default_allocation.id])
+    return
 
 
 @task(name="reset_provider_allocation")

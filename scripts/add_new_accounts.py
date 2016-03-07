@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 import argparse
-import requests
-import time
 import libcloud.security
 
-import django
-django.setup()
+import django; django.setup()
 
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
@@ -58,13 +55,11 @@ def main():
     if args.provider:
         provider = Provider.objects.get(id=args.provider)
     else:
-        provider = Provider.objects.get(location='iPlant Cloud - Tucson')
+        raise Exception("Required argument 'provider' is missing. Please provide the DB ID of the provider to continue.")
     print "Using Provider: %s" % provider
     type_name = provider.type.name.lower()
     if type_name == 'openstack':
         acct_driver = OSAccountDriver(provider)
-    elif type_name == 'eucalyptus':
-        acct_driver = EucaAccountDriver(provider)
     else:
         raise Exception("Could not find an account driver for Provider with"
                         " type:%s" % type_name)

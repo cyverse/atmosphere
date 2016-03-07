@@ -93,6 +93,8 @@ TEST_RUNNER_USER = ; test_user
 TEST_RUNNER_PASS = ; test_secret
 MOCK_USER = ; test_user
 USE_MOCK_AUTH = ; False
+REPLICATION_PROVIDER_LOCATION = ; iPlant Cloud - Tucson
+MONTHLY_RESET_PROVIDER_LOCATIONS = ; ['iPlant Cloud - Tucson']
 
 [secrets.py]
 IRODS_HOST = ; irods.server.com
