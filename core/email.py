@@ -84,8 +84,12 @@ def lookupEmail(username):
     """
     Given a username, return the email address
     """
-    return ldapLookupEmail(username)
-
+    if not hasattr(settings, 'EMAIL_LOOKUP_METHOD'):
+        return ldapLookupEmail(username)
+    lookup_fn_str = settings.EMAIL_LOOKUP_METHOD
+    lookup_fn = _get_method_for_string(lookup_fn_str)
+    # Known function and args..
+    return lookup_fn(username)
 
 def djangoLookupEmail(username):
     """
@@ -122,7 +126,12 @@ def user_email_info(username):
     ("username", "email@address.com", "My Name")
     """
     logger.debug("user = %s" % username)
-    return ldap_get_email_info(username)
+    if not hasattr(settings, 'USER_EMAIL_LOOKUP_METHOD'):
+        return ldap_get_email_info(username)
+    lookup_fn_str = settings.USER_EMAIL_LOOKUP_METHOD
+    lookup_fn = _get_method_for_string(lookup_fn_str)
+    # Known function and args..
+    return lookup_fn(username)
 
 
 def ldap_get_email_info(username):
@@ -505,3 +514,7 @@ def support_email(request, subject, message):
         message,
         request_tracker=True)
     return {"email_sent": email_success}
+
+
+def _get_method_for_string(method_str):
+    return globals()[method_str]
