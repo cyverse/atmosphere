@@ -66,7 +66,7 @@ class MachineRequest(BaseRequest):
     # SPECIFIC to 'forked=False'
 
     # Specific to ApplicationVersion && ProviderMachine
-    iplant_sys_files = models.TextField(default='', blank=True, null=True)
+    system_files = models.TextField(default='', blank=True, null=True)
     installed_software = models.TextField(default='', blank=True, null=True)
     exclude_files = models.TextField(default='', blank=True, null=True)
     new_version_name = models.CharField(max_length=256, blank=True, null=True)

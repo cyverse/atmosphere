@@ -86,6 +86,7 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
             machine_request.new_application_name,
             tags,
             machine_request.new_application_description)
+    #FIXME: Either *add* system_files here, or *remove* the entire field.
     app_version = create_app_version(
         application, machine_request.new_version_name,
         new_owner, owner_identity, machine_request.new_version_change_log,
