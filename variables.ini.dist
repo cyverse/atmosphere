@@ -97,6 +97,7 @@ REPLICATION_PROVIDER_LOCATION = ; iPlant Cloud - Tucson
 MONTHLY_RESET_PROVIDER_LOCATIONS = ; ['iPlant Cloud - Tucson']
 USER_EMAIL_LOOKUP_METHOD = ; ldap_get_email_info
 EMAIL_LOOKUP_METHOD = ; ldapLookupEmail
+DEFAULT_EMAIL_DOMAIN = ; iplantcollaborative.org
 
 [secrets.py]
 IRODS_HOST = ; irods.server.com
