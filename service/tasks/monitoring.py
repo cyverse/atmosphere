@@ -220,7 +220,6 @@ def get_public_and_private_apps(provider):
         db_version = db_machine.application_version
         db_application = db_version.application
 
-        #if cloud_machine.is_public:
         if cloud_machine.get('visibility') == 'public':
             if db_application.private and db_application not in new_public_apps:
                 new_public_apps.append(db_application) #Distinct list..
@@ -419,7 +418,7 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
             provider = machine.instance_source.provider
             account_driver = memoized_driver(machine, account_drivers)
             image = account_driver.image_manager.get_image(image_id=machine.identifier)
-            image_is_public = image.is_public if hasattr(image,'is_public') else image.get('visibility','') == 'public'
+            image_is_public = image.is_public if hasattr(image,'is_public') else image.get('visibility','') is 'public'
             if image and image_is_public == False:
                 celery_logger.info("Making Machine %s public" % image.id)
                 if not dry_run:
@@ -674,7 +673,7 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
     elif missing_tenant.count() > 1:
         raise Exception("Safety Check -- You should not be here")
     tenant_name = missing_tenant[0]
-    cloud_machine_is_public = cloud_machine.is_public if hasattr(cloud_machine,'is_public') else cloud_machine.get('visibility','') == 'public'
+    cloud_machine_is_public = cloud_machine.is_public if hasattr(cloud_machine,'is_public') else cloud_machine.get('visibility','') is 'public'
     if cloud_machine_is_public == True:
         celery_logger.info("Making Machine %s private" % cloud_machine.id)
         account_driver.image_manager.glance.images.update(cloud_machine.id, visibility='private')
