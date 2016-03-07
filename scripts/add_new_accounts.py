@@ -8,38 +8,11 @@ from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
+
+from iplantauth.protocol.ldap import get_members
 from threepio import logger
 
 libcloud.security.VERIFY_SSL_CERT = False
-# TODO: Remove this and use 'get_members' in iplantauth/protocols/ldap.py
-#      when it exists (A-N)
-
-
-def get_members(groupname):
-    """
-    """
-    from atmosphere.settings import secrets
-    import ldap as ldap_driver
-    try:
-        ldap_server = secrets.LDAP_SERVER
-        ldap_group_dn = secrets.LDAP_SERVER_DN.replace(
-            "ou=people", "ou=Groups")
-        ldap_conn = ldap_driver.initialize(ldap_server)
-        group_users = ldap_conn.search_s(ldap_group_dn,
-                                         ldap_driver.SCOPE_SUBTREE,
-                                         '(cn=%s)' % groupname)
-        all_users = group_users[0][1]['memberUid']
-        return sorted(all_users)
-    except Exception as e:
-        print "Error finding members for group %s" % groupname
-        print e
-        return []
-
-# DEPRECATION WARNING: DO NOT USE THIS SCRIPT!
-# There is an updated script here:
-# <atmosphere_dir>/scripts/import_users_from_ldap.py
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider", type=int,
@@ -74,10 +47,9 @@ def main():
             id_exists = Identity.objects.filter(
                 created_by__username__iexact=user,
                 provider=provider)
-            if id_exists:
-                continue
-            acct_driver.create_account(user, max_quota=args.admin)
-            added += 1
+            if not id_exists:
+                acct_driver.create_account(user, max_quota=args.admin)
+                added += 1
             if args.admin:
                 make_admin(user)
                 print "%s added as admin." % (user)
