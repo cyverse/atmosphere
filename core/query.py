@@ -156,6 +156,11 @@ def only_current_source(now_time=None):
         now_time = timezone.now()
     return _in_range() & _active_provider()
 
+
+def only_public_providers(now_time=None):
+    return (Q(instance_source__provider__public=True))
+
+
 def source_in_range(now_time=None):
     """
     Filters current instance_sources ignoring provider.
@@ -202,6 +207,13 @@ def only_active_memberships(user=None, now_time=None):
         ) & Q(identity__provider__active=True)
     if user:
         query = query & Q(member__user__username=user.username)
+    return query
+
+
+def user_provider_machine_set(user):
+    query = (Q(instance_source__provider_id__in=user.provider_ids()) |
+        Q(application_version__application__created_by=user) |
+        Q(instance_source__created_by=user))
     return query
 
 
