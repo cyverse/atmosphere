@@ -341,12 +341,6 @@ PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
 # Chromogenic
 LOCAL_STORAGE = "/storage"
 
-# Provider-specific Configuration Management
-REPLICATION_PROVIDER_LOCATION = 'iPlant Cloud - Tucson'
-MONTHLY_RESET_PROVIDER_LOCATIONS = [
-    'iPlant Cloud - Tucson',
-]
-
 # pyes secrets
 ELASTICSEARCH_HOST = SERVER_URL
 ELASTICSEARCH_PORT = 9200
