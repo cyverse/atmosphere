@@ -100,6 +100,7 @@ EMAIL_LOOKUP_METHOD = ; ldapLookupEmail
 DEFAULT_EMAIL_DOMAIN = ; iplantcollaborative.org
 DEFAULT_ALLOCATION_THRESHOLD = ; (7 * 24 * 60)  # In Minutes
 DEFAULT_ALLOCATION_DELTA = ; (365 * 24 * 60)  # In Minutes
+DEFAULT_QUOTA = ; {'cpu': 16, 'memory': 128, 'storage': 10}
 DEFAULT_KEYSTONE_ROLE = ; _member_
 DEFAULT_IP_LOOKUP = ; iplant_hostname
 
