@@ -724,6 +724,7 @@ class AccountDriver(BaseAccountDriver):
 
     def get_openstack_clients(self, username, password=None, tenant_name=None):
         # TODO: I could replace with identity.. but should I?
+
         # Build credentials for each manager
         all_creds = self._get_openstack_credentials(
             username, password, tenant_name)
@@ -737,7 +738,10 @@ class AccountDriver(BaseAccountDriver):
             openstack_sdk = None
 
         neutron = self.network_manager.new_connection(**net_creds)
-        keystone, nova, glance = self.image_manager._new_connection(
+        nova = self.user_manager.build_nova(all_creds['username'],
+                                            all_creds.get('password',None),
+                                            all_creds.get('tenant_name',None))
+        keystone, _ , glance = self.image_manager._new_connection(
             **image_creds)
 
         return {
