@@ -10,7 +10,7 @@ django.setup()
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
 
-from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
+from service.driver import get_account_driver
 from threepio import logger
 
 libcloud.security.VERIFY_SSL_CERT = False
@@ -48,13 +48,29 @@ def main():
     parser.add_argument("--provider", type=int,
                         help="Atmosphere provider ID"
                         " to use when importing users.")
+    parser.add_argument("--provider-id", type=int,
+                        help="Atmosphere provider ID"
+                        " to use when importing users."
+                        " DEPRECATION WARNING -- THIS WILL BE REMOVED SOON!")
+    parser.add_argument("--provider-list",
+                        action="store_true",
+                        help="List of provider names and IDs")
     parser.add_argument("--users",
                         help="LDAP usernames to import. (comma separated)")
     parser.add_argument("--admin", action="store_true",
                         help="Users addded as admin and staff users.")
     args = parser.parse_args()
+    if args.provider_list:
+        print "ID\tName"
+        for p in Provider.objects.all().order_by('id'):
+            print "%d\t%s" % (p.id, p.location)
+        return
+
     users = None
     added = 0
+    if args.provider_id and not args.provider:
+        print "WARNING: --provider-id has been *DEPRECATED*! Use --provider instead!"
+        args.provider = args.provider_id
     if args.provider:
         provider = Provider.objects.get(id=args.provider)
     else:
@@ -62,9 +78,7 @@ def main():
     print "Using Provider: %s" % provider
     type_name = provider.type.name.lower()
     if type_name == 'openstack':
-        acct_driver = OSAccountDriver(provider)
-    elif type_name == 'eucalyptus':
-        acct_driver = EucaAccountDriver(provider)
+        acct_driver = get_account_driver(provider)
     else:
         raise Exception("Could not find an account driver for Provider with"
                         " type:%s" % type_name)
