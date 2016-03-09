@@ -8,6 +8,7 @@ from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
 from core.query import only_current
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from service.instance import (
@@ -172,7 +173,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
                                     str(exc.message))
 
     def perform_create(self, serializer):
-        data = serializer.data
+        try:
+            data = serializer.data
+        except KeyError as key_exc:
+             raise ValidationError("Required key missing: %s" % key_exc)
         user = self.request.user
 
         name = data.get('name')
