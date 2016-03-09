@@ -274,6 +274,8 @@ def send_approved_resource_email(user, request, reason):
     template = "core/email/resource_request_approved.html"
     subject = "Your Resource Request has been approved"
     context = {
+        "support_email": settings.SUPPORT_EMAIL,
+        "support_email_signature": settings.SUPPORT_EMAIL_SIGNATURE,
         "user": user.username,
         "request": request,
         "reason": reason
@@ -293,6 +295,8 @@ def send_denied_resource_email(user, request, reason):
     """
     subject = "Your Resource Request has been denied"
     context = {
+        "support_email": settings.SUPPORT_EMAIL,
+        "support_email_signature": settings.SUPPORT_EMAIL_SIGNATURE,
         "user": user.username,
         "request": request,
         "reason": reason
@@ -316,6 +320,10 @@ def send_instance_email(username, instance_id, instance_name,
                                           timezone=pytz_timezone('UTC'))
     local_launched_at = django_timezone.localtime(utc_date)
     context = {
+        "support_email": settings.SUPPORT_EMAIL,
+        "support_email_signature": settings.SUPPORT_EMAIL_SIGNATURE,
+        "getting_started_instances_link": settings.SUPPORT_LINKS.get('getting_started'),
+        "faq_link": settings.SUPPORT_LINKS.get('faq'),
         "user": user_name,
         "id": instance_id,
         "name": instance_name,
@@ -422,12 +430,20 @@ def send_image_request_email(user, new_machine, name):
     return email_from_admin(user.username, subject, body)
 
 
-def send_new_provider_email(username, provider_name):
+def send_new_provider_email(username, identity):
+    if not identity:
+        raise Exception("Identity missing -- E-mail will not be sent")
+    provider_name = identity.provider.location
+    credential_list = identity.credential_set.all()
     subject = ("Your %s Atmosphere account has been granted access "
                "to the %s provider" % (settings.SITE_NAME, provider_name))
     context = {
+        "new_provider_link": settings.SUPPORT_LINKS.get('new_provider'),
+        "support_email": settings.SUPPORT_EMAIL,
+        "support_email_signature": settings.SUPPORT_EMAIL_SIGNATURE,
         "user": username,
         "provider": provider_name,
+        "credentials": credential_list,
     }
     body = render_to_string("core/email/provider_email.html",
                             context=Context(context))

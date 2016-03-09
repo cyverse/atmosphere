@@ -1,9 +1,9 @@
 Welcome {{user}},<br/><br/>
 You have been granted access to the {{provider}} provider on Atmosphere.
-{% if credentials_list %}
+{% if credentials %}
 <br/>
 Your credentials are:
-{% for credential in credential s %}
+{% for credential in credentials %}
   {{ credential.key }}: {{credential.value }}
 {% endfor %}
 {% endif %}
