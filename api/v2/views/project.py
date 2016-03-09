@@ -37,7 +37,10 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        group = Group.objects.get(name=user.username)
+        try:
+            group = Group.objects.get(name=user.username)
+        except Group.DoesNotExist:
+            raise ValidationError("Group for %s does not exist." % user.username)
         serializer.save(owner=group)
 
     def get_queryset(self):
