@@ -6,16 +6,6 @@ LDAP_SERVER_DN = ; ou=example,dc=org
 TOKEN_EXPIRY_TIME_DAYS = ; 1
 DJANGO_SERVER_URL = ; https://www.my-website.com
 
-
-[apache2]
-MYSHORTNAME = ; my-website
-MYHOSTNAMEHERE = ; my-website.com
-PATH_TO_ATMOSPHERE = ; /path/to/atmosphere
-PATH_TO_TROPOSPHERE = ; /path/to/troposphere
-BASECERTHERE = ; selfsigned_server.crt
-KEYHERE = ; selfsigned_server.key
-BUNDLECERTHERE = ; selfsigned_bundle.crt
-
 [nginx]
 ATMOSPHERE_PATH = ; /path/to/atmosphere
 BUNDLE_FILE = ; selfsigned_bundle.crt
@@ -106,6 +96,8 @@ DEFAULT_ALLOCATION_DELTA = ; (365 * 24 * 60)  # In Minutes
 DEFAULT_QUOTA = ; {'cpu': 16, 'memory': 128, 'storage': 10}
 DEFAULT_KEYSTONE_ROLE = ; _member_
 DEFAULT_IP_LOOKUP = ; iplant_hostname
+#NOTE: Their are *REQUIRED* quotations around 'timedelta(..)'!
+CELERYBEAT_SCHEDULE = ; {"monitor_instances": {"schedule": 'timedelta(minutes=5)',}}
 
 [secrets.py]
 IRODS_HOST = ; irods.server.com

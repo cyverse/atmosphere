@@ -24,9 +24,16 @@ ENFORCING = False
 SITE_NAME = '{{ SITE_NAME }}'
 DEFAULT_EMAIL_DOMAIN = '{{ DEFAULT_EMAIL_DOMAIN }}'
 {% if ADMINS_EMAIL_TUPLE %}
-ADMINS = {{ ADMINS_EMAIL_TUPLE }}
+ADMINS = [
+# The first admin will AUTHOR all e-mails.
+# These ADMINS override values set in __init__.py
+{%- for email_tuple in ADMINS_EMAIL_TUPLE %}
+  {{ email_tuple }},
+{%- endfor %}
+]
 {% endif %}
 SUPPORT_EMAIL = '{{ SUPPORT_EMAIL }}'
+SUPPORT_EMAIL_SIGNATURE = '{{ SUPPORT_EMAIL_SIGNATURE }}'
 SUPPORT_LINKS = {{ SUPPORT_LINKS }}
 REPLICATION_PROVIDER_LOCATION = '{{ REPLICATION_PROVIDER_LOCATION }}'
 MONTHLY_RESET_PROVIDER_LOCATIONS = {{ MONTHLY_RESET_PROVIDER_LOCATIONS }}
@@ -37,12 +44,19 @@ DEFAULT_ALLOCATION_DELTA = {{ DEFAULT_ALLOCATION_DELTA }}
 DEFAULT_QUOTA = {{ DEFAULT_QUOTA }}
 DEFAULT_KEYSTONE_ROLE = '{{ DEFAULT_KEYSTONE_ROLE }}'
 DEFAULT_IP_LOOKUP = '{{ DEFAULT_IP_LOOKUP }}'
-{% if AUTO_CREATE_NEW_ACCOUNTS %}
+{%- if AUTO_CREATE_NEW_ACCOUNTS %}
 AUTO_CREATE_NEW_ACCOUNTS = True
-{% else %}
+{%- else %}
 AUTO_CREATE_NEW_ACCOUNTS = False
-{% endif %}
-
+{%- endif %}
+{%- if CELERYBEAT_SCHEDULE %}
+#CELERYBEAT_SCHEDULE OVERRIDES:
+  {%- for task_key, schedule in CELERYBEAT_SCHEDULE.items() %}
+    {%- for task_opt, task_opt_value in schedule.items() %}
+CELERYBEAT_SCHEDULE["{{task_key}}"]["{{task_opt}}"] = {{task_opt_value}}
+    {%- endfor %}
+  {%- endfor %}
+{%- endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL }}
 # Logging level for dependencies.
