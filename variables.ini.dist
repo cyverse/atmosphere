@@ -43,6 +43,7 @@ UWSGI_GROUP = ; www-data
 UWSGI_LOG_PATH = ; /var/log/uwsgi/atmosphere_uwsgi.log
 
 [local.py]
+ADMINS_EMAIL_TUPLE = ; [('Atmosphere Admin', 'atmo-admin@website.com'),('System Admins', 'sys-admin@website.com')]
 AUTH_USE_OVERRIDE = ; True will override authentication set in __init__.py
 AUTH_MOCK_USER = ; testuser
 AUTH_ENABLE_MOCK = ; True

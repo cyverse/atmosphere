@@ -19,6 +19,9 @@ ENFORCING = True
 {% else %}
 ENFORCING = False
 {% endif %}
+{% if ADMINS_EMAIL_TUPLE %}
+ADMINS = {{ ADMINS_EMAIL_TUPLE }}
+{% endif %}
 
 #Cloud-Operator specific information
 REPLICATION_PROVIDER_LOCATION = '{{ REPLICATION_PROVIDER_LOCATION }}'
