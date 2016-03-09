@@ -90,7 +90,7 @@ class QuotaEmail(AuthAPIView):
 
     def _email(self, request, username, new_resource, reason):
         """
-        Processes resource request increases. Sends email to atmo@iplantc.org
+        Processes resource request increases. Sends email to the admins
 
         Returns a response.
         """

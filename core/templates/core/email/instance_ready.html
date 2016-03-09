@@ -11,7 +11,13 @@ Your Instance Information:
 Please terminate instances when they are no longer needed.
 This e-mail notification was auto-generated after instance launch.
 Helpful links:
-  Atmosphere Manual: Using Instances
-  * https://pods.iplantcollaborative.org/wiki/display/atmman/Using+Instances
-  Atmosphere E-mail Support
-  * atmo@iplantcollaborative.org
+  {% if getting_started_instances_link %}
+  Getting started with your new Instance:
+  * {{ getting_started_instances_link }}
+  {% endif %}
+  {% if faq_link %}
+  Atmosphere FAQ:
+  * {{ faq_link }}
+  {% endif %}
+  Atmosphere E-mail Support:
+  * {{ support_email }}

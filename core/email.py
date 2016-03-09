@@ -423,8 +423,8 @@ def send_image_request_email(user, new_machine, name):
 
 
 def send_new_provider_email(username, provider_name):
-    subject = ("Your iPlant Atmosphere account has been granted access "
-               "to the %s provider" % provider_name)
+    subject = ("Your %s Atmosphere account has been granted access "
+               "to the %s provider" % (settings.SITE_NAME, provider_name))
     context = {
         "user": username,
         "provider": provider_name,
@@ -437,7 +437,7 @@ def send_new_provider_email(username, provider_name):
 def requestImaging(request, machine_request_id, auto_approve=False):
     """
     Processes image request, sends an email to the user
-    and a sperate email to atmo@iplantc.org
+    and a sperate email to the admins
     Returns a response.
     """
     # TODO: This could also be:
@@ -471,7 +471,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
 
 def resource_request_email(request, username, new_resource, reason, options={}):
     """
-    Processes Resource request. Sends email to atmo@iplantc.org
+    Processes Resource request. Sends email to the admins
 
     Returns a response.
     """

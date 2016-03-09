@@ -198,6 +198,7 @@ def configure_ansible(logger):
 
 def build_host_name(ip):
     """
+    FIXME: return FQDN (on flag?)
     Return the host name
     * iPlant or raw
     """
@@ -209,6 +210,12 @@ def build_host_name(ip):
 
 
 def iplant_hostname(ip):
+    # regex = re.compile(
+    #     "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."
+    #     "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
+    # r = regex.search(floating_ip)
+    # (one, two, three, four) = r.groups()
+    # hostname = "vm%s-%s.iplantcollaborative.org" % (three, four)
     list_of_subnet = ip.split(".")
     return "vm%s-%s" % (list_of_subnet[2], list_of_subnet[3])
 
