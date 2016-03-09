@@ -229,8 +229,13 @@ def _coerce(val):
     This ensures that `DEBUG=False` is not evaluated as `True`.
     """
     try:
-        return ast.literal_eval(val) if not val.isdigit() else val
+        if ('[' in val or '{' in val) and '__' not in val:
+            eval_fn = eval
+        else:
+            eval_fn = ast.literal_eval
+        return eval_fn(val) if not val.isdigit() else val
     except Exception as e:
+        #print "Exception occurred during evaluation of:%s - %s" % (val, e)
         return val
 
 
