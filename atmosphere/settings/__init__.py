@@ -39,9 +39,7 @@ ALLOWED_HOSTS = [unicode(SERVER_URL.replace('https://', ''))]
 
 # NOTE: first admin will be sender of atmo emails.
 ADMINS = (
-    ('Atmosphere Admin', 'atmo@iplantcollaborative.org'),
-    ('Steven Gregory', 'esteve@iplantcollaborative.org'),
-    ('Atmosphere Alerts', 'atmo-alerts@iplantcollaborative.org'),
+    ('AT LEAST ONE ADMIN REQUIRED', 'sends-email@if-debug-false.com'),
 )
 
 
