@@ -3,7 +3,7 @@ Deploy methods for Atmosphere
 """
 from functools import wraps
 import os
-import sys
+import re
 import subprocess
 import time
 
@@ -14,8 +14,6 @@ from django.utils.timezone import datetime
 
 from libcloud.compute.deployment import Deployment, ScriptDeployment,\
     MultiStepDeployment
-
-import redis
 
 import subspace
 
@@ -209,15 +207,38 @@ def build_host_name(ip):
     return hostname_fn(ip)
 
 
+def split_ip_address(ip):
+    try:
+        regex = re.compile(
+            "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."
+            "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
+        r = regex.search(ip)
+        (one, two, three, four) = r.groups()
+        return (one, two, three, four)
+    except Exception:
+        raise Exception("IP <%s> is not of the format VVV.XXX.YYY.ZZZ" % ip)
+
+
+def jetstream_hostname(ip):
+    """
+    INPUT: IP Address (str in form: VVV.XXX.YYY.ZZZ)
+    js-YYY-ZZZ.jetstream-cloud.org
+    """
+    prefix = "js-"
+    separator = "-"
+    list_of_subnet = split_ip_address(ip)
+    return "%s%s%s%s.%s" % (
+        prefix, list_of_subnet[2], separator, list_of_subnet[3],
+        "jetstream-cloud.org")
+
+
 def iplant_hostname(ip):
-    # regex = re.compile(
-    #     "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."
-    #     "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
-    # r = regex.search(floating_ip)
-    # (one, two, three, four) = r.groups()
-    # hostname = "vm%s-%s.iplantcollaborative.org" % (three, four)
-    list_of_subnet = ip.split(".")
-    return "vm%s-%s" % (list_of_subnet[2], list_of_subnet[3])
+    prefix = "js-"
+    separator = "-"
+    list_of_subnet = split_ip_address(ip)
+    return "%s%s%s%s.%s"\
+        % (prefix, list_of_subnet[2], separator, list_of_subnet[3],
+           "iplantcollaborative.org")
 
 
 def raw_hostname(ip):
