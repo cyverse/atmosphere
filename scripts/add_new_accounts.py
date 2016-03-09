@@ -75,9 +75,9 @@ def main():
 
     users = None
     added = 0
-   if args.provider_id and not args.provider:
-       print "WARNING: --provider-id has been *DEPRECATED*! Use --provider instead!"
-       args.provider = args.provider_id
+    if args.provider_id and not args.provider:
+        print "WARNING: --provider-id has been *DEPRECATED*! Use --provider instead!"
+        args.provider = args.provider_id
     if args.provider:
         provider = Provider.objects.get(id=args.provider)
     else:
