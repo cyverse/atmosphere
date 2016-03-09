@@ -1,7 +1,7 @@
 import pytz
 import json
 
-from django.utils.timezone import datetime
+from django.utils.timezone import datetime, now
 
 from threepio import logger
 
@@ -152,32 +152,37 @@ def glance_update_machine(new_machine):
         base_source.created_by = owner.created_by
         base_source.created_by_identity = owner
     # If glance image, we can also infer some about the application
-    if g_image:
-        logger.debug("Found glance image for %s" % new_machine)
-        # Never set private=False if it's set True in the DB.
-        if hasattr(g_image, 'is_public'):
-            #'v1' glance image has attrs
-            if g_image.is_public is False:
-                new_app.private = True
-            g_end_date = glance_timestamp(g_image.deleted)
-            g_start_date = glance_timestamp(g_image.created_at)
-        elif hasattr(g_image, 'items'):
-            #'v2' glance image is a dict.
-            if g_image.get('visibility','public') is not 'public':
-                new_app.private = True
-            g_end_date = glance_timestamp(g_image.get('deleted'))
-            g_start_date = glance_timestamp(g_image.get('created_at'))
-        else:
-            raise Exception("Glance image has changed. Ask a programmer for help!")
-        if new_app.first_machine() is new_machine:
-            logger.debug("Glance image represents App:%s" % new_app)
-            new_app.created_by = owner.created_by
-            new_app.created_by_identity = owner
-            new_app.start_date = g_start_date
-            new_app.end_date = g_end_date
-        new_app.save()
-        base_source.start_date = g_start_date
-        base_source.end_date = g_end_date
+    if not g_image:
+        logger.warn("DID NOT FIND glance image for %s" % new_machine)
+        return
+    logger.debug("Found glance image for %s" % new_machine)
+    # Never set private=False if it's set True in the DB.
+    if hasattr(g_image, 'is_public'):
+        #'v1' glance image has attrs
+        if g_image.is_public is False:
+            new_app.private = True
+        g_end_date = glance_timestamp(g_image.deleted)
+        g_start_date = glance_timestamp(g_image.created_at)
+    elif hasattr(g_image, 'items'):
+        #'v2' glance image is a dict.
+        if g_image.get('visibility','public') is not 'public':
+            new_app.private = True
+        g_end_date = glance_timestamp(g_image.get('deleted'))
+        g_start_date = glance_timestamp(g_image.get('created_at'))
+    else:
+        raise Exception("Glance image has changed. Ask a programmer for help!")
+    if new_app.first_machine() is new_machine:
+        logger.debug("Glance image represents App:%s" % new_app)
+        new_app.created_by = owner.created_by
+        new_app.created_by_identity = owner
+        new_app.start_date = g_start_date
+        new_app.end_date = g_end_date
+    if not g_start_date:
+        logger.warn("Could not parse timestamp of 'created_at': %s" % g_image['created_at'])
+        g_start_date = now()
+    new_app.save()
+    base_source.start_date = g_start_date
+    base_source.end_date = g_end_date
     base_source.save()
     new_machine.save()
 
