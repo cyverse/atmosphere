@@ -146,7 +146,7 @@ def get_default_identity(username, provider=None):
                 if not new_identities:
                     logger.error("%s has no identities. Functionality will be severely limited." % username)
                     return None
-                return new_identites[0]
+                return new_identities[0]
             else:
                 return None
         identities = group.current_identities.all()
