@@ -4,7 +4,8 @@ UserManager:
 """
 import random
 import time
-from hashlib import sha1
+import crypt
+import string
 from urlparse import urlparse
 
 from django.db.models import Max
@@ -482,8 +483,15 @@ class AccountDriver(BaseAccountDriver):
         return True
 
     def hashpass(self, username):
-        # TODO: Must be better.
-        return sha1(username).hexdigest()
+        """
+        Create a unique password using 'Username' as the wored
+        and the SECRET_KEY as your salt
+        """
+        secret_salt = settings.SECRET_KEY.translate(None, string.punctuation)
+        password = crypt.crypt(username, secret_salt)
+        if not password:
+            raise Exception("Failed to hash password, check the secret_salt")
+        return password
 
     def get_project_name_for(self, username):
         """
