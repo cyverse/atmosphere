@@ -39,7 +39,7 @@ ALLOWED_HOSTS = [unicode(SERVER_URL.replace('https://', ''))]
 
 # NOTE: first admin will be sender of atmo emails.
 ADMINS = (
-    #('Atmosphere Admin', 'atmo@iplantcollaborative.org'),
+    ('Atmosphere Admin', 'help@xsede.org'),
     ('Steven Gregory', 'esteve@iplantcollaborative.org'),
     ('Atmosphere Alerts', 'atmo-alerts@iplantcollaborative.org'),
 )
@@ -415,7 +415,7 @@ CELERYBEAT_SCHEDULE = {
     "monitor_instance_allocations": {
         "task": "monitor_instance_allocations",
         "schedule": timedelta(minutes=15),
-        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+        "options": {"expires": 20 * 60, "time_limit": 20 * 60}
     },
     "monitor_instances": {
         "task": "monitor_instances",
