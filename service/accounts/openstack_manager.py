@@ -15,6 +15,8 @@ try:
 except ImportError:
     from novaclient.v2 import client as nova_client
 
+from django.db.models import ObjectDoesNotExist
+from keystoneclient.apiclient.exceptions import Unauthorized
 from novaclient.exceptions import OverLimit
 from neutronclient.common.exceptions import NeutronClientException
 from requests.exceptions import ConnectionError
@@ -230,6 +232,42 @@ class AccountDriver(BaseAccountDriver):
                                  "Waiting for one minute.")
                 time.sleep(60)  # Wait one minute
         return (username, password, project)
+
+    def change_password(self, identity, new_password, old_password=None):
+        try:
+            self.update_openstack_password(identity, new_password, old_password=old_password)
+            self.update_password_credential(identity, new_password)
+            return True
+        except Exception:
+            logger.exception("Could not change password")
+            return False
+
+    def update_password_credential(self, core_identity, new_password):
+        """
+
+        """
+        try:
+            password_cred = core_identity.credential_set.get(key='secret')
+            password_cred.value = new_password
+            password_cred.save()
+        except ObjectDoesNotExist:
+            raise Exception(
+                "The 'key' for a secret has changed! "
+                "Ask a programmer for help!")
+
+    def update_openstack_password(self, identity, new_password, old_password=None):
+        identity_creds = self.parse_identity(identity)
+        username = identity_creds["username"]
+        password = old_password if old_password else identity_creds["password"]
+        project_name = identity_creds["tenant_name"]
+        try:
+            clients = self.get_openstack_clients(username, password, project_name)
+        except Unauthorized:
+            raise Unauthorized("credential_set for Identity %s did not produce"
+                               " a valid set of openstack clients" % identity)
+        keystone = clients['keystone']
+        # NOTE: next line can raise Unauthorized
+        keystone.users.update_password(password, new_password)
 
     def init_keypair(self, username, password, project_name):
         keyname = settings.ATMOSPHERE_KEYPAIR_NAME
