@@ -445,7 +445,7 @@ def monitor_instance_allocations():
     Update instances for each active provider.
     """
     for p in Provider.get_active():
-        monitor_instances_for.apply_async(args=[p.id], check_allocations=True)
+        monitor_instances_for.apply_async(args=[p.id], kwargs={'check_allocations':True})
 
 
 @task(name="monitor_instances_for")
