@@ -39,6 +39,14 @@ class AtmosphereUser(AbstractUser):
             (not self.end_date or self.end_date > now_time)
 
     @property
+    def current_providers(self):
+        from core.models import Provider
+        all_providers = Provider.objects.none()
+        for group in self.group_set.all():
+            all_providers |= Provider.objects.filter(id__in=group.current_identities.values_list('provider', flat=True))
+        return all_providers
+
+    @property
     def current_identities(self):
         from core.models import Identity
         all_identities = Identity.objects.none()
