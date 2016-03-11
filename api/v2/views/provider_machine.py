@@ -1,17 +1,23 @@
-from django.db.models import Q
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.decorators import detail_route
 
 import django_filters
 
+from rest_framework.response import Response
+from rest_framework import status
+
 from core.models import AccountProvider
-from core.models.machine import ProviderMachine, find_provider_machine
-from core.query import only_current_source, only_public_providers, user_provider_machine_set
+from core.models.machine import ProviderMachine, find_provider_machine, update_provider_machine_metadata
+from core.query import (
+    only_current_source, only_public_providers,
+    user_provider_machine_set, in_provider_list
+)
 
 from api.v2.serializers.details import ProviderMachineSerializer
 from api.v2.views.base import OwnerUpdateViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
+from threepio import logger
 
 def get_admin_machines(user):
     """
@@ -86,7 +92,7 @@ class ProviderMachineViewSet(MultipleFieldLookup, OwnerUpdateViewSet):
         metadata = data.pop('metadata')
         provider_machine_id = pk
         try:
-            provider_machine = find_provider_machine(provider_machine_id, provider=provider_id)
+            provider_machine = find_provider_machine(provider_machine_id)
             update_provider_machine_metadata(provider_machine, metadata)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as exc:
@@ -118,4 +124,7 @@ class ProviderMachineViewSet(MultipleFieldLookup, OwnerUpdateViewSet):
         queryset = (
             public_set | shared_set | my_set | admin_set).distinct().order_by(
             '-instance_source__start_date')
+
+        if not isinstance(request_user, AnonymousUser):
+            queryset = queryset.filter(in_provider_list(request_user.current_providers))
         return queryset

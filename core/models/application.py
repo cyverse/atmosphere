@@ -10,7 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_current, only_current_apps, only_current_source
+from core.query import only_current, only_current_apps, only_current_source, in_provider_list
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
@@ -126,7 +126,8 @@ class Application(models.Model):
         else:
             admin_images = Application.objects.none()
         all_the_images = (public_images | user_images |
-                shared_images | admin_images).distinct()
+                shared_images | admin_images).distinct().filter(
+                in_provider_list(atmo_user.current_providers, key_override='versions__machines__instance_source__provider'))
         return all_the_images
 
     def get_metrics(self):

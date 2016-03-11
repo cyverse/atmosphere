@@ -170,9 +170,8 @@ class AccountDriver(BaseAccountDriver):
         return ident
 
     def build_account(self, username, password,
-                      project_name=None, role_name=None, max_quota=False):
+                      project_name=None, role_name=None, max_quota=False, domain_name='default'):
         finished = False
-
         # Attempt account creation
         while not finished:
             try:
@@ -181,23 +180,25 @@ class AccountDriver(BaseAccountDriver):
                 if not project_name:
                     project_name = username
                 # 1. Create Project: should exist before creating user
-                project = self.user_manager.get_project(project_name)
+                project_kwargs = {}
+                if self.identity_version > 2:
+                    project_kwargs.update({'domain_id': domain_name})
+                project = self.user_manager.get_project(project_name, **project_kwargs)
                 if not project:
-                    kwargs = {}
                     if self.identity_version > 2:
-                        kwargs.update({'domain': 'default'})
-                    project = self.user_manager.create_project(project_name, **kwargs)
+                        project_kwargs = {'domain': domain_name}
+                    project = self.user_manager.create_project(project_name, **project_kwargs)
 
                 # 2. Create User (And add them to the project)
                 user = self.get_user(username)
                 if not user:
                     logger.info("Creating account: %s - %s - %s"
                                 % (username, password, project))
-                    kwargs = {}
+                    user_kwargs = {}
                     if self.identity_version > 2:
-                        kwargs.update({'domain': 'default'})
+                        user_kwargs.update({'domain': domain_name})
                     user = self.user_manager.create_user(username, password,
-                                                         project, **kwargs)
+                                                         project, **user_kwargs)
                 # 3.1 Include the admin in the project
                 # TODO: providercredential initialization of
                 #  "default_admin_role"
@@ -207,7 +208,7 @@ class AccountDriver(BaseAccountDriver):
                 if not role_name:
                     role_name = "_member_"  # FIXME: config mgmt..
                 self.user_manager.add_project_membership(
-                    project_name, username, role_name)
+                    project_name, username, role_name, domain_name)
 
                 # 4. Create a security group -- SUSPENDED.. Will occur on
                 # instance launch instead.
@@ -724,6 +725,7 @@ class AccountDriver(BaseAccountDriver):
 
     def get_openstack_clients(self, username, password=None, tenant_name=None):
         # TODO: I could replace with identity.. but should I?
+
         # Build credentials for each manager
         all_creds = self._get_openstack_credentials(
             username, password, tenant_name)
@@ -737,7 +739,10 @@ class AccountDriver(BaseAccountDriver):
             openstack_sdk = None
 
         neutron = self.network_manager.new_connection(**net_creds)
-        keystone, nova, glance = self.image_manager._new_connection(
+        nova = self.user_manager.build_nova(all_creds['username'],
+                                            all_creds.get('password',None),
+                                            all_creds.get('tenant_name',None))
+        keystone, _ , glance = self.image_manager._new_connection(
             **image_creds)
 
         return {
