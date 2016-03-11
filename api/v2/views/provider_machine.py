@@ -6,7 +6,7 @@ import django_filters
 
 from core.models import AccountProvider
 from core.models.machine import ProviderMachine, find_provider_machine
-from core.query import only_current_source
+from core.query import only_current_source, in_provider_list
 
 from api.v2.serializers.details import ProviderMachineSerializer
 from api.v2.views.base import OwnerUpdateViewSet
@@ -121,4 +121,7 @@ class ProviderMachineViewSet(MultipleFieldLookup, OwnerUpdateViewSet):
         queryset = (
             public_set | shared_set | my_set | admin_set).distinct().order_by(
             '-instance_source__start_date')
+
+        if not isinstance(request_user, AnonymousUser):
+            queryset = queryset.filter(in_provider_list(request_user.current_providers))
         return queryset

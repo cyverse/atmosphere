@@ -205,6 +205,15 @@ def only_active_memberships(user=None, now_time=None):
     return query
 
 
+def in_provider_list(provider_list, key_override=None):
+    """
+    All ProviderMachines who have a matching provider in this list..
+    """
+    if not key_override:
+        key_override="instance_source__provider"
+    return Q(**{key_override: provider_list})
+
+
 def _query_membership_for_user(user):
     """
     All *Memberhsips use 'group' as the keyname, this will check
