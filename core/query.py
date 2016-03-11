@@ -210,12 +210,23 @@ def only_active_memberships(user=None, now_time=None):
     return query
 
 
+def user_provider_machine_set(user):
+    """
+    A query specifically for 'ProviderMachine'
+    Will return the provider machines created by 'user'
+    """
+    query = (Q(instance_source__provider_id__in=user.provider_ids()) |
+             Q(application_version__application__created_by=user) |
+             Q(instance_source__created_by=user))
+    return query
+
+
 def in_provider_list(provider_list, key_override=None):
     """
     All ProviderMachines who have a matching provider in this list..
     """
     if not key_override:
-        key_override="instance_source__provider"
+        key_override = "instance_source__provider"
     return Q(**{key_override: provider_list})
 
 
