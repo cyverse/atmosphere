@@ -23,7 +23,7 @@ from service.monitoring import (
 from service.monitoring import user_over_allocation_enforcement
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
-from glanceclient.exc import HTTPNotFound
+from glanceclient.exc import HTTPConflict, HTTPForbidden
 
 from threepio import celery_logger
 
@@ -177,7 +177,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     #STEP 2: Find conflicts and report them.
     intersection = set(private_apps.keys()) & set(new_public_apps)
     if intersection:
-        raise Exception("These applications were listed as BOTH public && private apps. Manual conflict correction required: %s" % intersection)
+        celery_logger.error("These applications were listed as BOTH public && private apps. Manual conflict correction required: %s" % intersection)
 
     #STEP 3: Apply the changes at app-level
     #Memoization at this high of a level will help save time
@@ -185,9 +185,15 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     provider_tenant_mapping = {}  # Provider -> [{TenantId : TenantName},...]
     image_maps = {}
     for app in new_public_apps:
+        if app in intersection:
+            celery_logger.error("Skipped public app: %s <%s>" % (app, app.id))
+            continue
         make_machines_public(app, account_drivers, dry_run=dry_run)
 
     for app, membership in private_apps.items():
+        if app in intersection:
+            celery_logger.error("Skipped private app: %s <%s>" % (app, app.id))
+            continue
         make_machines_private(app, membership, account_drivers, provider_tenant_mapping, image_maps, dry_run=dry_run)
 
     if print_logs:
@@ -219,7 +225,6 @@ def get_public_and_private_apps(provider):
         db_version = db_machine.application_version
         db_application = db_version.application
 
-        #if cloud_machine.is_public:
         if cloud_machine.get('visibility') == 'public':
             if db_application.private and db_application not in new_public_apps:
                 new_public_apps.append(db_application) #Distinct list..
@@ -418,10 +423,11 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
             provider = machine.instance_source.provider
             account_driver = memoized_driver(machine, account_drivers)
             image = account_driver.image_manager.get_image(image_id=machine.identifier)
-            if image and image.is_public == False:
+
+            if image and image.get('visiblity') != 'public':
                 celery_logger.info("Making Machine %s public" % image.id)
                 if not dry_run:
-                    image.update(is_public=True)
+                    account_driver.image_manager.glance.images.update(image.id, visibility='public')
     # Set top-level application to public (This will make all versions and PMs public too!)
     application.private = False
     celery_logger.info("Making Application %s public" % application.name)
@@ -660,11 +666,20 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
     elif missing_tenant.count() > 1:
         raise Exception("Safety Check -- You should not be here")
     tenant_name = missing_tenant[0]
-    if cloud_machine.is_public == True:
+
+    if cloud_machine.get('visiblity') == 'public':
         celery_logger.info("Making Machine %s private" % cloud_machine.id)
-        cloud_machine.update(is_public=False)
+        account_driver.image_manager.glance.images.update(cloud_machine.id, visibility='private')
 
     celery_logger.info("Sharing image %s<%s>: %s with %s" % (cloud_machine.id, cloud_machine.name, identity.provider.location, tenant_name.value))
     if not dry_run:
-        account_driver.image_manager.share_image(cloud_machine, tenant_name.value)
+        try:
+            account_driver.image_manager.share_image(cloud_machine, tenant_name.value)
+        except HTTPConflict as exc:
+            if 'already associated with image' in exc.message:
+                pass
+        except HTTPForbidden as exc:
+            if 'Public images do not have members' in exc.message:
+                celery_logger.warn("CONFLICT -- This image should have been marked 'private'! %s" % cloud_machine)
+                pass
     return
