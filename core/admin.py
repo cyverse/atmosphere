@@ -52,6 +52,7 @@ class ImageVersionAdmin(admin.ModelAdmin):
         "id",
         "name",
         "application",
+        "created_by",
         "start_date",
         "end_date",
     )
@@ -99,7 +100,7 @@ class ProviderMachineAdmin(admin.ModelAdmin):
         "application_version__application__name",
         "instance_source__provider__location",
         "instance_source__identifier"]
-    list_display = ["identifier", "_pm_provider", "end_date"]
+    list_display = ["identifier", "_pm_provider", "start_date", "end_date"]
     list_filter = [
         "instance_source__provider__location",
         "application_version__application__private",
