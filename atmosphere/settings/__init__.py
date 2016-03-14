@@ -416,7 +416,7 @@ CELERYBEAT_SCHEDULE = {
     "monitor_instance_allocations": {
         "task": "monitor_instance_allocations",
         "schedule": timedelta(minutes=15),
-        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+        "options": {"expires": 25 * 60, "time_limit": 25 * 60}
     },
     "monitor_instances": {
         "task": "monitor_instances",

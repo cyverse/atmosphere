@@ -381,7 +381,16 @@ def add_to_cache(provider_machine):
     return provider_machine
 
 
-def find_provider_machine(identifier, provider_uuid):
+def update_provider_machine_metadata(provider_machine_id, metadata={}):
+    """
+    Call appropriate method to update machine metadata
+    -- This is a 'core-wrapper' to service-level object..
+    """
+    from service.machine import update_machine_metadata
+    provider_machine = find_provider_machine(provider_machine_id)
+    return update_machine_metadata(provider_machine, metadata)
+
+def find_provider_machine(identifier):
     try:
         if type(identifier) == int:
             machine = ProviderMachine.objects.get(pk=identifier)

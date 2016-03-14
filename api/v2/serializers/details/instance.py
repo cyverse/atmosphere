@@ -26,6 +26,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
         style={'base_template': 'input.html'})
     size = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
+    ip_address = serializers.SerializerMethodField()
     version = serializers.SerializerMethodField()
     uuid = serializers.CharField(source='provider_alias')
     url = UUIDHyperlinkedIdentityField(
@@ -44,6 +45,12 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
         image = Image.objects.get(uuid=image_uuid)
         serializer = ImageSummarySerializer(image, context=self.context)
         return serializer.data
+
+    def get_ip_address(self, obj):
+        status = obj.esh_status()
+        if status in ["suspended", "shutoff", "shelved"]:
+            return "0.0.0.0"
+        return obj.ip_address
 
     def get_version(self, obj):
         version = obj.source.providermachine.application_version
