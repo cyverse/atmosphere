@@ -513,3 +513,4 @@ class GroupAdmin(admin.ModelAdmin):
 admin.site.register(models.ApplicationThreshold)
 admin.site.register(models.Credential)
 admin.site.register(models.ProviderType)
+admin.site.register(models.EmailTemplate)
