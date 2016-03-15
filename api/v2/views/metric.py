@@ -112,7 +112,7 @@ class MetricViewSet(GenericViewSet):
         return Instance.objects.filter(created_by=self.request.user)
 
     def get_key(self, instance, params):
-        inputs = [instance.provider_uuid()] + params.values()
+        inputs = [instance.provider_alias] + params.values()
         return ":".join(map(str, inputs))
 
     def retrieve(self, *args, **kwargs):
