@@ -1,3 +1,5 @@
+{{ support_email_header|safe }}
+
 Hello {{user}},
 
 The atmosphere instance <{{id}}> is running and ready for use.
@@ -21,3 +23,5 @@ Helpful links:
   {% endif %}
   Atmosphere E-mail Support:
   * {{ support_email }}
+
+{{ support_email_footer|safe }}

@@ -1,3 +1,6 @@
+{% if support_email_header -%}
+{{ support_email_header|safe }}
+{% endif -%}
 {%if approved%}
 Your image request has been approved! The imaging process will
 begin shortly.
@@ -26,4 +29,9 @@ Version Scripts: {{request.new_version_scripts.count}}
 Version Licenses: {{request.new_version_scripts.count}}
 ---
 Excluded Files: {{request.exclude_files}}
+
+If you have any additional questions, please contact: {{ support_email }}
+{% if support_email_footer -%}
+{{ support_email_footer|safe }}
+{% endif -%}
 

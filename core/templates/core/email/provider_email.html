@@ -1,3 +1,4 @@
+{{ support_email_header|safe }}
 Welcome {{user}},<br/><br/>
 You have been granted access to the {{provider}} provider on Atmosphere.
 {% if credentials %}
@@ -11,4 +12,4 @@ Your credentials are:
 Additional information about how to use the new provider and credentials can be found <a href="{{new_provider_link}}">here.</a> For additional information or questions please contact {{support_email}}.
 <br/>
 Thank you,<br/>
-{{support_email_signature}}
+{{ support_email_footer|safe }}
