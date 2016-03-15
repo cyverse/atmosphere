@@ -13,6 +13,7 @@ from rest_framework.viewsets import GenericViewSet
 
 from api import permissions
 from core.models import Instance
+from threepio import logger
 
 # The hyper-stats service fetches metrics every minute
 CACHE_DURATION = 60
@@ -28,7 +29,7 @@ MAXIMUM_TIME_PERIOD = 1209600
 def create_request_uri(uuid, params):
     endpoint = "{server}/render/?target={target}&format={format}"
     query = "stats.*.{uuid}.{field}"
-    summarize = "summarize({metric}, {resolution}, func='avg')"
+    summarize = "summarize({metric}, {resolution}, 'avg')"
     metric = query.format(uuid=uuid,field=params.get("field"))
 
     # Apply function to metric
@@ -56,6 +57,7 @@ def create_request_uri(uuid, params):
     if "from" in params:
       request_uri = "{}&from={}".format(request_uri, params["from"])
 
+    logger.info("metrics endpoint: " + request_uri)
     return request_uri
 
 def get_metrics(self, uuid, params):
@@ -109,9 +111,9 @@ class MetricViewSet(GenericViewSet):
             return self.queryset
         return Instance.objects.filter(created_by=self.request.user)
 
-    def get_key(self, alias, params):
-        param_string = "-".join(map(str,params.values()))
-        return "metric-%s" % param_string
+    def get_key(self, instance, params):
+        inputs = [instance.provider_uuid()] + params.values()
+        return ":".join(map(str, inputs))
 
     def retrieve(self, *args, **kwargs):
         instance = self.get_object()
