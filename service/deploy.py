@@ -163,7 +163,9 @@ def ready_to_deploy(instance_ip, username, instance_id):
                                           host_list=host_list,
                                           limit=my_limit,
                                           extra_vars=extra_vars)
-    [pb.run() for pb in pbs if '05_ssh_setup' in pb.filename]  # FIXME: this is a HACK
+    #FIXME: Replace this HACK with a proper playbook return
+    pbs = [pb for pb in pbs if '05_ssh_setup' in pb.filename]
+    [pb.run() for pb in pbs]
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, hostname)
     cache_bust(hostname)
