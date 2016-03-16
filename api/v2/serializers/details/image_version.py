@@ -1,6 +1,7 @@
 from core.models import ApplicationVersion as ImageVersion
 from core.models import Application as Image
 from core.models import License, BootScript
+from core.models import ProviderMachine
 from rest_framework import serializers
 from api.v2.serializers.summaries import (
     BootScriptSummarySerializer,
@@ -8,10 +9,13 @@ from api.v2.serializers.summaries import (
     UserSummarySerializer,
     ImageSummarySerializer,
     IdentitySummarySerializer,
+    ProviderMachineSummarySerializer,
     ImageVersionSummarySerializer)
 from api.v2.serializers.fields import (
     ProviderMachineRelatedField, ModelRelatedField)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
+from django.db.models import Q
+from django.contrib.auth.models import AnonymousUser
 
 
 class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
@@ -37,7 +41,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         many=True)  # NEW
     user = UserSummarySerializer(source='created_by')
     identity = IdentitySummarySerializer(source='created_by_identity')
-    machines = ProviderMachineRelatedField(many=True)
+    machines = serializers.SerializerMethodField('get_machines_for_user')
     image = ModelRelatedField(
         source='application',
         queryset=Image.objects.all(),
@@ -51,6 +55,24 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         view_name='api:v2:imageversion-detail',
         uuid_field='id'
     )
+
+    def get_machines_for_user(self, obj):
+        """
+        Only show version as available on providers the user has access to
+        """
+        user = self.context['request'].user
+
+        filtered = obj.machines
+        if isinstance(user, AnonymousUser):
+            filtered = obj.machines.filter(Q(instance_source__provider__public=True))
+        elif not user.is_staff:
+            filtered = obj.machines.filter(Q(instance_source__provider_id__in=user.provider_ids()))
+        serializer = ProviderMachineSummarySerializer(
+           filtered,
+           context=self.context,
+           many=True)
+        return serializer.data
+
     class Meta:
         model = ImageVersion
         fields = ('id', 'url', 'parent', 'name', 'change_log',
