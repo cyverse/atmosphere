@@ -1,8 +1,16 @@
+{% spaceless %}
+{% if support_email_header %}
 {{ support_email_header|safe }}
+{% endif %}
+{% endspaceless %}
 Hello {{user}},
 
 Your image is ready. The image ID is "{{identifier}}" and the image is named "{{alias|safe}}".
 
 Thank you for using atmosphere!
 If you have any questions please contact: {{support_email}}
+{% spaceless %}
+{% if support_email_footer %}
 {{ support_email_footer|safe }}
+{% endif %}
+{% endspaceless %}

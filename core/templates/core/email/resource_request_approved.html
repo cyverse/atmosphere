@@ -1,4 +1,8 @@
-{{support_email_header}}
+{% spaceless %}
+{% if support_email_header %}
+{{support_email_header|safe}}
+{% endif %}
+{% endspaceless %}
 Hello {{user}},
 
 Your resource request for {{request}} has been approved!
@@ -8,4 +12,8 @@ Reason: {{reason}}
 If you have questions please contact us at {{support_email}}.
 
 Thank you,
-{{support_email_footer}}
+{% spaceless %}
+{% if support_email_footer %}
+{{support_email_footer|safe}}
+{% endif %}
+{% endspaceless %}
