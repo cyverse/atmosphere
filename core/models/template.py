@@ -20,13 +20,12 @@ class EmailTemplate(SingletonModel):
     keys should NOT be added/removed unless there
     are corresponding logic-choices in core code.
     """
-    link_getting_started = models.CharField(
-        max_length=254, null=True, blank=True)
-    link_new_provider = models.CharField(max_length=254, null=True, blank=True)
-    link_faq = models.CharField(max_length=254, null=True, blank=True)
-    email_address = models.EmailField(null=True, blank=True)  # max_length=254
-    email_header = models.TextField(null=True, blank=True)
-    email_footer = models.TextField(null=True, blank=True)
+    link_getting_started = models.CharField(max_length=254, default=b"https://pods.iplantcollaborative.org/wiki/display/atmman/Using+Instances")
+    link_new_provider = models.CharField(max_length=254, default=b"https://pods.iplantcollaborative.org/wiki/display/atmman/Changing+Providers")
+    link_faq = models.CharField(max_length=254, default=b'')
+    email_address = models.EmailField(max_length=254, default=b'support@iplantcollaborative.org')
+    email_header = models.TextField(default=b'')
+    email_footer = models.TextField(default=b'iPlant Atmosphere Team')
 
     class Meta:
         db_table = 'email_template'
