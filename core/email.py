@@ -20,7 +20,14 @@ from core.models import IdentityMembership, MachineRequest, EmailTemplate
 from iplantauth.protocol.ldap import lookupEmail as ldapLookupEmail, lookupUser
 from core.tasks import send_email as send_email_task
 
-template_settings = EmailTemplate.get_instance()
+
+def get_email_template():
+    """
+    Return the one and only EmailTemplate
+    so it can be used in (Email templates)! *GASP*
+    """
+    email_template = EmailTemplate.get_instance()
+    return email_template
 
 def send_email_template(subject, template, recipients, sender,
                         context=None, cc=None, html=True, silent=False):
@@ -272,12 +279,13 @@ def send_approved_resource_email(user, request, reason):
     """
     Notify the user the that their request has been approved.
     """
+    email_template = get_email_template()
     template = "core/email/resource_request_approved.html"
     subject = "Your Resource Request has been approved"
     context = {
-        "support_email": template_settings.email_address,
-        "support_email_header": template_settings.email_header,
-        "support_email_footer": template_settings.email_footer,
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
         "user": user.username,
         "request": request,
         "reason": reason
@@ -295,11 +303,12 @@ def send_denied_resource_email(user, request, reason):
     """
     Send an email notifying the user that their request has been denied.
     """
+    email_template = get_email_template()
     subject = "Your Resource Request has been denied"
     context = {
-        "support_email": template_settings.email_address,
-        "support_email_header": template_settings.email_header,
-        "support_email_footer": template_settings.email_footer,
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
         "user": user.username,
         "request": request,
         "reason": reason
@@ -317,17 +326,18 @@ def send_instance_email(username, instance_id, instance_name,
     Returns a boolean.
     """
     format_string = '%b, %d %Y %H:%M:%S'
+    email_template = get_email_template()
     username, user_email, user_name = user_email_info(username)
     launched_at = launched_at.replace(tzinfo=None)
     utc_date = django_timezone.make_aware(launched_at,
                                           timezone=pytz_timezone('UTC'))
     local_launched_at = django_timezone.localtime(utc_date)
     context = {
-        "getting_started_instances_link": template_settings.link_getting_started,
-        "faq_link": template_settings.link_faq,
-        "support_email": template_settings.email_address,
-        "support_email_header": template_settings.email_header,
-        "support_email_footer": template_settings.email_footer,
+        "getting_started_instances_link": email_template.link_getting_started,
+        "faq_link": email_template.link_faq,
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
         "user": user_name,
         "id": instance_id,
         "name": instance_name,
@@ -423,12 +433,13 @@ def send_image_request_email(user, new_machine, name):
     which will provide useful information about the new image.
     """
     username, user_email, user_name = user_email_info(user.username)
+    email_template = get_email_template()
     context = {
         "user": user_name,
         "identifier": new_machine.identifier,
-        "support_email": template_settings.email_address,
-        "support_email_header": template_settings.email_header,
-        "support_email_footer": template_settings.email_footer,
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
         "alias": name
     }
     body = render_to_string("core/email/imaging_success.html",
@@ -442,13 +453,14 @@ def send_new_provider_email(username, identity):
         raise Exception("Identity missing -- E-mail will not be sent")
     provider_name = identity.provider.location
     credential_list = identity.credential_set.all()
+    email_template = get_email_template()
     subject = ("Your %s Atmosphere account has been granted access "
                "to the %s provider" % (settings.SITE_NAME, provider_name))
     context = {
-        "new_provider_link": template_settings.link_new_provider,
-        "support_email": template_settings.email_address,
-        "support_email_header": template_settings.email_header,
-        "support_email_footer": template_settings.email_footer,
+        "new_provider_link": email_template.link_new_provider,
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
         "user": username,
         "provider": provider_name,
         "credentials": credential_list,
@@ -469,15 +481,15 @@ def requestImaging(request, machine_request_id, auto_approve=False):
     # And we could add another field 'new_image_owner'..
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     user = machine_request.new_machine_owner
-
+    email_template = get_email_template()
     subject = 'Atmosphere Imaging Request - %s' % user.username
     context = {
         "user": user,
         "approved": auto_approve,
         "request": machine_request,
-        "support_email": template_settings.email_address,
-        "support_email_header": template_settings.email_header,
-        "support_email_footer": template_settings.email_footer,
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
     }
     body = render_to_string("core/email/imaging_request.html",
                             context=Context(context))
