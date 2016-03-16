@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q
 from rest_framework.decorators import detail_route
 
 import django_filters
@@ -9,7 +10,7 @@ from rest_framework import status
 from core.models import AccountProvider
 from core.models.machine import (
     ProviderMachine, find_provider_machine,
-    update_provider_machine_metadata
+    update_provider_machine
 )
 from core.query import (
     only_current_source, only_public_providers,
