@@ -95,7 +95,9 @@ DEFAULT_ALLOCATION_THRESHOLD = ; (7 * 24 * 60)  # In Minutes
 DEFAULT_ALLOCATION_DELTA = ; (365 * 24 * 60)  # In Minutes
 DEFAULT_QUOTA = ; {'cpu': 16, 'memory': 128, 'storage': 10}
 DEFAULT_KEYSTONE_ROLE = ; _member_
-DEFAULT_IP_LOOKUP = ; iplant_hostname
+INSTANCE_HOSTNAMING_DOMAIN = ; iplantcollaborative.org
+INSTANCE_HOSTNAMING_FORMAT = ; vm%(three)s-%(four)s.%(domain)s
+
 #NOTE: Their are *REQUIRED* quotations around 'timedelta(..)'!
 CELERYBEAT_SCHEDULE = ; {"monitor_instances": {"schedule": 'timedelta(minutes=5)',}}
 

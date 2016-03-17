@@ -196,49 +196,45 @@ def configure_ansible(logger):
 
 def build_host_name(ip):
     """
-    FIXME: return FQDN (on flag?)
-    Return the host name
-    * iPlant or raw
+    Build host name from the configuration in settings
+    See:
+    * INSTANCE_HOSTNAMING_FORMAT
+    * INSTANCE_HOSTNAMING_DOMAIN (Required if you use `%(domain)s`)
     """
-    if not hasattr(settings, 'DEFAULT_IP_LOOKUP'):
-        return iplant_hostname(ip)
-    hostname_fn_str = settings.DEFAULT_IP_LOOKUP
-    hostname_fn = settings._get_method_for_string(hostname_fn_str, the_globals=globals())
-    return hostname_fn(ip)
+    if not hasattr(settings, 'INSTANCE_HOSTNAMING_FORMAT'):
+        return raw_hostname(ip)
+    if all((str_val not in settings.INSTANCE_HOSTNAMING_FORMAT) for str_val
+            in ['one', 'two', 'three', 'four']):
+        logger.error(
+            "Invalid INSTANCE_HOSTNAMING_FORMAT: Expected string containing "
+            "at least one of the IP octets. "
+            "(ex:'vm%(three)s-%(four)s.%(domain)s')")
+    # IP --> octet_tuple (127,0,0,1)
+    hostnaming_format_map = create_hostnaming_map(ip)
+    try:
+        return settings.INSTANCE_HOSTNAMING_FORMAT % hostnaming_format_map
+    except (KeyError, TypeError) as exc:
+        logger.error("Invalid INSTANCE_HOSTNAMING_FORMAT: %s" % exc)
 
 
-def split_ip_address(ip):
+def create_hostnaming_map(ip):
     try:
         regex = re.compile(
             "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."
             "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
         r = regex.search(ip)
         (one, two, three, four) = r.groups()
-        return (one, two, three, four)
+        domain = getattr(settings, 'INSTANCE_HOSTNAMING_DOMAIN',None)
+        hostname_map = {
+            'one': one,
+            'two': two,
+            'three': three,
+            'four': four,
+            'domain': domain
+            }
+        return hostname_map
     except Exception:
-        raise Exception("IP <%s> is not of the format VVV.XXX.YYY.ZZZ" % ip)
-
-
-def jetstream_hostname(ip):
-    """
-    INPUT: IP Address (str in form: VVV.XXX.YYY.ZZZ)
-    js-YYY-ZZZ.jetstream-cloud.org
-    """
-    prefix = "js-"
-    separator = "-"
-    list_of_subnet = split_ip_address(ip)
-    return "%s%s%s%s.%s" % (
-        prefix, list_of_subnet[2], separator, list_of_subnet[3],
-        "jetstream-cloud.org")
-
-
-def iplant_hostname(ip):
-    prefix = "js-"
-    separator = "-"
-    list_of_subnet = split_ip_address(ip)
-    return "%s%s%s%s.%s"\
-        % (prefix, list_of_subnet[2], separator, list_of_subnet[3],
-           "iplantcollaborative.org")
+        raise Exception("IPv4 Address expected: <%s> is not of the format VVV.XXX.YYY.ZZZ" % ip)
 
 
 def raw_hostname(ip):
