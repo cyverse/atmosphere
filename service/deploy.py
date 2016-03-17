@@ -164,7 +164,7 @@ def ready_to_deploy(instance_ip, username, instance_id):
                                           limit=my_limit,
                                           extra_vars=extra_vars)
     #FIXME: Replace this HACK with a proper playbook return
-    pbs = [pb for pb in pbs if '05_ssh_setup' in pb.filename]
+    pbs = [pb for pb in pbs if '00_check_networking' in pb.filename]
     [pb.run() for pb in pbs]
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, hostname)
