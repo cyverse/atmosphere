@@ -25,7 +25,7 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     serializer_class = ImageSerializer
 
     search_fields = ('id', 'name', 'versions__change_log', 'tags__name',
-                     'tags__description', 'created_by__username')
+                     'tags__description', 'created_by__username', 'versions__machines__instance_source__provider__location')
 
     def get_queryset(self):
         request_user = self.request.user
