@@ -39,7 +39,7 @@ ALLOWED_HOSTS = [unicode(SERVER_URL.replace('https://', ''))]
 
 # NOTE: first admin will be sender of atmo emails.
 ADMINS = (
-    ('Atmosphere Admin', 'help@xsede.org'),
+    ('Atmosphere Admin', 'atmo@iplantcollaborative'),
     ('Steven Gregory', 'esteve@iplantcollaborative.org'),
     ('Atmosphere Alerts', 'atmo-alerts@iplantcollaborative.org'),
 )
@@ -146,13 +146,13 @@ AUTH_USER_MODEL = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
-    'iplantauth.authBackends.GlobusOAuthLoginBackend',
+    #'iplantauth.authBackends.GlobusOAuthLoginBackend',
     'iplantauth.authBackends.AuthTokenLoginBackend',
     # For Web-Access
-    #'iplantauth.authBackends.CASLoginBackend',
+    'iplantauth.authBackends.CASLoginBackend',
     #'iplantauth.authBackends.SAMLLoginBackend',
     ## For Service-Access
-    #'iplantauth.authBackends.LDAPLoginBackend',
+    'iplantauth.authBackends.LDAPLoginBackend',
 )
 
 # django-cors-headers
@@ -415,12 +415,12 @@ CELERYBEAT_SCHEDULE = {
     "monitor_instance_allocations": {
         "task": "monitor_instance_allocations",
         "schedule": timedelta(minutes=15),
-        "options": {"expires": 20 * 60, "time_limit": 20 * 60}
+        "options": {"expires": 25 * 60, "time_limit": 25 * 60}
     },
     "monitor_instances": {
         "task": "monitor_instances",
-        "schedule": timedelta(minutes=2),
-        "options": {"expires": 2 * 60, "time_limit": 2 * 60}
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",

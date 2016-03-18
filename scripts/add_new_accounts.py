@@ -108,7 +108,7 @@ def create_accounts(acct_driver, provider, users, rebuild=False, admin=False):
             if id_exists and not rebuild:
                 print "%s Exists -- Skipping because rebuild flag is disabled" % user
                 continue
-            acct_driver.create_account(user, role_name='user', max_quota=admin)
+            acct_driver.create_account(user, max_quota=admin)
             added += 1
             if admin:
                 make_admin(user)

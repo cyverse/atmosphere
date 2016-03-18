@@ -16,13 +16,13 @@ class Quota(models.Model):
     cpu = models.IntegerField(
         null=True,
         blank=True,
-        default=132)  # In CPU Units
-    memory = models.IntegerField(null=True, blank=True, default=360)  # In GB
-    storage = models.IntegerField(null=True, blank=True, default=100)  # In GB
-    # In # Volumes allowed
-    storage_count = models.IntegerField(null=True, blank=True, default=10)
-    # In # Suspended instances allowed
-    suspended_count = models.IntegerField(null=True, blank=True, default=4)
+        default=16)  # In CPU Units
+    memory = models.IntegerField(null=True, blank=True, default=128)  # In GB
+    storage = models.IntegerField(null=True, blank=True, default=10)  # In GB
+    # In #Volumes allowed
+    storage_count = models.IntegerField(null=True, blank=True, default=1)
+    # In #Suspended instances allowed
+    suspended_count = models.IntegerField(null=True, blank=True, default=2)
 
     def __unicode__(self):
         return "CPU:%s, MEM:%s, DISK:%s DISK #:%s SUSPEND #:%s" %\
