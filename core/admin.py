@@ -46,6 +46,7 @@ class MaintenanceAdmin(admin.ModelAdmin):
 class ImageVersionAdmin(admin.ModelAdmin):
     search_fields = [
         "name","application__name",
+        "machines__instance_source__identifier"
     ]
     actions = [end_date_object, ]
     list_display = (
@@ -91,6 +92,18 @@ class AllocationAdmin(admin.ModelAdmin):
                                                   td.seconds // 3600,
                                                   (td.seconds // 60) % 60)
     delta_str.short_description = 'Delta'
+
+
+@admin.register(models.InstanceSource)
+class InstanceSourceAdmin(admin.ModelAdmin):
+    actions = [end_date_object, ]
+    search_fields = [
+        "provider__location",
+        "identifier"]
+    list_display = ["identifier", "provider", "end_date"]
+    list_filter = [
+        "provider__location",
+    ]
 
 
 @admin.register(models.ProviderMachine)
@@ -428,12 +441,19 @@ class MachineRequestAdmin(admin.ModelAdmin):
 @admin.register(models.InstanceStatusHistory)
 class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
+                     "instance__source__identifier",
                      "instance__provider_alias", "status__name"]
-    list_display = ["instance_alias", "status", "start_date", "end_date"]
+    list_display = ["instance_alias", "instance_owner","instance_ip_address","status", "start_date", "end_date"]
     list_filter = ["instance__source__provider__location",
                    "status__name",
                    "instance__created_by__username"]
     ordering = ('-start_date',)
+
+    def instance_owner(self, model):
+        return model.instance.created_by.username
+
+    def instance_ip_address(self, model):
+        return model.instance.ip_address
 
     def instance_alias(self, model):
         return model.instance.provider_alias

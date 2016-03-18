@@ -1,18 +1,19 @@
 from core.models import ApplicationVersion as ImageVersion
 from core.models import Application as Image
-from core.models import License, BootScript, ProviderMachine, ApplicationThreshold
+from core.models import (
+    License, BootScript, ApplicationThreshold
+)
 from rest_framework import serializers
 from api.v2.serializers.summaries import (
     BootScriptSummarySerializer,
-    LicenseSummarySerializer,
-    UserSummarySerializer,
     ImageSummarySerializer,
-    IdentitySummarySerializer,
     ImageVersionSummarySerializer,
+    IdentitySummarySerializer,
+    LicenseSummarySerializer,
     ProviderMachineSummarySerializer,
-    ImageVersionSummarySerializer)
-from api.v2.serializers.fields import (
-    ProviderMachineRelatedField, ModelRelatedField)
+    UserSummarySerializer
+)
+from api.v2.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from django.db.models import Q
 from django.contrib.auth.models import AnonymousUser

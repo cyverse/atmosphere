@@ -25,11 +25,11 @@ class Allocation(models.Model):
     # One week
     threshold = models.IntegerField(null=True,
                                     blank=True,
-                                    default=7 * 24 * 60)  # In Minutes
+                                    default=237600)  # Jetstream one-time allocation
     # Over One year
     delta = models.IntegerField(null=True,
                                 blank=True,
-                                default=365 * 24 * 60)  # In Minutes
+                                default=-1)  # Jetstream has no delta.
 
     def __unicode__(self):
         return "Threshold: %s minutes over Delta: %s minutes" %\
