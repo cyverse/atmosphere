@@ -284,7 +284,7 @@ def build_host_name(ip):
     Return the host name
     * iPlant or jetstream
     """
-    return jetstream_hostname(ip)
+    return iplant_hostname(ip)
 
 
 def split_ip_address(ip):

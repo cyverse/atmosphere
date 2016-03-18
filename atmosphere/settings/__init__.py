@@ -39,7 +39,7 @@ ALLOWED_HOSTS = [unicode(SERVER_URL.replace('https://', ''))]
 
 # NOTE: first admin will be sender of atmo emails.
 ADMINS = (
-    ('Atmosphere Admin', 'atmo@iplantcollaborative'),
+    ('Atmosphere Admin', 'atmo@iplantcollaborative.org'),
     ('Steven Gregory', 'esteve@iplantcollaborative.org'),
     ('Atmosphere Alerts', 'atmo-alerts@iplantcollaborative.org'),
 )
@@ -314,7 +314,10 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'iplantauth.token.TokenAuthentication', # Generic Tokens
-        'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
+        # 'iplantauth.token.JWTTokenAuthentication',  # WSO2+JWT
+        'iplantauth.token.OAuthTokenAuthentication',  # CAS
+        #'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
+        # 'iplantauth.token.TokenAuthentication',  # Generic Tokens
         'rest_framework.authentication.SessionAuthentication',  # Session
     ),
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',

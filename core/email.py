@@ -84,7 +84,7 @@ def lookupEmail(username):
     """
     Given a username, return the email address
     """
-    return djangoLookupEmail(username)
+    return ldapLookupEmail(username)
 
 
 def djangoLookupEmail(username):
@@ -122,7 +122,7 @@ def user_email_info(username):
     ("username", "email@address.com", "My Name")
     """
     logger.debug("user = %s" % username)
-    return django_get_email_info(username)
+    return ldap_get_email_info(username)
 
 
 def ldap_get_email_info(username):
