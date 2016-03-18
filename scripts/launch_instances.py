@@ -6,13 +6,12 @@ root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, root_dir)
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 
-import django
-django.setup()
+import django; django.setup()
 
 import libcloud.security
 
 from core.models import AtmosphereUser as User
-from core.models import Identity, Provider, ProviderMachine, Size
+from core.models import Provider, ProviderMachine, Size
 from core.query import only_current
 
 from service.instance import launch_instance
@@ -32,7 +31,8 @@ def main():
                         help="List of provider names and IDs")
     parser.add_argument("--provider-id", type=int, help="Atmosphere provider"
                         " to use when launching instances.")
-    parser.add_argument("--machine-alias", help="Atmosphere machine alias"
+    parser.add_argument("--machine-alias", help="Atmosphere machine alias,"
+                        " or list of machine_alias separated by comma,"
                         " to use when launching instances.")
     parser.add_argument("--size-id", help="Atmosphere size to use when"
                         " launching instances.")
@@ -52,10 +52,7 @@ def main():
     provider = Provider.objects.get(id=args.provider_id)
     handle_size(args, provider)
     size = Size.objects.get(id=args.size_id)
-    handle_machine(args)
-    machine = ProviderMachine.objects.get(
-        instance_source__identifier=args.machine_alias,
-        instance_source__provider_id=provider.id)
+    machines = handle_machine(args, provider)
     user = User.objects.get(username=args.user)
     handle_count(args)
     print "Using Provider %s." % provider
@@ -64,7 +61,7 @@ def main():
         host = "nova:%s" % args.host
     else:
         host = None
-    launch(user, args.name, provider, machine, size,
+    launch(user, args.name, provider, machines, size,
            host, args.skip_deploy, args.count)
     if args.count == 1:
         print "Launched %d instance." % args.count
@@ -85,10 +82,21 @@ def handle_provider(args):
         sys.exit(1)
 
 
-def handle_machine(args):
+def handle_machine(args, provider):
     if not args.machine_alias:
         print "Error: A machine-alias is required."
         sys.exit(1)
+    if ',' not in args.machine_alias:
+        return [ProviderMachine.objects.get(
+            instance_source__identifier=args.machine_alias,
+            instance_source__provider_id=provider.id)]
+    machines = args.machine_alias.split(",")
+    print "Batch launch of images detected: %s" % machines
+    return [
+        ProviderMachine.objects.get(
+            instance_source__identifier=machine_alias,
+            instance_source__provider_id=provider.id)
+        for machine_alias in machines]
 
 
 def handle_size(args, provider):
@@ -110,7 +118,7 @@ def handle_count(args):
         sys.exit(1)
 
 
-def launch(user, name, provider, machine, size,
+def launch(user, name, provider, machines, size,
            host, skip_deploy, count):
     ident = user.identity_set.get(provider_id=provider.id)
     instances = []
@@ -118,12 +126,20 @@ def launch(user, name, provider, machine, size,
     if host:
         kwargs['ex_availability_zone'] = host
     for c in range(0, count):
-        instances.append(launch_instance(
-            user, ident.uuid, size.alias,
-            machine.instance_source.identifier,
-            name=name,
-            deploy=(not skip_deploy),
-            **kwargs))
+        for machine in machines:
+            try:
+                instance_id = launch_instance(
+                    user, ident.uuid, size.alias,
+                    machine.instance_source.identifier,
+                    name=name,
+                    deploy=(not skip_deploy),
+                    **kwargs)
+                print "Successfully launched Machine %s : %s" \
+                    % (machine.instance_source.identifier, instance_id)
+                instances.append(instance_id)
+            except Exception as exc:
+                print "Error on launch of Machine %s : %s" \
+                    % (machine.instance_source.identifier, exc)
     return instances
 
 
