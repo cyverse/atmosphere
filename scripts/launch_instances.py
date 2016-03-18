@@ -114,11 +114,16 @@ def launch(user, name, provider, machine, size,
            host, skip_deploy, count):
     ident = user.identity_set.get(provider_id=provider.id)
     instances = []
+    kwargs = {}
+    if host:
+        kwargs['ex_availability_zone'] = host
     for c in range(0, count):
         instances.append(launch_instance(
-            user, provider.uuid, ident.uuid, size.alias,
-            machine.instance_source.identifier, deploy=(not skip_deploy),
-            ex_availability_zone=host, **{"name": name}))
+            user, ident.uuid, size.alias,
+            machine.instance_source.identifier,
+            name=name,
+            deploy=(not skip_deploy),
+            **kwargs))
     return instances
 
 
