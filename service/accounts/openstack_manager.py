@@ -170,9 +170,8 @@ class AccountDriver(BaseAccountDriver):
         return ident
 
     def build_account(self, username, password,
-                      project_name=None, role_name=None, max_quota=False):
+                      project_name=None, role_name=None, max_quota=False, domain_name='default'):
         finished = False
-
         # Attempt account creation
         while not finished:
             try:
@@ -181,23 +180,25 @@ class AccountDriver(BaseAccountDriver):
                 if not project_name:
                     project_name = username
                 # 1. Create Project: should exist before creating user
-                project = self.user_manager.get_project(project_name)
+                project_kwargs = {}
+                if self.identity_version > 2:
+                    project_kwargs.update({'domain_id': domain_name})
+                project = self.user_manager.get_project(project_name, **project_kwargs)
                 if not project:
-                    kwargs = {}
                     if self.identity_version > 2:
-                        kwargs.update({'domain': 'default'})
-                    project = self.user_manager.create_project(project_name, **kwargs)
+                        project_kwargs = {'domain': domain_name}
+                    project = self.user_manager.create_project(project_name, **project_kwargs)
 
                 # 2. Create User (And add them to the project)
                 user = self.get_user(username)
                 if not user:
                     logger.info("Creating account: %s - %s - %s"
                                 % (username, password, project))
-                    kwargs = {}
+                    user_kwargs = {}
                     if self.identity_version > 2:
-                        kwargs.update({'domain': 'default'})
+                        user_kwargs.update({'domain': domain_name})
                     user = self.user_manager.create_user(username, password,
-                                                         project, **kwargs)
+                                                         project, **user_kwargs)
                 # 3.1 Include the admin in the project
                 # TODO: providercredential initialization of
                 #  "default_admin_role"
@@ -205,9 +206,9 @@ class AccountDriver(BaseAccountDriver):
 
                 # 3.2 Check the user has been given an appropriate role
                 if not role_name:
-                    role_name = "_member_"
+                    role_name = "_member_"  # FIXME: config mgmt..
                 self.user_manager.add_project_membership(
-                    project_name, username, role_name)
+                    project_name, username, role_name, domain_name)
 
                 # 4. Create a security group -- SUSPENDED.. Will occur on
                 # instance launch instead.
@@ -658,8 +659,6 @@ class AccountDriver(BaseAccountDriver):
         return found_roles[0]
 
     def get_user(self, user_name_or_id, **list_kwargs):
-        if self.identity_version > 2:
-            list_kwargs = self._parse_domain_kwargs(list_kwargs)
         user_list = self.list_users(**list_kwargs)
         found_users = [user for user in user_list if user.id == user_name_or_id or user.name == user_name_or_id]
         if not found_users:
@@ -668,26 +667,33 @@ class AccountDriver(BaseAccountDriver):
             raise Exception("User name/id %s matched more than one value -- Fix the code" % (user_name_or_id,))
         return found_users[0]
 
-    def _parse_domain_kwargs(self, kwargs, domain_override='domain_id'):
+    def _parse_domain_kwargs(self, kwargs, domain_override='domain_id', default_domain='default'):
         """
         CLI's replace domain_name with the actual domain.
         We replicate that functionality to avoid operator-frustration.
         """
         domain_key = 'domain_name'
-        domain_name_or_id = kwargs.get(domain_key)
-        if not domain_name_or_id:
+        if self.identity_version <= 2:
             return kwargs
+        if domain_override in kwargs:
+            if domain_key in kwargs:
+                kwargs.pop(domain_key)
+            return kwargs
+        if domain_key not in kwargs:
+            kwargs[domain_key] = default_domain # Set to default domain
+
+        domain_name_or_id = kwargs.get(domain_key)
         domain = self.openstack_sdk.identity.find_domain(domain_name_or_id)
         if not domain:
             raise ValueError("Could not find domain %s by name or id."
                              % domain_name_or_id)
-        kwargs.pop(domain_key)
+        kwargs.pop(domain_key, '')
         kwargs[domain_override] = domain.id
         return kwargs
 
     def list_users(self, **kwargs):
         if self.identity_version > 2:
-            kwargs = self._parse_domain_kwargs(kwargs)
+            kwargs = self._parse_domain_kwargs(kwargs, domain_override='domain')
         return self.user_manager.keystone.users.list(**kwargs)
 
     def list_usergroup_names(self):
@@ -719,6 +725,7 @@ class AccountDriver(BaseAccountDriver):
 
     def get_openstack_clients(self, username, password=None, tenant_name=None):
         # TODO: I could replace with identity.. but should I?
+
         # Build credentials for each manager
         all_creds = self._get_openstack_credentials(
             username, password, tenant_name)
@@ -726,14 +733,16 @@ class AccountDriver(BaseAccountDriver):
         image_creds = self._build_image_creds(all_creds)
         net_creds = self._build_network_creds(all_creds)
         sdk_creds = self._build_sdk_creds(all_creds)
-
         if self.identity_version > 2:
             openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
         else:
             openstack_sdk = None
 
         neutron = self.network_manager.new_connection(**net_creds)
-        keystone, nova, glance = self.image_manager._new_connection(
+        nova = self.user_manager.build_nova(all_creds['username'],
+                                            all_creds.get('password',None),
+                                            all_creds.get('tenant_name',None))
+        keystone, _ , glance = self.image_manager._new_connection(
             **image_creds)
 
         return {
@@ -751,9 +760,16 @@ class AccountDriver(BaseAccountDriver):
             tenant_name = self.get_project_name_for(username)
         if not password:
             password = self.hashpass(tenant_name)
+        version = self.user_manager.keystone_version() 
+        if version == 2:
+            ex_version = '2.0_password'
+        elif version == 3:
+            ex_version = '3.x_password'
+
         osdk_creds = {
             "auth_url": self.user_manager.nova.client.auth_url.replace('/v3','').replace('/v2.0',''),
             "admin_url": self.user_manager.keystone._management_url.replace('/v2.0','').replace('/v3',''),
+            "ex_force_auth_version": ex_version,
             "region_name": self.user_manager.nova.client.region_name,
             "username": username,
             "password": password,
@@ -839,7 +855,7 @@ class AccountDriver(BaseAccountDriver):
                 raise ValueError(
                     "ImageManager is missing a Required Argument: %s" %
                     required_arg)
-        ex_auth_version = img_args.pop("ex_force_auth_version", '2.0_password')
+        ex_auth_version = img_args.get("ex_force_auth_version", '2.0_password')
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):
             auth_url_prefix = "/v2.0/tokens"
@@ -924,7 +940,7 @@ class AccountDriver(BaseAccountDriver):
         if 'user_domain_name' not in os_args:
             os_args['user_domain_name'] = 'default'
         if 'identity_api_version' not in os_args:
-            os_args['identity_api_version'] = 3
+            os_args['identity_api_version'] = 3 #NOTE: this is what we use to determine whether or not to make openstack_sdk
         # Removable args:
         os_args.pop("ex_force_auth_version", None)
         os_args.pop("admin_url", None)

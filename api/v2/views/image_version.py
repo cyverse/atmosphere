@@ -6,7 +6,7 @@ from api.v2.views.base import AuthOptionalViewSet
 from api.v2.serializers.details import ImageVersionSerializer
 
 
-class ImageFilter(django_filters.FilterSet):
+class ImageVersionFilter(django_filters.FilterSet):
     image_id = django_filters.CharFilter('application__id')
     created_by = django_filters.CharFilter('application__created_by__username')
 
@@ -25,7 +25,7 @@ class ImageVersionViewSet(AuthOptionalViewSet):
     search_fields = ('application__id', 'application__created_by__username')
     ordering_fields = ('start_date',)
     ordering = ('start_date',)
-    filter_class = ImageFilter
+    filter_class = ImageVersionFilter
     filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
 
     def get_queryset(self):

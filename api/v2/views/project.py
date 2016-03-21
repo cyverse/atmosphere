@@ -27,6 +27,16 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
                 "Cannot delete a project when it contains instances."
                 " To delete a project, all instances must be moved "
                 "to another project or deleted")
+        elif project.applications.filter(end_date__isnull=True).count() > 0:
+            raise ValidationError(
+                "Cannot delete a project when it contains instances."
+                " To delete a project, all Images must be moved "
+                "to another project or removed from the project.")
+        elif project.links.all().count() > 0:
+            raise ValidationError(
+                "Cannot delete a project when it contains instances."
+                " To delete a project, all External Links must be moved "
+                "to another project or deleted")
         elif project.volumes.filter(
                 instance_source__end_date__isnull=True).count() > 0:
             raise ValidationError(
@@ -37,7 +47,10 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        group = Group.objects.get(name=user.username)
+        try:
+            group = Group.objects.get(name=user.username)
+        except Group.DoesNotExist:
+            raise ValidationError("Group for %s does not exist." % user.username)
         serializer.save(owner=group)
 
     def get_queryset(self):

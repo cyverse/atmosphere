@@ -4,6 +4,7 @@ Deploy methods for Atmosphere
 from functools import wraps
 import os
 import sys
+import subprocess
 import time
 
 from django.template import Context
@@ -125,6 +126,44 @@ def deploy_to(instance_ip, username, instance_id):
                                           limit=my_limit,
                                           extra_vars=extra_vars)
     [pb.run() for pb in pbs]
+    log_playbook_summaries(logger, pbs, hostname)
+    raise_playbook_errors(pbs, hostname)
+    cache_bust(hostname)
+    return pbs
+
+
+def ready_to_deploy(instance_ip, username, instance_id):
+    """
+    Use service.ansible to deploy to an instance.
+    """
+    if not check_ansible():
+        return []
+    logger = create_instance_logger(
+        deploy_logger,
+        instance_ip,
+        username,
+        instance_id)
+    hostname = build_host_name(instance_ip)
+    cache_bust(hostname)
+    configure_ansible(logger)
+    my_limit = {"hostname": hostname, "ip": instance_ip}
+    deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
+    host_list = settings.ANSIBLE_HOST_FILE
+
+    user_keys = []
+    user = User.objects.get(username=username)
+    if user.userprofile.use_ssh_keys:
+        user_keys = [ k.pub_key for k in get_user_ssh_keys(username)]
+
+    extra_vars = {"ATMOUSERNAME": username,
+                  "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
+                  "USERSSHKEYS": user_keys}
+
+    pbs = subspace.playbook.get_playbooks(deploy_playbooks,
+                                          host_list=host_list,
+                                          limit=my_limit,
+                                          extra_vars=extra_vars)
+    [pb.run() for pb in pbs if '05_ssh_setup' in pb.filename]  # FIXME: this is a HACK
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, hostname)
     cache_bust(hostname)
@@ -511,3 +550,40 @@ def inject_env_script(username):
     rendered_script = render_to_string(
         template, context=Context(context))
     return rendered_script
+
+
+def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                stdin=None, dry_run=False, shell=False, bash_wrap=False,
+                block_log=False):
+    """
+    Using Popen, run any command at the system level and return the output and error streams
+    """
+    if bash_wrap:
+        # Wrap the entire command in '/bin/bash -c',
+        # This can sometimes help pesky commands
+        commandList = ['/bin/bash', '-c', ' '.join(commandList)]
+    out = None
+    err = None
+    cmd_str = ' '.join(commandList)
+    if dry_run:
+        # Bail before making the call
+        logging.debug("Mock Command: %s" % cmd_str)
+        return ('', '')
+    try:
+        if stdin:
+            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
+                                    stdin=subprocess.PIPE, shell=shell)
+        else:
+            proc = subprocess.Popen(commandList, stdout=stdout, stderr=stderr,
+                                    shell=shell)
+        out, err = proc.communicate(input=stdin)
+    except Exception as e:
+        logging.exception(e)
+    if block_log:
+        # Leave before we log!
+        return (out, err)
+    if stdin:
+        logging.debug("%s STDIN: %s" % (cmd_str, stdin))
+    logging.debug("%s STDOUT: %s" % (cmd_str, out))
+    logging.debug("%s STDERR: %s" % (cmd_str, err))
+    return (out, err)

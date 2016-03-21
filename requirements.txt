@@ -9,7 +9,8 @@ django-redis-cache==0.13.0
 redis==2.10.3
 
 Jinja2==2.8
-celery==3.1.18
+celery==3.1.20
+flower==0.8.4
 django-celery==3.1.16
 
 gevent==1.0.1
@@ -31,7 +32,7 @@ uWSGI==2.0.9
 ## ours
 django-iplant-auth==0.1.9
 threepio==0.2.0
-rtwo==0.3.7
+rtwo==0.3.8
 caslib.py==2.2.2
-chromogenic==0.1.20
+chromogenic==0.2.1
 subspace==0.1.6
