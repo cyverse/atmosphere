@@ -298,7 +298,7 @@ def make_machines_private(application, identities, account_drivers={}, provider_
             provider = machine.instance_source.provider
             cloud_machine = memoized_image(account_driver, machine, image_maps)
             for identity in identities:
-                if identity.provider is provider:
+                if identity.provider == provider:
                     _share_image(account_driver, cloud_machine, identity, current_tenants, dry_run=dry_run)
                     add_application_membership(application, identity, dry_run=dry_run)
     # All the cloud work has been completed, so "lock down" the application.
