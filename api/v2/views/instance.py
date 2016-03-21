@@ -199,6 +199,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             instance = serialized_instance.save()
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
+            return Response(serialized_instance.data, status=status.HTTP_201_CREATED)
         except UnderThresholdError as ute:
             return under_threshold(ute)
         except (OverQuotaError, OverAllocationError) as oqe:
