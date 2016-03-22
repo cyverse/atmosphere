@@ -1,13 +1,11 @@
 {
     "SECTION_MAPPING": {
-        "apache2": [
-            "apache"
-        ],
         "celeryd.default": [
             "celeryd.default"
         ],
         "local.py": [
-            "local.py"
+            "local.py",
+            "local.py-site"
         ],
         "nginx": [
             "nginx",
@@ -23,10 +21,6 @@
         ]
     },
     "CONFIG_FILES": {
-        "apache": [
-            "extras/apache/atmo.conf.j2",
-            "extras/apache/atmo.conf"
-        ],
         "celeryd.default": [
             "extras/init.d/celeryd.default.dist.j2",
             "extras/init.d/celeryd.default"

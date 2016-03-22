@@ -159,7 +159,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     old_status = serializers.CharField(required = False)
     new_application_visibility = serializers.CharField()
     access_list = serializers.CharField(allow_blank=True)
-    iplant_sys_files = serializers.CharField(allow_blank=True)
+    system_files = serializers.CharField(allow_blank=True)
     installed_software = serializers.CharField()
     exclude_files = serializers.CharField(allow_blank=True)
     new_version_name = serializers.CharField()
@@ -223,7 +223,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'new_application_description',
             'new_application_visibility',
             'access_list',
-            'iplant_sys_files',
+            'system_files',
             'installed_software',
             'exclude_files',
             'new_version_name',

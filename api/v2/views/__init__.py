@@ -3,6 +3,7 @@ from .allocation import AllocationViewSet
 from .boot_script import BootScriptViewSet
 from .base import BaseRequestViewSet
 from .credential import CredentialViewSet
+from .email_template import EmailTemplateViewSet
 from .group import GroupViewSet
 from .identity import IdentityViewSet
 from .identity_membership import IdentityMembershipViewSet

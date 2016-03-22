@@ -173,3 +173,26 @@ class BaseHistory(models.Model):
 
     class Meta:
         abstract = True
+
+
+class SingletonModel(models.Model):
+    """
+    A model that will ensure at-most-one row exists in the database
+    """
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super(SingletonModel, self).save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def get_instance(cls):
+        try:
+            return cls.objects.get(pk=1)
+        except cls.DoesNotExist:
+            return cls()
+
+    class Meta:
+        abstract = True

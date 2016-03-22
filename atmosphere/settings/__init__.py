@@ -39,9 +39,7 @@ ALLOWED_HOSTS = [unicode(SERVER_URL.replace('https://', ''))]
 
 # NOTE: first admin will be sender of atmo emails.
 ADMINS = (
-    ('Atmosphere Admin', 'atmo@iplantcollaborative.org'),
-    ('Steven Gregory', 'esteve@iplantcollaborative.org'),
-    ('Atmosphere Alerts', 'atmo-alerts@iplantcollaborative.org'),
+    ('AT LEAST ONE ADMIN REQUIRED', 'sends-email@if-debug-false.com'),
 )
 
 
@@ -480,3 +478,13 @@ except ImportError:
 Import local settings specific to the server, and secrets not checked into Git.
 """
 from atmosphere.settings.local import *
+
+
+def _get_method_for_string(method_str, the_globals=None):
+    """
+    This setting will provide a way to move easily from
+    'my_method' --> my_method the function
+    """
+    if not the_globals:
+        the_globals = globals()
+    return the_globals[method_str]

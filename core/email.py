@@ -15,11 +15,19 @@ from pytz import timezone as pytz_timezone
 from threepio import logger
 
 from atmosphere import settings
-from core.models import IdentityMembership, MachineRequest
+from core.models import IdentityMembership, MachineRequest, EmailTemplate
 
 from iplantauth.protocol.ldap import lookupEmail as ldapLookupEmail, lookupUser
 from core.tasks import send_email as send_email_task
 
+
+def get_email_template():
+    """
+    Return the one and only EmailTemplate
+    so it can be used in (Email templates)! *GASP*
+    """
+    email_template = EmailTemplate.get_instance()
+    return email_template
 
 def send_email_template(subject, template, recipients, sender,
                         context=None, cc=None, html=True, silent=False):
@@ -84,8 +92,12 @@ def lookupEmail(username):
     """
     Given a username, return the email address
     """
-    return ldapLookupEmail(username)
-
+    if not hasattr(settings, 'EMAIL_LOOKUP_METHOD'):
+        return ldapLookupEmail(username)
+    lookup_fn_str = settings.EMAIL_LOOKUP_METHOD
+    lookup_fn = settings._get_method_for_string(lookup_fn_str, the_globals=globals())
+    # Known function and args..
+    return lookup_fn(username)
 
 def djangoLookupEmail(username):
     """
@@ -122,7 +134,12 @@ def user_email_info(username):
     ("username", "email@address.com", "My Name")
     """
     logger.debug("user = %s" % username)
-    return ldap_get_email_info(username)
+    if not hasattr(settings, 'USER_EMAIL_LOOKUP_METHOD'):
+        return ldap_get_email_info(username)
+    lookup_fn_str = settings.USER_EMAIL_LOOKUP_METHOD
+    lookup_fn = settings._get_method_for_string(lookup_fn_str, the_globals=globals())
+    # Known function and args..
+    return lookup_fn(username)
 
 
 def ldap_get_email_info(username):
@@ -227,7 +244,7 @@ def email_to_admin(
             username = username.username
         user_email = lookupEmail(username)
         if not user_email:
-            user_email = "%s@iplantcollaborative.org" % username
+            user_email = "%s@%s" % (username, settings.DEFAULT_EMAIL_DOMAIN)
     elif not username:  # user_email provided
         username = 'Unknown'
     if request_tracker or not cc_user:
@@ -250,7 +267,7 @@ def email_from_admin(username, subject, message, html=False):
     from_name, from_email = admin_address()
     user_email = lookupEmail(username)
     if not user_email:
-        user_email = "%s@iplantcollaborative.org" % username
+        user_email = "%s@%s" % (username, settings.DEFAULT_EMAIL_DOMAIN)
     return send_email(subject, message,
                       from_email=email_address_str(from_name, from_email),
                       to=[email_address_str(username, user_email)],
@@ -262,9 +279,13 @@ def send_approved_resource_email(user, request, reason):
     """
     Notify the user the that their request has been approved.
     """
+    email_template = get_email_template()
     template = "core/email/resource_request_approved.html"
     subject = "Your Resource Request has been approved"
     context = {
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
         "user": user.username,
         "request": request,
         "reason": reason
@@ -282,8 +303,12 @@ def send_denied_resource_email(user, request, reason):
     """
     Send an email notifying the user that their request has been denied.
     """
+    email_template = get_email_template()
     subject = "Your Resource Request has been denied"
     context = {
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
         "user": user.username,
         "request": request,
         "reason": reason
@@ -301,12 +326,18 @@ def send_instance_email(username, instance_id, instance_name,
     Returns a boolean.
     """
     format_string = '%b, %d %Y %H:%M:%S'
+    email_template = get_email_template()
     username, user_email, user_name = user_email_info(username)
     launched_at = launched_at.replace(tzinfo=None)
     utc_date = django_timezone.make_aware(launched_at,
                                           timezone=pytz_timezone('UTC'))
     local_launched_at = django_timezone.localtime(utc_date)
     context = {
+        "getting_started_instances_link": email_template.link_getting_started,
+        "faq_link": email_template.link_faq,
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
         "user": user_name,
         "id": instance_id,
         "name": instance_name,
@@ -402,9 +433,13 @@ def send_image_request_email(user, new_machine, name):
     which will provide useful information about the new image.
     """
     username, user_email, user_name = user_email_info(user.username)
+    email_template = get_email_template()
     context = {
         "user": user_name,
         "identifier": new_machine.identifier,
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
         "alias": name
     }
     body = render_to_string("core/email/imaging_success.html",
@@ -413,12 +448,22 @@ def send_image_request_email(user, new_machine, name):
     return email_from_admin(user.username, subject, body)
 
 
-def send_new_provider_email(username, provider_name):
-    subject = ("Your iPlant Atmosphere account has been granted access "
-               "to the %s provider" % provider_name)
+def send_new_provider_email(username, identity):
+    if not identity:
+        raise Exception("Identity missing -- E-mail will not be sent")
+    provider_name = identity.provider.location
+    credential_list = identity.credential_set.all()
+    email_template = get_email_template()
+    subject = ("Your %s Atmosphere account has been granted access "
+               "to the %s provider" % (settings.SITE_NAME, provider_name))
     context = {
+        "new_provider_link": email_template.link_new_provider,
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
         "user": username,
         "provider": provider_name,
+        "credentials": credential_list,
     }
     body = render_to_string("core/email/provider_email.html",
                             context=Context(context))
@@ -428,7 +473,7 @@ def send_new_provider_email(username, provider_name):
 def requestImaging(request, machine_request_id, auto_approve=False):
     """
     Processes image request, sends an email to the user
-    and a sperate email to atmo@iplantc.org
+    and a sperate email to the admins
     Returns a response.
     """
     # TODO: This could also be:
@@ -436,12 +481,15 @@ def requestImaging(request, machine_request_id, auto_approve=False):
     # And we could add another field 'new_image_owner'..
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     user = machine_request.new_machine_owner
-
+    email_template = get_email_template()
     subject = 'Atmosphere Imaging Request - %s' % user.username
     context = {
         "user": user,
         "approved": auto_approve,
-        "request": machine_request
+        "request": machine_request,
+        "support_email": email_template.email_address,
+        "support_email_header": email_template.email_header,
+        "support_email_footer": email_template.email_footer,
     }
     body = render_to_string("core/email/imaging_request.html",
                             context=Context(context))
@@ -462,7 +510,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
 
 def resource_request_email(request, username, new_resource, reason, options={}):
     """
-    Processes Resource request. Sends email to atmo@iplantc.org
+    Processes Resource request. Sends email to the admins
 
     Returns a response.
     """

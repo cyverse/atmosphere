@@ -1,3 +1,8 @@
+{% spaceless %}
+{% if support_email_header %}
+{{ support_email_header|safe }}
+{% endif %}
+{% endspaceless %}
 Hello {{user}},
 
 The atmosphere instance <{{id}}> is running and ready for use.
@@ -11,7 +16,23 @@ Your Instance Information:
 Please terminate instances when they are no longer needed.
 This e-mail notification was auto-generated after instance launch.
 Helpful links:
-  Atmosphere Manual: Using Instances
-  * https://pods.iplantcollaborative.org/wiki/display/atmman/Using+Instances
-  Atmosphere E-mail Support
-  * atmo@iplantcollaborative.org
+  {% spaceless %}
+  {% if getting_started_instances_link %}
+  Getting started with your new Instance:
+  * {{ getting_started_instances_link }}
+  {% endif %}
+  {% endspaceless %}
+  {% spaceless %}
+  {% if faq_link %}
+  Atmosphere FAQ:
+  * {{ faq_link }}
+  {% endif %}
+  {% endspaceless %}
+  Atmosphere E-mail Support:
+  * {{ support_email }}
+
+{% spaceless %}
+{% if support_email_footer %}
+{{ support_email_footer|safe }}
+{% endif %}
+{% endspaceless %}

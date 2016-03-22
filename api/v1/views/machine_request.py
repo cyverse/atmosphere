@@ -27,6 +27,7 @@ from api.exceptions import bad_request
 from api.v1.serializers import MachineRequestSerializer
 from api.v1.views.base import AuthAPIView
 
+from django.conf import settings
 
 class MachineRequestList(AuthAPIView):
 
@@ -117,19 +118,17 @@ class MachineRequestList(AuthAPIView):
             pending_status = StatusType.objects.get(name='pending')
             machine_request = serializer.save(status=pending_status)
             instance = machine_request.instance
-            # NOTE: THIS IS A HACK -- While we enforce all images
-            #       to go to iPlant Cloud - Tucson.
-            # THIS CODE SHOULD BE REMOVED
-            try:
-                tucson_provider = Provider.objects.get(
-                    location='iPlant Cloud - Tucson')
-                if machine_request.new_machine_provider.location\
-                   != tucson_provider.location:
-                    machine_request.new_machine_provider = tucson_provider
-            except:
-                # Will skip this step if no provider is named
-                # iPlant Cloud - Tucson
-                pass
+            if hasattr(settings, 'REPLICATION_PROVIDER_LOCATION'):
+                try:
+                    replication_provider = Provider.objects.get(
+                        location=settings.REPLICATION_PROVIDER_LOCATION)
+                    if machine_request.new_machine_provider.location\
+                       != replication_provider.location:
+                        machine_request.new_machine_provider = replication_provider
+                except:
+                    # Will skip this step if no provider is named
+                    # as the REPLICATION_PROVIDER_LOCATION
+                    pass
             # Object now has an ID for links..
             machine_request_id = machine_request.id
             active_provider = machine_request.active_provider()

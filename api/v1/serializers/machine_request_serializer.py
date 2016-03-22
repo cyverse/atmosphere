@@ -24,7 +24,7 @@ class MachineRequestSerializer(serializers.ModelSerializer):
     parent_machine = serializers.ReadOnlyField(
         source="instance_source.identifier")
 
-    sys = serializers.CharField(default="", source='iplant_sys_files',
+    sys = serializers.CharField(default="", source='system_files',
                                 allow_blank=True,
                                 required=False)
     software = serializers.CharField(default="No software listed",

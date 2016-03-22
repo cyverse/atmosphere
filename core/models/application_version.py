@@ -48,7 +48,7 @@ class ApplicationVersion(models.Model):
     # TODO: Decide if we want to enable this information.. Is it useful?
     # As it stands now, we collect this information on the request, but
     # this would allow users to edit/interact/view?
-    iplant_system_files = models.TextField(default='', null=True, blank=True)
+    system_files = models.TextField(default='', null=True, blank=True)
     installed_software = models.TextField(default='', null=True, blank=True)
     excluded_files = models.TextField(default='', null=True, blank=True)
     licenses = models.ManyToManyField(License,
