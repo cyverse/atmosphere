@@ -44,9 +44,9 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
     http_method_names = ['get', 'put', 'patch', 'post', 'delete', 'head', 'options', 'trace']
 
     def get_serializer_class(self):
-        if self.action != 'create':
-            return InstanceSerializer
-        return POST_InstanceSerializer
+        if self.action == 'create':
+            return POST_InstanceSerializer
+        return InstanceSerializer
 
     def get_queryset(self):
         """
@@ -172,13 +172,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
 
-    def perform_create(self, serializer):
-        try:
-            data = serializer.data
-        except KeyError as key_exc:
-             raise ValidationError("Required key missing: %s" % key_exc)
-        user = self.request.user
-
+    def create(self, request):
+        user = request.user
+        data = request.data
+        # Start pulling out data
         name = data.get('name')
         boot_scripts = data.pop("scripts", [])
         identity_uuid = data.get('identity')
