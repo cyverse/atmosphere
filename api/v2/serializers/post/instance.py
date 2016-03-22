@@ -19,6 +19,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     provider_uuid = serializers.SlugRelatedField(
         source='created_by_identity.provider', slug_field='uuid',
         read_only=True)
+    uuid = serializers.CharField(source='provider_alias', read_only=True)
     name = serializers.CharField()
     project = serializers.SlugRelatedField(
         source="projects", slug_field="uuid", queryset=Project.objects.all(),
@@ -111,6 +112,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instance
         fields = (
+            'uuid',
             'provider_uuid',
             'identity',
             'name',
