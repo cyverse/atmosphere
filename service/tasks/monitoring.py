@@ -302,7 +302,7 @@ def make_machines_private(application, identities, account_drivers={}, provider_
                     _share_image(account_driver, cloud_machine, identity, current_tenants, dry_run=dry_run)
                     add_application_membership(application, identity, dry_run=dry_run)
     # All the cloud work has been completed, so "lock down" the application.
-    if application.private == False:
+    if not application.private:
         application.private = True
         celery_logger.info("Making Application %s private" % application.name)
         if not dry_run:
