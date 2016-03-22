@@ -120,14 +120,14 @@ class MachineRequestList(AuthAPIView):
             instance = machine_request.instance
             if hasattr(settings, 'REPLICATION_PROVIDER_LOCATION'):
                 try:
-                    tucson_provider = Provider.objects.get(
+                    replication_provider = Provider.objects.get(
                         location=settings.REPLICATION_PROVIDER_LOCATION)
                     if machine_request.new_machine_provider.location\
-                       != tucson_provider.location:
-                        machine_request.new_machine_provider = tucson_provider
+                       != replication_provider.location:
+                        machine_request.new_machine_provider = replication_provider
                 except:
                     # Will skip this step if no provider is named
-                    # iPlant Cloud - Tucson
+                    # as the REPLICATION_PROVIDER_LOCATION
                     pass
             # Object now has an ID for links..
             machine_request_id = machine_request.id
