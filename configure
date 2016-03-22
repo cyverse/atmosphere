@@ -83,7 +83,6 @@ BACKUP_EXT = '.bak.%s' % now_time.strftime("%Y%m%d_%H%M%S")
 # Example:
 #   {
 #      'SECTION_MAPPING': {
-#           'apache': ('apache',),
 #           'local.py': ('local.py',),
 #           'nginx': ('nginx', 'nginx-site', 'nginx-tropo')
 #       }
@@ -100,7 +99,6 @@ SECTION_MAPPING = {}
 # Example:
 #   {
 #       'CONFIG_FILES': {
-#            'apache': ('extras/apache/tropo.conf.j2', 'extras/apache/tropo.conf'),
 #            'local.py': ('troposphere/settings/local.py.j2',
 #                        'troposphere/settings/local.py'),
 #            'nginx': ('extras/nginx/Makefile.j2', 'extras/nginx/Makefile'),
