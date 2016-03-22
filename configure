@@ -239,7 +239,7 @@ def _coerce(val):
 
 def _get_variables(variables_file=VARIABLES_PATH):
     try:
-        parser = ConfigParser.ConfigParser()
+        parser = ConfigParser.RawConfigParser()
         parser.readfp(open(variables_file))
         variables = {}
         for section in parser.sections():

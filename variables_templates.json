@@ -4,7 +4,8 @@
             "celeryd.default"
         ],
         "local.py": [
-            "local.py"
+            "local.py",
+            "local.py-site"
         ],
         "nginx": [
             "nginx",
