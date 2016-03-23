@@ -307,10 +307,12 @@ REST_FRAMEWORK = {
         'api.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.JSONRenderer',
         'rest_framework_jsonp.renderers.JSONPRenderer',
-        'rest_framework_yaml.renderers.YAMLRenderer',
-        'rest_framework_xml.renderers.XMLRenderer',
         'api.renderers.PNGRenderer',
         'api.renderers.JPEGRenderer',
+        # Easily enabled if/when support is desired
+        #'rest_framework.renderers.AdminRenderer',
+        #'rest_framework_yaml.renderers.YAMLRenderer',
+        #'rest_framework_xml.renderers.XMLRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'iplantauth.token.TokenAuthentication', # Generic Tokens
