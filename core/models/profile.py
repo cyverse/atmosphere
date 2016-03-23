@@ -32,6 +32,10 @@ class UserProfile(models.Model):
         m.update(self.user.email)
         return m.hexdigest()
 
+    def __unicode__(self):
+        return "%s UserProfile" % \
+            (self.user,)
+
     class Meta:
         db_table = 'user_profile'
         app_label = 'core'

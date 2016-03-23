@@ -13,6 +13,10 @@ class SSHKey(models.Model):
     pub_key = models.TextField()
     atmo_user = models.ForeignKey(AtmosphereUser)
 
+    def __unicode__(self):
+        return "%s - %s Key:%s" %\
+            (self.atmo_user, self.name, self.pub_key)
+
     class Meta:
         db_table = "ssh_key"
         app_label = "core"
