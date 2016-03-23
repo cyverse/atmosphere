@@ -69,9 +69,9 @@ class ApplicationVersion(models.Model):
 
     # NOTE: Created_by, created_by_ident will be == Application (EVERY TIME!)
     def __unicode__(self):
-        return "%s:%s - %s" % (self.application.name,
+        return "%s - %s - %s" % (self.application.name,
                                self.name,
-                               self.start_date)
+                               self.start_date if not self.end_date else "END-DATED")
 
     def get_threshold(self):
         #TODO: except ObjectDoesNotExist to avoid core import loop
