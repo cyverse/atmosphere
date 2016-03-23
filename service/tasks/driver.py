@@ -1102,7 +1102,7 @@ def check_process_task(driverCls, provider, identity,
             return False
         # USE ANSIBLE
         username = identity.user.username
-        playbooks = run_utility_playbooks(instance.ip, username, instance_alias)
+        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_vnc.yml"])
         hostname = build_host_name(instance.ip)
         result = False if execution_has_failures(playbooks, hostname) else True
 
