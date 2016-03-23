@@ -184,3 +184,12 @@ def create_bootable_volume(
                                          source, size, name, **kwargs)
 
     return core_instance
+
+def attach_volume(driver, instance_id, volume_id, device_choice=None):
+    instance = driver.get_instance(instance_id)
+    volume = driver.get_volume(volume_id)
+    # Step 1. Attach the volume
+    # NOTE: device_choice !== device 100%
+    return driver.attach_volume(instance,
+                             volume,
+                             device_choice)

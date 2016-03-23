@@ -32,4 +32,4 @@ class ProjectVolumeViewSet(AuthViewSet):
             volume__instance_source__provider__active=True,
             volume__instance_source__start_date__lt=now,
             volume__instance_source__provider__start_date__lt=now,
-            volume__instance_source__created_by=user)
+            project__owner__user=user)

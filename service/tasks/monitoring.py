@@ -77,7 +77,7 @@ def monitor_machines():
         monitor_machines_for.apply_async(args=[p.id])
 
 
-@task(name="monitor_machines")
+@task(name="prune_machines")
 def prune_machines():
     """
     Query the cloud and remove any machines

@@ -33,9 +33,10 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.deploy import (
-    inject_env_script, check_process, wrap_script, echo_test_script,
-    deploy_to as ansible_deploy_to,
-    ready_to_deploy as ansible_ready_to_deploy
+    inject_env_script, check_process, wrap_script,
+    deploy_to as ansible_deploy_to, build_host_name,
+    ready_to_deploy as ansible_ready_to_deploy,
+    run_utility_playbooks, execution_has_failures
     )
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
@@ -668,9 +669,7 @@ def get_chain_from_active_with_ip(
         driverCls, provider, identity, instance.id,
         username, password, redeploy)
     check_vnc_task = check_process_task.si(
-        driverCls, provider, identity, instance.id, "vnc")
-    check_shell_task = check_process_task.si(
-        driverCls, provider, identity, instance.id, "shellinaboxd")
+        driverCls, provider, identity, instance.id)
     remove_status_chain = get_remove_status_chain(
         driverCls,
         provider,
@@ -695,8 +694,7 @@ def get_chain_from_active_with_ip(
     else:
         deploy_task.link(check_vnc_task)
 
-    check_vnc_task.link(check_shell_task)
-    check_shell_task.link(remove_status_chain)
+    check_vnc_task.link(remove_status_chain)
     # Only send emails when 'redeploy=False'
     if not redeploy:
         remove_status_chain.link(email_task)
@@ -983,7 +981,6 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
             raise Exception("Instance maybe terminated? "
                             "-- Going to keep trying anyway")
 
-        echo_test = echo_test_script()
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
         _deploy_ready_failed_email_test(
@@ -1090,7 +1087,7 @@ def _parse_script_output(script, idx=1, length=1):
       max_retries=2,
       default_retry_delay=15)
 def check_process_task(driverCls, provider, identity,
-                       instance_alias, process_name, *args, **kwargs):
+                       instance_alias, *args, **kwargs):
     """
     #NOTE: While this looks like a large number (250 ?!) of retries
     # we expect this task to fail often when the image is building
@@ -1102,28 +1099,21 @@ def check_process_task(driverCls, provider, identity,
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
         if not instance:
-            return
-        cp_script = check_process(process_name)
-        kwargs.update({
-            'ssh_key': ATMOSPHERE_PRIVATE_KEYFILE,
-            'timeout': 120,
-            'deploy': cp_script})
-        # Execute the script
-        driver.deploy_to(instance, **kwargs)
-        # Parse the output and modify the CORE instance
-        script_out = cp_script.stdout
-        result = True if "1:" in script_out else False
+            return False
+        # USE ANSIBLE
+        username = identity.user.username
+        playbooks = run_utility_playbooks(instance.ip, username, instance_alias)
+        hostname = build_host_name(instance.ip)
+        result = False if execution_has_failures(playbooks, hostname) else True
+
         # NOTE: Throws Instance.DoesNotExist
         core_instance = Instance.objects.get(provider_alias=instance_alias)
-        if "vnc" in process_name:
-            core_instance.vnc = result
-            core_instance.save()
-        elif "shell" in process_name:
-            core_instance.shell = result
-            core_instance.save()
-        else:
-            return result, script_out
+        core_instance.vnc = result
+        core_instance.save()
         celery_logger.debug("check_process_task finished at %s." % datetime.now())
+        return result
+    except AnsibleDeployException as exc:
+        deploy_ready_test.retry(exc=exc)
     except Instance.DoesNotExist:
         celery_logger.warn("check_process_task failed: Instance %s no longer exists"
                     % instance_alias)
@@ -1190,17 +1180,7 @@ def add_floating_ip(driverCls, provider, identity,
         _update_status_log(instance, "Networking Complete")
         # TODO: Implement this as its own task, with the result from
         #'floating_ip' passed in. Add it to the deploy_chain before deploy_to
-        hostname = ""
-        if floating_ip.startswith('128.196'):
-            regex = re.compile(
-                "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."
-                "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
-            r = regex.search(floating_ip)
-            (one, two, three, four) = r.groups()
-            hostname = "vm%s-%s.iplantcollaborative.org" % (three, four)
-        else:
-            # Find a way to convert new floating IPs to hostnames..
-            hostname = floating_ip
+        hostname = build_host_name(floating_ip)
 
         metadata_update = {
             'public-hostname': hostname,
