@@ -4,6 +4,7 @@ Strategy (implemented as Django DB based models)
 from dateutil.relativedelta import relativedelta
 
 from uuid import uuid4
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -14,6 +15,18 @@ from allocation.models.strategy import \
 # NOTE: Carried over from OLD allocation model. This will be changing soon
 
 
+def _get_default_threshold():
+    if not hasattr(settings, 'DEFAULT_ALLOCATION_THRESHOLD'):
+        return -1
+    return settings.DEFAULT_ALLOCATION_THRESHOLD
+
+
+def _get_default_delta():
+    if not hasattr(settings, 'DEFAULT_ALLOCATION_DELTA'):
+        return -1
+    return settings.DEFAULT_ALLOCATION_DELTA
+
+
 class Allocation(models.Model):
 
     """
@@ -22,14 +35,14 @@ class Allocation(models.Model):
     in IdentityMembership.
     """
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
-    # One week
+    # "Total Amount" of allocation that can be used by a user.
     threshold = models.IntegerField(null=True,
                                     blank=True,
-                                    default=7 * 24 * 60)  # In Minutes
-    # Over One year
+                                    default=_get_default_threshold)
+    # "Window" that the allocation will apply to
     delta = models.IntegerField(null=True,
                                 blank=True,
-                                default=365 * 24 * 60)  # In Minutes
+                                default=_get_default_delta)
 
     def __unicode__(self):
         return "Threshold: %s minutes over Delta: %s minutes" %\

@@ -1,9 +1,14 @@
+{% spaceless %}
+{% if support_email_header %}
+{{ support_email_header|safe }}
+{% endif %}
 {%if approved%}
 Your image request has been approved! The imaging process will
 begin shortly.
 {%else%}
 Your image request has been received. Upon staff approval, we will send you an e-mail to let you know that the the imaging process will begin shortly.
 {%endif%}
+{% endspaceless %}
 
 When the imaging process has completed, you will receive an email with
 details about the new image.
@@ -27,3 +32,9 @@ Version Licenses: {{request.new_version_scripts.count}}
 ---
 Excluded Files: {{request.exclude_files}}
 
+If you have any additional questions, please contact: {{ support_email }}
+{% spaceless %}
+{% if support_email_footer %}
+{{ support_email_footer|safe }}
+{% endif %}
+{% endspaceless %}

@@ -34,6 +34,7 @@ from core.models.profile import UserProfile
 
 from service.deploy import (
     inject_env_script, check_process, wrap_script, echo_test_script,
+    build_host_name,
     deploy_to as ansible_deploy_to,
     ready_to_deploy as ansible_ready_to_deploy
     )
@@ -1190,18 +1191,7 @@ def add_floating_ip(driverCls, provider, identity,
         _update_status_log(instance, "Networking Complete")
         # TODO: Implement this as its own task, with the result from
         #'floating_ip' passed in. Add it to the deploy_chain before deploy_to
-        hostname = ""
-        if floating_ip.startswith('128.196'):
-            regex = re.compile(
-                "(?P<one>[0-9]+)\.(?P<two>[0-9]+)\."
-                "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
-            r = regex.search(floating_ip)
-            (one, two, three, four) = r.groups()
-            hostname = "vm%s-%s.iplantcollaborative.org" % (three, four)
-        else:
-            # Find a way to convert new floating IPs to hostnames..
-            hostname = floating_ip
-
+        hostname = build_host_name(floating_ip)
         metadata_update = {
             'public-hostname': hostname,
             'public-ip': floating_ip
@@ -1375,7 +1365,6 @@ def update_membership_for(provider_uuid):
         else:
             pm = pm[0]
         app_manager = pm.application_version.application.applicationmembership_set
-        #if not img.is_public:
         if img.get('visibility','') is not 'public':
             # Lookup members
             image_members = acct_driver.image_manager.shared_images_for(

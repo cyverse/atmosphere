@@ -29,7 +29,7 @@ def main():
     args = parser.parse_args()
     # Parse
     if not args.provider:
-        provider = Provider.objects.get(location='iPlant Cloud - Tucson')
+        raise Exception("Required argument 'provider' is missing. Please provide the DB ID of the provider to continue.")
     else:
         provider = Provider.objects.get(id=args.provider)
     is_now = True
