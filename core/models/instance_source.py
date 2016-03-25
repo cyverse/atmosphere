@@ -29,7 +29,7 @@ class InstanceSource(models.Model):
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
-    def unicode(self):
+    def __unicode__(self):
         return "%s Provider:%s Created_by:%s" % (
             self.identifier, self.provider, self.created_by)
 

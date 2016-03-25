@@ -21,7 +21,7 @@ from core.models.status_type import StatusType
 from service.driver import get_admin_driver, get_esh_driver, get_account_driver
 from service.deploy import freeze_instance, sync_instance
 from service.machine import process_machine_request
-from service.tasks.driver import wait_for_instance, destroy_instance
+from service.tasks.driver import wait_for_instance, destroy_instance, print_chain
 
 
 def _get_imaging_task(orig_managerCls, orig_creds,
@@ -175,6 +175,7 @@ def start_machine_imaging(machine_request, delay=False):
         machine_request.old_status = 'imaging'
         machine_request.save()
     # Start the task.
+    logger.info("Machine Chain : %s" % print_chain(init_task, idx=0))
     async = init_task.apply_async()
     if delay:
         async.get()

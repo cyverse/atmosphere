@@ -183,7 +183,7 @@ class Instance(models.Model):
     provider_alias = models.CharField(max_length=256, unique=True)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey('AtmosphereUser')
-    created_by_identity = models.ForeignKey(Identity, null=True)
+    created_by_identity = models.ForeignKey(Identity, null=True)  #FIXME: Why is null=True okay here?
     shell = models.BooleanField(default=False)
     vnc = models.BooleanField(default=False)
     password = models.CharField(max_length=64, blank=True, null=True)

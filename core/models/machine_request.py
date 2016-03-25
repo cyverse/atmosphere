@@ -101,6 +101,7 @@ class MachineRequest(BaseRequest):
                                     null=True, blank=True)
     new_application_version = models.ForeignKey(ApplicationVersion,
                                                 null=True, blank=True)
+
     def save(self, *args, **kwargs):
         if not self.pk and self.is_active(self.instance):
             raise RequestLimitExceeded(

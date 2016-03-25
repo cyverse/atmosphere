@@ -35,7 +35,7 @@ def send_email(subject, body, from_email, to, cc=None,
         email_logger.info(log_message.format(*args))
         return True
     except Exception as e:
-        celery_logger.error(e)
+        celery_logger.exception(e)
         return False
 
 

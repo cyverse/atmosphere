@@ -9,6 +9,7 @@ from allocation.models import \
     Allocation, TimeUnit
 from allocation.models import Instance as AllocInstance
 
+from threepio import logger
 
 class PythonAllocationStrategy(object):
 
@@ -37,9 +38,14 @@ class PythonAllocationStrategy(object):
             identity,
             self.counting_behavior.start_date)
         # Convert Core Models --> Allocation/core Models
-        alloc_instances = [AllocInstance.from_core(
-            inst, self.counting_behavior.start_date)
-            for inst in core_instances]
+        alloc_instances = []
+        for inst in core_instances:
+            try:
+                alloc_instances.append(
+                    AllocInstance.from_core(inst, self.counting_behavior.start_date)
+                )
+            except Exception as exc:
+                logger.exception(exc)
         return alloc_instances
 
     def apply(self, identity, core_allocation):

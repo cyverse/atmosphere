@@ -204,7 +204,7 @@ def prepare_driver(request, provider_uuid, identity_uuid,
     try:
         core_identity = CoreIdentity.objects.get(provider__uuid=provider_uuid,
                                                  uuid=identity_uuid)
-        if core_identity in request.user.identity_set.all():
+        if core_identity in request.user.identity_set.all() or request.user.is_superuser:
             return get_esh_driver(core_identity=core_identity)
         else:
             raise ValueError(

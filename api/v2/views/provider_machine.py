@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q
 from rest_framework.decorators import detail_route
 
 import django_filters
@@ -92,8 +93,7 @@ class ProviderMachineViewSet(MultipleFieldLookup, OwnerUpdateViewSet):
         metadata = data.pop('metadata')
         provider_machine_id = pk
         try:
-            provider_machine = find_provider_machine(provider_machine_id)
-            update_provider_machine_metadata(provider_machine, metadata)
+            update_provider_machine_metadata(provider_machine_id, metadata)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as exc:
             logger.exception("Error occurred updating v2 provider_machine metadata")

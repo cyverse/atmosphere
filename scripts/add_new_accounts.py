@@ -46,7 +46,6 @@ def main():
         return
 
     users = None
-    added = 0
     if args.provider_id and not args.provider:
         print "WARNING: --provider-id has been *DEPRECATED*! Use --provider instead!"
         args.provider = args.provider_id
@@ -56,9 +55,8 @@ def main():
         raise Exception("Missing required argument: --provider <id>. use --provider-list to get a list of provider ID+names")
     print "Using Provider: %s" % provider
     type_name = provider.type.name.lower()
-    if type_name == 'openstack':
-        acct_driver = get_account_driver(provider)
-    else:
+    acct_driver = get_account_driver(provider)
+    if not acct_driver:
         raise Exception("Could not find an account driver for Provider with"
                         " type:%s" % type_name)
     if not args.users:
@@ -70,18 +68,24 @@ def main():
             users = get_usernames(provider)
     else:
         users = args.users.split(",")
+    return create_accounts(acct_driver, provider, users,
+                           args.rebuild, args.admin)
+
+
+def create_accounts(acct_driver, provider, users, rebuild=False, admin=False):
+    added = 0
     for user in users:
         # Then add the Openstack Identity
         try:
             id_exists = Identity.objects.filter(
                 created_by__username__iexact=user,
                 provider=provider)
-            if id_exists and not args.rebuild:
+            if id_exists and not rebuild:
                 print "%s Exists -- Skipping because rebuild flag is disabled" % user
                 continue
-            acct_driver.create_account(user, max_quota=args.admin)
+            acct_driver.create_account(user, max_quota=admin)
             added += 1
-            if args.admin:
+            if admin:
                 make_admin(user)
                 print "%s added as admin." % (user)
             else:

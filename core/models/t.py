@@ -17,6 +17,10 @@ class T(models.Model):
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return "%s: %s - %s" %\
+            (self.V, self.start_date, self.end_date)
+
     @classmethod
     def create(cls):
         return cls(V=uuid1())

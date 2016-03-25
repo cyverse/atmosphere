@@ -42,5 +42,9 @@ class StatusType(models.Model):
     def default(cls):
         return StatusType(name="pending")
 
+    def __unicode__(self):
+        return "%s" %\
+            (self.name,)
+
     def __str__(self):
-        return self.name
+        return self.__unicode__()

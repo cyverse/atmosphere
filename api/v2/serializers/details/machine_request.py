@@ -281,6 +281,7 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'status',
             'old_status',
             'new_version_tags',
+            'new_version_change_log',
             'admin_message',
             'new_application_name',
             'new_application_version',

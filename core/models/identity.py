@@ -246,6 +246,17 @@ class Identity(models.Model):
     def creator_name(self):
         return self.created_by.username
 
+    def project_name(self):
+        project_name = self.get_credential('ex_project_name')
+        if not project_name:
+            project_name = self.get_credential('ex_tenant_name')
+        if not project_name:
+            project_name = self.get_credential('project_name')
+        if not project_name:
+            project_name = self.get_credential('tenant_name')
+        return project_name
+
+
     def get_credential(self, key):
         cred = self.credential_set.filter(key=key)
         return cred[0].value if cred else None
@@ -322,8 +333,7 @@ class Identity(models.Model):
         }
 
     def __unicode__(self):
-        #TODO: Replace this with (self.provider, self.created_by) once DRF unicode error fixed.
-        output = "%s %s" % (self.provider_id, self.created_by_id)
+        output = "%s %s" % (self.provider, self.project_name())
         return output
 
     class Meta:

@@ -545,6 +545,7 @@ class Instance(AuthAPIView):
         # Cleared provider testing -- ready for driver prep.
         try:
             esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+            logger.info("Looking for %s" % instance_id)
             esh_instance = esh_driver.get_instance(instance_id)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)

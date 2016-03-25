@@ -1,6 +1,6 @@
 Django==1.8.11
 django-cors-headers==0.12.0
-djangorestframework==3.3.2
+djangorestframework==3.3.3
 djangorestframework-jsonp==1.0.0
 djangorestframework-xml==1.0.1
 djangorestframework-yaml==1.0.2
