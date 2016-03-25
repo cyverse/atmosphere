@@ -138,7 +138,7 @@ class ProviderMachine(BaseSource):
         identifier = self.instance_source.identifier
         provider = self.instance_source.provider
         return "%s (Provider:%s - App:%s Version:%s) " %\
-            (identifier, provider, self.application, self.application_version.name)
+            (identifier, provider, self.application, self.application_version)
 
     class Meta:
         db_table = "provider_machine"

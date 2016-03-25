@@ -167,10 +167,11 @@ def start_instance(esh_driver, esh_instance,
     _permission_to_act(identity_uuid, "Start")
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
-        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
-                                       # NOTE: after removing FIXME, This
-                                       # parameter can be removed as well
-                                       core_identity_uuid=identity_uuid)
+        deploy_task = restore_ip_chain(
+            esh_driver, esh_instance, redeploy=True,
+            # NOTE: after removing FIXME, This
+            # parameter can be removed as well
+            core_identity_uuid=identity_uuid)
 
     needs_fixing = esh_instance.extra['metadata'].get('iplant_suspend_fix')
     logger.info("Instance %s needs to hard reboot instead of start" %

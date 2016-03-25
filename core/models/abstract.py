@@ -3,7 +3,6 @@
   NOTE: These models should NEVER be created directly.
   See the respective sub-classes for complete implementation details.
 """
-import uuid
 from uuid import uuid4
 
 from django.db import models
@@ -38,6 +37,10 @@ class BaseRequest(models.Model):
     # Request Timeline
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
+
+    def __unicode__(self):
+        return "%s: %s - %s" %\
+            (self.uuid, self.status, self.created_by)
 
     class Meta:
         abstract = True
