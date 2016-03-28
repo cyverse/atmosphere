@@ -265,11 +265,12 @@ class Instance(models.Model):
             status_name,
             task,
             tmp_status)
+        activity = self.esh_activity()
         # 2. Get the last history (or Build a new one if no other exists)
         last_history = self.get_last_history()
         if not last_history:
             last_history = InstanceStatusHistory.create_history(
-                status_name, self, size, self.start_date)
+                status_name, activity, self, size, self.start_date)
             last_history.save()
             logger.debug("STATUSUPDATE - FIRST - Instance:%s Old Status: %s - %s New\
                 Status: %s Tmp Status: %s" % (self.provider_alias,
@@ -297,7 +298,7 @@ class Instance(models.Model):
         now_time = timezone.now()
         try:
             new_history = InstanceStatusHistory.transaction(
-                status_name, self, size,
+                status_name, activity, self, size,
                 start_time=now_time,
                 last_history=last_history)
             return (True, new_history)
@@ -585,7 +586,7 @@ class InstanceStatusHistory(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
 
     @classmethod
-    def transaction(cls, status_name, instance, size,
+    def transaction(cls, status_name, activity, instance, size,
                     start_time=None, last_history=None):
         try:
             with transaction.atomic():
@@ -604,7 +605,7 @@ class InstanceStatusHistory(models.Model):
                 last_history.end_date = start_time
                 last_history.save()
                 new_history = InstanceStatusHistory.create_history(
-                    status_name, instance, size, start_time)
+                    status_name, activity, instance, size, start_time)
                 logger.info(
                     "Status Update - User:%s Instance:%s "
                     "Old:%s New:%s Time:%s" %
