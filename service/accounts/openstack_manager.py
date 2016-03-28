@@ -211,7 +211,7 @@ class AccountDriver(BaseAccountDriver):
                 if not role_name:
                     role_name = "_member_"  # FIXME: config mgmt..
                 self.user_manager.add_project_membership(
-                    project_name, username, role_name, domain_name)
+                    project_name, username, role_name)# , domain_name)
 
                 # 4. Create a security group -- SUSPENDED.. Will occur on
                 # instance launch instead.
@@ -530,7 +530,7 @@ class AccountDriver(BaseAccountDriver):
         and the SECRET_KEY as your salt
         """
         #FIXME: Switch to new password and then remove this line!
-        self.old_hashpass(username)
+        return self.old_hashpass(username)
         secret_salt = settings.SECRET_KEY.translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         if not password:
