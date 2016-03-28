@@ -520,11 +520,17 @@ class AccountDriver(BaseAccountDriver):
             self.user_manager.delete_user(username)
         return True
 
+    def old_hashpass(self, username):
+        from hashlib import sha1
+        return sha1(username).hexdigest()
+
     def hashpass(self, username):
         """
         Create a unique password using 'Username' as the wored
         and the SECRET_KEY as your salt
         """
+        #FIXME: Switch to new password and then remove this line!
+        self.old_hashpass(username)
         secret_salt = settings.SECRET_KEY.translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         if not password:
