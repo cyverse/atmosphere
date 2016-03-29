@@ -785,6 +785,7 @@ class AccountDriver(BaseAccountDriver):
         image_creds = self._build_image_creds(all_creds)
         net_creds = self._build_network_creds(all_creds)
         sdk_creds = self._build_sdk_creds(all_creds)
+        user_creds = self._build_user_creds(all_creds)
         if self.identity_version > 2:
             openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
         else:
