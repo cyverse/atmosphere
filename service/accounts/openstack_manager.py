@@ -790,11 +790,10 @@ class AccountDriver(BaseAccountDriver):
         else:
             openstack_sdk = None
 
+        (keystone, nova, swift) = self.user_manager.new_connection(
+            **user_creds)
         neutron = self.network_manager.new_connection(**net_creds)
-        nova = self.user_manager.build_nova(all_creds['username'],
-                                            all_creds.get('password',None),
-                                            all_creds.get('tenant_name',None))
-        keystone, _ , glance = self.image_manager._new_connection(
+        _, _, glance = self.image_manager._new_connection(
             **image_creds)
 
         return {
