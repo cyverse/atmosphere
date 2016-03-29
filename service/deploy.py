@@ -149,7 +149,7 @@ def run_utility_playbooks(instance_ip, username, instance_id, limit_playbooks=[]
     configure_ansible(logger)
     my_limit = {"hostname": hostname, "ip": instance_ip}
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
-    deploy_playbooks = playbooks_dir.replace('/playbooks', 'util_playbooks')
+    deploy_playbooks = playbooks_dir.replace('/playbooks', '/util_playbooks')
     host_list = settings.ANSIBLE_HOST_FILE
 
     user_keys = []
@@ -165,7 +165,7 @@ def run_utility_playbooks(instance_ip, username, instance_id, limit_playbooks=[]
                                           host_list=host_list,
                                           limit=my_limit,
                                           extra_vars=extra_vars)
-    pbs = [pb for pb in pbs if pb.filename in limit_playbooks]
+    pbs = [pb for pb in pbs if pb.filename.split('/')[-1] in limit_playbooks]
     [pb.run() for pb in pbs]
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, hostname, allow_failures=True)
