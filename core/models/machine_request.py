@@ -371,6 +371,10 @@ class MachineRequest(BaseRequest):
 
         imaging_args = {
             "instance_id": self.instance.provider_alias,
+            #NOTE: THERE IS AN ASSUMPTION MADE HERE!
+            # ASSUMPTION: the Creator's username == the LINUX username that was also created for them!
+            #FIXME if the ASSUMPTION above changes!
+            "created_by": self.instance.provider_alias.created_by.username,
             "image_name": self.new_application_name,
             "timestamp": self.start_date,
             "download_dir": download_dir}

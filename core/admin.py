@@ -256,6 +256,10 @@ class ApplicationAdmin(admin.ModelAdmin):
         "created_by",
         "start_date",
         "end_date"]
+    list_filter = [
+        "end_date",
+        "versions__machines__instance_source__provider",
+    ]
     filter_vertical = ["tags", ]
 
     def save_model(self, request, obj, form, change):
@@ -372,6 +376,7 @@ class ExportRequestAdmin(admin.ModelAdmin):
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = [
         "new_machine_owner__username",
+        "new_machine__instance_source__identifier",
         "new_application_name",
         "instance__provider_alias"]
     list_display = [
