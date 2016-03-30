@@ -223,7 +223,7 @@ class Instance(models.Model):
                 name='Unknown Size', alias='N/A', provider=self.provider,
                 cpu=-1, mem=-1, root=-1, disk=-1)
             last_history = self._build_first_history(
-                'Unknown', None, unknown_size, self.start_date, self.end_date, True)
+                'Unknown', 'Unknown', unknown_size, self.start_date, self.end_date, True)
             logger.warn("No history existed for %s until now. "
                         "An 'Unknown' history was created" % self)
             return last_history
@@ -241,7 +241,7 @@ class Instance(models.Model):
             # NOTE: This is needed to prevent over-charging accounts
             status_name = 'unknown'
         first_history = InstanceStatusHistory.create_history(
-            status_name, activity, self, size, start_date, end_date)
+            status_name, self, size, start_date=start_date, end_date=end_date, activity=None)
         first_history.save()
         return first_history
 
@@ -270,7 +270,7 @@ class Instance(models.Model):
         last_history = self.get_last_history()
         if not last_history:
             last_history = InstanceStatusHistory.create_history(
-                status_name, activity, self, size, self.start_date)
+                status_name, activity, self, size, start_date=self.start_date, activity=activity)
             last_history.save()
             logger.debug("STATUSUPDATE - FIRST - Instance:%s Old Status: %s - %s New\
                 Status: %s Tmp Status: %s" % (self.provider_alias,
@@ -605,7 +605,7 @@ class InstanceStatusHistory(models.Model):
                 last_history.end_date = start_time
                 last_history.save()
                 new_history = InstanceStatusHistory.create_history(
-                    status_name, activity, instance, size, start_time)
+                    status_name, instance, size, start_date=start_time, activity=activity)
                 logger.info(
                     "Status Update - User:%s Instance:%s "
                     "Old:%s New:%s Time:%s" %
@@ -622,8 +622,8 @@ class InstanceStatusHistory(models.Model):
                 "another transaction.")
 
     @classmethod
-    def create_history(cls, status_name, activity=None, instance, size,
-                       start_date=None, end_date=None):
+    def create_history(cls, status_name, instance, size,
+                       start_date=None, end_date=None, activity=None):
         """
         Creates a new (Unsaved!) InstanceStatusHistory
         """
