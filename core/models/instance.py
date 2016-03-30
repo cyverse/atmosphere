@@ -223,7 +223,7 @@ class Instance(models.Model):
                 name='Unknown Size', alias='N/A', provider=self.provider,
                 cpu=-1, mem=-1, root=-1, disk=-1)
             last_history = self._build_first_history(
-                'Unknown', 'Unknown', unknown_size, self.start_date, self.end_date, True)
+                'Unknown', None, unknown_size, self.start_date, self.end_date, True)
             logger.warn("No history existed for %s until now. "
                         "An 'Unknown' history was created" % self)
             return last_history
@@ -622,7 +622,7 @@ class InstanceStatusHistory(models.Model):
                 "another transaction.")
 
     @classmethod
-    def create_history(cls, status_name, activity, instance, size,
+    def create_history(cls, status_name, activity=None, instance, size,
                        start_date=None, end_date=None):
         """
         Creates a new (Unsaved!) InstanceStatusHistory
