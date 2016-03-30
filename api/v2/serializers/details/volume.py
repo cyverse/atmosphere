@@ -108,4 +108,4 @@ class UpdateVolumeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Volume
         view_name = 'api:v2:volume-detail'
-        fields = ('name', 'description')
+        fields = ('name', 'description', 'start_date')
