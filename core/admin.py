@@ -531,9 +531,35 @@ class GroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'uuid',)
     list_filter = ['name', ]
 
+@admin.register(models.EmailTemplate)
+class EmailTemplateAdmin(admin.ModelAdmin):
+    actions = None # disable the `delete selected` action
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(models.HelpLink)
+class HelpLinkAdmin(admin.ModelAdmin):
+    actions = None # disable the `delete selected` action
+    list_display = ["link_key", "topic", "context", "href"]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj: # editing an existing object
+            return self.readonly_fields + ("link_key", )
+        return self.readonly_fields
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 # For adding 'new' registrations
 admin.site.register(models.ApplicationThreshold)
 admin.site.register(models.Credential)
 admin.site.register(models.ProviderType)
-admin.site.register(models.EmailTemplate)

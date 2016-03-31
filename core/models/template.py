@@ -30,3 +30,27 @@ class EmailTemplate(SingletonModel):
     class Meta:
         db_table = 'email_template'
         app_label = 'core'
+
+class HelpLink(models.Model):
+    """
+    HelpLinks are used in Atmosphere and the Tropo UI (via API call)
+    HelpLinks are used per 'Site/Installation'.
+    New HelpLinks should *NOT* be added/removed unless there
+    are corresponding logic-choices in core code.
+    """
+    link_key = models.CharField(max_length=256)
+    topic = models.CharField(max_length=256)
+    context = models.TextField(default='', null=True, blank=True)
+    href = models.TextField()
+
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+
+    def delete(self, *args, **kwargs):
+        """
+        Block the outright deletion of HelpLinks
+        """
+        pass
+
+    def __unicode__(self):
+        return "(%s) => %s" % (self.topic, self.href)
