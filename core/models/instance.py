@@ -873,8 +873,8 @@ def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
         # information.
         # TODO: Switch to 'get_cached_size!'
         new_size = esh_driver.get_size(esh_size.id)
-    if new_size:
-        esh_size = new_size
+        if new_size:
+            esh_size = new_size
     core_size = convert_esh_size(esh_size, provider_uuid)
     return core_size
 
