@@ -47,4 +47,5 @@ class StatusType(models.Model):
             (self.name,)
 
     def __str__(self):
-        return self.__unicode__()
+        return "%s" %\
+            (self.name,)
