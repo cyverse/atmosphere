@@ -6,7 +6,7 @@ from hashlib import md5
 from datetime import datetime, timedelta
 
 from django.db import models, transaction, DatabaseError
-from django.db.models import Q
+from django.db.models import (Q, ObjectDoesNotExist)
 from django.utils import timezone
 
 import pytz
@@ -207,10 +207,24 @@ class Instance(models.Model):
         )
         return projects
 
+    def get_first_history(self):
+        """
+        Returns the first InstanceStatusHistory
+        """
+        # TODO: Profile Option
+        # except InstanceStatusHistory.DoesNotExist:
+        # TODO: Profile current choice
+        try:
+            return self.instancestatushistory_set.order_by(
+                'start_date').first()
+        except ObjectDoesNotExist:
+            return None
+
     def get_last_history(self):
         """
         Returns the newest InstanceStatusHistory
         """
+        # FIXME: Clean up this implementation OR rename to `get_or_create`
         # TODO: Profile Option
         # except InstanceStatusHistory.DoesNotExist:
         # TODO: Profile current choice
@@ -552,9 +566,43 @@ class InstanceStatusHistory(models.Model):
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
+    def previous(self):
+        """
+        Given that you are a node on a linked-list, traverse yourself backwards
+        """
+        if self.instance.start_date == self.start_date:
+            raise LookupError("This is the first state of instance %s" % self.instance)
+        try:
+            history = self.instance.instancestatushistory_set.get(start_date=self.end_date)
+            if history.id == self.id:
+                raise ValueError("There was no matching transaction for Instance:%s end-date:%s" % (self.instance, self.end_date))
+        except ObjectDoesNotExist:
+            raise ValueError("There was no matching transaction for Instance:%s end-date:%s" % (self.instance, self.end_date))
+
+    def next(self):
+        """
+        Given that you are a node on a linked-list, traverse yourself forwards
+        """
+        # In this situation, the instance is presumably still running.
+        if not self.end_date:
+            if self.instance.end_date:
+                raise ValueError("Whoa! The instance %s has been terminated, but status %s has not! This could leak time" % (self.instance,self))
+            raise LookupError("This is the final state of instance %s" % self.instance)
+        # In this situation, the end_date of the final history is an exact match to the instance's end-date.
+        if self.instance.end_date == self.end_date:
+            raise LookupError("This is the final state of instance %s" % self.instance)
+        # In this situation, the end_date of the final history is "a little off" from the instance's end-date.
+        if self == self.instance.get_last_history():
+            raise LookupError("This is the final state of instance %s" % self.instance)
+        try:
+            return self.instance.instancestatushistory_set.get(start_date=self.end_date)
+        except ObjectDoesNotExist:
+            raise ValueError("There was no matching transaction for Instance:%s end-date:%s" % (self.instance, self.end_date))
+
     @classmethod
     def transaction(cls, status_name, instance, size,
                     start_time=None, last_history=None):
+        #FIXME: There is *at least* one occurrence of an instance end_date !== history end_date
         try:
             with transaction.atomic():
                 if not last_history:
