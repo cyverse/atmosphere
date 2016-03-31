@@ -101,7 +101,6 @@ def deploy_to(instance_ip, username, instance_id):
         return []
     instance = Instance.objects.get(provider_alias=instance_id)
     provider = instance.source.provider
-    provider_timezone = provider.configuration.timezone
     logger = create_instance_logger(
         deploy_logger,
         instance_ip,
@@ -121,8 +120,8 @@ def deploy_to(instance_ip, username, instance_id):
 
     extra_vars = {"ATMOUSERNAME": username,
                   "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
-                  "USERSSHKEYS": user_keys,
-                  "TIMEZONE": provider_timezone}
+                  "USERSSHKEYS": user_keys
+                 }
 
     pbs = subspace.playbook.get_playbooks(deploy_playbooks,
                                           host_list=host_list,

@@ -201,7 +201,6 @@ class ProviderConfiguration(models.Model):
     certain requests.
     """
     provider = models.OneToOneField(Provider, primary_key=True, related_name="configuration")
-    timezone = models.CharField(max_length=64, default='Etc/UTC')
     #TODO: These variables could be migrated from Provider:
     # allow_imaging = models.BooleanField(default=False) # NEW! rather than abusing 'public'
     # auto_imaging = models.BooleanField(default=False)

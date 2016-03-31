@@ -24,7 +24,6 @@ class Migration(migrations.Migration):
             name='ProviderConfiguration',
             fields=[
                 ('provider', models.OneToOneField(related_name='configuration', primary_key=True, serialize=False, to='core.Provider')),
-                ('timezone', models.CharField(default=b'Etc/UTC', max_length=64)),
             ],
             options={
                 'db_table': 'provider_configuration',
