@@ -84,6 +84,7 @@ TEST_RUNNER_PASS = ; test_secret
 MOCK_USER = ; test_user
 USE_MOCK_AUTH = ; False
 #local.py - site configuration
+TIME_ZONE = ; America/Phoenix
 SITE_NAME = ; CyVerse
 ADMINS_EMAIL_TUPLE = ; [('Atmosphere Admin', 'atmo-admin@website.com'),('System Admins', 'sys-admin@website.com')]
 SUPPORT_EMAIL = ; help@website.org
