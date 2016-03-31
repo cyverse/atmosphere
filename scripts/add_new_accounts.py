@@ -2,7 +2,8 @@
 import argparse
 import libcloud.security
 
-import django; django.setup()
+import django
+django.setup()
 
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
@@ -80,9 +81,10 @@ def create_accounts(acct_driver, provider, users, rebuild=False, admin=False):
             id_exists = Identity.objects.filter(
                 created_by__username__iexact=user,
                 provider=provider)
-            if id_exists and not rebuild:
-                print "%s Exists -- Skipping because rebuild flag is disabled" % user
-                continue
+            if id_exists:
+                if not rebuild:
+                    continue
+                print "%s Exists -- Attempting an account rebuild" % user
             acct_driver.create_account(user, max_quota=admin)
             added += 1
             if admin:
