@@ -16,7 +16,7 @@ def create_provider_configuration(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0048_helplink'),
+        ('core', '0047_add_email_template_and_helplink'),
     ]
 
     operations = [

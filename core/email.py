@@ -3,6 +3,7 @@
 Atmosphere core email.
 """
 from core.models import AtmosphereUser as User
+from core.models import Instance
 
 from django.core.urlresolvers import reverse
 from django.db.models import ObjectDoesNotExist
@@ -327,21 +328,42 @@ def send_instance_email(username, instance_id, instance_name,
     """
     format_string = '%b, %d %Y %H:%M:%S'
     email_template = get_email_template()
+    try:
+        instance = Instance.objects.get(provider_alias=instance_id)
+        author = instance.created_by
+        provider_location = instance.provider.location
+        ssh_keys = author.sshkey_set.all()
+        use_ssh_keys = author.userprofile.use_ssh_keys and ssh_keys.count() > 0
+    except:
+        raise
+        provider_location = "N/A"
+        ssh_keys = []
+        use_ssh_keys = False
+
     username, user_email, user_name = user_email_info(username)
     launched_at = launched_at.replace(tzinfo=None)
     utc_date = django_timezone.make_aware(launched_at,
                                           timezone=pytz_timezone('UTC'))
     local_launched_at = django_timezone.localtime(utc_date)
+    getting_started_link = email_template.get_link('getting-started')
+    faq_link = email_template.get_link('faq')
+    support_email = settings.SUPPORT_EMAIL
     context = {
-        "getting_started_instances_link": email_template.link_getting_started,
-        "faq_link": email_template.link_faq,
-        "support_email": email_template.email_address,
+        "getting_started_instances_link": getting_started_link.href,
+        "getting_started_instances_name": getting_started_link.topic,
+        "faq_link": faq_link.href,
+        "faq_link_name": faq_link.topic,
+        "use_ssh_keys": use_ssh_keys,
+        "ssh_keys": ssh_keys,
+        "provider_location": provider_location,
+        "support_email": support_email,
         "support_email_header": email_template.email_header,
         "support_email_footer": email_template.email_footer,
         "user": user_name,
-        "id": instance_id,
-        "name": instance_name,
-        "ip": ip,
+        "site_name": settings.SITE_NAME,
+        "instance_id": instance_id,
+        "instance_name": instance_name,
+        "instance_ip": ip,
         "sshuser": linuxusername,
         "launched_at": launched_at.strftime(format_string),
         "local_launched_at": local_launched_at.strftime(format_string)
@@ -350,7 +372,9 @@ def send_instance_email(username, instance_id, instance_name,
         "core/email/instance_ready.html",
         context=Context(context))
     subject = 'Your Atmosphere Instance is Available'
-    return email_from_admin(username, subject, body)
+    email_args = (username, subject, body)
+    return email_args
+    #return email_from_admin(*email_args)
 
 
 def send_preemptive_deploy_failed_email(core_instance, message):

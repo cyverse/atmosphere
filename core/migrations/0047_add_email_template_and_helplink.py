@@ -3,6 +3,11 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 
+def create_template(apps, schema_editor):
+    EmailTemplate = apps.get_model("core", "EmailTemplate")
+    _ = EmailTemplate.objects.get_or_create()  # One and done
+    return
+
 INITIAL_LINKS = [
     {
         'link_key': 'default',
@@ -18,6 +23,16 @@ INITIAL_LINKS = [
         'link_key': 'forums',
         'topic': 'Atmosphere User Forums',
         'href': 'http://ask.iplantcollaborative.org/questions/scope:all/sort:activity-desc/tags:Atmosphere/page:1/'
+    },
+    {
+        'link_key': 'getting-started',
+        'topic': 'Getting Started with a new Instance',
+        'href': 'https://pods.iplantcollaborative.org/wiki/display/atmman/Using+Instances'
+    },
+    {
+        'link_key': 'new-provider',
+        'topic': 'Getting Started with a new Provider',
+        'href': 'https://pods.iplantcollaborative.org/wiki/display/atmman/Changing+Providers'
     },
     {
         'link_key': 'faq',
@@ -54,20 +69,17 @@ INITIAL_LINKS = [
 
 def add_help_links(apps, schema_editor):
     HelpLink = apps.get_model("core", "HelpLink")
-    db_alias = schema_editor.connection.alias
-    HelpLink.objects.using(db_alias).bulk_create([
-        HelpLink(
-            topic=l['topic'],
-            link_key=l['link_key'],
-            href=l['href'])
-        for l in INITIAL_LINKS
-    ])
+    EmailTemplate = apps.get_model("core", "EmailTemplate")
+    template = EmailTemplate.objects.first()
+    for link in INITIAL_LINKS:
+        help_link, _ = HelpLink.objects.get_or_create(**link)
+        template.links.add(help_link)
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0047_add_email_template'),
+        ('core', '0046_rename_to_system_files'),
     ]
 
     operations = [
@@ -83,5 +95,19 @@ class Migration(migrations.Migration):
                 ('modified_date', models.DateTimeField(auto_now=True)),
             ],
         ),
+        migrations.CreateModel(
+            name='EmailTemplate',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('links', models.ManyToManyField(related_name='email_templates', to='core.HelpLink')),
+                ('email_address', models.EmailField(max_length=254, default=b'support@iplantcollaborative.org')),
+                ('email_header', models.TextField(default=b'')),
+                ('email_footer', models.TextField(default=b'iPlant Atmosphere Team')),
+            ],
+            options={
+                'db_table': 'email_template',
+            },
+        ),
+        migrations.RunPython(create_template),
         migrations.RunPython(add_help_links)
     ]
