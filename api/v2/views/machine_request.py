@@ -32,12 +32,17 @@ class MachineRequestViewSet(BaseRequestViewSet):
 
     def get_queryset(self):
         if 'active' in self.request.query_params:
-            return MachineRequest.objects.filter(
+            all_active = MachineRequest.objects.filter(
                 (
                     Q(status__name='pending') |
                     Q(start_date__gt=timezone.now() - timedelta(days=7))
                 )
             )
+            if self.request.user.is_staff:
+                return all_active.order_by('-start_date')
+            return all_active.filter(
+                created_by=self.request.user
+                ).order_by('-start_date')
         return super(MachineRequestViewSet, self).get_queryset()
 
     def perform_create(self, serializer):
