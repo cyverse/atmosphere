@@ -443,7 +443,7 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
                      "instance__source__identifier",
                      "instance__provider_alias", "status__name"]
-    list_display = ["instance_alias", "instance_owner","instance_ip_address","status", "start_date", "end_date"]
+    list_display = ["instance_alias", "machine_alias", "instance_owner","instance_ip_address","status", "start_date", "end_date"]
     list_filter = ["instance__source__provider__location",
                    "status__name",
                    "instance__created_by__username"]
@@ -454,6 +454,9 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
 
     def instance_ip_address(self, model):
         return model.instance.ip_address
+
+    def machine_alias(self, model):
+        return model.instance.source.identifier
 
     def instance_alias(self, model):
         return model.instance.provider_alias
