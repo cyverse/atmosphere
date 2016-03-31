@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0044_allow_blank_membership_AND_rename_project_links'),
+        ('core', '0045_allow_blank_membership_AND_rename_project_links'),
     ]
 
     operations = [

@@ -11,7 +11,7 @@ def create_template(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0045_rename_to_system_files'),
+        ('core', '0046_rename_to_system_files'),
     ]
 
     operations = [

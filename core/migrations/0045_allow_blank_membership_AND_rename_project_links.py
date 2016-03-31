@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0043_cm_defaults_for_allocation_and_quota'),
+        ('core', '0044_cm_defaults_for_allocation_and_quota'),
     ]
 
     operations = [
