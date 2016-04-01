@@ -60,8 +60,8 @@ class Allocation(models.Model):
     @classmethod
     def default_dict(self):
         return {
-            'threshold': self._meta.get_field('threshold').default,
-            'delta': self._meta.get_field('delta').default
+            'threshold': self._meta.get_field('threshold').default(),
+            'delta': self._meta.get_field('delta').default()
         }
 
     class Meta:
