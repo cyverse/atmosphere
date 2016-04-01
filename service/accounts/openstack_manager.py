@@ -211,7 +211,7 @@ class AccountDriver(BaseAccountDriver):
                 if not role_name:
                     role_name = settings.DEFAULT_KEYSTONE_ROLE
                 self.user_manager.add_project_membership(
-                    project_name, username, role_name, domain_name)
+                    project_name, username, role_name)# , domain_name)
 
                 # 4. Create a security group -- SUSPENDED.. Will occur on
                 # instance launch instead.
@@ -520,11 +520,17 @@ class AccountDriver(BaseAccountDriver):
             self.user_manager.delete_user(username)
         return True
 
+    def old_hashpass(self, username):
+        from hashlib import sha1
+        return sha1(username).hexdigest()
+
     def hashpass(self, username):
         """
         Create a unique password using 'Username' as the wored
         and the SECRET_KEY as your salt
         """
+        #FIXME: Switch to new password and then remove this line!
+        return self.old_hashpass(username)
         secret_salt = settings.SECRET_KEY.translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         if not password:
@@ -779,16 +785,16 @@ class AccountDriver(BaseAccountDriver):
         image_creds = self._build_image_creds(all_creds)
         net_creds = self._build_network_creds(all_creds)
         sdk_creds = self._build_sdk_creds(all_creds)
+        user_creds = self._build_user_creds(all_creds)
         if self.identity_version > 2:
             openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
         else:
             openstack_sdk = None
 
+        (keystone, nova, swift) = self.user_manager.new_connection(
+            **user_creds)
         neutron = self.network_manager.new_connection(**net_creds)
-        nova = self.user_manager.build_nova(all_creds['username'],
-                                            all_creds.get('password',None),
-                                            all_creds.get('tenant_name',None))
-        keystone, _ , glance = self.image_manager._new_connection(
+        _, _, glance = self.image_manager._new_connection(
             **image_creds)
 
         return {

@@ -27,6 +27,7 @@ from iplantauth.protocol import ldap
 from core.logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
 from core.models import AtmosphereUser as User
+from core.models import Instance
 
 from service.exceptions import AnsibleDeployException
 
@@ -98,6 +99,8 @@ def deploy_to(instance_ip, username, instance_id):
     """
     if not check_ansible():
         return []
+    instance = Instance.objects.get(provider_alias=instance_id)
+    provider = instance.source.provider
     logger = create_instance_logger(
         deploy_logger,
         instance_ip,
@@ -117,7 +120,8 @@ def deploy_to(instance_ip, username, instance_id):
 
     extra_vars = {"ATMOUSERNAME": username,
                   "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
-                  "USERSSHKEYS": user_keys}
+                  "USERSSHKEYS": user_keys
+                 }
 
     pbs = subspace.playbook.get_playbooks(deploy_playbooks,
                                           host_list=host_list,
@@ -146,7 +150,7 @@ def run_utility_playbooks(instance_ip, username, instance_id, limit_playbooks=[]
     configure_ansible(logger)
     my_limit = {"hostname": hostname, "ip": instance_ip}
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
-    deploy_playbooks = playbooks_dir.replace('/playbooks', 'util_playbooks')
+    deploy_playbooks = playbooks_dir.replace('/playbooks', '/util_playbooks')
     host_list = settings.ANSIBLE_HOST_FILE
 
     user_keys = []
@@ -162,7 +166,7 @@ def run_utility_playbooks(instance_ip, username, instance_id, limit_playbooks=[]
                                           host_list=host_list,
                                           limit=my_limit,
                                           extra_vars=extra_vars)
-    pbs = [pb for pb in pbs if pb.filename in limit_playbooks]
+    pbs = [pb for pb in pbs if pb.filename.split('/')[-1] in limit_playbooks]
     [pb.run() for pb in pbs]
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, hostname, allow_failures=True)

@@ -4,6 +4,7 @@ from .boot_script import BootScriptSerializer
 from .credential import CredentialSerializer
 from .email_template import EmailTemplateSerializer
 from .group import GroupSerializer
+from .help_link import HelpLinkSerializer
 from .image_version import ImageVersionSerializer
 from .image_version_boot_script import ImageVersionBootScriptSerializer
 from .image_version_membership import ImageVersionMembershipSerializer

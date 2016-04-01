@@ -443,7 +443,7 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
                      "instance__source__identifier",
                      "instance__provider_alias", "status__name"]
-    list_display = ["instance_alias", "instance_owner","instance_ip_address","status", "start_date", "end_date"]
+    list_display = ["instance_alias", "machine_alias", "instance_owner","instance_ip_address","status", "start_date", "end_date"]
     list_filter = ["instance__source__provider__location",
                    "status__name",
                    "instance__created_by__username"]
@@ -454,6 +454,9 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
 
     def instance_ip_address(self, model):
         return model.instance.ip_address
+
+    def machine_alias(self, model):
+        return model.instance.source.identifier
 
     def instance_alias(self, model):
         return model.instance.provider_alias
@@ -528,9 +531,35 @@ class GroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'uuid',)
     list_filter = ['name', ]
 
+@admin.register(models.EmailTemplate)
+class EmailTemplateAdmin(admin.ModelAdmin):
+    actions = None # disable the `delete selected` action
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(models.HelpLink)
+class HelpLinkAdmin(admin.ModelAdmin):
+    actions = None # disable the `delete selected` action
+    list_display = ["link_key", "topic", "context", "href"]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj: # editing an existing object
+            return self.readonly_fields + ("link_key", )
+        return self.readonly_fields
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 # For adding 'new' registrations
 admin.site.register(models.ApplicationThreshold)
 admin.site.register(models.Credential)
 admin.site.register(models.ProviderType)
-admin.site.register(models.EmailTemplate)

@@ -5,32 +5,43 @@
 {% endspaceless %}
 Hello {{user}},
 
-The atmosphere instance <{{id}}> is running and ready for use.
+The {{site_name}} instance <{{instance_name}}> is running and ready for use.
 
 Your Instance Information:
-* Name: {{name}}
-* IP Address: {{ip}}
+* Name: {{instance_name}}
+* IP Address: {{instance_ip}}
 * SSH Username: {{sshuser}}
+{% spaceless %}
+{% if use_ssh_keys and ssh_keys %}
+* SSH Keys deployed to /home/{{sshuser}}:
+{% spaceless %}
+{% for ssh_key in ssh_keys %}
+* {{ forloop.counter }}: {{ ssh_key.name }}
+{% endfor %}
+{% endspaceless %}
+{% endif %}
+{% endspaceless %}
+* UUID: {{instance_id}}
+* Cloud Provider: {{provider_location}}
 * Launched at: {{launched_at}} UTC ({{local_launched_at}} Arizona time)
 
-Please terminate instances when they are no longer needed.
 This e-mail notification was auto-generated after instance launch.
+
 Helpful links:
   {% spaceless %}
   {% if getting_started_instances_link %}
-  Getting started with your new Instance:
+  {{ getting_started_instances_name }}
   * {{ getting_started_instances_link }}
   {% endif %}
   {% endspaceless %}
   {% spaceless %}
   {% if faq_link %}
-  Atmosphere FAQ:
+  {{ faq_link_name }}
   * {{ faq_link }}
   {% endif %}
   {% endspaceless %}
-  Atmosphere E-mail Support:
+  E-mail Support:
   * {{ support_email }}
-
 {% spaceless %}
 {% if support_email_footer %}
 {{ support_email_footer|safe }}

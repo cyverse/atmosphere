@@ -8,7 +8,7 @@ import core.models.allocation_strategy
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0042_add_external_link_and_project_resources'),
+        ('core', '0043_meta_update_project_links_and_machinerequest_new_version_membership'),
     ]
 
     operations = [
