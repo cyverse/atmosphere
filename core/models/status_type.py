@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 import uuid
 
+
 def get_status_type(status="pending"):
     """
     Fetches a StatusType by the given name
@@ -43,9 +44,9 @@ class StatusType(models.Model):
         return StatusType(name="pending")
 
     def __unicode__(self):
-        return "%s" %\
+        return "%s" % \
             (self.name,)
 
     def __str__(self):
-        return "%s" %\
+        return "%s" % \
             (self.name,)
