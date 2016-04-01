@@ -223,13 +223,13 @@ class Instance(models.Model):
                 name='Unknown Size', alias='N/A', provider=self.provider,
                 cpu=-1, mem=-1, root=-1, disk=-1)
             last_history = self._build_first_history(
-                'Unknown', 'Unknown', unknown_size, self.start_date, self.end_date, True)
+                'Unknown', unknown_size, self.start_date, self.end_date, True)
             logger.warn("No history existed for %s until now. "
                         "An 'Unknown' history was created" % self)
             return last_history
 
-    def _build_first_history(self, status_name, activity, size,
-                             start_date, end_date=None, first_update=False):
+    def _build_first_history(self, status_name, size,
+                             start_date, end_date=None, first_update=False, activity=None):
         if not first_update and status_name not in [
                 'build',
                 'pending',
@@ -241,7 +241,7 @@ class Instance(models.Model):
             # NOTE: This is needed to prevent over-charging accounts
             status_name = 'unknown'
         first_history = InstanceStatusHistory.create_history(
-            status_name, self, size, start_date=start_date, end_date=end_date, activity=None)
+            status_name, self, size, start_date=start_date, end_date=end_date)
         first_history.save()
         return first_history
 
