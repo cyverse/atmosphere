@@ -31,7 +31,6 @@ class EmailTemplate(SingletonModel):
         except models.ObjectDoesNotExist:
             return None
 
-
     class Meta:
         db_table = 'email_template'
         app_label = 'core'
