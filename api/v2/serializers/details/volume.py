@@ -104,8 +104,9 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
 class UpdateVolumeSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=False)
     description = serializers.CharField(required=False)
+    status = serializers.CharField(source='esh_status')
 
     class Meta:
         model = Volume
         view_name = 'api:v2:volume-detail'
-        fields = ('name', 'description')
+        fields = ('name', 'description', 'start_date', 'status')
