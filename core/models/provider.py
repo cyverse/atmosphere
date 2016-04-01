@@ -285,7 +285,9 @@ class AccountProvider(models.Model):
 # Save Hooks Here:
 
 
-def get_or_create_provider_configuration(sender, provider_instance, created, **kwargs):
+def get_or_create_provider_configuration(sender, provider_instance=None, created=False, **kwargs):
+    if not provider_instance:
+        return
     prof = ProviderConfiguration.objects.get_or_create(provider=provider_instance)
     if prof[1] is True:
         logger.debug("Creating Provider Configuration for %s" % provider_instance)

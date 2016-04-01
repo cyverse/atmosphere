@@ -18,6 +18,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSummarySerializer(source='created_by')
     provider = ProviderSummarySerializer(source='created_by_identity.provider')
     status = serializers.CharField(source='esh_status', read_only=True)
+    activity = serializers.CharField(source='esh_activity', read_only=True)
     projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     scripts = ModelRelatedField(
         many=True, required=False,
@@ -33,7 +34,6 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
         view_name='api:v2:instance-detail',
         uuid_field='provider_alias'
     )
-
 
     def get_size(self, obj):
         size = obj.get_size()
@@ -67,6 +67,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'url',
             'name',
             'status',
+            'activity',
             'size',
             'ip_address',
             'shell',

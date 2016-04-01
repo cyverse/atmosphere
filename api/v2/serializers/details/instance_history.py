@@ -30,6 +30,7 @@ class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
     image = ImageSummarySerializer(
         source='instance.provider_machine.application_version.application')
     status = serializers.SlugRelatedField(slug_field='name', read_only=True)
+    activity = serializers.CharField(max_length=36, allow_blank=True)
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:instancestatushistory-detail',
     )
@@ -42,6 +43,7 @@ class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
             'url',
             'instance',
             'status',
+            'activity',
             'size',
             'provider',
             'image',

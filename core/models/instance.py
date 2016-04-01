@@ -200,7 +200,7 @@ class Instance(models.Model):
         return self.source.provider
 
     def get_projects(self, user):
-        #TODO: Replace with 'only_current'
+        # TODO: Replace with 'only_current'
         projects = self.projects.filter(
             Q(end_date=None) | Q(end_date__gt=timezone.now()),
             owner=user,
@@ -228,18 +228,21 @@ class Instance(models.Model):
                         "An 'Unknown' history was created" % self)
             return last_history
 
-    def _build_first_history(self, status_name, size, start_date,
-                             end_date=None, first_update=False):
+    def _build_first_history(self, status_name, size,
+                             start_date, end_date=None, first_update=False, activity=None):
         if not first_update and status_name not in [
                 'build',
                 'pending',
                 'running']:
-            logger.info("First Update Unknown - Status name on instance %s: %s" % (self.provider_alias, status_name))
+            logger.info("First Update Unknown - Status name on instance \
+                        %s: %s - %s"
+                        % (self.provider_alias, status_name))
             # Instance state is 'unknown' from start of instance until now
             # NOTE: This is needed to prevent over-charging accounts
             status_name = 'unknown'
+            activity = None
         first_history = InstanceStatusHistory.create_history(
-            status_name, self, size, start_date, end_date)
+            status_name, self, size, start_date=start_date, end_date=end_date, activity=activity)
         first_history.save()
         return first_history
 
@@ -263,28 +266,40 @@ class Instance(models.Model):
             status_name,
             task,
             tmp_status)
+        activity = self.esh_activity()
         # 2. Get the last history (or Build a new one if no other exists)
         last_history = self.get_last_history()
         if not last_history:
             last_history = InstanceStatusHistory.create_history(
-                status_name, self, size, self.start_date)
+                status_name, self, size, start_date=self.start_date, activity=activity)
             last_history.save()
-            logger.debug("STATUSUPDATE - FIRST - Instance:%s Old Status: %s New Status: %s Tmp Status: %s" % (self.provider_alias, self.esh_status(), status_name, tmp_status))
-            logger.debug("STATUSUPDATE - Traceback: %s" % traceback.format_stack())
+            logger.debug("STATUSUPDATE - FIRST - Instance:%s Old Status: %s - %s New\
+                Status: %s Tmp Status: %s" % (self.provider_alias,
+                                              self.esh_status(),
+                                              self.esh_activity(),
+                                              status_name,
+                                              tmp_status))
+            logger.debug("STATUSUPDATE - Traceback: %s"
+                         % traceback.format_stack())
         # 2. Size and name must match to continue using last history
         if last_history.status.name == status_name \
                 and last_history.size.id == size.id:
             # logger.info("status_name matches last history:%s " %
             #        last_history.status.name)
             return (False, last_history)
-        logger.debug("STATUSUPDATE - Instance:%s Old Status: %s New Status: %s Tmp Status: %s" % (self.provider_alias, self.esh_status(), status_name, tmp_status))
+        logger.debug("STATUSUPDATE - Instance:%s Old Status: %s - %s New Status: %s\
+            Tmp Status: %s" % (self.provider_alias,
+                               self.esh_status(),
+                               self.esh_activity(),
+                               status_name,
+                               tmp_status))
         logger.debug("STATUSUPDATE - Traceback: %s" % traceback.format_stack())
         # 3. ASSERT: A new history item is required due to a State or Size
         # Change
         now_time = timezone.now()
         try:
             new_history = InstanceStatusHistory.transaction(
-                status_name, self, size,
+                status_name, activity, self, size,
                 start_time=now_time,
                 last_history=last_history)
             return (True, new_history)
@@ -440,6 +455,24 @@ class Instance(models.Model):
         else:
             return "Unknown"
 
+    def esh_activity(self):
+        activity = None
+        if self.esh:
+            try:
+                activity = " ".join(self.esh.get_status().split(' - ')[1:]).strip()
+            except:
+                activity = None
+            return activity
+        last_history = self.get_last_history()
+        if last_history:
+            try:
+                activity = " ".join(last_history.status.split(' - ')[1:]).strip()
+            except:
+                activity = None
+            return activity
+        else:
+            return "Unknown"
+
     def get_size(self):
         return self.get_last_history().size
 
@@ -549,11 +582,12 @@ class InstanceStatusHistory(models.Model):
     instance = models.ForeignKey(Instance)
     size = models.ForeignKey("Size", null=True, blank=True)
     status = models.ForeignKey(InstanceStatus)
+    activity = models.CharField(max_length=36, null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     @classmethod
-    def transaction(cls, status_name, instance, size,
+    def transaction(cls, status_name, activity, instance, size,
                     start_time=None, last_history=None):
         try:
             with transaction.atomic():
@@ -572,7 +606,7 @@ class InstanceStatusHistory(models.Model):
                 last_history.end_date = start_time
                 last_history.save()
                 new_history = InstanceStatusHistory.create_history(
-                    status_name, instance, size, start_time)
+                    status_name, instance, size, start_date=start_time, activity=activity)
                 logger.info(
                     "Status Update - User:%s Instance:%s "
                     "Old:%s New:%s Time:%s" %
@@ -590,13 +624,13 @@ class InstanceStatusHistory(models.Model):
 
     @classmethod
     def create_history(cls, status_name, instance, size,
-                       start_date=None, end_date=None):
+                       start_date=None, end_date=None, activity=None):
         """
         Creates a new (Unsaved!) InstanceStatusHistory
         """
         status, _ = InstanceStatus.objects.get_or_create(name=status_name)
         new_history = InstanceStatusHistory(
-            instance=instance, size=size, status=status)
+            instance=instance, size=size, status=status, activity=activity)
         if start_date:
             new_history.start_date = start_date
             logger.debug("Created new history object: %s " % (new_history))
