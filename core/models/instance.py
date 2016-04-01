@@ -240,8 +240,9 @@ class Instance(models.Model):
             # Instance state is 'unknown' from start of instance until now
             # NOTE: This is needed to prevent over-charging accounts
             status_name = 'unknown'
+            activity = None
         first_history = InstanceStatusHistory.create_history(
-            status_name, self, size, start_date=start_date, end_date=end_date)
+            status_name, self, size, start_date=start_date, end_date=end_date, activity=activity)
         first_history.save()
         return first_history
 
@@ -270,7 +271,7 @@ class Instance(models.Model):
         last_history = self.get_last_history()
         if not last_history:
             last_history = InstanceStatusHistory.create_history(
-                status_name, activity, self, size, start_date=self.start_date, activity=activity)
+                status_name, self, size, start_date=self.start_date, activity=activity)
             last_history.save()
             logger.debug("STATUSUPDATE - FIRST - Instance:%s Old Status: %s - %s New\
                 Status: %s Tmp Status: %s" % (self.provider_alias,
