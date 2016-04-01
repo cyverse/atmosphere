@@ -34,7 +34,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
         if 'active' in self.request.query_params:
             all_active = MachineRequest.objects.filter(
                 (
-                    Q(status__name='pending') |
+                    ~Q(status__name='closed') |
                     Q(start_date__gt=timezone.now() - timedelta(days=7))
                 )
             )
