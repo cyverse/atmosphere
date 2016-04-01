@@ -4,7 +4,10 @@ from api.v2.serializers.details import MachineRequestSerializer,\
     UserMachineRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
 
+from datetime import timedelta
+
 from django.db.models import Q
+from django.utils import timezone
 
 from core import exceptions as core_exceptions
 from core.email import send_denied_resource_email
@@ -27,6 +30,20 @@ class MachineRequestViewSet(BaseRequestViewSet):
     ordering_fields = ('start_date', 'end_date', 'new_machine_owner__username')
     ordering = ('-start_date',)
 
+    def get_queryset(self):
+        if 'active' in self.request.query_params:
+            all_active = MachineRequest.objects.filter(
+                (
+                    ~Q(status__name='closed') |
+                    Q(start_date__gt=timezone.now() - timedelta(days=7))
+                )
+            )
+            if self.request.user.is_staff:
+                return all_active.order_by('-start_date')
+            return all_active.filter(
+                created_by=self.request.user
+                ).order_by('-start_date')
+        return super(MachineRequestViewSet, self).get_queryset()
 
     def perform_create(self, serializer):
 
@@ -116,7 +133,6 @@ class MachineRequestViewSet(BaseRequestViewSet):
             }
             logger.exception(e)
             raise rest_exceptions.ParseError(detail=message)
-
 
     def submit_action(self, instance):
         """
