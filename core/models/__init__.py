@@ -22,8 +22,11 @@ from core.models.project_application import ProjectApplication
 from core.models.project_link import ProjectExternalLink
 from core.models.project_instance import ProjectInstance
 from core.models.project_volume import ProjectVolume
-from core.models.provider import AccountProvider, ProviderType, PlatformType,\
-    Provider, ProviderInstanceAction, ProviderDNSServerIP
+from core.models.provider import (
+    AccountProvider, ProviderType, PlatformType,
+    Provider, ProviderInstanceAction, ProviderDNSServerIP,
+    ProviderConfiguration
+)
 from core.models.license import LicenseType, License, ApplicationVersionLicense
 from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
@@ -39,7 +42,7 @@ from core.models.size import Size
 from core.models.status_type import StatusType
 from core.models.t import T
 from core.models.tag import Tag
-from core.models.template import EmailTemplate
+from core.models.template import (EmailTemplate, HelpLink)
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 from core.models.ssh_key import SSHKey

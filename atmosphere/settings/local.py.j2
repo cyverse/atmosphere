@@ -22,6 +22,10 @@ ENFORCING = False
 
 #Cloud-Operator specific information
 SITE_NAME = '{{ SITE_NAME }}'
+{% if TIME_ZONE %}
+TIME_ZONE = '{{ TIME_ZONE }}'
+CELERY_TIMEZONE = TIME_ZONE
+{% endif %}
 DEFAULT_EMAIL_DOMAIN = '{{ DEFAULT_EMAIL_DOMAIN }}'
 {% if ADMINS_EMAIL_TUPLE %}
 ADMINS = [

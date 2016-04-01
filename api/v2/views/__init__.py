@@ -5,6 +5,7 @@ from .base import BaseRequestViewSet
 from .credential import CredentialViewSet
 from .email_template import EmailTemplateViewSet
 from .group import GroupViewSet
+from .help_link import HelpLinkViewSet
 from .identity import IdentityViewSet
 from .identity_membership import IdentityMembershipViewSet
 from .image import ImageViewSet

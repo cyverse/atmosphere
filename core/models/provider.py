@@ -4,6 +4,7 @@ Service Provider model for atmosphere.
 
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import post_save
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
@@ -193,6 +194,27 @@ class Provider(models.Model):
         app_label = 'core'
 
 
+class ProviderConfiguration(models.Model):
+    """
+    Database-controlled configuration of the provider
+    Values changed here will affect how the API processes
+    certain requests.
+    """
+    provider = models.OneToOneField(Provider, primary_key=True, related_name="configuration")
+    #TODO: These variables could be migrated from Provider:
+    # allow_imaging = models.BooleanField(default=False) # NEW! rather than abusing 'public'
+    # auto_imaging = models.BooleanField(default=False)
+    # over_allocation_action = models.ForeignKey(
+    #     "InstanceAction", blank=True, null=True)
+
+    def __unicode__(self):
+        return "Configuration for Provider:%s" % (self.provider)
+
+    class Meta:
+        db_table = 'provider_configuration'
+        app_label = 'core'
+
+
 class ProviderInstanceAction(models.Model):
     provider = models.ForeignKey(Provider)
     instance_action = models.ForeignKey("InstanceAction")
@@ -211,7 +233,7 @@ class ProviderDNSServerIP(models.Model):
 
     """
     Used to describe all available
-    DNS servers (by IP, in order) for a given provider
+    DNS servers (by IP, sorted by order, then id) for a given provider
     """
     provider = models.ForeignKey(Provider, related_name="dns_server_ips")
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -258,3 +280,17 @@ class AccountProvider(models.Model):
     class Meta:
         db_table = 'provider_admin'
         app_label = 'core'
+
+
+# Save Hooks Here:
+
+
+def get_or_create_provider_configuration(sender, provider_instance=None, created=False, **kwargs):
+    if not provider_instance:
+        return
+    prof = ProviderConfiguration.objects.get_or_create(provider=provider_instance)
+    if prof[1] is True:
+        logger.debug("Creating Provider Configuration for %s" % provider_instance)
+
+# Instantiate the hooks:
+post_save.connect(get_or_create_provider_configuration, sender=Provider)

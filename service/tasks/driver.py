@@ -954,8 +954,8 @@ def _deploy_ready_failed_email_test(
 @task(name="deploy_ready_test",
       default_retry_delay=64,
       # 16 second hard-set time limit. (NOTE:TOO LONG? -SG)
-      soft_time_limit=32,
-      max_retries=125  # Attempt up to two hours
+      soft_time_limit=120,
+      max_retries=300  # Attempt up to two hours
       )
 def deploy_ready_test(driverCls, provider, identity, instance_id,
                       **celery_task_args):

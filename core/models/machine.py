@@ -220,6 +220,9 @@ def get_or_create_provider_machine(image_id, machine_name,
     if not version:
         version = create_app_version(app, "1.0", provider_machine_id=image_id)
 
+    if type(version) in [models.QuerySet, list]:
+        version = version[0]
+
     return create_provider_machine(
         image_id,
         provider_uuid,
