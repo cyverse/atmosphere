@@ -10,9 +10,10 @@ from rest_framework import status
 from core.models import HelpLink
 from api import permissions
 from api.v2.serializers.details import HelpLinkSerializer
+from api.v2.views.base import AuthOptionalViewSet
 
 
-class HelpLinkViewSet(ViewSet):
+class HelpLinkViewSet(AuthOptionalViewSet):
 
     """
     API endpoint that allows scripts to be viewed or edited.
