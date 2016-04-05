@@ -2,15 +2,18 @@ from api.v2.serializers.details import InstanceSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
+from api.v2.views.instance_action import InstanceActionViewSet
+
 from core.exceptions import ProviderNotActive
 from core.models import Instance, Identity
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
 from core.query import only_current
+
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
+
 from service.instance import (
     launch_instance, destroy_instance, run_instance_action,
     update_instance_metadata)
@@ -75,11 +78,22 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             logger.exception("Error occurred updating v2 instance metadata")
             return Response(exc.message, status=status.HTTP_409_CONFLICT)
 
-    @detail_route(methods=['post'])
+    @detail_route(methods=['get', 'post'])
     def action(self, request, pk=None):
         """
         Until a better method comes about, we will handle InstanceActions here.
         """
+        method = request.method
+        if method == 'GET':
+            return self.list_instance_actions(request, pk=pk)
+        return self.post_instance_action(request, pk=pk)
+
+    def list_instance_actions(self, request, pk=None):
+        viewset_fn = InstanceActionViewSet.as_view({'get': 'list'})
+        resp = viewset_fn(request)
+        return resp
+
+    def post_instance_action(self, request, pk=None):
         user = request.user
         instance_id = pk
         instance = find_instance(instance_id)
