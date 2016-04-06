@@ -11,9 +11,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterUniqueTogether(
+            name='providerinstanceaction',
+            unique_together=set([('provider', 'instance_action')]),
+        ),
         migrations.AlterField(
             model_name='instanceaction',
             name='key',
-            field=models.CharField(unique=True, max_length=256),
+            field=models.CharField(
+                unique=True, max_length=256, editable=False),
         ),
     ]

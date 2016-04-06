@@ -17,7 +17,7 @@ class InstanceAction(models.Model):
     see 'ProviderInstanceAction' to Enable/disable a
     specific instance action on a given cloud(Provider)
     """
-    key = models.CharField(max_length=256, unique=True)
+    key = models.CharField(max_length=256, unique=True, editable=False)
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
 
@@ -108,12 +108,14 @@ class InstanceAction(models.Model):
             all_actions.append('Unshelve')
 
         if len(all_actions) == 2:
-            logger.debug("Edge case Warning: Status/activity=(%s/%s) returns no updates to actions" % (last_status, last_activity))
+            logger.debug(
+                "Edge case Warning: Status/activity=(%s/%s) returns "
+                "no updates to actions" % (last_status, last_activity))
 
         if not queryset:
             queryset = cls.objects.all()
         return queryset.filter(key__in=all_actions)
 
     def __unicode__(self):
-        return "%s" %\
-            (self.name,)
+        return "%s (%s)" %\
+            (self.name, self.key)
