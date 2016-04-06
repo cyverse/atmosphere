@@ -35,20 +35,6 @@ from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 
 
-class ActionRenderer(renderers.BrowsableAPIRenderer):
-    """
-    'Custom' Browsable API Renderer
-
-    By returning an empty rendered HTML form
-    you can display the API quickly, without
-    having to deal with "select" queryset slow-downs.
-    """
-
-    def get_rendered_html_form(self, data, view, method, request):
-        if method in ['PUT','POST']:
-            return ""
-        return super(BrowsableAPIRenderer, self).get_rendered_html_form(data, view, method, request)
-
 class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
@@ -98,7 +84,6 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return Response(exc.message, status=status.HTTP_409_CONFLICT)
 
     @detail_route(methods=['get', 'post'])
-    @renderer_classes((ActionRenderer,))
     def action(self, request, pk=None):
         """
         Until a better method comes about, we will handle InstanceActions here.
