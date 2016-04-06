@@ -32,8 +32,10 @@ from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
 from core.models.match import PatternMatch, MatchType
 from core.models.maintenance import MaintenanceRecord
-from core.models.instance import Instance, InstanceStatusHistory,\
-    InstanceStatus, InstanceAction, InstanceSource
+from core.models.instance import Instance
+from core.models.instance_action import InstanceAction
+from core.models.instance_history import InstanceStatus, InstanceStatusHistory
+from core.models.instance_source import InstanceSource
 from core.models.node import NodeController
 from core.models.boot_script import ScriptType, BootScript, ApplicationVersionBootScript
 from core.models.quota import Quota
