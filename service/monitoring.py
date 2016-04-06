@@ -13,8 +13,9 @@ from core.models.allocation_strategy import AllocationStrategy as CoreAllocation
 from core.models.credential import Credential
 from core.models import IdentityMembership, Identity, InstanceStatusHistory
 from core.models.instance import Instance as CoreInstance
-from core.models.instance import convert_esh_instance,\
-    _esh_instance_size_to_core
+from core.models.instance import (
+    convert_esh_instance, _esh_instance_size_to_core
+)
 from core.models.size import convert_esh_size
 from allocation.models import Allocation, AllocationResult
 from service.cache import get_cached_instances, get_cached_driver

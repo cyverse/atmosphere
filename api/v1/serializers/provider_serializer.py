@@ -1,5 +1,5 @@
 from core.models.provider import Provider, ProviderType, ProviderInstanceAction
-from core.models.instance import InstanceAction
+from core.models.instance_action import InstanceAction
 from rest_framework import serializers
 
 

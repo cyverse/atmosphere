@@ -42,7 +42,7 @@ class HelpLink(models.Model):
     New HelpLinks should *NOT* be added/removed unless there
     are corresponding logic-choices in core code.
     """
-    link_key = models.CharField(max_length=256)
+    link_key = models.CharField(max_length=256, unique=True)
     topic = models.CharField(max_length=256)
     context = models.TextField(default='', null=True, blank=True)
     href = models.TextField()

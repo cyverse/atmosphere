@@ -9,7 +9,7 @@ import factory
 from factory.django import DjangoModelFactory
 
 from core.models import provider as models
-from core.models.instance import InstanceAction
+from core.models.instance_action import InstanceAction
 
 
 class PlatformTypeFactory(DjangoModelFactory):

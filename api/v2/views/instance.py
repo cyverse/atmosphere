@@ -8,6 +8,7 @@ from core.exceptions import ProviderNotActive
 from core.models import Instance, Identity
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
+from core.models.instance_action import InstanceAction
 from core.query import only_current
 
 from rest_framework import status
@@ -94,9 +95,12 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         return self.post_instance_action(request, pk=pk)
 
     def list_instance_actions(self, request, pk=None):
-        viewset_fn = InstanceActionViewSet.as_view({'get': 'list'})
-        resp = viewset_fn(request)
-        return resp
+        valid_actions = InstanceAction.filter_by_instance(pk)
+        serializer_class = self.get_serializer_class()
+        serialized_data = serializer_class(
+            valid_actions, many=True,
+            context={'request': request}).data
+        return Response(serialized_data)
 
     def post_instance_action(self, request, pk=None):
         user = request.user

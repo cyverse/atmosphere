@@ -21,7 +21,8 @@ from core.query import only_current
 from core.models.instance_source import InstanceSource
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
-from core.models.instance import convert_esh_instance, find_instance, InstanceAction
+from core.models.instance import convert_esh_instance, find_instance
+from core.models.instance_action import InstanceAction
 from core.models.size import convert_esh_size
 from core.models.machine import ProviderMachine
 from core.models.volume import convert_esh_volume
