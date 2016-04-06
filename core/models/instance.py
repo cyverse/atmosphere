@@ -23,7 +23,9 @@ from core.models.machine import (
 from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size, Size
 from core.models.tag import Tag
-from core.query import only_current
+from core.models.managers import (
+    InstanceActionsManager, ActiveInstancesManager
+)
 
 
 OPENSTACK_TASK_STATUS_MAP = {
@@ -135,30 +137,13 @@ class InstanceAction(models.Model):
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
 
+    # Model Managers
+    objects = models.Manager()  # The default manager.
+    valid_actions = InstanceActionsManager()
+
     def __unicode__(self):
         return "%s" %\
             (self.name,)
-
-
-class ActiveInstancesManager(models.Manager):
-
-    def _active_provider(self, now_time):
-        return (Q(source__provider__end_date__isnull=True) |
-                Q(source__provider__end_date__gt=now_time)) &\
-            Q(source__provider__active=True)
-
-    def _source_in_range(self, now_time):
-        return (Q(source__end_date__isnull=True) |
-                Q(source__end_date__gt=now_time)) &\
-            Q(source__start_date__lt=now_time)
-
-    def get_queryset(self):
-        now_time = timezone.now()
-        return super(
-            ActiveInstancesManager,
-            self) .get_queryset().filter(
-            only_current(),
-            self._source_in_range(now_time) & self._active_provider(now_time))
 
 
 class Instance(models.Model):
