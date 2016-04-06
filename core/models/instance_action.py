@@ -75,38 +75,39 @@ class InstanceAction(models.Model):
 
     @classmethod
     def valid_instance_actions(cls, instance, queryset=None):
+        """
+        Giiven an instance, determine the appropriate actions available via API
+        """
         last_history = instance.get_last_history()
         last_status = last_history.status.name
         last_activity = last_history.activity
         all_actions = []
+        # Basic Actions: Reboot and terminate will work in (almost) every case.
         all_actions.append('Terminate')
+        all_actions.append('Reboot')
         if last_status == 'active':
-            # "Green-light" active
+            all_actions.append('Redeploy')
+            # If we are "in the process of deploying"
+            # Our actions are limited to Redeploy + <Basic Actions>
             if not last_activity:
+                # "Green-light" active has access to all remaining actions.
                 all_actions.append('Shelve')
                 all_actions.append('Suspend')
                 all_actions.append('Stop')
-                all_actions.append('Reboot')
-                all_actions.append('Redeploy')
                 all_actions.append('Terminate')
                 all_actions.append('Imaging')
-            # Active and "in the process of deploying"
-            elif last_activity.lower() in [
-                    'deploying', 'deploy_error', 'initializing']:
-                all_actions.append('Reboot')
-                all_actions.append('Redeploy')
-            # Active and includes a non-listed 'activity'
         elif last_status == "suspended":
+            # Suspended instances can be resumed + <Basic Actions>
             all_actions.append('Resume')
-            all_actions.append('Reboot')
         elif last_status == "shutoff":
+            # Suspended instances can be started + <Basic Actions>
             all_actions.append('Start')
-            all_actions.append('Reboot')
         elif last_status == "shelved":
+            # Shelved instances can be unshelved or offloaded + <Basic Actions>
             all_actions.append('Shelve Offload')
             all_actions.append('Unshelve')
 
-        if len(all_actions) == 1:
+        if len(all_actions) == 2:
             logger.debug("Edge case Warning: Status/activity=(%s/%s) returns no updates to actions" % (last_status, last_activity))
 
         if not queryset:
