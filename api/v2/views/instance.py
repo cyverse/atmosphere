@@ -1,16 +1,20 @@
-from api.v2.serializers.details import InstanceSerializer
+from api.v2.serializers.details import InstanceSerializer, InstanceActionSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
+from api.v2.views.instance_action import InstanceActionViewSet
+
 from core.exceptions import ProviderNotActive
 from core.models import Instance, Identity
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
 from core.query import only_current
+
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
-from rest_framework.decorators import detail_route
+from rest_framework import renderers
+from rest_framework.decorators import detail_route, renderer_classes
 from rest_framework.response import Response
+
 from service.instance import (
     launch_instance, destroy_instance, run_instance_action,
     update_instance_metadata)
@@ -41,11 +45,14 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
     serializer_class = InstanceSerializer
     filter_fields = ('created_by__id', 'projects')
     lookup_fields = ("id", "provider_alias")
-    http_method_names = ['get', 'put', 'patch', 'post', 'delete', 'head', 'options', 'trace']
+    http_method_names = ['get', 'put', 'patch', 'post',
+                         'delete', 'head', 'options', 'trace']
 
     def get_serializer_class(self):
         if self.action == 'create':
             return POST_InstanceSerializer
+        elif self.action == 'action':
+            return InstanceActionSerializer
         return InstanceSerializer
 
     def get_queryset(self):
@@ -53,7 +60,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         Filter projects by current user.
         """
         user = self.request.user
-        identity_ids = user.current_identities.values_list('id',flat=True)
+        identity_ids = user.current_identities.values_list('id', flat=True)
         qs = Instance.objects.filter(created_by_identity__in=identity_ids)
         if 'archived' in self.request.query_params:
             return qs
@@ -62,7 +69,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
     @detail_route(methods=['post'])
     def update_metadata(self, request, pk=None):
         """
-        Until a better method comes about, we will handle Updating metadata here.
+        Until a better method comes about,
+        we will handle Updating metadata here.
         """
         data = request.data
         metadata = data.pop('metadata')
@@ -75,11 +83,22 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             logger.exception("Error occurred updating v2 instance metadata")
             return Response(exc.message, status=status.HTTP_409_CONFLICT)
 
-    @detail_route(methods=['post'])
+    @detail_route(methods=['get', 'post'])
     def action(self, request, pk=None):
         """
         Until a better method comes about, we will handle InstanceActions here.
         """
+        method = request.method
+        if method == 'GET':
+            return self.list_instance_actions(request, pk=pk)
+        return self.post_instance_action(request, pk=pk)
+
+    def list_instance_actions(self, request, pk=None):
+        viewset_fn = InstanceActionViewSet.as_view({'get': 'list'})
+        resp = viewset_fn(request)
+        return resp
+
+    def post_instance_action(self, request, pk=None):
         user = request.user
         instance_id = pk
         instance = find_instance(instance_id)
