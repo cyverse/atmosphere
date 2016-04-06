@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='helplink',
             name='link_key',
-            field=models.CharField(unique=True, max_length=256),
+            field=models.CharField(unique=True, max_length=256, editable=False),
         ),
         migrations.AlterField(
             model_name='providerinstanceaction',
