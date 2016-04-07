@@ -35,6 +35,3 @@ class InstanceActionViewSet(AuthReadOnlyViewSet):
     """
     queryset = InstanceAction.valid_actions.all()
     serializer_class = InstanceActionSerializer
-
-# TODO: Remove actions that aren't available for public consumption
-# Examples: Resize, Imaging, Terminate

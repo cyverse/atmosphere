@@ -85,12 +85,14 @@ class InstanceAction(models.Model):
         # Basic Actions: Reboot and terminate will work in (almost) every case.
         all_actions.append('Terminate')
         all_actions.append('Reboot')
+        all_actions.append('Hard Reboot')
         if last_status == 'active':
             all_actions.append('Redeploy')
             # If we are "in the process of deploying"
             # Our actions are limited to Redeploy + <Basic Actions>
             if not last_activity:
                 # "Green-light" active has access to all remaining actions.
+                all_actions.append('Resize')
                 all_actions.append('Shelve')
                 all_actions.append('Suspend')
                 all_actions.append('Stop')
