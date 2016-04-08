@@ -33,8 +33,8 @@ from service.instance import (
 from service.tasks.driver import update_metadata
 
 from api import failure_response, invalid_creds,\
-    connection_failure, malformed_response,\
-    emulate_user
+    connection_failure, malformed_response
+from api.decorators import emulate_user
 from api.exceptions import (
     inactive_provider, size_not_available, mount_failed, over_quota,
     under_threshold, over_capacity, instance_not_found)

@@ -1,4 +1,5 @@
-from core.models.instance import Instance, InstanceAction
+from core.models.instance import Instance
+from core.models.instance_action import InstanceAction
 from core.models import Tag
 from rest_framework import serializers
 from .cleaned_identity_serializer import CleanedIdentitySerializer

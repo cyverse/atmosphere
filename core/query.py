@@ -47,6 +47,34 @@ def only_current_provider(now_time=None):
         Q(provider__start_date__lt=now_time)
 
 
+def only_current_instances(now_time=None):
+    """
+    Filter the current instances.
+    """
+    def _active_source():
+        """
+        An instance.source is active if the provider is active and un-end-dated.
+        """
+        return (Q(source__provider__end_date__isnull=True) |
+                Q(source__provider__end_date__gt=now_time)) &\
+            Q(source__provider__active=True)
+
+    def _source_in_range():
+        """
+        A source is in range if it has been started before -now-
+        AND if it has not been end-dated before -now-
+        """
+        return (Q(source__end_date__isnull=True) |
+                Q(source__end_date__gt=now_time)) &\
+            Q(source__start_date__lt=now_time)
+
+    if not now_time:
+        now_time = timezone.now()
+    #NOTE: Purposefully absent: 'source_in_range'
+    return only_current() & _active_source()
+
+
+
 def only_current_machines(now_time=None):
     """
     Filters the current provider_machines.

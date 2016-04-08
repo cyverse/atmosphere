@@ -216,8 +216,9 @@ class ProviderConfiguration(models.Model):
 
 
 class ProviderInstanceAction(models.Model):
-    provider = models.ForeignKey(Provider)
-    instance_action = models.ForeignKey("InstanceAction")
+    provider = models.ForeignKey(Provider, related_name='provider_actions')
+    instance_action = models.ForeignKey("InstanceAction", related_name='provider_actions')
+    #FIXME: enabled could *always* be 'true' when present, and 'false' when not present..
     enabled = models.BooleanField(default=True)
 
     def __unicode__(self):
@@ -227,6 +228,7 @@ class ProviderInstanceAction(models.Model):
     class Meta:
         db_table = 'provider_instance_action'
         app_label = 'core'
+        unique_together = (("provider", "instance_action"),)
 
 
 class ProviderDNSServerIP(models.Model):
