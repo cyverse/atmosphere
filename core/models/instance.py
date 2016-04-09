@@ -80,6 +80,7 @@ class Instance(models.Model):
         # TODO: Profile Option
         # except InstanceStatusHistory.DoesNotExist:
         # TODO: Profile current choice
+	#FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
         last_history = self.instancestatushistory_set.order_by(
             '-start_date').first()
         if last_history:
@@ -96,6 +97,8 @@ class Instance(models.Model):
 
     def _build_first_history(self, status_name, size,
                              start_date, end_date=None, first_update=False, activity=None):
+	#FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
+        from core.models import InstanceStatusHistory
         if not first_update and status_name not in [
                 'build',
                 'pending',
@@ -125,6 +128,8 @@ class Instance(models.Model):
         else: end date previous history object, start new history object.
               return (True, new_history)
         """
+	#FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
+        from core.models import InstanceStatusHistory
         import traceback
         # 1. Get status name
         status_name = _get_status_name_for_provider(
