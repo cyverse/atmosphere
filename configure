@@ -83,7 +83,6 @@ BACKUP_EXT = '.bak.%s' % now_time.strftime("%Y%m%d_%H%M%S")
 # Example:
 #   {
 #      'SECTION_MAPPING': {
-#           'apache': ('apache',),
 #           'local.py': ('local.py',),
 #           'nginx': ('nginx', 'nginx-site', 'nginx-tropo')
 #       }
@@ -100,7 +99,6 @@ SECTION_MAPPING = {}
 # Example:
 #   {
 #       'CONFIG_FILES': {
-#            'apache': ('extras/apache/tropo.conf.j2', 'extras/apache/tropo.conf'),
 #            'local.py': ('troposphere/settings/local.py.j2',
 #                        'troposphere/settings/local.py'),
 #            'nginx': ('extras/nginx/Makefile.j2', 'extras/nginx/Makefile'),
@@ -229,14 +227,19 @@ def _coerce(val):
     This ensures that `DEBUG=False` is not evaluated as `True`.
     """
     try:
-        return ast.literal_eval(val) if not val.isdigit() else val
+        if ('[' in val or '{' in val) and '__' not in val:
+            eval_fn = eval
+        else:
+            eval_fn = ast.literal_eval
+        return eval_fn(val) if not val.isdigit() else val
     except Exception as e:
+        #print "Exception occurred during evaluation of:%s - %s" % (val, e)
         return val
 
 
 def _get_variables(variables_file=VARIABLES_PATH):
     try:
-        parser = ConfigParser.ConfigParser()
+        parser = ConfigParser.RawConfigParser()
         parser.readfp(open(variables_file))
         variables = {}
         for section in parser.sections():
