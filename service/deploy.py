@@ -24,7 +24,7 @@ from atmosphere.settings import secrets
 
 from iplantauth.protocol import ldap
 
-from core.logging import create_instance_logger
+from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
