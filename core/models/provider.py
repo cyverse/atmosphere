@@ -122,6 +122,10 @@ class Provider(models.Model):
         cred_map = self.get_credentials()
         if isinstance(esh_provider, OSProvider):
             cred_map['ex_force_auth_url'] = cred_map.pop('auth_url')
+        if cred_map.get('ex_force_auth_version','2.0_password') == '2.0_password'\
+                and '/v2.0/tokens' not in cred_map['ex_force_auth_url']:
+            cred_map['ex_force_auth_url'] += '/v2.0/tokens'
+
         elif isinstance(esh_provider, EucaProvider):
             ec2_url = cred_map.pop('ec2_url')
             url_map = EucaProvider.parse_url(ec2_url)

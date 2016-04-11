@@ -62,6 +62,12 @@ class Instance(models.Model):
     active_instances = ActiveInstancesManager()
 
     @property
+    def project_name(self):
+        if not self.created_by_identity:
+            return None
+        return self.created_by_identity.get_credential('ex_project_name')
+
+    @property
     def provider(self):
         return self.source.provider
 
