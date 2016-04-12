@@ -61,7 +61,7 @@ class Machine(object):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "<Machine:%s %s>" % (self.name, self.instance_source.identifier)
+        return "<Machine:%s %s>" % (self.name, self.identifier)
 
 
 class Size(object):
