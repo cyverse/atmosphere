@@ -20,6 +20,7 @@ router.register(r'email_feedback', views.FeedbackEmailViewSet, base_name='email-
 router.register(r'email_request_resources', views.ResourceEmailViewSet, base_name='email-request-resources')
 router.register(r'emulate_token', views.TokenEmulateViewSet, base_name='emulate-token')
 router.register(r'emulate_session', views.SessionEmulateViewSet, base_name='emulate-session')
+router.register(r'help_links', views.HelpLinkViewSet)
 router.register(r'identities', views.IdentityViewSet)
 router.register(r'identity_memberships', views.IdentityMembershipViewSet, base_name='identitymembership')
 router.register(r'images', views.ImageViewSet, base_name='application')
@@ -42,6 +43,9 @@ router.register(
     views.ImageVersionBootScriptViewSet,
     base_name='imageversion_bootscript')
 router.register(r'instances', views.InstanceViewSet, base_name='instance')
+router.register(r'instance_actions',
+    views.InstanceActionViewSet,
+    base_name='instanceaction')
 router.register(r'instance_histories',
     views.InstanceStatusHistoryViewSet,
     base_name='instancestatushistory')

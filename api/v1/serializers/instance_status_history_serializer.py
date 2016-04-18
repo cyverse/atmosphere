@@ -1,4 +1,5 @@
-from core.models.instance import InstanceStatusHistory, Instance
+from core.models.instance_history import InstanceStatusHistory
+from core.models.instance import Instance
 from core.models import Size
 from rest_framework import serializers
 

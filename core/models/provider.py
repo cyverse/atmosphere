@@ -122,6 +122,10 @@ class Provider(models.Model):
         cred_map = self.get_credentials()
         if isinstance(esh_provider, OSProvider):
             cred_map['ex_force_auth_url'] = cred_map.pop('auth_url')
+        if cred_map.get('ex_force_auth_version','2.0_password') == '2.0_password'\
+                and '/v2.0/tokens' not in cred_map['ex_force_auth_url']:
+            cred_map['ex_force_auth_url'] += '/v2.0/tokens'
+
         elif isinstance(esh_provider, EucaProvider):
             ec2_url = cred_map.pop('ec2_url')
             url_map = EucaProvider.parse_url(ec2_url)
@@ -216,8 +220,9 @@ class ProviderConfiguration(models.Model):
 
 
 class ProviderInstanceAction(models.Model):
-    provider = models.ForeignKey(Provider)
-    instance_action = models.ForeignKey("InstanceAction")
+    provider = models.ForeignKey(Provider, related_name='provider_actions')
+    instance_action = models.ForeignKey("InstanceAction", related_name='provider_actions')
+    #FIXME: enabled could *always* be 'true' when present, and 'false' when not present..
     enabled = models.BooleanField(default=True)
 
     def __unicode__(self):
@@ -227,6 +232,7 @@ class ProviderInstanceAction(models.Model):
     class Meta:
         db_table = 'provider_instance_action'
         app_label = 'core'
+        unique_together = (("provider", "instance_action"),)
 
 
 class ProviderDNSServerIP(models.Model):

@@ -6,24 +6,16 @@ from api.v2.serializers.summaries import (
     InstanceSuperSummarySerializer,
     ProviderSummarySerializer, ImageSummarySerializer)
 from api.v2.serializers.summaries.size import SizeRelatedField
-from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
-
-
-class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
-
-    def to_representation(self, value):
-        instance = Instance.objects.get(pk=value.pk)
-        # important! We have to use the SuperSummary
-        # because there are non-end_dated
-        # instances that don't have a valid size (size='Unknown')
-        serializer = InstanceSuperSummarySerializer(
-            instance,
-            context=self.context)
-        return serializer.data
+from api.v2.serializers.fields.base import (
+    ModelRelatedField, UUIDHyperlinkedIdentityField
+)
 
 
 class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
-    instance = InstanceRelatedField(queryset=Instance.objects.none())
+    instance = ModelRelatedField(
+        queryset=Instance.objects.all(),
+        serializer_class=InstanceSuperSummarySerializer,
+        style={'base_template': 'input.html'})
     size = SizeRelatedField(queryset=Size.objects.none())
     provider = ProviderSummarySerializer(
         source='instance.provider_machine.provider')

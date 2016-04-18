@@ -42,7 +42,7 @@ class HelpLink(models.Model):
     New HelpLinks should *NOT* be added/removed unless there
     are corresponding logic-choices in core code.
     """
-    link_key = models.CharField(max_length=256)
+    link_key = models.CharField(max_length=256, unique=True, editable=False)
     topic = models.CharField(max_length=256)
     context = models.TextField(default='', null=True, blank=True)
     href = models.TextField()
@@ -57,4 +57,4 @@ class HelpLink(models.Model):
         pass
 
     def __unicode__(self):
-        return "(%s) => %s" % (self.topic, self.href)
+        return "%s(%s) => %s" % (self.topic, self.link_key, self.href)

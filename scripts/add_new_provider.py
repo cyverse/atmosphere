@@ -24,8 +24,7 @@ libcloud.security.VERIFY_SSL_CERT = False
 libcloud.security.VERIFY_SSL_CERT_STRICT = False
 KVM = PlatformType.objects.get_or_create(name='KVM')[0]
 XEN = PlatformType.objects.get_or_create(name='Xen')[0]
-openstack = ProviderType.objects.get(name='OpenStack')
-eucalyptus = ProviderType.objects.get(name='Eucalyptus')
+openstack = ProviderType.objects.get_or_create(name='OpenStack')[0]
 
 valid_url = URLValidator()
 
@@ -87,17 +86,18 @@ def get_provider_info():
             platform = XEN
             break
 
+    provider_type = openstack
     # 3.  Collect provider type
-    print "Select a provider type for your new provider"
-    print "1: Openstack, 2: Eucalyptus"
-    while True:
-        provider_type = raw_input("Select a provider type (1/2): ")
-        if provider_type == '1':
-            provider_type = openstack
-            break
-        elif provider_type == '2':
-            provider_type = eucalyptus
-            break
+    #print "Select a provider type for your new provider"
+    #print "1: Openstack, 2: Eucalyptus"
+    #while True:
+    #    provider_type = raw_input("Select a provider type (1/2): ")
+    #    if provider_type == '1':
+    #        provider_type = openstack
+    #        break
+    #    elif provider_type == '2':
+    #        provider_type = eucalyptus
+    #        break
 
     return {
         "name": name,

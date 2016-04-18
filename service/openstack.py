@@ -141,47 +141,43 @@ def glance_update_machine(new_machine):
 
     This method will call glance and update any/all available information.
     """
+    new_app = new_machine.application
     base_source = new_machine.instance_source
 
     provider_uuid = base_source.provider.uuid
     identifier = base_source.identifier
-    new_app = new_machine.application
     g_image = glance_image_for(provider_uuid, identifier)
+
+    if not g_image:
+        logger.warn("DID NOT FIND glance image for %s" % new_machine)
+        return
+
+    # If glance image, we can also infer some about the application
     owner = glance_image_owner(provider_uuid, identifier, g_image)
     if owner:
         base_source.created_by = owner.created_by
         base_source.created_by_identity = owner
         base_source.save()
 
-    # If glance image, we can also infer some about the application
-    if not g_image:
-        logger.warn("DID NOT FIND glance image for %s" % new_machine)
-        return
     logger.debug("Found glance image for %s" % new_machine)
-    # Never set private=False if it's set True in the DB.
-    if hasattr(g_image, 'is_public'):
-        #'v1' glance image has attrs
-        if g_image.is_public is False:
-            new_app.private = True
-        g_end_date = glance_timestamp(g_image.deleted)
-        g_start_date = glance_timestamp(g_image.created_at)
-    elif hasattr(g_image, 'items'):
-        #'v2' glance image is a dict.
-        if g_image.get('visibility','public') is not 'public':
-            new_app.private = True
-        g_end_date = glance_timestamp(g_image.get('deleted'))
-        g_start_date = glance_timestamp(g_image.get('created_at'))
-    else:
-        raise Exception("Glance image has changed. Ask a programmer for help!")
+
+    if g_image.get('visibility','public') is not 'public':
+        new_app.private = True
+
     if new_app.first_machine() is new_machine:
         logger.debug("Glance image represents App:%s" % new_app)
         new_app.created_by = owner.created_by
         new_app.created_by_identity = owner
-        new_app.start_date = g_start_date
-        new_app.end_date = g_end_date
+
+    g_start_date = glance_timestamp(g_image.get('created_at'))
+    g_end_date = glance_timestamp(g_image.get('deleted'))
+
     if not g_start_date:
         logger.warn("Could not parse timestamp of 'created_at': %s" % g_image['created_at'])
         g_start_date = now()
+
+    new_app.start_date = g_start_date
+    new_app.end_date = g_end_date
     new_app.save()
     base_source.start_date = g_start_date
     base_source.end_date = g_end_date
@@ -208,7 +204,7 @@ def glance_image_owner(provider_uuid, identifier, glance_image=None):
         if not glance_image:
             accounts.clear_cache()
             glance_image = accounts.get_image(identifier)
-        project = accounts.user_manager.get_project_by_id(glance_image.owner)
+        project = accounts.user_manager.get_project_by_id(glance_image.get('owner'))
     except Exception as e:
         logger.exception(e)
         project = None
@@ -227,7 +223,9 @@ def glance_image_owner(provider_uuid, identifier, glance_image=None):
     return image_owner
 
 def glance_timestamp(iso_8601_stamp):
-    if not iso_8601_stamp or type(iso_8601_stamp) != str:
+    if not isinstance(iso_8601_stamp,basestring):
+        if iso_8601_stamp:
+            logger.debug("Stamp %s could not be parsed" % iso_8601_stamp)
         return None
     append_char = "Z" if iso_8601_stamp.endswith("Z") else ""
     try:

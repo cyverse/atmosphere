@@ -1,11 +1,10 @@
 """
   Instance model for atmosphere.
 """
-from uuid import uuid4
 from hashlib import md5
 from datetime import datetime, timedelta
 
-from django.db import models, transaction, DatabaseError
+from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
@@ -16,149 +15,15 @@ from rtwo.size import MockSize
 
 from threepio import logger
 
-from core.models.instance_source import InstanceSource
 from core.models.identity import Identity
+from core.models.instance_source import InstanceSource
 from core.models.machine import (
-    convert_esh_machine, get_or_create_provider_machine)
+    convert_esh_machine, get_or_create_provider_machine
+)
 from core.models.volume import convert_esh_volume
 from core.models.size import convert_esh_size, Size
 from core.models.tag import Tag
-from core.query import only_current
-
-
-OPENSTACK_TASK_STATUS_MAP = {
-    # Terminate tasks
-    # Suspend tasks
-    'resuming': 'build',
-    'suspending': 'suspended',
-    # Shutdown tasks
-    'powering-on': 'build',
-    'shutting-down': 'suspended',
-    # Instance launch tasks
-    'initializing': 'build',
-    'scheduling': 'build',
-    'spawning': 'build',
-    # Atmosphere Task-specific lines
-    'networking': 'networking',
-    'deploying': 'deploying',
-    'running_boot_script': 'deploying',
-    'deploy_error': 'deploy_error',
-    'boot_script_error': 'deploy_error',
-}
-OPENSTACK_ACTIVE_STATES = ['active']
-OPENSTACK_INACTIVE_STATES = ['build', 'suspended', 'shutoff', 'Unknown']
-
-
-def _get_status_name_for_provider(
-        provider,
-        status_name,
-        task_name=None,
-        tmp_status=None):
-    """
-    Purpose: to be used in lookups/saves
-    Return the appropriate InstanceStatus
-    """
-    provider_type = provider.get_type_name().lower()
-    if provider_type == 'openstack':
-        return _get_openstack_name_map(status_name, task_name, tmp_status)
-    logger.warn(
-        "Could not find a strategy for provider type:%s" %
-        provider_type)
-    return status_name
-
-
-def _get_openstack_name_map(status_name, task_name, tmp_status):
-    new_status = None
-    if task_name:
-        new_status = OPENSTACK_TASK_STATUS_MAP.get(task_name)
-
-    if new_status:
-        logger.debug("Task provided:%s, Status maps to %s"
-                     % (task_name, new_status))
-    elif tmp_status:
-        # ASSERT: task_name = None
-        if 'running_boot_script' in tmp_status:
-            tmp_status = 'running_boot_script' # Avoid problems due to keeping track of scripts executed 1/2, 2/3, etc.
-        new_status = OPENSTACK_TASK_STATUS_MAP.get(tmp_status)
-        logger.debug(
-            "Tmp_status provided:%s, Status maps to %s" %
-            (tmp_status, new_status))
-    if not new_status:
-        # ASSERT: tmp_status = None
-        return status_name
-    # ASSERT: new_status exists.
-    # Determine precedence/override based on status_name.
-    if status_name in OPENSTACK_ACTIVE_STATES:
-        return new_status
-    else:
-        # This covers cases like 'shutoff - deploy_error' being marked as
-        # 'shutoff'
-        return status_name
-
-
-def strfdelta(tdelta, fmt=None):
-    from string import Formatter
-    if not fmt:
-        # The standard, most human readable format.
-        fmt = "{D} days {H:02} hours {M:02} minutes {S:02} seconds"
-    if tdelta == timedelta():
-        return "0 minutes"
-    formatter = Formatter()
-    return_map = {}
-    div_by_map = {'D': 86400, 'H': 3600, 'M': 60, 'S': 1}
-    keys = map(lambda x: x[1], list(formatter.parse(fmt)))
-    remainder = int(tdelta.total_seconds())
-    for unit in ('D', 'H', 'M', 'S'):
-        if unit in keys and unit in div_by_map.keys():
-            return_map[unit], remainder = divmod(remainder, div_by_map[unit])
-
-    return formatter.format(fmt, **return_map)
-
-
-def strfdate(datetime_o, fmt=None):
-    if not fmt:
-        # The standard, most human readable format.
-        fmt = "%m/%d/%Y %H:%M:%S"
-    if not datetime_o:
-        datetime_o = timezone.now()
-    return datetime_o.strftime(fmt)
-
-
-class InstanceAction(models.Model):
-
-    """
-    An InstanceAction is a 'Type' field that lists every available action for
-    a given instance on a 'generic' cloud.
-    see 'ProviderInstanceAction' to Enable/disable a
-    specific instance action on a given cloud(Provider)
-    """
-    name = models.CharField(max_length=256)
-    description = models.TextField(blank=True, null=True)
-
-    def __unicode__(self):
-        return "%s" %\
-            (self.name,)
-
-
-class ActiveInstancesManager(models.Manager):
-
-    def _active_provider(self, now_time):
-        return (Q(source__provider__end_date__isnull=True) |
-                Q(source__provider__end_date__gt=now_time)) &\
-            Q(source__provider__active=True)
-
-    def _source_in_range(self, now_time):
-        return (Q(source__end_date__isnull=True) |
-                Q(source__end_date__gt=now_time)) &\
-            Q(source__start_date__lt=now_time)
-
-    def get_queryset(self):
-        now_time = timezone.now()
-        return super(
-            ActiveInstancesManager,
-            self) .get_queryset().filter(
-            only_current(),
-            self._source_in_range(now_time) & self._active_provider(now_time))
+from core.models.managers import ActiveInstancesManager
 
 
 class Instance(models.Model):
@@ -174,8 +39,8 @@ class Instance(models.Model):
     """
     esh = None
     name = models.CharField(max_length=256)
-    # TODO: Create custom Uuidfield?
-    # token = Used for looking up the instance on deployment
+    # TODO: CreateUUIDfield that is *not* provider_alias?
+    # token is used to help instance 'phone home' to server post-deployment.
     token = models.CharField(max_length=36, blank=True, null=True)
     tags = models.ManyToManyField(Tag, blank=True)
     # The specific machine & provider for which this instance exists
@@ -183,17 +48,24 @@ class Instance(models.Model):
     provider_alias = models.CharField(max_length=256, unique=True)
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     created_by = models.ForeignKey('AtmosphereUser')
-    created_by_identity = models.ForeignKey(Identity, null=True)  #FIXME: Why is null=True okay here?
+    #FIXME: Why is null=True okay here?
+    created_by_identity = models.ForeignKey(Identity, null=True)
     shell = models.BooleanField(default=False)
     vnc = models.BooleanField(default=False)
     password = models.CharField(max_length=64, blank=True, null=True)
-    # FIXME  Problems when setting a default.
+    # FIXME  Problems when setting a default, missing auto_now_add
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True, blank=True)
 
     # Model Managers
     objects = models.Manager()  # The default manager.
     active_instances = ActiveInstancesManager()
+
+    @property
+    def project_name(self):
+        if not self.created_by_identity:
+            return None
+        return self.created_by_identity.get_credential('ex_project_name')
 
     @property
     def provider(self):
@@ -214,6 +86,7 @@ class Instance(models.Model):
         # TODO: Profile Option
         # except InstanceStatusHistory.DoesNotExist:
         # TODO: Profile current choice
+	#FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
         last_history = self.instancestatushistory_set.order_by(
             '-start_date').first()
         if last_history:
@@ -230,6 +103,8 @@ class Instance(models.Model):
 
     def _build_first_history(self, status_name, size,
                              start_date, end_date=None, first_update=False, activity=None):
+	#FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
+        from core.models import InstanceStatusHistory
         if not first_update and status_name not in [
                 'build',
                 'pending',
@@ -259,6 +134,8 @@ class Instance(models.Model):
         else: end date previous history object, start new history object.
               return (True, new_history)
         """
+	#FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
+        from core.models import InstanceStatusHistory
         import traceback
         # 1. Get status name
         status_name = _get_status_name_for_provider(
@@ -556,164 +433,107 @@ class Instance(models.Model):
         app_label = "core"
 
 
-class InstanceStatus(models.Model):
-
-    """
-    Used to enumerate the types of actions
-    (I.e. Stopped, Suspended, Active, Deleted)
-    """
-    name = models.CharField(max_length=128)
-
-    def __unicode__(self):
-        return "%s" % self.name
-
-    class Meta:
-        db_table = "instance_status"
-        app_label = "core"
-
-
-class InstanceStatusHistory(models.Model):
-
-    """
-    Used to keep track of each change in instance status
-    (Useful for time management)
-    """
-    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
-    instance = models.ForeignKey(Instance)
-    size = models.ForeignKey("Size", null=True, blank=True)
-    status = models.ForeignKey(InstanceStatus)
-    activity = models.CharField(max_length=36, null=True, blank=True)
-    start_date = models.DateTimeField(default=timezone.now)
-    end_date = models.DateTimeField(null=True, blank=True)
-
-    @classmethod
-    def transaction(cls, status_name, activity, instance, size,
-                    start_time=None, last_history=None):
-        try:
-            with transaction.atomic():
-                if not last_history:
-                    # Required to prevent race conditions.
-                    last_history = instance.get_last_history()\
-                                           .select_for_update(nowait=True)
-                    if not last_history:
-                        raise ValueError(
-                            "A previous history is required "
-                            "to perform a transaction. Instance:%s" %
-                            (instance,))
-                    elif last_history.end_date:
-                        raise ValueError("Old history already has end date: %s"
-                                         % last_history)
-                last_history.end_date = start_time
-                last_history.save()
-                new_history = InstanceStatusHistory.create_history(
-                    status_name, instance, size, start_date=start_time, activity=activity)
-                logger.info(
-                    "Status Update - User:%s Instance:%s "
-                    "Old:%s New:%s Time:%s" %
-                    (instance.created_by,
-                     instance.provider_alias,
-                     last_history.status.name,
-                     new_history.status.name,
-                     new_history.start_date))
-                new_history.save()
-            return new_history
-        except DatabaseError:
-            logger.exception(
-                "instance_status_history: Lock is already acquired by"
-                "another transaction.")
-
-    @classmethod
-    def create_history(cls, status_name, instance, size,
-                       start_date=None, end_date=None, activity=None):
-        """
-        Creates a new (Unsaved!) InstanceStatusHistory
-        """
-        status, _ = InstanceStatus.objects.get_or_create(name=status_name)
-        new_history = InstanceStatusHistory(
-            instance=instance, size=size, status=status, activity=activity)
-        if start_date:
-            new_history.start_date = start_date
-            logger.debug("Created new history object: %s " % (new_history))
-        if end_date and not new_history.end_date:
-            new_history.end_date = end_date
-            logger.debug("End-dated new history object: %s " % (new_history))
-        return new_history
-
-    def get_active_time(self, earliest_time=None, latest_time=None):
-        """
-        A set of filters used to determine the amount of 'active time'
-        earliest_time and latest_time are taken into account, if provided.
-        """
-
-        # When to start counting
-        if earliest_time and self.start_date <= earliest_time:
-            start_time = earliest_time
-        else:
-            start_time = self.start_date
-
-        # When to stop counting.. Some history may have no end date!
-        if latest_time:
-            if not self.end_date or self.end_date >= latest_time:
-                final_time = latest_time
-                # TODO: Possibly check latest_time < timezone.now() to prevent
-                #      bad input?
-            else:
-                final_time = self.end_date
-        elif self.end_date:
-            # Final time is end date, because NOW is being used
-            # as the 'counter'
-            final_time = self.end_date
-        else:
-            # This is the current status, so stop counting now..
-            final_time = timezone.now()
-
-        # Sanity checks are important.
-        # Inactive states are not counted against you.
-        if not self.is_active():
-            return (timedelta(), start_time, final_time)
-        if self.start_date > final_time:
-            return (timedelta(), start_time, final_time)
-        # Active time is easy now!
-        active_time = final_time - start_time
-        return (active_time, start_time, final_time)
-
-    @classmethod
-    def intervals(cls, instance, start_date=None, end_date=None):
-        all_history = cls.objects.filter(instance=instance)
-        if start_date and end_date:
-            all_history = all_history.filter(
-                start_date__range=[
-                    start_date,
-                    end_date])
-        elif start_date:
-            all_history = all_history.filter(start_date__gt=start_date)
-        elif end_date:
-            all_history = all_history.filter(end_date__lt=end_date)
-        return all_history
-
-    def __unicode__(self):
-        return "%s (FROM:%s TO:%s)" % (self.status,
-                                       self.start_date,
-                                       self.end_date if self.end_date else '')
-
-    def is_active(self):
-        """
-        Use this function to determine whether or not a specific instance
-        status history should be considered 'active'
-        """
-        if self.status.name == 'active':
-            return True
-        else:
-            return False
-
-    class Meta:
-        db_table = "instance_status_history"
-        app_label = "core"
-
-
 """
 Useful utility methods for the Core Model..
 """
+OPENSTACK_TASK_STATUS_MAP = {
+    # Terminate tasks
+    # Suspend tasks
+    'resuming': 'build',
+    'suspending': 'suspended',
+    # Shutdown tasks
+    'powering-on': 'build',
+    'shutting-down': 'suspended',
+    # Instance launch tasks
+    'initializing': 'build',
+    'scheduling': 'build',
+    'spawning': 'build',
+    # Atmosphere Task-specific lines
+    'networking': 'networking',
+    'deploying': 'deploying',
+    'running_boot_script': 'deploying',
+    'deploy_error': 'deploy_error',
+    'boot_script_error': 'deploy_error',
+}
+OPENSTACK_ACTIVE_STATES = ['active']
+OPENSTACK_INACTIVE_STATES = ['build', 'suspended', 'shutoff', 'Unknown']
+
+
+def _get_status_name_for_provider(
+        provider,
+        status_name,
+        task_name=None,
+        tmp_status=None):
+    """
+    Purpose: to be used in lookups/saves
+    Return the appropriate InstanceStatus
+    """
+    provider_type = provider.get_type_name().lower()
+    if provider_type == 'openstack':
+        return _get_openstack_name_map(status_name, task_name, tmp_status)
+    logger.warn(
+        "Could not find a strategy for provider type:%s" %
+        provider_type)
+    return status_name
+
+
+def _get_openstack_name_map(status_name, task_name, tmp_status):
+    new_status = None
+    if task_name:
+        new_status = OPENSTACK_TASK_STATUS_MAP.get(task_name)
+
+    if new_status:
+        logger.debug("Task provided:%s, Status maps to %s"
+                     % (task_name, new_status))
+    elif tmp_status:
+        # ASSERT: task_name = None
+        if 'running_boot_script' in tmp_status:
+            tmp_status = 'running_boot_script' # Avoid problems due to keeping track of scripts executed 1/2, 2/3, etc.
+        new_status = OPENSTACK_TASK_STATUS_MAP.get(tmp_status)
+        logger.debug(
+            "Tmp_status provided:%s, Status maps to %s" %
+            (tmp_status, new_status))
+    if not new_status:
+        # ASSERT: tmp_status = None
+        return status_name
+    # ASSERT: new_status exists.
+    # Determine precedence/override based on status_name.
+    if status_name in OPENSTACK_ACTIVE_STATES:
+        return new_status
+    else:
+        # This covers cases like 'shutoff - deploy_error' being marked as
+        # 'shutoff'
+        return status_name
+
+
+def strfdelta(tdelta, fmt=None):
+    from string import Formatter
+    if not fmt:
+        # The standard, most human readable format.
+        fmt = "{D} days {H:02} hours {M:02} minutes {S:02} seconds"
+    if tdelta == timedelta():
+        return "0 minutes"
+    formatter = Formatter()
+    return_map = {}
+    div_by_map = {'D': 86400, 'H': 3600, 'M': 60, 'S': 1}
+    keys = map(lambda x: x[1], list(formatter.parse(fmt)))
+    remainder = int(tdelta.total_seconds())
+    for unit in ('D', 'H', 'M', 'S'):
+        if unit in keys and unit in div_by_map.keys():
+            return_map[unit], remainder = divmod(remainder, div_by_map[unit])
+
+    return formatter.format(fmt, **return_map)
+
+
+def strfdate(datetime_o, fmt=None):
+    if not fmt:
+        # The standard, most human readable format.
+        fmt = "%m/%d/%Y %H:%M:%S"
+    if not datetime_o:
+        datetime_o = timezone.now()
+    return datetime_o.strftime(fmt)
+
+
 
 
 def find_instance(instance_id):
