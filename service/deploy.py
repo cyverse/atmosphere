@@ -245,6 +245,8 @@ def build_host_name(ip):
     Return the host name
     * iPlant or jetstream
     """
+    if not ip:
+        return ""
     return jetstream_hostname(ip)
 
 
