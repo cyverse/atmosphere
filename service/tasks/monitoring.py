@@ -185,17 +185,20 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     account_drivers = {} # Provider -> accountDriver
     provider_tenant_mapping = {}  # Provider -> [{TenantId : TenantName},...]
     image_maps = {}
-    for app in new_public_apps:
-        if app in intersection:
-            celery_logger.error("Skipped public app: %s <%s>" % (app, app.id))
-            continue
-        make_machines_public(app, account_drivers, dry_run=dry_run)
+    if settings.ENFORCING:
+        for app in new_public_apps:
+            if app in intersection:
+                celery_logger.error("Skipped public app: %s <%s>" % (app, app.id))
+                continue
+            make_machines_public(app, account_drivers, dry_run=dry_run)
 
-    for app, membership in private_apps.items():
-        if app in intersection:
-            celery_logger.error("Skipped private app: %s <%s>" % (app, app.id))
-            continue
-        make_machines_private(app, membership, account_drivers, provider_tenant_mapping, image_maps, dry_run=dry_run)
+        for app, membership in private_apps.items():
+            if app in intersection:
+                celery_logger.error("Skipped private app: %s <%s>" % (app, app.id))
+                continue
+            make_machines_private(app, membership, account_drivers, provider_tenant_mapping, image_maps, dry_run=dry_run)
+    else:  # settings.ENFORCING = False
+        celery_logger.warn("Settings.ENFORCING is set to False -- So we assume this is a development build and *NO* changes should be made to glance as a result of an 'information mismatch'")
 
     if print_logs:
         celery_logger.removeHandler(consolehandler)
