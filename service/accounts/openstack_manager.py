@@ -696,6 +696,72 @@ class AccountDriver(BaseAccountDriver):
             kwargs = self._parse_domain_kwargs(kwargs, domain_override='domain')
         return self.user_manager.keystone.users.list(**kwargs)
 
+    def get_quota_limit(self, username, project_name):
+        limits = {}
+        abs_limits = self.get_absolute_limits()
+        user_limits = self.get_user_limits(username, project_name)
+        if abs_limits:
+            limits.update(abs_limits)
+        if user_limits:
+            limits.update(user_limits)
+        return limits
+
+    def get_absolute_limits(self):
+        limits = {}
+        os_limits = self.admin_driver._connection.ex_get_limits()
+        try:
+            absolute_limits = os_limits['absolute']
+            limits['cpu'] = absolute_limits['maxTotalCores']
+            limits['floating_ips'] = absolute_limits['maxTotalFloatingIps']
+            limits['instances'] = absolute_limits['maxTotalInstances']
+            limits['keypairs'] = absolute_limits['maxTotalKeypairs']
+            limits['ram'] = absolute_limits['maxTotalRAMSize']
+        except:
+            logger.exception("The method for 'reading' absolute limits has changed!")
+            
+        return limits
+
+    def get_user_limits(self, username, project_name):
+        limits = {}
+        try:
+            user_id = self.get_user(username).id
+        except:
+            logger.exception("Failed to find user %s" % username)
+            raise ValueError ("Unknown user %s" % username)
+
+        try:
+            project_id = self.get_project(project_name).id
+        except:
+            logger.exception("Failed to find project %s" % project_name)
+            raise ValueError ("Unknown project %s" % project_name)
+
+        user_limits = self._ex_list_quota_for_user(user_id, project_id)
+
+        if not user_limits:
+            return limits
+        try:
+            user_quota = user_limits['quota_set']
+            limits['cpu'] = user_quota['cores']
+            limits['floating_ips'] = user_quota['floating_ips']
+            limits['instances'] = user_quota['instances']
+            limits['keypairs'] = user_quota['key_pairs']
+            limits['ram'] = user_quota['ram']
+        except:
+            logger.exception("The method for 'reading' absolute limits has changed!")
+
+        return limits
+
+    def _ex_list_quota_for_user(self, user_id, tenant_id):
+        """
+        """
+        server_resp = self.admin_driver._connection.connection.request('/os-quota-sets/%s?user_id=%s'
+                                             % (tenant_id, user_id))
+        quota_obj = server_resp.object
+        return quota_obj
+        
+
+
+
     def list_usergroup_names(self):
         return [user.name for (user, project) in self.list_usergroups()]
 
