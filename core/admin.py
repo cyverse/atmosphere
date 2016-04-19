@@ -235,7 +235,7 @@ class TagAdmin(admin.ModelAdmin):
 @admin.register(models.Volume)
 class VolumeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["identifier", "name", "location"]
+    search_fields = ["instance_source__identifier", "name", "instance_source__provider__location", "instance_source__created_by__username"]
     list_display = ["identifier", "size", "provider",
                     "start_date", "end_date"]
     list_filter = ["instance_source__provider__location"]
