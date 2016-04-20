@@ -1,27 +1,38 @@
-import requests
+import logging
 
 from django.conf import settings
 
-import logging
 from .exceptions import TASAPIException
+from .api import tacc_api_post, tacc_api_get
+
+
 logger = logging.getLogger(__name__)
+
+
+def get_username_from_xsede(xsede_username, tacc_api=None):
+    if not tacc_api:
+        tacc_api = settings.TACC_API_URL
+    path = '/v1/users/xsede/%s' % xsede_username
+    url_match = tacc_api + path
+    resp, data = tacc_api_get(url_match)
+    try:
+        if data['status'] != 'success':
+            raise TASAPIException(
+                "NO valid username found for %s" % xsede_username)
+        tacc_username = data['result']
+        return tacc_username
+    except ValueError as exc:
+        raise TASAPIException("JSON Decode error -- %s" % exc)
 
 
 def get_project_allocations(username, tacc_api=None):
     if not tacc_api:
-        tacc_api = "https://web3.dis.tacc.utexas.edu/api-test"
+        tacc_api = settings.TACC_API_URL
     path = '/v1/projects/username/%s' % username
     url_match = tacc_api + path
-
-    username = settings.TACC_API_USER
-    password = settings.TACC_API_PASS
-    resp = requests.get(url_match, auth=(username, password))
-    if resp.status_code != 200:
-        raise Exception("Invalid Response - Expected 200: %s" % resp)
-
+    resp, data = tacc_api_get(url_match)
     project_allocations = {}
     try:
-        data = resp.json()
         if data['status'] != 'success':
             raise TASAPIException(
                 "API is returning an unexpected status: %s"
@@ -71,14 +82,7 @@ def report_project_allocation(username, project_name, su_total, start_date, end_
 
     path = '/v1/jobs'
     url_match = tacc_api + path
-
-    username = settings.TACC_API_USER
-    password = settings.TACC_API_PASS
-    logger.info(url_match)
-    logger.info(post_data)
-    # logger.info(username)
-    # logger.info(password)
-    resp = requests.post(url_match, post_data, auth=(username, password))
+    resp = tacc_api_post(url_match, post_data)
     try:
         data = resp.json()
         resp_status = data['status']

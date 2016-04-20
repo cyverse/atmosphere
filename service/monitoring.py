@@ -508,14 +508,14 @@ def _get_allocation_result(identity, start_date=None, end_date=None,
     allocation_input = apply_strategy(
         identity, core_allocation,
         limit_instances=limit_instances, limit_history=limit_history
-        )
+        start_date=start_date, end_date=end_date)
     allocation_result = calculate_allocation(
         allocation_input,
         print_logs=print_logs)
     return allocation_result
 
 
-def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=[]):
+def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=[], start_date=None, end_date=None):
     """
     Given identity and core allocation, grab the ProviderStrategy
     and apply it. Returns an "AllocationInput"
@@ -523,10 +523,10 @@ def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=
     strategy = _get_strategy(identity)
     if not strategy:
         return Allocation(credits=[], rules=[], instances=[],
-                          start_date=None, end_date=None, interval_delta=None)
     return strategy.apply(
         identity, core_allocation,
-        limit_instances=limit_instances, limit_history=limit_history)
+        limit_instances=limit_instances, limit_history=limit_history,
+        start_date=start_date, end_date=end_date)
 
 
 def _get_strategy(identity):

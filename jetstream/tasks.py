@@ -1,11 +1,12 @@
 import logging
 
 from django.conf import settings
-from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.db.models import Q
+from django.utils import timezone
 
-from jetstream.models import TASAllocationReport
-from jetstream.allocation import get_project_allocations
+from .models import TASAllocationReport
+from .allocation import get_project_allocations, get_username_from_xsede
 
 from .exceptions import TASPluginException
 
@@ -18,7 +19,7 @@ def xsede_tacc_map(username):
     Given a XSEDE username, query the XSEDEAPI to produce a TACC username
     """
     #FIXME this is wrong
-    return username
+    return get_username_from_xsede(username)
 
 def create_reports():
     """
@@ -28,15 +29,29 @@ def create_reports():
     """
     User = get_user_model()
     all_reports = []
-    for user in User.objects.all():
+    for user in User.objects.filter(username__in=['sgregory',]):
         tacc_username = xsede_tacc_map(user.username)
         project_allocations = get_project_allocations(tacc_username)
-        for allocation in project_allocations:
-            # This is the one you want to charge
+        #FIXME: User 'sgregory' has two allocations: Project:jetstream-admin && Project:TG-TRA160003
+        # Current implementation charges *both* projects.
+        # Future fix: the allocation + project_name == the allocation attached to core.Project Proj.
+        # Only those associated instances and volumes are charged.
+        for project_name, allocation in project_allocations.items():
             tacc_project_name = allocation['project']
             project_reports = _create_tas_reports_for(user, tacc_username, tacc_project_name)
             all_reports.extend(project_reports)
     return all_reports
+
+
+def validate_account(username):
+    """
+    Accounts are *ONLY* valid if they have 1+ 'jetstream' allocations.
+    """
+    tacc_username = xsede_tacc_map(username)
+    project_allocations = get_project_allocations(tacc_username)
+    if not project_allocations:
+        return False
+    return True
 
 
 def _create_tas_reports_for(user, tacc_username, tacc_project_name):
@@ -45,52 +60,64 @@ def _create_tas_reports_for(user, tacc_username, tacc_project_name):
         raise TASPluginException(
             "User %s does not have attribute 'current_identities'" % user)
     for ident in user.current_identities:
-        cred_project_name = ident.get_credential('ex_project_name')
-        identifier = "%s - %s" % (ident.provider.location, cred_project_name)  # Ex: Jetstream - TACC - TG-TRA160003
-        if cred_project_name != tacc_project_name:
-            pass
-        last_report = TASAllocationReport.objects.filter(
-            project_name=tacc_project_name,
-            scheduler_id=identifier,
-            user=user, success=True
-            ).order_by('report_date').last()
         report = _create_tas_report(
-            last_report, ident, user,
+            ident, user,
             tacc_username, tacc_project_name,
-            scheduler_id=identifier)
+        )
         all_reports.append(report)
     return all_reports
 
 
-def _create_tas_report(last_report, identity, user,
-                       tacc_username, tacc_project, scheduler_id=None):
+def _create_tas_report(identity, user,
+                       tacc_username, tacc_project, scheduler_id=None
+                       ):
     """
     Create a new report
     """
     if not user:
         raise TASPluginException("User missing")
+    if not identity:
+        raise TASPluginException("Identity missing")
     if not tacc_username:
         raise TASPluginException("TACC Username missing")
     if not tacc_project:
         raise TASPluginException("OpenStack/TACC Project missing")
     if not identity:
         raise TASPluginException("Identity missing")
+    if not scheduler_id:
+        scheduler_id = "%s + %s" % (identity.provider.location, tacc_project)
+
+    last_report = TASAllocationReport.objects.filter(
+        project_name=tacc_project,
+        scheduler_id=scheduler_id,
+        user=user
+        ).order_by('end_date').last()
     if not last_report:
         start_date = user.date_joined
     else:
         start_date = last_report.end_date
     end_date = timezone.now()
+
+    #NOTE: This is where the magic happens.
     compute_used = identity.total_usage(start_date, end_date)
+    #NOTE: Future version change
+    #project = user.shared_projects(tacc_project)
+    #compute_used = project.total_usage(identity, start_date, end_date)
     if compute_used < 0:
         raise TASPluginException(
             "Identity was not able to accurately calculate usage: %s"
             % identity)
+
     new_report = TASAllocationReport.objects.create(
         user=user, username=tacc_username, project_name=tacc_project,
         compute_used=compute_used,
-        queue_name="Jetstream - User:%s" % user.username, scheduler_id=scheduler_id,
-        start_date=start_date, end_date=end_date, tacc_api=settings.TACC_API_URL)
-    logger.info("Created new report %s" % new_report)
+        queue_name="Jetstream - User:%s" % user.username,
+        scheduler_id=scheduler_id,
+        start_date=start_date,
+        end_date=end_date,
+        tacc_api=settings.TACC_API_URL)
+    logger.info("Created New Report:%s" % new_report)
+    # NOTE:sending these reports will happen all at once, in a different task.
     return new_report
 
 """
