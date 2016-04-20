@@ -100,35 +100,6 @@ def lookupEmail(username):
     # Known function and args..
     return lookup_fn(username)
 
-def djangoLookupEmail(username):
-    """
-    Use Django's stored e-mail for user
-    return email address
-    """
-    try:
-        user = User.objects.get(username=username)
-        return user.email
-    except ObjectDoesNotExist:
-        return None
-    except Exception:
-        logger.exception("Something unexpected has happened -- See traceback")
-        return None
-
-
-def django_get_email_info(username):
-    """
-    Use Django's stored e-mail for user, then
-    Returns a 3-tuple of:
-    ("username", "email@address.com", "My Name")
-    """
-    user = User.objects.get(username=username)
-    user_name = user.get_full_name()
-    user_email = user.email
-    if not user.email:
-        raise Exception("User %s missing REQUIRED email:" % user)
-    return (username, user_email, user_name)
-
-
 def user_email_info(username):
     """
     Returns a 3-tuple of:
