@@ -26,6 +26,31 @@ class AtmosphereUser(AbstractUser):
         identity_member = identity.identity_memberships.all()[0]
         return identity_member.quota
 
+    def is_valid(self):
+        """
+        FIXME: How do we make this 'pluggable'?
+
+        """
+        # iPlant way:
+        if 'jetstream' in settings.INSTALLED_APPS:
+            return self._jetstream_valid()
+        else:
+            return self._iplant_valid()
+
+    def _jetstream_valid(self):
+        """
+        True/False if user is valid based on Jetstream rules
+        """
+        from jetstream.tasks import validate_account
+        return validate_account(self.username)
+
+    def _iplant_valid(self):
+        """
+        True/False if user is valid based on iPlant rules
+        """
+        from iplantauth.protocol.ldap import is_atmo_user
+        return is_atmo_user(self.username)
+
     @property
     def is_enabled(self):
         """
@@ -188,6 +213,9 @@ def get_default_identity(username, provider=None):
 def create_new_accounts(username, provider=None):
     from service.driver import get_account_driver
     user = AtmosphereUser.objects.get(username=username)
+    if not user.is_valid():
+        raise Exception("This account is not yet valid.")
+
     providers = get_available_providers()
     identities = []
     if not providers:
