@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('tacc_api', models.CharField(max_length=512)),
                 ('scheduler_id', models.CharField(max_length=128)),
                 ('compute_used', models.DecimalField(max_digits=19, decimal_places=10)),
-                ('start_date', models.DateTimeField(auto_now_add=True)),
+                ('start_date', models.DateTimeField()),
                 ('end_date', models.DateTimeField()),
                 ('report_date', models.DateTimeField(blank=True, null=True)),
                 ('success', models.BooleanField(default=False)),

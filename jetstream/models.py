@@ -18,7 +18,7 @@ class TASAllocationReport(models.Model):
     queue_name = models.CharField(max_length=128)
     resource_name = models.CharField(max_length=128, default="Jetstream")
     scheduler_id = models.CharField(max_length=128)
-    start_date = models.DateTimeField(auto_now_add=True)  # Required
+    start_date = models.DateTimeField()  # Required
     end_date = models.DateTimeField()  # Required
     # Meta-Metrics
     tacc_api = models.CharField(max_length=512)
@@ -26,7 +26,7 @@ class TASAllocationReport(models.Model):
     report_date = models.DateTimeField(blank=True, null=True)
     success = models.BooleanField(default=False)
 
-    def send_report(self):
+    def send(self):
         if not self.id:
             raise Exception("ERROR -- This report should be *saved* before you send it!")
         if self.success:
@@ -48,6 +48,10 @@ class TASAllocationReport(models.Model):
     def __unicode__(self):
         """
         """
-        return "%s (Username:%s Project:%s) used %s AU - Reported:%s" % \
-            (self.user.username, self.username, self.project_name,
-             self.compute_used, self.report_date)
+        duration = self.end_date - self.start_date
+        return "%s (Username:%s Project:%s) used %s AU - Duration:%s (%s - %s) Reported:%s" % \
+            (self.user.username,
+             self.username, self.project_name,
+             self.compute_used, duration,
+             self.end_date, self.start_date,
+             self.report_date)
