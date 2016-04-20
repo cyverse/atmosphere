@@ -132,9 +132,12 @@ class AllocationStrategy(models.Model):
     rules_behaviors = models.ManyToManyField(
         RulesBehavior, blank=True)
 
-    def _parse_counting_behavior(self, identity, now=None):
+    def _parse_counting_behavior(self, identity, now=None,
+                                 start_date=None, end_date=None):
         if not now:
             now = timezone.now()
+        if start_date and end_date:
+            return self._count_between(start_date, end_date)
         try:
             cb = self.counting_behavior
             if cb.name == "1 Month - Calendar Window":
@@ -145,6 +148,9 @@ class AllocationStrategy(models.Model):
                 return self._anniversary_window(identity, now)
         except CountingBehavior.DoesNotExist:
             return self._first_of_month_window(now)
+
+    def _count_between(self, start_date, end_date):
+        return FixedWindow(start_date, end_date)
 
     def _count_all_time(self, identity, now=None):
         if not now:
@@ -188,9 +194,11 @@ class AllocationStrategy(models.Model):
                 continue
         return rule_behaviors
 
-    def _parse_refresh_behaviors(self, identity, now=None):
+    def _parse_refresh_behaviors(self, identity, now=None, start_date=None):
         if not now:
             now = timezone.now()
+        if start_date:
+            return [self._one_refresh(start_date)]
         refresh_behaviors = []
         for rb in self.refresh_behaviors.all():
             if rb.name == "First of the Month":
@@ -219,6 +227,9 @@ class AllocationStrategy(models.Model):
             else monthiversary - one_month
         return OneTimeRefresh(increase_date)
 
+    def _one_refresh(self, start_date):
+        return OneTimeRefresh(start_date)
+
     def _no_refresh(self, identity):
         user_join = identity.created_by.date_joined
         return OneTimeRefresh(user_join)
@@ -230,13 +241,13 @@ class AllocationStrategy(models.Model):
                                           tzinfo=timezone.utc)
         return OneTimeRefresh(increase_date)
 
-    def apply(self, identity, core_allocation, limit_instances=[], limit_history=[]):
+    def apply(self, identity, core_allocation, limit_instances=[], limit_history=[], start_date=None, end_date=None):
         """
         Create an allocation.models.allocationstrategy
         """
         now = timezone.now()
-        counting_behavior = self._parse_counting_behavior(identity, now)
-        refresh_behaviors = self._parse_refresh_behaviors(identity, now)
+        counting_behavior = self._parse_counting_behavior(identity, now, start_date, end_date)
+        refresh_behaviors = self._parse_refresh_behaviors(identity, now, start_date)
         rules_behaviors = self._parse_rules_behaviors()
         new_strategy = PythonAllocationStrategy(
             counting_behavior, refresh_behaviors, rules_behaviors)
