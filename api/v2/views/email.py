@@ -17,7 +17,6 @@ from core.email import email_admin, resource_request_email
 from core.models import AtmosphereUser as User
 from core.models import Instance, Volume
 
-
 class EmailViewSet(ViewSet):
     permission_classes = (permissions.ApiAuthRequired,)
     required_keys = []

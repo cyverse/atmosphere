@@ -105,7 +105,6 @@ def user_email_info(username):
     Returns a 3-tuple of:
     ("username", "email@address.com", "My Name")
     """
-    logger.debug("user = %s" % username)
     if not hasattr(settings, 'USER_EMAIL_LOOKUP_METHOD'):
         return ldap_get_email_info(username)
     lookup_fn_str = settings.USER_EMAIL_LOOKUP_METHOD

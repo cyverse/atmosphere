@@ -30,9 +30,9 @@ def send_email(subject, body, from_email, to, cc=None,
                            cc=cc)
         if html:
             msg.content_subtype = 'html'
+        email_logger.info(body)
         msg.send(fail_silently=fail_silently)
         args = (from_email, to, cc, subject, body)
-        email_logger.info(log_message.format(*args))
         return True
     except Exception as e:
         celery_logger.exception(e)
