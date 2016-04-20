@@ -13,7 +13,7 @@ from rest_framework import status
 from api import permissions
 from api.v2.exceptions import failure_response
 
-from core.email import email_admin, resource_request_email
+from core.email import lookupEmail, resource_request_email, support_email, email_admin, request_data
 from core.models import AtmosphereUser as User
 from core.models import Instance, Volume
 
@@ -47,12 +47,31 @@ class EmailViewSet(ViewSet):
         raise NotImplemented("This function to be implemented by the subclass")
 
 
-class SupportEmailViewSet(EmailViewSet):
-    required_keys = ["message", "subject", "user-interface"]
+class VolumeSupportEmailViewSet(EmailViewSet):
+    required_keys = ["message", "volume"]
 
     def _email(self, user, data):
-        subject = data.pop('subject')
-        message = data.pop('message')
+        """
+        Sends an instance/volume report email to support
+
+        Returns a response.
+        """
+        subject = "Volume Instance Report from %s" % user.username;
+        volume = Volume.objects \
+                .filter(id=data["volume"])[0]
+
+        context = {
+            "problems": data.get("problems", []),
+            "ui": data.get("user-interface", ""),
+            "server": settings.SERVER_URL,
+            "message": data["message"],
+            "provider": user.selected_identity.provider_uuid(),
+            "volume": volume,
+        }
+
+        context.update(request_data(self.request))
+
+        message = render_to_string("volume_report.html", context=context)
         email_success = email_admin(
             self.request, subject, message, data=data)
         email_response = {"email_sent": email_success}
@@ -60,9 +79,43 @@ class SupportEmailViewSet(EmailViewSet):
             return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
         return Response(email_response, status=status.HTTP_200_OK)
 
+class InstanceSupportEmailViewSet(EmailViewSet):
+    required_keys = ["message", "instance"]
+
+    def _email(self, user, data):
+        """
+        Sends an instance/volume report email to support
+
+        Returns a response.
+        """
+        subject = "Atmosphere Instance Report from %s" % user.username;
+        instance = Instance.objects.filter(id=data["instance"])[0]
+        last_status = instance.instancestatushistory_set \
+                              .order_by('start_date')  \
+                              .last()
+
+        context = {
+            "problems": data.get("problems", []),
+            "ui": data.get("user-interface", ""),
+            "server": settings.SERVER_URL,
+            "message": data["message"],
+            "provider": user.selected_identity.provider_uuid(),
+            "instance": instance,
+            "status": last_status
+        }
+
+        context.update(request_data(self.request))
+
+        message = render_to_string("instance_report.html", context=context)
+        email_success = email_admin(
+            self.request, subject, message, data=data)
+        email_response = {"email_sent": email_success}
+        if not email_success:
+            return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
+        return Response(email_response, status=status.HTTP_200_OK)
 
 class FeedbackEmailViewSet(EmailViewSet):
-    required_keys = ["message", "user-interface"]
+    required_keys = ["message"]
 
     def _email(self, user, data):
         """
@@ -82,16 +135,16 @@ class FeedbackEmailViewSet(EmailViewSet):
             .filter(instance_source__end_date__isnull=True)
 
         context = {
-            "user": user,
-            "ui": data["user-interface"],
+            "ui": data.get("user-interface", ""),
             "server": settings.SERVER_URL,
             "feedback": data["message"],
             "provider": user.selected_identity.provider_uuid(),
             "instances": instances,
             "volumes": volumes,
         }
-        body = render_to_string("core/email/feedback.html",
-                                context=Context(context))
+        context.update(request_data(self.request))
+
+        body = render_to_string("feedback.html", context=context)
         email_success = email_admin(
             self.request, subject, body, request_tracker=True)
 
@@ -116,11 +169,9 @@ class ResourceEmailViewSet(EmailViewSet):
     required_keys = ["quota", "reason"]
 
     def _email(self, user, data):
-        quota = data.pop('quota')
-        reason = data.pop('reason')
         email_response = resource_request_email(
-            self.request, user.username, quota, reason)
-        if not email_response.get('email_sent', False):
-            return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
-        else:
+            self.request, user.username, data["quota"], data["reason"])
+        if email_response.get('email_sent', False):
             return Response(email_response, status=status.HTTP_200_OK)
+        else:
+            return Response(email_response, status=status.HTTP_400_BAD_REQUEST)

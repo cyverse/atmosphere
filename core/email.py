@@ -134,6 +134,19 @@ def ldap_get_email_info(username):
     return (username, user_email, user_name)
 
 
+def request_data(request):
+    user_agent, remote_ip, location, resolution = request_info(request)
+    username, email, name = lookup_user(request)
+    return {
+        "username" : username,
+        "email" : email,
+        "name" : name,
+        "resolution" : resolution,
+        "location" : location,
+        "remote_ip" : remote_ip,
+        "user_agent" : user_agent,
+    }
+
 def request_info(request):
     """ Return commonly used information from a django request object.
         user_agent, remote_ip, location, resolution.
@@ -177,14 +190,7 @@ def email_admin(request, subject, message, data=None,
     """
     user_agent, remote_ip, location, resolution = request_info(request)
     user, user_email, user_name = lookup_user(request)
-    # build email body.
-    body = u"%s\nData: %s\nLocation: %s\nSent From: %s - %s\nSent By: %s - %s"
-    body %= (message,
-             data,
-             location,
-             user, remote_ip,
-             user_agent, resolution)
-    return email_to_admin(subject, body, user, user_email, cc_user=cc_user,
+    return email_to_admin(subject, message, user, user_email, cc_user=cc_user,
                           request_tracker=request_tracker)
 
 
@@ -501,8 +507,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
 
     return email_from_admin(user.username, subject, body)
 
-
-def resource_request_email(request, username, new_resource, reason, options={}):
+def resource_request_email(request, username, quota, reason, options={}):
     """
     Processes Resource request. Sends email to the admins
 
@@ -519,14 +524,14 @@ def resource_request_email(request, username, new_resource, reason, options={}):
 
     subject = "Atmosphere Resource Request - %s" % username
     context = {
-        "user": user,
-        "resource": new_resource,
+        "quota": quota,
         "reason": reason,
         "url": request.build_absolute_uri(admin_url)
     }
-    body = render_to_string("core/email/resource_request.html",
-                            context=Context(context))
-    logger.info(body)
+    context.update(request_data(request))
+    body = render_to_string("resource_request.html", context=context)
+    success = email_admin(request, subject, body, cc_user=False)
+
     email_success = email_admin(request, subject, body, cc_user=False)
     return {"email_sent": email_success}
 

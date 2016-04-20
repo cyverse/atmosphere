@@ -1,4 +1,4 @@
-Username: {{ user.get_username }} ({{ user.get_full_name }})
+Username: {{ username }} ({{ name }})
 
 Feedback: {{ feedback }}
 
@@ -22,3 +22,5 @@ Volumes:
     ID: {{ v.identifier }}
     Size: {{ v.size }}
 {% endfor %}
+
+{% include "fingerprint.html" %}
