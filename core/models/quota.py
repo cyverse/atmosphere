@@ -24,7 +24,11 @@ def _get_default_storage():
 
 
 def _get_default_storage_count():
-    return _get_default_quota('storage_count', 3)
+    return _get_default_quota('storage_count', 10)
+
+
+def _get_default_instance_count():
+    return _get_default_quota('instance_count', 10)
 
 
 def _get_default_suspended_count():
@@ -59,6 +63,7 @@ class Quota(models.Model):
     storage = models.IntegerField(null=True, blank=True, default=_get_default_storage)  # In GB
     # In #Volumes allowed
     storage_count = models.IntegerField(null=True, blank=True, default=_get_default_storage_count)
+    instance_count = models.IntegerField(null=True, blank=True, default=_get_default_instance_count)
     # In #Suspended instances allowed
     suspended_count = models.IntegerField(null=True, blank=True, default=_get_default_suspended_count)
 
