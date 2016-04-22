@@ -776,8 +776,6 @@ class AccountDriver(BaseAccountDriver):
 
 
     def get_openstack_clients(self, username, password=None, tenant_name=None):
-        # TODO: I could replace with identity.. but should I?
-
         # Build credentials for each manager
         all_creds = self._get_openstack_credentials(
             username, password, tenant_name)

@@ -32,8 +32,12 @@ def require_input(question, validate_answer=None):
             if not answer:
                 print "ERROR: Cannot leave this answer blank!"
                 continue
-            if validate_answer and not validate_answer(answer):
-                continue
+            if validate_answer:
+                validated_answer = validate_answer(answer)
+                if not validated_answer:
+                    continue
+                else:
+                    answer = validated_answer
             break
         return answer
     except (KeyboardInterrupt, EOFError):
@@ -66,6 +70,18 @@ def review_information(provider_info, admin_info, provider_credentials):
         if '3' in delete_section:
             provider_credentials.clear()
             print "3. Provider Credentials deleted"
+
+
+def get_comma_list(raw_text):
+    """
+    Return a list from comma separated string.
+    (Protect against ', ' by stripping white-space from entries.)
+    """
+    try:
+        [entry.strip() for entry in raw_text.split(',')]
+    except Exception:
+        raise ValidationError("Invalid text: %s" % raw_text)
+    return raw_text
 
 
 def get_valid_url(raw_url):
@@ -139,7 +155,7 @@ def read_openrc_file(filename):
         "admin_url": "%s://%s:%s" % (server_scheme, server_hostname, "35357"),
         "auth_url": "%s://%s:%s" % (server_scheme, server_hostname, "5000"),
         "ex_force_auth_version": "2.0_password" if '/v2.0' in parse_results.path else '3.x_password',
-        "router_name": None,
+        "public_routers": None,
         "region_name": os_environ["OS_REGION_NAME"]
     }
     return provider_info, admin_info, credential_info
@@ -204,9 +220,9 @@ def get_provider_credentials(credential_info={}):
         auth_url = require_input("auth_url for the provider: ", get_valid_url)
         credential_info['auth_url'] = auth_url
 
-    if not credential_info.get('router_name'):
-        print "What is the router_name for the provider?"
-        credential_info['router_name'] = require_input("router_name for the provider: ")
+    if not credential_info.get('public_routers'):
+        print "List the public routers available for the provider, comma-separated. (Ex: public-router,atmosphere-router)"
+        credential_info['public_routers'] = require_input("List of public routers: ", get_comma_list)
 
     if not credential_info.get('region_name'):
         print "What is the region_name for the provider?"
@@ -291,7 +307,7 @@ def create_provider(provider_info):
 
 
 def create_provider_credentials(provider, credential_info):
-    REQUIRED_FIELDS = ["admin_url", "auth_url", "router_name", "region_name"]
+    REQUIRED_FIELDS = ["admin_url", "auth_url", "public_routers", "region_name"]
 
     if not has_fields(credential_info, REQUIRED_FIELDS):
         print "Please add missing credential information."

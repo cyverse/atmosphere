@@ -122,6 +122,7 @@ OPENSTACK_DEFAULT_ROUTER = ; openstack_router
 OPENSTACK_USER_ROLE = ; defaultMemberRole
 OPENSTACK_ADMIN_ROLE = ; admin
 ATMOSPHERE_SUPERUSER = ; atmo_superuser
+ATMOSPHERE_SECRET_SEED = ; (Random value:) 9oe5q7cp714zmmjl51
 ATMOSPHERE_VNC_LICENSE = ; vnc_license_key
 
 [celeryd.default]
