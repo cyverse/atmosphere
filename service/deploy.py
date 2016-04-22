@@ -208,9 +208,8 @@ def ready_to_deploy(instance_ip, username, instance_id):
                   "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
                   "USERSSHKEYS": user_keys}
 
-    pbs = execute_playbooks(deploy_playbooks, host_list, extra_vars, my_limit,
-                            limit_playbooks=['10_atmo_pre_setup.yml',
-                                             '15_atmo_ntp.yml'])
+    pbs = execute_playbooks(util_playbooks, host_list, extra_vars, my_limit,
+                            limit_playbooks=['check_networking.yml'])
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, hostname)
     cache_bust(hostname)
@@ -332,6 +331,9 @@ def execution_has_failures(pbs, hostname):
     return any(pb.stats.failures for pb in pbs)
 
 def raise_playbook_errors(pbs, hostname, allow_failures=False):
+    """
+    """
+    # FIXME: stats.X[hostname] failing here. We should fix before moving into production
     error_message = ""
     for pb in pbs:
         if pb.stats.dark:
