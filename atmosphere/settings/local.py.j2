@@ -208,6 +208,7 @@ ANSIBLE_HOST_FILE = os.path.join(ANSIBLE_ROOT, 'ansible/hosts')
 ANSIBLE_PLAYBOOKS_DIR = os.path.join(ANSIBLE_ROOT, 'ansible/playbooks')
 ANSIBLE_ROLES_PATH = os.path.join(ANSIBLE_ROOT, 'ansible/roles')
 
+os.environ["ANSIBLE_CONFIG"] = ANSIBLE_CONFIG_FILE 
 
 # LOGSTASH
 LOGSTASH_HOST = '{{ LOGSTASH_HOST }}'

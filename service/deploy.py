@@ -126,7 +126,7 @@ def deploy_to(instance_ip, username, instance_id):
 
     pbs = execute_playbooks(deploy_playbooks, host_list, extra_vars, my_limit)
     log_playbook_summaries(logger, pbs, hostname)
-    raise_playbook_errors(pbs, hostname)
+    raise_playbook_errors(pbs, instance_ip, hostname)
     cache_bust(hostname)
     return pbs
 
@@ -162,7 +162,7 @@ def run_utility_playbooks(instance_ip, username, instance_id, limit_playbooks=[]
                   "USERSSHKEYS": user_keys}
     pbs = execute_playbooks(deploy_playbooks, host_list, extra_vars, my_limit)
     log_playbook_summaries(logger, pbs, hostname)
-    raise_playbook_errors(pbs, hostname, allow_failures=True)
+    raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=True)
     cache_bust(hostname)
     return pbs
 
@@ -211,7 +211,7 @@ def ready_to_deploy(instance_ip, username, instance_id):
     pbs = execute_playbooks(util_playbooks, host_list, extra_vars, my_limit,
                             limit_playbooks=['check_networking.yml'])
     log_playbook_summaries(logger, pbs, hostname)
-    raise_playbook_errors(pbs, hostname)
+    raise_playbook_errors(pbs, instance_ip, hostname)
     cache_bust(hostname)
     return pbs
 
@@ -330,18 +330,26 @@ def execution_has_unreachable(pbs, hostname):
 def execution_has_failures(pbs, hostname):
     return any(pb.stats.failures for pb in pbs)
 
-def raise_playbook_errors(pbs, hostname, allow_failures=False):
+def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
     """
     """
     # FIXME: stats.X[hostname] failing here. We should fix before moving into production
     error_message = ""
     for pb in pbs:
         if pb.stats.dark:
-            error_message += playbook_error_message(
-                pb.stats.dark[hostname], "Unreachable", pb)
+            if hostname in pb.stats.dark:
+                error_message += playbook_error_message(
+                    pb.stats.dark[hostname], "Unreachable", pb)
+            elif instance_ip in pb.stats.dark:
+                error_message += playbook_error_message(
+                    pb.stats.dark[instance_ip], "Unreachable", pb)
         if not allow_failures and pb.stats.failures:
-            error_message += playbook_error_message(
-                pb.stats.failures[hostname], "Failures", pb)
+            if hostname in pb.stats.failures:
+                error_message += playbook_error_message(
+                    pb.stats.failures[hostname], "Failures", pb)
+            elif instance_ip in pb.stats.failures:
+                error_message += playbook_error_message(
+                    pb.stats.failures[instance_ip], "Failures", pb)
     if error_message:
         raise AnsibleDeployException(error_message[:-1])
 
