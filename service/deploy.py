@@ -174,6 +174,7 @@ def execute_playbooks(playbook_path, host_list, extra_vars, my_limit,
         playbook,
         host_list=host_list,
         limit_hosts=my_limit,
+        group_vars_map={filename: os.path.join(settings.ANSIBLE_GROUP_VARS_DIR,filename) for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
         private_key=settings.ATMOSPHERE_PRIVATE_KEYFILE,
         extra_vars=extra_vars) for playbook in playbooks]
     [runner.run() for runner in runners]
