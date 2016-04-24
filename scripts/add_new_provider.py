@@ -1,20 +1,16 @@
 #!/usr/bin/env python
 import argparse
 import json
+import pprint
 import sys
+import subprocess
 
-import os
-import django
-django.setup()
+import django; django.setup()
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 import libcloud.security
 
-
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
-sys.path.insert(1, root_dir)
-django.setup()
+from urlparse import urlparse
 
 from core.models import Provider, PlatformType, ProviderType, Identity, Group,\
     IdentityMembership, AccountProvider, Quota, ProviderInstanceAction
@@ -27,6 +23,49 @@ XEN = PlatformType.objects.get_or_create(name='Xen')[0]
 openstack = ProviderType.objects.get_or_create(name='OpenStack')[0]
 
 valid_url = URLValidator()
+
+
+def require_input(question, validate_answer=None):
+    try:
+        while True:
+            answer = raw_input(question)
+            if not answer:
+                print "ERROR: Cannot leave this answer blank!"
+                continue
+            if validate_answer and not validate_answer(answer):
+                continue
+            break
+        return answer
+    except (KeyboardInterrupt, EOFError):
+        print "ERROR: Script has been cancelled."
+        sys.exit(1)
+
+
+def review_information(provider_info, admin_info, provider_credentials):
+    """
+    """
+    print "1. Provider Information"
+    pprint.pprint(provider_info)
+    print "2. Admin Information"
+    pprint.pprint(admin_info)
+    print "3. Provider Credentials"
+    pprint.pprint(provider_credentials)
+    review_completed = raw_input("Does everything above look correct? [Yes]/No")
+    if not review_completed or review_completed.lower() == 'yes':
+        return
+    while True:
+        delete_section = raw_input("What section should be removed? 1, 2, 3, [exit]")
+        if not delete_section or 'exit' in delete_section:
+            break
+        if '1' in delete_section:
+            provider_info.clear()
+            print "1. Provider Information deleted"
+        if '2' in delete_section:
+            admin_info.clear()
+            print "2. Admin Information deleted"
+        if '3' in delete_section:
+            provider_credentials.clear()
+            print "3. Provider Credentials deleted"
 
 
 def get_valid_url(raw_url):
@@ -45,7 +84,7 @@ def has_fields(fields, required_fields):
     return True
 
 
-def read_provider_info(filename):
+def read_json_file(filename):
     data = None
 
     with open(filename) as fp:
@@ -70,91 +109,115 @@ def read_provider_info(filename):
     return provider_info, admin_info, credential_info
 
 
-def get_provider_info():
+def read_openrc_file(filename):
+    command = ['bash', '-c', 'source %s && env' % filename]
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+    output, err = proc.communicate()
+    os_environ = {}
+    for line in output.split('\n'):
+        (key, _, value) = line.partition("=")
+        if "OS_" in key:
+            os_environ[key] = value
+    if not os_environ:
+        print("Please specify a non-empty openrc file.")
+        sys.exit(1)
+    parse_results = urlparse(os_environ['OS_AUTH_URL'])
+    server_hostport = parse_results.port
+    server_hostname = parse_results.netloc.replace(":"+str(server_hostport), '')
+    server_scheme = parse_results.scheme
+    provider_info = {
+        "name": None,
+        "platform": None,
+        "type": openstack,
+    }
+    admin_info = {
+        "username": os_environ["OS_USERNAME"],
+        "tenant": os_environ["OS_TENANT_NAME"],
+        "password": os_environ["OS_PASSWORD"],
+        }
+    credential_info = {
+        "admin_url": "%s://%s:%s" % (server_scheme, server_hostname, "35357"),
+        "auth_url": "%s://%s:%s" % (server_scheme, server_hostname, "5000"),
+        "ex_force_auth_version": "2.0_password" if '/v2.0' in parse_results.path else '3.x_password',
+        "router_name": None,
+        "region_name": os_environ["OS_REGION_NAME"]
+    }
+    return provider_info, admin_info, credential_info
+
+
+def get_provider_info(provider_info={}):
     # 1.  Collect name
-    print "What is the name of your new provider?"
-    name = raw_input("Name of new provider: ")
+    if not provider_info.get('name'):
+        print "What is the name of your new provider?"
+        provider_info['name'] = require_input("Name of new provider: ")
     # 2.  Collect platform type
-    print "Select a platform type for your new provider"
-    print "1: KVM, 2: Xen"
-    while True:
-        platform = raw_input("Select a platform type (1/2): ")
+    if not provider_info.get('platform'):
+        print "Select a platform type for your new provider"
+        print "1: KVM, 2: Xen"
+        platform = require_input("Select a platform type (1/2): ", lambda answer: answer in ['1','2'])
         if platform == '1':
             platform = KVM
-            break
         elif platform == '2':
             platform = XEN
-            break
+        provider_info['platform'] = platform
 
-    provider_type = openstack
-    # 3.  Collect provider type
-    #print "Select a provider type for your new provider"
-    #print "1: Openstack, 2: Eucalyptus"
-    #while True:
-    #    provider_type = raw_input("Select a provider type (1/2): ")
-    #    if provider_type == '1':
-    #        provider_type = openstack
-    #        break
-    #    elif provider_type == '2':
-    #        provider_type = eucalyptus
-    #        break
-
-    return {
-        "name": name,
-        "platform": platform,
-        "type": provider_type
-    }
+    if not provider_info.get('type'):
+        # 3.  Collect provider type
+        print "Select a provider type for your new provider"
+        print "1: Openstack"
+        while True:
+            provider_type = raw_input("Select a provider type [1]: ")
+            #NOTE: this will be replaced with actual logic when necessary.
+            if True:
+                provider_type = openstack
+                break
+        provider_info['type'] = provider_type
+    return provider_info
 
 
-def get_admin_info():
-    print "What is the username of the provider admin?"
-    username = raw_input("username of provider admin: ")
+def get_admin_info(admin_info={}):
+    if not admin_info.get('username'):
+        print "What is the username of the provider admin?"
+        admin_info['username'] = require_input("username of provider admin: ")
 
-    print "What is the password of the provider admin?"
-    password = raw_input("password of provider admin: ")
+    if not admin_info.get('password'):
+        print "What is the password of the provider admin?"
+        admin_info['password'] = require_input("password of provider admin: ")
 
-    print "What is the tenant_name of the provider admin?"
-    tenant = raw_input("tenant_name of provider admin: ")
-    return {
-        "username": username,
-        "password": password,
-        "tenant": tenant
-    }
+    if not admin_info.get('tenant'):
+        print "What is the tenant_name of the provider admin?"
+        admin_info['tenant'] = require_input("tenant_name of provider admin: ")
+    return admin_info
 
 
-def get_provider_credentials():
+def get_provider_credentials(credential_info={}):
     admin_url = None
     auth_url = None
 
-    print "What is the admin_url for the provider?"
-    while not admin_url:
-        raw_url = raw_input("admin_url for the provider: ")
-        admin_url = get_valid_url(raw_url)
+    if not credential_info.get('admin_url'):
+        print "What is the admin_url for the provider?"
+        admin_url = require_input("admin_url for the provider: ", get_valid_url)
+        credential_info['admin_url'] = admin_url
 
-    print "What is the auth_url for the provider?"
-    while not auth_url:
-        raw_url = raw_input("auth_url for the provider: ")
-        auth_url = get_valid_url(raw_url)
+    if not credential_info.get('auth_url'):
+        print "What is the auth_url for the provider?"
+        auth_url = require_input("auth_url for the provider: ", get_valid_url)
+        credential_info['auth_url'] = auth_url
 
-    print "What is the router_name for the provider?"
-    router_name = raw_input("router_name for the provider: ")
+    if not credential_info.get('router_name'):
+        print "What is the router_name for the provider?"
+        credential_info['router_name'] = require_input("router_name for the provider: ")
 
-    print "What is the region_name for the provider?"
-    region_name = raw_input("region_name for the provider: ")
+    if not credential_info.get('region_name'):
+        print "What is the region_name for the provider?"
+        credential_info['region_name'] = require_input("region_name for the provider: ")
 
-    print "What is the Authentication Scheme (Openstack ONLY -- Default:'2.0_password')?"
-    ex_force_auth_version = raw_input("ex_force_auth_version for the provider: ")
-    if ex_force_auth_version not in ['2.0_password','3.x_password']:
-        ex_force_auth_version = '2.0_password'
+    if not credential_info.get('ex_force_auth_version'):
+        print "What is the Authentication Scheme (Openstack ONLY -- Default:'2.0_password')?"
+        ex_force_auth_version = require_input("ex_force_auth_version for the provider: ", lambda answer: answer in ['2.0_password','3.x_password'])
+        credential_info['ex_force_auth_version'] = ex_force_auth_version
 
-    #TODO: Validation to avoid 'hard-to-reason-about' errors from rtwo.
-    return {
-        "admin_url": admin_url,
-        "auth_url": auth_url,
-        "ex_force_auth_version": ex_force_auth_version,
-        "router_name": router_name,
-        "region_name": region_name
-    }
+    return credential_info
 
 
 def create_admin(provider, admin_info):
@@ -242,19 +305,31 @@ def main():
     parser = argparse.ArgumentParser(
         description="Add a new cloud provider and adminstrator")
 
+
+    parser.add_argument("--from-openrc", dest="openrc",
+                        help="Add a new provider from an openrc file.")
     parser.add_argument("--from-json", dest="json",
-                        help="Add a new provider for a json file.")
+                        help="Add a new provider from a json file.")
 
     arguments = parser.parse_args()
 
+    provider_info = admin_info = provider_credentials = {}
     if arguments.json:
         (provider_info,
          admin_info,
-         provider_credentials) = read_provider_info(arguments.json)
-    else:
-        provider_info = get_provider_info()
-        admin_info = get_admin_info()
-        provider_credentials = get_provider_credentials()
+         provider_credentials) = read_json_file(arguments.json)
+    elif arguments.openrc:
+        (provider_info,
+         admin_info,
+         provider_credentials) = read_openrc_file(arguments.openrc)
+    
+    while True:
+        get_provider_info(provider_info)
+        get_admin_info(admin_info)
+        get_provider_credentials(provider_credentials)
+        review_information(provider_info, admin_info, provider_credentials)
+        if provider_info and admin_info and provider_credentials:
+            break
 
     new_provider = create_provider(provider_info)
     create_provider_credentials(new_provider, provider_credentials)
