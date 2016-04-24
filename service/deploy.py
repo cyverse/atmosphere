@@ -109,7 +109,7 @@ def deploy_to(instance_ip, username, instance_id):
         instance_id)
     hostname = build_host_name(instance_ip)
     cache_bust(hostname)
-    configure_ansible(logger)
+    configure_ansible()
     my_limit = {"hostname": hostname, "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
     host_list = settings.ANSIBLE_HOST_FILE
@@ -124,7 +124,7 @@ def deploy_to(instance_ip, username, instance_id):
                   "USERSSHKEYS": user_keys
                  }
 
-    pbs = execute_playbooks(deploy_playbooks, host_list, extra_vars, my_limit)
+    pbs = execute_playbooks(deploy_playbooks, host_list, extra_vars, my_limit, logger=logger)
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, instance_ip, hostname)
     cache_bust(hostname)
@@ -144,7 +144,7 @@ def run_utility_playbooks(instance_ip, username, instance_id, limit_playbooks=[]
         instance_id)
     hostname = build_host_name(instance_ip)
     cache_bust(hostname)
-    configure_ansible(logger)
+    configure_ansible()
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
 
     # Essential args:
@@ -160,7 +160,7 @@ def run_utility_playbooks(instance_ip, username, instance_id, limit_playbooks=[]
     extra_vars = {"ATMOUSERNAME": username,
                   "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
                   "USERSSHKEYS": user_keys}
-    pbs = execute_playbooks(deploy_playbooks, host_list, extra_vars, my_limit)
+    pbs = execute_playbooks(deploy_playbooks, host_list, extra_vars, my_limit, logger=logger)
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=True)
     cache_bust(hostname)
@@ -168,15 +168,16 @@ def run_utility_playbooks(instance_ip, username, instance_id, limit_playbooks=[]
 
 
 def execute_playbooks(playbook_path, host_list, extra_vars, my_limit,
-                      limit_playbooks=None):
+                      logger=None, limit_playbooks=None):
     playbooks = list_playbooks(playbook_path, limit_playbooks)
     runners = [get_playbook_runner(
         playbook,
         host_list=host_list,
         limit_hosts=my_limit,
+        logger=logger,
         group_vars_map={filename: os.path.join(settings.ANSIBLE_GROUP_VARS_DIR,filename) for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
         private_key=settings.ATMOSPHERE_PRIVATE_KEYFILE,
-        extra_vars=extra_vars) for playbook in playbooks]
+        run_data=extra_vars) for playbook in playbooks]
     [runner.run() for runner in runners]
     return runners
 
@@ -194,7 +195,7 @@ def ready_to_deploy(instance_ip, username, instance_id):
         instance_id)
     hostname = build_host_name(instance_ip)
     cache_bust(hostname)
-    configure_ansible(logger)
+    configure_ansible()
     my_limit = {"hostname": hostname, "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
     util_playbooks = deploy_playbooks.replace('/playbooks', '/util_playbooks')
@@ -209,7 +210,7 @@ def ready_to_deploy(instance_ip, username, instance_id):
                   "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
                   "USERSSHKEYS": user_keys}
 
-    pbs = execute_playbooks(util_playbooks, host_list, extra_vars, my_limit,
+    pbs = execute_playbooks(util_playbooks, host_list, extra_vars, my_limit, logger=logger,
                             limit_playbooks=['check_networking.yml'])
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, instance_ip, hostname)
@@ -230,17 +231,16 @@ def check_ansible():
     return exists
 
 
-def configure_ansible(logger):
+def configure_ansible():
     """
     Configure ansible to work with service.ansible and subspace.
     """
-    subspace.constants("HOST_KEY_CHECKING", False)
-    subspace.constants("DEFAULT_ROLES_PATH",
+    subspace.set_constants("HOST_KEY_CHECKING", False)
+    subspace.set_constants("DEFAULT_ROLES_PATH",
                        settings.ANSIBLE_ROLES_PATH)
     if settings.ANSIBLE_CONFIG_FILE:
-        subspace.constants("ANSIBLE_CONFIG",
-                           settings.ANSIBLE_CONFIG_FILE)
-    #subspace.use_logger(logger)
+        os.environ["ANSIBLE_CONFIG"] = settings.ANSIBLE_CONFIG_FILE
+        subspace.constants.reload_config()
 
 
 def build_host_name(ip):
