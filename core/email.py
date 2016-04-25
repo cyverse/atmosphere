@@ -19,7 +19,7 @@ from atmosphere import settings
 from core.models import IdentityMembership, MachineRequest, EmailTemplate
 
 from iplantauth.protocol.ldap import lookupEmail as ldapLookupEmail, lookupUser
-from core.tasks import send_email as send_email_task
+from core.tasks import send_email
 
 
 def get_email_template():
@@ -167,23 +167,8 @@ def request_info(request):
     return (user_agent, remote_ip, location, resolution)
 
 
-def send_email(subject, body, from_email, to, cc=None,
-               fail_silently=False, html=False):
-    """
-    Queue an email to be sent
-    """
-    args = (subject, body, from_email, to)
-    kwargs = {
-        "cc": cc,
-        "fail_silently": fail_silently,
-        "html": html
-    }
-    send_email_task(*args, **kwargs)
-    return True
-
-
 def email_admin(request, subject, message, data=None,
-                cc_user=True, request_tracker=False):
+                cc_user=True, request_tracker=False, html=True):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
@@ -191,7 +176,7 @@ def email_admin(request, subject, message, data=None,
     user_agent, remote_ip, location, resolution = request_info(request)
     user, user_email, user_name = lookup_user(request)
     return email_to_admin(subject, message, user, user_email, cc_user=cc_user,
-                          request_tracker=request_tracker)
+                          request_tracker=request_tracker, html=html)
 
 
 def email_to_admin(
@@ -201,7 +186,8 @@ def email_to_admin(
         user_email=None,
         cc_user=True,
         admin_user=None,
-        request_tracker=False):
+        request_tracker=False,
+        html=False):
     """
     Send a basic email to the admins. Nothing more than subject and message
     are required.
@@ -226,14 +212,17 @@ def email_to_admin(
         username = 'Unknown'
     if request_tracker or not cc_user:
         # Send w/o the CC
-        return send_email(subject, body,
-                          from_email=email_address_str(username, user_email),
-                          to=[email_address_str(sendto, sendto_email)])
-    # Send w/ the CC
-    return send_email(subject, body,
-                      from_email=email_address_str(username, user_email),
-                      to=[email_address_str(sendto, sendto_email)],
-                      cc=[email_address_str(username, user_email)])
+        cc = []
+    else:
+        cc = [email_address_str(username, user_email)]
+        
+    send_email(subject, body,
+               from_email=email_address_str(username, user_email),
+               to=[email_address_str(sendto, sendto_email)],
+               cc=cc,
+               html=html)
+
+    return True
 
 
 def email_from_admin(username, subject, message, html=False):
@@ -245,11 +234,13 @@ def email_from_admin(username, subject, message, html=False):
     user_email = lookupEmail(username)
     if not user_email:
         user_email = "%s@%s" % (username, settings.DEFAULT_EMAIL_DOMAIN)
-    return send_email(subject, message,
-                      from_email=email_address_str(from_name, from_email),
-                      to=[email_address_str(username, user_email)],
-                      cc=[email_address_str(from_name, from_email)],
-                      html=html)
+    send_email(subject, message,
+               from_email=email_address_str(from_name, from_email),
+               to=[email_address_str(username, user_email)],
+               cc=[email_address_str(from_name, from_email)],
+               html=html)
+
+    return True
 
 
 def send_approved_resource_email(user, request, reason):
