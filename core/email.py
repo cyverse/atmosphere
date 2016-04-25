@@ -215,7 +215,7 @@ def email_to_admin(
         cc = []
     else:
         cc = [email_address_str(username, user_email)]
-        
+
     send_email(subject, body,
                from_email=email_address_str(username, user_email),
                to=[email_address_str(sendto, sendto_email)],
