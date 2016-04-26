@@ -39,14 +39,14 @@ ALLOWED_HOSTS = [unicode(SERVER_URL.replace('https://', ''))]
 
 # NOTE: first admin will be sender of atmo emails.
 ADMINS = (
-    ('Atmosphere Admin', 'help@xsede.org'),
-    ('Steven Gregory', 'esteve@iplantcollaborative.org'),
-    ('Atmosphere Alerts', 'atmo-alerts@iplantcollaborative.org'),
+    ('Atmosphere Admin', 'atmoadmin@lists.tacc.utexas.edu'),
+    ('Steve Gregory', 'sgregory@iplantcollaborative.org'),
 )
 
-
 # Required to send RequestTracker emails
-ATMO_SUPPORT = ADMINS
+ATMO_SUPPORT = (
+    ('Atmosphere Admin', 'help@xsede.org'),
+)
 ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
 
 # Django uses this one..

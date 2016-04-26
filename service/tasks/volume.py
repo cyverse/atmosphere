@@ -214,7 +214,7 @@ def umount_task(driverCls, provider, identity, instance_id,
         kwargs.update({'deploy': um_script})
         driver.deploy_to(instance, **kwargs)
 
-        if 'device is busy' in um_script.stdout:
+        if 'is busy' in um_script.stdout:
             # Show all processes that are making device busy..
             lsof_script = lsof_location(mount_location)
             kwargs.update({'deploy': lsof_script})
