@@ -286,6 +286,8 @@ def configure_ansible():
         "DEFAULT_ROLES_PATH", settings.ANSIBLE_ROLES_PATH)
     if settings.ANSIBLE_CONFIG_FILE:
         os.environ["ANSIBLE_CONFIG"] = settings.ANSIBLE_CONFIG_FILE
+        # os.environ["ANSIBLE_DEBUG"] = "true"
+        # Alternatively set this in ansible.cfg: debug = true
         subspace.constants.reload_config()
 
 
@@ -351,11 +353,12 @@ def cache_bust(hostname):
 def log_playbook_summaries(logger, pb_runners, hostname):
     if not type(pb_runners) == list:
         pb_runners = [pb_runners]
+    # No point printing playbooks when using custom subspace stats
     summaries = [
-            (pbr.playbooks, pbr.stats.summarize(hostname))
+            pbr.stats.summarize(hostname)
             for pbr in pb_runners]
-    for filename_list, summary in summaries:
-        logger.info(get_playbook_filename(','.join(filename_list)) + str(summary))
+    for summary in summaries:
+        logger.info(str(summary))
 
 
 def get_playbook_filename(filename):
