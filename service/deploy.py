@@ -173,18 +173,18 @@ def _get_user_keys(username):
 
 def execute_playbooks(playbook_dir, host_file, extra_vars, my_limit,
                       logger=None, limit_playbooks=None,
-                      runner_strategy='single', **runner_opts):
+                      runner_strategy='all', **runner_opts):
     # Force requirement of a logger for 2.0 playbook runs
     if not logger:
         logger = deploy_logger
     if runner_strategy == 'single':
         return _one_runner_one_playbook_execution(
             playbook_dir, host_file, extra_vars, my_limit,
-            logger=None, limit_playbooks=None, **runner_opts)
+            logger=logger, limit_playbooks=limit_playbooks, **runner_opts)
     else:
         return _one_runner_all_playbook_execution(
             playbook_dir, host_file, extra_vars, my_limit,
-            logger=None, limit_playbooks=None, **runner_opts)
+            logger=logger, limit_playbooks=limit_playbooks, **runner_opts)
 
 
 def _one_runner_all_playbook_execution(
@@ -225,7 +225,8 @@ def _one_runner_one_playbook_execution(
                 for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
             private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
             **runner_opts)
-        for playbook_path in os.listdir(playbook_dir)]
+        for playbook_path in os.listdir(playbook_dir)
+        if not limit_playbooks or playbook_path in limit_playbooks]
     [runner.run() for runner in runners]
     return runners
 
@@ -348,6 +349,8 @@ def cache_bust(hostname):
 
 
 def log_playbook_summaries(logger, pb_runners, hostname):
+    if not type(pb_runners) == list:
+        pb_runners = [pb_runners]
     summaries = [
             (pbr.playbooks, pbr.stats.summarize(hostname))
             for pbr in pb_runners]
@@ -365,9 +368,12 @@ def get_playbook_filename(filename):
         return basename
 
 
-def playbook_error_message(count, error_name, pb):
-    return ("%s => %s with PlayBook %s|"
-            % (count, error_name, get_playbook_filename(pb.playbook)))
+def playbook_error_message(runner_details, error_name):
+    return ("%s with PlayBook(s) => %s|"
+            % (
+               error_name,
+               runner_details
+              ))
 
 
 def execution_has_unreachable(pbs, hostname):
@@ -381,22 +387,24 @@ def execution_has_failures(pbs, hostname):
 def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
     """
     """
+    if not type(pbs) == list:
+        pbs = [pbs]
     error_message = ""
     for pb in pbs:
         if pb.stats.dark:
             if hostname in pb.stats.dark:
                 error_message += playbook_error_message(
-                    pb.stats.dark[hostname], "Unreachable", pb)
+                    pb.stats.dark[hostname], "Unreachable")
             elif instance_ip in pb.stats.dark:
                 error_message += playbook_error_message(
-                    pb.stats.dark[instance_ip], "Unreachable", pb)
+                    pb.stats.dark[instance_ip], "Unreachable")
         if not allow_failures and pb.stats.failures:
             if hostname in pb.stats.failures:
                 error_message += playbook_error_message(
-                    pb.stats.failures[hostname], "Failures", pb)
+                    pb.stats.failures[hostname], "Failures")
             elif instance_ip in pb.stats.failures:
                 error_message += playbook_error_message(
-                    pb.stats.failures[instance_ip], "Failures", pb)
+                    pb.stats.failures[instance_ip], "Failures")
     if error_message:
         raise AnsibleDeployException(error_message[:-1])
 
