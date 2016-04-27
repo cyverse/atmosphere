@@ -92,7 +92,7 @@ class LoggedScriptDeployment(ScriptDeployment):
         return node
 
 
-def deploy_to(instance_ip, username, instance_id):
+def deploy_to(instance_ip, username, instance_id, limit_playbooks=None):
     """
     Use service.ansible to deploy to an instance.
     """
@@ -118,7 +118,7 @@ def deploy_to(instance_ip, username, instance_id):
 
     pbs = execute_playbooks(
         deploy_playbooks, host_file, extra_vars, my_limit,
-        logger=logger)
+        logger=logger, limit_playbooks=limit_playbooks)
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, instance_ip, hostname)
     cache_bust(hostname)
