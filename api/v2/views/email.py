@@ -55,7 +55,7 @@ class SupportEmailViewSet(EmailViewSet):
         subject = data.pop('subject')
         message = data.pop('message')
         email_success = email_admin(
-            self.request, subject, message, data=data)
+            self.request, subject, message, data=data, request_tracker=True)
         email_response = {"email_sent": email_success}
         if not email_success:
             return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
