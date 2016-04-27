@@ -125,7 +125,7 @@ class SupportEmail(AuthAPIView):
 
         Returns a response.
         """
-        email_success = email_admin(request, subject, message)
+        email_success = email_admin(request, subject, message, request_tracker=True)
         return {"email_sent": email_success}
 
 

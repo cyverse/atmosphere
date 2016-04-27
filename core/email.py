@@ -455,7 +455,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
         staff_body = render_to_string("core/email/imaging_request_staff.html",
                                       context=Context(context))
         email_admin(request, subject, staff_body,
-                    cc_user=False)
+                    cc_user=False, request_tracker=True)
 
     return email_from_admin(user.username, subject, body)
 
@@ -483,7 +483,7 @@ def resource_request_email(request, username, new_resource, reason):
     body = render_to_string("core/email/resource_request.html",
                             context=Context(context))
     logger.info(body)
-    email_success = email_admin(request, subject, body, cc_user=False)
+    email_success = email_admin(request, subject, body, cc_user=False, request_tracker=True)
     return {"email_sent": email_success}
 
 def support_email(request, subject, message):
