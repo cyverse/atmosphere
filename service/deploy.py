@@ -1,7 +1,6 @@
 """
 Deploy methods for Atmosphere
 """
-from functools import wraps
 import os
 import re
 import subprocess
@@ -16,6 +15,7 @@ from libcloud.compute.deployment import Deployment, ScriptDeployment,\
     MultiStepDeployment
 
 import subspace
+from subspace.runner import Runner
 
 from threepio import logger, logging, deploy_logger
 
@@ -27,7 +27,6 @@ from iplantauth.protocol import ldap
 from core.logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
 from core.models import AtmosphereUser as User
-from core.models import Instance
 
 from service.exceptions import AnsibleDeployException
 
@@ -93,14 +92,12 @@ class LoggedScriptDeployment(ScriptDeployment):
         return node
 
 
-def deploy_to(instance_ip, username, instance_id):
+def deploy_to(instance_ip, username, instance_id, limit_playbooks=None):
     """
     Use service.ansible to deploy to an instance.
     """
     if not check_ansible():
         return []
-    instance = Instance.objects.get(provider_alias=instance_id)
-    provider = instance.source.provider
     logger = create_instance_logger(
         deploy_logger,
         instance_ip,
@@ -108,35 +105,33 @@ def deploy_to(instance_ip, username, instance_id):
         instance_id)
     hostname = build_host_name(instance_ip)
     cache_bust(hostname)
-    configure_ansible(logger)
+    configure_ansible()
     my_limit = {"hostname": hostname, "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
-    host_list = settings.ANSIBLE_HOST_FILE
+    host_file = settings.ANSIBLE_HOST_FILE
+    user_keys = _get_user_keys(username)
+    extra_vars = {
+        "ATMOUSERNAME": username,
+        "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
+        "USERSSHKEYS": user_keys
+    }
 
-    user_keys = []
-    user = User.objects.get(username=username)
-    if user.userprofile.use_ssh_keys:
-        user_keys = [ k.pub_key for k in get_user_ssh_keys(username)]
-
-    extra_vars = {"ATMOUSERNAME": username,
-                  "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
-                  "USERSSHKEYS": user_keys
-                 }
-
-    pbs = subspace.playbook.get_playbooks(deploy_playbooks,
-                                          host_list=host_list,
-                                          limit=my_limit,
-                                          extra_vars=extra_vars)
-    [pb.run() for pb in pbs]
+    pbs = execute_playbooks(
+        deploy_playbooks, host_file, extra_vars, my_limit,
+        logger=logger, limit_playbooks=limit_playbooks)
     log_playbook_summaries(logger, pbs, hostname)
-    raise_playbook_errors(pbs, hostname)
+    raise_playbook_errors(pbs, instance_ip, hostname)
     cache_bust(hostname)
     return pbs
 
-def run_utility_playbooks(instance_ip, username, instance_id, limit_playbooks=[]):
+
+def run_utility_playbooks(instance_ip, username, instance_id,
+                          limit_playbooks=[]):
     """
     Use service.ansible to deploy utility_playbooks to an instance.
-    'limit_playbooks' is a list of strings that should match the filename of the ansible
+    'limit_playbooks' is a list of strings
+    that should match the filename you wish to include
+    (Ex: check_networking.yml)
     """
     if not check_ansible():
         return []
@@ -147,33 +142,93 @@ def run_utility_playbooks(instance_ip, username, instance_id, limit_playbooks=[]
         instance_id)
     hostname = build_host_name(instance_ip)
     cache_bust(hostname)
-    configure_ansible(logger)
-    my_limit = {"hostname": hostname, "ip": instance_ip}
+    configure_ansible()
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
-    deploy_playbooks = playbooks_dir.replace('/playbooks', '/util_playbooks')
-    host_list = settings.ANSIBLE_HOST_FILE
 
-    user_keys = []
-    user = User.objects.get(username=username)
-    if user.userprofile.use_ssh_keys:
-        user_keys = [ k.pub_key for k in get_user_ssh_keys(username)]
-
+    # Essential args:
+    util_playbooks = playbooks_dir.replace('/playbooks', '/util_playbooks')
+    my_limit = {"hostname": hostname, "ip": instance_ip}
+    host_file = settings.ANSIBLE_HOST_FILE
+    user_keys = _get_user_keys(username)
     extra_vars = {"ATMOUSERNAME": username,
                   "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
                   "USERSSHKEYS": user_keys}
-
-    pbs = subspace.playbook.get_playbooks(deploy_playbooks,
-                                          host_list=host_list,
-                                          limit=my_limit,
-                                          extra_vars=extra_vars)
-    pbs = [pb for pb in pbs if pb.filename.split('/')[-1] in limit_playbooks]
-    [pb.run() for pb in pbs]
+    pbs = execute_playbooks(
+        util_playbooks, host_file, extra_vars, my_limit,
+        logger=logger, limit_playbooks=limit_playbooks
+    )
     log_playbook_summaries(logger, pbs, hostname)
-    raise_playbook_errors(pbs, hostname, allow_failures=True)
+    raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=True)
     cache_bust(hostname)
     return pbs
 
 
+def _get_user_keys(username):
+    user_keys = []
+    user = User.objects.get(username=username)
+    if user.userprofile.use_ssh_keys:
+        user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
+    return user_keys
+
+
+def execute_playbooks(playbook_dir, host_file, extra_vars, my_limit,
+                      logger=None, limit_playbooks=None,
+                      runner_strategy='all', **runner_opts):
+    # Force requirement of a logger for 2.0 playbook runs
+    if not logger:
+        logger = deploy_logger
+    if runner_strategy == 'single':
+        return _one_runner_one_playbook_execution(
+            playbook_dir, host_file, extra_vars, my_limit,
+            logger=logger, limit_playbooks=limit_playbooks, **runner_opts)
+    else:
+        return _one_runner_all_playbook_execution(
+            playbook_dir, host_file, extra_vars, my_limit,
+            logger=logger, limit_playbooks=limit_playbooks, **runner_opts)
+
+
+def _one_runner_all_playbook_execution(
+        playbook_dir, host_file, extra_vars, my_limit,
+        logger=None, limit_playbooks=None, **runner_opts):
+    runner = Runner.factory(
+            host_file,
+            playbook_dir,
+            run_data=extra_vars,
+            limit_hosts=my_limit,
+            logger=logger,
+            limit_playbooks=limit_playbooks,
+            # Use atmosphere settings
+            group_vars_map={
+                filename: os.path.join(
+                    settings.ANSIBLE_GROUP_VARS_DIR, filename)
+                for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
+            private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
+            **runner_opts)
+    runner.run()
+    return runner
+
+
+def _one_runner_one_playbook_execution(
+        playbook_dir, host_file, extra_vars, my_limit,
+        logger=None, limit_playbooks=None, **runner_opts):
+    runners = [Runner.factory(
+            host_file,
+            os.path.join(playbook_dir, playbook_path),
+            run_data=extra_vars,
+            limit_hosts=my_limit,
+            logger=logger,
+            limit_playbooks=limit_playbooks,
+            # Use atmosphere settings
+            group_vars_map={
+                filename: os.path.join(
+                    settings.ANSIBLE_GROUP_VARS_DIR, filename)
+                for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
+            private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
+            **runner_opts)
+        for playbook_path in os.listdir(playbook_dir)
+        if not limit_playbooks or playbook_path in limit_playbooks]
+    [runner.run() for runner in runners]
+    return runners
 
 
 def ready_to_deploy(instance_ip, username, instance_id):
@@ -189,67 +244,22 @@ def ready_to_deploy(instance_ip, username, instance_id):
         instance_id)
     hostname = build_host_name(instance_ip)
     cache_bust(hostname)
-    configure_ansible(logger)
-    my_limit = {"hostname": hostname, "ip": instance_ip}
+    configure_ansible()
+
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
-    host_list = settings.ANSIBLE_HOST_FILE
-
-    user_keys = []
-    user = User.objects.get(username=username)
-    if user.userprofile.use_ssh_keys:
-        user_keys = [ k.pub_key for k in get_user_ssh_keys(username)]
-
+    util_playbooks = deploy_playbooks.replace('/playbooks', '/util_playbooks')
+    my_limit = {"hostname": hostname, "ip": instance_ip}
+    host_file = settings.ANSIBLE_HOST_FILE
+    user_keys = _get_user_keys(username)
     extra_vars = {"ATMOUSERNAME": username,
                   "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
                   "USERSSHKEYS": user_keys}
 
-    pbs = subspace.playbook.get_playbooks(deploy_playbooks,
-                                          host_list=host_list,
-                                          limit=my_limit,
-                                          extra_vars=extra_vars)
-    #FIXME: Replace this HACK with a proper playbook return
-    pbs = [pb for pb in pbs if '00_check_networking' in pb.filename]
-    [pb.run() for pb in pbs]
+    pbs = execute_playbooks(
+        util_playbooks, host_file, extra_vars, my_limit, logger=logger,
+        limit_playbooks=['check_networking.yml'])
     log_playbook_summaries(logger, pbs, hostname)
-    raise_playbook_errors(pbs, hostname)
-    cache_bust(hostname)
-    return pbs
-
-
-def ready_to_deploy(instance_ip, username, instance_id):
-    """
-    Use service.ansible to deploy to an instance.
-    """
-    if not check_ansible():
-        return []
-    logger = create_instance_logger(
-        deploy_logger,
-        instance_ip,
-        username,
-        instance_id)
-    hostname = build_host_name(instance_ip)
-    cache_bust(hostname)
-    configure_ansible(logger)
-    my_limit = {"hostname": hostname, "ip": instance_ip}
-    deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
-    host_list = settings.ANSIBLE_HOST_FILE
-
-    user_keys = []
-    user = User.objects.get(username=username)
-    if user.userprofile.use_ssh_keys:
-        user_keys = [ k.pub_key for k in get_user_ssh_keys(username)]
-
-    extra_vars = {"ATMOUSERNAME": username,
-                  "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
-                  "USERSSHKEYS": user_keys}
-
-    pbs = subspace.playbook.get_playbooks(deploy_playbooks,
-                                          host_list=host_list,
-                                          limit=my_limit,
-                                          extra_vars=extra_vars)
-    [pb.run() for pb in pbs if '05_ssh_setup' in pb.filename]  # FIXME: this is a HACK
-    log_playbook_summaries(logger, pbs, hostname)
-    raise_playbook_errors(pbs, hostname)
+    raise_playbook_errors(pbs, instance_ip, hostname)
     cache_bust(hostname)
     return pbs
 
@@ -267,17 +277,18 @@ def check_ansible():
     return exists
 
 
-def configure_ansible(logger):
+def configure_ansible():
     """
     Configure ansible to work with service.ansible and subspace.
     """
-    subspace.constants("HOST_KEY_CHECKING", False)
-    subspace.constants("DEFAULT_ROLES_PATH",
-                       settings.ANSIBLE_ROLES_PATH)
+    subspace.set_constants("HOST_KEY_CHECKING", False)
+    subspace.set_constants(
+        "DEFAULT_ROLES_PATH", settings.ANSIBLE_ROLES_PATH)
     if settings.ANSIBLE_CONFIG_FILE:
-        subspace.constants("ANSIBLE_CONFIG",
-                           settings.ANSIBLE_CONFIG_FILE)
-    subspace.use_logger(logger)
+        os.environ["ANSIBLE_CONFIG"] = settings.ANSIBLE_CONFIG_FILE
+        # os.environ["ANSIBLE_DEBUG"] = "true"
+        # Alternatively set this in ansible.cfg: debug = true
+        subspace.constants.reload_config()
 
 
 def build_host_name(ip):
@@ -310,7 +321,7 @@ def create_hostnaming_map(ip):
             "(?P<three>[0-9]+)\.(?P<four>[0-9]+)")
         r = regex.search(ip)
         (one, two, three, four) = r.groups()
-        domain = getattr(settings, 'INSTANCE_HOSTNAMING_DOMAIN',None)
+        domain = getattr(settings, 'INSTANCE_HOSTNAMING_DOMAIN', None)
         hostname_map = {
             'one': one,
             'two': two,
@@ -320,19 +331,16 @@ def create_hostnaming_map(ip):
             }
         return hostname_map
     except Exception:
-        raise Exception("IPv4 Address expected: <%s> is not of the format VVV.XXX.YYY.ZZZ" % ip)
+        raise Exception(
+            "IPv4 Address expected: <%s> is not of the format VVV.XXX.YYY.ZZZ"
+            % ip)
 
 
-def jetstream_hostname(ip):
+def raw_hostname(ip):
     """
     For now, return raw IP
     """
-    prefix = "js-"
-    separator = "-"
-    list_of_subnet = split_ip_address(ip)
-    return "%s%s%s%s.%s" % (
-         prefix, list_of_subnet[2], separator, list_of_subnet[3],
-         "jetstream-cloud.org")
+    return ip
 
 
 def cache_bust(hostname):
@@ -342,10 +350,15 @@ def cache_bust(hostname):
         logger.warn("Problem with subspace.cache.bust: %s" % ex.message)
 
 
-def log_playbook_summaries(logger, pbs, hostname):
-    summaries = [(pb.filename, pb.stats.summarize(hostname)) for pb in pbs]
-    for filename, summary in summaries:
-        logger.info(get_playbook_filename(filename) + str(summary))
+def log_playbook_summaries(logger, pb_runners, hostname):
+    if not type(pb_runners) == list:
+        pb_runners = [pb_runners]
+    # No point printing playbooks when using custom subspace stats
+    summaries = [
+            pbr.stats.summarize(hostname)
+            for pbr in pb_runners]
+    for summary in summaries:
+        logger.info(str(summary))
 
 
 def get_playbook_filename(filename):
@@ -358,25 +371,43 @@ def get_playbook_filename(filename):
         return basename
 
 
-def playbook_error_message(count, error_name, pb):
-    return ("%s => %s with PlayBook %s|"
-            % (count, error_name, get_playbook_filename(pb.filename)))
+def playbook_error_message(runner_details, error_name):
+    return ("%s with PlayBook(s) => %s|"
+            % (
+               error_name,
+               runner_details
+              ))
+
 
 def execution_has_unreachable(pbs, hostname):
     return any(pb.stats.dark for pb in pbs)
 
+
 def execution_has_failures(pbs, hostname):
     return any(pb.stats.failures for pb in pbs)
 
-def raise_playbook_errors(pbs, hostname, allow_failures=False):
+
+def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
+    """
+    """
+    if not type(pbs) == list:
+        pbs = [pbs]
     error_message = ""
     for pb in pbs:
         if pb.stats.dark:
-            error_message += playbook_error_message(
-                pb.stats.dark[hostname], "Unreachable", pb)
+            if hostname in pb.stats.dark:
+                error_message += playbook_error_message(
+                    pb.stats.dark[hostname], "Unreachable")
+            elif instance_ip in pb.stats.dark:
+                error_message += playbook_error_message(
+                    pb.stats.dark[instance_ip], "Unreachable")
         if not allow_failures and pb.stats.failures:
-            error_message += playbook_error_message(
-                pb.stats.failures[hostname], "Failures", pb)
+            if hostname in pb.stats.failures:
+                error_message += playbook_error_message(
+                    pb.stats.failures[hostname], "Failures")
+            elif instance_ip in pb.stats.failures:
+                error_message += playbook_error_message(
+                    pb.stats.failures[instance_ip], "Failures")
     if error_message:
         raise AnsibleDeployException(error_message[:-1])
 
@@ -495,12 +526,12 @@ def package_deps(logfile=None, username=None):
         do_ubuntu = do_ubuntu + "zsh "
         do_centos = do_centos + "zsh "
     return LoggedScriptDeployment(
-        "distro_cat=`cat /etc/*-release`\n"
-        + "if [[ $distro_cat == *Ubuntu* ]]; then\n"
-        + do_ubuntu
-        + "\nelse if [[ $distro_cat == *CentOS* ]];then\n"
-        + do_centos
-        + "\nfi\nfi",
+        "distro_cat=`cat /etc/*-release`\n" +
+        "if [[ $distro_cat == *Ubuntu* ]]; then\n" +
+        do_ubuntu +
+        "\nelse if [[ $distro_cat == *CentOS* ]];then\n" +
+        do_centos +
+        "\nfi\nfi",
         name="./deploy_package_deps.sh",
         logfile=logfile)
 
@@ -598,9 +629,9 @@ def init(instance, username, password=None, token=None, redeploy=False,
     the latest init script
     """
     if not instance:
-        raise MissingArgsException("Missing instance argument.")
+        raise ValueError("Missing instance argument.")
     if not username:
-        raise MissingArgsException("Missing instance argument.")
+        raise ValueError("Missing instance argument.")
     token = kwargs.get('token', '')
     if not token:
         token = instance.id
@@ -683,7 +714,8 @@ def run_command(commandList, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 stdin=None, dry_run=False, shell=False, bash_wrap=False,
                 block_log=False):
     """
-    Using Popen, run any command at the system level and return the output and error streams
+    Using Popen, run any command at the system level
+    and return the output and error streams
     """
     if bash_wrap:
         # Wrap the entire command in '/bin/bash -c',
