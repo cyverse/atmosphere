@@ -167,8 +167,8 @@ def request_info(request):
     return (user_agent, remote_ip, location, resolution)
 
 
-def email_admin(request, subject, message, data=None,
-                cc_user=True, request_tracker=False, html=True):
+def email_admin(request, subject, message, 
+        cc_user=True, request_tracker=False, html=True):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
