@@ -1,0 +1,20 @@
+Username: {{ username }} ({{ name }})
+{% if problems %}
+Problems: 
+    {{ problems|join("\n")|indent(4, false) }}
+{% endif %}
+Details: 
+    {{ message }}
+
+Volume:
+    Name: {{ volume.name }}
+    ID: {{ volume.id }}
+    Size: {{ volume.size }} GB
+
+Provider: {{ provider }}
+
+User-interface: {{ ui }}
+
+Server: {{ server }}
+
+{% include "fingerprint.html" %}

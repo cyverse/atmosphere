@@ -9,12 +9,7 @@ from django.core.mail import EmailMessage
 
 from threepio import celery_logger, email_logger
 
-from core.models import ResourceRequest
 from core.models.status_type import get_status_type
-
-
-log_message = "Email Sent. From:{0}\nTo:{1}Cc:{2}\nSubject:{3}\nBody:\n{4}"
-
 
 @task(name="send_email")
 def send_email(subject, body, from_email, to, cc=None,
@@ -30,9 +25,10 @@ def send_email(subject, body, from_email, to, cc=None,
                            cc=cc)
         if html:
             msg.content_subtype = 'html'
-        msg.send(fail_silently=fail_silently)
+        log_message = "\n> From:{0}\n> To:{1}\n> Cc:{2}\n> Subject:{3}\n> Body:\n{4}"
         args = (from_email, to, cc, subject, body)
         email_logger.info(log_message.format(*args))
+        msg.send(fail_silently=fail_silently)
         return True
     except Exception as e:
         celery_logger.exception(e)
