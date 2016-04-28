@@ -37,3 +37,5 @@ caslib.py==2.2.2
 chromogenic==0.2.1
 # subspace==0.2.0
 git+https://github.com/iPlantCollaborativeOpenSource/subspace.git
+git+git://github.com/ansible/ansible.git@stable-2.1
+
