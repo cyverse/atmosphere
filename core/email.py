@@ -19,7 +19,7 @@ from atmosphere import settings
 from core.models import IdentityMembership, MachineRequest, EmailTemplate
 
 from iplantauth.protocol.ldap import lookupEmail as ldapLookupEmail, lookupUser
-from core.tasks import send_email as send_email_task
+from core.tasks import send_email
 
 
 def get_email_template():
@@ -100,41 +100,11 @@ def lookupEmail(username):
     # Known function and args..
     return lookup_fn(username)
 
-def djangoLookupEmail(username):
-    """
-    Use Django's stored e-mail for user
-    return email address
-    """
-    try:
-        user = User.objects.get(username=username)
-        return user.email
-    except ObjectDoesNotExist:
-        return None
-    except Exception:
-        logger.exception("Something unexpected has happened -- See traceback")
-        return None
-
-
-def django_get_email_info(username):
-    """
-    Use Django's stored e-mail for user, then
-    Returns a 3-tuple of:
-    ("username", "email@address.com", "My Name")
-    """
-    user = User.objects.get(username=username)
-    user_name = user.get_full_name()
-    user_email = user.email
-    if not user.email:
-        raise Exception("User %s missing REQUIRED email:" % user)
-    return (username, user_email, user_name)
-
-
 def user_email_info(username):
     """
     Returns a 3-tuple of:
     ("username", "email@address.com", "My Name")
     """
-    logger.debug("user = %s" % username)
     if not hasattr(settings, 'USER_EMAIL_LOOKUP_METHOD'):
         return ldap_get_email_info(username)
     lookup_fn_str = settings.USER_EMAIL_LOOKUP_METHOD
@@ -164,6 +134,19 @@ def ldap_get_email_info(username):
     return (username, user_email, user_name)
 
 
+def request_data(request):
+    user_agent, remote_ip, location, resolution = request_info(request)
+    username, email, name = lookup_user(request)
+    return {
+        "username" : username,
+        "email" : email,
+        "name" : name,
+        "resolution" : resolution,
+        "location" : location,
+        "remote_ip" : remote_ip,
+        "user_agent" : user_agent,
+    }
+
 def request_info(request):
     """ Return commonly used information from a django request object.
         user_agent, remote_ip, location, resolution.
@@ -184,38 +167,16 @@ def request_info(request):
     return (user_agent, remote_ip, location, resolution)
 
 
-def send_email(subject, body, from_email, to, cc=None,
-               fail_silently=False, html=False):
-    """
-    Queue an email to be sent
-    """
-    args = (subject, body, from_email, to)
-    kwargs = {
-        "cc": cc,
-        "fail_silently": fail_silently,
-        "html": html
-    }
-    send_email_task(*args, **kwargs)
-    return True
-
-
-def email_admin(request, subject, message, data=None,
-                cc_user=True, request_tracker=False):
+def email_admin(request, subject, message, 
+        cc_user=True, request_tracker=False, html=True):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
     """
     user_agent, remote_ip, location, resolution = request_info(request)
     user, user_email, user_name = lookup_user(request)
-    # build email body.
-    body = u"%s\nData: %s\nLocation: %s\nSent From: %s - %s\nSent By: %s - %s"
-    body %= (message,
-             data,
-             location,
-             user, remote_ip,
-             user_agent, resolution)
-    return email_to_admin(subject, body, user, user_email, cc_user=cc_user,
-                          request_tracker=request_tracker)
+    return email_to_admin(subject, message, user, user_email, cc_user=cc_user,
+                          request_tracker=request_tracker, html=html)
 
 
 def email_to_admin(
@@ -225,7 +186,8 @@ def email_to_admin(
         user_email=None,
         cc_user=True,
         admin_user=None,
-        request_tracker=False):
+        request_tracker=False,
+        html=False):
     """
     Send a basic email to the admins. Nothing more than subject and message
     are required.
@@ -250,14 +212,17 @@ def email_to_admin(
         username = 'Unknown'
     if request_tracker or not cc_user:
         # Send w/o the CC
-        return send_email(subject, body,
-                          from_email=email_address_str(username, user_email),
-                          to=[email_address_str(sendto, sendto_email)])
-    # Send w/ the CC
-    return send_email(subject, body,
-                      from_email=email_address_str(username, user_email),
-                      to=[email_address_str(sendto, sendto_email)],
-                      cc=[email_address_str(username, user_email)])
+        cc = []
+    else:
+        cc = [email_address_str(username, user_email)]
+
+    send_email(subject, body,
+               from_email=email_address_str(username, user_email),
+               to=[email_address_str(sendto, sendto_email)],
+               cc=cc,
+               html=html)
+
+    return True
 
 
 def email_from_admin(username, subject, message, html=False):
@@ -269,11 +234,13 @@ def email_from_admin(username, subject, message, html=False):
     user_email = lookupEmail(username)
     if not user_email:
         user_email = "%s@%s" % (username, settings.DEFAULT_EMAIL_DOMAIN)
-    return send_email(subject, message,
-                      from_email=email_address_str(from_name, from_email),
-                      to=[email_address_str(username, user_email)],
-                      cc=[email_address_str(from_name, from_email)],
-                      html=html)
+    send_email(subject, message,
+               from_email=email_address_str(from_name, from_email),
+               to=[email_address_str(username, user_email)],
+               cc=[email_address_str(from_name, from_email)],
+               html=html)
+
+    return True
 
 
 def send_approved_resource_email(user, request, reason):
@@ -527,12 +494,11 @@ def requestImaging(request, machine_request_id, auto_approve=False):
         staff_body = render_to_string("core/email/imaging_request_staff.html",
                                       context=Context(context))
         email_admin(request, subject, staff_body,
-                    cc_user=False)
+                    cc_user=False, request_tracker=true)
 
     return email_from_admin(user.username, subject, body)
 
-
-def resource_request_email(request, username, new_resource, reason, options={}):
+def resource_request_email(request, username, quota, reason, options={}):
     """
     Processes Resource request. Sends email to the admins
 
@@ -549,16 +515,14 @@ def resource_request_email(request, username, new_resource, reason, options={}):
 
     subject = "Atmosphere Resource Request - %s" % username
     context = {
-        "user": user,
-        "resource": new_resource,
+        "quota": quota,
         "reason": reason,
         "url": request.build_absolute_uri(admin_url)
     }
-    body = render_to_string("core/email/resource_request.html",
-                            context=Context(context))
-    logger.info(body)
-    email_success = email_admin(request, subject, body, cc_user=False)
-    return {"email_sent": email_success}
+    context.update(request_data(request))
+    body = render_to_string("resource_request.html", context=context)
+    success = email_admin(request, subject, body, cc_user=False, request_tracker=true)
+    return {"email_sent": success}
 
 def support_email(request, subject, message):
     """
@@ -571,9 +535,5 @@ def support_email(request, subject, message):
 
     Returns a response.
     """
-    email_success = email_admin(
-        request,
-        subject,
-        message,
-        request_tracker=True)
+    email_success = email_admin(request, subject, message, request_tracker=True)
     return {"email_sent": email_success}

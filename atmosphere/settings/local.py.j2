@@ -35,6 +35,14 @@ ADMINS = [
   {{ email_tuple }},
 {%- endfor %}
 ]
+
+# Required to send RequestTracker emails
+ATMO_SUPPORT = ADMINS
+ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
+
+# Django uses this one..
+MANAGERS = ADMINS
+
 {% endif %}
 SUPPORT_EMAIL = '{{ SUPPORT_EMAIL }}'
 SUPPORT_EMAIL_SIGNATURE = '{{ SUPPORT_EMAIL_SIGNATURE }}'
