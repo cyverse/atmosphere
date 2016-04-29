@@ -213,9 +213,11 @@ ANSIBLE_ROOT = '{{ ANSIBLE_ROOT }}'
 # run and will warn that ansible is no configured.
 ANSIBLE_CONFIG_FILE = os.path.join(ANSIBLE_ROOT, 'ansible/ansible.cfg')
 ANSIBLE_HOST_FILE = os.path.join(ANSIBLE_ROOT, 'ansible/hosts')
+ANSIBLE_GROUP_VARS_DIR = os.path.join(ANSIBLE_ROOT, 'ansible/group_vars')
 ANSIBLE_PLAYBOOKS_DIR = os.path.join(ANSIBLE_ROOT, 'ansible/playbooks')
 ANSIBLE_ROLES_PATH = os.path.join(ANSIBLE_ROOT, 'ansible/roles')
 
+os.environ["ANSIBLE_CONFIG"] = ANSIBLE_CONFIG_FILE 
 
 # LOGSTASH
 LOGSTASH_HOST = '{{ LOGSTASH_HOST }}'

@@ -16,7 +16,7 @@ CELERYD_NODES="$CELERYD_NODES atmosphere-fast_1 atmosphere-fast_2"
 CELERYD_NODES="$CELERYD_NODES atmosphere-long_1 atmosphere-long_2 atmosphere-long_3 atmosphere-long_4 atmosphere-long_5 atmosphere-long_6 atmosphere-long_7"
 CELERYD_NODES="$CELERYD_NODES imaging celery_periodic email"
 
-CELERYD_OPTS="-Q:atmosphere-node_1 default -c:atmosphere-node_1 5 -O:atmosphere-node_1 fair"
+CELERYD_OPTS="-P eventlet -Q:atmosphere-node_1 default -c:atmosphere-node_1 5 -O:atmosphere-node_1 fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_2 default -c:atmosphere-node_2 5 -O:atmosphere-node_2 fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_3 default -c:atmosphere-node_3 5 -O:atmosphere-node_3 fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_4 default -c:atmosphere-node_4 5 -O:atmosphere-node_4 fair"
@@ -44,7 +44,7 @@ CELERYD_OPTS="$CELERYD_OPTS -Q:email email -c:email 1 -O:email fair"
 #############
 
 CELERYD_NODES="atmosphere-node_1"
-CELERYD_OPTS="-Q default,fast_deploy,ssh_deploy,email,imaging,celery_periodic -c 13 -O fair"
+CELERYD_OPTS="-P gevent -Q default,fast_deploy,ssh_deploy,email,imaging,celery_periodic -c 13 -O fair"
 
 {% endif %}
 
