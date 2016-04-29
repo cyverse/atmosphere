@@ -380,10 +380,14 @@ def playbook_error_message(runner_details, error_name):
 
 
 def execution_has_unreachable(pbs, hostname):
+    if type(pbs) != list:
+        pbs = [pbs]
     return any(pb.stats.dark for pb in pbs)
 
 
 def execution_has_failures(pbs, hostname):
+    if type(pbs) != list:
+        pbs = [pbs]
     return any(pb.stats.failures for pb in pbs)
 
 
