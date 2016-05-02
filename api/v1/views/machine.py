@@ -31,7 +31,7 @@ from service.search import search, CoreSearchProvider
 
 from api.exceptions import (
     invalid_creds, malformed_response, connection_failure,
-    failure_response, inactive_provider, invalid_provider)
+    failure_response, inactive_provider, invalid_provider_identity)
 from api.pagination import OptionalPagination
 from api.renderers import JPEGRenderer, PNGRenderer
 from api.v1.serializers import ProviderMachineSerializer,\
