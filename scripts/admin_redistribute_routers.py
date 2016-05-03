@@ -2,6 +2,14 @@
 """
 This script will take all users without a 'router_name' credential in Identity and assign it to them.
 Distribution will occur evenly across the list in `provider.get_routers()`, and take into account previously set router_names.
+
+NOTES:This is the only script that will (re)assign router names to identities.
+
+      To ensure minimal disruption of user accounts, this should be performed while in 'Maintenance' with *ALL* instances shut down or suspended.
+
+      Additionally, you will want to remove tenant networks (This will be done by default if instances are suspended/shutdown through atmosphere)
+
+      After the routers have been re-distributed, you should be able to resume/start your instance without incident.
 """
 import argparse
 import django; django.setup()
@@ -12,14 +20,14 @@ def main(args):
     provider_id = args.provider
     redistribute = args.redistribute
     for provider in Provider.objects.filter(id=provider_id):
+        router_map = provider.get_router_distribution()  # Print 'before'
+
         if redistribute:
             needs_router = provider.identity_set.all()
+            router_map = {key: 0 for key in router_map.keys()}
         else:
             needs_router = provider.missing_routers()
 
-        router_map = provider.get_router_distribution(redistribute=redistribute)  # Print 'before'
-        if redistribute:
-            router_map = {key: 0 for key in router_map.keys()}
         for identity in needs_router:
             # Select next available router for the identity
             selected_router = provider.select_router(router_map)

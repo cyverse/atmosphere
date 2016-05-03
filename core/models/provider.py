@@ -176,6 +176,14 @@ class Provider(models.Model):
             return [router_name]
 
     def select_router(self, router_distribution=None):
+        """
+        Select and return the router_name with the smallest number of users
+
+        param: router_distribution (Optional) - This dictionary will be used
+        in place of `self.get_router_distribution()` allowing you to speed up
+        -OR- redistribute all routers evently as part of a batch process.
+        (See scripts/admin_redistribute_routers.py)
+        """
         if not router_distribution:
             router_distribution = self.get_router_distribution()
         minimum = -1
@@ -189,7 +197,13 @@ class Provider(models.Model):
                 minimum_key = key
         return minimum_key
 
-    def get_router_distribution(self, router_count_map={}, redistribute=False):
+    def get_router_distribution(self, router_count_map={}):
+        """
+        Determine the distibution of routers based on:
+        * The router names that are stored on the provider
+        * The router names that are stored directly on an identity (for this provider)
+
+        """
         router_list = self.get_routers()
         if not router_count_map:
             router_count_map = {rtr: 0 for rtr in router_list}

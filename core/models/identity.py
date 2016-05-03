@@ -157,6 +157,10 @@ class Identity(models.Model):
             c_key = c_key.replace('cred_', '')
             credentials[c_key] = c_value
 
+        #DEV NOTE: 'New' identities are expected to have a router name directly assigned
+        # upon creation. If the value is not passed in, we can ask the provider to select
+        # the router with the least 'usage' to ensure an "eventually consistent" distribution
+        # of users->routers.
         if 'router_name' not in credentials:
             credentials['router_name'] = provider.select_router()
 
