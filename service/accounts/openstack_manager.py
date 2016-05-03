@@ -89,6 +89,9 @@ class AccountDriver(BaseAccountDriver):
         ("UDP", 4200, 4200, "128.196.0.0/16"),
         ("TCP", 4200, 4200, "150.135.0.0/16"),
         ("UDP", 4200, 4200, "150.135.0.0/16"),
+        # Poke hole in 4200 for Jetsteam "Service VMs" only (WebDesktop//NoVNC)
+        ("TCP", 4200, 4200, "149.165.238.0/24"),
+        ("UDP", 4200, 4200, "149.165.238.0/24"),
 
     ]
 
