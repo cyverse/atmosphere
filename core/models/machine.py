@@ -229,7 +229,8 @@ def get_cached_machine(provider_alias, provider_id):
 
 
 def get_or_create_provider_machine(image_id, machine_name,
-                                   provider_uuid, app=None, version=None):
+                                   provider_uuid, app=None, version=None,
+                                   version_name="1.0"):
     """
     Guaranteed Return of ProviderMachine.
     1. Load provider machine from DB
@@ -252,7 +253,7 @@ def get_or_create_provider_machine(image_id, machine_name,
     if not version:
         version = get_version_for_machine(provider_uuid, image_id, fuzzy=True)
     if not version:
-        version = create_app_version(app, "1.0", provider_machine_id=image_id)
+        version = create_app_version(app, version_name, provider_machine_id=image_id)
 
     if type(version) in [models.QuerySet, list]:
         version = version[0]
