@@ -194,11 +194,16 @@ AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
 INIT_SCRIPT_PREFIX = '/init_files/'
 DEPLOY_SERVER_URL = SERVER_URL.replace("https", "http")
 
-# Stops 500 errors when logs are missing.
-# NOTE: If the permissions are wrong, this won't help
+# ATMOSPHERE NAMING CONVENTIONS
+# NOTE: If these values are overriden often, make this configurable
+APPLICATION_VERSION_SEPARATOR = "Version:"
 
 
 def check_and_touch(file_path):
+    """
+    Stops 500 errors when logs are missing.
+    NOTE: If the permissions are wrong, this won't help
+    """
     if os.path.exists(file_path):
         return
     parent_dir = os.path.dirname(file_path)
