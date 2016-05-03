@@ -1536,7 +1536,7 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
     if device == 'null' or device == 'None':
         device = None
     if 'attach_volume' == action_type:
-        instance_status = esh_instance.extra['status']
+        instance_status = esh_instance.extra.get('status', "N/A")
         if instance_status != 'active':
             raise VolumeAttachConflict(
                 message='Instance %s must be active before attaching '

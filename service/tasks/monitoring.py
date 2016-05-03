@@ -417,7 +417,12 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
         for machine in version.active_machines():
             provider = machine.instance_source.provider
             account_driver = memoized_driver(machine, account_drivers)
-            image = account_driver.image_manager.get_image(image_id=machine.identifier)
+            try:
+                image = account_driver.image_manager.get_image(image_id=machine.identifier)
+            except:  # Image not found
+                celery_logger.info("Image not found on this provider: %s" % (machine))
+                continue
+
             image_is_public = image.is_public if hasattr(image,'is_public') else image.get('visibility','') == 'public'
             if image and image_is_public == False:
                 celery_logger.info("Making Machine %s public" % image.id)
@@ -425,7 +430,7 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
                     account_driver.image_manager.glance.images.update(image.id, visibility='public')
     # Set top-level application to public (This will make all versions and PMs public too!)
     application.private = False
-    celery_logger.info("Making Application %s public" % application.name)
+    celery_logger.info("Making Application %s:%s public" % (application.id,application.name))
     if not dry_run:
         application.save()
 
