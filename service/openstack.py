@@ -58,7 +58,6 @@ def glance_write_machine(provider_machine):
         accounts.image_manager.glance.images.update(
             g_image.id, **overrides)
     return True
-    
 
 
 def _make_safe(unsafe_str):
@@ -112,7 +111,7 @@ def glance_update_machine_metadata(provider_machine, metadata={}):
 
 
 
-def glance_update_machine(new_machine):
+def glance_read_machine(new_machine):
     """
     The glance API contains MOAR information about the image then
     a call to 'list_machines()' on the OpenStack (Compute/Nova) Driver.

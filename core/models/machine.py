@@ -407,16 +407,16 @@ def update_application_owner(application, identity):
         print "Removed access to %s for %s" % (image_id, old_tenant_name)
 
 
-def provider_machine_update_hook(new_machine, provider_uuid, identifier):
+def read_cloud_machine_hook(new_machine, provider_uuid, identifier):
     """
     RULES:
     #1. READ operations ONLY!
     #2. FROM Cloud --> ProviderMachine ONLY!
     """
-    from service.openstack import glance_update_machine
+    from service.openstack import glance_read_machine
     provider = Provider.objects.get(uuid=provider_uuid)
     if provider.get_type_name().lower() == 'openstack':
-        glance_update_machine(new_machine)
+        glance_read_machine(new_machine)
     else:
         logger.warn(
             "machine data for %s is likely incomplete."
@@ -455,7 +455,7 @@ def create_provider_machine(identifier, provider_uuid, app,
         instance_source=source,
         application_version=version,
     )
-    provider_machine_update_hook(provider_machine, provider_uuid, identifier)
+    read_cloud_machine_hook(provider_machine, provider_uuid, identifier)
     logger.info("New ProviderMachine created: %s" % provider_machine)
     add_to_cache(provider_machine)
     return provider_machine
