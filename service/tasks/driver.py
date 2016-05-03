@@ -36,7 +36,7 @@ from service.deploy import (
     inject_env_script, check_process, wrap_script,
     deploy_to as ansible_deploy_to, build_host_name,
     ready_to_deploy as ansible_ready_to_deploy,
-    run_utility_playbooks, execution_has_failures
+    run_utility_playbooks, execution_has_failures, execution_has_unreachable
     )
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
@@ -980,6 +980,9 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
             celery_logger.debug("Instance has been teminated: %s." % instance_id)
             raise Exception("Instance maybe terminated? "
                             "-- Going to keep trying anyway")
+        if not instance.ip:
+            celery_logger.debug("Instance IP address missing from : %s." % instance)
+            raise Exception("Instance IP Missing? %s" % instance)
 
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
@@ -1104,7 +1107,7 @@ def check_process_task(driverCls, provider, identity,
         username = identity.user.username
         playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_vnc.yml"])
         hostname = build_host_name(instance.ip)
-        result = False if execution_has_failures(playbooks, hostname) else True
+        result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
 
         # NOTE: Throws Instance.DoesNotExist
         core_instance = Instance.objects.get(provider_alias=instance_alias)

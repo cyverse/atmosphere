@@ -73,7 +73,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         Until a better method comes about,
         we will handle Updating metadata here.
         """
-        data = request.data
+        data = request.data.copy()
         metadata = data.pop('metadata')
         instance_id = pk
         instance = find_instance(instance_id)
@@ -195,31 +195,68 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
 
+    def validate_input(self, data):
+        error_map = {}
+
+        name = data.get('name')
+        identity_uuid = data.get('identity')
+        source_alias = data.get('source_alias')
+        size_alias = data.get('size_alias')
+        if not name:
+            error_map['name'] = "This field is required."
+        if not identity_uuid:
+            error_map['identity'] = "This field is required."
+        if not source_alias:
+            error_map['source_alias'] = "This field is required."
+        if not size_alias:
+            error_map['size_alias'] = "This field is required."
+
+        if error_map:
+            raise Exception(error_map)
+
+        try:
+            Identity.objects.get(uuid=identity_uuid)
+        except Identity.DoesNotExist:
+            error_map["identity"] = "The uuid (%s) is invalid." % identity_uuid
+            raise Exception(error_map)
+        return
+
     def create(self, request):
         user = request.user
         data = request.data
-        # Start pulling out data
+        try:
+            self.validate_input(data)
+        except Exception as exc:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                exc.message)
+
+        # Create a mutable dict and start modifying.
+        data = data.copy()
         name = data.get('name')
-        boot_scripts = data.pop("scripts", [])
         identity_uuid = data.get('identity')
-        identity = Identity.objects.get(uuid=identity_uuid)
         source_alias = data.get('source_alias')
         size_alias = data.get('size_alias')
+        boot_scripts = data.pop("scripts", [])
         deploy = data.get('deploy')
         extra = data.get('extra')
         try:
+            identity = Identity.objects.get(uuid=identity_uuid)
             core_instance = launch_instance(
                 user, identity_uuid, size_alias, source_alias, name, deploy,
                 **extra)
             # Faking a 'partial update of nothing' to allow call to 'is_valid'
-            serialized_instance = InstanceSerializer(core_instance, context={'request':self.request}, data={}, partial=True)
+            serialized_instance = InstanceSerializer(
+                core_instance, context={'request': self.request},
+                data={}, partial=True)
             if not serialized_instance.is_valid():
                 return Response(serialized_instance.errors,
                                 status=status.HTTP_400_BAD_REQUEST)
             instance = serialized_instance.save()
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
-            return Response(serialized_instance.data, status=status.HTTP_201_CREATED)
+            return Response(
+                serialized_instance.data, status=status.HTTP_201_CREATED)
         except UnderThresholdError as ute:
             return under_threshold(ute)
         except (OverQuotaError, OverAllocationError) as oqe:

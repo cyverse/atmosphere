@@ -83,7 +83,6 @@ class SupportEmail(APIView):
         missing_keys = valid_post_data(data, required)
         if missing_keys:
             return keys_not_found(missing_keys)
-        #Pass arguments
         subject = data['subject']
         message = data['message']
         result = support_email(request, subject, message)

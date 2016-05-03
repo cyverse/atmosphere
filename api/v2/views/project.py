@@ -29,13 +29,13 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
                 "to another project or deleted")
         elif project.applications.filter(end_date__isnull=True).count() > 0:
             raise ValidationError(
-                "Cannot delete a project when it contains instances."
-                " To delete a project, all Images must be moved "
+                "Cannot delete a project when it contains images."
+                " To delete a project, all images must be moved "
                 "to another project or removed from the project.")
         elif project.links.all().count() > 0:
             raise ValidationError(
-                "Cannot delete a project when it contains instances."
-                " To delete a project, all External Links must be moved "
+                "Cannot delete a project when it contains external links."
+                " To delete a project, all external links must be moved "
                 "to another project or deleted")
         elif project.volumes.filter(
                 instance_source__end_date__isnull=True).count() > 0:
