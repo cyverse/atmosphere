@@ -27,6 +27,14 @@ def _get_default_storage_count():
     return _get_default_quota('storage_count', 10)
 
 
+def _get_default_port_count():
+    return _get_default_quota('port', 10)
+
+
+def _get_default_floating_ip_count():
+    return _get_default_quota('floating_ip', 10)
+
+
 def _get_default_instance_count():
     return _get_default_quota('instance_count', 10)
 
@@ -55,16 +63,19 @@ class Quota(models.Model):
     Quotas are set at the Identity Level in IdentityMembership
     """
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    # Quotas generally defined on all Providers
     cpu = models.IntegerField(
         null=True,
         blank=True,
         default=_get_default_cpu)  # In CPU Units
     memory = models.IntegerField(null=True, blank=True, default=_get_default_memory)  # In GB
     storage = models.IntegerField(null=True, blank=True, default=_get_default_storage)  # In GB
-    # In #Volumes allowed
+    # Networking quota (Depends on Provider)
+    floating_ips = models.IntegerField(null=True, blank=True, default=_get_default_floating_ip_count)
+    ports = models.IntegerField(null=True, blank=True, default=_get_default_port_count)
+    # Compute quota (Depends on Provider)
     storage_count = models.IntegerField(null=True, blank=True, default=_get_default_storage_count)
     instance_count = models.IntegerField(null=True, blank=True, default=_get_default_instance_count)
-    # In #Suspended instances allowed
     suspended_count = models.IntegerField(null=True, blank=True, default=_get_default_suspended_count)
 
     def __unicode__(self):
