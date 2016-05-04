@@ -225,7 +225,8 @@ def get_public_and_private_apps(provider):
         if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
             #celery_logger.debug("Skipping cloud machine %s" % cloud_machine)
             continue
-        db_machine = get_or_create_provider_machine(cloud_machine.id, cloud_machine.name, provider.uuid)
+        app_name, version_name = ProviderMachine._split_cloud_name(cloud_machine.name)
+        db_machine = get_or_create_provider_machine(cloud_machine.id, app_name, provider.uuid, version_name=version_name)
         db_version = db_machine.application_version
         db_application = db_version.application
 
