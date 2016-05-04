@@ -144,7 +144,7 @@ class Identity(models.Model):
           features will be disabled.
         """
         # Do not move up. ImportError.
-        from core.models import Group, Credential, Quota,\
+        from core.models import Group, Quota,\
             Provider, AccountProvider, Allocation,\
             IdentityMembership
 
@@ -156,6 +156,13 @@ class Identity(models.Model):
                 continue
             c_key = c_key.replace('cred_', '')
             credentials[c_key] = c_value
+
+        #DEV NOTE: 'New' identities are expected to have a router name directly assigned
+        # upon creation. If the value is not passed in, we can ask the provider to select
+        # the router with the least 'usage' to ensure an "eventually consistent" distribution
+        # of users->routers.
+        if 'router_name' not in credentials:
+            credentials['router_name'] = provider.select_router()
 
         (user, group) = Group.create_usergroup(username)
 
@@ -200,19 +207,8 @@ class Identity(models.Model):
         # update values on an identity Vs. create a second, new
         # identity.
         for (c_key, c_value) in credentials.items():
-            test_key_exists = Credential.objects.filter(
-                identity=id_membership.identity,
-                key=c_key)
-            if test_key_exists:
-                logger.info("Conflicting Key Error: Key:%s Value:%s "
-                            "Replacement:%s" %
-                            (c_key, c_value, test_key_exists[0].value))
-                # No Dupes... But should we really throw an Exception here?
-                continue
-            Credential.objects.get_or_create(
-                identity=id_membership.identity,
-                key=c_key,
-                value=c_value)[0]
+            Identity.update_credential(id_membership.identity, c_key, c_value)
+
         # 3. Assign a different quota, if requested
         if quota:
             id_membership.quota = quota
@@ -232,6 +228,36 @@ class Identity(models.Model):
         user.save()
         # Return the identity
         return id_membership.identity
+
+    @classmethod
+    def update_credential(cls, identity, c_key, c_value, replace=False):
+        from core.models import Credential
+        test_key_exists = Credential.objects.filter(
+            identity=identity,
+            key=c_key)
+        if len(test_key_exists) > 1:
+            if not replace:
+                raise ValueError("Found multiple entries for Credential: %s on Identity: %s" % (c_key, identity))
+            test_key_exists.delete()
+        elif test_key_exists:
+            # Single selection
+            test_key_exists = test_key_exists.get()
+            logger.debug(
+                "Conflicting Key Error: Key:%s Value:%s %s Value:%s" %
+                (c_key, test_key_exists.value,
+                 "(to replace with new value, set replace=True) New"
+                 if not replace else "Replacement",
+                 c_value))
+            # No Dupes... But should we really throw an Exception here?
+            if not replace:
+                return test_key_exists
+            test_key_exists.value = c_value
+            test_key_exists.save()
+            return test_key_exists
+        return Credential.objects.get_or_create(
+            identity=identity,
+            key=c_key,
+            value=c_value)[0]
 
     def provider_uuid(self):
         return self.provider.uuid

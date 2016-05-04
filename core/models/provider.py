@@ -12,6 +12,7 @@ from rtwo.provider import EucaProvider, OSProvider
 
 import uuid
 from uuid import uuid4
+from threepio import logger
 
 class PlatformType(models.Model):
 
@@ -149,11 +150,86 @@ class Provider(models.Model):
     def get_location(self):
         return self.location
 
+    def get_credential(self, key):
+        cred = self.providercredential_set.filter(key=key)
+        return cred[0].value if cred else None
+
     def get_credentials(self):
         cred_map = {}
         for cred in self.providercredential_set.all():
             cred_map[cred.key] = cred.value
         return cred_map
+
+    def get_routers(self):
+        """
+        Using the two kwargs:
+        'router_name' and 'public_routers'
+        return a list of routers:
+        ['router1']
+        ['router1','router2,'...]
+        """
+        public_routers = self.get_credential('public_routers')
+        router_name = self.get_credential('router_name')
+        if public_routers:
+            return public_routers.split(',')
+        else:
+            return [router_name]
+
+    def select_router(self, router_distribution=None):
+        """
+        Select and return the router_name with the smallest number of users
+
+        param: router_distribution (Optional) - This dictionary will be used
+        in place of `self.get_router_distribution()` allowing you to speed up
+        -OR- redistribute all routers evently as part of a batch process.
+        (See scripts/admin_redistribute_routers.py)
+        """
+        if not router_distribution:
+            router_distribution = self.get_router_distribution()
+        minimum = -1
+        minimum_key = None
+        for key, count in router_distribution.items():
+            if minimum == -1:
+                minimum = count
+                minimum_key = key
+            elif count < minimum:
+                minimum = count
+                minimum_key = key
+        return minimum_key
+
+    def get_router_distribution(self, router_count_map={}):
+        """
+        Determine the distibution of routers based on:
+        * The router names that are stored on the provider
+        * The router names that are stored directly on an identity (for this provider)
+
+        """
+        router_list = self.get_routers()
+        if not router_count_map:
+            router_count_map = {rtr: 0 for rtr in router_list}
+        query = Q(credential__key='router_name')
+        includes_router = self.identity_set.filter(query)
+        for entry in includes_router.values_list('credential__value', flat=True):
+            if entry in router_count_map:
+                router_count_map[entry] = router_count_map[entry] + 1
+            else:
+                router_count_map[entry] = 1
+
+        for key in router_count_map.keys():
+            if key not in router_list:
+                logger.info("Skipping unknown router: %s" % key)
+                del router_count_map[key]
+
+        logger.info( "Current distribution of routers:")
+        for entry, count in router_count_map.items():
+            logger.info("%s: %s" % (entry, count))
+
+        return router_count_map
+
+    def missing_routers(self):
+        query = Q(credential__key='router_name')
+        needs_router = self.identity_set.filter(~query)
+        return needs_router
 
     def list_users(self):
         """

@@ -122,12 +122,13 @@ class ProviderMachine(BaseSource):
             return self.esh._image.extra.get('architecture', "N/A")
 
     def esh_ownerid(self):
+        username = self.instance_source.created_by.username
+        #NOTE: Reaching deep -- Don't do this in the new API.
         if self.esh and self.esh._image\
            and self.esh._image.extra\
-           and self.esh._image.extra.get('metadata'):
-            return self.esh._image.extra['metadata'].get(
-                'application_owner',
-                "admin")
+           and 'application_owner' in self.esh._image.extra.get('metadata',{}):
+            username = self.esh._image.extra['metadata']['application_owner']
+        return username
 
     def esh_state(self):
         if self.esh and self.esh._image\
