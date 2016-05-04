@@ -221,7 +221,7 @@ class ProviderAdmin(admin.ModelAdmin):
 class SizeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["name", "alias", "provider__location"]
-    list_display = ["name", "provider", "cpu", "mem", "disk",
+    list_display = ["name", "alias", "provider", "cpu", "mem", "disk",
                     "start_date", "end_date"]
     list_filter = ["provider__location"]
 
