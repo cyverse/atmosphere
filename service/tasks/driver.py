@@ -667,7 +667,7 @@ def get_chain_from_active_with_ip(
 
     deploy_task = _deploy_init_to.si(
         driverCls, provider, identity, instance.id,
-        username, password, redeploy)
+        username, None, redeploy)
     check_vnc_task = check_process_task.si(
         driverCls, provider, identity, instance.id)
     remove_status_chain = get_remove_status_chain(
