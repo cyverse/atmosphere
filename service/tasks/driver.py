@@ -952,6 +952,7 @@ def _deploy_ready_failed_email_test(
 
 
 @task(name="deploy_ready_test",
+      routing_key='short.deployment',
       default_retry_delay=64,
       # 16 second hard-set time limit. (NOTE:TOO LONG? -SG)
       soft_time_limit=120,
@@ -1017,6 +1018,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
 
 
 @task(name="_deploy_init_to",
+      routing_key='long.deployment',
       default_retry_delay=124,
       time_limit=32 * 60,  # 32 minute hard-set time limit.
       max_retries=10)
@@ -1088,6 +1090,7 @@ def _parse_script_output(script, idx=1, length=1):
 
 @task(name="check_process_task",
       max_retries=2,
+      routing_key='short.deployment',
       default_retry_delay=15)
 def check_process_task(driverCls, provider, identity,
                        instance_alias, *args, **kwargs):
@@ -1116,7 +1119,7 @@ def check_process_task(driverCls, provider, identity,
         celery_logger.debug("check_process_task finished at %s." % datetime.now())
         return result
     except AnsibleDeployException as exc:
-        deploy_ready_test.retry(exc=exc)
+        check_process_task.retry(exc=exc)
     except Instance.DoesNotExist:
         celery_logger.warn("check_process_task failed: Instance %s no longer exists"
                     % instance_alias)
