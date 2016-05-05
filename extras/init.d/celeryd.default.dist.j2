@@ -21,16 +21,16 @@ CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_2 default -c:atmosphere-node_2 5 
 CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_3 default -c:atmosphere-node_3 5 -O:atmosphere-node_3 fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-node_4 default -c:atmosphere-node_4 5 -O:atmosphere-node_4 fair"
 
-CELERYD_OPTS="$CELERYD_OPTS -P:atmosphere-fast_1 gevent -Q:atmosphere-fast_1 fast_deploy -c:atmosphere-fast_1 5 -O:atmosphere-fast_1 fair"
-CELERYD_OPTS="$CELERYD_OPTS -P:atmosphere-fast_2 gevent -Q:atmosphere-fast_2 fast_deploy -c:atmosphere-fast_2 5 -O:atmosphere-fast_2 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-fast_1 fast_deploy -c:atmosphere-fast_1 5 -O:atmosphere-fast_1 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-fast_2 fast_deploy -c:atmosphere-fast_2 5 -O:atmosphere-fast_2 fair"
 
-CELERYD_OPTS="$CELERYD_OPTS -P:atmosphere-deploy_1 gevent -Q:atmosphere-deploy_1 ssh_deploy -c:atmosphere-deploy_1 5 -O:atmosphere-deploy_1 fair"
-CELERYD_OPTS="$CELERYD_OPTS -P:atmosphere-deploy_2 gevent -Q:atmosphere-deploy_2 ssh_deploy -c:atmosphere-deploy_2 5 -O:atmosphere-deploy_2 fair"
-CELERYD_OPTS="$CELERYD_OPTS -P:atmosphere-deploy_3 gevent -Q:atmosphere-deploy_3 ssh_deploy -c:atmosphere-deploy_3 5 -O:atmosphere-deploy_3 fair"
-CELERYD_OPTS="$CELERYD_OPTS -P:atmosphere-deploy_4 gevent -Q:atmosphere-deploy_4 ssh_deploy -c:atmosphere-deploy_4 5 -O:atmosphere-deploy_4 fair"
-CELERYD_OPTS="$CELERYD_OPTS -P:atmosphere-deploy_5 gevent -Q:atmosphere-deploy_5 ssh_deploy -c:atmosphere-deploy_5 5 -O:atmosphere-deploy_5 fair"
-CELERYD_OPTS="$CELERYD_OPTS -P:atmosphere-deploy_6 gevent -Q:atmosphere-deploy_6 ssh_deploy -c:atmosphere-deploy_6 5 -O:atmosphere-deploy_6 fair"
-CELERYD_OPTS="$CELERYD_OPTS -P:atmosphere-deploy_7 gevent -Q:atmosphere-deploy_7 ssh_deploy -c:atmosphere-deploy_7 5 -O:atmosphere-deploy_7 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-deploy_1 ssh_deploy -c:atmosphere-deploy_1 2 -O:atmosphere-deploy_1 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-deploy_2 ssh_deploy -c:atmosphere-deploy_2 2 -O:atmosphere-deploy_2 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-deploy_3 ssh_deploy -c:atmosphere-deploy_3 2 -O:atmosphere-deploy_3 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-deploy_4 ssh_deploy -c:atmosphere-deploy_4 2 -O:atmosphere-deploy_4 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-deploy_5 ssh_deploy -c:atmosphere-deploy_5 2 -O:atmosphere-deploy_5 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-deploy_6 ssh_deploy -c:atmosphere-deploy_6 2 -O:atmosphere-deploy_6 fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-deploy_7 ssh_deploy -c:atmosphere-deploy_7 2 -O:atmosphere-deploy_7 fair"
 
 CELERYD_OPTS="$CELERYD_OPTS -Q:email email -c:email 3  -O:email fair"
 
