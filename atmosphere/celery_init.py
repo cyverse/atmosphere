@@ -6,6 +6,7 @@ from celery import Celery
 from django.conf import settings
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'atmosphere.settings')
+os.environ.setdefault('PYTHONOPTIMIZE', '1')  #NOTE: Required to run ansible2 + celery + prefork concurrency
 
 app = Celery('atmosphere')
 app.config_from_object('django.conf:settings')

@@ -104,7 +104,7 @@ def handle_machine(args, provider):
                .filter(provider__id=provider.id)
                .annotate(instance_count=Count('instances'))
                .order_by('-instance_count')
-               .values_list('identifier', flat=True)[:16]
+               .values_list('identifier', flat=True)[:6]
         ]
     elif ',' not in args.machine_alias:
         return [ProviderMachine.objects.get(

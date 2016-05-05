@@ -952,7 +952,6 @@ def _deploy_ready_failed_email_test(
 
 
 @task(name="deploy_ready_test",
-      routing_key='short.deployment',
       default_retry_delay=64,
       # 16 second hard-set time limit. (NOTE:TOO LONG? -SG)
       soft_time_limit=120,
@@ -1018,10 +1017,10 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
 
 
 @task(name="_deploy_init_to",
-      routing_key='long.deployment',
       default_retry_delay=124,
       time_limit=32 * 60,  # 32 minute hard-set time limit.
-      max_retries=10)
+      max_retries=10
+      )
 def _deploy_init_to(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
@@ -1090,7 +1089,6 @@ def _parse_script_output(script, idx=1, length=1):
 
 @task(name="check_process_task",
       max_retries=2,
-      routing_key='short.deployment',
       default_retry_delay=15)
 def check_process_task(driverCls, provider, identity,
                        instance_alias, *args, **kwargs):
