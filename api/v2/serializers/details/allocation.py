@@ -9,7 +9,7 @@ class AllocationSerializer(serializers.HyperlinkedModelSerializer):
     )
 
     def validate_delta(self, value):
-        return self._is_positive_int('delta', value)
+        return self._is_integer('delta', value)
 
     def validate_threshold(self, value):
         return self._is_positive_int('threshold', value)
@@ -18,6 +18,12 @@ class AllocationSerializer(serializers.HyperlinkedModelSerializer):
         if type(value) != int or value < 1:
             raise serializers.ValidationError(
                 "Value of %s should be >= 1" % key)
+        return value
+
+    def _is_integer(self, key, value):
+        if type(value) != int:
+            raise serializers.ValidationError(
+                "Value of %s should be an integer." % key)
         return value
 
     class Meta:

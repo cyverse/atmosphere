@@ -10,9 +10,10 @@ import django; django.setup()
 
 import libcloud.security
 
+from django.db.models import Count
 from core.models import AtmosphereUser as User
-from core.models import Provider, ProviderMachine, Size
-from core.query import only_current
+from core.models import Provider, ProviderMachine, Size, InstanceSource
+from core.query import only_current, only_current_source
 
 from service.instance import launch_instance
 
@@ -24,7 +25,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", help="The OpenStack compute node to launch"
                         " instances on.")
-    parser.add_argument("--name", default="Agent Smith",
+    parser.add_argument("--name",
                         help="The OpenStack compute node to launch"
                         " instances on.")
     parser.add_argument("--provider-list", action="store_true",
@@ -61,12 +62,13 @@ def main():
         host = "nova:%s" % args.host
     else:
         host = None
-    launch(user, args.name, provider, machines, size,
-           host, args.skip_deploy, args.count)
-    if args.count == 1:
-        print "Launched %d instance." % args.count
+    if args.name:
+        name = args.name
     else:
-        print "Launched %d instances." % args.count
+        name = None
+    instances = launch(user, name, provider, machines, size,
+           host, args.skip_deploy, args.count)
+    print "Launched %d instances." % len(instances)
 
 
 def handle_provider_list():
@@ -86,17 +88,36 @@ def handle_machine(args, provider):
     if not args.machine_alias:
         print "Error: A machine-alias is required."
         sys.exit(1)
-    if ',' not in args.machine_alias:
+    if args.machine_alias == 'all':
+        return ProviderMachine.objects.filter(
+            only_current_source(),
+            instance_source__provider_id=provider.id,
+            ).distinct()
+    elif args.machine_alias == 'most_used':
+        return [
+            ProviderMachine.objects.get(
+                instance_source__identifier=machine_alias,
+                instance_source__provider_id=provider.id,
+            )
+           for machine_alias in
+           InstanceSource.objects
+               .filter(provider__id=provider.id)
+               .annotate(instance_count=Count('instances'))
+               .order_by('-instance_count')
+               .values_list('identifier', flat=True)[:16]
+        ]
+    elif ',' not in args.machine_alias:
         return [ProviderMachine.objects.get(
             instance_source__identifier=args.machine_alias,
             instance_source__provider_id=provider.id)]
-    machines = args.machine_alias.split(",")
-    print "Batch launch of images detected: %s" % machines
-    return [
-        ProviderMachine.objects.get(
-            instance_source__identifier=machine_alias,
-            instance_source__provider_id=provider.id)
-        for machine_alias in machines]
+    else:
+        machines = args.machine_alias.split(",")
+        print "Batch launch of images detected: %s" % machines
+        return [
+            ProviderMachine.objects.get(
+                instance_source__identifier=machine_alias,
+                instance_source__provider_id=provider.id)
+            for machine_alias in machines]
 
 
 def handle_size(args, provider):
@@ -118,15 +139,22 @@ def handle_count(args):
         sys.exit(1)
 
 
-def launch(user, name, provider, machines, size,
+def launch(user, name_prefix, provider, machines, size,
            host, skip_deploy, count):
     ident = user.identity_set.get(provider_id=provider.id)
     instances = []
     kwargs = {}
     if host:
         kwargs['ex_availability_zone'] = host
+    machine_count = 0
     for c in range(0, count):
         for machine in machines:
+            machine_count += 1
+            gen_name = "%s v.%s" % (machine.application.name, machine.application_version.name)
+            if name_prefix:
+                name = "%s %s" % (name_prefix, machine_count)
+            else:
+                name = "%s %s" % (gen_name, machine_count)
             try:
                 instance_id = launch_instance(
                     user, ident.uuid, size.alias,
