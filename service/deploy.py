@@ -286,7 +286,8 @@ def configure_ansible():
         "DEFAULT_ROLES_PATH", settings.ANSIBLE_ROLES_PATH)
     if settings.ANSIBLE_CONFIG_FILE:
         os.environ["ANSIBLE_CONFIG"] = settings.ANSIBLE_CONFIG_FILE
-        # os.environ["ANSIBLE_DEBUG"] = "true"
+        os.environ["PYTHONOPTIMIZE"] = "1" #NOTE: Required to run ansible2 + celery + prefork concurrency
+        #os.environ["ANSIBLE_DEBUG"] = "true"
         # Alternatively set this in ansible.cfg: debug = true
         subspace.constants.reload_config()
 
