@@ -667,7 +667,7 @@ def get_chain_from_active_with_ip(
 
     deploy_task = _deploy_init_to.si(
         driverCls, provider, identity, instance.id,
-        username, password, redeploy)
+        username, None, redeploy)
     check_vnc_task = check_process_task.si(
         driverCls, provider, identity, instance.id)
     remove_status_chain = get_remove_status_chain(
@@ -1019,7 +1019,8 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
 @task(name="_deploy_init_to",
       default_retry_delay=124,
       time_limit=32 * 60,  # 32 minute hard-set time limit.
-      max_retries=10)
+      max_retries=10
+      )
 def _deploy_init_to(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
@@ -1116,7 +1117,7 @@ def check_process_task(driverCls, provider, identity,
         celery_logger.debug("check_process_task finished at %s." % datetime.now())
         return result
     except AnsibleDeployException as exc:
-        deploy_ready_test.retry(exc=exc)
+        check_process_task.retry(exc=exc)
     except Instance.DoesNotExist:
         celery_logger.warn("check_process_task failed: Instance %s no longer exists"
                     % instance_alias)

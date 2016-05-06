@@ -21,7 +21,9 @@ class PredeclareRouter(object):
             for queue in queues.itervalues():
                 queue(channel).declare()
 DEPLOY_TASKS = [
-    "_deploy_init_to", "service.tasks.driver._deploy_init_to"
+    "_deploy_init_to", "service.tasks.driver._deploy_init_to",
+    "deploy_ready_test", "service.tasks.driver.deploy_ready_test", 
+    "check_process_task", "service.tasks.driver.check_process_task", 
 ]
 EMAIL_TASKS = [
     "send_email", "core.tasks.email.send_email",
@@ -53,7 +55,7 @@ PERIODIC_TASKS = [
 
 ]
 SHORT_TASKS = [
-    "wait_for_instance", "deploy_ready_test"
+    "wait_for_instance",
 ]
 
 

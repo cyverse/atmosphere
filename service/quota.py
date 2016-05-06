@@ -40,7 +40,8 @@ def set_provider_quota(identity_uuid, limit_dict=None):
                 user_quota.memory = limit_dict['ram']
             # Use THESE values...
             values = {'cores': user_quota.cpu,
-                      'ram': user_quota.memory * 1024}
+                      'ram': user_quota.memory * 1024,
+                     }
             logger.info("Updating quota for %s to %s" % (username, values))
             ad = AccountDriver(identity.provider)
             admin_driver = ad.admin_driver

@@ -243,7 +243,7 @@ def ready_to_deploy(instance_ip, username, instance_id):
         username,
         instance_id)
     hostname = build_host_name(instance_ip)
-    cache_bust(hostname)
+    #cache_bust(hostname)
     configure_ansible()
 
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
@@ -260,7 +260,7 @@ def ready_to_deploy(instance_ip, username, instance_id):
         limit_playbooks=['check_networking.yml'])
     log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, instance_ip, hostname)
-    cache_bust(hostname)
+    #cache_bust(hostname)
     return pbs
 
 
@@ -286,7 +286,8 @@ def configure_ansible():
         "DEFAULT_ROLES_PATH", settings.ANSIBLE_ROLES_PATH)
     if settings.ANSIBLE_CONFIG_FILE:
         os.environ["ANSIBLE_CONFIG"] = settings.ANSIBLE_CONFIG_FILE
-        # os.environ["ANSIBLE_DEBUG"] = "true"
+        os.environ["PYTHONOPTIMIZE"] = "1" #NOTE: Required to run ansible2 + celery + prefork concurrency
+        #os.environ["ANSIBLE_DEBUG"] = "true"
         # Alternatively set this in ansible.cfg: debug = true
         subspace.constants.reload_config()
 
@@ -298,6 +299,10 @@ def build_host_name(ip):
     * INSTANCE_HOSTNAMING_FORMAT
     * INSTANCE_HOSTNAMING_DOMAIN (Required if you use `%(domain)s`)
     """
+    #NOTE: This is a hack until we address 'provider specific' hostnaming
+    if '114.5' in ip:
+        return raw_hostname(ip)
+
     if not hasattr(settings, 'INSTANCE_HOSTNAMING_FORMAT'):
         return raw_hostname(ip)
     if all((str_val not in settings.INSTANCE_HOSTNAMING_FORMAT) for str_val

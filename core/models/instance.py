@@ -426,7 +426,7 @@ class Instance(models.Model):
     def __unicode__(self):
         return "%s (Name:%s, Creator:%s, IP:%s)" %\
             (self.provider_alias, self.name,
-             self.created_by_id, self.ip_address)
+             self.creator_name(), self.ip_address)
 
     class Meta:
         db_table = "instance"
