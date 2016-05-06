@@ -10,7 +10,7 @@ import django; django.setup()
 
 import libcloud.security
 
-from django.db.models import Count
+from django.db.models import Count, Q
 from core.models import AtmosphereUser as User
 from core.models import Provider, ProviderMachine, Size, InstanceSource
 from core.query import only_current, only_current_source
@@ -35,7 +35,11 @@ def main():
     parser.add_argument("--machine-alias", help="Atmosphere machine alias,"
                         " or list of machine_alias separated by comma,"
                         " to use when launching instances.")
-    parser.add_argument("--size-id", help="Atmosphere size to use when"
+    parser.add_argument("--machine-list", action="store_true",
+                        help="Return a list of machines"
+                        " ordered by most launched instances"
+                        " that have reached active state.")
+    parser.add_argument("--size", help="Atmosphere size to use when"
                         " launching instances.")
     parser.add_argument("--size-list", action="store_true",
                         help="List of size names and IDs")
@@ -51,9 +55,28 @@ def main():
             sys.exit(0)
     handle_provider(args)
     provider = Provider.objects.get(id=args.provider_id)
+
+    if args.machine_list:
+        print_most_used(provider)
+        sys.exit(1)
+
+    if args.size_list:
+        print "ID\tName\tCPU\tMemory"
+        for s in Size.objects.filter(only_current(),
+                                     provider=provider).order_by('id'):
+            print "%s\t%s\t%d\t%d" % (s.id, s.name, s.cpu, s.mem)
+        sys.exit(0)
+
     handle_size(args, provider)
-    size = Size.objects.get(id=args.size_id)
+    try:
+        size_id = int(args.size)
+        query = Q(id=size_id)
+    except ValueError:  # Happens when type == str
+        query = Q(name=args.size)
+
+    size = Size.objects.get(query, only_current(), provider=provider)
     machines = handle_machine(args, provider)
+    print "Using Username %s." % args.user
     user = User.objects.get(username=args.user)
     handle_count(args)
     print "Using Provider %s." % provider
@@ -83,6 +106,27 @@ def handle_provider(args):
             " use --provider-list."
         sys.exit(1)
 
+def sort_most_used_machines(provider, limit=0, offset=0):
+    results = ProviderMachine.objects.none()
+    query = InstanceSource.objects.filter(provider__id=4)\
+           .filter(providermachine__isnull=False)\
+           .filter(instances__instancestatushistory__status__name='active').distinct()\
+           .annotate(instance_count=Count('instances'))\
+           .order_by('-instance_count')
+    if limit != 0:
+        query = query[offset:offset+limit]
+    for source in query:
+        machine_alias = source.identifier
+        results |= ProviderMachine.objects.filter(
+            instance_source__identifier=machine_alias,
+            instance_source__provider_id=provider.id).annotate(instance_count=Count('instance_source__instances'))
+    return results
+
+def print_most_used(provider):
+    machines = sort_most_used_machines(provider, limit=16)
+    machines = machines.annotate(inst_count=Count('instance_source__instances'))
+    for result in machines:
+        print "Instances Launched: %s - %s" % (result.inst_count, result)
 
 def handle_machine(args, provider):
     if not args.machine_alias:
@@ -94,18 +138,7 @@ def handle_machine(args, provider):
             instance_source__provider_id=provider.id,
             ).distinct()
     elif args.machine_alias == 'most_used':
-        return [
-            ProviderMachine.objects.get(
-                instance_source__identifier=machine_alias,
-                instance_source__provider_id=provider.id,
-            )
-           for machine_alias in
-           InstanceSource.objects
-               .filter(provider__id=provider.id)
-               .annotate(instance_count=Count('instances'))
-               .order_by('-instance_count')
-               .values_list('identifier', flat=True)[:16]
-        ]
+        return sort_most_used_machines(provider, limit=20)
     elif ',' not in args.machine_alias:
         return [ProviderMachine.objects.get(
             instance_source__identifier=args.machine_alias,
@@ -121,14 +154,8 @@ def handle_machine(args, provider):
 
 
 def handle_size(args, provider):
-    if args.size_list:
-        print "ID\tName\tCPU\tMemory"
-        for s in Size.objects.filter(only_current(),
-                                     provider=provider).order_by('id'):
-            print "%s\t%s\t%d\t%d" % (s.id, s.name, s.cpu, s.mem)
-        sys.exit(0)
-    if not args.size_id:
-        print "Error: size-id is required. To get a list of sizes"\
+    if not args.size:
+        print "Error: size name-or-id is required. To get a list of sizes"\
             " use --size-list."
         sys.exit(1)
 
