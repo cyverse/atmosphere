@@ -36,6 +36,5 @@ threepio==0.2.0
 rtwo==0.3.8
 caslib.py==2.2.2
 chromogenic==0.2.1
-# subspace==0.2.0
-git+https://github.com/iPlantCollaborativeOpenSource/subspace.git
-git+https://github.com/ansible/ansible.git@stable-2.1
+subspace==0.2.1
+git+https://github.com/iPlantCollaborativeOpenSource/ansible.git@stable-2.1#egg=ansible==2.1.0.0
