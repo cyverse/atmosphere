@@ -4,7 +4,8 @@
 from uuid import uuid4
 from datetime import timedelta
 
-from django.db import models, transaction, DatabaseError, ObjectDoesNotExist
+from django.db import models, transaction, DatabaseError
+from django.db.models import ObjectDoesNotExist
 from django.utils import timezone
 
 from threepio import logger
