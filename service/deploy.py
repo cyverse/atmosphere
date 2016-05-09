@@ -459,7 +459,7 @@ def check_volume(device):
 
 
 def mkfs_volume(device):
-    return ScriptDeployment("mkfs.ext3 %s" % (device),
+    return ScriptDeployment("mkfs.ext3 -F %s" % (device),
                             name="./deploy_mkfs_volume.sh")
 
 
