@@ -245,7 +245,7 @@ def get_version_for_machine(provider_uuid, identifier, fuzzy=False):
         query = Q(machines__instance_source__provider__uuid=provider_uuid,
                   machines__instance_source__identifier=identifier)
     try:
-        return ApplicationVersion.objects.distinct().get(query)
+        return ApplicationVersion.objects.filter(query).distinct().first()
     except ApplicationVersion.DoesNotExist:
         return None
 
