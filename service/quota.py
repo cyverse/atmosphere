@@ -2,16 +2,23 @@ from threepio import logger
 
 from core.models import IdentityMembership, Identity, Provider
 
-from service.accounts.openstack_manager import AccountDriver
 from service.cache import get_cached_driver
+from service.driver import get_account_driver
 
-
-def _get_hard_limits(provider):
+def _get_hard_limits(identity):
     """
-    At some point this will be a DIRECT relationship to the provider. But for
-    now its hard-coded
+    Lookup the OpenStack "Hard Limits" based on the account provider
     """
-    return {"ram": 500, "cpu": 64}
+    accounts = get_account_driver(identity.provider)
+    defaults = {"ram": 999, "cpu": 99} # Used when all else fails.
+    limits = {}
+    limits.update(defaults)
+    username = identity.get_credential('key')
+    project_name = identity.get_credential('ex_project_name')
+    user_limits = accounts.get_quota_limit(username, project_name)
+    if user_limits:
+        limits.update(user_limits)
+    return limits
 
 
 def set_provider_quota(identity_uuid, limit_dict=None):
@@ -22,7 +29,7 @@ def set_provider_quota(identity_uuid, limit_dict=None):
         # Can't update quota if credentials arent set
         return
     if not limit_dict:
-        limit_dict = _get_hard_limits(identity.provider)
+        limit_dict = _get_hard_limits(identity)
     if identity.provider.get_type_name().lower() == 'openstack':
         driver = get_cached_driver(identity=identity)
         username = identity.created_by.username
@@ -40,10 +47,9 @@ def set_provider_quota(identity_uuid, limit_dict=None):
                 user_quota.memory = limit_dict['ram']
             # Use THESE values...
             values = {'cores': user_quota.cpu,
-                      'ram': user_quota.memory * 1024,
-                     }
+                      'ram': user_quota.memory} # NOTE: Test that this works on havana
             logger.info("Updating quota for %s to %s" % (username, values))
-            ad = AccountDriver(identity.provider)
+            ad = get_account_driver(identity.provider)
             admin_driver = ad.admin_driver
             admin_driver._connection.ex_update_quota_for_user(tenant_id,
                                                               user_id,

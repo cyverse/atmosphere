@@ -3,6 +3,7 @@
 """
 Collection of models
 """
+from django.db.models import ObjectDoesNotExist
 from core.models.allocation_strategy import Allocation, AllocationStrategy
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark, ApplicationThreshold

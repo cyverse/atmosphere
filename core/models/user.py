@@ -62,6 +62,8 @@ class AtmosphereUser(AbstractUser):
         Set, save and return an active selected_identity for the user.
         """
         # Return previously selected identity
+        if settings.AUTO_CREATE_NEW_ACCOUNTS:
+            new_identities = create_new_accounts(self.username)
         if self.selected_identity and self.selected_identity.is_active(user=self):
             return self.selected_identity
         else:
@@ -187,12 +189,18 @@ def create_new_accounts(username, provider=None):
     from service.driver import get_account_driver
     user = AtmosphereUser.objects.get(username=username)
     providers = get_available_providers()
-    if provider and provider not in providers:
-        raise Exception("The provider %s is NOT in the list of currently active providers. Account will not be created" % provider)
-    if not providers:
-        raise Exception("No currently active providers -- Could not create First identity")
     identities = []
+    if not providers:
+        logger.error("No currently active providers")
+        return identities
+    if provider and provider not in providers:
+        logger.error("The provider %s is NOT in the list of currently active providers. Account will not be created" % provider)
+        return identities
     for provider in providers:
+        existing_user_list = provider.identity_set.values_list('created_by__username', flat=True)
+        if user.username in existing_user_list:
+            logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
+            continue
         try:
             accounts = get_account_driver(provider)
             logger.info("Create NEW account for %s" % user.username)
