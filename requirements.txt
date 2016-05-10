@@ -36,5 +36,5 @@ caslib.py==2.2.2 # remove?
 django-iplant-auth==0.1.9
 threepio==0.2.0
 rtwo==0.3.8
-subspace==0.2.1
+subspace==0.2.2
 git+https://github.com/iPlantCollaborativeOpenSource/ansible.git@stable-2.1#egg=ansible==2.1.0.0
