@@ -340,8 +340,7 @@ def send_instance_email(username, instance_id, instance_name,
         context=Context(context))
     subject = 'Your Atmosphere Instance is Available'
     email_args = (username, subject, body)
-    return email_args
-    #return email_from_admin(*email_args)
+    return email_from_admin(*email_args)
 
 
 def send_preemptive_deploy_failed_email(core_instance, message):
