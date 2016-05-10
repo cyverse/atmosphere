@@ -73,7 +73,7 @@ class VolumeSupportEmailViewSet(EmailViewSet):
 
         message = render_to_string("volume_report.html", context=context)
         email_success = email_admin(
-            self.request, subject, message, data=data, request_tracker=True)
+            self.request, subject, message, request_tracker=True)
         email_response = {"email_sent": email_success}
         if not email_success:
             return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
@@ -107,8 +107,7 @@ class InstanceSupportEmailViewSet(EmailViewSet):
         context.update(request_data(self.request))
 
         message = render_to_string("instance_report.html", context=context)
-        email_success = email_admin(
-            self.request, subject, message, data=data)
+        email_success = email_admin(self.request, subject, message) 
         email_response = {"email_sent": email_success}
         if not email_success:
             return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
