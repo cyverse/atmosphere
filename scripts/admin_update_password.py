@@ -2,11 +2,11 @@
 import argparse
 from hashlib import sha1
 
-from core.models import Provider, Identity
-from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
-
 import django
 django.setup()
+
+from core.models import Provider, Identity
+from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
 
 def get_identities(provider, user_list=[]):
@@ -81,12 +81,13 @@ def skip_change_password(username, password, new_password, rebuild=False):
             print "Skipping user %s - Password (%s) does *NOT* match either "\
                   "hash method (%s, %s)." \
                   % (username, password, old_password, new_password)
-            continue
+            return True
         # ASSERT: Saved Password is 'the new one'
         if not rebuild:
             print "Skipping user %s - Password has been updated previously. "\
                   "If you believe this is wrong, add `--rebuild`" % (username,)
-            continue
+            return True
+    return False
 
 
 def update_password_for(prov, identities, rebuild=False):

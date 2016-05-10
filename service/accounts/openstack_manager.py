@@ -35,6 +35,7 @@ from core.models.identity import Identity
 
 from service.accounts.base import BaseAccountDriver
 
+from atmosphere.settings.secrets import SECRET_SEED
 
 def get_unique_id(userid):
     if 'iplantauth.authBackends.LDAPLoginBackend' in settings.AUTHENTICATION_BACKENDS:
@@ -263,14 +264,17 @@ class AccountDriver(BaseAccountDriver):
         username = identity_creds["username"]
         password = old_password if old_password else identity_creds["password"]
         project_name = identity_creds["tenant_name"]
-        try:
-            clients = self.get_openstack_clients(username, password, project_name)
-        except Unauthorized:
-            raise Unauthorized("credential_set for Identity %s did not produce"
-                               " a valid set of openstack clients" % identity)
-        keystone = clients['keystone']
-        # NOTE: next line can raise Unauthorized
-        keystone.users.update_password(password, new_password)
+        # try:
+        #     clients = self.get_openstack_clients(username, password, project_name)
+        # except Unauthorized:
+        #     raise Unauthorized("credential_set for Identity %s did not produce"
+        #                        " a valid set of openstack clients" % identity)
+        # keystone = clients['keystone']
+        # # NOTE: next line can raise Unauthorized
+        # keystone.users.update_own_password(password, new_password)
+        keystone = self.user_manager.keystone
+        user = keystone.users.find(name=username)
+        keystone.users.update_password(user, new_password)
 
     def init_keypair(self, username, password, project_name):
         keyname = settings.ATMOSPHERE_KEYPAIR_NAME
@@ -532,9 +536,7 @@ class AccountDriver(BaseAccountDriver):
         Create a unique password using 'Username' as the wored
         and the SECRET_KEY as your salt
         """
-        #FIXME: Switch to new password and then remove this line!
-        return self.old_hashpass(username)
-        secret_salt = settings.SECRET_KEY.translate(None, string.punctuation)
+        secret_salt = SECRET_SEED.translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         if not password:
             raise Exception("Failed to hash password, check the secret_salt")
@@ -853,10 +855,7 @@ class AccountDriver(BaseAccountDriver):
         net_creds = self._build_network_creds(all_creds)
         sdk_creds = self._build_sdk_creds(all_creds)
         user_creds = self._build_user_creds(all_creds)
-        if self.identity_version > 2:
-            openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
-        else:
-            openstack_sdk = None
+        openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
 
         (keystone, nova, swift) = self.user_manager.new_connection(
             **user_creds)
