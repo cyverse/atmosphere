@@ -15,6 +15,7 @@ def get_identities(provider, user_list=[]):
     query = Identity.objects.filter(provider=provider)
     if user_list:
         query = query.filter(created_by__username__in=user_list)
+    query = query.order_by('created_by__username')
     return query
 
 
@@ -104,7 +105,7 @@ def update_password_for(prov, identities, rebuild=False):
                 continue
             # ASSERT: Saved Password is 'old'
             print "Changing password: %s (OLD:%s -> NEW:%s)" \
-                % (username, password, new_password)
+                % (username, password, new_password),
             kwargs = {}
             if rebuild:
                 old_password = get_old_password(username)
@@ -112,7 +113,10 @@ def update_password_for(prov, identities, rebuild=False):
             success = accounts.change_password(
                 ident, new_password, **kwargs)
             if success:
+                print "OK"
                 count += 1
+            else:
+                print "FAILED"
         print 'Changed passwords for %s accounts on %s' % (count, prov)
 
 if __name__ == "__main__":
