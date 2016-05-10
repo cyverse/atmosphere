@@ -168,7 +168,7 @@ def request_info(request):
 
 
 def email_admin(request, subject, message, 
-        cc_user=True, request_tracker=False, html=True):
+        cc_user=True, request_tracker=False, html=False):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
