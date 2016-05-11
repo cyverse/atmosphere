@@ -52,6 +52,8 @@ def fix_image(accounts, glance_image, mr):
         return
     old_kernel = old_glance_image_properties['kernel_id']
     old_ramdisk = old_glance_image_properties['ramdisk_id']
+    print "Parent image %s (%s) contains kernel (%s) and ramdisk (%s). FIX POSSIBLE!"\
+        % (old_machine_id, old_glance_image.name, old_kernel, old_ramdisk)
     accounts.image_manager.update_image(
         glance_image,
         kernel_id=old_kernel, ramdisk_id=old_ramdisk)
