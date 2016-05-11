@@ -46,8 +46,8 @@ CELERYD_OPTS="$CELERYD_OPTS -Q:email email -c:email 1 -O:email fair"
 CELERYD_NODES="atmosphere-node_1"
 CELERYD_NODES="$CELERYD_NODES atmosphere-deploy_1"
 
-CELERYD_OPTS="-P:atmosphere-node_1 prefork -Q default,email,imaging,celery_periodic -c 13 -O fair"
-CELERYD_OPTS="$CELERYD_OPTS -P:atmosphere-deploy_1 gevent -Q:atmosphere-deploy_1 fast_deploy,ssh_deploy -c:atmosphere-deploy_1 10 -O:atmosphere-deploy_1 fair"
+CELERYD_OPTS="-Q default,email,imaging,celery_periodic -c 13 -O fair"
+CELERYD_OPTS="$CELERYD_OPTS -Q:atmosphere-deploy_1 fast_deploy,ssh_deploy -c:atmosphere-deploy_1 10 -O:atmosphere-deploy_1 fair"
 
 {% endif %}
 

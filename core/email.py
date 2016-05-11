@@ -168,7 +168,7 @@ def request_info(request):
 
 
 def email_admin(request, subject, message, 
-        cc_user=True, request_tracker=False, html=True):
+        cc_user=True, request_tracker=False, html=False):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
@@ -340,8 +340,7 @@ def send_instance_email(username, instance_id, instance_name,
         context=Context(context))
     subject = 'Your Atmosphere Instance is Available'
     email_args = (username, subject, body)
-    return email_args
-    #return email_from_admin(*email_args)
+    return email_from_admin(*email_args)
 
 
 def send_preemptive_deploy_failed_email(core_instance, message):

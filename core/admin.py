@@ -470,7 +470,7 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
 @admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]
-    list_display = ["provider_alias", "name", "created_by", "ip_address"]
+    list_display = ["provider_alias", "get_size", "application_id", "application_name", "start_date", "name", "created_by", "ip_address"]
     list_filter = ["source__provider__location"]
 
 

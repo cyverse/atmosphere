@@ -104,7 +104,6 @@ def deploy_to(instance_ip, username, instance_id, limit_playbooks=None):
         username,
         instance_id)
     hostname = build_host_name(instance_ip)
-    cache_bust(hostname)
     configure_ansible()
     my_limit = {"hostname": hostname, "ip": instance_ip}
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
@@ -119,9 +118,7 @@ def deploy_to(instance_ip, username, instance_id, limit_playbooks=None):
     pbs = execute_playbooks(
         deploy_playbooks, host_file, extra_vars, my_limit,
         logger=logger, limit_playbooks=limit_playbooks)
-    log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, instance_ip, hostname)
-    cache_bust(hostname)
     return pbs
 
 
@@ -141,7 +138,6 @@ def run_utility_playbooks(instance_ip, username, instance_id,
         username,
         instance_id)
     hostname = build_host_name(instance_ip)
-    cache_bust(hostname)
     configure_ansible()
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
 
@@ -157,9 +153,7 @@ def run_utility_playbooks(instance_ip, username, instance_id,
         util_playbooks, host_file, extra_vars, my_limit,
         logger=logger, limit_playbooks=limit_playbooks
     )
-    log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=True)
-    cache_bust(hostname)
     return pbs
 
 
@@ -243,7 +237,6 @@ def ready_to_deploy(instance_ip, username, instance_id):
         username,
         instance_id)
     hostname = build_host_name(instance_ip)
-    #cache_bust(hostname)
     configure_ansible()
 
     deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
@@ -258,9 +251,7 @@ def ready_to_deploy(instance_ip, username, instance_id):
     pbs = execute_playbooks(
         util_playbooks, host_file, extra_vars, my_limit, logger=logger,
         limit_playbooks=['check_networking.yml'])
-    log_playbook_summaries(logger, pbs, hostname)
     raise_playbook_errors(pbs, instance_ip, hostname)
-    #cache_bust(hostname)
     return pbs
 
 
@@ -346,24 +337,6 @@ def raw_hostname(ip):
     For now, return raw IP
     """
     return ip
-
-
-def cache_bust(hostname):
-    try:
-        subspace.cache.bust(hostname)
-    except Exception as ex:
-        logger.warn("Problem with subspace.cache.bust: %s" % ex.message)
-
-
-def log_playbook_summaries(logger, pb_runners, hostname):
-    if not type(pb_runners) == list:
-        pb_runners = [pb_runners]
-    # No point printing playbooks when using custom subspace stats
-    summaries = [
-            pbr.stats.summarize(hostname)
-            for pbr in pb_runners]
-    for summary in summaries:
-        logger.info(str(summary))
 
 
 def get_playbook_filename(filename):
