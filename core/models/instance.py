@@ -318,6 +318,8 @@ class Instance(models.Model):
             self.save()
 
     def creator_name(self):
+        if not self.created_by:
+            return "N/A"
         return self.created_by.username
 
     def hash_alias(self):

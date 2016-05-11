@@ -10,3 +10,6 @@ class InstanceTag(models.Model):
     class Meta:
         db_table = 'instance_tags'
         managed = False
+
+    def __unicode__(self):
+        return "%s - %s" % (self.instance, self.tag)
