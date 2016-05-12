@@ -106,7 +106,8 @@ def deploy_to(instance_ip, username, instance_id, limit_playbooks=None):
     hostname = build_host_name(instance_ip)
     configure_ansible()
     my_limit = {"hostname": hostname, "ip": instance_ip}
-    deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    deploy_playbooks = os.path.join(playbooks_dir, 'instance_deploy')
     host_file = settings.ANSIBLE_HOST_FILE
     user_keys = _get_user_keys(username)
     extra_vars = {
@@ -142,7 +143,7 @@ def run_utility_playbooks(instance_ip, username, instance_id,
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
 
     # Essential args:
-    util_playbooks = playbooks_dir.replace('/playbooks', '/util_playbooks')
+    util_playbooks = os.path.join(playbooks_dir, 'utils')
     my_limit = {"hostname": hostname, "ip": instance_ip}
     host_file = settings.ANSIBLE_HOST_FILE
     user_keys = _get_user_keys(username)
@@ -239,8 +240,8 @@ def ready_to_deploy(instance_ip, username, instance_id):
     hostname = build_host_name(instance_ip)
     configure_ansible()
 
-    deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
-    util_playbooks = deploy_playbooks.replace('/playbooks', '/util_playbooks')
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    util_playbooks = os.path.join(playbooks_dir, 'utils')
     my_limit = {"hostname": hostname, "ip": instance_ip}
     host_file = settings.ANSIBLE_HOST_FILE
     user_keys = _get_user_keys(username)
