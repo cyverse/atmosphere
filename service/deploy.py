@@ -391,7 +391,8 @@ def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
                 error_message += playbook_error_message(
                     pb.stats.failures[instance_ip], "Failures")
     if error_message:
-        raise AnsibleDeployException(error_message[:-1])
+        msg = error_message[:-2] + str(pb.stats.processed_playbooks.get(hostname,{}))
+        raise AnsibleDeployException(msg)
 
 
 def sync_instance():
