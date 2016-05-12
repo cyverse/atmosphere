@@ -85,7 +85,7 @@ class Quota(models.Model):
     port_count = models.IntegerField(null=True, blank=True, default=_get_default_port_count)
 
     def __unicode__(self):
-        str_builder = "<Quota %s - %s" % (self.id, self.uuid)
+        str_builder = "ID:%s UUID:%s - " % (self.id, self.uuid)
         str_builder += "CPU:%s, Memory:%s MB, Volume:%s GB " %\
             (self.cpu, self.memory, self.storage)
         str_builder += "Instances #:%s Suspended #:%s " %\
@@ -94,7 +94,6 @@ class Quota(models.Model):
             (self.storage_count, self.snapshot_count)
         str_builder += "Floating IP #:%s Port #:%s" %\
             (self.floating_ip_count, self.port_count)
-        str_builder += ">"
         return str_builder
 
     @classmethod
