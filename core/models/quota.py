@@ -71,8 +71,8 @@ class Quota(models.Model):
     memory = models.IntegerField(null=True, blank=True, default=_get_default_memory)  # In GB
     storage = models.IntegerField(null=True, blank=True, default=_get_default_storage)  # In GB
     # Networking quota (Depends on Provider)
-    floating_ips = models.IntegerField(null=True, blank=True, default=_get_default_floating_ip_count)
-    ports = models.IntegerField(null=True, blank=True, default=_get_default_port_count)
+    floating_ip_count = models.IntegerField(null=True, blank=True, default=_get_default_floating_ip_count)
+    port_count = models.IntegerField(null=True, blank=True, default=_get_default_port_count)
     # Compute quota (Depends on Provider)
     storage_count = models.IntegerField(null=True, blank=True, default=_get_default_storage_count)
     instance_count = models.IntegerField(null=True, blank=True, default=_get_default_instance_count)
@@ -114,7 +114,10 @@ class Quota(models.Model):
             'cpu': 128,
             'memory': 256,
             'storage': 1000,
-            'storage_count': 10
+            'storage_count': 100,
+            'instance_count': 100,
+            'floating_ip_count': -1,
+            'port_count': -1,
         }
 
     @classmethod
@@ -123,14 +126,21 @@ class Quota(models.Model):
             'cpu': cls._meta.get_field('cpu').default(),
             'memory': cls._meta.get_field('memory').default(),
             'storage': cls._meta.get_field('storage').default(),
+            'floating_ip_count': cls._meta.get_field('floating_ip_count').default(),
+            'port_count': cls._meta.get_field('port_count').default(),
             'storage_count': cls._meta.get_field('storage_count').default(),
+            'instance_count': cls._meta.get_field('instance_count').default(),
             'suspended_count': cls._meta.get_field('suspended_count').default()
         }
 
     class Meta:
         db_table = 'quota'
         app_label = 'core'
-        unique_together = ("cpu", "memory", "storage", "storage_count",
+        unique_together = ("cpu", "memory", "storage",
+                           "floating_ip_count",
+                           "port_count",
+                           "instance_count",
+                           "storage_count",
                            "suspended_count")
 
 
@@ -171,9 +181,58 @@ def has_mem_quota(driver, quota, new_size=0):
     return total_size <= quota.memory
 
 
+def has_instance_count_quota(driver, quota, new_size=0):
+    """
+    True if the total number of instances found on driver are
+    greater than or equal to Quota.instance otherwise False.
+    """
+    # Always False if quota doesnt exist, new size is negative
+    if not quota or new_size < 0:
+        return False
+    # Always True if instance count is null
+    if not quota.instance_count:
+        return True
+    num_insts = new_size
+    num_insts += len(driver.list_instances())
+    return num_insts <= quota.instance_count
+
+
+def has_port_count_quota(driver, quota, new_size=0):
+    """
+    True if the total number of ports found on driver are
+    less than or equal to Quota.port_count, otherwise False.
+    """
+    # Always False if quota doesnt exist, new size is negative
+    if not quota or new_size < 0:
+        return False
+    # Always True if port_count is null
+    if not quota.port_count or quota.port_count < 0:
+        return True
+    ports = driver._connection.neutron_list_port_count()
+    total_size = new_size
+    total_size += len(ports)
+    return total_size <= quota.port_count
+
+
+def has_floating_ip_count_quota(driver, quota, new_size=0):
+    """
+    True if the total number of floating ips found on driver are
+    less than or equal to Quota.floating_ip_count, otherwise False.
+    """
+    # Always False if quota doesnt exist, new size is negative
+    if not quota or new_size < 0:
+        return False
+    # Always True if floating_ip_count is null
+    if not quota.floating_ip_count or quota.floating_ip_count < 0:
+        return True
+    floating_ips = driver._connection.ex_list_floating_ips()
+    total_size = len(floating_ips)
+    return total_size <= quota.floating_ip_count
+
+
 def has_storage_quota(driver, quota, new_size=0):
     """
-    True if the total size of volumes found on driver is
+    True if the total volume size found on driver is
     less than or equal to Quota.storage, otherwise False.
     """
     # Always False if quota doesnt exist, new size is negative
@@ -191,7 +250,7 @@ def has_storage_quota(driver, quota, new_size=0):
 
 def has_storage_count_quota(driver, quota, new_size=0):
     """
-    True if the total size of volumes found on driver is
+    True if the total number of volumes found on driver are
     greater than or equal to Quota.storage otherwise False.
     """
     # Always False if quota doesnt exist, new size is negative
