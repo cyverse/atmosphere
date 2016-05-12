@@ -23,6 +23,10 @@ def _get_default_storage():
     return _get_default_quota('storage', 10)
 
 
+def _get_default_snapshot_count():
+    return _get_default_quota('snapshot_count', 10)
+
+
 def _get_default_storage_count():
     return _get_default_quota('storage_count', 10)
 
@@ -70,18 +74,28 @@ class Quota(models.Model):
         default=_get_default_cpu)  # In CPU Units
     memory = models.IntegerField(null=True, blank=True, default=_get_default_memory)  # In GB
     storage = models.IntegerField(null=True, blank=True, default=_get_default_storage)  # In GB
+    # Compute quota (Depends on Provider)
+    instance_count = models.IntegerField(null=True, blank=True, default=_get_default_instance_count)
+    suspended_count = models.IntegerField(null=True, blank=True, default=_get_default_suspended_count)
+    # Volume quota (Depends on Provider)
+    snapshot_count = models.IntegerField(null=True, blank=True, default=_get_default_snapshot_count)
+    storage_count = models.IntegerField(null=True, blank=True, default=_get_default_storage_count)
     # Networking quota (Depends on Provider)
     floating_ip_count = models.IntegerField(null=True, blank=True, default=_get_default_floating_ip_count)
     port_count = models.IntegerField(null=True, blank=True, default=_get_default_port_count)
-    # Compute quota (Depends on Provider)
-    storage_count = models.IntegerField(null=True, blank=True, default=_get_default_storage_count)
-    instance_count = models.IntegerField(null=True, blank=True, default=_get_default_instance_count)
-    suspended_count = models.IntegerField(null=True, blank=True, default=_get_default_suspended_count)
 
     def __unicode__(self):
-        return "CPU:%s, MEM:%s, DISK:%s DISK #:%s SUSPEND #:%s" %\
-            (self.cpu, self.memory, self.storage,
-             self.storage_count, self.suspended_count)
+        str_builder = "<Quota %s - %s" % (self.id, self.uuid)
+        str_builder += "CPU:%s, Memory:%s MB, Volume:%s GB " %\
+            (self.cpu, self.memory, self.storage)
+        str_builder += "Instances #:%s Suspended #:%s " %\
+            (self.instance_count, self.suspended_count)
+        str_builder += "Volume #:%s Snapshot #:%s " %\
+            (self.storage_count, self.snapshot_count)
+        str_builder += "Floating IP #:%s Port #:%s" %\
+            (self.floating_ip_count, self.port_count)
+        str_builder += ">"
+        return str_builder
 
     @classmethod
     def max_quota(self, by_type='cpu'):
