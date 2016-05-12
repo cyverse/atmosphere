@@ -5,6 +5,7 @@ from uuid import uuid4
 from datetime import timedelta
 
 from django.db import models, transaction, DatabaseError
+from django.db.models import ObjectDoesNotExist
 from django.utils import timezone
 
 from threepio import logger
@@ -39,6 +40,39 @@ class InstanceStatusHistory(models.Model):
     activity = models.CharField(max_length=36, null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
+
+    def previous(self):
+        """
+        Given that you are a node on a linked-list, traverse yourself backwards
+        """
+        if self.instance.start_date == self.start_date:
+            raise LookupError("This is the first state of instance %s" % self.instance)
+        try:
+            history = self.instance.instancestatushistory_set.get(start_date=self.end_date)
+            if history.id == self.id:
+                raise ValueError("There was no matching transaction for Instance:%s end-date:%s" % (self.instance, self.end_date))
+        except ObjectDoesNotExist:
+            raise ValueError("There was no matching transaction for Instance:%s end-date:%s" % (self.instance, self.end_date))
+
+    def next(self):
+        """
+        Given that you are a node on a linked-list, traverse yourself forwards
+        """
+        # In this situation, the instance is presumably still running.
+        if not self.end_date:
+            if self.instance.end_date:
+                raise ValueError("Whoa! The instance %s has been terminated, but status %s has not! This could leak time" % (self.instance,self))
+            raise LookupError("This is the final state of instance %s" % self.instance)
+        # In this situation, the end_date of the final history is an exact match to the instance's end-date.
+        if self.instance.end_date == self.end_date:
+            raise LookupError("This is the final state of instance %s" % self.instance)
+        # In this situation, the end_date of the final history is "a little off" from the instance's end-date.
+        if self == self.instance.get_last_history():
+            raise LookupError("This is the final state of instance %s" % self.instance)
+        try:
+            return self.instance.instancestatushistory_set.get(start_date=self.end_date)
+        except ObjectDoesNotExist:
+            raise ValueError("There was no matching transaction for Instance:%s end-date:%s" % (self.instance, self.end_date))
 
     @classmethod
     def transaction(cls, status_name, activity, instance, size,

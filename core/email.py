@@ -168,7 +168,7 @@ def request_info(request):
 
 
 def email_admin(request, subject, message, 
-        cc_user=True, request_tracker=False, html=True):
+        cc_user=True, request_tracker=False, html=False):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
         Returns True on success and False on failure.
@@ -340,8 +340,7 @@ def send_instance_email(username, instance_id, instance_name,
         context=Context(context))
     subject = 'Your Atmosphere Instance is Available'
     email_args = (username, subject, body)
-    return email_args
-    #return email_from_admin(*email_args)
+    return email_from_admin(*email_args)
 
 
 def send_preemptive_deploy_failed_email(core_instance, message):
@@ -494,7 +493,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
         staff_body = render_to_string("core/email/imaging_request_staff.html",
                                       context=Context(context))
         email_admin(request, subject, staff_body,
-                    cc_user=False, request_tracker=true)
+                    cc_user=False, request_tracker=True)
 
     return email_from_admin(user.username, subject, body)
 
@@ -521,7 +520,7 @@ def resource_request_email(request, username, quota, reason, options={}):
     }
     context.update(request_data(request))
     body = render_to_string("resource_request.html", context=context)
-    success = email_admin(request, subject, body, cc_user=False, request_tracker=true)
+    success = email_admin(request, subject, body, cc_user=False, request_tracker=True)
     return {"email_sent": success}
 
 def support_email(request, subject, message):

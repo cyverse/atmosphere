@@ -4,8 +4,12 @@
 from hashlib import md5
 from datetime import datetime, timedelta
 
-from django.db import models
-from django.db.models import Q
+from django.db import (
+    models, transaction, DatabaseError
+)
+from django.db.models import (
+    Q, ObjectDoesNotExist
+)
 from django.utils import timezone
 
 import pytz
@@ -21,7 +25,9 @@ from core.models.machine import (
     convert_esh_machine, get_or_create_provider_machine
 )
 from core.models.volume import convert_esh_volume
-from core.models.size import convert_esh_size, Size
+from core.models.size import (
+    convert_esh_size, Size
+)
 from core.models.tag import Tag
 from core.models.managers import ActiveInstancesManager
 
@@ -79,10 +85,24 @@ class Instance(models.Model):
         )
         return projects
 
+    def get_first_history(self):
+        """
+        Returns the first InstanceStatusHistory
+        """
+        # TODO: Profile Option
+        # except InstanceStatusHistory.DoesNotExist:
+        # TODO: Profile current choice
+        try:
+            return self.instancestatushistory_set.order_by(
+                'start_date').first()
+        except ObjectDoesNotExist:
+            return None
+
     def get_last_history(self):
         """
         Returns the newest InstanceStatusHistory
         """
+        # FIXME: Clean up this implementation OR rename to `get_or_create`
         # TODO: Profile Option
         # except InstanceStatusHistory.DoesNotExist:
         # TODO: Profile current choice
@@ -298,6 +318,8 @@ class Instance(models.Model):
             self.save()
 
     def creator_name(self):
+        if not self.created_by:
+            return "N/A"
         return self.created_by.username
 
     def hash_alias(self):
@@ -376,6 +398,13 @@ class Instance(models.Model):
         else:
             return None
 
+    def application_name(self):
+        if self.source.is_machine():
+            return self.source.providermachine\
+                    .application_version.application.name
+        else:
+            return None
+
     def application_id(self):
         if self.source.is_machine():
             return self.source.providermachine\
@@ -426,7 +455,7 @@ class Instance(models.Model):
     def __unicode__(self):
         return "%s (Name:%s, Creator:%s, IP:%s)" %\
             (self.provider_alias, self.name,
-             self.created_by_id, self.ip_address)
+             self.creator_name(), self.ip_address)
 
     class Meta:
         db_table = "instance"
@@ -726,7 +755,9 @@ def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
         # so a lookup on the size is required to get accurate
         # information.
         # TODO: Switch to 'get_cached_size!'
-        esh_size = esh_driver.get_size(esh_size.id)
+        new_size = esh_driver.get_size(esh_size.id)
+        if new_size:
+            esh_size = new_size
     core_size = convert_esh_size(esh_size, provider_uuid)
     return core_size
 

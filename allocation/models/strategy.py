@@ -45,7 +45,7 @@ class PythonAllocationStrategy(object):
                     AllocInstance.from_core(inst, self.counting_behavior.start_date)
                 )
             except Exception as exc:
-                logger.exception(exc)
+                logger.exception("Instance %s could not be counted: %s" % (inst, exc))
         return alloc_instances
 
     def apply(self, identity, core_allocation):

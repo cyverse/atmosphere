@@ -95,18 +95,19 @@ class Instance(object):
         self.history = history
 
     @classmethod
-    def from_core(cls, core_instance, start_date=None):
+    def from_core(cls, core_instance, start_date=None, history_list=[]):
         source = core_instance.source.current_source
         prov = Provider.from_core(source.provider)
         mach = Machine.from_core(source)
         instance_history = []
-        if not start_date:
-            # Full list
-            history_list = core_instance.instancestatushistory_set.all()
-        else:
-            # Shorter list
-            history_list = core_instance.instancestatushistory_set.filter(
-                Q(end_date=None) | Q(end_date__gt=start_date))
+        if not history_list:
+            if not start_date:
+                # Full list
+                history_list = core_instance.instancestatushistory_set.all()
+            else:
+                # Shorter list
+                history_list = core_instance.instancestatushistory_set.filter(
+                    Q(end_date=None) | Q(end_date__gt=start_date))
         for history in history_list.order_by('start_date'):
             alloc_history = InstanceHistory.from_core(history)
             instance_history.append(alloc_history)

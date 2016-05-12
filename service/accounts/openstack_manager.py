@@ -35,6 +35,7 @@ from core.models.identity import Identity
 
 from service.accounts.base import BaseAccountDriver
 
+from atmosphere.settings.secrets import SECRET_SEED
 
 def get_unique_id(userid):
     if 'iplantauth.authBackends.LDAPLoginBackend' in settings.AUTHENTICATION_BACKENDS:
@@ -92,6 +93,9 @@ class AccountDriver(BaseAccountDriver):
         ("UDP", 4200, 4200, "128.196.0.0/16"),
         ("TCP", 4200, 4200, "150.135.0.0/16"),
         ("UDP", 4200, 4200, "150.135.0.0/16"),
+        # Poke hole in 4200 for Jetsteam "Service VMs" only (WebDesktop//NoVNC)
+        ("TCP", 4200, 4200, "149.165.238.0/24"),
+        ("UDP", 4200, 4200, "149.165.238.0/24"),
 
     ]
 
@@ -260,14 +264,17 @@ class AccountDriver(BaseAccountDriver):
         username = identity_creds["username"]
         password = old_password if old_password else identity_creds["password"]
         project_name = identity_creds["tenant_name"]
-        try:
-            clients = self.get_openstack_clients(username, password, project_name)
-        except Unauthorized:
-            raise Unauthorized("credential_set for Identity %s did not produce"
-                               " a valid set of openstack clients" % identity)
-        keystone = clients['keystone']
-        # NOTE: next line can raise Unauthorized
-        keystone.users.update_password(password, new_password)
+        # try:
+        #     clients = self.get_openstack_clients(username, password, project_name)
+        # except Unauthorized:
+        #     raise Unauthorized("credential_set for Identity %s did not produce"
+        #                        " a valid set of openstack clients" % identity)
+        # keystone = clients['keystone']
+        # # NOTE: next line can raise Unauthorized
+        # keystone.users.update_own_password(password, new_password)
+        keystone = self.user_manager.keystone
+        user = keystone.users.find(name=username)
+        keystone.users.update_password(user, new_password)
 
     def init_keypair(self, username, password, project_name):
         keyname = settings.ATMOSPHERE_KEYPAIR_NAME
@@ -529,9 +536,7 @@ class AccountDriver(BaseAccountDriver):
         Create a unique password using 'Username' as the wored
         and the SECRET_KEY as your salt
         """
-        #FIXME: Switch to new password and then remove this line!
-        return self.old_hashpass(username)
-        secret_salt = settings.SECRET_KEY.translate(None, string.punctuation)
+        secret_salt = SECRET_SEED.translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         if not password:
             raise Exception("Failed to hash password, check the secret_salt")
@@ -748,6 +753,72 @@ class AccountDriver(BaseAccountDriver):
             kwargs = self._parse_domain_kwargs(kwargs, domain_override='domain')
         return self.user_manager.keystone.users.list(**kwargs)
 
+    def get_quota_limit(self, username, project_name):
+        limits = {}
+        abs_limits = self.get_absolute_limits()
+        user_limits = self.get_user_limits(username, project_name)
+        if abs_limits:
+            limits.update(abs_limits)
+        if user_limits:
+            limits.update(user_limits)
+        return limits
+
+    def get_absolute_limits(self):
+        limits = {}
+        os_limits = self.admin_driver._connection.ex_get_limits()
+        try:
+            absolute_limits = os_limits['absolute']
+            limits['cpu'] = absolute_limits['maxTotalCores']
+            limits['floating_ips'] = absolute_limits['maxTotalFloatingIps']
+            limits['instances'] = absolute_limits['maxTotalInstances']
+            limits['keypairs'] = absolute_limits['maxTotalKeypairs']
+            limits['ram'] = absolute_limits['maxTotalRAMSize']
+        except:
+            logger.exception("The method for 'reading' absolute limits has changed!")
+            
+        return limits
+
+    def get_user_limits(self, username, project_name):
+        limits = {}
+        try:
+            user_id = self.get_user(username).id
+        except:
+            logger.exception("Failed to find user %s" % username)
+            raise ValueError ("Unknown user %s" % username)
+
+        try:
+            project_id = self.get_project(project_name).id
+        except:
+            logger.exception("Failed to find project %s" % project_name)
+            raise ValueError ("Unknown project %s" % project_name)
+
+        user_limits = self._ex_list_quota_for_user(user_id, project_id)
+
+        if not user_limits:
+            return limits
+        try:
+            user_quota = user_limits['quota_set']
+            limits['cpu'] = user_quota['cores']
+            limits['floating_ips'] = user_quota['floating_ips']
+            limits['instances'] = user_quota['instances']
+            limits['keypairs'] = user_quota['key_pairs']
+            limits['ram'] = user_quota['ram']
+        except:
+            logger.exception("The method for 'reading' absolute limits has changed!")
+
+        return limits
+
+    def _ex_list_quota_for_user(self, user_id, tenant_id):
+        """
+        """
+        server_resp = self.admin_driver._connection.connection.request('/os-quota-sets/%s?user_id=%s'
+                                             % (tenant_id, user_id))
+        quota_obj = server_resp.object
+        return quota_obj
+        
+
+
+
     def list_usergroup_names(self):
         return [user.name for (user, project) in self.list_usergroups()]
 
@@ -784,10 +855,7 @@ class AccountDriver(BaseAccountDriver):
         net_creds = self._build_network_creds(all_creds)
         sdk_creds = self._build_sdk_creds(all_creds)
         user_creds = self._build_user_creds(all_creds)
-        if self.identity_version > 2:
-            openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
-        else:
-            openstack_sdk = None
+        openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
 
         (keystone, nova, swift) = self.user_manager.new_connection(
             **user_creds)

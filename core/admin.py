@@ -222,7 +222,7 @@ class ProviderAdmin(admin.ModelAdmin):
 class SizeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
     search_fields = ["name", "alias", "provider__location"]
-    list_display = ["name", "provider", "cpu", "mem", "disk",
+    list_display = ["name", "alias", "provider", "cpu", "mem", "disk",
                     "start_date", "end_date"]
     list_filter = ["provider__location"]
 
@@ -236,7 +236,7 @@ class TagAdmin(admin.ModelAdmin):
 @admin.register(models.Volume)
 class VolumeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["identifier", "name", "location"]
+    search_fields = ["instance_source__identifier", "name", "instance_source__provider__location", "instance_source__created_by__username"]
     list_display = ["identifier", "size", "provider",
                     "start_date", "end_date"]
     list_filter = ["instance_source__provider__location"]
@@ -257,6 +257,10 @@ class ApplicationAdmin(admin.ModelAdmin):
         "created_by",
         "start_date",
         "end_date"]
+    list_filter = [
+        "end_date",
+        "versions__machines__instance_source__provider",
+    ]
     filter_vertical = ["tags", ]
 
     def save_model(self, request, obj, form, change):
@@ -373,6 +377,7 @@ class ExportRequestAdmin(admin.ModelAdmin):
 class MachineRequestAdmin(admin.ModelAdmin):
     search_fields = [
         "new_machine_owner__username",
+        "new_machine__instance_source__identifier",
         "new_application_name",
         "instance__provider_alias"]
     list_display = [
@@ -465,7 +470,7 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
 @admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]
-    list_display = ["provider_alias", "name", "created_by", "ip_address"]
+    list_display = ["provider_alias", "get_size", "application_id", "application_name", "start_date", "name", "created_by", "ip_address"]
     list_filter = ["source__provider__location"]
 
 
