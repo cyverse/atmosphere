@@ -1,24 +1,24 @@
-Username: {{ username }} ({{ name }})
+Username : {{ username }} ({{ name }})
 {% if problems %}
-Problems: 
+Problems : 
     {{ problems|join("\n")|indent(4, false) }}
 {% endif %}
-Details: 
+Details : 
     {{ message }}
 
-Instance:
-    Name: {{ instance.name }}
+Instance :
+    Name : {{ instance.name }}
     {%- if status %}
-    Status: {{ status.status }} since {{ status.start_date.date() }}
+    Status : {{ status.status }} since {{ status.start_date.date() }}
     {% endif -%}
-    UUID: {{ instance.provider_alias }}
-    Image: {{ instance.provider_machine.identifier }}
-    IP: {{ instance.ip_address }}
+    UUID : {{ instance.provider_alias }}
+    Image : {{ instance.provider_machine.identifier }}
+    IP : {{ instance.ip_address }}
 
-Provider: {{ provider }}
+Provider : {{ provider }}
 
-User-interface: {{ ui }}
+User-interface : {{ ui }}
 
-Server: {{ server }}
+Server : {{ server }}
 
 {% include "fingerprint.html" %}
