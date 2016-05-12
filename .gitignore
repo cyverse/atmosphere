@@ -1,7 +1,7 @@
 B.DS_Store
 *.class
-.pyc
-.pyo
+*.pyc
+*.pyo
 *~
 celerybeat-schedule
 flower.db
