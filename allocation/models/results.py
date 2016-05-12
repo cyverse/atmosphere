@@ -27,12 +27,17 @@ class InstanceHistoryResult(object):
         # Burn rate == Time used (After rules applied) per second
         self.burn_rate = burn_rate
 
+    def get_total_hours(self):
+        return round(
+            self.total_time.total_seconds()/3600.0,
+            2)
+
     def __repr__(self):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "<HistoryResult: Status:%s Clock Time:%s Total Time:%s Burn Rate:%s/0:00:01>" % (
-            self.status_name, self.clock_time, self.total_time, self.burn_rate)
+        return "<HistoryResult: Status:%s Clock Time:%s Total Time:%s (%s AU) Burn Rate:%s/0:00:01>" % (
+            self.status_name, self.clock_time, self.total_time, self.get_total_hours(), self.burn_rate)
 
 
 class InstanceResult(object):
