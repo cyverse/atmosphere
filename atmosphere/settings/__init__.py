@@ -42,7 +42,7 @@ ADMINS = (
     ('AT LEAST ONE ADMIN REQUIRED', 'sends-email@if-debug-false.com'),
 )
 
-# Required to send RequestTracker emails
+# Set this value to be different if you want to separate where 'support' related email is sent.
 ATMO_SUPPORT = ADMINS
 ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
 
