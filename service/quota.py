@@ -1,16 +1,17 @@
 from threepio import logger
 
-from core.models import IdentityMembership, Identity, Provider
+from core.models import IdentityMembership, Identity
 
 from service.cache import get_cached_driver
 from service.driver import get_account_driver
+
 
 def _get_hard_limits(identity):
     """
     Lookup the OpenStack "Hard Limits" based on the account provider
     """
     accounts = get_account_driver(identity.provider)
-    defaults = {"ram": 999, "cpu": 99} # Used when all else fails.
+    defaults = {"ram": 999, "cpu": 99}  # Used when all else fails.
     limits = {}
     limits.update(defaults)
     username = identity.get_credential('key')
@@ -28,33 +29,74 @@ def set_provider_quota(identity_uuid, limit_dict=None):
     if not identity.credential_set.all():
         # Can't update quota if credentials arent set
         return
+    username = identity.created_by.username
+    membership = IdentityMembership.objects.get(
+        identity__uuid=identity_uuid,
+        member__name=username)
+    user_quota = membership.quota
+
+    if not user_quota:
+        # Can't update quota if it doesn't exist
+        n
+        return True
+    # Don't go above the hard-set limits per provider.
+    _limit_user_quota(user_quota, identity, limit_dict=limit_dict)
+
+    return _set_openstack_quota(user_quota, identity, limit_dict=limit_dict)
+
+
+def _set_openstack_quota(user_quota, identity, compute=True, volume=True):
+    if not identity.provider.get_type_name().lower() == 'openstack':
+        raise Exception("Cannot set provider quota on type: %s"
+                        % identity.provider.get_type_name())
+
+    if compute:
+        _set_compute_quota(user_quota, identity)
+    if volume:
+        _set_volume_quota(user_quota, identity)
+    return True
+
+
+def _limit_user_quota(user_quota, identity, limit_dict=None):
     if not limit_dict:
         limit_dict = _get_hard_limits(identity)
-    if identity.provider.get_type_name().lower() == 'openstack':
-        driver = get_cached_driver(identity=identity)
-        username = identity.created_by.username
-        user_id = driver._connection.key
-        tenant_id = driver._connection._get_tenant_id()
-        membership = IdentityMembership.objects.get(
-            identity__uuid=identity_uuid,
-            member__name=username)
-        user_quota = membership.quota
-        if user_quota:
-            # Don't go above the hard-set limits per provider.
-            if user_quota.cpu > limit_dict['cpu']:
-                user_quota.cpu = limit_dict['cpu']
-            if user_quota.memory > limit_dict['ram']:
-                user_quota.memory = limit_dict['ram']
-            # Use THESE values...
-            values = {'cores': user_quota.cpu,
-                      'ram': user_quota.memory} # NOTE: Test that this works on havana
-            logger.info("Updating quota for %s to %s" % (username, values))
-            ad = get_account_driver(identity.provider)
-            admin_driver = ad.admin_driver
-            admin_driver._connection.ex_update_quota_for_user(tenant_id,
-                                                              user_id,
-                                                              values)
-    return True
+    if user_quota.cpu > limit_dict['cpu']:
+        user_quota.cpu = limit_dict['cpu']
+    if user_quota.memory > limit_dict['ram']:
+        user_quota.memory = limit_dict['ram']
+    return user_quota
+
+
+def _set_volume_quota(user_quota, identity):
+    volume_values = {
+        'volumes': user_quota.storage_count,
+        'gigabytes': user_quota.memory,
+        'snapshots': user_quota.snapshot_count,
+    }
+    username = identity.created_by.username
+    logger.info("Updating quota for %s to %s" % (username, volume_values))
+    # TODO: Create an AccountDriver call to update volume_values for tenant_id
+    return
+
+
+def _set_compute_quota(user_quota, identity):
+    # Use THESE values...
+    compute_values = {
+        'cores': user_quota.cpu,
+        'ram': user_quota.memory,  # NOTE: Test that this works on havana
+        'floating_ips': user_quota.floating_ip_count,
+        'fixed_ips': user_quota.port_count,
+        'instances': user_quota.instance_count,
+    }
+    username = identity.created_by.username
+    logger.info("Updating quota for %s to %s" % (username, compute_values))
+    driver = get_cached_driver(identity=identity)
+    user_id = driver._connection.key
+    tenant_id = driver._connection._get_tenant_id()
+    ad = get_account_driver(identity.provider)
+    admin_driver = ad.admin_driver
+    return admin_driver._connection.ex_update_quota_for_user(
+        tenant_id, user_id, compute_values)
 
 
 def get_current_quota(identity_uuid):
@@ -63,7 +105,7 @@ def get_current_quota(identity_uuid):
     cpu = ram = disk = suspended = 0
     instances = driver.list_instances()
     # prefetch sizes
-    sizes = {size.id:size for size in driver.list_sizes()}
+    sizes = {size.id: size for size in driver.list_sizes()}
     for instance in instances:
         if instance.extra['status'] == 'suspended'\
                 or instance.extra['status'] == 'shutoff':
