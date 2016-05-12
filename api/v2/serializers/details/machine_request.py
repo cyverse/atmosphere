@@ -159,7 +159,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     old_status = serializers.CharField(required = False)
     new_application_visibility = serializers.CharField()
     access_list = serializers.CharField(allow_blank=True)
-    system_files = serializers.CharField(allow_blank=True)
+    system_files = serializers.CharField(allow_blank=True, required=False)
     installed_software = serializers.CharField()
     exclude_files = serializers.CharField(allow_blank=True)
     new_version_name = serializers.CharField()
