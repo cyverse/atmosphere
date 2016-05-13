@@ -5,6 +5,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.core.exceptions import ValidationError
 
 # Default functions to be allow for dynamic-defaults
 # Values to the right will be used IF the configuration
@@ -157,7 +158,7 @@ class Quota(models.Model):
                            "suspended_count")
 
 
-def has_cpu_quota(driver, quota, new_size=0):
+def has_cpu_quota(driver, quota, new_size=0, raise_exc=True):
     """
     True if the total number of CPU cores found on
     driver is less than or equal to Quota.cpu,
@@ -167,16 +168,20 @@ def has_cpu_quota(driver, quota, new_size=0):
     if not quota or new_size < 0:
         return False
     # Always True if cpu is null
-    if not quota.cpu:
+    if not quota.cpu or quota.cpu < 0:
         return True
     total_size = new_size
     instances = driver.list_instances()
     for inst in instances:
         total_size += inst.size._size.extra['cpu']
-    return total_size <= quota.cpu
+    if total_size <= quota.cpu:
+        return True
+    if raise_exc:
+        _raise_quota_error('CPU', total_size, new_size, quota.cpu)
+    return False
 
 
-def has_mem_quota(driver, quota, new_size=0):
+def has_mem_quota(driver, quota, new_size=0, raise_exc=True):
     """
     True if the total amount of RAM found on driver is
     less than or equal to Quota.mem, otherwise False.
@@ -185,16 +190,43 @@ def has_mem_quota(driver, quota, new_size=0):
     if not quota or new_size < 0:
         return False
     # Always True if ram is null
-    if not quota.ram:
+    if not quota.ram or quota.ram < 0:
         return True
     total_size = new_size
     instances = driver.list_instances()
     for inst in instances:
         total_size += inst.size._size.ram
-    return total_size <= quota.memory
+    if total_size <= quota.memory:
+        return True
+    if raise_exc:
+        _raise_quota_error('Memory', total_size, new_size, quota.memory)
+    return False
 
 
-def has_instance_count_quota(driver, quota, new_size=0):
+def has_suspended_count_quota(driver, quota, new_size=0, raise_exc=True):
+    """
+    True if the total number of instances found on driver are
+    greater than or equal to Quota.instance otherwise False.
+    """
+    # Always False if quota doesnt exist, new size is negative
+    if not quota or new_size < 0:
+        return False
+    # Always True if suspended count is null
+    if not quota.suspended_count or quota.suspended_count < 0:
+        return True
+    total_size = new_size
+    total_size += len(
+        [inst for inst in driver.list_instances()
+         if inst.extra.get('status') in ['shutoff','suspended']
+        ])
+    if total_size <= quota.suspended_count:
+        return True
+    if raise_exc:
+        _raise_quota_error('Suspended Instance', total_size, new_size, quota.suspended_count)
+    return False
+
+
+def has_instance_count_quota(driver, quota, new_size=0, raise_exc=True):
     """
     True if the total number of instances found on driver are
     greater than or equal to Quota.instance otherwise False.
@@ -203,14 +235,19 @@ def has_instance_count_quota(driver, quota, new_size=0):
     if not quota or new_size < 0:
         return False
     # Always True if instance count is null
-    if not quota.instance_count:
+    if not quota.instance_count or quota.instance_count < 0:
         return True
-    num_insts = new_size
-    num_insts += len(driver.list_instances())
-    return num_insts <= quota.instance_count
+    total_size = new_size
+    total_size += len(driver.list_instances())
+    return total_size <= quota.instance_count
+    if total_size <= quota.instance_count:
+        return True
+    if raise_exc:
+        _raise_quota_error('Instance', total_size, new_size, quota.instance_count)
+    return False
 
 
-def has_port_count_quota(driver, quota, new_size=0):
+def has_port_count_quota(driver, quota, new_size=0, raise_exc=True):
     """
     True if the total number of ports found on driver are
     less than or equal to Quota.port_count, otherwise False.
@@ -224,26 +261,35 @@ def has_port_count_quota(driver, quota, new_size=0):
     ports = driver._connection.neutron_list_port_count()
     total_size = new_size
     total_size += len(ports)
-    return total_size <= quota.port_count
+    if total_size <= quota.port_count:
+        return True
+    if raise_exc:
+        _raise_quota_error('Fixed IP', total_size, new_size, quota.port_count)
+    return False
 
 
-def has_floating_ip_count_quota(driver, quota, new_size=0):
+def has_floating_ip_count_quota(driver, quota, new_size=0, raise_exc=True):
     """
     True if the total number of floating ips found on driver are
     less than or equal to Quota.floating_ip_count, otherwise False.
     """
-    # Always False if quota doesnt exist, new size is negative
+   # Always False if quota doesnt exist, new size is negative
     if not quota or new_size < 0:
         return False
     # Always True if floating_ip_count is null
     if not quota.floating_ip_count or quota.floating_ip_count < 0:
         return True
     floating_ips = driver._connection.ex_list_floating_ips()
-    total_size = len(floating_ips)
-    return total_size <= quota.floating_ip_count
+    total_size = new_size
+    total_size += len(floating_ips)
+    if total_size <= quota.floating_ip_count:
+        return True
+    if raise_exc:
+        _raise_quota_error('Floating IP', total_size, new_size, quota.floating_ip_count)
+    return False
 
 
-def has_storage_quota(driver, quota, new_size=0):
+def has_storage_quota(driver, quota, new_size=0, raise_exc=True):
     """
     True if the total volume size found on driver is
     less than or equal to Quota.storage, otherwise False.
@@ -258,10 +304,15 @@ def has_storage_quota(driver, quota, new_size=0):
     total_size = new_size
     for vol in vols:
         total_size += vol.size
-    return total_size <= quota.storage
+    if total_size <= quota.storage:
+        return True
+    if raise_exc:
+        _raise_quota_error('Storage Size', total_size, new_size, quota.storage)
+    return False
 
 
-def has_snapshot_count_quota(driver, quota, new_size=0):
+
+def has_snapshot_count_quota(driver, quota, new_size=0, raise_exc=True):
     """
     True if the total number of volumes found on driver are
     greater than or equal to Quota.snapshot otherwise False.
@@ -270,14 +321,18 @@ def has_snapshot_count_quota(driver, quota, new_size=0):
     if not quota or new_size < 0:
         return False
     # Always True if snapshot count is null
-    if not quota.snapshot_count:
+    if not quota.snapshot_count or quota.snapshot_count < 0:
         return True
-    num_vols = new_size
-    num_vols += len(driver._connection.ex_list_snapshots())
-    return num_vols <= quota.snapshot_count
+    total_size = new_size
+    total_size += len(driver._connection.ex_list_snapshots())
+    if total_size <= quota.snapshot_count:
+        return True
+    if raise_exc:
+        _raise_quota_error('Snapshot', total_size, new_size, quota.snapshot_count)
+    return False
 
 
-def has_storage_count_quota(driver, quota, new_size=0):
+def has_storage_count_quota(driver, quota, new_size=0, raise_exc=True):
     """
     True if the total number of volumes found on driver are
     greater than or equal to Quota.storage otherwise False.
@@ -288,9 +343,19 @@ def has_storage_count_quota(driver, quota, new_size=0):
     # Always True if storage count is null
     if not quota.storage_count:
         return True
-    num_vols = new_size
-    num_vols += len(driver.list_volumes())
-    return num_vols <= quota.storage_count
+    total_size = new_size
+    total_size += len(driver.list_volumes())
+    if total_size <= quota.storage_count:
+        return True
+    if raise_exc:
+        _raise_quota_error('Volume', total_size, new_size, quota.storage_count)
+    return False
+
+
+def _raise_quota_error(resource_name, current_count, new_count, limit_count):
+    raise ValidationError(
+        "%s Quota Exceeded: Requested %s+%s but limited to %s"
+        % (resource_name, current_count, new_count, limit_count))
 
 
 def get_quota(identity_uuid):

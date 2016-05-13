@@ -2,6 +2,7 @@ import os.path
 import time
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from django.utils.timezone import datetime
 from djcelery.app import app
@@ -1245,12 +1246,12 @@ def _test_for_licensing(esh_machine, identity):
 def check_quota(username, identity_uuid, esh_size, resuming=False):
     from service.monitoring import check_over_allocation
     from service.quota import check_over_quota
-    (over_quota, resource,
-     requested, used, allowed) = check_over_quota(username,
-                                                  identity_uuid,
-                                                  esh_size, resuming=resuming)
-    if over_quota and settings.ENFORCING:
-        raise OverQuotaError(resource, requested, used, allowed)
+    try:
+        check_over_quota(username, identity_uuid,
+                     esh_size, resuming=resuming)
+    except ValidationError as bad_quota:
+        raise OverQuotaError(message=bad_quota.message)
+
     (over_allocation, time_diff) =\
         check_over_allocation(username,
                               identity_uuid)
