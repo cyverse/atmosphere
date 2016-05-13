@@ -37,7 +37,6 @@ def set_provider_quota(identity_uuid, limit_dict=None):
 
     if not user_quota:
         # Can't update quota if it doesn't exist
-        n
         return True
     # Don't go above the hard-set limits per provider.
     _limit_user_quota(user_quota, identity, limit_dict=limit_dict)
@@ -45,7 +44,8 @@ def set_provider_quota(identity_uuid, limit_dict=None):
     return _set_openstack_quota(user_quota, identity, limit_dict=limit_dict)
 
 
-def _set_openstack_quota(user_quota, identity, compute=True, volume=True):
+def _set_openstack_quota(
+        user_quota, identity, compute=True, volume=True, network=True):
     if not identity.provider.get_type_name().lower() == 'openstack':
         raise Exception("Cannot set provider quota on type: %s"
                         % identity.provider.get_type_name())
@@ -54,6 +54,8 @@ def _set_openstack_quota(user_quota, identity, compute=True, volume=True):
         _set_compute_quota(user_quota, identity)
     if volume:
         _set_volume_quota(user_quota, identity)
+    if network:
+        _set_network_quota(user_quota, identity)
     return True
 
 
@@ -67,6 +69,26 @@ def _limit_user_quota(user_quota, identity, limit_dict=None):
     return user_quota
 
 
+def _set_network_quota(user_quota, identity):
+    network_values = {
+        'port': user_quota.port_count,
+        'floatingip': user_quota.floating_ip_count,
+        # INTENTIONALLY SKIPPED/IGNORED
+        # 'subnet', 'router', 'network',
+        # 'security_group', 'security_group_rules'
+    }
+    username = identity.created_by.username
+    logger.info("Updating network quota for %s to %s"
+                % (username, network_values))
+    driver = get_cached_driver(identity=identity)
+    tenant_id = driver._connection._get_tenant_id()
+
+    ad = get_account_driver(identity.provider)
+    admin_driver = ad.admin_driver
+    admin_driver._connection._neutron_update_quota(tenant_id, network_values)
+    return
+
+
 def _set_volume_quota(user_quota, identity):
     volume_values = {
         'volumes': user_quota.storage_count,
@@ -75,7 +97,11 @@ def _set_volume_quota(user_quota, identity):
     }
     username = identity.created_by.username
     logger.info("Updating quota for %s to %s" % (username, volume_values))
-    # TODO: Create an AccountDriver call to update volume_values for tenant_id
+    driver = get_cached_driver(identity=identity)
+    username = driver._connection._get_username()
+    ad = get_account_driver(identity.provider)
+    admin_driver = ad.admin_driver
+    admin_driver._connection._cinder_update_quota(username, volume_values)
     return
 
 

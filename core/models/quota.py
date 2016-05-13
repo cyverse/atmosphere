@@ -261,6 +261,22 @@ def has_storage_quota(driver, quota, new_size=0):
     return total_size <= quota.storage
 
 
+def has_snapshot_count_quota(driver, quota, new_size=0):
+    """
+    True if the total number of volumes found on driver are
+    greater than or equal to Quota.snapshot otherwise False.
+    """
+    # Always False if quota doesnt exist, new size is negative
+    if not quota or new_size < 0:
+        return False
+    # Always True if snapshot count is null
+    if not quota.snapshot_count:
+        return True
+    num_vols = new_size
+    num_vols += len(driver._connection.ex_list_snapshots())
+    return num_vols <= quota.snapshot_count
+
+
 def has_storage_count_quota(driver, quota, new_size=0):
     """
     True if the total number of volumes found on driver are
