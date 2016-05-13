@@ -55,10 +55,7 @@ def create_request_uri(uuid, params):
 
     #: (Optional) specify the window
     if "from" in params:
-        request_uri = "{}&from={}".format(request_uri, params["from"])
-
-    if "until" in params:
-        request_uri = "{}&until={}".format(request_uri, params["until"])
+      request_uri = "{}&from={}".format(request_uri, params["from"])
 
     logger.info("metrics endpoint: " + request_uri)
     return request_uri
@@ -86,14 +83,11 @@ def get_valid_params(params):
     try:
         resolution = int(params["res"])
         size = int(params["size"])
-        if "until" in params and params["until"]:
-            fields["from"] = params["from"]
-            fields["until"] = params["until"]
-        else:
-            period = resolution * 60 * size
-            if period < MAXIMUM_TIME_PERIOD:
-                fields["from"] = "-{}s".format(period)
-                fields["res"] = resolution
+        period = resolution * 60 * size
+
+        if period < MAXIMUM_TIME_PERIOD:
+            fields["from"] = "-{}s".format(period)
+            fields["res"] = resolution
 
         #: (Optional) Check for a valid function
         if params.get("fun", "") in VALID_FUNCTIONS:

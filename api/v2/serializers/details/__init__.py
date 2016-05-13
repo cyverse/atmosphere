@@ -1,4 +1,5 @@
 # flake8: noqa
+from .allocation import AllocationSerializer
 from .boot_script import BootScriptSerializer
 from .credential import CredentialSerializer
 from .email_template import EmailTemplateSerializer
@@ -29,7 +30,7 @@ from .project_volume import ProjectVolumeSerializer
 from .provider import (ProviderSerializer, ProviderTypeSerializer,
                        PlatformTypeSerializer)
 from .provider_machine import ProviderMachineSerializer
-from .quota import QuotaSerializer, AllocationSerializer
+from .quota import QuotaSerializer
 from .resource_request import (
     ResourceRequestSerializer, UserResourceRequestSerializer)
 from .size import SizeSerializer
