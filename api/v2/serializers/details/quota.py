@@ -32,11 +32,13 @@ class QuotaSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Quota
         fields = (
-            'id',
-            'uuid',
-            'url',
-            'cpu',
-            'memory',
-            'storage',
-            'storage_count',
-            'suspended_count')
+            'id', 'uuid', 'url',
+            #general
+            'cpu', 'memory', 'storage',
+            # compute
+            'instance_count', 'suspended_count',
+            # volume
+            'snapshot_count', 'storage_count',
+            # networking
+            'floating_ip_count', 'port_count',
+            )

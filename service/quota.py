@@ -41,7 +41,7 @@ def set_provider_quota(identity_uuid, limit_dict=None):
     # Don't go above the hard-set limits per provider.
     _limit_user_quota(user_quota, identity, limit_dict=limit_dict)
 
-    return _set_openstack_quota(user_quota, identity, limit_dict=limit_dict)
+    return _set_openstack_quota(user_quota, identity)
 
 
 def _set_openstack_quota(
@@ -51,12 +51,17 @@ def _set_openstack_quota(
                         % identity.provider.get_type_name())
 
     if compute:
-        _set_compute_quota(user_quota, identity)
-    if volume:
-        _set_volume_quota(user_quota, identity)
+        compute_quota = _set_compute_quota(user_quota, identity)
     if network:
-        _set_network_quota(user_quota, identity)
-    return True
+        network_quota = _set_network_quota(user_quota, identity)
+    if volume:
+        volume_quota = _set_volume_quota(user_quota, identity)
+
+    return {
+        'compute': compute_quota,
+        'network': network_quota,
+        'volume': volume_quota,
+    }
 
 
 def _limit_user_quota(user_quota, identity, limit_dict=None):
