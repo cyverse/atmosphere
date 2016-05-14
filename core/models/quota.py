@@ -171,6 +171,7 @@ def has_cpu_quota(driver, quota, new_size=0, raise_exc=True):
     if not quota.cpu or quota.cpu < 0:
         return True
     total_size = new_size
+    _pre_cache_sizes(driver)
     instances = driver.list_instances()
     for inst in instances:
         total_size += inst.size._size.extra['cpu']
@@ -190,12 +191,14 @@ def has_mem_quota(driver, quota, new_size=0, raise_exc=True):
     if not quota or new_size < 0:
         return False
     # Always True if ram is null
-    if not quota.ram or quota.ram < 0:
+    if not quota.memory or quota.memory < 0:
         return True
     total_size = new_size
+    _pre_cache_sizes(driver)
     instances = driver.list_instances()
     for inst in instances:
-        total_size += inst.size._size.ram
+        total_size += inst.size._size.ram / 1024.0
+    total_size = int(total_size)
     if total_size <= quota.memory:
         return True
     if raise_exc:
@@ -217,12 +220,14 @@ def has_suspended_count_quota(driver, quota, new_size=0, raise_exc=True):
     total_size = new_size
     total_size += len(
         [inst for inst in driver.list_instances()
-         if inst.extra.get('status') in ['shutoff','suspended']
-        ])
+         if inst.extra.get('status') in ['shutoff', 'suspended']
+         ]
+    )
     if total_size <= quota.suspended_count:
         return True
     if raise_exc:
-        _raise_quota_error('Suspended Instance', total_size, new_size, quota.suspended_count)
+        _raise_quota_error(
+            'Suspended Instance', total_size, new_size, quota.suspended_count)
     return False
 
 
@@ -239,7 +244,6 @@ def has_instance_count_quota(driver, quota, new_size=0, raise_exc=True):
         return True
     total_size = new_size
     total_size += len(driver.list_instances())
-    return total_size <= quota.instance_count
     if total_size <= quota.instance_count:
         return True
     if raise_exc:
@@ -258,7 +262,7 @@ def has_port_count_quota(driver, quota, new_size=0, raise_exc=True):
     # Always True if port_count is null
     if not quota.port_count or quota.port_count < 0:
         return True
-    ports = driver._connection.neutron_list_port_count()
+    ports = driver._connection.neutron_list_ports()
     total_size = new_size
     total_size += len(ports)
     if total_size <= quota.port_count:
@@ -354,9 +358,19 @@ def has_storage_count_quota(driver, quota, new_size=0, raise_exc=True):
 
 def _raise_quota_error(resource_name, current_count, new_count, limit_count):
     raise ValidationError(
-        "%s Quota Exceeded: Requested %s+%s but limited to %s"
+        "%s Quota Exceeded: Using %s + Requested %s but limited to %s"
         % (resource_name, current_count, new_count, limit_count))
 
+
+def _pre_cache_sizes(driver):
+    """
+    Pre-caching sizes is required to get 'extra' data from size,
+    rather than MockSize (default)
+    """
+    cached_sizes = driver.provider.sizeCls.sizes.get(driver.provider.identifier)
+    if not cached_sizes:
+        driver.list_sizes()
+    return
 
 def get_quota(identity_uuid):
     try:

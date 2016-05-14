@@ -18,7 +18,7 @@ from service.driver import get_account_driver
 
 def check_over_instance_quota(
         username, identity_uuid,
-        esh_size=None, resuming=False):
+        esh_size=None, action=None):
     """
     Checks quota based on current limits (and an instance of size, if passed).
 
@@ -28,8 +28,9 @@ def check_over_instance_quota(
                      (int) number_used,
                      (int) number_allowed)
     """
-    membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
-                                                member__name=username)
+    membership = IdentityMembership.objects.get(
+        identity__uuid=identity_uuid,
+        member__name=username)
     quota = membership.quota
     identity = membership.identity
     driver = get_cached_driver(identity=identity)
@@ -37,16 +38,17 @@ def check_over_instance_quota(
     if esh_size:
         new_cpu += esh_size.cpu
         new_ram += esh_size.ram
+    if action in ['launch', 'resume', 'reboot', 'unshelve']:
         new_floating_ip += 1
         new_instance += 1
         new_port += 1
     # Will throw ValidationError if false.
-    has_floating_ip_count_quota(driver, quota, new_floating_ip)
-    has_port_count_quota(driver, quota, new_port)
-    has_instance_count_quota(driver, quota, new_instance)
     has_cpu_quota(driver, quota, new_cpu)
     has_mem_quota(driver, quota, new_ram)
+    has_instance_count_quota(driver, quota, new_instance)
     has_suspended_count_quota(driver, quota)
+    has_floating_ip_count_quota(driver, quota, new_floating_ip)
+    has_port_count_quota(driver, quota, new_port)
     return True
 
 
