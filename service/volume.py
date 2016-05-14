@@ -6,7 +6,7 @@ from core.models.identity import Identity
 
 from service.cache import get_cached_driver
 from service.driver import _retrieve_source, get_esh_driver
-
+from service.quota import check_over_storage_quota
 from service import exceptions
 from service.instance import boot_volume_instance
 
@@ -86,20 +86,45 @@ def create_volume_or_fail(name, size, user, provider, identity,
         "or an `image` not both.")
 
     #: Create the volume or raise an exception
-    _, volume = create_volume(driver, identity.uuid, name, size,
+    #NOTE: username can be removed when 'quota' is not linked to IdentityMembership
+    _, volume = create_volume(driver, user.username, identity.uuid, name, size,
                               description=description,
                               snapshot=snapshot, image=image,
                               raise_exception=True)
     return volume
 
 
-def create_volume(esh_driver, identity_uuid, name, size,
+def create_snapshot(esh_driver, username, identity_uuid, name,
+                    volume, description=None, raise_exception=False):
+    if not volume:
+        raise ValueError("Volume is required to create VolumeSnapshot")
+    try:
+        check_over_storage_quota(username, identity_uuid, new_snapshot_size=volume.size)
+    except ValidationError as over_quota:
+        raise exceptions.OverQuotaError(
+            message=over_quota.message)
+    esh_ss = esh_driver._connection.ex_create_snapshot(
+        volume_id=volume.id,
+        display_name=name,
+        display_description=description,
+        snapshot=snapshot,
+        image=image)
+
+    if not success and raise_exception:
+        raise exceptions.VolumeError("The volume failed to be created.")
+
+    return success, esh_ss
+
+
+def create_volume(esh_driver, username, identity_uuid, name, size,
                   description=None, metadata=None, snapshot=None, image=None,
                   raise_exception=False):
     quota = get_quota(identity_uuid)
-    if not has_storage_quota(esh_driver, quota, size):
+    try:
+        check_over_storage_quota(username, identity_uuid, new_volume_size=size):
+    except ValidationError as over_quota
         raise exceptions.OverQuotaError(
-            message="Maximum total size of Storage Volumes Exceeded")
+            message=over_quota.message)
     if not has_storage_count_quota(esh_driver, quota, 1):
         raise exceptions.OverQuotaError(
             message="Maximum # of Storage Volumes Exceeded")

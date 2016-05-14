@@ -1245,9 +1245,9 @@ def _test_for_licensing(esh_machine, identity):
 
 def check_quota(username, identity_uuid, esh_size, resuming=False):
     from service.monitoring import check_over_allocation
-    from service.quota import check_over_quota
+    from service.quota import check_over_instance_quota
     try:
-        check_over_quota(username, identity_uuid,
+        check_over_instance_quota(username, identity_uuid,
                      esh_size, resuming=resuming)
     except ValidationError as bad_quota:
         raise OverQuotaError(message=bad_quota.message)
