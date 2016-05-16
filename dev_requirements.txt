@@ -12,7 +12,7 @@ GitPython==1.0.1
 ipdb
 ipython
 mock==1.0.1
-newrelic==2.34.0.29 # newrelic investigation.
+newrelic==2.64.0.48 # newrelic investigation.
 pep8
 pip-tools==0.3.5 #TODO: Do we need a specific version here? -steve
 wheel
