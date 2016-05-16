@@ -36,6 +36,7 @@ from core.models.identity import Identity
 from service.accounts.base import BaseAccountDriver
 
 from atmosphere.settings.secrets import SECRET_SEED
+from atmosphere.settings import DEFAULT_PASSWORD_LOOKUP
 
 def get_unique_id(userid):
     if 'iplantauth.authBackends.LDAPLoginBackend' in settings.AUTHENTICATION_BACKENDS:
@@ -527,15 +528,39 @@ class AccountDriver(BaseAccountDriver):
             self.user_manager.delete_user(username)
         return True
 
-    def old_hashpass(self, username):
-        from hashlib import sha1
-        return sha1(username).hexdigest()
-
-    def hashpass(self, username):
+    def hashpass(self, username, strategy=None):
         """
         Create a unique password using 'Username' as the wored
         and the SECRET_KEY as your salt
         """
+        if not strategy:
+            strategy = DEFAULT_PASSWORD_LOOKUP
+
+        if not strategy\
+                or strategy == 'old_hashpass':
+            return self.old_hashpass(username)
+        if strategy == 'crypt_hashpass':
+            return self.crypt_hashpass(username)
+        elif strategy == 'salt_hashpass':
+            return self.salt_hashpass(username)
+        else:
+            raise ValueError(
+                "Invalid DEFAULT_PASSWORD_LOOKUP: %s"
+                % DEFAULT_PASSWORD_LOOKUP)
+
+    def old_hashpass(self, username):
+        from hashlib import sha1
+        return sha1(username).hexdigest()
+
+    def salt_hashpass(self, username):
+        from hashlib import sha256
+        secret_salt = SECRET_SEED.translate(None, string.punctuation)
+        password = sha256(secret_salt + username).hexdigest()
+        if not password:
+            raise Exception("Failed to hash password, check the secret_salt")
+        return password
+
+    def crypt_hashpass(self, username):
         secret_salt = SECRET_SEED.translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         if not password:
