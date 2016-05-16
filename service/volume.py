@@ -1,5 +1,6 @@
 from threepio import logger
 
+from django.core.exceptions import ValidationError
 from core.models.quota import get_quota, has_storage_count_quota,\
     has_storage_quota
 from core.models.identity import Identity
@@ -106,14 +107,12 @@ def create_snapshot(esh_driver, username, identity_uuid, name,
     esh_ss = esh_driver._connection.ex_create_snapshot(
         volume_id=volume.id,
         display_name=name,
-        display_description=description,
-        snapshot=snapshot,
-        image=image)
+        display_description=description)
 
-    if not success and raise_exception:
+    if not esh_ss and raise_exception:
         raise exceptions.VolumeError("The volume failed to be created.")
 
-    return success, esh_ss
+    return esh_ss
 
 
 def create_volume(esh_driver, username, identity_uuid, name, size,
@@ -121,8 +120,8 @@ def create_volume(esh_driver, username, identity_uuid, name, size,
                   raise_exception=False):
     quota = get_quota(identity_uuid)
     try:
-        check_over_storage_quota(username, identity_uuid, new_volume_size=size):
-    except ValidationError as over_quota
+        check_over_storage_quota(username, identity_uuid, new_volume_size=size)
+    except ValidationError as over_quota:
         raise exceptions.OverQuotaError(
             message=over_quota.message)
     if not has_storage_count_quota(esh_driver, quota, 1):
