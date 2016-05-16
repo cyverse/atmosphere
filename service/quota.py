@@ -22,11 +22,7 @@ def check_over_instance_quota(
     """
     Checks quota based on current limits (and an instance of size, if passed).
 
-    return 5-tuple: ((bool) over_quota,
-                     (str) resource_over_quota,
-                     (int) number_requested,
-                     (int) number_used,
-                     (int) number_allowed)
+    return or raise exc
     """
     membership = IdentityMembership.objects.get(
         identity__uuid=identity_uuid,

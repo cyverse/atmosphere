@@ -93,7 +93,6 @@ def reboot_instance(
     else:
         _permission_to_act(identity_uuid, "Hard Reboot")
     size = _get_size(esh_driver, esh_instance)
-    check_quota(user.username, identity_uuid, None, action='reboot')
     esh_driver.reboot_instance(esh_instance, reboot_type=reboot_type)
     # reboots take very little time..
     core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
@@ -526,7 +525,6 @@ def resume_instance(esh_driver, esh_instance,
     _permission_to_act(identity_uuid, "Resume")
     _update_status_log(esh_instance, "Resuming Instance")
     size = _get_size(esh_driver, esh_instance)
-    check_quota(user.username, identity_uuid, None, action='resume')
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
         deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
@@ -586,7 +584,6 @@ def unshelve_instance(esh_driver, esh_instance,
     _permission_to_act(identity_uuid, "Unshelve")
     _update_status_log(esh_instance, "Unshelving Instance")
     size = _get_size(esh_driver, esh_instance)
-    check_quota(user.username, identity_uuid, None, action='unshelve')
     admin_capacity_check(provider_uuid, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
@@ -1248,8 +1245,9 @@ def check_quota(username, identity_uuid, esh_size, action=None):
     from service.monitoring import check_over_allocation
     from service.quota import check_over_instance_quota
     try:
-        check_over_instance_quota(username, identity_uuid,
-                     esh_size, action=action)
+        check_over_instance_quota(
+            username, identity_uuid,
+            esh_size, action=action)
     except ValidationError as bad_quota:
         raise OverQuotaError(message=bad_quota.message)
 
