@@ -31,7 +31,7 @@ python-ldap==2.4.19
 uWSGI==2.0.9
 
 ## ours
-chromogenic==0.2.2
+chromogenic==0.2.4
 caslib.py==2.2.2 # remove?
 django-iplant-auth==0.1.9
 threepio==0.2.0
