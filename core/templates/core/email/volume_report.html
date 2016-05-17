@@ -1,20 +1,20 @@
-Username: {{ username }} ({{ name }})
+Username : {{ username }} ({{ name }})
 {% if problems %}
-Problems: 
+Problems : 
     {{ problems|join("\n")|indent(4, false) }}
 {% endif %}
-Details: 
+Details : 
     {{ message }}
 
-Volume:
-    Name: {{ volume.name }}
-    ID: {{ volume.id }}
-    Size: {{ volume.size }} GB
+Volume :
+    Name : {{ volume.name }}
+    ID : {{ volume.id }}
+    Size : {{ volume.size }} GB
 
-Provider: {{ provider }}
+Provider : {{ provider }}
 
-User-interface: {{ ui }}
+User-interface : {{ ui }}
 
-Server: {{ server }}
+Server : {{ server }}
 
 {% include "fingerprint.html" %}
