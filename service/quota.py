@@ -1,6 +1,6 @@
 from threepio import logger
 
-from django.contrib.exceptions import ValidationError
+from django.core.exceptions import ValidationError
 
 from core.models import IdentityMembership, Identity
 from core.models.quota import (
