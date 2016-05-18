@@ -112,6 +112,7 @@ IRODS_ADMIN_USER = ; irods_user
 IRODS_ADMIN_PASS = ; irods_password
 LOCAL_STORAGE = ; /storage
 CHROMO_DEPLOYMENT_KEY = ; ssh-rsa AAA... example@deploykey.com
+CHROMO_EXTRA_IMAGE_METADATA = ; Example {"key1": "value1", "key2": "yes"}
 OPENSTACK_PROVIDER_KEY = ; OpenStack Provider
 OPENSTACK_ADMIN_KEY = ; admin_key
 OPENSTACK_ADMIN_SECRET = ; admin_secret
