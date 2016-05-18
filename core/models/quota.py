@@ -146,12 +146,12 @@ class Quota(models.Model):
     class Meta:
         db_table = 'quota'
         app_label = 'core'
-        unique_together = ("cpu", "memory", "storage",
-                           "floating_ip_count",
-                           "port_count",
-                           "instance_count",
-                           "snapshot_count",
-                           "storage_count")
+        # unique_together = ("cpu", "memory", "storage",
+        #                    "floating_ip_count",
+        #                    "port_count",
+        #                    "instance_count",
+        #                    "snapshot_count",
+        #                    "storage_count")
 
 
 def has_cpu_quota(driver, quota, new_size=0, raise_exc=True):
