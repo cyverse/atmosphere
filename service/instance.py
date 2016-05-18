@@ -1116,11 +1116,11 @@ def _complete_launch_instance(
     core_instance = convert_esh_instance(
         driver, instance, identity.provider.uuid, identity.uuid,
         user, token, password)
+    # Update InstanceStatusHistory
+    _first_update(driver, identity, core_instance, instance)
     # call async task to deploy to instance.
     task.deploy_init_task(driver, instance, identity, user.username,
                           password, token, deploy=deploy)
-    # Update InstanceStatusHistory
-    _first_update(driver, identity, core_instance, instance)
     # Invalidate and return
     invalidate_cached_instances(identity=identity)
     return core_instance
