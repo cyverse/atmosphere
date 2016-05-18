@@ -309,6 +309,18 @@ class Identity(models.Model):
         id_member = self.identity_memberships.all()[0]
         return id_member.allocation
 
+    def get_total_hours(self):
+        from service.monitoring import _get_allocation_result
+        limit_instances = self.instance_set.all().values_list(
+                'provider_alias', flat=True
+            ).distinct()
+        result = _get_allocation_result(
+            self,
+            limit_instances=limit_instances)
+        total_hours = result.total_runtime().total_seconds()/3600.0
+        hours = round(total_hours, 2)
+        return hours
+
     def get_quota(self):
         id_member = self.identity_memberships.all()[0]
         return id_member.quota

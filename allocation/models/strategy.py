@@ -31,7 +31,7 @@ class PythonAllocationStrategy(object):
         self.recharge_behaviors = recharge_behaviors
         self.rule_behaviors = rule_behaviors
 
-    def get_instance_list(self, identity):
+    def get_instance_list(self, identity, limit_instances=[], limit_history=[]):
         from service.monitoring import _core_instances_for
         # Retrieve the core that could have an impact..
         core_instances = _core_instances_for(
@@ -40,16 +40,25 @@ class PythonAllocationStrategy(object):
         # Convert Core Models --> Allocation/core Models
         alloc_instances = []
         for inst in core_instances:
+            if limit_instances and inst.provider_alias not in limit_instances:
+                continue
             try:
                 alloc_instances.append(
-                    AllocInstance.from_core(inst, self.counting_behavior.start_date)
+                    AllocInstance.from_core(
+                        inst,
+                        self.counting_behavior.start_date,
+                        limit_history=limit_history
+                    )
                 )
             except Exception as exc:
                 logger.exception("Instance %s could not be counted: %s" % (inst, exc))
         return alloc_instances
 
-    def apply(self, identity, core_allocation):
-        instances = self.get_instance_list(identity)
+    def apply(self, identity, core_allocation, limit_instances=[], limit_history=[]):
+        instances = self.get_instance_list(
+            identity,
+            limit_instances=limit_instances,
+            limit_history=limit_history)
 
         credits = []
         for behavior in self.recharge_behaviors:
