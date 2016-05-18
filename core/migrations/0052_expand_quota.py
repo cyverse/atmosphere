@@ -34,6 +34,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='quota',
-            unique_together=set([('cpu', 'memory', 'storage', 'floating_ip_count', 'port_count', 'instance_count', 'storage_count', 'suspended_count')]),
+            unique_together=set([]),
         ),
     ]

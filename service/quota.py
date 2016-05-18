@@ -7,7 +7,6 @@ from core.models.quota import (
     has_instance_count_quota,
     has_cpu_quota,
     has_mem_quota,
-    has_suspended_count_quota,
     has_storage_quota,
     has_storage_count_quota,
     has_snapshot_count_quota
@@ -42,7 +41,6 @@ def check_over_instance_quota(
     has_cpu_quota(driver, quota, new_cpu)
     has_mem_quota(driver, quota, new_ram)
     has_instance_count_quota(driver, quota, new_instance)
-    has_suspended_count_quota(driver, quota)
     has_floating_ip_count_quota(driver, quota, new_floating_ip)
     has_port_count_quota(driver, quota, new_port)
     return True

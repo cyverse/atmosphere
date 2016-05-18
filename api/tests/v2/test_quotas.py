@@ -55,7 +55,6 @@ from core.models import Identity
 #        self.assertIn('memory', data)
 #        self.assertIn('storage', data)
 #        self.assertIn('storage_count', data)
-#        self.assertIn('suspended_count', data)
 #
 #
 #class GetDetailTests(APITestCase):
@@ -100,7 +99,6 @@ from core.models import Identity
 #        self.assertIn('memory', data)
 #        self.assertIn('storage', data)
 #        self.assertIn('storage_count', data)
-#        self.assertIn('suspended_count', data)
 #
 #class CreateTests(APITestCase):
 #

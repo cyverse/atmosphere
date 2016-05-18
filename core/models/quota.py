@@ -44,10 +44,6 @@ def _get_default_instance_count():
     return _get_default_quota('instance_count', 10)
 
 
-def _get_default_suspended_count():
-    return _get_default_quota('suspended_count', 2)
-
-
 def _get_default_quota(key, default_value=-1):
     if not hasattr(settings, 'DEFAULT_QUOTA'):
         return default_value
@@ -77,7 +73,6 @@ class Quota(models.Model):
     storage = models.IntegerField(null=True, blank=True, default=_get_default_storage)  # In GB
     # Compute quota (Depends on Provider)
     instance_count = models.IntegerField(null=True, blank=True, default=_get_default_instance_count)
-    suspended_count = models.IntegerField(null=True, blank=True, default=_get_default_suspended_count)
     # Volume quota (Depends on Provider)
     snapshot_count = models.IntegerField(null=True, blank=True, default=_get_default_snapshot_count)
     storage_count = models.IntegerField(null=True, blank=True, default=_get_default_storage_count)
@@ -89,8 +84,8 @@ class Quota(models.Model):
         str_builder = "ID:%s UUID:%s - " % (self.id, self.uuid)
         str_builder += "CPU:%s, Memory:%s MB, Volume:%s GB " %\
             (self.cpu, self.memory, self.storage)
-        str_builder += "Instances #:%s Suspended #:%s " %\
-            (self.instance_count, self.suspended_count)
+        str_builder += "Instances #:%s " %\
+            (self.instance_count,)
         str_builder += "Volume #:%s Snapshot #:%s " %\
             (self.storage_count, self.snapshot_count)
         str_builder += "Floating IP #:%s Port #:%s" %\
@@ -130,6 +125,7 @@ class Quota(models.Model):
             'storage': 1000,
             'storage_count': 100,
             'instance_count': 100,
+            'snapshot_count': 100,
             'floating_ip_count': -1,
             'port_count': -1,
         }
@@ -142,9 +138,9 @@ class Quota(models.Model):
             'storage': cls._meta.get_field('storage').default(),
             'floating_ip_count': cls._meta.get_field('floating_ip_count').default(),
             'port_count': cls._meta.get_field('port_count').default(),
-            'storage_count': cls._meta.get_field('storage_count').default(),
             'instance_count': cls._meta.get_field('instance_count').default(),
-            'suspended_count': cls._meta.get_field('suspended_count').default()
+            'storage_count': cls._meta.get_field('storage_count').default(),
+            'snapshot_count': cls._meta.get_field('snapshot_count').default(),
         }
 
     class Meta:
@@ -154,8 +150,8 @@ class Quota(models.Model):
                            "floating_ip_count",
                            "port_count",
                            "instance_count",
-                           "storage_count",
-                           "suspended_count")
+                           "snapshot_count",
+                           "storage_count")
 
 
 def has_cpu_quota(driver, quota, new_size=0, raise_exc=True):
@@ -203,31 +199,6 @@ def has_mem_quota(driver, quota, new_size=0, raise_exc=True):
         return True
     if raise_exc:
         _raise_quota_error('Memory', total_size, new_size, quota.memory)
-    return False
-
-
-def has_suspended_count_quota(driver, quota, new_size=0, raise_exc=True):
-    """
-    True if the total number of instances found on driver are
-    greater than or equal to Quota.instance otherwise False.
-    """
-    # Always False if quota doesnt exist, new size is negative
-    if not quota or new_size < 0:
-        return False
-    # Always True if suspended count is null
-    if not quota.suspended_count or quota.suspended_count < 0:
-        return True
-    total_size = new_size
-    total_size += len(
-        [inst for inst in driver.list_instances()
-         if inst.extra.get('status') in ['shutoff', 'suspended']
-         ]
-    )
-    if total_size <= quota.suspended_count:
-        return True
-    if raise_exc:
-        _raise_quota_error(
-            'Suspended Instance', total_size, new_size, quota.suspended_count)
     return False
 
 
