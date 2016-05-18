@@ -11,12 +11,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # migrations.AlterUniqueTogether(
-        #     name='quota',
-        #     unique_together=set([('cpu', 'memory', 'storage', 'floating_ip_count', 'port_count', 'instance_count', 'snapshot_count', 'storage_count')]),
-        # ),
-        # migrations.RemoveField(
-        #     model_name='quota',
-        #     name='suspended_count',
-        # ),
+        migrations.AlterUniqueTogether(
+            name='quota',
+            unique_together=set([('cpu', 'memory', 'storage', 'floating_ip_count', 'port_count', 'instance_count', 'snapshot_count', 'storage_count')]),
+        ),
+        migrations.RemoveField(
+            model_name='quota',
+            name='suspended_count',
+        ),
     ]
