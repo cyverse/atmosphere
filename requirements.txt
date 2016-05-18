@@ -32,8 +32,7 @@ uWSGI==2.0.9
 
 ## ours
 chromogenic==0.2.2
-caslib.py==2.2.2 # remove?
-django-iplant-auth==0.1.9
+django-iplant-auth==0.1.11
 threepio==0.2.0
 rtwo==0.3.8
 subspace==0.2.2
