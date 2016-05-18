@@ -1563,12 +1563,13 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
                                      volume_id, device,
                                      mount_location)
     elif 'detach_volume' == action_type:
-        if esh_instance.extra['status'] != 'active':
+        instance_status = esh_instance.extra['status']
+        if instance_status not in ['suspended', 'active', 'shutoff']:
             raise VolumeDetachConflict(
-                'Instance %s must be active before detaching '
-                'a volume. '
+                'Instance %s must be active, suspended, or stopped '
+                'before detaching a volume. (Current: %s)'
                 'Retry request when instance is active.'
-                % (instance_id,))
+                % (instance_id, instance_status))
         (result, error_msg) =\
             task.detach_volume_task(esh_driver,
                                     esh_instance.alias,
