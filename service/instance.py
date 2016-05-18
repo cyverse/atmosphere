@@ -800,7 +800,8 @@ def _pre_launch_validation(
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
 
     # May raise OverQuotaError or OverAllocationError
-    check_quota(username, identity_uuid, size, action='launch')
+    check_quota(username, identity_uuid, size,
+            include_networking=True)
 
     # May raise UnderThresholdError
     check_application_threshold(username, identity_uuid, size, boot_source)
@@ -1241,13 +1242,14 @@ def _test_for_licensing(esh_machine, identity):
         (app.name, app_version.name))
 
 
-def check_quota(username, identity_uuid, esh_size, action=None):
+def check_quota(username, identity_uuid, esh_size,
+        include_networking=False):
     from service.monitoring import check_over_allocation
     from service.quota import check_over_instance_quota
     try:
         check_over_instance_quota(
-            username, identity_uuid,
-            esh_size, action=action)
+            username, identity_uuid, esh_size,
+            include_networking=include_networking)
     except ValidationError as bad_quota:
         raise OverQuotaError(message=bad_quota.message)
 
