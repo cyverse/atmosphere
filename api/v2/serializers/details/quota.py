@@ -22,9 +22,6 @@ class QuotaSerializer(serializers.HyperlinkedModelSerializer):
     def validate_storage_count(self, value):
         return self._is_positive_int('storage_count', value)
 
-    def validate_suspended_count(self, value):
-        return self._is_positive_int('suspended_count', value)
-
     def _is_positive_int(self, key, value):
         if type(value) != int or value < 1:
             raise serializers.ValidationError(
@@ -34,14 +31,16 @@ class QuotaSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Quota
         fields = (
-            'id',
-            'uuid',
-            'url',
-            'cpu',
-            'memory',
-            'storage',
-            'storage_count',
-            'suspended_count')
+            'id', 'uuid', 'url',
+            # general
+            'cpu', 'memory', 'storage',
+            # compute
+            'instance_count',
+            # volume
+            'snapshot_count', 'storage_count',
+            # networking
+            'floating_ip_count', 'port_count',
+            )
 
 
 class AllocationSerializer(serializers.HyperlinkedModelSerializer):

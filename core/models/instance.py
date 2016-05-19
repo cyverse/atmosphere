@@ -77,6 +77,17 @@ class Instance(models.Model):
     def provider(self):
         return self.source.provider
 
+    def get_total_hours(self):
+        from service.monitoring import _get_allocation_result
+        identity = self.created_by_identity
+        limit_instances = [self.provider_alias]
+        result = _get_allocation_result(
+            identity,
+            limit_instances=limit_instances)
+        total_hours = result.total_runtime().total_seconds()/3600.0
+        hours = round(total_hours, 2)
+        return hours
+
     def get_projects(self, user):
         # TODO: Replace with 'only_current'
         projects = self.projects.filter(

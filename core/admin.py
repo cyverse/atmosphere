@@ -66,7 +66,7 @@ class QuotaAdmin(admin.ModelAdmin):
         "memory",
         "storage",
         "storage_count",
-        "suspended_count")
+    )
 
 
 @admin.register(models.AllocationStrategy)
