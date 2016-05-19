@@ -317,9 +317,6 @@ else:
     os.environ['PYTHONPATH'] = root_dir
 
 
-# Redirect stdout to stderr.
-sys.stdout = sys.stderr
-
 # REST FRAMEWORK
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (

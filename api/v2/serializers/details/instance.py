@@ -28,12 +28,16 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     size = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     ip_address = serializers.SerializerMethodField()
+    usage = serializers.SerializerMethodField()
     version = serializers.SerializerMethodField()
     uuid = serializers.CharField(source='provider_alias')
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:instance-detail',
         uuid_field='provider_alias'
     )
+
+    def get_usage(self, instance):
+        return instance.get_total_hours()
 
     def get_size(self, obj):
         size = obj.get_size()
@@ -77,6 +81,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'provider',
             'image',
             'version',  # NOTE:Should replace image?
+            'usage',
             'scripts',
             'projects',
             'start_date',

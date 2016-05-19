@@ -232,7 +232,7 @@ class AllocationStrategy(models.Model):
                                           tzinfo=timezone.utc)
         return OneTimeRefresh(increase_date)
 
-    def apply(self, identity, core_allocation):
+    def apply(self, identity, core_allocation, limit_instances=[], limit_history=[]):
         """
         Create an allocation.models.allocationstrategy
         """
@@ -242,7 +242,9 @@ class AllocationStrategy(models.Model):
         rules_behaviors = self._parse_rules_behaviors()
         new_strategy = PythonAllocationStrategy(
             counting_behavior, refresh_behaviors, rules_behaviors)
-        return new_strategy.apply(identity, core_allocation)
+        return new_strategy.apply(
+            identity, core_allocation,
+            limit_instances=limit_instances, limit_history=limit_history)
 
     def execute(self, identity, core_allocation):
         from allocation.engine import calculate_allocation

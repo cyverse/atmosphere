@@ -27,6 +27,10 @@ class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
         view_name='api:v2:instancestatushistory-detail',
     )
 
+    def get_total_hours(self, obj):
+        hours = obj.get_total_hours()
+        return hours
+
     class Meta:
         model = InstanceStatusHistory
         fields = (

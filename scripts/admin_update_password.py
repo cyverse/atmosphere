@@ -19,10 +19,10 @@ def get_identities(provider, user_list=[]):
     return query
 
 
-def get_old_password(username):
+def get_old_password(accounts, username):
     """
     """
-    old_password = sha1(username).hexdigest()
+    old_password = accounts.old_hashpass(username)
     return old_password
 
 
@@ -44,6 +44,9 @@ def main():
                         action="store_true",
                         help="Force a 'rebuild' of the script "
                              "(Will attempt to change password anyway)")
+    parser.add_argument("--dry-run",
+                        action="store_true",
+                        help="Do not actually update any passwords")
     parser.add_argument("--provider-list",
                         action="store_true",
                         help="List of provider names and IDs")
@@ -56,6 +59,8 @@ def main():
         for p in Provider.objects.all().order_by('id'):
             print "%d\t%s" % (p.id, p.location)
         return
+    if args.dry_run:
+        print "DRY RUN -- No passwords will be updated!"
 
     if args.provider:
         provider = Provider.objects.get(id=args.provider)
@@ -71,11 +76,13 @@ def main():
         identities = get_identities(provider, args.users.split(","))
     print "Update password on %s for %s accounts" \
         % (provider.location, len(identities))
-    return update_password_for(provider, identities, rebuild=args.rebuild)
+    return update_password_for(provider, identities, dry_run=args.dry_run, rebuild=args.rebuild)
 
 
-def skip_change_password(username, password, new_password, rebuild=False):
-    old_password = get_old_password(username)
+def skip_change_password(accounts, username, password, new_password, dry_run=False, rebuild=False):
+    old_password = get_old_password(accounts, username)
+    if dry_run:
+        return False
     if old_password != password:
         # Saved password does *NOT* match old..
         if password != new_password:
@@ -91,24 +98,30 @@ def skip_change_password(username, password, new_password, rebuild=False):
     return False
 
 
-def update_password_for(prov, identities, rebuild=False):
+def update_password_for(prov, identities, dry_run=False, rebuild=False):
         count = 0
         accounts = OSAccountDriver(prov)
         for ident in identities:
             creds = accounts.parse_identity(ident)
             username = creds['username']
             password = creds['password']  # Represents the *SAVED* password.
-            new_password = accounts.hashpass(username)
+            new_password = accounts.hashpass(
+                username, strategy='salt_hashpass')
             if skip_change_password(
-                    username, password, new_password, rebuild=rebuild):
+                    accounts, username, password, new_password,
+                    dry_run=dry_run, rebuild=rebuild):
                 print "Skipping user %s" % (username,)
                 continue
             # ASSERT: Saved Password is 'old'
             print "Changing password: %s (OLD:%s -> NEW:%s)" \
                 % (username, password, new_password),
+            if dry_run:
+                print "OK"
+                count += 1
+                continue
             kwargs = {}
             if rebuild:
-                old_password = get_old_password(username)
+                old_password = get_old_password(accounts, username)
                 kwargs.update({'old_password': old_password})
             success = accounts.change_password(
                 ident, new_password, **kwargs)
