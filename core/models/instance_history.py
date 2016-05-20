@@ -41,6 +41,20 @@ class InstanceStatusHistory(models.Model):
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
+    def get_total_hours(self):
+        from service.monitoring import _get_allocation_result
+        identity = self.instance.created_by_identity
+        history_list = self._base_manager.filter(id=self.id)
+        limit_history = [hist.id for hist in history_list]
+        limit_instances = [self.instance.provider_alias]
+        result = _get_allocation_result(
+            identity,
+            limit_instances=limit_instances,
+            limit_history=limit_history)
+        total_hours = result.total_runtime().total_seconds()/3600.0
+        hours = round(total_hours, 2)
+        return hours
+
     def previous(self):
         """
         Given that you are a node on a linked-list, traverse yourself backwards

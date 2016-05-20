@@ -95,7 +95,7 @@ class Instance(object):
         self.history = history
 
     @classmethod
-    def from_core(cls, core_instance, start_date=None, history_list=[]):
+    def from_core(cls, core_instance, start_date=None, history_list=[], limit_history=[]):
         source = core_instance.source.current_source
         prov = Provider.from_core(source.provider)
         mach = Machine.from_core(source)
@@ -109,6 +109,8 @@ class Instance(object):
                 history_list = core_instance.instancestatushistory_set.filter(
                     Q(end_date=None) | Q(end_date__gt=start_date))
         for history in history_list.order_by('start_date'):
+            if limit_history and history.id not in limit_history:
+                continue
             alloc_history = InstanceHistory.from_core(history)
             instance_history.append(alloc_history)
 

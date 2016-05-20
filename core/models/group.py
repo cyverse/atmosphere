@@ -193,13 +193,15 @@ class IdentityMembership(models.Model):
         return allocation_dict
 
     def get_quota_dict(self):
+        """
+        NOTE: Remove when airport has been disabled.
+        """
         quota = self.quota
         quota_dict = {
             "mem": quota.memory,
             "cpu": quota.cpu,
             "storage": quota.storage,
             "storage_count": quota.storage_count,
-            "suspended_count": quota.suspended_count,
         }
         return quota_dict
 

@@ -10,7 +10,7 @@ from threepio import celery_logger
       max_retries=3)
 def set_provider_quota(identity_uuid):
     try:
-        spq(identity_uuid)
+        return spq(identity_uuid)
     except Exception as exc:
         celery_logger.exception(
             "Encountered an exception trying to "

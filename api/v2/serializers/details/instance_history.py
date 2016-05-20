@@ -30,13 +30,9 @@ class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:instancestatushistory-detail',
     )
+
     def get_total_hours(self, obj):
-        history_list = obj._base_manager.filter(id=obj.id)
-        alloc_inst = AllocInstance.from_core(obj.instance, history_list=history_list)
-        alloc = Allocation([], [], [alloc_inst], None, None)
-        result = calculate_allocation(alloc)
-        total_hours = result.total_runtime().total_seconds()/3600.0
-        hours = round(total_hours, 2)
+        hours = obj.get_total_hours()
         return hours
 
     class Meta:

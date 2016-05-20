@@ -45,6 +45,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='quota',
             name='suspended_count',
-            field=models.IntegerField(default=core.models.quota._get_default_suspended_count, null=True, blank=True),
+            field=models.IntegerField(default=-1, null=True, blank=True),
         ),
     ]
