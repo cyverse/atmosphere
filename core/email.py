@@ -287,7 +287,7 @@ def send_denied_resource_email(user, request, reason):
 
 
 def send_instance_email(username, instance_id, instance_name,
-                        ip, launched_at, linuxusername):
+                        ip, launched_at, linuxusername, user_failure=False, user_failure_message=""):
     """
     Sends an email to the user providing information about the new instance.
 
@@ -332,6 +332,8 @@ def send_instance_email(username, instance_id, instance_name,
         "instance_name": instance_name,
         "instance_ip": ip,
         "sshuser": linuxusername,
+        "user_failure": user_failure,
+        "user_failure_message": user_failure_message,
         "launched_at": launched_at.strftime(format_string),
         "local_launched_at": local_launched_at.strftime(format_string)
     }
