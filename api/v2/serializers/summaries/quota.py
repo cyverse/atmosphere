@@ -14,7 +14,7 @@ class QuotaSummarySerializer(serializers.HyperlinkedModelSerializer):
             #general
             'cpu', 'memory', 'storage',
             # compute
-            'instance_count', 'suspended_count',
+            'instance_count',
             # volume
             'snapshot_count', 'storage_count',
             # networking
