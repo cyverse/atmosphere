@@ -121,6 +121,7 @@ DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 # Configure authentication plugin
 AUTHENTICATION = {
     #GLOBAL
+    "SERVER_URL": SERVER_URL,
     "TOKEN_EXPIRY_TIME": timedelta(days={{ TOKEN_EXPIRY_TIME_DAYS }}),
     "SELF_SIGNED_CERT": {{ SELF_SIGNED_CERT }},
     "LOGOUT_REDIRECT_URL": '{{ LOGOUT_REDIRECT_URL }}',
@@ -172,10 +173,11 @@ AUTHENTICATION_BACKENDS = (
     # MOCK - Required to login to 'admin' if the *ONLY* backend is MockLoginBackend.
     # 'django.contrib.auth.backends.ModelBackend',
     {% endif %}
+    # Use existing AuthTokens as a login backend (Emulation via API)
+    'iplantauth.authBackends.AuthTokenLoginBackend',
     {% if AUTH_ENABLE_GLOBUS %}
     # For Web-Access
     'iplantauth.authBackends.GlobusOAuthLoginBackend',
-    'iplantauth.authBackends.AuthTokenLoginBackend',
     # Required to login to 'admin' if the *ONLY* backend is GlobusLoginBackend
     'django.contrib.auth.backends.ModelBackend',
     {% endif %}
