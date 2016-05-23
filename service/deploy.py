@@ -158,7 +158,8 @@ def user_deploy(instance_ip, username, instance_id):
         "USERSSHKEYS": user_keys
     }
     return ansible_deployment(
-        instance_ip, username, instance_id, playbooks_dir)
+        instance_ip, username, instance_id, playbooks_dir,
+        extra_vars=extra_vars)
 
 
 def run_utility_playbooks(instance_ip, username, instance_id,

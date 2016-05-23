@@ -723,7 +723,7 @@ def get_chain_from_active_with_ip(
     deploy_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance.id))
     deploy_user_task.link_error(
-        user_deploy_failed.s(driverCls, provider, identity, instance.id, core_identity.user))
+        user_deploy_failed.s(driverCls, provider, identity, instance.id, core_identity.created_by))
 
     deploy_ready_task.link(deploy_meta_task)
     deploy_meta_task.link(deploy_task)
@@ -860,7 +860,7 @@ def _get_boot_script_chain(
             driverCls, provider, identity, instance_id,
             script.get_text(), script.get_title_slug())
         deploy_script_task.link_error(
-            user_deploy_failed.s(driverCls, provider, identity, instance_id, core_identity.user))
+            user_deploy_failed.s(driverCls, provider, identity, instance_id, core_identity.created_by))
 
         # Base case: First link
         if idx == 0:
