@@ -265,17 +265,14 @@ class AccountDriver(BaseAccountDriver):
         username = identity_creds["username"]
         password = old_password if old_password else identity_creds["password"]
         project_name = identity_creds["tenant_name"]
-        # try:
-        #     clients = self.get_openstack_clients(username, password, project_name)
-        # except Unauthorized:
-        #     raise Unauthorized("credential_set for Identity %s did not produce"
-        #                        " a valid set of openstack clients" % identity)
-        # keystone = clients['keystone']
-        # # NOTE: next line can raise Unauthorized
-        # keystone.users.update_own_password(password, new_password)
-        keystone = self.user_manager.keystone
-        user = keystone.users.find(name=username)
-        keystone.users.update_password(user, new_password)
+        #NOTE: This code is specific to Openstack PRE-Liberty
+        #FIXME: Restore this option as 'update_password_method' settings.
+        # keystone = self.user_manager.keystone
+        # user = keystone.users.find(name=username)
+        # keystone.users.update_password(user, new_password)
+        # THIS is POST liberty updating
+        user_id = self.get_user(username).id
+        return self.openstack_sdk.identity.update_user(user_id, password=new_password)
 
     def init_keypair(self, username, password, project_name):
         keyname = settings.ATMOSPHERE_KEYPAIR_NAME
