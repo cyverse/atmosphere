@@ -10,7 +10,6 @@
 }
 /opt/dev/atmosphere/logs/libcloud.log {
     daily
-    size 100M
     rotate 10
     missingok
     compress
