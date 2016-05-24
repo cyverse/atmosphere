@@ -113,6 +113,33 @@ def user_email_info(username):
     return lookup_fn(username)
 
 
+def djangoLookupEmail(username):
+    """
+    Use LDAP to query the e-mail, then
+    Returns a 3-tuple of:
+    ("username", "email@address.com", "My Name")
+    """
+    try:
+        user = AtmosphereUser.objects.get(username=username)
+        return user.email
+    except:
+        return "NO-EMAIL-PROVIDED"
+
+
+def django_get_email_info(username):
+    """
+    Use LDAP to query the e-mail, then
+    Returns a 3-tuple of:
+    ("username", "email@address.com", "My Name")
+    """
+    (username, user_email, user_name) = ("", "", "")
+    try:
+        user = AtmosphereUser.objects.get(username=username)
+        return (user.username, user.email, user.get_full_name())
+    except:
+        return (username, user_email, user_name)
+
+
 def ldap_get_email_info(username):
     """
     Use LDAP to query the e-mail, then
