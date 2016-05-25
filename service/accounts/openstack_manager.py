@@ -36,7 +36,7 @@ from core.models.identity import Identity
 from service.accounts.base import BaseAccountDriver
 
 from atmosphere.settings.secrets import SECRET_SEED
-from atmosphere.settings import DEFAULT_PASSWORD_LOOKUP
+from atmosphere.settings import DEFAULT_PASSWORD_LOOKUP, DEFAULT_PASSWORD_UPDATE
 
 def get_unique_id(userid):
     if 'iplantauth.authBackends.LDAPLoginBackend' in settings.AUTHENTICATION_BACKENDS:
@@ -260,17 +260,29 @@ class AccountDriver(BaseAccountDriver):
                 "The 'key' for a secret has changed! "
                 "Ask a programmer for help!")
 
-    def update_openstack_password(self, identity, new_password, old_password=None):
+    def update_openstack_password(self, identity, new_password, strategy=None):
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
-        password = old_password if old_password else identity_creds["password"]
-        project_name = identity_creds["tenant_name"]
-        #NOTE: This code is specific to Openstack PRE-Liberty
-        #FIXME: Restore this option as 'update_password_method' settings.
-        # keystone = self.user_manager.keystone
-        # user = keystone.users.find(name=username)
-        # keystone.users.update_password(user, new_password)
-        # THIS is POST liberty updating
+
+        if not strategy:
+            strategy = DEFAULT_PASSWORD_UPDATE
+
+        if not strategy\
+                or strategy == 'keystone_password_update':
+            return self.keystone_password_update(username, new_password)
+        if strategy == 'openstack_sdk_password_update':
+            return self.openstack_sdk_password_update(username, new_password)
+        else:
+            raise ValueError(
+                "Invalid 'Update Password' strategy: %s"
+                % strategy)
+
+    def keystone_password_update(self, username, new_password):
+        keystone = self.user_manager.keystone
+        user = keystone.users.find(name=username)
+        return keystone.users.update_password(user, new_password)
+
+    def openstack_sdk_password_update(self, username, new_password):
         user_id = self.get_user(username).id
         return self.openstack_sdk.identity.update_user(user_id, password=new_password)
 
