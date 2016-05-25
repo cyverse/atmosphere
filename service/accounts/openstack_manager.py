@@ -549,7 +549,8 @@ class AccountDriver(BaseAccountDriver):
         from hashlib import sha1
         return sha1(username).hexdigest()
 
-    def salt_hashpass(self, username):
+    @classmethod
+    def salt_hashpass(cls, username):
         from hashlib import sha256
         secret_salt = SECRET_SEED.translate(None, string.punctuation)
         password = sha256(secret_salt + username).hexdigest()
