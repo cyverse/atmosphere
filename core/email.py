@@ -89,6 +89,56 @@ def lookup_user(request):
     return user_email_info(username)
 
 
+def djangoLookupEmail(username):
+    """
+    Use LDAP to query the e-mail, then
+    Returns a 3-tuple of:
+    ("username", "email@address.com", "My Name")
+    """
+    try:
+        user = User.objects.get(username=username)
+        return user.email
+    except:
+        raise
+
+
+def django_get_email_info(raw_username):
+    """
+    Use LDAP to query the e-mail, then
+    Returns a 3-tuple of:
+    ("username", "email@address.com", "My Name")
+    """
+    (username, user_email, user_name) = ("", "", "")
+    try:
+        user = User.objects.get(username=raw_username)
+        return (user.username, user.email, user.get_full_name())
+    except:
+        raise
+
+
+def ldap_get_email_info(username):
+    """
+    Use LDAP to query the e-mail, then
+    Returns a 3-tuple of:
+    ("username", "email@address.com", "My Name")
+    """
+    ldap_attrs = lookupUser(username)
+    user_email = ldap_attrs.get('mail', [None])[0]
+    if not user_email:
+        raise Exception(
+            "Could not locate email address for User:%s - Attrs: %s" %
+            (username, ldap_attrs))
+    user_name = ldap_attrs.get('cn', [""])[0]
+    if not user_name:
+        user_name = "%s %s" % (ldap_attrs.get("displayName", [""])[0],
+                               ldap_attrs.get("sn", [""])[0])
+    if not user_name.strip(' '):
+        user_name = username
+    return (username, user_email, user_name)
+
+
+
+
 def lookupEmail(username):
     """
     Given a username, return the email address
@@ -111,27 +161,6 @@ def user_email_info(username):
     lookup_fn = settings._get_method_for_string(lookup_fn_str, the_globals=globals())
     # Known function and args..
     return lookup_fn(username)
-
-
-def ldap_get_email_info(username):
-    """
-    Use LDAP to query the e-mail, then
-    Returns a 3-tuple of:
-    ("username", "email@address.com", "My Name")
-    """
-    ldap_attrs = lookupUser(username)
-    user_email = ldap_attrs.get('mail', [None])[0]
-    if not user_email:
-        raise Exception(
-            "Could not locate email address for User:%s - Attrs: %s" %
-            (username, ldap_attrs))
-    user_name = ldap_attrs.get('cn', [""])[0]
-    if not user_name:
-        user_name = "%s %s" % (ldap_attrs.get("displayName", [""])[0],
-                               ldap_attrs.get("sn", [""])[0])
-    if not user_name.strip(' '):
-        user_name = username
-    return (username, user_email, user_name)
 
 
 def request_data(request):
