@@ -33,11 +33,11 @@ def _get_default_storage_count():
 
 
 def _get_default_port_count():
-    return _get_default_quota('port', 10)
+    return _get_default_quota('fixed_ip_count', 10)
 
 
 def _get_default_floating_ip_count():
-    return _get_default_quota('floating_ip', 10)
+    return _get_default_quota('floating_ip_count', 10)
 
 
 def _get_default_instance_count():
@@ -174,7 +174,7 @@ def has_cpu_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.cpu:
         return True
     if raise_exc:
-        _raise_quota_error('CPU', total_size, new_size, quota.cpu)
+        _raise_quota_error('CPU', total_size - new_size, new_size, quota.cpu)
     return False
 
 
@@ -198,7 +198,7 @@ def has_mem_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.memory:
         return True
     if raise_exc:
-        _raise_quota_error('Memory', total_size/1024.0, new_size/1024.0, quota.memory)
+        _raise_quota_error('Memory', (total_size - new_size)/1024.0, new_size/1024.0, quota.memory)
     return False
 
 
@@ -218,7 +218,7 @@ def has_instance_count_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.instance_count:
         return True
     if raise_exc:
-        _raise_quota_error('Instance', total_size, new_size, quota.instance_count)
+        _raise_quota_error('Instance', total_size - new_size, new_size, quota.instance_count)
     return False
 
 
@@ -233,13 +233,13 @@ def has_port_count_quota(driver, quota, new_size=0, raise_exc=True):
     # Always True if port_count is null
     if not quota.port_count or quota.port_count < 0:
         return True
-    ports = driver._connection.neutron_list_ports()
+    fixed_ips = [port for port in driver._connection.neutron_list_ports() if port['device_owner'] == 'compute:None']
     total_size = new_size
-    total_size += len(ports)
+    total_size += len(fixed_ips)
     if total_size <= quota.port_count:
         return True
     if raise_exc:
-        _raise_quota_error('Fixed IP', total_size, new_size, quota.port_count)
+        _raise_quota_error('Fixed IP', total_size - new_size, new_size, quota.port_count)
     return False
 
 
@@ -260,7 +260,7 @@ def has_floating_ip_count_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.floating_ip_count:
         return True
     if raise_exc:
-        _raise_quota_error('Floating IP', total_size, new_size, quota.floating_ip_count)
+        _raise_quota_error('Floating IP', total_size - new_size, new_size, quota.floating_ip_count)
     return False
 
 
@@ -282,7 +282,7 @@ def has_storage_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.storage:
         return True
     if raise_exc:
-        _raise_quota_error('Storage Size', total_size, new_size, quota.storage)
+        _raise_quota_error('Storage Size', total_size - new_size, new_size, quota.storage)
     return False
 
 
@@ -303,7 +303,7 @@ def has_snapshot_count_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.snapshot_count:
         return True
     if raise_exc:
-        _raise_quota_error('Snapshot', total_size, new_size, quota.snapshot_count)
+        _raise_quota_error('Snapshot', total_size - new_size, new_size, quota.snapshot_count)
     return False
 
 
@@ -323,7 +323,7 @@ def has_storage_count_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.storage_count:
         return True
     if raise_exc:
-        _raise_quota_error('Volume', total_size, new_size, quota.storage_count)
+        _raise_quota_error('Volume', total_size - new_size, new_size, quota.storage_count)
     return False
 
 
