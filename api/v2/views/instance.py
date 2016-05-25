@@ -195,7 +195,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
 
-    def validate_input(self, data):
+    def validate_input(self, user, data):
         error_map = {}
 
         name = data.get('name')
@@ -215,7 +215,11 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             raise Exception(error_map)
 
         try:
-            Identity.objects.get(uuid=identity_uuid)
+            identity = Identity.objects.get(uuid=identity_uuid)
+            # Staff or owner ONLY
+            if not user.is_staff and identity.created_by != user:
+                logger.error("User %s does not have permission to use identity %s" % (user, identity))
+                raise Identity.DoesNotExist("You are not the owner")
         except Identity.DoesNotExist:
             error_map["identity"] = "The uuid (%s) is invalid." % identity_uuid
             raise Exception(error_map)
@@ -225,7 +229,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         user = request.user
         data = request.data
         try:
-            self.validate_input(data)
+            self.validate_input(user, data)
         except Exception as exc:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,

@@ -179,13 +179,6 @@ AUTHENTICATION_BACKENDS = (
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ORIGIN_WHITELIST = None
 
-# The age of session cookies, in seconds.
-# http://docs.djangoproject.com/en/dev/ref/settings/
-# http://docs.djangoproject.com/en/dev/topics/http/sessions/
-# Now I set sessio cookies life time = 3600 seconds = 1 hour
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-
-
 # ATMOSPHERE APP CONFIGS
 INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + '/api/notification/'
 API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
