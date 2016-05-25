@@ -303,7 +303,7 @@ class VolumeList(AuthAPIView):
         else:
             snapshot = None
         try:
-            success, esh_volume = create_volume(driver, identity_uuid,
+            success, esh_volume = create_volume(driver, user.username, identity_uuid,
                                                 name, size, description,
                                                 snapshot=snapshot, image=image)
         except OverQuotaError as oqe:
