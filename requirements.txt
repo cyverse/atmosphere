@@ -32,7 +32,7 @@ uWSGI==2.0.9
 
 ## ours
 chromogenic==0.2.4
-django-iplant-auth==0.1.11
+django-iplant-auth==0.1.12
 threepio==0.2.0
 rtwo==0.3.9
 subspace==0.2.2

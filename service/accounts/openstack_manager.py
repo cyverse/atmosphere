@@ -36,7 +36,7 @@ from core.models.identity import Identity
 from service.accounts.base import BaseAccountDriver
 
 from atmosphere.settings.secrets import SECRET_SEED
-from atmosphere.settings import DEFAULT_PASSWORD_LOOKUP
+from atmosphere.settings import DEFAULT_PASSWORD_LOOKUP, DEFAULT_PASSWORD_UPDATE
 
 def get_unique_id(userid):
     if 'iplantauth.authBackends.LDAPLoginBackend' in settings.AUTHENTICATION_BACKENDS:
@@ -260,22 +260,31 @@ class AccountDriver(BaseAccountDriver):
                 "The 'key' for a secret has changed! "
                 "Ask a programmer for help!")
 
-    def update_openstack_password(self, identity, new_password, old_password=None):
+    def update_openstack_password(self, identity, new_password, strategy=None):
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
-        password = old_password if old_password else identity_creds["password"]
-        project_name = identity_creds["tenant_name"]
-        # try:
-        #     clients = self.get_openstack_clients(username, password, project_name)
-        # except Unauthorized:
-        #     raise Unauthorized("credential_set for Identity %s did not produce"
-        #                        " a valid set of openstack clients" % identity)
-        # keystone = clients['keystone']
-        # # NOTE: next line can raise Unauthorized
-        # keystone.users.update_own_password(password, new_password)
+
+        if not strategy:
+            strategy = DEFAULT_PASSWORD_UPDATE
+
+        if not strategy\
+                or strategy == 'keystone_password_update':
+            return self.keystone_password_update(username, new_password)
+        if strategy == 'openstack_sdk_password_update':
+            return self.openstack_sdk_password_update(username, new_password)
+        else:
+            raise ValueError(
+                "Invalid 'Update Password' strategy: %s"
+                % strategy)
+
+    def keystone_password_update(self, username, new_password):
         keystone = self.user_manager.keystone
         user = keystone.users.find(name=username)
-        keystone.users.update_password(user, new_password)
+        return keystone.users.update_password(user, new_password)
+
+    def openstack_sdk_password_update(self, username, new_password):
+        user_id = self.get_user(username).id
+        return self.openstack_sdk.identity.update_user(user_id, password=new_password)
 
     def init_keypair(self, username, password, project_name):
         keyname = settings.ATMOSPHERE_KEYPAIR_NAME
@@ -552,7 +561,8 @@ class AccountDriver(BaseAccountDriver):
         from hashlib import sha1
         return sha1(username).hexdigest()
 
-    def salt_hashpass(self, username):
+    @classmethod
+    def salt_hashpass(cls, username):
         from hashlib import sha256
         secret_salt = SECRET_SEED.translate(None, string.punctuation)
         password = sha256(secret_salt + username).hexdigest()

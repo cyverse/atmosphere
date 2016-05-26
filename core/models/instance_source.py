@@ -13,12 +13,11 @@ from core.models.user import AtmosphereUser as User
 
 
 class InstanceSource(models.Model):
-
     """
     An InstanceSource can be:
     * A bootable volume
     * A snapshot of a previous/existing Instance
-    * A ProviderMachine/Application
+    * A ProviderMachine
     """
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     provider = models.ForeignKey(Provider)

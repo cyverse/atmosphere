@@ -20,12 +20,12 @@ from core.models.provider import Provider
 
 
 class ProviderMachine(BaseSource):
-
     """
     Machines are created by Providers, and multiple providers
     can implement a single machine (I.e. Ubuntu 12.04)
-    However each provider will have a specific, unique identifier
+    However each provider usually has a specific, unique identifier
     to represent that machine. (emi-12341234 vs ami-43214321)
+    See core.models.instance_source.BaseSource for more information
     """
     esh = None
     application_version = models.ForeignKey(

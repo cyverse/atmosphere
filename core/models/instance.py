@@ -33,13 +33,12 @@ from core.models.managers import ActiveInstancesManager
 
 
 class Instance(models.Model):
-
     """
     When a user launches a machine, an Instance is created.
     Instances are described by their Name and associated Tags
-    Instances have a specific ID
-    of the machine they were created from (Provider Machine)
-    Instances have a specific ID of their own (Provider Alias)
+    Instances have a specific ID of the machine or volume
+    they were created from (source)
+    Instances have a specific ID provided by the cloud provider (provider_alias)
     The IP Address, creation and termination date,
     and the user who launched the instance are recorded for logging purposes.
     """
