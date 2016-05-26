@@ -69,15 +69,6 @@ def tenant_id_to_name_map(account_driver):
     return {tenant.id: tenant.name for tenant in all_projects}
 
 
-@task(name="monitor_machines")
-def monitor_machines():
-    """
-    Update machines by querying the Cloud for each active provider.
-    """
-    for p in Provider.get_active():
-        monitor_machines_for.apply_async(args=[p.id])
-
-
 @task(name="prune_machines")
 def prune_machines():
     """
@@ -102,11 +93,7 @@ def prune_machines_for(
     provider = Provider.objects.get(id=provider_id)
     now = timezone.now()
     if print_logs:
-        import logging
-        import sys
-        consolehandler = logging.StreamHandler(sys.stdout)
-        consolehandler.setLevel(logging.DEBUG)
-        celery_logger.addHandler(consolehandler)
+        console_handler = _init_stdout_logging()
     celery_logger.info("Starting prune_machines for Provider %s @ %s"
                        % (provider, now))
 
@@ -146,7 +133,17 @@ def prune_machines_for(
         "%s Applications, %s versions and %s machines pruned."
         % (provider, app_count, ver_count, mach_count))
     if print_logs:
-        celery_logger.removeHandler(consolehandler)
+        _exit_stdout_logging(console_handler)
+
+
+@task(name="monitor_machines")
+def monitor_machines():
+    """
+    Update machines by querying the Cloud for each active provider.
+    """
+    for p in Provider.get_active():
+        monitor_machines_for.apply_async(args=[p.id])
+
 
 @task(name="monitor_machines_for")
 def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
@@ -166,11 +163,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     provider = Provider.objects.get(id=provider_id)
 
     if print_logs:
-        import logging
-        import sys
-        consolehandler = logging.StreamHandler(sys.stdout)
-        consolehandler.setLevel(logging.DEBUG)
-        celery_logger.addHandler(consolehandler)
+        console_handler = _init_stdout_logging()
 
     #STEP 1: get the apps
     new_public_apps, private_apps = get_public_and_private_apps(provider)
@@ -201,7 +194,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         celery_logger.warn("Settings.ENFORCING is set to False -- So we assume this is a development build and *NO* changes should be made to glance as a result of an 'information mismatch'")
 
     if print_logs:
-        celery_logger.removeHandler(consolehandler)
+        _exit_stdout_logging(console_handler)
     return
 
 def get_public_and_private_apps(provider):
@@ -480,11 +473,7 @@ def monitor_instances_for(provider_id, users=None,
     instance_map = _get_instance_owner_map(provider, users=users)
 
     if print_logs:
-        import logging
-        import sys
-        consolehandler = logging.StreamHandler(sys.stdout)
-        consolehandler.setLevel(logging.DEBUG)
-        celery_logger.addHandler(consolehandler)
+        console_handler = _init_stdout_logging()
 
     # DEVNOTE: Potential slowdown running multiple functions
     # Break this out when instance-caching is enabled
@@ -544,11 +533,7 @@ def monitor_sizes_for(provider_id, print_logs=False):
     from service.driver import get_admin_driver
 
     if print_logs:
-        import logging
-        import sys
-        consolehandler = logging.StreamHandler(sys.stdout)
-        consolehandler.setLevel(logging.DEBUG)
-        celery_logger.addHandler(consolehandler)
+        console_handler = _init_stdout_logging()
 
     provider = Provider.objects.get(id=provider_id)
     admin_driver = get_admin_driver(provider)
@@ -568,7 +553,7 @@ def monitor_sizes_for(provider_id, print_logs=False):
         size.save()
 
     if print_logs:
-        celery_logger.removeHandler(consolehandler)
+        _exit_stdout_logging(console_handler)
 
 
 @task(name="monthly_allocation_reset")
@@ -704,3 +689,14 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
                 celery_logger.warn("CONFLICT -- This image should have been marked 'private'! %s" % cloud_machine)
                 pass
     return
+
+def _exit_stdout_logging(consolehandler):
+    celery_logger.removeHandler(consolehandler)
+
+def _init_stdout_logging():
+    import logging
+    import sys
+    consolehandler = logging.StreamHandler(sys.stdout)
+    consolehandler.setLevel(logging.DEBUG)
+    celery_logger.addHandler(consolehandler)
+    return consolehandler
