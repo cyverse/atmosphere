@@ -247,6 +247,14 @@ class VolumeStatusHistory(models.Model):
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
+    def __unicode__(self):
+        return "Volume:%s Status:%s Attachment:%s Start:%s End:%s" % (
+            self.volume, self.status,
+            "N/A" if not self.instance_alias else "Attached to %s(%s)" %
+                (self.instance_alias, self.device),
+            self.start_date,
+            "" if not self.end_date else self.end_date)
+
     @classmethod
     def factory(cls, volume, start_date=None):
         """
