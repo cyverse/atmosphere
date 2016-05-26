@@ -378,10 +378,10 @@ class MachineRequest(BaseRequest):
             # ASSUMPTION: the Creator's username == the LINUX username that was also created for them!
             #FIXME if the ASSUMPTION above changes!
             "created_by": self.instance.created_by.username,
-            # Helpful for debugging
+            # Helpful for debugging an already-created image.
             #"parent_image_id": self.instance.source.identifier,
-            "remove_image": True if not debug else False,  # Set to False to keep Snapshot or parent_image_id in glance
-            "remove_local_image": True if not debug else False,  # Set to False to keep downloaded file
+            "remove_image": not debug,  # Set to False to keep Snapshot or parent_image_id in glance
+            "remove_local_image": not debug,  # Set to False to keep downloaded file
             #"upload_image": True,  # Set to False to avoid file upload
             "image_name": self.new_application_name,
             "timestamp": self.start_date,
