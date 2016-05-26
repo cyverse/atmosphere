@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db.models import Q, Count
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
 from celery.decorators import task
@@ -10,6 +11,7 @@ from core.query import (
     only_current, only_current_source,
     source_in_range, inactive_versions)
 from core.models.size import Size, convert_esh_size
+from core.models.volume import Volume, convert_esh_volume
 from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import get_or_create_provider_machine, ProviderMachine
@@ -509,8 +511,64 @@ def monitor_instances_for(provider_id, users=None,
                 provider, username,
                 print_logs, start_date, end_date)
     if print_logs:
-        celery_logger.removeHandler(consolehandler)
+        _exit_stdout_logging(console_handler)
     return running_total
+
+
+@task(name="monitor_volumes")
+def monitor_volumes():
+    """
+    Update volumes for each active provider.
+    """
+    for p in Provider.get_active():
+        monitor_volumes_for.apply_async(args=[p.id])
+
+@task(name="monitor_volumes_for")
+def monitor_volumes_for(provider_id, print_logs=False):
+    """
+    Run the set of tasks related to monitoring sizes for a provider.
+    Optionally, provide a list of usernames to monitor
+    While debugging, print_logs=True can be very helpful.
+    start_date and end_date allow you to search a 'non-standard' window of time.
+    """
+    from service.driver import get_account_driver
+    from core.models import Identity
+    if print_logs:
+        console_handler = _init_stdout_logging()
+
+    provider = Provider.objects.get(id=provider_id)
+    account_driver = get_account_driver(provider)
+    # Non-End dated volumes on this provider
+    db_volumes = Volume.objects.filter(only_current_source(), instance_source__provider=provider)
+    all_volumes = account_driver.admin_driver.list_all_volumes(timeout=30)
+    seen_volumes = []
+    for cloud_volume in all_volumes:
+        try:
+            core_volume = convert_esh_volume(cloud_volume, provider_uuid=provider.uuid)
+            seen_volumes.append(core_volume)
+        except ObjectDoesNotExist:
+            tenant_id = cloud_volume.extra['object']['os-vol-tenant-attr:tenant_id']
+            tenant = account_driver.get_project_by_id(tenant_id)
+            try:
+                identity = Identity.objects.get(
+                    provider=provider, created_by__username=tenant.name)
+                core_volume = convert_esh_volume(
+                    cloud_volume,
+                    provider.uuid, identity.uuid,
+                    identity.created_by)
+            except ObjectDoesNotExist:
+                celery_logger.info("Skipping Volume %s - Unknown Identity: %s-%s" % (cloud_volume.id, provider, tenant.name))
+            pass
+
+    now_time = timezone.now()
+    needs_end_date = [volume for volume in db_volumes if volume not in seen_volumes]
+    for volume in needs_end_date:
+        celery_logger.debug("End dating inactive volume: %s" % volume)
+        volume.end_date = now_time
+        volume.save()
+
+    if print_logs:
+        _exit_stdout_logging(console_handler)
 
 
 @task(name="monitor_sizes")

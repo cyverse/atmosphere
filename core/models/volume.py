@@ -161,7 +161,7 @@ class Volume(BaseSource):
                             "another transaction.")
 
 
-def convert_esh_volume(esh_volume, provider_uuid, identity_uuid, user):
+def convert_esh_volume(esh_volume, provider_uuid, identity_uuid=None, user=None):
     """
     Get or create the core representation of esh_volume
     Attach esh_volume to the object for further introspection..
@@ -175,6 +175,9 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid, user):
             identifier=identifier, provider__uuid=provider_uuid)
         volume = source.volume
     except InstanceSource.DoesNotExist:
+        if not identity_uuid:
+            # Author of the Volume cannot be inferred without more details.
+            raise
         volume = create_volume(
             name,
             identifier,
