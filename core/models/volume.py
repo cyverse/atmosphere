@@ -161,7 +161,7 @@ class Volume(BaseSource):
                             "another transaction.")
 
 
-def convert_esh_volume(esh_volume, provider_uuid, identity_uuid, user):
+def convert_esh_volume(esh_volume, provider_uuid, identity_uuid=None, user=None):
     """
     Get or create the core representation of esh_volume
     Attach esh_volume to the object for further introspection..
@@ -175,6 +175,9 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid, user):
             identifier=identifier, provider__uuid=provider_uuid)
         volume = source.volume
     except InstanceSource.DoesNotExist:
+        if not identity_uuid:
+            # Author of the Volume cannot be inferred without more details.
+            raise
         volume = create_volume(
             name,
             identifier,
@@ -243,6 +246,14 @@ class VolumeStatusHistory(models.Model):
     instance_alias = models.CharField(max_length=36, null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
+
+    def __unicode__(self):
+        return "Volume:%s Status:%s Attachment:%s Start:%s End:%s" % (
+            self.volume, self.status,
+            "N/A" if not self.instance_alias else "Attached to %s(%s)" %
+                (self.instance_alias, self.device),
+            self.start_date,
+            "" if not self.end_date else self.end_date)
 
     @classmethod
     def factory(cls, volume, start_date=None):

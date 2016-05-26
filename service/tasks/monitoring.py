@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db.models import Q, Count
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
 from celery.decorators import task
@@ -10,6 +11,7 @@ from core.query import (
     only_current, only_current_source,
     source_in_range, inactive_versions)
 from core.models.size import Size, convert_esh_size
+from core.models.volume import Volume, convert_esh_volume
 from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import get_or_create_provider_machine, ProviderMachine
@@ -69,15 +71,6 @@ def tenant_id_to_name_map(account_driver):
     return {tenant.id: tenant.name for tenant in all_projects}
 
 
-@task(name="monitor_machines")
-def monitor_machines():
-    """
-    Update machines by querying the Cloud for each active provider.
-    """
-    for p in Provider.get_active():
-        monitor_machines_for.apply_async(args=[p.id])
-
-
 @task(name="prune_machines")
 def prune_machines():
     """
@@ -102,11 +95,7 @@ def prune_machines_for(
     provider = Provider.objects.get(id=provider_id)
     now = timezone.now()
     if print_logs:
-        import logging
-        import sys
-        consolehandler = logging.StreamHandler(sys.stdout)
-        consolehandler.setLevel(logging.DEBUG)
-        celery_logger.addHandler(consolehandler)
+        console_handler = _init_stdout_logging()
     celery_logger.info("Starting prune_machines for Provider %s @ %s"
                        % (provider, now))
 
@@ -146,7 +135,17 @@ def prune_machines_for(
         "%s Applications, %s versions and %s machines pruned."
         % (provider, app_count, ver_count, mach_count))
     if print_logs:
-        celery_logger.removeHandler(consolehandler)
+        _exit_stdout_logging(console_handler)
+
+
+@task(name="monitor_machines")
+def monitor_machines():
+    """
+    Update machines by querying the Cloud for each active provider.
+    """
+    for p in Provider.get_active():
+        monitor_machines_for.apply_async(args=[p.id])
+
 
 @task(name="monitor_machines_for")
 def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
@@ -166,11 +165,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     provider = Provider.objects.get(id=provider_id)
 
     if print_logs:
-        import logging
-        import sys
-        consolehandler = logging.StreamHandler(sys.stdout)
-        consolehandler.setLevel(logging.DEBUG)
-        celery_logger.addHandler(consolehandler)
+        console_handler = _init_stdout_logging()
 
     #STEP 1: get the apps
     new_public_apps, private_apps = get_public_and_private_apps(provider)
@@ -201,7 +196,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         celery_logger.warn("Settings.ENFORCING is set to False -- So we assume this is a development build and *NO* changes should be made to glance as a result of an 'information mismatch'")
 
     if print_logs:
-        celery_logger.removeHandler(consolehandler)
+        _exit_stdout_logging(console_handler)
     return
 
 def get_public_and_private_apps(provider):
@@ -480,11 +475,7 @@ def monitor_instances_for(provider_id, users=None,
     instance_map = _get_instance_owner_map(provider, users=users)
 
     if print_logs:
-        import logging
-        import sys
-        consolehandler = logging.StreamHandler(sys.stdout)
-        consolehandler.setLevel(logging.DEBUG)
-        celery_logger.addHandler(consolehandler)
+        console_handler = _init_stdout_logging()
 
     # DEVNOTE: Potential slowdown running multiple functions
     # Break this out when instance-caching is enabled
@@ -520,8 +511,64 @@ def monitor_instances_for(provider_id, users=None,
                 provider, username,
                 print_logs, start_date, end_date)
     if print_logs:
-        celery_logger.removeHandler(consolehandler)
+        _exit_stdout_logging(console_handler)
     return running_total
+
+
+@task(name="monitor_volumes")
+def monitor_volumes():
+    """
+    Update volumes for each active provider.
+    """
+    for p in Provider.get_active():
+        monitor_volumes_for.apply_async(args=[p.id])
+
+@task(name="monitor_volumes_for")
+def monitor_volumes_for(provider_id, print_logs=False):
+    """
+    Run the set of tasks related to monitoring sizes for a provider.
+    Optionally, provide a list of usernames to monitor
+    While debugging, print_logs=True can be very helpful.
+    start_date and end_date allow you to search a 'non-standard' window of time.
+    """
+    from service.driver import get_account_driver
+    from core.models import Identity
+    if print_logs:
+        console_handler = _init_stdout_logging()
+
+    provider = Provider.objects.get(id=provider_id)
+    account_driver = get_account_driver(provider)
+    # Non-End dated volumes on this provider
+    db_volumes = Volume.objects.filter(only_current_source(), instance_source__provider=provider)
+    all_volumes = account_driver.admin_driver.list_all_volumes(timeout=30)
+    seen_volumes = []
+    for cloud_volume in all_volumes:
+        try:
+            core_volume = convert_esh_volume(cloud_volume, provider_uuid=provider.uuid)
+            seen_volumes.append(core_volume)
+        except ObjectDoesNotExist:
+            tenant_id = cloud_volume.extra['object']['os-vol-tenant-attr:tenant_id']
+            tenant = account_driver.get_project_by_id(tenant_id)
+            try:
+                identity = Identity.objects.get(
+                    provider=provider, created_by__username=tenant.name)
+                core_volume = convert_esh_volume(
+                    cloud_volume,
+                    provider.uuid, identity.uuid,
+                    identity.created_by)
+            except ObjectDoesNotExist:
+                celery_logger.info("Skipping Volume %s - Unknown Identity: %s-%s" % (cloud_volume.id, provider, tenant.name))
+            pass
+
+    now_time = timezone.now()
+    needs_end_date = [volume for volume in db_volumes if volume not in seen_volumes]
+    for volume in needs_end_date:
+        celery_logger.debug("End dating inactive volume: %s" % volume)
+        volume.end_date = now_time
+        volume.save()
+
+    if print_logs:
+        _exit_stdout_logging(console_handler)
 
 
 @task(name="monitor_sizes")
@@ -544,11 +591,7 @@ def monitor_sizes_for(provider_id, print_logs=False):
     from service.driver import get_admin_driver
 
     if print_logs:
-        import logging
-        import sys
-        consolehandler = logging.StreamHandler(sys.stdout)
-        consolehandler.setLevel(logging.DEBUG)
-        celery_logger.addHandler(consolehandler)
+        console_handler = _init_stdout_logging()
 
     provider = Provider.objects.get(id=provider_id)
     admin_driver = get_admin_driver(provider)
@@ -568,7 +611,7 @@ def monitor_sizes_for(provider_id, print_logs=False):
         size.save()
 
     if print_logs:
-        celery_logger.removeHandler(consolehandler)
+        _exit_stdout_logging(console_handler)
 
 
 @task(name="monthly_allocation_reset")
@@ -704,3 +747,14 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
                 celery_logger.warn("CONFLICT -- This image should have been marked 'private'! %s" % cloud_machine)
                 pass
     return
+
+def _exit_stdout_logging(consolehandler):
+    celery_logger.removeHandler(consolehandler)
+
+def _init_stdout_logging():
+    import logging
+    import sys
+    consolehandler = logging.StreamHandler(sys.stdout)
+    consolehandler.setLevel(logging.DEBUG)
+    celery_logger.addHandler(consolehandler)
+    return consolehandler
