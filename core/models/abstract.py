@@ -21,7 +21,6 @@ UNRESOLVED_STATES = ["pending", "failed"]
 
 
 class BaseRequest(models.Model):
-
     """
     Base model which represents a request object
     """
@@ -107,7 +106,6 @@ class BaseRequest(models.Model):
 
 
 class BaseSource(models.Model):
-
     """
     Source object which can be booted
     """
@@ -153,7 +151,6 @@ class BaseSource(models.Model):
 
 
 class BaseHistory(models.Model):
-
     """
     Base model which is used to track changes in another model
     """

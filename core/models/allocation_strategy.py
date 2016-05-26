@@ -71,7 +71,6 @@ class Allocation(models.Model):
 
 
 class RulesBehavior(models.Model):
-
     """
     allow real-time modification of the rules used on the allocation engine.
     """
@@ -86,7 +85,6 @@ class RulesBehavior(models.Model):
 
 
 class RefreshBehavior(models.Model):
-
     """
     real-time modification of how to refresh a users allocation.
     """

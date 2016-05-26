@@ -8,7 +8,6 @@ import uuid
 
 
 class CloudAdministrator(models.Model):
-
     """
     This model is reserved exclusively for users who are in control of an
     entire 'cloud' provider.
