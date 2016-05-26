@@ -20,9 +20,12 @@ from core.models.application_version import ApplicationVersion
 class Application(models.Model):
 
     """
-    An application is a collection of providermachines, where each
-    providermachine represents a single revision, together forming a linear
-    sequence of versions. The created_by field here is used for logging only;
+    An application is a collection of ApplicationVersions.
+    Each version can contain one or many providermachines.
+    Each ApplicationVersion represents a single revision of the Application made by the creator,
+    together forming a linear history of how the application progressed.
+
+    Note: The created_by field here is used for logging only;
     do not rely on it for permissions; use ApplicationMembership instead.
     """
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
@@ -537,9 +540,8 @@ def create_application(
         updateTags(new_app, tags, created_by_identity.created_by)
     return new_app
 
-
+#FIXME: This class marked for removal
 class ApplicationScore(models.Model):
-
     """
     Users can Cast their "Score" -1/0/+1 on a specific Application.
     -1 = Vote Down
@@ -630,6 +632,10 @@ class ApplicationBookmark(models.Model):
 
 
 class ApplicationThreshold(models.Model):
+    """
+    The Application Threshold represents the minimum CPU/Memory
+    required to launch the VM. (This is optional)
+    """
     application_version = models.OneToOneField(
         ApplicationVersion,
         related_name="threshold",
