@@ -4,6 +4,10 @@ from core.models.tag import Tag
 
 
 class ApplicationTag(models.Model):
+    """
+    This model allows us to directly modify the 'join table'
+    implicity created by Django when we set 'Application.tags'
+    """
     application = models.ForeignKey(Application)
     tag = models.ForeignKey(Tag)
 
