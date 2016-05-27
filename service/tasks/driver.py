@@ -717,6 +717,13 @@ def get_chain_from_active_with_ip(
         provider,
         identity,
         instance)
+    remove_status_on_failure_task = get_remove_status_chain(
+        driverCls,
+        provider,
+        identity,
+        instance)
+    user_deploy_failed_task = user_deploy_failed.s(
+        driverCls, provider, identity, instance.id, core_identity.created_by)
     email_task = _send_instance_email.si(
         driverCls, provider, identity, instance.id)
     # JUST before we finish, check for boot_scripts_chain
@@ -727,14 +734,14 @@ def get_chain_from_active_with_ip(
     # (SUCCESS_)LINKS and ERROR_LINKS
     deploy_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance.id))
-    deploy_user_task.link_error(
-        user_deploy_failed.s(driverCls, provider, identity, instance.id, core_identity.created_by))
+    deploy_user_task.link_error(user_deploy_failed_task)
+    # Note created new 'copy' of remove_status to avoid potential for email*2
+    user_deploy_failed_task.link(remove_status_on_failure_task)
 
     deploy_ready_task.link(deploy_meta_task)
     deploy_meta_task.link(deploy_task)
     deploy_task.link(check_vnc_task)  # Above this line, atmo is responsible for success.
     check_vnc_task.link(deploy_user_task)  # this line and below, user can create a failure.
-
     # ready -> metadata -> deployment..
 
     if boot_chain_start and boot_chain_end:
