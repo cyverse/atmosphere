@@ -403,6 +403,7 @@ def user_deploy_failed(
         # Send deploy email
         _send_instance_email_with_failure(driverCls, provider, identity, instance_id, user.username, err_str)
         celery_logger.debug("user_deploy_failed task finished at %s." % datetime.now())
+        return err_str
     except Exception as exc:
         celery_logger.warn(exc)
         user_deploy_failed.retry(exc=exc)
@@ -742,10 +743,10 @@ def get_chain_from_active_with_ip(
 
     if boot_chain_start and boot_chain_end:
         # ..deployment -> scripts -> ..
-        check_vnc_task.link(boot_chain_start)
+        deploy_user_task.link(boot_chain_start)
         boot_chain_end.link(remove_status_chain)
     else:
-        check_vnc_task.link(remove_status_chain)
+        deploy_user_task.link(remove_status_chain)
     # Final task at this point should be 'remove_status_chain'
 
     # Only send emails when 'redeploy=False'
