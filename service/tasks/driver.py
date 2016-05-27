@@ -394,11 +394,7 @@ def user_deploy_failed(
             with allow_join_result():
                 exc = result.get(propagate=False)
             err_str = "Error Traceback:%s" % (result.traceback,)
-            if 'AnsibleDeployException' in err_str:
-                if 'inject_ssh_keys' in err_str:
-                    err_str = "One or more SSH Keys could not be deployed to the instance. Please verify the public-key is correct."
-            elif 'NonZeroDeployment' in err_str:
-                err_str = err_str.partition("NonZeroDeploymentException:")[2].strip()
+            err_str = _cleanup_traceback(err_str)
         elif message:
             err_str = message
         else:
@@ -1499,3 +1495,15 @@ def update_links(instances):
             continue
     celery_logger.debug("Instances updated: %d" % len(updated))
     return updated
+
+
+def _cleanup_traceback(err_str):
+    """
+    Given a Traceback message, return the 'human readable' response.
+    If unknown, return the full traceback to help staff trace down the error quickly.
+    """
+    if 'AnsibleDeployException' in err_str and 'inject_ssh_keys' in err_str:
+        err_str = "One or more SSH Keys could not be deployed to the instance. Please verify the public-key is correct."
+    elif 'NonZeroDeploymentException' in err_str:
+        err_str = err_str.partition("NonZeroDeploymentException:")[2].strip()
+    return err_str
