@@ -170,7 +170,11 @@ def has_cpu_quota(driver, quota, new_size=0, raise_exc=True):
     _pre_cache_sizes(driver)
     instances = driver.list_instances()
     for inst in instances:
-        total_size += inst.size._size.extra['cpu']
+        try:
+            total_size += inst.size._size.extra['cpu']
+        except AttributeError, KeyError:
+            # Instance running on an unknown size..
+            total_size += 1
     if total_size <= quota.cpu:
         return True
     if raise_exc:
@@ -193,7 +197,11 @@ def has_mem_quota(driver, quota, new_size=0, raise_exc=True):
     _pre_cache_sizes(driver)
     instances = driver.list_instances()
     for inst in instances:
-        total_size += inst.size._size.ram / 1024.0
+        try:
+            total_size += inst.size._size.ram / 1024.0
+        except AttributeError, KeyError:
+            # Instance running on an unknown size..
+            total_size += 1
     total_size = int(total_size)
     if total_size <= quota.memory:
         return True
