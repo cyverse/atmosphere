@@ -238,9 +238,10 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
     if update_meta:
         driver_class = esh_driver.__class__
         identity = esh_driver.identity
+        provider = esh_driver.provider
 
         metadata={'public-ip': '', 'public-hostname': ''}
-        update_metadata.s(driver_class, identity, esh_instance.id,
+        update_metadata.s(driver_class, provider, identity, esh_instance.id,
                           metadata, replace_metadata=False).apply()
     # Fixed
     instance_ports = network_manager.list_ports(device_id=esh_instance.id)

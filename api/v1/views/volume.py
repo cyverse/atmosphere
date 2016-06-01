@@ -20,6 +20,7 @@ from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume
 from core.models.volume import Volume as CoreVolume
 from core.models.instance_source import InstanceSource
+from core.models.group import IdentityMembership
 
 from service.driver import prepare_driver
 from service.volume import create_volume,\
@@ -266,6 +267,14 @@ class VolumeList(AuthAPIView):
         Creates a new volume and adds it to the DB
         """
         user = request.user
+        try:
+            membership = IdentityMembership.objects.get(
+                identity__uuid=identity_uuid,
+                member__name=user.username)
+        except:
+            return failure_response(
+                status.HTTP_409_CONFLICT,
+                "Identity %s is invalid -OR- User %s does not have the appropriate IdentityMembership." % (identity_uuid, user))
         try:
             driver = prepare_driver(request, provider_uuid, identity_uuid)
         except ProviderNotActive as pna:

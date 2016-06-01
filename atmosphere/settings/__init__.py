@@ -422,6 +422,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=30),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
+    "monitor_volumes": {
+        "task": "monitor_volumes",
+        "schedule": timedelta(minutes=30),
+        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+    },
     "monitor_sizes": {
         "task": "monitor_sizes",
         "schedule": timedelta(minutes=30),
