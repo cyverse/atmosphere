@@ -373,20 +373,39 @@ class MachineRequest(BaseRequest):
         imaging_args = {
             "visibility": self.new_application_visibility,
             "instance_id": self.instance.provider_alias,
-            "parent_image_id": self.instance.source.providermachine.identifier,
             #NOTE: THERE IS AN ASSUMPTION MADE HERE!
             # ASSUMPTION: the Creator's username == the LINUX username that was also created for them!
             #FIXME if the ASSUMPTION above changes!
             "created_by": self.instance.created_by.username,
-            # Helpful for debugging an already-created image.
-            #"parent_image_id": self.instance.source.identifier,
-            "remove_image": not debug,  # Set to False to keep Snapshot or parent_image_id in glance
-            "remove_local_image": not debug,  # Set to False to keep downloaded file
-            #"upload_image": True,  # Set to False to avoid file upload
+            "remove_image": True,
+            "remove_local_image": True,
+            "upload_image": True,
             "image_name": self.new_application_name,
             "timestamp": self.start_date,
             "download_dir": download_dir
         }
+        if debug:
+            # NOTE: use the `parent_image_id` value *OR* `instance_id` value
+            # If you are setting debug=True, you're calling from the REPL,
+            # and you must be responsible for deciding
+            # which of those two values you would like to .pop()
+            # You should use the 'instance_id' field if
+            # you need to snapshot the instance first.
+            # You should use the 'parent_image_id' field if
+            # you want to debug a glance image
+            # Usually, this will contain the new_machine.identifier,
+            # but possibly the instances boot-source will be required for debug
+            imaging_args['parent_image_id'] = self.new_machine.identifier if self.new_machine else self.instance.source.identifier
+            imaging_args['upload_image'] = False  # Set to False to keep Snapshot or parent_image_id in glance
+            imaging_args['remove_image'] = False  # Set to False to keep Snapshot or parent_image_id in glance
+            imaging_args['remove_local_image'] = False  # Set to False to keep downloaded file
+            # NOTE: If you run with the debug setup above,
+            # the *only* operation that will be completed
+            # is the *download* the instance/image
+            # and then *clean* the file.
+            # Set to False to skip the 'clean' portion and only download the instance/image.
+            #imaging_args['clean_image'] = False
+
         if issubclass(orig_managerCls, OSImageManager):
             download_location = self._extract_file_location(download_dir)
             imaging_args['download_location'] = download_location
