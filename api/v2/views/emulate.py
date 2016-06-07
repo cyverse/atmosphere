@@ -54,10 +54,10 @@ def emulate_session(request, username=None):
         logger.info("Emulate attempt: %s wants to be %s"
                     % (request.user, username))
         logger.info(request.session.__dict__)
-        if not username and 'emulated_by' in request.session:
+        if not username and 'emulator' in request.session:
             logger.info("Clearing emulation attributes from user")
-            request.session['username'] = request.session['emulated_by']
-            del request.session['emulated_by']
+            request.session['username'] = request.session['emulator']
+            del request.session['emulator']
             # Allow user to fall through on line below
 
         try:
@@ -80,8 +80,8 @@ def emulate_session(request, username=None):
         token.save()
         # Keep original emulator if it exists, or use the last known username
         original_emulator = request.session.get(
-            'emulated_by', request.session['username'])
-        request.session['emulated_by'] = original_emulator
+            'emulator', request.session['username'])
+        request.session['emulator'] = original_emulator
         # Set the username to the user to be emulated
         # to whom the token also belongs
         request.session['username'] = username
