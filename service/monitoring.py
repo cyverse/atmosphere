@@ -121,8 +121,9 @@ def get_allocation_result_for(
         allocation_result = _get_allocation_result(
             identity, start_date, end_date,
             print_logs=print_logs)
-        logger.debug("Result for Username %s: %s"
-                     % (username, allocation_result))
+        if allocation_result.total_runtime() != timedelta(0):
+            logger.debug("Result for Username %s: %s"
+                         % (username, allocation_result))
         return allocation_result
     except IdentityMembership.DoesNotExist:
         logger.warn(
@@ -164,7 +165,6 @@ def user_over_allocation_enforcement(
         return allocation_result
 
     if not settings.ENFORCING:
-        logger.debug('Settings dictate allocations are NOT enforced')
         return allocation_result
 
     # Enforce allocation if overboard.

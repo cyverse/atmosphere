@@ -21,11 +21,16 @@ def emulate_request(request, username=None):
         logger.info("Emulate attempt: %s wants to be %s"
                     % (request.user, username))
         logger.info(request.session.__dict__)
-        if not username and 'emulated_by' in request.session:
+        if not username and 'emulator' in request.session:
             logger.info("Clearing emulation attributes from user")
-            request.session['username'] = request.session['emulated_by']
-            del request.session['emulated_by']
+            username = request.session['emulator']
+            orig_token = request.session['emulator_token']
+            request.session['username'] = username
+            request.session['token'] = orig_token
+            del request.session['emulator']
+            del request.session['emulator_token']
             # Allow user to fall through on line below
+            return HttpResponseRedirect(settings.REDIRECT_URL + "/api/v1/profile")
 
         try:
             user = DjangoUser.objects.get(username=username)
@@ -45,16 +50,21 @@ def emulate_request(request, username=None):
             api_server_url=settings.API_SERVER_URL
         )
         token.save()
-        # Keep original emulator if it exists, or use the last known username
-        original_emulator = request.session.get(
-            'emulated_by', request.session['username'])
-        request.session['emulated_by'] = original_emulator
-        # Set the username to the user to be emulated
-        # to whom the token also belongs
+        # Keep original emulator+token if it exists, or use the last known username+token
+        if 'emulator' not in request.session:
+            original_emulator = request.session['username']
+            request.session['emulator'] = original_emulator
+        if 'emulator_token' not in request.session:
+            original_token = request.session['token']
+            request.session['emulator_token'] = original_token
+
+        # # Set the username to the user to be emulated
+        # # to whom the token also belongs
         request.session['username'] = username
         request.session['token'] = token.key
-        logger.info("Returning emulated user - %s - to api profile "
-                    % username)
+        request.session.save()
+        logger.info("Returning user %s - Emulated as user %s - to api profile "
+                    % (original_emulator, username))
         logger.info(request.session.__dict__)
         logger.info(request.user)
         return HttpResponseRedirect(settings.REDIRECT_URL + "/api/v1/profile")

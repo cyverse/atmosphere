@@ -480,6 +480,8 @@ def monitor_instances_for(provider_id, users=None,
     # DEVNOTE: Potential slowdown running multiple functions
     # Break this out when instance-caching is enabled
     running_total = 0
+    if not settings.ENFORCING:
+        celery_logger.debug('Settings dictate allocations are NOT enforced')
     for username in sorted(instance_map.keys()):
         running_instances = instance_map[username]
         running_total += len(running_instances)

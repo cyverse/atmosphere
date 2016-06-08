@@ -198,6 +198,9 @@ REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
     {% if AUTH_ENABLE_GLOBUS %}
     'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
     {% endif %}
+    {% if AUTH_ENABLE_JWT %}
+    'iplantauth.token.JWTTokenAuthentication',  # JWT
+    {% endif %}
     {% if AUTH_ENABLE_CAS %}
     'iplantauth.token.OAuthTokenAuthentication',  # CAS
     {% endif %}
@@ -249,4 +252,10 @@ if has_logstash and LOGSTASH_HOST:
 
 {% if TESTING %}
 {% include "atmosphere/settings/testing.j2" %}
+{% endif %}
+{% if SSLSERVER %}
+# Include runsslserver
+INSTALLED_APPS += (
+    'sslserver',
+)
 {% endif %}

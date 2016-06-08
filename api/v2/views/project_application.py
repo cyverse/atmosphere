@@ -15,7 +15,7 @@ class ProjectApplicationViewSet(AuthViewSet):
 
     queryset = ProjectApplication.objects.all()
     serializer_class = ProjectApplicationSerializer
-    filter_fields = ('project__id',)
+    filter_fields = ('project__id','application__id')
 
     def get_queryset(self):
         """

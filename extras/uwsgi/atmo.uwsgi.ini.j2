@@ -10,7 +10,10 @@ enable-threads = true
 processes = 16
 uid = {{ UWSGI_USER }}
 gid = {{ UWSGI_GROUP }}
-{% if LOCAL_DEV %}chmod-socket = 776{% endif %}
+buffer-size = 8192
+{% if LOCAL_DEV -%}
+chmod-socket = 776
+{% endif -%}
 vacuum = true
 max-requests = 10
 daemonize = {{ UWSGI_LOG_PATH }}
