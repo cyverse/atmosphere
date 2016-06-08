@@ -82,6 +82,7 @@ deploy-lb:
 unlink: unlink-site unlink-atmo unlink-flower unlink-jenkins unlink-lb
 
 unlink-site:
+	-rm $(SERVER_CFG_DIR)/gzip_settings
 	-rm $(SITES_ENABLED_DIR)/$(SITE_CONF_FILE)
 	-rm $(SITES_ENABLED_DIR)/$(DEFAULT_SITE_CONF_FILE)
 	-rm $(SITES_AVAILABLE_DIR)/$(SITE_CONF_FILE)
