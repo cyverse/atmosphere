@@ -287,7 +287,7 @@ def process_request(new_image_id, machine_request_id):
     return new_image_id
 
 
-@task(name='validate_new_image', ignore_result=False)
+@task(name='validate_new_image', queue="imaging", ignore_result=False)
 def validate_new_image(image_id, machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     new_status, _ = StatusType.objects.get_or_create(name="validating")
