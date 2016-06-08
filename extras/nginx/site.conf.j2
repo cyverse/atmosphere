@@ -4,7 +4,7 @@ server {
 }
 
 server {
-    listen   443;
+    listen   443 {% if ENABLE_HTTP2 -%}ssl http2{%- endif %};
 
     server_name {{ SERVER_URL }};
     charset utf-8;
