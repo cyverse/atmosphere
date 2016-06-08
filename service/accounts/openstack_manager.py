@@ -4,7 +4,6 @@ UserManager:
 """
 import random
 import time
-import crypt
 import string
 from urlparse import urlparse
 
@@ -537,7 +536,8 @@ class AccountDriver(BaseAccountDriver):
             self.user_manager.delete_user(username)
         return True
 
-    def hashpass(self, username, strategy=None):
+    @classmethod
+    def hashpass(cls, username, strategy=None):
         """
         Create a unique password using 'Username' as the wored
         and the SECRET_KEY as your salt
@@ -547,17 +547,18 @@ class AccountDriver(BaseAccountDriver):
 
         if not strategy\
                 or strategy == 'old_hashpass':
-            return self.old_hashpass(username)
+            return cls.old_hashpass(username)
         if strategy == 'crypt_hashpass':
-            return self.crypt_hashpass(username)
+            return cls.crypt_hashpass(username)
         elif strategy == 'salt_hashpass':
-            return self.salt_hashpass(username)
+            return cls.salt_hashpass(username)
         else:
             raise ValueError(
                 "Invalid DEFAULT_PASSWORD_LOOKUP: %s"
                 % DEFAULT_PASSWORD_LOOKUP)
 
-    def old_hashpass(self, username):
+    @classmethod
+    def old_hashpass(cls, username):
         from hashlib import sha1
         return sha1(username).hexdigest()
 
@@ -570,7 +571,9 @@ class AccountDriver(BaseAccountDriver):
             raise Exception("Failed to hash password, check the secret_salt")
         return password
 
-    def crypt_hashpass(self, username):
+    @classmethod
+    def crypt_hashpass(cls, username):
+        import crypt
         secret_salt = SECRET_SEED.translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         if not password:
@@ -891,7 +894,6 @@ class AccountDriver(BaseAccountDriver):
         sdk_creds = self._build_sdk_creds(all_creds)
         user_creds = self._build_user_creds(all_creds)
         openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
-
         (keystone, nova, swift) = self.user_manager.new_connection(
             **user_creds)
         neutron = self.network_manager.new_connection(**net_creds)
