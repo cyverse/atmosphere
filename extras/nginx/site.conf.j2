@@ -30,6 +30,10 @@ server {
     add_header Strict-Transport-Security max-age=63072000;
     add_header X-Frame-Options DENY;
     add_header X-Content-Type-Options nosniff;
+
+    include /etc/nginx/gzip_settings;
+
     include /etc/nginx/uwsgi_params;
+
     include locations/*.conf;
 }
