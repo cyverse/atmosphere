@@ -507,7 +507,7 @@ def _get_allocation_result(identity, start_date=None, end_date=None,
                     % (username, identity))
     allocation_input = apply_strategy(
         identity, core_allocation,
-        limit_instances=limit_instances, limit_history=limit_history
+        limit_instances=limit_instances, limit_history=limit_history,
         start_date=start_date, end_date=end_date)
     allocation_result = calculate_allocation(
         allocation_input,
@@ -523,6 +523,7 @@ def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=
     strategy = _get_strategy(identity)
     if not strategy:
         return Allocation(credits=[], rules=[], instances=[],
+            start_date=start_date, end_date=end_date)
     return strategy.apply(
         identity, core_allocation,
         limit_instances=limit_instances, limit_history=limit_history,
