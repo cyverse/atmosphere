@@ -531,6 +531,7 @@ class AccountDriver(BaseAccountDriver):
         from hashlib import sha1
         return sha1(username).hexdigest()
 
+    @classmethod
     def hashpass(self, username):
         """
         Create a unique password using 'Username' as the wored
@@ -856,7 +857,6 @@ class AccountDriver(BaseAccountDriver):
         sdk_creds = self._build_sdk_creds(all_creds)
         user_creds = self._build_user_creds(all_creds)
         openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
-
         (keystone, nova, swift) = self.user_manager.new_connection(
             **user_creds)
         neutron = self.network_manager.new_connection(**net_creds)
