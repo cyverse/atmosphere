@@ -250,3 +250,9 @@ if has_logstash and LOGSTASH_HOST:
 {% if TESTING %}
 {% include "atmosphere/settings/testing.j2" %}
 {% endif %}
+{% if SSLSERVER %}
+# Include runsslserver
+INSTALLED_APPS += (
+    'sslserver',
+)
+{% endif %}
