@@ -8,6 +8,7 @@ DJANGO_SERVER_URL = ; https://www.my-website.com
 
 [nginx]
 ATMOSPHERE_PATH = ; /path/to/atmosphere
+ENABLE_HTTP2 = ; True if nginx has http-v2 module; otherwise False
 BUNDLE_FILE = ; selfsigned_bundle.crt
 CERT_DIR = ; /etc/ssl/certs
 CERT_FILE = ; selfsigned_server.crt
