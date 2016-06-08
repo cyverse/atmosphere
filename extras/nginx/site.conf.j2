@@ -31,7 +31,24 @@ server {
     add_header X-Frame-Options DENY;
     add_header X-Content-Type-Options nosniff;
 
-    include /etc/nginx/gzip_settings;
+    gzip on;
+    gzip_static on;
+
+    gzip_comp_level    5;
+    gzip_proxied       any;
+    gzip_vary          on;
+
+    gzip_types
+        application/javascript
+        application/json
+        application/vnd.ms-fontobject
+        application/x-font-ttf
+        application/x-web-app-manifest+json
+        font/opentype
+        image/svg+xml
+        image/x-icon
+        text/css
+        text/plain;
 
     include /etc/nginx/uwsgi_params;
 

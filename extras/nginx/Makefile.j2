@@ -10,7 +10,6 @@ KEY_SIZE={{ KEY_SIZE }}
 SERVER_URL={{ SERVER_URL }}
 SITES_AVAILABLE_DIR={{ SITES_AVAILABLE_DIR }}
 SITES_ENABLED_DIR={{ SITES_ENABLED_DIR }}
-SERVER_CFG_DIR={{ SITES_ENABLED_DIR }}/..
 VIRTUALENV_PATH={{ VIRTUALENV_PATH }}
 
 # site and location variables.
@@ -58,7 +57,6 @@ $(COMBINED_CERT_PATH):
 deploy: $(COMBINED_CERT_PATH) $(DHPARAM) setup unlink deploy-atmo deploy-flower deploy-jenkins deploy-lb
 	mkdir -p $(SITES_AVAILABLE_DIR)
 	mkdir -p $(SITES_ENABLED_DIR)
-	ln -fs $(ATMOSPHERE_PATH)/extras/nginx/gzip_settings $(SERVER_CFG_DIR)/gzip_settings
 	ln -fs $(ATMOSPHERE_PATH)/extras/nginx/site.conf $(SITES_AVAILABLE_DIR)/$(SITE_CONF_FILE)
 	ln -fs $(SITES_AVAILABLE_DIR)/site.conf $(SITES_ENABLED_DIR)/$(SITE_CONF_FILE)
 	ln -fs $(ATMOSPHERE_PATH)/extras/init.d/atmosphere.uwsgi+nginx /etc/init.d/atmosphere
@@ -82,7 +80,6 @@ deploy-lb:
 unlink: unlink-site unlink-atmo unlink-flower unlink-jenkins unlink-lb
 
 unlink-site:
-	-rm $(SERVER_CFG_DIR)/gzip_settings
 	-rm $(SITES_ENABLED_DIR)/$(SITE_CONF_FILE)
 	-rm $(SITES_ENABLED_DIR)/$(DEFAULT_SITE_CONF_FILE)
 	-rm $(SITES_AVAILABLE_DIR)/$(SITE_CONF_FILE)
