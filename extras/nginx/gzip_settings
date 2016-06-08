@@ -1,0 +1,19 @@
+gzip on;
+gzip_static on;
+
+gzip_comp_level    5;
+gzip_proxied       any;
+gzip_vary          on;
+
+gzip_types
+    application/javascript
+    application/json
+    application/vnd.ms-fontobject
+    application/x-font-ttf
+    application/x-web-app-manifest+json
+    font/opentype
+    image/svg+xml
+    image/x-icon
+    text/css
+    text/plain;
+
