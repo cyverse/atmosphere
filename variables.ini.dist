@@ -39,6 +39,7 @@ AUTH_ENABLE_MOCK = ; True
 AUTH_ENABLE_GLOBUS = ; False
 AUTH_ENABLE_CAS = ; False
 AUTH_ENABLE_LDAP = ; False
+AUTH_ENABLE_JWT = ; False
 ANSIBLE_ROOT = ; /path/to/atmosphere-ansible
 LOGOUT_REDIRECT_URL = ; /logout
 CAS_AUTH_PREFIX = ; /
