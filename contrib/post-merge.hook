@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Warn when requirements.txt changes
+if [ -e .git/hooks/requirements-warning.rb ]; then
+    ruby .git/hooks/requirements-warning.rb;
+fi
+
+# Warn when a pull includes new migration files
+if [ -e .git/hooks/migrations-warning.rb ]; then
+    ruby .git/hooks/migrations-warning.rb; 
+fi

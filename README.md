@@ -32,6 +32,14 @@ your code passes all the tests.
 ln -s contrib/pre-push.hook .git/hooks/pre-push
 ```
 
+When master is pulled, it's helpful to know if a `pip install` or a `manage.py
+migrate` is necessary. To get a helpful warning:
+```bash
+ln -s contrib/post-merge.hook .git/hooks/post-merge
+ln -s contrib/migrations-warning.rb .git/hooks/migrations-warning.rb
+ln -s contrib/requirements-warning.rb .git/hooks/requirements-warning.rb
+```
+
 ### Coding Conventions
 
 #### Import ordering
