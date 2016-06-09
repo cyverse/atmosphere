@@ -85,6 +85,9 @@ INSTALLED_APPS = (
     'allocation',
     'service',
     'core',
+    # This should be removed *BEFORE* the branch is merged.
+    # the Jetstream app is optional, and site-specific.
+    'jetstream',
 )
 
 TIME_ZONE = 'America/Phoenix'
