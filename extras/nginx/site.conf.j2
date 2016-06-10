@@ -4,7 +4,7 @@ server {
 }
 
 server {
-    listen   443;
+    listen   443 {% if ENABLE_HTTP2 -%}ssl http2{%- endif %};
 
     server_name {{ SERVER_URL }};
     charset utf-8;
@@ -30,6 +30,27 @@ server {
     add_header Strict-Transport-Security max-age=63072000;
     add_header X-Frame-Options DENY;
     add_header X-Content-Type-Options nosniff;
+
+    gzip on;
+    gzip_static on;
+
+    gzip_comp_level    5;
+    gzip_proxied       any;
+    gzip_vary          on;
+
+    gzip_types
+        application/javascript
+        application/json
+        application/vnd.ms-fontobject
+        application/x-font-ttf
+        application/x-web-app-manifest+json
+        font/opentype
+        image/svg+xml
+        image/x-icon
+        text/css
+        text/plain;
+
     include /etc/nginx/uwsgi_params;
+
     include locations/*.conf;
 }
