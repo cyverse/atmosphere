@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
-import os
-import sys
+import os, traceback
+import sys, time
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, root_dir)
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
@@ -47,7 +47,7 @@ def main():
                         help="Don't run Atmosphere's deploy.")
     parser.add_argument("--count", default=1, type=int,
                         help="Number of instances to launch.")
-    parser.add_argument("--user", help="Atmosphere username to use.")
+    parser.add_argument("--users", help="Atmosphere usernames to launch with, in a comma-separated-list.")
     args = parser.parse_args()
     if args.provider_list:
         handle_provider_list()
@@ -76,8 +76,22 @@ def main():
 
     size = Size.objects.get(query, only_current(), provider=provider)
     machines = handle_machine(args, provider)
-    print "Using Username %s." % args.user
-    user = User.objects.get(username=args.user)
+    user_list = args.users.split(',')
+    for idx, username in enumerate(user_list):
+        try:
+            if idx != 0:
+                print "Sleep 30 seconds"
+                time.sleep(30)
+                print "Awake, ready to launch"
+            launch_instance_for_user(args, machines, size, provider, username)
+        except Exception as e:
+            print "Instance launch *FAILED*: %s" % e
+            traceback.print_exc(file=sys.stdout)
+
+
+def launch_instance_for_user(args, machines, size, provider, username):
+    print "Using Username %s." % username
+    user = User.objects.get(username=username)
     handle_count(args)
     print "Using Provider %s." % provider
     print "Using Size %s." % size.name
