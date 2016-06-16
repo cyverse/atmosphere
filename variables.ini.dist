@@ -138,3 +138,12 @@ SSL_LOCATION= ; /etc/ssl
 SSL_CERTIFICATE= ; selfsigned_server.crt
 SSL_KEY= ; selfsigned_server.key
 USE_PRODUCTION= ; True
+FLOWER_AUTH_SCHEME=; "basic" or "google"
+# if flower_auth_opt == 'basic'
+FLOWER_BASIC_USERNAME= ; username
+FLOWER_BASIC_PASSWORD= ; password
+# elif flower_auth_opt == 'google'
+FLOWER_EMAIL_ACCESS_LIST= ; "me@gmail.com|you@gmail.com"
+FLOWER_OAUTH2_CLIENT_ID= ; "123xyz.apps.googleusercontent.com"
+FLOWER_OAUTH2_CLIENT_SECRET= ; "client_secret_here"
+FLOWER_OAUTH2_REDIRECT_URI= ; "server_redirect_url/flower/login"
