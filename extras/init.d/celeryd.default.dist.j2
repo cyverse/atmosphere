@@ -97,11 +97,18 @@ CELERYD_MAX_TASKS_PER_CHILD="150"
 # Additional celery flower settings
 ###
 CELERYD_FLOWER="$CELERYD_CHDIR/manage.py celery flower"
-ADMIN_USER="flower_user"
-ADMIN_PASS="flower_pass"
-#TODO:Change to Google+OAUTH2 VERY soon!
+{% if FLOWER_AUTH_SCHEME == "basic" %}
+ADMIN_USER="{{ FLOWER_BASIC_USERNAME }}"
+ADMIN_PASS="{{ FLOWER_BASIC_PASSWORD }}"
 FLOWER_AUTH_OPT="--basic_auth=$ADMIN_USER:$ADMIN_PASS"
-OAUTH2_ACCESS_LIST=""
+{% elif FLOWER_AUTH_SCHEME == "google" %}
+OAUTH2_ACCESS_LIST="{{ FLOWER_EMAIL_ACCESS_LIST }}"
+OAUTH2_CLIENT_ID="{{ FLOWER_OAUTH2_CLIENT_ID }}"
+OAUTH2_CLIENT_SECRET="{{ FLOWER_OAUTH2_CLIENT_SECRET }}"
+OAUTH2_REDIRECT_URI="{{ FLOWER_OAUTH2_REDIRECT_URI }}"
+FLOWER_AUTH_OPT="--auth=$OAUTH2_ACCESS_LIST --oauth2_key=$OAUTH2_CLIENT_ID --oauth2_secret=$OAUTH2_CLIENT_SECRET --oauth2_redirect_uri=$OAUTH2_REDIRECT_URI --auth_provider=flower.views.auth.GoogleAuth2LoginHandler"
+{% else %}
+{% endif %}
 
 FLOWER_LOG_FILE="/var/log/celery/flower.log"
 CELERY_FLOWER_OPTS="--certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=8443 --log_file_prefix=$FLOWER_LOG_FILE --logging=warn --url_prefix=flower $FLOWER_AUTH_OPT"
