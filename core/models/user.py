@@ -210,8 +210,7 @@ def get_default_identity(username, provider=None):
         logger.exception(e)
         return None
 
-def create_new_accounts(username, provider=None):
-    from service.driver import get_account_driver
+def create_new_accounts(username, selected_provider=None):
     user = AtmosphereUser.objects.get(username=username)
     if not user.is_valid():
         raise Exception("This account is not yet valid.")
@@ -221,22 +220,29 @@ def create_new_accounts(username, provider=None):
     if not providers:
         logger.error("No currently active providers")
         return identities
-    if provider and provider not in providers:
-        logger.error("The provider %s is NOT in the list of currently active providers. Account will not be created" % provider)
+    if selected_provider and selected_provider not in providers:
+        logger.error("The provider %s is NOT in the list of currently active providers. Account will not be created" % selected_provider)
         return identities
     for provider in providers:
-        existing_user_list = provider.identity_set.values_list('created_by__username', flat=True)
-        if user.username in existing_user_list:
-            logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
-            continue
-        try:
-            accounts = get_account_driver(provider)
-            logger.info("Create NEW account for %s" % user.username)
-            new_identity = accounts.create_account(user.username)
+        new_identity = create_new_account_for(provider, user)
+        if new_identity:
             identities.append(new_identity)
-        except:
-            logger.exception("Could *NOT* Create NEW account for %s" % user.username)
     return identities
+
+def create_new_account_for(provider, user):
+    from service.driver import get_account_driver
+    existing_user_list = provider.identity_set.values_list('created_by__username', flat=True)
+    if user.username in existing_user_list:
+        logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
+        return None
+    try:
+        accounts = get_account_driver(provider)
+        logger.info("Create NEW account for %s" % user.username)
+        new_identity = accounts.create_account(user.username)
+        return new_identity
+    except:
+        logger.exception("Could *NOT* Create NEW account for %s" % user.username)
+        return None
 
 def get_available_providers():
     from core.models.provider import Provider
