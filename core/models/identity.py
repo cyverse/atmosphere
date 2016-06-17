@@ -88,7 +88,7 @@ class Identity(models.Model):
 
         return False
 
-    def share(self, core_group, quota=None):
+    def share(self, core_group, quota=None, allocation=None):
         """
         """
         from core.models import IdentityMembership, Quota, Allocation
@@ -100,7 +100,9 @@ class Identity(models.Model):
         # Ready to create new membership for this group
         if not quota:
             quota = Quota.default_quota()
-        allocation = Allocation.default_allocation()
+        if not allocation:
+            allocation = Allocation.default_allocation()
+
         new_membership = IdentityMembership.objects.get_or_create(
             member=core_group,
             identity=self,
@@ -131,8 +133,23 @@ class Identity(models.Model):
         return group_names
 
     @classmethod
+    def _kwargs_to_credentials(cls, kwarg_creds):
+        """
+        Takes a dictionary of `cred_*` key/values
+        and returns back `*` key/value dictionary.
+        Ignores any 'other' kwargs that may be present.
+        """
+        credentials = {}
+        for (c_key, c_value) in kwarg_creds.items():
+            if 'cred_' not in c_key.lower():
+                continue
+            c_key = c_key.replace('cred_', '')
+            credentials[c_key] = c_value
+        return credentials
+
+    @classmethod
     def create_identity(cls, username, provider_location,
-                        quota=None,
+                        quota=None, allocation=None,
                         max_quota=False, account_admin=False, **kwarg_creds):
         """
         Create new User/Group & Identity for given provider_location
@@ -156,13 +173,7 @@ class Identity(models.Model):
             IdentityMembership
 
         provider = Provider.objects.get(location__iexact=provider_location)
-
-        credentials = {}
-        for (c_key, c_value) in kwarg_creds.items():
-            if 'cred_' not in c_key.lower():
-                continue
-            c_key = c_key.replace('cred_', '')
-            credentials[c_key] = c_value
+        credentials = cls._kwargs_to_credentials(kwarg_creds)
 
         #DEV NOTE: 'New' identities are expected to have a router name directly assigned
         # upon creation. If the value is not passed in, we can ask the provider to select
@@ -173,68 +184,60 @@ class Identity(models.Model):
 
         (user, group) = Group.create_usergroup(username)
 
+        identity = cls._get_identity(user, group, credentials)
         # NOTE: This specific query will need to be modified if we want
         # 2+ Identities on a single provider
 
-        id_membership = IdentityMembership.objects.filter(
-            member__name=user.username,
-            identity__provider=provider,
-            identity__created_by__username=user.username)
-        if not id_membership:
-            default_allocation = Allocation.default_allocation()
-            # 1. Create an Identity Membership
-            # DEV NOTE: I have a feeling that THIS line will mean
-            #          creating a secondary identity for a user on a given
-            #          provider will be difficult. We need to find a better
-            #          workflow here..
-            try:
-                identity = Identity.objects.get(created_by=user,
-                                                provider=provider)
-            except Identity.DoesNotExist:
-                new_uuid = uuid4()
-                identity = Identity.objects.create(
-                    created_by=user,
-                    provider=provider,
-                    uuid=str(new_uuid))
-            id_membership = IdentityMembership.objects.get_or_create(
-                identity=identity,
-                member=group,
-                allocation=default_allocation,
-                quota=Quota.default_quota())
-        # Either first in list OR object from two-tuple.. Its what we need.
-        id_membership = id_membership[0]
-
+        id_membership = identity.share(group, quota=quota, allocation=allocation)
         # ID_Membership exists.
 
-        # 2. Make sure that all kwargs exist as credentials
-        # NOTE: Because we assume only one identity per provider
-        #       We can add new credentials to
-        #       existing identities if missing..
-        # In the future it will be hard to determine when we want to
-        # update values on an identity Vs. create a second, new
-        # identity.
-        for (c_key, c_value) in credentials.items():
-            Identity.update_credential(id_membership.identity, c_key, c_value)
-
-        # 3. Assign a different quota, if requested
-        if quota:
-            id_membership.quota = quota
-            id_membership.allocation = None
-            id_membership.save()
-        elif max_quota:
-            quota = Quota.max_quota()
-            id_membership.quota = quota
-            id_membership.allocation = None
-            id_membership.save()
+        # 3. Assign admin account, if requested
         if account_admin:
-            admin = AccountProvider.objects.get_or_create(
+            AccountProvider.objects.get_or_create(
                 provider=id_membership.identity.provider,
                 identity=id_membership.identity)[0]
 
-        # 5. Save the user to activate profile on first-time use
+        # 4. Save the user to activate profile on first-time use
+        # FIXME: only call .save() if 'no profile' test is True.
+        # TODO: write a 'no profile' test f()
         user.save()
+
         # Return the identity
-        return id_membership.identity
+        return identity
+
+    @classmethod
+    def _get_identity(cls, user, group, provider, credentials):
+        try:
+            # 1. Make sure that an Identity exists for the user/group+provider
+            #FIXME: To make this *more* iron-clad, we should probably
+            # create a method that looks at the provider, and selects
+            # the username/project_name `key/value` pair, and looks *explicitly* for that pairing in an identity they have created..
+            # Otherwise we are limiting the accounts a user can have to one/provider.
+            identity = Identity.objects.get(
+                    created_by=user, provider=provider)
+            # 2. Make sure that all kwargs exist as credentials
+            # NOTE: Because we assume only one identity per provider
+            #       We can add new credentials to
+            #       existing identities if missing..
+            # In the future, we will only update the credentials *once*
+            # during self._create_identity().
+            for (c_key, c_value) in credentials.items():
+                Identity.update_credential(identity, c_key, c_value)
+        except Identity.DoesNotExist:
+            # FIXME: we shouldn't have to create the uuid.. default does this.
+            identity = cls._create_identity(user, group, provider, credentials)
+        return identity
+
+    @classmethod
+    def _create_identity(cls, user, group, provider, credentials):
+        new_uuid = uuid4()
+        identity = Identity.objects.create(
+            created_by=user,
+            provider=provider,
+            uuid=str(new_uuid))
+        for (c_key, c_value) in credentials.items():
+            Identity.update_credential(identity, c_key, c_value)
+        return identity
 
     @classmethod
     def update_credential(cls, identity, c_key, c_value, replace=False):
