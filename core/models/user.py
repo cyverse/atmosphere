@@ -41,7 +41,7 @@ class AtmosphereUser(AbstractUser):
         """
         True/False if user is valid based on Jetstream rules
         """
-        from jetstream.tasks import validate_account
+        from jetstream.plugins.auth.validation import validate_account
         return validate_account(self.username)
 
     def _iplant_valid(self):

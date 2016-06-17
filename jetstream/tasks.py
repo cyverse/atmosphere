@@ -43,17 +43,6 @@ def create_reports():
     return all_reports
 
 
-def validate_account(username):
-    """
-    Accounts are *ONLY* valid if they have 1+ 'jetstream' allocations.
-    """
-    tacc_username = xsede_tacc_map(username)
-    project_allocations = get_project_allocations(tacc_username)
-    if not project_allocations:
-        return False
-    return True
-
-
 def _create_tas_reports_for(user, tacc_username, tacc_project_name):
     all_reports = []
     if not hasattr(user, 'current_identities'):
