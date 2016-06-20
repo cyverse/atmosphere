@@ -9,6 +9,7 @@ from rest_framework import status
 
 from api.exceptions import (inactive_provider)
 from api.v2.serializers.details import VolumeSerializer, UpdateVolumeSerializer
+from api.v2.serializers.post import VolumeSerializer as POSTVolumeSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
@@ -21,6 +22,7 @@ from rtwo.exceptions import ConnectionFailure
 from threepio import logger
 
 UPDATE_METHODS = ("PUT", "PATCH")
+CREATE_METHODS = ("POST",)
 
 VOLUME_EXCEPTIONS = (OverQuotaError, ConnectionFailure, MalformedResponseError)
 
@@ -48,6 +50,8 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
     def get_serializer_class(self):
         if self.request.method in UPDATE_METHODS:
             return UpdateVolumeSerializer
+        elif self.request.method in CREATE_METHODS:
+            return POSTVolumeSerializer
         return self.serializer_class
 
     def get_queryset(self):
@@ -76,27 +80,43 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
             logger.exception("Error occurred updating v2 volume metadata")
             return Response(exc.message, status=status.HTTP_409_CONFLICT)
 
-    def perform_create(self, serializer):
+    def create(self, request):
+        """
+        Override 'create' at a higher level than 'perform_create'
+        so that we can swap Serializers behind-the-scenes.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        #NOTE: This work normally happens in 'perform_create()'
         data = serializer.validated_data
         name = data.get('name')
         size = data.get('size')
         image_id = data.get('image_id')
         snapshot_id = data.get('snapshot_id')
         description = data.get('description')
-        instance_source = data.get("instance_source")
-        identity = instance_source.get("created_by_identity")
+        project = data.get('projects')
+        identity = data.get("created_by_identity")
         provider = identity.provider
         try:
-            esh_volume = create_volume_or_fail(name, size, self.request.user,
-                                               provider, identity,
-                                               description=description,
-                                               image_id=image_id,
-                                               snapshot_id=snapshot_id)
-            created_on = esh_volume.extra.get("createTime", timezone.now())
-            serializer.save(identifier=esh_volume.id,
-                            name=esh_volume.name,
-                            created_on=pytz.utc.localize(created_on),
-                            user=self.request.user)
+            core_volume = create_volume_or_fail(
+                name, size, self.request.user,
+                provider, identity,
+                description=description,
+                project=project,
+                image_id=image_id,
+                snapshot_id=snapshot_id)
+            #NOTE: This is normally where 'perform_create()' would end
+            # but we swap out the VolumeSerializer Class at this point.
+            serialized_volume = VolumeSerializer(
+                core_volume, context={'request': self.request},
+                data={}, partial=True)
+            if not serialized_volume.is_valid():
+                return Response(serialized_volume.errors,
+                                status=status.HTTP_400_BAD_REQUEST)
+            serialized_volume.save()
+            headers = self.get_success_headers(serialized_volume.data)
+            return Response(
+                serialized_volume.data, status=status.HTTP_201_CREATED, headers=headers)
         except InvalidCredsError as e:
             raise exceptions.PermissionDenied(detail=e.message)
         except ProviderNotActive as pna:

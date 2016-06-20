@@ -27,8 +27,10 @@ class Project(models.Model):
     owner = models.ForeignKey(Group, related_name="projects")
     applications = models.ManyToManyField(Application, related_name="projects",
                                           blank=True)
+    # FIXME: Instances + Volumes are *NOT* MANYTOMANY
     instances = models.ManyToManyField(Instance, related_name="projects",
                                        blank=True)
+    # FIXME: Instances + Volumes are *NOT* MANYTOMANY
     volumes = models.ManyToManyField(Volume, related_name="projects",
                                      blank=True)
     links = models.ManyToManyField(ExternalLink, related_name="projects",

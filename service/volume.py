@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 from core.models.quota import get_quota, has_storage_count_quota,\
     has_storage_quota
 from core.models.identity import Identity
+from core.models.volume import Volume
+from core.models.instance_source import InstanceSource
 
 from service.cache import get_cached_driver
 from service.driver import _retrieve_source, get_esh_driver
@@ -69,7 +71,7 @@ def restrict_size_by_image(size, image):
 
 
 def create_volume_or_fail(name, size, user, provider, identity,
-                          description=None, image_id=None, snapshot_id=None):
+                          description=None, project=None, image_id=None, snapshot_id=None):
     snapshot = None
     image = None
     driver = get_esh_driver(identity, username=user.username)
@@ -88,10 +90,28 @@ def create_volume_or_fail(name, size, user, provider, identity,
 
     #: Create the volume or raise an exception
     #NOTE: username can be removed when 'quota' is not linked to IdentityMembership
-    _, volume = create_volume(driver, user.username, identity.uuid, name, size,
+    _, esh_volume = create_esh_volume(driver, user.username, identity.uuid, name, size,
                               description=description,
                               snapshot=snapshot, image=image,
                               raise_exception=True)
+    identifier = esh_volume.id
+    start_date = esh_volume.extra.get('created_at')
+    source = InstanceSource.objects.create(
+        identifier=identifier,
+        provider=provider,
+        created_by=user,
+        created_by_identity=identity)
+
+    kwargs = {
+        "name": name,
+        "size": size,
+        "description": description,
+        "instance_source": source,
+        "start_date": start_date
+    }
+    volume = Volume.objects.create(**kwargs)
+    if project:
+        project.volumes.add(volume)
     return volume
 
 
@@ -115,7 +135,7 @@ def create_snapshot(esh_driver, username, identity_uuid, name,
     return esh_ss
 
 
-def create_volume(esh_driver, username, identity_uuid, name, size,
+def create_esh_volume(esh_driver, username, identity_uuid, name, size,
                   description=None, metadata=None, snapshot=None, image=None,
                   raise_exception=False):
     quota = get_quota(identity_uuid)

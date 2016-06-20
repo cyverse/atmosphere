@@ -23,7 +23,7 @@ from core.models.instance_source import InstanceSource
 from core.models.group import IdentityMembership
 
 from service.driver import prepare_driver
-from service.volume import create_volume,\
+from service.volume import create_esh_volume,\
     create_bootable_volume,\
     _update_volume_metadata
 from service.exceptions import OverQuotaError
@@ -140,7 +140,7 @@ class VolumeSnapshot(AuthAPIView):
                     "Snapshot not created. Process aborted.")
         # STEP 2 - Create volume from snapshot
         try:
-            success, esh_volume = create_volume(esh_driver, identity_uuid,
+            success, esh_volume = create_esh_volume(esh_driver, identity_uuid,
                                                 display_name, size,
                                                 description, metadata,
                                                 snapshot=snapshot)
@@ -312,7 +312,7 @@ class VolumeList(AuthAPIView):
         else:
             snapshot = None
         try:
-            success, esh_volume = create_volume(driver, user.username, identity_uuid,
+            success, esh_volume = create_esh_volume(driver, user.username, identity_uuid,
                                                 name, size, description,
                                                 snapshot=snapshot, image=image)
         except OverQuotaError as oqe:
