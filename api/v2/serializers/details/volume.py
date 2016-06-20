@@ -29,10 +29,6 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
                                  read_only=True)
 
     projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    snapshot_id = serializers.CharField(write_only=True, allow_blank=True,
-                                        required=False)
-    image_id = serializers.CharField(write_only=True, allow_blank=True,
-                                     required=False)
     uuid = serializers.CharField(source='instance_source.identifier',
                                  read_only=True)
     # NOTE: this is still using ID instead of UUID -- due to abstract classes and use of getattr in L271 of rest_framework/relations.py, this is a 'kink' that has not been worked out yet.
@@ -55,50 +51,15 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
             'projects',
             'size',
             'url',
-
-            'snapshot_id',
-            'image_id',
-
             'start_date',
             'end_date')
 
     def validate(self, data):
-        image_id = data.get('image')
-        snapshot_id = data.get('snapshot')
-
-        #: Only allow one at a time
-        if snapshot_id and image_id:
-            raise serializers.ValidationError(
-                "Use either `snapshot_id` or `image_id` not both.")
-        return data
-
-    def create(self, validated_data):
-        name = validated_data.get('name')
-        size = validated_data.get('size')
-        identifier = validated_data.get("identifier")
-        description = validated_data.get('description')
-        user = validated_data.get("user")
-        start_date = validated_data.get("created_on")
-
-        instance_source = validated_data.get("instance_source")
-        identity = instance_source.get("created_by_identity")
-        provider = identity.provider
-
-        source = InstanceSource.objects.create(
-            identifier=identifier,
-            provider=provider,
-            created_by=user,
-            created_by_identity=identity)
-
-        kwargs = {
-            "name": name,
-            "size": size,
-            "description": description,
-            "instance_source": source,
-            "start_date": start_date
-        }
-
-        return Volume.objects.create(**kwargs)
+        if not data and not self.initial_data:
+            return data
+        raise Exception(
+            "This serializer for GET output ONLY! -- "
+            "Use the POST or UPDATE serializers instead!")
 
 
 class UpdateVolumeSerializer(serializers.ModelSerializer):
