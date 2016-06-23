@@ -46,3 +46,10 @@ djcelery.schedulers.DatabaseScheduler
 variables.ini
 # generated file backups
 *.bak.[0-9]*_[0-9]*
+
+# ignore any initialization files (aka secrets or sensitive infoz)
+clank_init
+clank
+*-extras/*
+secrets*
+scratch
