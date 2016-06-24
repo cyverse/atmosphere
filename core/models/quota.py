@@ -82,7 +82,7 @@ class Quota(models.Model):
 
     def __unicode__(self):
         str_builder = "ID:%s UUID:%s - " % (self.id, self.uuid)
-        str_builder += "CPU:%s, Memory:%s MB, Volume:%s GB " %\
+        str_builder += "CPU:%s, Memory:%s GB, Volume:%s GB " %\
             (self.cpu, self.memory, self.storage)
         str_builder += "Instances #:%s " %\
             (self.instance_count,)

@@ -36,13 +36,13 @@ def send_email_template(subject, template, recipients, sender,
     Return task to send an email using the template provided
     """
     body = render_to_string(template, context=Context(context))
-    args = (subject, body, recipients, sender)
+    args = (subject, body, sender, recipients)
     kwargs = {
         "cc": cc,
         "fail_silently": silent,
         "html": html
     }
-    return send_email_task.si(*args, **kwargs)
+    return send_email.si(*args, **kwargs)
 
 
 def email_address_str(name, email):

@@ -52,7 +52,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return POST_InstanceSerializer
-        elif self.action == 'action':
+        elif self.action == 'actions':
             return InstanceActionSerializer
         return InstanceSerializer
 
@@ -85,7 +85,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return Response(exc.message, status=status.HTTP_409_CONFLICT)
 
     @detail_route(methods=['get', 'post'])
-    def action(self, request, pk=None):
+    def actions(self, request, pk=None):
         """
         Until a better method comes about, we will handle InstanceActions here.
         """
