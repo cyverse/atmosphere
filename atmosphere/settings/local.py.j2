@@ -106,7 +106,7 @@ ALLOWED_HOSTS = [SERVER_URL.replace('https://', '')]
 # Atmosphere Keypair/Deployment Configs
 ATMOSPHERE_PRIVATE_KEYFILE = os.path.join(PROJECT_ROOT, 'extras/ssh/id_rsa')
 ATMOSPHERE_KEYPAIR_FILE = os.path.join(PROJECT_ROOT, 'extras/ssh/id_rsa.pub')
-ATMOSPHERE_KEYPAIR_NAME = 'atmosphere_cyverse_1'
+ATMOSPHERE_KEYPAIR_NAME = '{{ DEPLOYMENT_KEYPAIR_NAME }}'
 
 
 # Atmosphere App Configs
