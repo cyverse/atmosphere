@@ -105,6 +105,7 @@ DEFAULT_PASSWORD_LOOKUP = ; 'crypt_hashpass', 'old_hashpass', 'salt_hashpass'
 DEFAULT_PASSWORD_UPDATE = ; 'keystone_password_update', 'openstack_sdk_password_update'
 INSTANCE_HOSTNAMING_DOMAIN = ; iplantcollaborative.org
 INSTANCE_HOSTNAMING_FORMAT = ; vm%(three)s-%(four)s.%(domain)s
+DEPLOYMENT_KEYPAIR_NAME = ; keypair name inject by atmo-ansible during instance deploy
 
 #NOTE: Their are *REQUIRED* quotations around 'timedelta(..)'!
 CELERYBEAT_SCHEDULE = ; {"monitor_instances": {"schedule": 'timedelta(minutes=5)',}}
