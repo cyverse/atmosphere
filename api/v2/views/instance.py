@@ -52,7 +52,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return POST_InstanceSerializer
-        elif self.action == 'action':
+        elif self.action == 'actions':
             return InstanceActionSerializer
         return InstanceSerializer
 
