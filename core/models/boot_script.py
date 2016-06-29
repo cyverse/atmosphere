@@ -154,7 +154,11 @@ def _save_scripts_to_instance(instance, boot_script_list):
     # Add all new scripts
     for script_id in boot_script_list:
         try:
-            script = BootScript.objects.get(uuid=script_id)
+            if type(script_id) == int:
+                query=Q(id=script_id)
+            else:
+                query=Q(uuid=script_id)
+            script = BootScript.objects.get(query)
         except BootScript.DoesNotExist:
             # This 2nd-attempt can be removed when API v1 is removed
             try:

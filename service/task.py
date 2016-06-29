@@ -10,7 +10,7 @@ import service
 
 from service.exceptions import DeviceBusyException, VolumeMountConflict, InstanceDoesNotExist
 
-from service.tasks.driver import deploy_to, deploy_init_to, add_floating_ip
+from service.tasks.driver import deploy_init_to, add_floating_ip
 from service.tasks.driver import destroy_instance
 from service.tasks.volume import attach_task, mount_task, check_volume_task
 from service.tasks.volume import detach_task, umount_task,\
@@ -46,14 +46,6 @@ def deploy_init_task(driver, instance, identity,
                                 redeploy,
                                 deploy),
                                immutable=True)
-
-
-def deploy_to_task(driver, instance, *args, **kwargs):
-    deploy_to.delay(driver.__class__,
-                    driver.provider,
-                    driver.identity,
-                    instance.alias,
-                    *args, **kwargs)
 
 
 def add_floating_ip_task(driver, instance, *args, **kwargs):

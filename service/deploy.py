@@ -92,7 +92,9 @@ class LoggedScriptDeployment(ScriptDeployment):
         return node
 
 
-def deploy_to(instance_ip, username, instance_id, limit_playbooks=None):
+def ansible_deployment(
+    instance_ip, username, instance_id, playbooks_dir,
+    limit_playbooks=[], limit_hosts={}, extra_vars={}):
     """
     Use service.ansible to deploy to an instance.
     """
@@ -105,21 +107,59 @@ def deploy_to(instance_ip, username, instance_id, limit_playbooks=None):
         instance_id)
     hostname = build_host_name(instance_ip)
     configure_ansible()
-    my_limit = {"hostname": hostname, "ip": instance_ip}
-    deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
+    if not limit_hosts:
+        limit_hosts = {"hostname": hostname, "ip": instance_ip}
     host_file = settings.ANSIBLE_HOST_FILE
-    user_keys = _get_user_keys(username)
-    extra_vars = {
+    extra_vars.update({
         "ATMOUSERNAME": username,
-        "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
-        "USERSSHKEYS": user_keys
-    }
-
+    })
     pbs = execute_playbooks(
-        deploy_playbooks, host_file, extra_vars, my_limit,
+        playbooks_dir, host_file, extra_vars, limit_hosts,
         logger=logger, limit_playbooks=limit_playbooks)
     raise_playbook_errors(pbs, instance_ip, hostname)
     return pbs
+
+
+def ready_to_deploy(instance_ip, username, instance_id):
+    """
+    Use service.ansible to deploy to an instance.
+    """
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'utils')
+
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=['check_networking.yml'])
+
+
+def instance_deploy(instance_ip, username, instance_id):
+    """
+    Use service.ansible to deploy to an instance.
+    """
+    extra_vars = {
+        "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
+    }
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'instance_deploy')
+
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        extra_vars=extra_vars)
+
+
+def user_deploy(instance_ip, username, instance_id):
+    """
+    Use service.ansible to deploy to an instance.
+    """
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'user_deploy')
+    user_keys = _get_user_keys(username)
+    extra_vars = {
+        "USERSSHKEYS": user_keys
+    }
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        extra_vars=extra_vars)
 
 
 def run_utility_playbooks(instance_ip, username, instance_id,
@@ -130,31 +170,30 @@ def run_utility_playbooks(instance_ip, username, instance_id,
     that should match the filename you wish to include
     (Ex: check_networking.yml)
     """
-    if not check_ansible():
-        return []
-    logger = create_instance_logger(
-        deploy_logger,
-        instance_ip,
-        username,
-        instance_id)
-    hostname = build_host_name(instance_ip)
-    configure_ansible()
-    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(settings.ANSIBLE_PLAYBOOKS_DIR, 'utils')
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir, limit_playbooks)
 
-    # Essential args:
-    util_playbooks = playbooks_dir.replace('/playbooks', '/util_playbooks')
-    my_limit = {"hostname": hostname, "ip": instance_ip}
-    host_file = settings.ANSIBLE_HOST_FILE
-    user_keys = _get_user_keys(username)
-    extra_vars = {"ATMOUSERNAME": username,
-                  "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
-                  "USERSSHKEYS": user_keys}
-    pbs = execute_playbooks(
-        util_playbooks, host_file, extra_vars, my_limit,
-        logger=logger, limit_playbooks=limit_playbooks
-    )
-    raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=True)
-    return pbs
+
+def select_install_playbooks(install_action):
+    """
+    This function would take an install_action, say:
+    `apache` or `nginx` or `R` or `Docker`
+    and return as a result, the list of playbooks required to make it happen.
+    """
+    raise Exception("Unknown installation action:%s" % install_action)
+
+
+def user_deploy_install(instance_ip, username, instance_id, install_action, install_args):
+    """
+    Placeholder function to show how a user-initialized install from Troposphere might be handled on the backend.
+    """
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'user_customizations')
+    limit_playbooks = select_install_playbooks(install_action)
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks, extra_vars=install_args)
 
 
 def _get_user_keys(username):
@@ -223,36 +262,6 @@ def _one_runner_one_playbook_execution(
         if not limit_playbooks or playbook_path in limit_playbooks]
     [runner.run() for runner in runners]
     return runners
-
-
-def ready_to_deploy(instance_ip, username, instance_id):
-    """
-    Use service.ansible to deploy to an instance.
-    """
-    if not check_ansible():
-        return []
-    logger = create_instance_logger(
-        deploy_logger,
-        instance_ip,
-        username,
-        instance_id)
-    hostname = build_host_name(instance_ip)
-    configure_ansible()
-
-    deploy_playbooks = settings.ANSIBLE_PLAYBOOKS_DIR
-    util_playbooks = deploy_playbooks.replace('/playbooks', '/util_playbooks')
-    my_limit = {"hostname": hostname, "ip": instance_ip}
-    host_file = settings.ANSIBLE_HOST_FILE
-    user_keys = _get_user_keys(username)
-    extra_vars = {"ATMOUSERNAME": username,
-                  "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
-                  "USERSSHKEYS": user_keys}
-
-    pbs = execute_playbooks(
-        util_playbooks, host_file, extra_vars, my_limit, logger=logger,
-        limit_playbooks=['check_networking.yml'])
-    raise_playbook_errors(pbs, instance_ip, hostname)
-    return pbs
 
 
 def check_ansible():
