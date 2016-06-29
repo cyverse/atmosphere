@@ -124,7 +124,7 @@ class FeedbackEmailViewSet(EmailViewSet):
         Returns a response.
         """
         username = user.username
-        subject = 'Subject: Atmosphere Client Feedback from %s' % username
+        subject = 'Atmosphere Client Feedback from %s' % username
 
         instances = Instance.objects \
             .filter(created_by=user.id) \

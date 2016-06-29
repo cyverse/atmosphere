@@ -44,7 +44,7 @@ class Feedback(AuthAPIView):
         Returns a response.
         """
         user = User.objects.get(username=username)
-        subject = 'Subject: Atmosphere Client Feedback from %s' % username
+        subject = 'Atmosphere Client Feedback from %s' % username
         context = {
             "user": user,
             "feedback": message
