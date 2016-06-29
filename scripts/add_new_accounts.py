@@ -56,10 +56,13 @@ def main():
         raise Exception("Missing required argument: --provider <id>. use --provider-list to get a list of provider ID+names")
     print "Using Provider: %s" % provider
     type_name = provider.type.name.lower()
-    acct_driver = get_account_driver(provider)
-    if not acct_driver:
-        raise Exception("Could not find an account driver for Provider with"
-                        " type:%s" % type_name)
+    try:
+        acct_driver = get_account_driver(provider, raise_exception=True)
+    except:
+        account_provider = provider.accountprovider_set.first()
+        print "Could not create the account Driver for this Provider."\
+              " Check the configuration of this identity:%s" % account_provider
+        raise
     if not args.users:
         if not args.rebuild:
             print "Retrieving all 'atmo-user' members in LDAP."
