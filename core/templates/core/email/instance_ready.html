@@ -7,6 +7,18 @@ Hello {{user}},
 
 The {{site_name}} instance <{{instance_name}}> is running and ready for use.
 
+{% spaceless %}
+{% if user_failure %}
+IMPORTANT NOTE: After deploying your instance, there was a problem with the SSH key or boot script included on this instance.
+
+Included error message:
+{{user_failure_message|safe}}
+
+If you experience any problems with your instance, please look over the SSH keys and/or boot scripts used on this launch.
+
+After the problem has been corrected, you can 'Redeploy' to your instance. If you have any questions please see the section on "E-mail Support".
+{% endif %}
+{% endspaceless %}
 Your Instance Information:
 * Name: {{instance_name}}
 * IP Address: {{instance_ip}}

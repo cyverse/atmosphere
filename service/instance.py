@@ -347,7 +347,7 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     Use this function to kick off the async task when you ONLY want to deploy
     (No add fixed, No add floating)
     """
-    from service.tasks.driver import deploy_init_to, deploy_script
+    from service.tasks.driver import deploy_init_to
     from service.tasks.driver import wait_for_instance, complete_resize
     from service.deploy import deploy_test
     touch_script = deploy_test()
@@ -356,9 +356,10 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     task_one = wait_for_instance.s(
         esh_instance.id, esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, "verify_resize")
-    task_two = deploy_script.si(
-        esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, esh_instance.id, touch_script)
+    raise Exception("Programmer -- Fix this method based on the TODO")
+    # task_two = deploy_script.si(
+    #     esh_driver.__class__, esh_driver.provider,
+    #     esh_driver.identity, esh_instance.id, touch_script)
     task_three = complete_resize.si(
         esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, esh_instance.id,

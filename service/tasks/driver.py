@@ -34,7 +34,8 @@ from core.models.profile import UserProfile
 
 from service.deploy import (
     inject_env_script, check_process, wrap_script,
-    deploy_to as ansible_deploy_to, build_host_name,
+    instance_deploy, user_deploy,
+    build_host_name,
     ready_to_deploy as ansible_ready_to_deploy,
     run_utility_playbooks, execution_has_failures, execution_has_unreachable
     )
@@ -332,6 +333,7 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_id)
             return
+        #FIXME: this is not a safe way to retrieve username. this is not a CoreIdentity.
         username = identity.user.username
         profile = UserProfile.objects.get(user__username=username)
         if profile.send_emails:
@@ -354,8 +356,59 @@ def _send_instance_email(driverCls, provider, identity, instance_id):
         celery_logger.warn(exc)
         _send_instance_email.retry(exc=exc)
 
+def _send_instance_email_with_failure(driverCls, provider, identity, instance_id, username, error_message):
+    driver = get_driver(driverCls, provider, identity)
+    instance = driver.get_instance(instance_id)
+    created = datetime.strptime(instance.extra['created'],
+                                "%Y-%m-%dT%H:%M:%SZ")
+    # Breakout if instance has been deleted at this point
+    if not instance:
+        celery_logger.debug("Instance has been teminated: %s." % instance_id)
+        return
+    #FIXME: this is not a safe way to retrieve username. this is not a CoreIdentity.
+    send_instance_email(username,
+                        instance.id,
+                        instance.name,
+                        instance.ip,
+                        created,
+                        username,
+                        user_failure=True,
+                        user_failure_message=error_message)
 
 # Deploy and Destroy tasks
+@task(name="user_deploy_failed")
+def user_deploy_failed(
+        task_uuid,
+        driverCls,
+        provider,
+        identity,
+        instance_id,
+        user,
+        message=None,
+        **celery_task_args):
+    try:
+        celery_logger.debug("user_deploy_failed task started at %s." % datetime.now())
+        if task_uuid:
+            celery_logger.info("task_uuid=%s" % task_uuid)
+            result = app.AsyncResult(task_uuid)
+            with allow_join_result():
+                exc = result.get(propagate=False)
+            err_str = "Error Traceback:%s" % (result.traceback,)
+            err_str = _cleanup_traceback(err_str)
+        elif message:
+            err_str = message
+        else:
+            err_str = "Deploy failed called externally. No matching AsyncResult"
+        celery_logger.error(err_str)
+        # Send deploy email
+        _send_instance_email_with_failure(driverCls, provider, identity, instance_id, user.username, err_str)
+        celery_logger.debug("user_deploy_failed task finished at %s." % datetime.now())
+        return err_str
+    except Exception as exc:
+        celery_logger.warn(exc)
+        user_deploy_failed.retry(exc=exc)
+
+
 @task(name="deploy_failed")
 def deploy_failed(
         task_uuid,
@@ -389,23 +442,6 @@ def deploy_failed(
     except Exception as exc:
         celery_logger.warn(exc)
         deploy_failed.retry(exc=exc)
-
-
-@task(name="deploy_to",
-      max_retries=2,
-      default_retry_delay=128,
-      ignore_result=True)
-def deploy_to(driverCls, provider, identity, instance_id, *args, **kwargs):
-    #  Run once on 'ubuntu', once on 'centos', once on 'root' then retry!
-    try:
-        celery_logger.debug("deploy_to task started at %s." % datetime.now())
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_id)
-        driver.deploy_to(instance, *args, **kwargs)
-        celery_logger.debug("deploy_to task finished at %s." % datetime.now())
-    except (BaseException, Exception) as exc:
-        celery_logger.warn(exc)
-        deploy_to.retry(exc=exc)
 
 
 @task(name="deploy_init_to",
@@ -665,7 +701,10 @@ def get_chain_from_active_with_ip(
         driverCls, provider, identity, instance.id,
         {'tmp_status': 'deploying'})
 
-    deploy_task = _deploy_init_to.si(
+    deploy_task = _deploy_instance.si(
+        driverCls, provider, identity, instance.id,
+        username, None, redeploy)
+    deploy_user_task = _deploy_instance_for_user.si(
         driverCls, provider, identity, instance.id,
         username, None, redeploy)
     check_vnc_task = check_process_task.si(
@@ -675,26 +714,41 @@ def get_chain_from_active_with_ip(
         provider,
         identity,
         instance)
+    remove_status_on_failure_task = get_remove_status_chain(
+        driverCls,
+        provider,
+        identity,
+        instance)
+    user_deploy_failed_task = user_deploy_failed.s(
+        driverCls, provider, identity, instance.id, core_identity.created_by)
     email_task = _send_instance_email.si(
         driverCls, provider, identity, instance.id)
     # JUST before we finish, check for boot_scripts_chain
     boot_chain_start, boot_chain_end = _get_boot_script_chain(
         driverCls, provider, identity, instance.id, core_identity)
+
+
     # (SUCCESS_)LINKS and ERROR_LINKS
     deploy_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance.id))
+    deploy_user_task.link_error(user_deploy_failed_task)
+    # Note created new 'copy' of remove_status to avoid potential for email*2
+    user_deploy_failed_task.link(remove_status_on_failure_task)
+
     deploy_ready_task.link(deploy_meta_task)
     deploy_meta_task.link(deploy_task)
+    deploy_task.link(check_vnc_task)  # Above this line, atmo is responsible for success.
+    check_vnc_task.link(deploy_user_task)  # this line and below, user can create a failure.
     # ready -> metadata -> deployment..
 
     if boot_chain_start and boot_chain_end:
         # ..deployment -> scripts -> ..
-        deploy_task.link(boot_chain_start)
-        boot_chain_end.link(check_vnc_task)
+        deploy_user_task.link(boot_chain_start)
+        boot_chain_end.link(remove_status_chain)
     else:
-        deploy_task.link(check_vnc_task)
+        deploy_user_task.link(remove_status_chain)
+    # Final task at this point should be 'remove_status_chain'
 
-    check_vnc_task.link(remove_status_chain)
     # Only send emails when 'redeploy=False'
     if not redeploy:
         remove_status_chain.link(email_task)
@@ -708,6 +762,9 @@ def get_chain_from_active_with_ip(
       max_retries=10)
 def deploy_boot_script(driverCls, provider, identity, instance_id,
                        script_text, script_name, **celery_task_args):
+    """
+    FIXME: how could we make this ansible-ized?
+    """
     # Note: Splitting preperation (Of the MultiScriptDeployment) and execution
     # This makes it easier to output scripts for debugging of users.
     try:
@@ -812,7 +869,7 @@ def _get_boot_script_chain(
             driverCls, provider, identity, instance_id,
             script.get_text(), script.get_title_slug())
         deploy_script_task.link_error(
-            boot_script_failed.s(driverCls, provider, identity, instance_id))
+            user_deploy_failed.s(driverCls, provider, identity, instance_id, core_identity.created_by))
 
         # Base case: First link
         if idx == 0:
@@ -862,46 +919,6 @@ def destroy_instance(instance_alias, user, core_identity_uuid):
     except Exception as exc:
         celery_logger.exception(exc)
         destroy_instance.retry(exc=exc)
-
-
-@task(name="deploy_script",
-      default_retry_delay=32,
-      time_limit=30 * 60,  # 30minute hard-set time limit.
-      max_retries=10)
-def deploy_script(driverCls, provider, identity, instance_id,
-                  script, **celery_task_args):
-    """
-    #TODO: Should this be ansible now?
-    """
-    try:
-        celery_logger.debug("deploy_script task started at %s." % datetime.now())
-        # Check if instance still exists
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_id)
-        if not instance:
-            celery_logger.debug("Instance has been teminated: %s." % instance_id)
-            return
-        # TODO: Is this still necessary? What about times when we want to use
-        # the adminPass? --Steve
-        instance._node.extra['password'] = None
-
-        kwargs = _generate_ssh_kwargs()
-        kwargs.update({'deploy': script})
-        driver.deploy_to(instance, **kwargs)
-        celery_logger.debug("deploy_script task finished at %s." % datetime.now())
-    except DeploymentError as exc:
-        celery_logger.exception(exc)
-        if isinstance(exc.value, NonZeroDeploymentException):
-            # The deployment was successful, but the return code on one or more
-            # steps is bad. Log the exception and do NOT try again!
-            raise exc.value
-        # TODO: Check if all exceptions thrown at this time
-        # fall in this category, and possibly don't retry if
-        # you hit the Exception block below this.
-        deploy_script.retry(exc=exc)
-    except (BaseException, Exception) as exc:
-        celery_logger.exception(exc)
-        deploy_script.retry(exc=exc)
 
 
 def _generate_stats(current_request, task_class):
@@ -1016,18 +1033,18 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         deploy_ready_test.retry(exc=exc)
 
 
-@task(name="_deploy_init_to",
-      default_retry_delay=124,
+@task(name="_deploy_instance_for_user",
+      default_retry_delay=32,
       time_limit=32 * 60,  # 32 minute hard-set time limit.
-      max_retries=10
+      max_retries=3
       )
-def _deploy_init_to(driverCls, provider, identity, instance_id,
+def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
     # Note: Splitting preperation (Of the MultiScriptDeployment) and execution
     # This makes it easier to output scripts for debugging of users.
     try:
-        celery_logger.debug("_deploy_init_to task started at %s." % datetime.now())
+        celery_logger.debug("_deploy_instance_for_user task started at %s." % datetime.now())
         # Check if instance still exists
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
@@ -1042,15 +1059,15 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
 
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
-        _deploy_init_to.retry(exc=exc)
+        _deploy_instance.retry(exc=exc)
     try:
         username = identity.user.username
-        playbooks = ansible_deploy_to(instance.ip, username, instance_id)
+        user_deploy(instance.ip, username, instance_id)
         _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
-        celery_logger.debug("_deploy_init_to task finished at %s." % datetime.now())
+        celery_logger.debug("_deploy_instance_for_user task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
         celery_logger.exception(exc)
-        _deploy_init_to.retry(exc=exc)
+        _deploy_instance_for_user.retry(exc=exc)
     except DeploymentError as exc:
         celery_logger.exception(exc)
         full_deploy_output = _parse_steps_output(msd)
@@ -1064,10 +1081,66 @@ def _deploy_init_to(driverCls, provider, identity, instance_id,
         # TODO: Check if all exceptions thrown at this time
         # fall in this category, and possibly don't retry if
         # you hit the Exception block below this.
-        _deploy_init_to.retry(exc=exc)
+        _deploy_instance_for_user.retry(exc=exc)
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
-        _deploy_init_to.retry(exc=exc)
+        _deploy_instance_for_user.retry(exc=exc)
+
+
+
+
+@task(name="_deploy_instance",
+      default_retry_delay=124,
+      time_limit=32 * 60,  # 32 minute hard-set time limit.
+      max_retries=10
+      )
+def _deploy_instance(driverCls, provider, identity, instance_id,
+                    username=None, password=None, token=None, redeploy=False,
+                    **celery_task_args):
+    # Note: Splitting preperation (Of the MultiScriptDeployment) and execution
+    # This makes it easier to output scripts for debugging of users.
+    try:
+        celery_logger.debug("_deploy_instance task started at %s." % datetime.now())
+        # Check if instance still exists
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        if not instance:
+            celery_logger.debug("Instance has been teminated: %s." % instance_id)
+            return
+        # NOTE: This is required to use ssh to connect.
+        # TODO: Is this still necessary? What about times when we want to use
+        # the adminPass? --Steve
+        celery_logger.info(instance.extra)
+        instance._node.extra['password'] = None
+
+    except (BaseException, Exception) as exc:
+        celery_logger.exception(exc)
+        _deploy_instance.retry(exc=exc)
+    try:
+        username = identity.user.username
+        instance_deploy(instance.ip, username, instance_id)
+        _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
+        celery_logger.debug("_deploy_instance task finished at %s." % datetime.now())
+    except AnsibleDeployException as exc:
+        celery_logger.exception(exc)
+        _deploy_instance.retry(exc=exc)
+    except DeploymentError as exc:
+        celery_logger.exception(exc)
+        full_deploy_output = _parse_steps_output(msd)
+        if isinstance(exc.value, NonZeroDeploymentException):
+            # The deployment was successful, but the return code on one or more
+            # steps is bad. Log the exception and do NOT try again!
+            raise NonZeroDeploymentException,\
+                "One or more Script(s) reported a NonZeroDeployment:%s"\
+                % full_deploy_output,\
+                sys.exc_info()[2]
+        # TODO: Check if all exceptions thrown at this time
+        # fall in this category, and possibly don't retry if
+        # you hit the Exception block below this.
+        _deploy_instance.retry(exc=exc)
+    except (BaseException, Exception) as exc:
+        celery_logger.exception(exc)
+        _deploy_instance.retry(exc=exc)
 
 
 def _parse_steps_output(msd):
@@ -1423,3 +1496,15 @@ def update_links(instances):
             continue
     celery_logger.debug("Instances updated: %d" % len(updated))
     return updated
+
+
+def _cleanup_traceback(err_str):
+    """
+    Given a Traceback message, return the 'human readable' response.
+    If unknown, return the full traceback to help staff trace down the error quickly.
+    """
+    if 'AnsibleDeployException' in err_str and 'inject_ssh_keys' in err_str:
+        err_str = "One or more SSH Keys could not be deployed to the instance. Please verify the public-key is correct."
+    elif 'NonZeroDeploymentException' in err_str:
+        err_str = err_str.partition("NonZeroDeploymentException:")[2].strip()
+    return err_str
