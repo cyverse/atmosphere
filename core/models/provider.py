@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.contrib.postgres.fields import JSONField
 
 from rtwo.provider import EucaProvider, OSProvider
 
@@ -88,6 +89,7 @@ class Provider(models.Model):
     auto_imaging = models.BooleanField(default=False)
     over_allocation_action = models.ForeignKey(
         "InstanceAction", blank=True, null=True)
+    cloud_config = JSONField(blank=True, null=True)  # Structure will be tightened up in the future
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
 
