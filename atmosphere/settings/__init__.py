@@ -19,7 +19,6 @@ from kombu import Exchange, Queue
 
 # Debug Mode
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 # Enforcing mode -- True, when in production (Debug=False)
 ENFORCING = not DEBUG
@@ -72,7 +71,6 @@ INSTALLED_APPS = (
     'rest_framework.authtoken',
     'django_filters',
 
-    'djcelery',
     'corsheaders',
     # 3rd party apps (Development Only)
     #'django_jenkins',
@@ -149,8 +147,10 @@ TEMPLATES = [
             os.path.join(PROJECT_ROOT, 'templates'),
         ],
         'APP_DIRS': True,
-        'OPTIONS': { 'context_processors':
-            [ # Insert your TEMPLATE_CONTEXT_PROCESSORS here or use this # list if you haven't customized them:
+        'OPTIONS': {
+            'debug': DEBUG,
+            'context_processors': [
+                # Insert your TEMPLATE_CONTEXT_PROCESSORS here or use this # list if you haven't customized them:
                 'django.contrib.auth.context_processors.auth',
                 'django.template.context_processors.debug',
                 'django.template.context_processors.i18n',
