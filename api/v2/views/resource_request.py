@@ -71,4 +71,4 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         email.send_denied_resource_email(
             user=instance.created_by,
             request=instance.request,
-            reason=instance.admin_message)
+            reason=instance.admin_message).delay()
