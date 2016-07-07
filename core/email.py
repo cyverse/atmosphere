@@ -301,6 +301,7 @@ def send_denied_resource_email(user, request, reason):
     Send an email notifying the user that their request has been denied.
     """
     email_template = get_email_template()
+    template = "core/email/resource_request_denied.html"
     subject = "Your Resource Request has been denied"
     context = {
         "support_email": email_template.email_address,
@@ -310,9 +311,13 @@ def send_denied_resource_email(user, request, reason):
         "request": request,
         "reason": reason
     }
-    body = render_to_string("core/email/resource_request_denied.html",
-                            context=Context(context))
-    return email_from_admin(user, subject, body)
+    from_name, from_email = admin_address()
+    user_email = lookupEmail(user.username)
+    recipients = [email_address_str(user.username, user_email)]
+    sender = email_address_str(from_name, from_email)
+
+    return send_email_template(subject, template, recipients, sender,
+                               context=context, cc=[sender])
 
 
 def send_instance_email(username, instance_id, instance_name,
