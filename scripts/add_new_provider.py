@@ -10,11 +10,12 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 import libcloud.security
 
-from urlparse import urlparse
+from urlparse import urlparse, urljoin
 
 from core.models import Provider, PlatformType, ProviderType, Identity, Group,\
     IdentityMembership, AccountProvider, Quota, ProviderInstanceAction
 from core.models import InstanceAction
+from service.driver import get_account_driver
 
 libcloud.security.VERIFY_SSL_CERT = False
 libcloud.security.VERIFY_SSL_CERT_STRICT = False
@@ -22,21 +23,23 @@ KVM = PlatformType.objects.get_or_create(name='KVM')[0]
 XEN = PlatformType.objects.get_or_create(name='Xen')[0]
 openstack = ProviderType.objects.get_or_create(name='OpenStack')[0]
 
-valid_url = URLValidator()
+url_validator = URLValidator()
 
 
-def require_input(question, validate_answer=None):
+def require_input(
+        question, validate_answer=None,
+        blank=False, use_validated_answer=False):
     try:
         while True:
             answer = raw_input(question)
-            if not answer:
+            if not answer and not blank:
                 print "ERROR: Cannot leave this answer blank!"
                 continue
             if validate_answer:
                 validated_answer = validate_answer(answer)
                 if not validated_answer:
                     continue
-                else:
+                elif use_validated_answer:
                     answer = validated_answer
             break
         return answer
@@ -86,7 +89,7 @@ def get_comma_list(raw_text):
 
 def get_valid_url(raw_url):
     try:
-        valid_url(raw_url)
+        url_validator(raw_url)
         return raw_url
     except ValidationError:
         print "The url specified was invalid."
@@ -169,9 +172,9 @@ def get_provider_info(provider_info={}):
     # 2.  Collect platform type
     if not provider_info.get('platform'):
         print "Select a platform type for your new provider"
-        print "1: KVM, 2: Xen"
-        platform = require_input("Select a platform type (1/2): ", lambda answer: answer in ['1','2'])
-        if platform == '1':
+        print "1: KVM (Default), 2: Xen"
+        platform = require_input("Select a platform type ([1]/2): ", lambda answer: answer in ['1','2',''], blank=True)
+        if platform in ['', '1']:
             platform = KVM
         elif platform == '2':
             platform = XEN
@@ -181,12 +184,9 @@ def get_provider_info(provider_info={}):
         # 3.  Collect provider type
         print "Select a provider type for your new provider"
         print "1: Openstack"
-        while True:
-            provider_type = raw_input("Select a provider type [1]: ")
-            #NOTE: this will be replaced with actual logic when necessary.
-            if True:
-                provider_type = openstack
-                break
+        provider_type = require_input("Select a provider type [1]", blank=True)
+        #NOTE: this will be replaced with actual logic when necessary.
+        provider_type = openstack
         provider_info['type'] = provider_type
     return provider_info
 
@@ -211,12 +211,12 @@ def get_provider_credentials(credential_info={}):
     auth_url = None
 
     if not credential_info.get('admin_url'):
-        print "What is the admin_url for the provider?"
+        print "What is the admin_url for the provider? (scheme://host:port)"
         admin_url = require_input("admin_url for the provider: ", get_valid_url)
         credential_info['admin_url'] = admin_url
 
     if not credential_info.get('auth_url'):
-        print "What is the auth_url for the provider?"
+        print "What is the auth_url for the provider? (scheme://host:port)"
         auth_url = require_input("auth_url for the provider: ", get_valid_url)
         credential_info['auth_url'] = auth_url
 
@@ -232,6 +232,19 @@ def get_provider_credentials(credential_info={}):
         print "What is the Authentication Scheme (Openstack ONLY -- Default:'2.0_password')?"
         ex_force_auth_version = require_input("ex_force_auth_version for the provider: ", lambda answer: answer in ['2.0_password','3.x_password'])
         credential_info['ex_force_auth_version'] = ex_force_auth_version
+    # Verify that 'admin_url' is properly set.
+    auth_version = credential_info['ex_force_auth_version']
+
+    admin_url = credential_info['admin_url']
+    if '2' in auth_version and '/v2.0/tokens' not in admin_url:
+        print "Note: Adding '/v2.0/tokens' to the end of the admin_url path (Required for 2.0_password)"
+        credential_info['admin_url'] = urljoin(admin_url, '/v2.0/tokens')
+
+    auth_url = credential_info['auth_url']
+    if '2' in auth_version and '/v2.0/tokens' not in auth_url:
+        print "Note: Adding '/v2.0/tokens' to the end of the auth_url path (Required for 2.0_password)"
+        credential_info['auth_url'] = urljoin(auth_url, '/v2.0/tokens')
+
 
     return credential_info
 
@@ -275,7 +288,7 @@ def create_admin(provider, admin_info):
     return new_identity
 
 
-def create_provider(provider_info):
+def create_provider(provider_info, provider_credentials={}):
     REQUIRED_FIELDS = ["name", "platform", "type"]
 
     if not has_fields(provider_info, REQUIRED_FIELDS):
@@ -303,6 +316,8 @@ def create_provider(provider_info):
             enabled=True)
     # 4.  Create a new provider
     print "Created a new provider: %s" % (new_provider.location)
+    # 5. Add the provider specific credentials
+    create_provider_credentials(new_provider, provider_credentials)
     return new_provider
 
 
@@ -344,13 +359,32 @@ def main():
         get_admin_info(admin_info)
         get_provider_credentials(provider_credentials)
         review_information(provider_info, admin_info, provider_credentials)
-        if provider_info and admin_info and provider_credentials:
+        if not provider_info or not admin_info or not provider_credentials:
+            continue
+        new_provider = create_provider(provider_info, provider_credentials)
+        new_identity = create_admin(new_provider, admin_info)
+        is_valid = validate_new_provider(new_provider, new_identity)
+        if is_valid:
             break
-
-    new_provider = create_provider(provider_info)
-    create_provider_credentials(new_provider, provider_credentials)
-    create_admin(new_provider, admin_info)
+        else:
+            new_identity.delete()
+            new_provider.delete()
+    # New provider created
     print "You still need to create an AllocationStrategy. Go into the admin panel and select a Strategy *BEFORE* you use Atmosphere"
+
+
+def validate_new_provider(new_provider, new_identity):
+    acct_driver = get_account_driver(new_provider)
+    if not acct_driver:
+        print "Could not create an account driver for the new Provider"\
+                " %s - %s. Check your credentials and try again. "\
+                "If you believe you are receiving this message in error, "\
+                "AND you are able to use external CLI tools on this machine "\
+                "to contact your cloud, please report the issue to a developer!"\
+                % (new_provider, new_identity)
+        return False
+    return True
+
 
 if __name__ == "__main__":
     main()

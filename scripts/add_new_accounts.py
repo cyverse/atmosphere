@@ -85,7 +85,14 @@ def create_accounts(acct_driver, provider, users, rebuild=False, admin=False):
                 if not rebuild:
                     continue
                 print "%s Exists -- Attempting an account rebuild" % user
-            acct_driver.create_account(user, max_quota=admin)
+            new_identity = acct_driver.create_account(user, max_quota=admin)
+            # After identity is created, be sure to select one of the
+            # `public_routers` in provider to be given
+            # to the identity as a `router_name`
+            selected_router = provider.select_router()
+            Identity.update_credential(
+                new_identity, 'router_name', selected_router,
+                replace=True)
             added += 1
             if admin:
                 make_admin(user)
