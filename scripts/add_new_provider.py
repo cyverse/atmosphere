@@ -265,7 +265,7 @@ def set_network_config(net_config):
 
     if not net_config.get('dns_nameservers'):
         print "What is the list of DNS Nameservers for the provider? (Default: Uses google DNS servers [8.8.8.8, 8.8.4.4])"
-        net_config['dns_nameservers'] = require_input("dns_nameservers for provider: (Should be a list)", default=settings.DEFAULT_RULES)
+        net_config['dns_nameservers'] = require_input("dns_nameservers for provider: (Should be a list)", default=settings.DEFAULT_NAMESERVERS)
 
     if not net_config.get('topology'):
         print "These questions will help Atmosphere determine what the network topology like for your provider:"

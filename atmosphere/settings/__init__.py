@@ -186,6 +186,9 @@ API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
 AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
 INIT_SCRIPT_PREFIX = '/init_files/'
 DEPLOY_SERVER_URL = SERVER_URL.replace("https", "http")
+
+# These DEFAULT variables can be overridden per provider..
+DEFAULT_NAMESERVERS = ['8.8.8.8','8.8.4.4.']
 DEFAULT_RULES = [
     ("ICMP", -1, -1),
     # FTP Access

@@ -56,7 +56,7 @@ class AccountDriver(BaseAccountDriver):
     image_manager = None
     network_manager = None
     core_provider = None
-    MASTER_RULES_LIST = DEFAULT_RULES
+    cloud_config = {}
 
     def clear_cache(self):
         self.admin_driver.provider.machineCls.invalidate_provider_cache(
@@ -69,6 +69,7 @@ class AccountDriver(BaseAccountDriver):
         self.core_provider = provider
 
         provider_creds = provider.get_credentials()
+        self.cloud_config = provider.cloud_config
         self.provider_creds = provider_creds
         admin_identity = provider.admin
         admin_creds = admin_identity.get_credentials()
@@ -172,15 +173,18 @@ class AccountDriver(BaseAccountDriver):
 
                 # 3.2 Check the user has been given an appropriate role
                 if not role_name:
-                    role_name = settings.DEFAULT_KEYSTONE_ROLE
+                    try:
+                        role_name = self.cloud_config['user']['user_role_name']
+                    except KeyError:
+                        logger.warn("Cloud config ['user']['user_role_name'] is missing -- using deprecated settings.DEFAULT_KEYSTONE_ROLE")
+                        role_name = settings.DEFAULT_KEYSTONE_ROLE
                 self.user_manager.add_project_membership(
                     project_name, username, role_name)# , domain_name)
 
                 # 4. Create a security group -- SUSPENDED.. Will occur on
                 # instance launch instead.
                 # self.init_security_group(user, password, project,
-                #                         project.name,
-                #                         self.MASTER_RULES_LIST)
+                #                         project.name)
 
                 # 5. Create a keypair to use when launching with atmosphere
                 self.init_keypair(user.name, password, project.name)
@@ -222,6 +226,7 @@ class AccountDriver(BaseAccountDriver):
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
 
+        import ipdb;ipdb.set_trace()
         if not strategy:
             strategy = DEFAULT_PASSWORD_UPDATE
 
@@ -372,7 +377,11 @@ class AccountDriver(BaseAccountDriver):
     def rebuild_security_groups(self, core_identity, rules_list=None):
         creds = self.parse_identity(core_identity)
         if not rules_list:
-            rules_list = self.MASTER_RULES_LIST
+            try:
+                rules_list = self.cloud_config['network']['default_security_rules']
+            except KeyError:
+                logger.warn("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
+                rules_list = DEFAULT_RULES
         return self.user_manager.build_security_group(
             creds["username"], creds["password"], creds["tenant_name"],
             creds["tenant_name"], rules_list, rebuild=True)
@@ -495,45 +504,56 @@ class AccountDriver(BaseAccountDriver):
             self.user_manager.delete_user(username)
         return True
 
-    @classmethod
-    def hashpass(cls, username, strategy=None):
+    def hashpass(self, username, strategy=None):
         """
         Create a unique password using 'Username' as the wored
         and the SECRET_KEY as your salt
         """
+        # Get salt from config or settings
+        try:
+            secret_salt = self.cloud_config['user']['password_salt']
+        except KeyError:
+            logger.warn("Cloud config ['user']['password_salt'] is missing -- using deprecated secrets.SECRET_SEED")
+            secret_salt = SECRET_SEED
+        secret_salt = str(secret_salt).translate(None, string.punctuation)
+
+        # Get strategy from config or settings
         if not strategy:
-            strategy = DEFAULT_PASSWORD_LOOKUP
+            try:
+                strategy = self.cloud_config['user']['password_lookup']
+            except KeyError:
+                logger.warn("Cloud config ['user']['password_lookup'] is missing -- using deprecated settings.DEFAULT_PASSWORD_LOOKUP")
+                strategy = DEFAULT_PASSWORD_LOOKUP
 
         if not strategy\
                 or strategy == 'old_hashpass':
-            return cls.old_hashpass(username)
+            return self.old_hashpass(username, secret_salt)
         if strategy == 'crypt_hashpass':
-            return cls.crypt_hashpass(username)
+            return self.crypt_hashpass(username, secret_salt)
         elif strategy == 'salt_hashpass':
-            return cls.salt_hashpass(username)
+            return self.salt_hashpass(username)
         else:
             raise ValueError(
                 "Invalid DEFAULT_PASSWORD_LOOKUP: %s"
                 % DEFAULT_PASSWORD_LOOKUP)
 
-    @classmethod
-    def old_hashpass(cls, username):
+    def old_hashpass(self, username):
         from hashlib import sha1
         return sha1(username).hexdigest()
 
-    @classmethod
-    def salt_hashpass(cls, username):
+    def salt_hashpass(self, username, secret_salt):
         from hashlib import sha256
-        secret_salt = SECRET_SEED.translate(None, string.punctuation)
+        if not secret_salt:
+            secret_salt = SECRET_SEED.translate(None, string.punctuation)
         password = sha256(secret_salt + username).hexdigest()
         if not password:
             raise Exception("Failed to hash password, check the secret_salt")
         return password
 
-    @classmethod
-    def crypt_hashpass(cls, username):
+    def crypt_hashpass(self, username, secret_salt):
         import crypt
-        secret_salt = SECRET_SEED.translate(None, string.punctuation)
+        if not secret_salt:
+            secret_salt = SECRET_SEED.translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         if not password:
             raise Exception("Failed to hash password, check the secret_salt")
