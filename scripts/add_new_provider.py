@@ -278,16 +278,22 @@ def set_network_config(net_config):
         user_subnet = require_input(
         "Do users need to create their own subnet Yes/[No]",
         yes_no_truth, default='no', allow_falsy=True, use_validated_answer=True)
-        # router_name not required if users create their own router.
-        require_router_name = (user_network and user_subnet and not user_router)
-        require_network_name = user_router
-        net_config['topology'] = {
-            'user_network': user_network,
-            'user_router': user_router,
-            'user_subnet': user_subnet,
-            'require_router_name': require_router_name,
-            'require_network_name': require_network_name,
-        }
+    else:
+        topology = net_config['topology']
+        user_router = topology.get('user_router',False)
+        user_network = topology('user_network',False)
+        user_subnet = topology('user_subnet',False)
+
+    # router_name not required if users create their own router.
+    require_router_name = (user_network and user_subnet and not user_router)
+    require_network_name = user_router
+    net_config['topology'] = {
+        'user_network': user_network,
+        'user_router': user_router,
+        'user_subnet': user_subnet,
+        'require_router_name': require_router_name,
+        'require_network_name': require_network_name,
+    }
     return net_config
 
 
