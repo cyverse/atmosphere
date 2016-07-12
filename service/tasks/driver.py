@@ -9,8 +9,6 @@ import re
 import time
 
 from django.conf import settings
-#NOTE: Why are we pulling for this explicitly? Test calling this straight from settings.ATMOSPHERE_PRIVATE_KEYFILE
-from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 from django.utils.timezone import datetime, timedelta
 from celery.decorators import task
 from celery.task import current
