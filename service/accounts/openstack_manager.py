@@ -28,27 +28,13 @@ from chromogenic.drivers.openstack import ImageManager
 
 from atmosphere import settings
 
-from core.models import AtmosphereUser as User
-from core.ldap import get_uid_number
 from core.models.identity import Identity
 
 from service.accounts.base import BaseAccountDriver
+from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork
 
 from atmosphere.settings.secrets import SECRET_SEED
 from atmosphere.settings import DEFAULT_PASSWORD_LOOKUP, DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
-
-def get_unique_id(userid):
-    if 'iplantauth.authBackends.LDAPLoginBackend' in settings.AUTHENTICATION_BACKENDS:
-        return get_uid_number(userid)
-    else:
-        return get_random_uid(userid)
-
-def get_random_uid(userid):
-    """
-    Given a string (Username) return a value < MAX_SUBNET
-    """
-    MAX_SUBNET = 4064
-    return int(random.uniform(1, MAX_SUBNET))
 
 
 class AccountDriver(BaseAccountDriver):
@@ -461,6 +447,22 @@ class AccountDriver(BaseAccountDriver):
         # Convert from libcloud names to openstack client names
         return self.network_manager.delete_project_network(
             username, project_name, remove_network=remove_network)
+        # Based on topoology, do the following below:
+        try:
+            network_driver.remove_router_interface(
+                network_driver.neutron,
+                self.external_router_name,
+                '%s-subnet' % prefix_name)
+        except NotFound:
+            #This is OKAY!
+            pass
+        except:
+            raise
+        #TODO: Remove remaining fixed, floating IPs?
+        #TODO: Where do we break for 'remove_network'?
+        network_driver.delete_subnet(network_driver.neutron, '%s-subnet' % prefix_name)
+        if remove_network:
+            network_driver.delete_network(network_driver.neutron, '%s-net' % prefix_name)
 
     def create_network(self, identity):
         # Core credentials need to be converted to openstack names
@@ -480,6 +482,97 @@ class AccountDriver(BaseAccountDriver):
             get_unique_number=get_unique_id,
             dns_nameservers=dns_nameservers,
             **net_args)
+
+    def select_network_strategy(self, identity, topology_name):
+        """
+        Select a network topology and initialize it with the identity/provider specific information required.
+        """
+        if not topology_name:
+            NetworkTopologyStrategy = ExternalRouter
+        else:
+            NetworkTopologyStrategy = get_topology_cls(topology_name)
+        try:
+            network_strategy = NetworkTopologyStrategy(identity)
+        except:
+            raise Exception("Error initializing Network Topology - %s + %s " % (NetworkTopologyStrategy, identity))
+        return network_strategy
+
+    def dns_nameservers_for(self, identity):
+        dns_nameservers = [
+            dns_server.ip_address for dns_server
+            in identity.provider.dns_server_ips.order_by('order')
+        ]
+        return dns_nameservers
+
+    def delete_user_network(self, identity):
+        """
+        1. Look at the provider for network topology hints
+        2. If no network topology exists, use the "Default network" settings.
+        3. Delete network based on topology
+        """
+
+        identity_creds = self.parse_identity(identity)
+        project_name = identity_creds["tenant_name"]
+        neutron = self.get_openstack_client(identity, 'neutron')
+        try:
+            topology_name = self.cloud_config['network']['topology']
+            network_strategy = self.select_network_strategy(identity, topology_name)
+        except Exception:
+            logger.exception(
+                "Network topology not selected -- "
+                "Will attempt to use the last known default: ExternalRouter.")
+            network_strategy = ExternalRouter
+
+        network_strategy.delete_router_interface(
+            self.network_manager, neutron,
+            "%s-router" % project_name, "%s-subnet" % project_name)
+        network_strategy.delete_router(
+            self.network_manager, neutron,
+            "%s-router" % project_name)
+        network_strategy.delete_subnet(
+            self.network_manager, neutron,
+            "%s-subnet" % project_name)
+        network_strategy.delete_network(
+            self.network_manager,
+            "%s-net" % project_name)
+
+    def create_user_network(self, identity):
+        """
+        1. Look at the provider for network topology hints
+        2. If no network topology exists, use the "Default network" settings.
+        3. Create network based on topology
+        """
+        # Prepare args
+
+        identity_creds = self.parse_identity(identity)
+        username = identity_creds["username"]
+        project_name = identity_creds["tenant_name"]
+        neutron = self.get_openstack_client(identity, 'neutron')
+        dns_nameservers = self.dns_nameservers_for(identity)
+        try:
+            topology_name = self.cloud_config['network']['topology']
+            network_strategy = self.select_network_strategy(identity, topology_name)
+        except Exception:
+            logger.exception(
+                "Network topology not selected -- "
+                "Will attempt to use the last known default: ExternalRouter.")
+            network_strategy = ExternalRouter
+
+        network = network_strategy.get_or_create_network(
+            self.network_manager, neutron,
+            "%s-net" % project_name)
+        subnet = network_strategy.get_or_create_user_subnet(
+            self.network_manager, neutron,
+            network.id, username,
+            "%s-subnet" % project_name,
+            dns_nameservers=dns_nameservers)
+        router = network_strategy.get_or_create_router(
+            self.network_manager, neutron,
+            "%s-router" % project_name)
+        network_strategy.get_or_create_router_interface(
+            self.network_manager, neutron, router, subnet,
+            '%s-router-intf' % project_name)
+        return network
 
     # Useful methods called from above..
     def delete_account(self, username, projectname):
@@ -862,31 +955,69 @@ class AccountDriver(BaseAccountDriver):
         return "https://%s/horizon/auth/switch/%s/?next=/horizon/project/" %\
             (parsed_url.hostname, tenant_id)
 
-
     def get_openstack_clients(self, username, password=None, tenant_name=None):
         # Build credentials for each manager
         all_creds = self._get_openstack_credentials(
             username, password, tenant_name)
         # Initialize managers with respective credentials
-        image_creds = self._build_image_creds(all_creds)
-        net_creds = self._build_network_creds(all_creds)
-        sdk_creds = self._build_sdk_creds(all_creds)
-        user_creds = self._build_user_creds(all_creds)
-        openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
-        (keystone, nova, swift) = self.user_manager.new_connection(
-            **user_creds)
-        neutron = self.network_manager.new_connection(**net_creds)
-        _, _, glance = self.image_manager._new_connection(
-            **image_creds)
-
-        return {
+        all_clients = self.get_user_clients(all_creds)
+        openstack_sdk = self.get_openstack_sdk_client(all_creds)
+        neutron = self.get_neutron_client(all_creds)
+        glance = self.get_glance_client(all_creds)
+        all_clients.update({
             "glance": glance,
-            "keystone": keystone,
-            "nova": nova,
             "neutron": neutron,
             "openstack_sdk": openstack_sdk,
-            "horizon": self._get_horizon_url(keystone.tenant_id)
+            "horizon": self._get_horizon_url(all_clients['keystone'].tenant_id)
+        })
+        return all_clients
+
+    def get_openstack_client(self, identity, client_name):
+        identity_creds = self.parse_identity(identity)
+        username = identity_creds["username"]
+        password = identity_creds["password"]
+        project_name = identity_creds["tenant_name"]
+        all_creds = self._get_openstack_credentials(
+            username, password, project_name)
+
+        if client_name == 'neutron':
+            return self.get_neutron_client(all_creds)
+        elif client_name == 'glance':
+            return self.get_glance_client(all_creds)
+        elif client_name == 'keystone':
+            return self.get_user_clients(all_creds)['keystone']
+        elif client_name == 'nova':
+            return self.get_user_clients(all_creds)['nova']
+        elif client_name == 'swift':
+            return self.get_user_clients(all_creds)['swift']
+        elif client_name == 'openstack':
+            return self.get_openstack_sdk_client(all_creds)
+        else:
+            raise ValueError("Invalid client_name %s" % client_name)
+
+    def get_glance_client(self, all_creds):
+        image_creds = self._build_image_creds(all_creds)
+        _, _, glance = self.image_manager._new_connection(**image_creds)
+        return glance
+
+    def get_neutron_client(self, all_creds):
+        net_creds = self._build_network_creds(all_creds)
+        neutron = self.network_manager.new_connection(**net_creds)
+        return neutron
+
+    def get_user_clients(self, all_creds):
+        user_creds = self._build_user_creds(all_creds)
+        (keystone, nova, swift) = self.user_manager.new_connection(
+            **user_creds)
+        return {
+            "keystone": keystone,
+            "nova": nova,
+            "swift": swift
         }
+    def get_openstack_sdk_client(self, all_creds):
+        sdk_creds = self._build_sdk_creds(all_creds)
+        openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
+        return openstack_sdk
 
     def _get_openstack_credentials(self, username,
                                    password=None, tenant_name=None):
