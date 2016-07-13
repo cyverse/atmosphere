@@ -170,7 +170,7 @@ def get_provider_info(provider_info={}):
     if not provider_info.get('platform'):
         print "Select a platform type for your new provider"
         print "1: KVM, 2: Xen"
-        platform = require_input("Select a platform type (1/2): ", lambda answer: answer in ['1','2'])
+        platform = require_input("Select a platform type (1/2): ", lambda answer: answer if answer in ['1','2'] else None)
         if platform == '1':
             platform = KVM
         elif platform == '2':
@@ -230,7 +230,7 @@ def get_provider_credentials(credential_info={}):
 
     if not credential_info.get('ex_force_auth_version'):
         print "What is the Authentication Scheme (Openstack ONLY -- Default:'2.0_password')?"
-        ex_force_auth_version = require_input("ex_force_auth_version for the provider: ", lambda answer: answer in ['2.0_password','3.x_password'])
+        ex_force_auth_version = require_input("ex_force_auth_version for the provider: ", lambda answer: answer if answer in ['2.0_password','3.x_password'] else None)
         credential_info['ex_force_auth_version'] = ex_force_auth_version
 
     return credential_info
