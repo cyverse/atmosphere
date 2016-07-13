@@ -1,7 +1,6 @@
 # Note: for apache2 and celery, use the packaged version of logrotate
 /var/log/celery/celery_periodic.log {
     daily
-    size 200M
     rotate 20
     missingok
     compress
@@ -11,7 +10,6 @@
 }
 /var/log/celery/atmosphere-*.log {
     daily
-    size 100M
     rotate 20
     missingok
     compress
@@ -21,7 +19,6 @@
 }
 /var/log/celery/imaging.log {
     daily
-    size 100M
     rotate 10
     missingok
     compress
@@ -31,7 +28,6 @@
 }
 /var/log/celery/email.log {
     daily
-    size 100M
     rotate 10
     missingok
     compress
@@ -41,7 +37,6 @@
 }
 /var/log/celery/flower.log {
     daily
-    size 100M
     rotate 10
     missingok
     compress
