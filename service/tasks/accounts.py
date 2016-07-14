@@ -30,10 +30,11 @@ def remove_empty_networks_for(provider_id):
                 continue
             # TODO: MUST change when not using 'usergroups' explicitly.
             user = project
+            identity = Identity.objects.filter().first()
             try:
                 celery_logger.debug("Removing project network for User:%s, Project:%s"
                              % (user, project))
-                os_driver.network_manager.delete_project_network(user, project)
+                os_driver.network_manager.delete_user_network(identity)
             except NeutronClientException:
                 celery_logger.exception("Neutron unable to remove project"
                                  "network for %s-%s" % (user, project))

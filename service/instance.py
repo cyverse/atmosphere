@@ -268,11 +268,15 @@ def detach_port(esh_driver, esh_instance):
     return result
 
 
-def remove_network(esh_driver, identity_uuid, remove_network=False):
+def remove_network(esh_driver, identity_uuid):
+    #FIXME: I think the original intent of why we called this was:
+    # 1. IF you are the last instance, remove the network.
+    # 2. Remove the fixed IP that was allocated for the instance.
+    # If so, i don't believe #2 is being completed
     from service.tasks.driver import remove_empty_network
-    remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
-                           esh_driver.identity, identity_uuid,
-                           remove_network=remove_network).apply_async()
+    remove_empty_network.s(
+        esh_driver.__class__, esh_driver.provider,
+        esh_driver.identity, identity_uuid).apply_async()
 
 
 def restore_network(esh_driver, esh_instance, identity_uuid):
@@ -1302,7 +1306,8 @@ def network_init(core_identity):
                     "cannot create virtual network")
         return
     os_driver = OSAccountDriver(core_identity.provider)
-    (network, subnet) = os_driver.create_network(core_identity)
+    network_resources = os_driver.create_user_network(core_identity)
+    network, subnet = network_resources['network'], network_resources['subnet']
     lc_network = _to_lc_network(os_driver.admin_driver, network, subnet)
     return lc_network
 

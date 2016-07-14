@@ -3,12 +3,17 @@ Atmosphere network
 
 This file will help a driver infer the strategy to use when creating or destroying a "project network".
 """
-from atmosphere.settings import ATMOSPHERE_PRIVATE_KEYFILE
+import random
+
+from neutronclient.common.exceptions import NeutronClientException, NotFound
+
+from atmosphere import settings
+from threepio import logger
 
 
 def _generate_ssh_kwargs(timeout=120):
     kwargs = {}
-    kwargs.update({'ssh_key': ATMOSPHERE_PRIVATE_KEYFILE})
+    kwargs.update({'ssh_key': settings.ATMOSPHERE_PRIVATE_KEYFILE})
     kwargs.update({'timeout': timeout})
     return kwargs
 
@@ -80,13 +85,18 @@ class NetworkTopology(object):
     name = None
     user_network_required = False
     user_router_required = False
+    options = {}
 
     # Standard implementation for Network Topology
     def __init__(self, identity):
         pass
 
+    def configure(self, **options):
+        self.options.update(options)
+
     def get_or_create_network(self, network_driver, user_neutron, network_name):
-        raise NotImplemented("Must be added by Subclass")
+        network = network_driver.create_network(user_neutron, network_name)
+        return network
 
     def get_or_create_user_subnet(
             self, network_driver, neutron,
@@ -133,10 +143,19 @@ class NetworkTopology(object):
             raise Exception("Unable to create subnet for user: %s" % username)
 
     def get_or_create_router(self, network_driver, user_neutron, router_name, subnet):
-        raise NotImplemented("Must be added by Subclass")
+        router = network_driver.create_router(
+            user_neutron, router_name)
+        return router
+
+    def get_or_create_router_gateway(self, network_driver, user_neutron, router, network):
+        gateway = network_driver.set_router_gateway(
+            user_neutron, router.name, network.name)
+        return gateway
 
     def get_or_create_router_interface(self, network_driver, user_neutron, router, subnet, interface_name):
-        raise NotImplemented("Must be added by Subclass")
+        interface = network_driver.add_router_interface(
+            router, subnet, interface_name)
+        return interface
 
     #NOTE: Reversed order for deletes.
     def delete_router_interface(self, network_driver, user_neutron,
@@ -150,6 +169,9 @@ class NetworkTopology(object):
         except:
             raise
         return interface
+
+    def delete_router_gateway(self, network_driver, user_neutron, router_name):
+        return network_driver.remove_router_gateway(router_name)
 
     def delete_router(self, network_driver, user_neutron, router_name):
         return network_driver.delete_router(user_neutron, router_name)
@@ -196,19 +218,13 @@ class ExternalNetwork(NetworkTopology):
                 % self.external_network_name)
         return public_network
 
-    def get_or_create_router(self, network_driver, user_neutron, router_name, subnet):
-        router = network_driver.create_router(
-            user_neutron, router_name)
-        return router
 
     def get_or_create_router_interface(self, network_driver, user_neutron, router, subnet, interface_name):
-        gateway = network_driver.set_router_gateway(
-            user_neutron, router_name, self.external_network_name)
         #TODO: Determine if this is required in this Topology or not.
         # interface = network_driver.add_router_interface(
         #     router, subnet, interface_name)
         # return interface
-        return gateway
+        return None
 
 class ExternalRouter(NetworkTopology):
     """
@@ -232,23 +248,16 @@ class ExternalRouter(NetworkTopology):
     def delete_router(self, network_driver, user_neutron, router_name):
         return None
 
-    def get_or_create_network(self, network_driver, user_neutron, network_name):
-        network = network_driver.create_network(user_neutron, network_name)
-        return network
+    def delete_router_gateway(self, network_driver, user_neutron, router_name):
+        return None
 
-    def get_or_create_router_interface(self, network_driver, user_neutron, router, subnet, interface_name):
-        interface = network_driver.add_router_interface(
-            router, subnet, interface_name)
-        return interface
+    def get_or_create_router_gateway(self, network_driver, user_neutron, router, network):
+        return None
 
-    def get_or_create_router(self, network_driver, user_neutron, router_name, subnet)
-        public_router = network_driver.find_router(self.external_router_name)
-        if public_router:
-            public_router = public_router[0]
-        else:
+    def get_or_create_router(self, network_driver, user_neutron, router_name):
+        router_name = self.external_router_name  # strategy choice
+        public_router = network_driver.find_router(router_name)
+        if not public_router:
             raise Exception("Default public router %s was not found." % self.external_router_name)
-        network_driver.add_router_interface(public_router,
-                                  subnet,
-                                  '%s-router-intf' % prefix_name)
-        return (network, subnet)
+        return public_router
 

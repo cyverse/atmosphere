@@ -2,22 +2,15 @@
 UserManager:
   Remote Openstack  Admin controls..
 """
-import random
 import time
 import string
 from urlparse import urlparse
 
 from django.db.models import Max
 
-try:
-    from novaclient.v1_1 import client as nova_client
-except ImportError:
-    from novaclient.v2 import client as nova_client
-
 from django.db.models import ObjectDoesNotExist
-from keystoneclient.apiclient.exceptions import Unauthorized
 from novaclient.exceptions import OverLimit
-from neutronclient.common.exceptions import NeutronClientException
+from neutronclient.common.exceptions import NeutronClientException, NotFound
 from requests.exceptions import ConnectionError
 
 from threepio import logger
@@ -439,50 +432,6 @@ class AccountDriver(BaseAccountDriver):
             self.network_manager.neutron.delete_security_group(sec_group["id"])
         return True
 
-    def delete_network(self, identity, remove_network=True):
-        # Core credentials need to be converted to openstack names
-        identity_creds = self.parse_identity(identity)
-        username = identity_creds["username"]
-        project_name = identity_creds["tenant_name"]
-        # Convert from libcloud names to openstack client names
-        return self.network_manager.delete_project_network(
-            username, project_name, remove_network=remove_network)
-        # Based on topoology, do the following below:
-        try:
-            network_driver.remove_router_interface(
-                network_driver.neutron,
-                self.external_router_name,
-                '%s-subnet' % prefix_name)
-        except NotFound:
-            #This is OKAY!
-            pass
-        except:
-            raise
-        #TODO: Remove remaining fixed, floating IPs?
-        #TODO: Where do we break for 'remove_network'?
-        network_driver.delete_subnet(network_driver.neutron, '%s-subnet' % prefix_name)
-        if remove_network:
-            network_driver.delete_network(network_driver.neutron, '%s-net' % prefix_name)
-
-    def create_network(self, identity):
-        # Core credentials need to be converted to openstack names
-        identity_creds = self.parse_identity(identity)
-        username = identity_creds["username"]
-        password = identity_creds["password"]
-        project_name = identity_creds["tenant_name"]
-        dns_nameservers = [
-            dns_server.ip_address for dns_server
-            in identity.provider.dns_server_ips.order_by('order')]
-        # Convert from libcloud names to openstack client names
-        net_args = self._base_network_creds()
-        return self.network_manager.create_project_network(
-            username,
-            password,
-            project_name,
-            get_unique_number=get_unique_id,
-            dns_nameservers=dns_nameservers,
-            **net_args)
-
     def select_network_strategy(self, identity, topology_name):
         """
         Select a network topology and initialize it with the identity/provider specific information required.
@@ -504,7 +453,7 @@ class AccountDriver(BaseAccountDriver):
         ]
         return dns_nameservers
 
-    def delete_user_network(self, identity):
+    def delete_user_network(self, identity, options={}):
         """
         1. Look at the provider for network topology hints
         2. If no network topology exists, use the "Default network" settings.
@@ -522,19 +471,30 @@ class AccountDriver(BaseAccountDriver):
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
             network_strategy = ExternalRouter
+        if options.get('skip_network'):
+            return self._delete_user_subnet(
+                network_strategy, neutron, project_name)
+        return self._delete_user_network(
+            network_strategy, neutron, project_name)
 
+    def _delete_user_subnet(self, network_strategy, neutron, prefix_name):
         network_strategy.delete_router_interface(
             self.network_manager, neutron,
-            "%s-router" % project_name, "%s-subnet" % project_name)
+            "%s-router" % prefix_name,
+            "%s-subnet" % prefix_name)
         network_strategy.delete_router(
             self.network_manager, neutron,
-            "%s-router" % project_name)
+            "%s-router" % prefix_name)
         network_strategy.delete_subnet(
             self.network_manager, neutron,
-            "%s-subnet" % project_name)
+            "%s-subnet" % prefix_name)
+
+    def _delete_user_network(self, network_strategy, neutron, prefix_name):
+        self._delete_user_subnet(network_strategy, neutron, prefix_name)
         network_strategy.delete_network(
             self.network_manager,
-            "%s-net" % project_name)
+            "%s-net" % prefix_name)
+        return
 
     def create_user_network(self, identity):
         """
@@ -560,7 +520,8 @@ class AccountDriver(BaseAccountDriver):
 
         network = network_strategy.get_or_create_network(
             self.network_manager, neutron,
-            "%s-net" % project_name)
+            "%s-net" % project_name)  # NOTE: the name of the network here is a *hint* not a guarantee.
+        # Use `network.name` from here
         subnet = network_strategy.get_or_create_user_subnet(
             self.network_manager, neutron,
             network.id, username,
@@ -569,10 +530,18 @@ class AccountDriver(BaseAccountDriver):
         router = network_strategy.get_or_create_router(
             self.network_manager, neutron,
             "%s-router" % project_name)
-        network_strategy.get_or_create_router_interface(
+        gateway = network_strategy.get_or_create_router_gateway(
+            self.network_manager, neutron,
+            router, network)
+        interface = network_strategy.get_or_create_router_interface(
             self.network_manager, neutron, router, subnet,
             '%s-router-intf' % project_name)
-        return network
+        network_resources = {
+            'network': network,
+            'subnet': subnet,
+            'router': router,
+            'interface': interface,
+        }
 
     # Useful methods called from above..
     def delete_account(self, username, projectname):

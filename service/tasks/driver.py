@@ -232,19 +232,14 @@ def _remove_ips_from_inactive_instances(driver, instances):
 def _remove_network(
         os_acct_driver,
         core_identity,
-        tenant_name,
-        remove_network=False):
+        tenant_name):
     """
     """
-    if not remove_network:
-        return
     celery_logger.info("Removing project network for %s" % tenant_name)
     # Sec. group can't be deleted if instances are suspended
     # when instances are suspended we pass remove_network=False
     os_acct_driver.delete_security_group(core_identity)
-    os_acct_driver.delete_network(
-        core_identity,
-        remove_network=remove_network)
+    os_acct_driver.delete_user_network(core_identity)
     return True
 
 
@@ -292,8 +287,7 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
             _remove_network(
                 os_acct_driver,
                 core_identity,
-                tenant_name,
-                remove_network=True)
+                tenant_name)
             return (num_ips_removed, True)
         return (num_ips_removed, False)
     else:
@@ -1346,7 +1340,7 @@ def add_os_project_network(core_identity, *args, **kwargs):
 def remove_empty_network(
         driverCls, provider, identity,
         core_identity_uuid,
-        *args, **kwargs):
+        network_options):
     try:
         # For testing ONLY.. Test cases ignore countdown..
         if app.conf.CELERY_ALWAYS_EAGER:
@@ -1364,23 +1358,23 @@ def remove_empty_network(
             instance in instances)
         # If instances are active, we are done..
         if not active_instances:
-            inactive_instances = all(
-                driver._is_inactive_instance(
-                    instance) for instance in instances)
-            # Inactive instances: An instance that is 'stopped' or 'suspended'
+            # Inactive True IFF ALL instances are suspended/stopped, False if empty list.
+            inactive_instances_present = all(
+                driver._is_inactive_instance(instance)
+                for instance in instances)
             # Inactive instances, True: Remove network, False
-            remove_network = not inactive_instances or kwargs.get(
-                'remove_network',
-                False)
             # Check for project network
+            celery_logger.info(
+                "No active instances. Removing project network"
+                "from %s" % core_identity)
+            delete_network_options = {}
+            delete_network_options['skip_network'] = inactive_instances_present
             os_acct_driver = get_account_driver(core_identity.provider)
-            celery_logger.info("No active instances. Removing project network"
-                        "from %s" % core_identity)
-            os_acct_driver.delete_network(core_identity,
-                                          remove_network=remove_network)
-            if remove_network:
+            os_acct_driver.delete_user_network(
+                core_identity, delete_network_options)
+            if not inactive_instances_present:
                 # Sec. group can't be deleted if instances are suspended
-                # when instances are suspended we pass remove_network=False
+                # when instances are suspended we should leave this intact.
                 os_acct_driver.delete_security_group(core_identity)
             return True
         celery_logger.debug("remove_empty_network task finished at %s." %
