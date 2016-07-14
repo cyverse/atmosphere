@@ -18,7 +18,6 @@ DHPARAM = ; /etc/ssl/certs/dhparam.pem
 KEY_FILE = ; selfsigned_server.key
 KEY_PATH = ; /etc/ssl/private/
 KEY_SIZE = ; 2048
-LEADERBOARD_URL = ; leaderboard.server.com
 LOCATIONS_DIR = ; /etc/nginx/locations
 SITES_ENABLED_DIR = ; /etc/nginx/sites-enabled
 SITES_AVAILABLE_DIR = ; /etc/nginx/sites-available
