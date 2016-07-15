@@ -8,10 +8,10 @@ from core.models.size import convert_esh_size
 
 from threepio import logger
 
-from rtwo.provider import AWSProvider, AWSUSEastProvider,\
+from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider
-from rtwo.identity import AWSIdentity, EucaIdentity,\
+from rtwo.models.identity import AWSIdentity, EucaIdentity,\
     OSIdentity
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 

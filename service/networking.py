@@ -37,6 +37,8 @@ def get_topology_cls(topology_name):
         return ExternalNetwork
     elif topology_name == ExternalRouter.name:
         return ExternalRouter
+    else:
+        raise Exception("Unknown topology name %s" % topology_name)
 
 
 def get_ranges(uid_number, inc=0):
@@ -93,6 +95,12 @@ class NetworkTopology(object):
 
     def configure(self, **options):
         self.options.update(options)
+
+    def validate(self, core_identity):
+        """
+        Basic assertions, like 'username', 'project_name', 'password' could be added here...
+        """
+        return True
 
     def get_or_create_network(self, network_driver, user_neutron, network_name):
         network = network_driver.create_network(user_neutron, network_name)
@@ -202,6 +210,14 @@ class ExternalNetwork(NetworkTopology):
             raise Exception("Unknown Network - Identity %s is missing 'network_name' " % identity)
         self.external_network_name = network_name
 
+    def validate(self, core_identity):
+        identity_creds = core_identity.get_all_credentials()
+        if 'network_name' not in identity_creds.keys():
+            logger.warn("Credential 'network_name' missing:"
+                        "cannot create user network")
+            raise Exception("Identity %s has not been assigned a 'network_name'" % core_identity)
+        return True
+
     def delete_network(self, network_driver, user_neutron, network_name):
         return None
 
@@ -245,6 +261,14 @@ class ExternalRouter(NetworkTopology):
             raise Exception("Unknown Router - Identity %s is missing 'router_name' " % identity)
         self.external_router_name = router_name
 
+    def validate(self, core_identity):
+        identity_creds = core_identity.get_all_credentials()
+        if 'router_name' not in identity_creds.keys():
+            logger.warn("Credential 'router_name' missing:"
+                        "cannot create user network")
+            raise Exception("Identity %s has not been assigned a 'router_name'" % core_identity)
+        return True
+
     def delete_router(self, network_driver, user_neutron, router_name):
         return None
 
@@ -259,5 +283,5 @@ class ExternalRouter(NetworkTopology):
         public_router = network_driver.find_router(router_name)
         if not public_router:
             raise Exception("Default public router %s was not found." % self.external_router_name)
-        return public_router
+        return public_router[0]
 

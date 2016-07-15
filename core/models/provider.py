@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields import JSONField
 
-from rtwo.provider import EucaProvider, OSProvider
+from rtwo.models.provider import EucaProvider, OSProvider
 
 import uuid
 from uuid import uuid4

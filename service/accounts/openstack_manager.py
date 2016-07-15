@@ -160,12 +160,7 @@ class AccountDriver(BaseAccountDriver):
                 self.user_manager.add_project_membership(
                     project_name, username, role_name)# , domain_name)
 
-                # 4. Create a security group -- SUSPENDED.. Will occur on
-                # instance launch instead.
-                # self.init_security_group(user, password, project,
-                #                         project.name)
-
-                # 5. Create a keypair to use when launching with atmosphere
+                # 4. Create a keypair to use when launching with atmosphere
                 self.init_keypair(user.name, password, project.name)
                 finished = True
 
@@ -205,7 +200,6 @@ class AccountDriver(BaseAccountDriver):
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
 
-        import ipdb;ipdb.set_trace()
         if not strategy:
             strategy = DEFAULT_PASSWORD_UPDATE
 
@@ -235,12 +229,20 @@ class AccountDriver(BaseAccountDriver):
         return self.get_or_create_keypair(username, password, project_name,
                                           keyname, public_key)
 
-    def init_security_group(self, username, password, project_name,
-                            security_group_name, rules_list):
+    def init_security_group(self, core_identity, security_group_name=None):
         # 4.1. Update the account quota to hold a larger number of
         # roles than what is necessary
         # user = user_matches[0]
         # -- User:Keystone rev.
+        try:
+            rules_list = core_identity.provider.cloud_config['network']['default_security_rules']
+        except KeyError:
+            logger.warn("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
+            rules_list = DEFAULT_RULES
+        identity_creds = self.parse_identity(core_identity)
+        username = identity_creds["username"]
+        password = identity_creds["password"]
+        project_name = identity_creds["tenant_name"]
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain': 'default'})
@@ -264,7 +266,8 @@ class AccountDriver(BaseAccountDriver):
             sec_groups = nova.security_groups.list()
             if not sec_groups:
                 nova.security_group.create("default", project_name)
-            self.network_manager.rename_security_group(project)
+            self.network_manager.rename_security_group(
+                project, security_group_name=security_group_name)
         except ConnectionError as ce:
             logger.exception(
                 "Failed to establish connection."
@@ -432,18 +435,23 @@ class AccountDriver(BaseAccountDriver):
             self.network_manager.neutron.delete_security_group(sec_group["id"])
         return True
 
-    def select_network_strategy(self, identity, topology_name):
+    def select_network_strategy(self, identity, topology_name=None):
         """
         Select a network topology and initialize it with the identity/provider specific information required.
         """
+        # Select Cls
         if not topology_name:
-            NetworkTopologyStrategy = ExternalRouter
+            NetworkTopologyStrategyCls = ExternalRouter
         else:
-            NetworkTopologyStrategy = get_topology_cls(topology_name)
+            NetworkTopologyStrategyCls = get_topology_cls(topology_name)
+
         try:
-            network_strategy = NetworkTopologyStrategy(identity)
+            network_strategy = NetworkTopologyStrategyCls(identity)
         except:
-            raise Exception("Error initializing Network Topology - %s + %s " % (NetworkTopologyStrategy, identity))
+            raise
+            raise Exception(
+                "Error initializing Network Topology - %s + %s " %
+                (NetworkTopologyStrategyCls, identity))
         return network_strategy
 
     def dns_nameservers_for(self, identity):
@@ -465,12 +473,12 @@ class AccountDriver(BaseAccountDriver):
         neutron = self.get_openstack_client(identity, 'neutron')
         try:
             topology_name = self.cloud_config['network']['topology']
-            network_strategy = self.select_network_strategy(identity, topology_name)
         except Exception:
             logger.exception(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
-            network_strategy = ExternalRouter
+            topology_name = None
+        network_strategy = self.select_network_strategy(identity, topology_name)
         if options.get('skip_network'):
             return self._delete_user_subnet(
                 network_strategy, neutron, project_name)
@@ -511,12 +519,14 @@ class AccountDriver(BaseAccountDriver):
         dns_nameservers = self.dns_nameservers_for(identity)
         try:
             topology_name = self.cloud_config['network']['topology']
-            network_strategy = self.select_network_strategy(identity, topology_name)
         except Exception:
             logger.exception(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
-            network_strategy = ExternalRouter
+            topology_name = None
+        network_strategy = self.select_network_strategy(identity, topology_name)
+        #May raise exception
+        network_strategy.validate(identity)
 
         network = network_strategy.get_or_create_network(
             self.network_manager, neutron,
@@ -524,7 +534,7 @@ class AccountDriver(BaseAccountDriver):
         # Use `network.name` from here
         subnet = network_strategy.get_or_create_user_subnet(
             self.network_manager, neutron,
-            network.id, username,
+            network['id'], username,
             "%s-subnet" % project_name,
             dns_nameservers=dns_nameservers)
         router = network_strategy.get_or_create_router(
@@ -542,6 +552,7 @@ class AccountDriver(BaseAccountDriver):
             'router': router,
             'interface': interface,
         }
+        return network_resources
 
     # Useful methods called from above..
     def delete_account(self, username, projectname):

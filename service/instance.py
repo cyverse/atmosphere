@@ -9,13 +9,13 @@ from djcelery.app import app
 
 from threepio import logger, status_logger
 
-from rtwo.provider import AWSProvider, AWSUSEastProvider,\
+from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
 from rtwo.driver import OSDriver
-from rtwo.machine import Machine
-from rtwo.size import MockSize
-from rtwo.volume import Volume
+from rtwo.models.machine import Machine
+from rtwo.models.size import MockSize
+from rtwo.models.volume import Volume
 
 
 from core.query import only_current
@@ -1268,7 +1268,6 @@ def check_quota(username, identity_uuid, esh_size,
 
 def security_group_init(core_identity, max_attempts=3):
     os_driver = OSAccountDriver(core_identity.provider)
-    creds = core_identity.get_credentials()
     # TODO: Remove kludge when openstack connections can be
     # Deemed reliable. Otherwise generalize this pattern so it
     # can be arbitrarilly applied to any call that is deemed 'unstable'.
@@ -1276,10 +1275,7 @@ def security_group_init(core_identity, max_attempts=3):
     attempt = 0
     while attempt < max_attempts:
         attempt += 1
-        security_group = os_driver.init_security_group(
-            creds['key'], creds['secret'],
-            creds['ex_tenant_name'], creds['ex_tenant_name'],
-            os_driver.MASTER_RULES_LIST)
+        security_group = os_driver.init_security_group(core_identity)
         if security_group:
             return security_group
         time.sleep(2**attempt)
@@ -1300,13 +1296,9 @@ def keypair_init(core_identity):
 
 
 def network_init(core_identity):
-    provider_creds = core_identity.provider.get_credentials()
-    if 'router_name' not in provider_creds.keys():
-        logger.warn("ProviderCredential 'router_name' missing:"
-                    "cannot create virtual network")
-        return
     os_driver = OSAccountDriver(core_identity.provider)
     network_resources = os_driver.create_user_network(core_identity)
+    logger.info("Created user network - %s" % network_resources)
     network, subnet = network_resources['network'], network_resources['subnet']
     lc_network = _to_lc_network(os_driver.admin_driver, network, subnet)
     return lc_network
