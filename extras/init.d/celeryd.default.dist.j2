@@ -71,6 +71,7 @@ CELERY_ACCEPT_CONTENT="['pickle', 'json', 'msgpack']"
 VIRTUALENV="{{ VIRTUAL_ENV_ATMOSPHERE }}"
 # Abs path to the 'celery' command
 CELERY_BIN="$VIRTUALENV/bin/celery"
+FLOWER_BIN="$VIRTUALENV/bin/flower"
 
 #Set the env properly
 export PATH="$CELERYD_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PATH"
@@ -96,7 +97,7 @@ CELERYD_MAX_TASKS_PER_CHILD="150"
 #
 # Additional celery flower settings
 ###
-CELERYD_FLOWER="$CELERYD_CHDIR/manage.py celery flower"
+CELERYD_FLOWER="$FLOWER_BIN"
 {% if FLOWER_AUTH_SCHEME == "basic" %}
 ADMIN_USER="{{ FLOWER_BASIC_USERNAME }}"
 ADMIN_PASS="{{ FLOWER_BASIC_PASSWORD }}"
