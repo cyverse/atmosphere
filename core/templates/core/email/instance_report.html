@@ -1,13 +1,13 @@
-Username : {{ username }} ({{ name }})
+Username : {{ username }} ({{ name|safe }})
 {% if problems %}
 Problems : 
-    {{ problems|join("\n")|indent(4, false) }}
+    {{ problems|join("\n")|indent(4, false)|safe }}
 {% endif %}
 Details : 
-    {{ message }}
+    {{ message|safe }}
 
 Instance :
-    Name : {{ instance.name }}
+    Name : {{ instance.name|safe }}
     {%- if status %}
     Status : {{ status.status }} since {{ status.start_date.date() }}
     {% endif -%}

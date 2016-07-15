@@ -271,7 +271,7 @@ threepio.status_logger = threepio\
 threepio.email_logger = threepio\
         .initialize("atmosphere_email",
                     handlers=[email_fh],
-                    log_filename=LOG_FILENAME,
+                    log_filename=EMAIL_LOG_FILENAME,
                     app_logging_level=LOGGING_LEVEL,
                     dep_logging_level=DEP_LOGGING_LEVEL,
                     global_logger=False)

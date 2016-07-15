@@ -1,6 +1,6 @@
-Username : {{ username }} ({{ name }})
+Username : {{ username }} ({{ name|safe }})
 
-Feedback : {{ feedback }}
+Feedback : {{ feedback|safe }}
 
 Provider : {{ provider }}
 
@@ -10,16 +10,16 @@ Server : {{ server }}
 
 Instances :
 {% for i in instances %}
-    Name : {{ i.name }}
-    ID : {{ i.provider_alias }}
+    Name : {{ i.name|safe }}
+    UUID : {{ i.provider_alias }}
     Image : {{ i.provider_machine.identifier }}
     IP : {{ i.ip_address }}
 {% endfor %}
 
 Volumes :
 {% for v in volumes %}
-    Name : {{ v.name }}
-    ID : {{ v.identifier }}
+    Name : {{ v.name|safe }}
+    UUID : {{ v.identifier }}
     Size : {{ v.size }}
 {% endfor %}
 

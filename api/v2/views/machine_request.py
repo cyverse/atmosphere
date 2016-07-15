@@ -52,7 +52,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
                 Q(created_by__id=self.request.user.id) &
                 Q(instance_id=serializer.validated_data['instance'].id) &
                 ~Q(status__name="failed") &
-                ~Q(status__name="rejected") &
+                ~Q(status__name="denied") &
                 ~Q(status__name="completed") &
                 ~Q(status__name="closed")
             ))

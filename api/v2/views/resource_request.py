@@ -66,9 +66,9 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         """
         Notify the user that the request was denied
         """
-        self.end_date = timezone.now()
-        self.save()
+        instance.end_date = timezone.now()
+        instance.save()
         email.send_denied_resource_email(
             user=instance.created_by,
             request=instance.request,
-            reason=instance.admin_message)
+            reason=instance.admin_message).delay()
