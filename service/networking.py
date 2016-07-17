@@ -188,6 +188,15 @@ class NetworkTopology(object):
         return network_driver.delete_network(user_neutron, network_name)
 
     def delete_subnet(self, network_driver, user_neutron, subnet_name):
+        """
+        NOTE: If you see errors like the one below when you attempt to delete
+        the users network, and no instances remain, you are likely
+        not removing the router interface.
+        ```
+            Conflict: Unable to complete operation on subnet 1-2-3-4.
+                      One or more ports have an IP allocation from this subnet.
+        ```
+        """
         return network_driver.delete_subnet(user_neutron, subnet_name)
 
 
@@ -274,6 +283,13 @@ class ExternalRouter(NetworkTopology):
 
     def delete_router_gateway(self, network_driver, user_neutron, router_name):
         return None
+
+    def delete_router_interface(self, network_driver, user_neutron,
+                                router_name, subnet_name):
+        return super(ExternalRouter, self).delete_router_interface(
+            network_driver, user_neutron,
+            self.external_router_name,  # strategy choice
+            subnet_name)
 
     def get_or_create_router_gateway(self, network_driver, user_neutron, router, network):
         return None

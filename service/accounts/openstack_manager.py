@@ -500,7 +500,7 @@ class AccountDriver(BaseAccountDriver):
     def _delete_user_network(self, network_strategy, neutron, prefix_name):
         self._delete_user_subnet(network_strategy, neutron, prefix_name)
         network_strategy.delete_network(
-            self.network_manager,
+            self.network_manager, neutron,
             "%s-net" % prefix_name)
         return
 
