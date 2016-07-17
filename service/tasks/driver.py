@@ -1172,7 +1172,7 @@ def check_process_task(driverCls, provider, identity,
         # USE ANSIBLE
         username = identity.user.username
         playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_vnc.yml"])
-        hostname = build_host_name(instance.ip)
+        hostname = build_host_name(instance.id, instance.ip)
         result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
 
         # NOTE: Throws Instance.DoesNotExist
@@ -1249,7 +1249,7 @@ def add_floating_ip(driverCls, provider, identity,
         _update_status_log(instance, "Networking Complete")
         # TODO: Implement this as its own task, with the result from
         #'floating_ip' passed in. Add it to the deploy_chain before deploy_to
-        hostname = build_host_name(floating_ip)
+        hostname = build_host_name(instance.id, floating_ip)
         metadata_update = {
             'public-hostname': hostname,
             'public-ip': floating_ip
