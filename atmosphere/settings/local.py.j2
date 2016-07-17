@@ -13,6 +13,16 @@ globals().update(vars(sys.modules['atmosphere.settings']))
 
 # Debug Mode
 DEBUG = {{ DJANGO_DEBUG }}
+
+{% if DJANGO_TEMPLATE_DEBUG -%}
+template_backends = filter(lambda t:
+    t['BACKEND'] == 'django.template.backends.django.DjangoTemplates',
+    TEMPLATES)
+for backend in template_backends:
+    if 'debug' in backend['OPTIONS']:
+        backend['OPTIONS']['debug'] = {{ DJANGO_TEMPLATE_DEBUG }}
+{%- endif %}
+
 {% if ENFORCING %}
 ENFORCING = True
 {% else %}
