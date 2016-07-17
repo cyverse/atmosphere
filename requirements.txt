@@ -28,7 +28,7 @@ python-logstash==0.4.5
 #Theirs
 psycopg2==2.5.4
 python-ldap==2.4.19
-uWSGI==2.0.9
+uWSGI==2.0.13
 
 ## ours
 chromogenic==0.3.0
