@@ -473,7 +473,7 @@ class AccountDriver(BaseAccountDriver):
         neutron = self.get_openstack_client(identity, 'neutron')
         try:
             topology_name = self.cloud_config['network']['topology']
-        except Exception:
+        except KeyError:
             logger.exception(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
