@@ -473,7 +473,7 @@ class AccountDriver(BaseAccountDriver):
         neutron = self.get_openstack_client(identity, 'neutron')
         try:
             topology_name = self.cloud_config['network']['topology']
-        except Exception:
+        except KeyError:
             logger.exception(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
@@ -519,7 +519,7 @@ class AccountDriver(BaseAccountDriver):
         dns_nameservers = self.dns_nameservers_for(identity)
         try:
             topology_name = self.cloud_config['network']['topology']
-        except Exception:
+        except KeyError:
             logger.exception(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
@@ -588,6 +588,9 @@ class AccountDriver(BaseAccountDriver):
         except KeyError:
             logger.warn("Cloud config ['user']['password_salt'] is missing -- using deprecated secrets.SECRET_SEED")
             secret_salt = SECRET_SEED
+        if not secret_salt:
+            raise ValueError("The secret salt was not defined -- Password cannot be hashed")
+
         secret_salt = str(secret_salt).translate(None, string.punctuation)
 
         # Get strategy from config or settings
@@ -599,9 +602,7 @@ class AccountDriver(BaseAccountDriver):
                 strategy = DEFAULT_PASSWORD_LOOKUP
 
         if not strategy\
-                or strategy == 'old_hashpass':
-            return self.old_hashpass(username, secret_salt)
-        if strategy == 'crypt_hashpass':
+                or strategy == 'crypt_hashpass':
             return self.crypt_hashpass(username, secret_salt)
         elif strategy == 'salt_hashpass':
             return self.salt_hashpass(username)
@@ -609,10 +610,6 @@ class AccountDriver(BaseAccountDriver):
             raise ValueError(
                 "Invalid DEFAULT_PASSWORD_LOOKUP: %s"
                 % DEFAULT_PASSWORD_LOOKUP)
-
-    def old_hashpass(self, username):
-        from hashlib import sha1
-        return sha1(username).hexdigest()
 
     def salt_hashpass(self, username, secret_salt):
         from hashlib import sha256

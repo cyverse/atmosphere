@@ -146,7 +146,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
         remove_ips(esh_driver, esh_instance)
     stopped = esh_driver.stop_instance(esh_instance)
     if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid)
     update_status(
         esh_driver,
         esh_instance.id,
@@ -211,7 +211,7 @@ def suspend_instance(esh_driver, esh_instance,
         remove_ips(esh_driver, esh_instance)
     suspended = esh_driver.suspend_instance(esh_instance)
     if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid)
     update_status(
         esh_driver,
         esh_instance.id,
@@ -268,13 +268,13 @@ def detach_port(esh_driver, esh_instance):
     return result
 
 
-def remove_network(esh_driver, identity_uuid):
+def remove_empty_network(esh_driver, identity_uuid):
     #FIXME: I think the original intent of why we called this was:
     # 1. IF you are the last instance, remove the network.
     # 2. Remove the fixed IP that was allocated for the instance.
     # If so, i don't believe #2 is being completed
-    from service.tasks.driver import remove_empty_network
-    remove_empty_network.s(
+    from service.tasks.driver import remove_empty_network as remove_empty_network_task
+    remove_empty_network_task.s(
         esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, identity_uuid).apply_async()
 
@@ -566,7 +566,7 @@ def shelve_instance(esh_driver, esh_instance,
         remove_ips(esh_driver, esh_instance)
     shelved = esh_driver._connection.ex_shelve_instance(esh_instance)
     if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid)
     update_status(
         esh_driver,
         esh_instance.id,
@@ -618,7 +618,7 @@ def offload_instance(esh_driver, esh_instance,
         remove_ips(esh_driver, esh_instance)
     offloaded = esh_driver._connection.ex_shelve_offload_instance(esh_instance)
     if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid)
     update_status(
         esh_driver,
         esh_instance.id,
