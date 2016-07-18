@@ -16,6 +16,7 @@ from core.models import Provider, PlatformType, ProviderType, Identity, Group,\
     IdentityMembership, AccountProvider, Quota, ProviderInstanceAction
 from core.models import InstanceAction
 from service.driver import get_account_driver
+from service.networking import topology_list
 from atmosphere.settings import secrets
 from atmosphere import settings
 
@@ -268,34 +269,18 @@ def set_network_config(net_config):
         net_config['dns_nameservers'] = require_input("dns_nameservers for provider: (Should be a list)", default=settings.DEFAULT_NAMESERVERS)
 
     if not net_config.get('topology'):
-        print "These questions will help Atmosphere determine what the network topology like for your provider:"
-        user_router = require_input(
-        "Do users need to create their own router Yes/[No]",
-        yes_no_truth, default='no', allow_falsy=True, use_validated_answer=True)
-        user_network = require_input(
-        "Do users need to create their own network Yes/[No]",
-        yes_no_truth, default='no', allow_falsy=True, use_validated_answer=True)
-        user_subnet = require_input(
-        "Do users need to create their own subnet Yes/[No]",
-        yes_no_truth, default='no', allow_falsy=True, use_validated_answer=True)
+        print "Which Network Topology should be used for your provider? (Default: External Router)"
+        choices = topology_list()
+        for idx, choice in enumerate(choices):
+            print "%s:" % idx,
+            pprint.pprint(choice)
+        topology = require_input("Select the topology name by number: ", lambda answer: choices[int(answer)] if int(answer) < len(choices) else None, default='0')
+        topology_name = topology.name
     else:
-        topology = net_config['topology']
-        user_router = topology.get('user_router',False)
-        user_network = topology('user_network',False)
-        user_subnet = topology('user_subnet',False)
+        topology_name = net_config['topology']
 
-    # router_name not required if users create their own router.
-    require_router_name = (user_network and user_subnet and not user_router)
-    require_network_name = user_router
-    net_config['topology'] = {
-        'user_network': user_network,
-        'user_router': user_router,
-        'user_subnet': user_subnet,
-        'require_router_name': require_router_name,
-        'require_network_name': require_network_name,
-    }
+    net_config['topology'] = topology_name
     return net_config
-
 
 
 def set_user_config(user_config):
@@ -353,7 +338,7 @@ def get_provider_credentials(credential_info={}):
 
     if not credential_info.get('public_routers'):
         print "List the public routers available for the provider, comma-separated. (Ex: public-router,atmosphere-router -- NOTE: If you are using one-user-per-router, this value will be ignored))"
-        credential_info['public_routers'] = require_input("List of public routers (comma-separated): ", get_comma_list)
+        credential_info['public_routers'] = require_input("List of public routers (comma-separated): ", get_comma_list, blank=True)
 
     if not credential_info.get('network_name'):
         print "The external/public network that will Atmosphere instances will connect to in order to communicate. (NOTE: If you are *NOT* using one-user-per-router (One-user-per-network), this value will be ignored.)"

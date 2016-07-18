@@ -11,6 +11,14 @@ from atmosphere import settings
 from threepio import logger
 
 
+def topology_list():
+    return [
+        #GenericNetworkTopology,
+        ExternalNetwork,
+        ExternalRouter,
+    ]
+
+
 def _generate_ssh_kwargs(timeout=120):
     kwargs = {}
     kwargs.update({'ssh_key': settings.ATMOSPHERE_PRIVATE_KEYFILE})
@@ -80,7 +88,7 @@ def get_default_subnet(username, inc=0, get_uid_number=None):
     return "172.%s.%s.0/24" % (block1, block2)
 
 
-class NetworkTopology(object):
+class GenericNetworkTopology(object):
     """
     This network topology describes how networks should be created per openstack project.
     """
@@ -200,7 +208,7 @@ class NetworkTopology(object):
         return network_driver.delete_subnet(user_neutron, subnet_name)
 
 
-class ExternalNetwork(NetworkTopology):
+class ExternalNetwork(GenericNetworkTopology):
     """
     This topology assumes:
     user_subnet --> user_router --> interface --> external_network
@@ -251,7 +259,7 @@ class ExternalNetwork(NetworkTopology):
         # return interface
         return None
 
-class ExternalRouter(NetworkTopology):
+class ExternalRouter(GenericNetworkTopology):
     """
     This topology assumes:
     user_network --> user_subnet --> interface --> external_router
