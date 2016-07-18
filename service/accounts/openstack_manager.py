@@ -362,7 +362,7 @@ class AccountDriver(BaseAccountDriver):
             try:
                 rules_list = self.cloud_config['network']['default_security_rules']
             except KeyError:
-                logger.warn("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
+                logger.warn("Cloud config ['network']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
                 rules_list = DEFAULT_RULES
         return self.user_manager.build_security_group(
             creds["username"], creds["password"], creds["tenant_name"],
