@@ -448,10 +448,10 @@ class AccountDriver(BaseAccountDriver):
         try:
             network_strategy = NetworkTopologyStrategyCls(identity)
         except:
-            raise
-            raise Exception(
+            logger.exception(
                 "Error initializing Network Topology - %s + %s " %
                 (NetworkTopologyStrategyCls, identity))
+            raise
         return network_strategy
 
     def dns_nameservers_for(self, identity):
