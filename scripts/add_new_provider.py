@@ -204,10 +204,10 @@ def get_provider_info(provider_info={}):
 
     if not provider_info.get('type'):
         # 3.  Collect provider type
-        print "Select a provider type for your new provider"
-        print "1: Openstack"
-        provider_type = require_input("Select a provider type [1]", default='1')
-        #NOTE: this will be replaced with actual logic when necessary.
+        # NOTE: this will be replaced with actual logic when necessary.
+        # print "Select a provider type for your new provider"
+        # print "1: Openstack"
+        # provider_type = require_input("Select a provider type [1]", default=openstack)
         provider_type = openstack
         provider_info['type'] = provider_type
     return provider_info
