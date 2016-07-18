@@ -42,8 +42,7 @@
     "admin_role_name": "admin",
     "user_role_name": "_member_",
     "domain": "default",
-    "password_lookup": "salt_hashpass",
-    "password_salt": "<SALT REDACTED>"
+    "secret": "<SECRET REDACTED>"
   },
   "deploy": {
     "hostname_format": "vm%(three)s-%(four)s.iplantc.org"
