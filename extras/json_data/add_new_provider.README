@@ -1,0 +1,8 @@
+The JSON File provided is a *sample* to show cloud operators how to fill out
+the file prior to passing into `./scripts/add_new_provider.py`. Some things to note:
+- The number of Security Rules required is likely going to be **LARGER** than whats in the file.
+- The hostname (for IP lookups) is specific to iPlant
+- The password lookup selected is 'salt_hashpass'.
+  This is the recommended choice if you aren't already bound to another function.
+- The password salt has been redacted. Leave it blank to use the settings.SECRET_SEED (Old behavior)
+  Alternatively, set a salt here and it will be used to auto-generate accounts for users.
