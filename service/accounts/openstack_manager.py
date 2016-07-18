@@ -24,7 +24,7 @@ from atmosphere import settings
 from core.models.identity import Identity
 
 from service.accounts.base import BaseAccountDriver
-from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork
+from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
 
 from atmosphere.settings.secrets import SECRET_SEED
 from atmosphere.settings import DEFAULT_PASSWORD_LOOKUP, DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
@@ -362,7 +362,7 @@ class AccountDriver(BaseAccountDriver):
             try:
                 rules_list = self.cloud_config['network']['default_security_rules']
             except KeyError:
-                logger.warn("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
+                logger.warn("Cloud config ['network']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
                 rules_list = DEFAULT_RULES
         return self.user_manager.build_security_group(
             creds["username"], creds["password"], creds["tenant_name"],
@@ -419,7 +419,7 @@ class AccountDriver(BaseAccountDriver):
             username,
             self.hashpass(username),
             project_name,
-            get_unique_number=get_unique_id,
+            get_unique_number=_get_unique_id,
             dns_nameservers=dns_nameservers,
             **net_args)
         return True
@@ -448,10 +448,10 @@ class AccountDriver(BaseAccountDriver):
         try:
             network_strategy = NetworkTopologyStrategyCls(identity)
         except:
-            raise
-            raise Exception(
+            logger.exception(
                 "Error initializing Network Topology - %s + %s " %
                 (NetworkTopologyStrategyCls, identity))
+            raise
         return network_strategy
 
     def dns_nameservers_for(self, identity):
