@@ -24,7 +24,7 @@ from atmosphere import settings
 from core.models.identity import Identity
 
 from service.accounts.base import BaseAccountDriver
-from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork
+from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
 
 from atmosphere.settings.secrets import SECRET_SEED
 from atmosphere.settings import DEFAULT_PASSWORD_LOOKUP, DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
@@ -419,7 +419,7 @@ class AccountDriver(BaseAccountDriver):
             username,
             self.hashpass(username),
             project_name,
-            get_unique_number=get_unique_id,
+            get_unique_number=_get_unique_id,
             dns_nameservers=dns_nameservers,
             **net_args)
         return True
