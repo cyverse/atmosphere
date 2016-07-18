@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 import django.contrib.postgres.fields.jsonb
 import django.core.validators
 from django.db import migrations, models
-
+import core
 
 class Migration(migrations.Migration):
 
@@ -18,5 +18,10 @@ class Migration(migrations.Migration):
             model_name='provider',
             name='cloud_config',
             field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, null=True),
+        ),
+        migrations.AddField(
+            model_name='provider',
+            name='timezone',
+            field=models.CharField(default=b'America/Phoenix', max_length=128, validators=[core.validators.validate_timezone]),
         ),
     ]

@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields import JSONField
 
 from rtwo.models.provider import EucaProvider, OSProvider
-
+from core.validators import validate_timezone
 import uuid
 from uuid import uuid4
 from threepio import logger
@@ -87,6 +87,10 @@ class Provider(models.Model):
     # NOTE: we are overloading this variable to stand in for 'allow_imaging'
     public = models.BooleanField(default=False)
     auto_imaging = models.BooleanField(default=False)
+    timezone = models.CharField(
+        max_length=128,
+        validators=[validate_timezone],
+        default='America/Phoenix')
     over_allocation_action = models.ForeignKey(
         "InstanceAction", blank=True, null=True)
     cloud_config = JSONField(blank=True, null=True)  # Structure will be tightened up in the future
