@@ -27,7 +27,7 @@ from iplantauth.protocol import ldap
 from core.logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
 from core.models import AtmosphereUser as User
-from core.models import Provider
+from core.models import Provider, Identity
 
 from service.exceptions import AnsibleDeployException
 
@@ -111,6 +111,12 @@ def ansible_deployment(
     if not limit_hosts:
         limit_hosts = {"hostname": hostname, "ip": instance_ip}
     host_file = settings.ANSIBLE_HOST_FILE
+    identity = Identity.find_instance(instance_id)
+    if identity:
+        time_zone = identity.provider.timezone
+        extra_vars.update({
+            "TIMEZONE": time_zone,
+        })
     extra_vars.update({
         "ATMOUSERNAME": username,
     })
