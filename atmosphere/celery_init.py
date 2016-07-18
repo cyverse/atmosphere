@@ -4,7 +4,8 @@ import os
 
 from celery import Celery
 from django.conf import settings
-
+cwd_path = os.path.dirname(os.path.dirname(__file__))
+os.environ.setdefault('PYTHONPATH', cwd_path)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'atmosphere.settings')
 os.environ.setdefault('PYTHONOPTIMIZE', '1')  #NOTE: Required to run ansible2 + celery + prefork concurrency
 

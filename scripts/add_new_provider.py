@@ -305,7 +305,6 @@ def set_user_config(user_config):
     #get/set password_lookup
     password_lookup = user_config.get('password_lookup')
     password_salt = user_config.get('password_salt')
-    # TODO: More information on what password_lookup does..
     print "password_lookup function allows your account driver to auto-generate passwords (and passwords previously created) for a given set of user information."
     if not password_lookup:
         print "What password lookup function should be used for your provider? (Default: salt_hashpass)"

@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh -ex
 #
 # ============================================
 #  celeryd - Starts the Celery worker daemon.
@@ -159,7 +159,11 @@ start_flower() {
         return
     fi
     #Start a new one
+    echo "ARGS"
     echo $CELERYD_FLOWER $CELERY_FLOWER_OPTS
+    echo $PATH
+    echo $PYTHONPATH
+    echo $DJANGO_SETTINGS_MODULE
     $CELERYD_FLOWER $CELERY_FLOWER_OPTS &
     FLOWER_PID=$!
     echo $FLOWER_PID > $FLOWER_PID_FILE
