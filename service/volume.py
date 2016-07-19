@@ -60,7 +60,7 @@ def restrict_size_by_image(size, image):
     if not image_bytes:
         raise exceptions.VolumeError(
             "Cannot determine size of the image %s: "
-            "Expected rtwo.machine.OSMachine to include "
+            "Expected rtwo.models.machine.OSMachine to include "
             "'image_size' key in the 'extra' fields." % (image.name,))
     image_size = int(image_bytes / 1024.0**3)
     if size > image_size + 4:
