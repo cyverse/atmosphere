@@ -1,5 +1,6 @@
 # Note: for apache2 and celery, use the packaged version of logrotate
 /var/log/celery/celery_periodic.log {
+    su www-data www-data
     daily
     rotate 20
     missingok
@@ -9,6 +10,7 @@
     copytruncate
 }
 /var/log/celery/atmosphere-*.log {
+    su www-data www-data
     daily
     rotate 20
     missingok
@@ -18,6 +20,7 @@
     copytruncate
 }
 /var/log/celery/imaging.log {
+    su www-data www-data
     daily
     rotate 10
     missingok
@@ -27,6 +30,7 @@
     copytruncate
 }
 /var/log/celery/email.log {
+    su www-data www-data
     daily
     rotate 10
     missingok
@@ -36,6 +40,7 @@
     copytruncate
 }
 /var/log/celery/flower.log {
+    su www-data www-data
     daily
     rotate 10
     missingok
