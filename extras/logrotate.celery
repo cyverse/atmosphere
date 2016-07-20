@@ -2,7 +2,6 @@
 /var/log/celery/celery_periodic.log {
     su www-data www-data
     daily
-    size 200M
     rotate 20
     missingok
     compress
@@ -13,7 +12,6 @@
 /var/log/celery/atmosphere-*.log {
     su www-data www-data
     daily
-    size 100M
     rotate 20
     missingok
     compress
@@ -24,7 +22,6 @@
 /var/log/celery/imaging.log {
     su www-data www-data
     daily
-    size 100M
     rotate 10
     missingok
     compress
@@ -35,7 +32,6 @@
 /var/log/celery/email.log {
     su www-data www-data
     daily
-    size 100M
     rotate 10
     missingok
     compress
@@ -46,7 +42,6 @@
 /var/log/celery/flower.log {
     su www-data www-data
     daily
-    size 100M
     rotate 10
     missingok
     compress
