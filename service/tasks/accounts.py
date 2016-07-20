@@ -2,7 +2,7 @@ from celery.decorators import task
 from celery.task.schedules import crontab
 
 from django.utils.timezone import datetime
-from neutronclient.common.exceptions import NeutronException, NeutronClientException
+from rtwo.exceptions import NeutronClientException, NeutronException
 
 from threepio import celery_logger
 

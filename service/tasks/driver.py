@@ -14,11 +14,10 @@ from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
 
-from libcloud.compute.types import DeploymentError
+from rtwo.exceptions import LibcloudDeploymentError
 
 #TODO: Internalize exception into RTwo
-from neutronclient.common.exceptions import BadRequest
-from rtwo.exceptions import NonZeroDeploymentException
+from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
 
 from threepio import celery_logger, status_logger, logger
 
@@ -789,7 +788,7 @@ def deploy_boot_script(driverCls, provider, identity, instance_id,
         celery_logger.debug(
             "deploy_boot_script task finished at %s." %
             datetime.now())
-    except DeploymentError as exc:
+    except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
         full_script_output = _parse_script_output(new_script)
         if isinstance(exc.value, NonZeroDeploymentException):
@@ -1010,7 +1009,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         celery_logger.debug("deploy_ready_test task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
         deploy_ready_test.retry(exc=exc)
-    except DeploymentError as exc:
+    except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
         full_deploy_output = _parse_steps_output(msd)
         if isinstance(exc.value, NonZeroDeploymentException):
@@ -1064,7 +1063,7 @@ def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
     except AnsibleDeployException as exc:
         celery_logger.exception(exc)
         _deploy_instance_for_user.retry(exc=exc)
-    except DeploymentError as exc:
+    except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
         full_deploy_output = _parse_steps_output(msd)
         if isinstance(exc.value, NonZeroDeploymentException):
@@ -1120,7 +1119,7 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
     except AnsibleDeployException as exc:
         celery_logger.exception(exc)
         _deploy_instance.retry(exc=exc)
-    except DeploymentError as exc:
+    except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
         full_deploy_output = _parse_steps_output(msd)
         if isinstance(exc.value, NonZeroDeploymentException):
@@ -1279,9 +1278,9 @@ def add_floating_ip(driverCls, provider, identity,
         # End
         celery_logger.debug("add_floating_ip task finished at %s." % datetime.now())
         return {"floating_ip": floating_ip, "hostname": hostname}
-    except BadRequest as bad_request:
-        # NOTE: 'Bad Request' is a good message to 'catch and fix' because its
-        # a user-supplied problem.
+    except NeutronBadRequest as bad_request:
+        # NOTE: 'Neutron Bad Request' is a good message to 'catch and fix'
+        # because its a user-supplied problem.
         # Here we will attempt to 'fix' requests and put the 'add_floating_ip'
         # task back on the queue after we're done.
         celery_logger.exception("Neutron did not accept request - %s."

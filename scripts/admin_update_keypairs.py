@@ -3,7 +3,7 @@
 from atmosphere import settings
 from core.models import Provider, Identity
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
-from keystoneclient.apiclient.exceptions import Unauthorized
+from rtwo.exceptions import KeystoneUnauthorized
 import django
 django.setup()
 
@@ -31,7 +31,7 @@ def main():
                 (keypair, created) = os_accounts.get_or_create_keypair(
                     creds['username'], creds['password'], creds['tenant_name'],
                     keyname, public_key)
-            except Unauthorized as exc:
+            except KeystoneUnauthorized as exc:
                 print "Could not create keypair for %s. Error message: %s"\
                     % (creds['username'], exc.message)
             if created:

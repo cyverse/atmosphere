@@ -7,7 +7,7 @@ For more information, see docs/NETWORKING.md
 """
 import random
 
-from neutronclient.common.exceptions import NeutronClientException, NotFound
+from rtwo.exceptions import NeutronClientException, NeutronNotFound
 
 from atmosphere import settings
 from threepio import logger
@@ -181,7 +181,7 @@ class GenericNetworkTopology(object):
         try:
             interface = network_driver.remove_router_interface(
                 network_driver.neutron, router_name, subnet_name)
-        except NotFound:
+        except NeutronNotFound:
             #This is OKAY!
             return None
         except:

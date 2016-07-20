@@ -10,7 +10,7 @@ from core.exceptions import ProviderNotActive
 from core.models.size import convert_esh_size
 
 from service.driver import prepare_driver
-from libcloud.common.types import InvalidCredsError, MalformedResponseError
+from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError
 
 from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
@@ -48,9 +48,9 @@ class SizeList(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         try:
             esh_size_list = esh_driver.list_sizes()
-        except MalformedResponseError:
+        except LibcloudBadResponseError:
             return malformed_response(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)

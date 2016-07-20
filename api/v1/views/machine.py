@@ -13,7 +13,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework import status
 
-from libcloud.common.types import InvalidCredsError, MalformedResponseError
+from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError
 from socket import error as socket_error
 
 from rtwo.exceptions import ConnectionFailure
@@ -60,7 +60,7 @@ def provider_filtered_machines(request, provider_uuid,
         esh_driver = None
 
     if not esh_driver:
-        raise InvalidCredsError()
+        raise LibcloudInvalidCredsError()
 
     logger.debug(esh_driver)
 
@@ -104,9 +104,9 @@ class MachineList(AuthAPIView):
                                                                request_user)
         except ProviderNotActive as pna:
             return inactive_provider(pna)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
-        except MalformedResponseError:
+        except LibcloudBadResponseError:
             return malformed_response(provider_uuid, identity_uuid)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)

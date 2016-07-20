@@ -10,7 +10,7 @@ from django.db.models import Max
 
 from django.db.models import ObjectDoesNotExist
 from novaclient.exceptions import OverLimit
-from neutronclient.common.exceptions import NeutronClientException, NotFound
+from rtwo.exceptions import NeutronClientException
 from requests.exceptions import ConnectionError
 from hashlib import sha256
 

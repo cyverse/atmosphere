@@ -26,7 +26,7 @@ from api.v2.exceptions import (
 from api.exceptions import (
     over_quota, under_threshold, size_not_available,
     over_capacity, mount_failed, inactive_provider)
-from libcloud.common.types import InvalidCredsError
+from rtwo.exceptions import LibcloudInvalidCredsError
 from service.exceptions import (
     ActionNotAllowed, OverAllocationError, OverQuotaError,
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
@@ -124,7 +124,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 'Instance %s no longer exists' % (dne.message,))
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(identity)
         except HypervisorCapacityError as hce:
             return over_capacity(hce)
@@ -136,7 +136,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return size_not_available(snae)
         except (socket_error, ConnectionFailure):
             return connection_failure(identity)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(identity)
         except VolumeMountConflict as vmc:
             return mount_failed(vmc)
@@ -187,7 +187,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return failure_response(status.HTTP_409_CONFLICT, message)
         except (socket_error, ConnectionFailure):
             return connection_failure(identity)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(identity)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
@@ -275,7 +275,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return connection_failure(identity)
         except (socket_error, ConnectionFailure):
             return connection_failure(identity)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(identity)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "

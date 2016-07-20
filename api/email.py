@@ -7,8 +7,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from libcloud.common.types import InvalidCredsError
-
 from threepio import logger
 
 from iplantauth.decorators import api_auth_token_required
