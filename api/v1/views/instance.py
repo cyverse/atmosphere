@@ -25,7 +25,7 @@ from service.exceptions import (
     VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist,
     UnderThresholdError, ActionNotAllowed,
     # Technically owned by another
-    socket_error, ConnectionFailure, InvalidCredsError, MalformedResponseError
+    socket_error, ConnectionFailure, LibcloudInvalidCredsError, LibcloudBadResponseError
     )
 from service.instance import (
     run_instance_action,
@@ -58,7 +58,7 @@ def get_core_instance(request, provider_uuid, identity_uuid, instance_id):
 def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
     esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
     if not esh_driver:
-        raise InvalidCredsError(
+        raise LibcloudInvalidCredsError(
             "Provider_uuid && identity_uuid "
             "did not produce a valid combination")
     esh_instance = None
@@ -66,7 +66,7 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
         esh_instance = esh_driver.get_instance(instance_id)
     except (socket_error, ConnectionFailure):
         return connection_failure(provider_uuid, identity_uuid)
-    except InvalidCredsError:
+    except LibcloudInvalidCredsError:
         return invalid_creds(provider_uuid, identity_uuid)
     except Exception as exc:
         logger.exception("Encountered a generic exception. "
@@ -116,11 +116,11 @@ class InstanceList(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         try:
             esh_instance_list = get_cached_instances(identity=identity)
-        except MalformedResponseError:
+        except LibcloudBadResponseError:
             return malformed_response(provider_uuid, identity_uuid)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         core_instance_list = [convert_esh_instance(esh_driver,
                                                    inst,
@@ -186,7 +186,7 @@ class InstanceList(AuthAPIView):
             return connection_failure(provider_uuid, identity_uuid)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
@@ -475,7 +475,7 @@ class InstanceAction(AuthAPIView):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 'Instance %s no longer exists' % (dne.message,))
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except HypervisorCapacityError as hce:
             return over_capacity(hce)
@@ -487,7 +487,7 @@ class InstanceAction(AuthAPIView):
             return size_not_available(snae)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except VolumeMountConflict as vmc:
             return mount_failed(vmc)
@@ -549,7 +549,7 @@ class Instance(AuthAPIView):
             esh_instance = esh_driver.get_instance(instance_id)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
@@ -591,7 +591,7 @@ class Instance(AuthAPIView):
             esh_instance = esh_driver.get_instance(instance_id)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
@@ -642,7 +642,7 @@ class Instance(AuthAPIView):
             esh_instance = esh_driver.get_instance(instance_id)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
@@ -694,7 +694,7 @@ class Instance(AuthAPIView):
             esh_instance = esh_driver.get_instance(instance_id)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
@@ -720,7 +720,7 @@ class Instance(AuthAPIView):
             return failure_response(status.HTTP_409_CONFLICT, message)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except InstanceDoesNotExist as dne:
             return failure_response(
@@ -751,7 +751,7 @@ class Instance(AuthAPIView):
                                     "Invalid provider_uuid or identity_uuid.")
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
 
 
