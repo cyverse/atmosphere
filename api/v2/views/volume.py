@@ -1,7 +1,7 @@
 import django_filters
 import pytz
 from django.utils import timezone
-from libcloud.common.types import InvalidCredsError, MalformedResponseError
+from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError, ConnectionFailure
 from rest_framework import exceptions
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
@@ -18,13 +18,12 @@ from core.models.volume import Volume, find_volume
 from core.query import only_current_source
 from service.volume import create_volume_or_fail, destroy_volume_or_fail, update_volume_metadata
 from service.exceptions import OverQuotaError
-from rtwo.exceptions import ConnectionFailure
 from threepio import logger
 
 UPDATE_METHODS = ("PUT", "PATCH")
 CREATE_METHODS = ("POST",)
 
-VOLUME_EXCEPTIONS = (OverQuotaError, ConnectionFailure, MalformedResponseError)
+VOLUME_EXCEPTIONS = (OverQuotaError, ConnectionFailure, LibcloudBadResponseError)
 
 
 class VolumeFilter(django_filters.FilterSet):
@@ -117,7 +116,7 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
             headers = self.get_success_headers(serialized_volume.data)
             return Response(
                 serialized_volume.data, status=status.HTTP_201_CREATED, headers=headers)
-        except InvalidCredsError as e:
+        except LibcloudInvalidCredsError as e:
             raise exceptions.PermissionDenied(detail=e.message)
         except ProviderNotActive as pna:
             return inactive_provider(pna)
@@ -133,7 +132,7 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
             destroy_volume_or_fail(instance, self.request.user)
             instance.end_date = timezone.now()
             instance.save()
-        except InvalidCredsError as e:
+        except LibcloudInvalidCredsError as e:
             raise exceptions.PermissionDenied(detail=e.message)
         except ProviderNotActive as pna:
             return inactive_provider(pna)

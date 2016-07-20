@@ -9,18 +9,15 @@ import re
 import time
 
 from django.conf import settings
-#NOTE: Why are we pulling for this explicitly? Test calling this straight from settings.ATMOSPHERE_PRIVATE_KEYFILE
-from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 from django.utils.timezone import datetime, timedelta
 from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
 
-from libcloud.compute.types import DeploymentError
+from rtwo.exceptions import LibcloudDeploymentError
 
 #TODO: Internalize exception into RTwo
-from neutronclient.common.exceptions import BadRequest
-from rtwo.exceptions import NonZeroDeploymentException
+from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
 
 from threepio import celery_logger, status_logger, logger
 
@@ -234,19 +231,14 @@ def _remove_ips_from_inactive_instances(driver, instances):
 def _remove_network(
         os_acct_driver,
         core_identity,
-        tenant_name,
-        remove_network=False):
+        tenant_name):
     """
     """
-    if not remove_network:
-        return
     celery_logger.info("Removing project network for %s" % tenant_name)
     # Sec. group can't be deleted if instances are suspended
     # when instances are suspended we pass remove_network=False
     os_acct_driver.delete_security_group(core_identity)
-    os_acct_driver.delete_network(
-        core_identity,
-        remove_network=remove_network)
+    os_acct_driver.delete_user_network(core_identity)
     return True
 
 
@@ -294,8 +286,7 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
             _remove_network(
                 os_acct_driver,
                 core_identity,
-                tenant_name,
-                remove_network=True)
+                tenant_name)
             return (num_ips_removed, True)
         return (num_ips_removed, False)
     else:
@@ -797,7 +788,7 @@ def deploy_boot_script(driverCls, provider, identity, instance_id,
         celery_logger.debug(
             "deploy_boot_script task finished at %s." %
             datetime.now())
-    except DeploymentError as exc:
+    except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
         full_script_output = _parse_script_output(new_script)
         if isinstance(exc.value, NonZeroDeploymentException):
@@ -1018,7 +1009,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         celery_logger.debug("deploy_ready_test task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
         deploy_ready_test.retry(exc=exc)
-    except DeploymentError as exc:
+    except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
         full_deploy_output = _parse_steps_output(msd)
         if isinstance(exc.value, NonZeroDeploymentException):
@@ -1072,7 +1063,7 @@ def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
     except AnsibleDeployException as exc:
         celery_logger.exception(exc)
         _deploy_instance_for_user.retry(exc=exc)
-    except DeploymentError as exc:
+    except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
         full_deploy_output = _parse_steps_output(msd)
         if isinstance(exc.value, NonZeroDeploymentException):
@@ -1128,7 +1119,7 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
     except AnsibleDeployException as exc:
         celery_logger.exception(exc)
         _deploy_instance.retry(exc=exc)
-    except DeploymentError as exc:
+    except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
         full_deploy_output = _parse_steps_output(msd)
         if isinstance(exc.value, NonZeroDeploymentException):
@@ -1184,7 +1175,7 @@ def check_process_task(driverCls, provider, identity,
         # USE ANSIBLE
         username = identity.user.username
         playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_vnc.yml"])
-        hostname = build_host_name(instance.ip)
+        hostname = build_host_name(instance.id, instance.ip)
         result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
 
         # NOTE: Throws Instance.DoesNotExist
@@ -1261,7 +1252,7 @@ def add_floating_ip(driverCls, provider, identity,
         _update_status_log(instance, "Networking Complete")
         # TODO: Implement this as its own task, with the result from
         #'floating_ip' passed in. Add it to the deploy_chain before deploy_to
-        hostname = build_host_name(floating_ip)
+        hostname = build_host_name(instance.id, floating_ip)
         metadata_update = {
             'public-hostname': hostname,
             'public-ip': floating_ip
@@ -1287,9 +1278,9 @@ def add_floating_ip(driverCls, provider, identity,
         # End
         celery_logger.debug("add_floating_ip task finished at %s." % datetime.now())
         return {"floating_ip": floating_ip, "hostname": hostname}
-    except BadRequest as bad_request:
-        # NOTE: 'Bad Request' is a good message to 'catch and fix' because its
-        # a user-supplied problem.
+    except NeutronBadRequest as bad_request:
+        # NOTE: 'Neutron Bad Request' is a good message to 'catch and fix'
+        # because its a user-supplied problem.
         # Here we will attempt to 'fix' requests and put the 'add_floating_ip'
         # task back on the queue after we're done.
         celery_logger.exception("Neutron did not accept request - %s."
@@ -1352,7 +1343,7 @@ def add_os_project_network(core_identity, *args, **kwargs):
 def remove_empty_network(
         driverCls, provider, identity,
         core_identity_uuid,
-        *args, **kwargs):
+        network_options):
     try:
         # For testing ONLY.. Test cases ignore countdown..
         if app.conf.CELERY_ALWAYS_EAGER:
@@ -1370,23 +1361,23 @@ def remove_empty_network(
             instance in instances)
         # If instances are active, we are done..
         if not active_instances:
-            inactive_instances = all(
-                driver._is_inactive_instance(
-                    instance) for instance in instances)
-            # Inactive instances: An instance that is 'stopped' or 'suspended'
+            # Inactive True IFF ALL instances are suspended/stopped, False if empty list.
+            inactive_instances_present = all(
+                driver._is_inactive_instance(instance)
+                for instance in instances)
             # Inactive instances, True: Remove network, False
-            remove_network = not inactive_instances or kwargs.get(
-                'remove_network',
-                False)
             # Check for project network
+            celery_logger.info(
+                "No active instances. Removing project network"
+                "from %s" % core_identity)
+            delete_network_options = {}
+            delete_network_options['skip_network'] = inactive_instances_present
             os_acct_driver = get_account_driver(core_identity.provider)
-            celery_logger.info("No active instances. Removing project network"
-                        "from %s" % core_identity)
-            os_acct_driver.delete_network(core_identity,
-                                          remove_network=remove_network)
-            if remove_network:
+            os_acct_driver.delete_user_network(
+                core_identity, delete_network_options)
+            if not inactive_instances_present:
                 # Sec. group can't be deleted if instances are suspended
-                # when instances are suspended we pass remove_network=False
+                # when instances are suspended we should leave this intact.
                 os_acct_driver.delete_security_group(core_identity)
             return True
         celery_logger.debug("remove_empty_network task finished at %s." %

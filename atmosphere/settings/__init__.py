@@ -71,7 +71,6 @@ INSTALLED_APPS = (
     'rest_framework.authtoken',
     'django_filters',
 
-    'djcelery',
     'corsheaders',
     # 3rd party apps (Development Only)
     #'django_jenkins',
@@ -189,6 +188,49 @@ AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
 INIT_SCRIPT_PREFIX = '/init_files/'
 DEPLOY_SERVER_URL = SERVER_URL.replace("https", "http")
 
+# These DEFAULT variables can be overridden per provider..
+DEFAULT_NAMESERVERS = ['8.8.8.8','8.8.4.4.']
+DEFAULT_RULES = [
+    ("ICMP", -1, -1),
+    # FTP Access
+    ("UDP", 20, 20),  # FTP data transfer
+    ("TCP", 20, 21),  # FTP control
+    # SSH & Telnet Access
+    ("TCP", 22, 23),
+    ("UDP", 22, 23),
+    # SMTP Mail
+    # HTTP Access
+    ("TCP", 80, 80),
+    # POP Mail
+    # SFTP Access
+    ("TCP", 115, 115),
+    # SQL Access
+    # IMAP Access
+    # SNMP Access
+    # LDAP Access
+    ("TCP", 389, 389),
+    ("UDP", 389, 389),
+    # HTTPS Access
+    ("TCP", 443, 443),
+    # LDAPS Access
+    ("TCP", 636, 636),
+    ("UDP", 636, 636),
+    # Open up >1024
+    ("TCP", 1024, 4199),
+    ("UDP", 1024, 4199),
+    # SKIP PORT 4200.. See Below
+    ("TCP", 4201, 65535),
+    ("UDP", 4201, 65535),
+    # Poke hole in 4200 for iPlant VMs proxy-access only (Shellinabox)
+    ("TCP", 4200, 4200, "128.196.0.0/16"),
+    ("UDP", 4200, 4200, "128.196.0.0/16"),
+    ("TCP", 4200, 4200, "150.135.0.0/16"),
+    ("UDP", 4200, 4200, "150.135.0.0/16"),
+    # Poke hole in 4200 for Jetsteam "Service VMs" only (WebDesktop//NoVNC)
+    ("TCP", 4200, 4200, "149.165.238.0/24"),
+    ("UDP", 4200, 4200, "149.165.238.0/24"),
+
+]
 # Stops 500 errors when logs are missing.
 # NOTE: If the permissions are wrong, this won't help
 

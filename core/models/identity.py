@@ -24,6 +24,13 @@ class Identity(models.Model):
     provider = models.ForeignKey("Provider")
 
     @classmethod
+    def find_instance(cls, instance_id):
+        """
+        Given an instance, find the identity that created it.
+        """
+        return Identity.objects.filter(instance__provider_alias=instance_id).first()
+
+    @classmethod
     def delete_identity(cls, username, provider_location):
         # Do not move up. ImportError.
         from core.models import AtmosphereUser, Group, Credential, Quota,\

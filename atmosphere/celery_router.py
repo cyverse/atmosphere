@@ -44,12 +44,14 @@ IMAGING_TASKS = [
 ]
 PERIODIC_TASKS = [
     "monitor_instances", "monitor_instances_for",
+    "monitor_instance_allocations",
     "monitor_machines", "monitor_machines_for",
     "monitor_sizes", "monitor_sizes_for",
     "monitor_volumes", "monitor_volumes_for",
     "prune_machines", "prune_machines_for",
     "check_image_membership", "update_membership_for",
     "clear_empty_ips", "clear_empty_ips_for",
+    "remove_empty_networks",
     "remove_empty_networks_for",
     "reset_provider_allocation",
     "monthly_allocation_reset"

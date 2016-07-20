@@ -2,23 +2,17 @@
 UserManager:
   Remote Openstack  Admin controls..
 """
-import random
 import time
 import string
 from urlparse import urlparse
 
 from django.db.models import Max
 
-try:
-    from novaclient.v1_1 import client as nova_client
-except ImportError:
-    from novaclient.v2 import client as nova_client
-
 from django.db.models import ObjectDoesNotExist
-from keystoneclient.apiclient.exceptions import Unauthorized
 from novaclient.exceptions import OverLimit
-from neutronclient.common.exceptions import NeutronClientException
+from rtwo.exceptions import NeutronClientException
 from requests.exceptions import ConnectionError
+from hashlib import sha256
 
 from threepio import logger
 from rtwo.drivers.common import _connect_to_openstack_sdk
@@ -28,27 +22,13 @@ from chromogenic.drivers.openstack import ImageManager
 
 from atmosphere import settings
 
-from core.models import AtmosphereUser as User
-from core.ldap import get_uid_number
 from core.models.identity import Identity
 
 from service.accounts.base import BaseAccountDriver
+from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
 
 from atmosphere.settings.secrets import SECRET_SEED
-from atmosphere.settings import DEFAULT_PASSWORD_LOOKUP, DEFAULT_PASSWORD_UPDATE
-
-def get_unique_id(userid):
-    if 'iplantauth.authBackends.LDAPLoginBackend' in settings.AUTHENTICATION_BACKENDS:
-        return get_uid_number(userid)
-    else:
-        return get_random_uid(userid)
-
-def get_random_uid(userid):
-    """
-    Given a string (Username) return a value < MAX_SUBNET
-    """
-    MAX_SUBNET = 4064
-    return int(random.uniform(1, MAX_SUBNET))
+from atmosphere.settings import DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
 
 
 class AccountDriver(BaseAccountDriver):
@@ -56,48 +36,7 @@ class AccountDriver(BaseAccountDriver):
     image_manager = None
     network_manager = None
     core_provider = None
-
-    MASTER_RULES_LIST = [
-        ("ICMP", -1, -1),
-        # FTP Access
-        ("UDP", 20, 20),  # FTP data transfer
-        ("TCP", 20, 21),  # FTP control
-        # SSH & Telnet Access
-        ("TCP", 22, 23),
-        ("UDP", 22, 23),
-        # SMTP Mail
-        # HTTP Access
-        ("TCP", 80, 80),
-        # POP Mail
-        # SFTP Access
-        ("TCP", 115, 115),
-        # SQL Access
-        # IMAP Access
-        # SNMP Access
-        # LDAP Access
-        ("TCP", 389, 389),
-        ("UDP", 389, 389),
-        # HTTPS Access
-        ("TCP", 443, 443),
-        # LDAPS Access
-        ("TCP", 636, 636),
-        ("UDP", 636, 636),
-        # Open up >1024
-        ("TCP", 1024, 4199),
-        ("UDP", 1024, 4199),
-        # SKIP PORT 4200.. See Below
-        ("TCP", 4201, 65535),
-        ("UDP", 4201, 65535),
-        # Poke hole in 4200 for iPlant VMs proxy-access only (Shellinabox)
-        ("TCP", 4200, 4200, "128.196.0.0/16"),
-        ("UDP", 4200, 4200, "128.196.0.0/16"),
-        ("TCP", 4200, 4200, "150.135.0.0/16"),
-        ("UDP", 4200, 4200, "150.135.0.0/16"),
-        # Poke hole in 4200 for Jetsteam "Service VMs" only (WebDesktop//NoVNC)
-        ("TCP", 4200, 4200, "149.165.238.0/24"),
-        ("UDP", 4200, 4200, "149.165.238.0/24"),
-
-    ]
+    cloud_config = {}
 
     def clear_cache(self):
         self.admin_driver.provider.machineCls.invalidate_provider_cache(
@@ -110,6 +49,7 @@ class AccountDriver(BaseAccountDriver):
         self.core_provider = provider
 
         provider_creds = provider.get_credentials()
+        self.cloud_config = provider.cloud_config
         self.provider_creds = provider_creds
         admin_identity = provider.admin
         admin_creds = admin_identity.get_credentials()
@@ -213,17 +153,15 @@ class AccountDriver(BaseAccountDriver):
 
                 # 3.2 Check the user has been given an appropriate role
                 if not role_name:
-                    role_name = settings.DEFAULT_KEYSTONE_ROLE
+                    try:
+                        role_name = self.cloud_config['user']['user_role_name']
+                    except KeyError:
+                        logger.warn("Cloud config ['user']['user_role_name'] is missing -- using deprecated settings.DEFAULT_KEYSTONE_ROLE")
+                        role_name = settings.DEFAULT_KEYSTONE_ROLE
                 self.user_manager.add_project_membership(
                     project_name, username, role_name)# , domain_name)
 
-                # 4. Create a security group -- SUSPENDED.. Will occur on
-                # instance launch instead.
-                # self.init_security_group(user, password, project,
-                #                         project.name,
-                #                         self.MASTER_RULES_LIST)
-
-                # 5. Create a keypair to use when launching with atmosphere
+                # 4. Create a keypair to use when launching with atmosphere
                 self.init_keypair(user.name, password, project.name)
                 finished = True
 
@@ -292,12 +230,20 @@ class AccountDriver(BaseAccountDriver):
         return self.get_or_create_keypair(username, password, project_name,
                                           keyname, public_key)
 
-    def init_security_group(self, username, password, project_name,
-                            security_group_name, rules_list):
+    def init_security_group(self, core_identity, security_group_name=None):
         # 4.1. Update the account quota to hold a larger number of
         # roles than what is necessary
         # user = user_matches[0]
         # -- User:Keystone rev.
+        try:
+            rules_list = core_identity.provider.cloud_config['network']['default_security_rules']
+        except KeyError:
+            logger.warn("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
+            rules_list = DEFAULT_RULES
+        identity_creds = self.parse_identity(core_identity)
+        username = identity_creds["username"]
+        password = identity_creds["password"]
+        project_name = identity_creds["tenant_name"]
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain': 'default'})
@@ -321,7 +267,8 @@ class AccountDriver(BaseAccountDriver):
             sec_groups = nova.security_groups.list()
             if not sec_groups:
                 nova.security_group.create("default", project_name)
-            self.network_manager.rename_security_group(project)
+            self.network_manager.rename_security_group(
+                project, security_group_name=security_group_name)
         except ConnectionError as ce:
             logger.exception(
                 "Failed to establish connection."
@@ -413,7 +360,11 @@ class AccountDriver(BaseAccountDriver):
     def rebuild_security_groups(self, core_identity, rules_list=None):
         creds = self.parse_identity(core_identity)
         if not rules_list:
-            rules_list = self.MASTER_RULES_LIST
+            try:
+                rules_list = self.cloud_config['network']['default_security_rules']
+            except KeyError:
+                logger.warn("Cloud config ['network']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
+                rules_list = DEFAULT_RULES
         return self.user_manager.build_security_group(
             creds["username"], creds["password"], creds["tenant_name"],
             creds["tenant_name"], rules_list, rebuild=True)
@@ -469,7 +420,7 @@ class AccountDriver(BaseAccountDriver):
             username,
             self.hashpass(username),
             project_name,
-            get_unique_number=get_unique_id,
+            get_unique_number=_get_unique_id,
             dns_nameservers=dns_nameservers,
             **net_args)
         return True
@@ -485,33 +436,124 @@ class AccountDriver(BaseAccountDriver):
             self.network_manager.neutron.delete_security_group(sec_group["id"])
         return True
 
-    def delete_network(self, identity, remove_network=True):
-        # Core credentials need to be converted to openstack names
-        identity_creds = self.parse_identity(identity)
-        username = identity_creds["username"]
-        project_name = identity_creds["tenant_name"]
-        # Convert from libcloud names to openstack client names
-        return self.network_manager.delete_project_network(
-            username, project_name, remove_network=remove_network)
+    def select_network_strategy(self, identity, topology_name=None):
+        """
+        Select a network topology and initialize it with the identity/provider specific information required.
+        """
+        # Select Cls
+        if not topology_name:
+            NetworkTopologyStrategyCls = ExternalRouter
+        else:
+            NetworkTopologyStrategyCls = get_topology_cls(topology_name)
 
-    def create_network(self, identity):
-        # Core credentials need to be converted to openstack names
-        identity_creds = self.parse_identity(identity)
-        username = identity_creds["username"]
-        password = identity_creds["password"]
-        project_name = identity_creds["tenant_name"]
+        try:
+            network_strategy = NetworkTopologyStrategyCls(identity)
+        except:
+            logger.exception(
+                "Error initializing Network Topology - %s + %s " %
+                (NetworkTopologyStrategyCls, identity))
+            raise
+        return network_strategy
+
+    def dns_nameservers_for(self, identity):
         dns_nameservers = [
             dns_server.ip_address for dns_server
-            in identity.provider.dns_server_ips.order_by('order')]
-        # Convert from libcloud names to openstack client names
-        net_args = self._base_network_creds()
-        return self.network_manager.create_project_network(
-            username,
-            password,
-            project_name,
-            get_unique_number=get_unique_id,
-            dns_nameservers=dns_nameservers,
-            **net_args)
+            in identity.provider.dns_server_ips.order_by('order')
+        ]
+        return dns_nameservers
+
+    def delete_user_network(self, identity, options={}):
+        """
+        1. Look at the provider for network topology hints
+        2. If no network topology exists, use the "Default network" settings.
+        3. Delete network based on topology
+        """
+
+        identity_creds = self.parse_identity(identity)
+        project_name = identity_creds["tenant_name"]
+        neutron = self.get_openstack_client(identity, 'neutron')
+        try:
+            topology_name = self.cloud_config['network']['topology']
+        except KeyError:
+            logger.exception(
+                "Network topology not selected -- "
+                "Will attempt to use the last known default: ExternalRouter.")
+            topology_name = None
+        network_strategy = self.select_network_strategy(identity, topology_name)
+        if options.get('skip_network'):
+            return self._delete_user_subnet(
+                network_strategy, neutron, project_name)
+        return self._delete_user_network(
+            network_strategy, neutron, project_name)
+
+    def _delete_user_subnet(self, network_strategy, neutron, prefix_name):
+        network_strategy.delete_router_interface(
+            self.network_manager, neutron,
+            "%s-router" % prefix_name,
+            "%s-subnet" % prefix_name)
+        network_strategy.delete_router(
+            self.network_manager, neutron,
+            "%s-router" % prefix_name)
+        network_strategy.delete_subnet(
+            self.network_manager, neutron,
+            "%s-subnet" % prefix_name)
+
+    def _delete_user_network(self, network_strategy, neutron, prefix_name):
+        self._delete_user_subnet(network_strategy, neutron, prefix_name)
+        network_strategy.delete_network(
+            self.network_manager, neutron,
+            "%s-net" % prefix_name)
+        return
+
+    def create_user_network(self, identity):
+        """
+        1. Look at the provider for network topology hints
+        2. If no network topology exists, use the "Default network" settings.
+        3. Create network based on topology
+        """
+        # Prepare args
+
+        identity_creds = self.parse_identity(identity)
+        username = identity_creds["username"]
+        project_name = identity_creds["tenant_name"]
+        neutron = self.get_openstack_client(identity, 'neutron')
+        dns_nameservers = self.dns_nameservers_for(identity)
+        try:
+            topology_name = self.cloud_config['network']['topology']
+        except KeyError:
+            logger.exception(
+                "Network topology not selected -- "
+                "Will attempt to use the last known default: ExternalRouter.")
+            topology_name = None
+        network_strategy = self.select_network_strategy(identity, topology_name)
+        #May raise exception
+        network_strategy.validate(identity)
+
+        network = network_strategy.get_or_create_network(
+            self.network_manager, neutron,
+            "%s-net" % project_name)  # NOTE: the name of the network here is a *hint* not a guarantee.
+        # Use `network.name` from here
+        subnet = network_strategy.get_or_create_user_subnet(
+            self.network_manager, neutron,
+            network['id'], username,
+            "%s-subnet" % project_name,
+            dns_nameservers=dns_nameservers)
+        router = network_strategy.get_or_create_router(
+            self.network_manager, neutron,
+            "%s-router" % project_name)
+        gateway = network_strategy.get_or_create_router_gateway(
+            self.network_manager, neutron,
+            router, network)
+        interface = network_strategy.get_or_create_router_interface(
+            self.network_manager, neutron, router, subnet,
+            '%s-router-intf' % project_name)
+        network_resources = {
+            'network': network,
+            'subnet': subnet,
+            'router': router,
+            'interface': interface,
+        }
+        return network_resources
 
     # Useful methods called from above..
     def delete_account(self, username, projectname):
@@ -536,49 +578,20 @@ class AccountDriver(BaseAccountDriver):
             self.user_manager.delete_user(username)
         return True
 
-    @classmethod
-    def hashpass(cls, username, strategy=None):
+    def hashpass(self, username):
         """
-        Create a unique password using 'Username' as the wored
-        and the SECRET_KEY as your salt
+        Create a unique password using 'username'
         """
-        if not strategy:
-            strategy = DEFAULT_PASSWORD_LOOKUP
+        cloud_pass = self.cloud_config['user'].get("secret")
 
-        if not strategy\
-                or strategy == 'old_hashpass':
-            return cls.old_hashpass(username)
-        if strategy == 'crypt_hashpass':
-            return cls.crypt_hashpass(username)
-        elif strategy == 'salt_hashpass':
-            return cls.salt_hashpass(username)
-        else:
-            raise ValueError(
-                "Invalid DEFAULT_PASSWORD_LOOKUP: %s"
-                % DEFAULT_PASSWORD_LOOKUP)
+        if not cloud_pass or len(cloud_pass) < 32:
+            raise ValueError("Cloud config ['user']['secret'] is required and " +
+                    "must be of length 32 or more")
 
-    @classmethod
-    def old_hashpass(cls, username):
-        from hashlib import sha1
-        return sha1(username).hexdigest()
+        if not username:
+            raise ValueError("Missing username, cannot create hash")
 
-    @classmethod
-    def salt_hashpass(cls, username):
-        from hashlib import sha256
-        secret_salt = SECRET_SEED.translate(None, string.punctuation)
-        password = sha256(secret_salt + username).hexdigest()
-        if not password:
-            raise Exception("Failed to hash password, check the secret_salt")
-        return password
-
-    @classmethod
-    def crypt_hashpass(cls, username):
-        import crypt
-        secret_salt = SECRET_SEED.translate(None, string.punctuation)
-        password = crypt.crypt(username, secret_salt)
-        if not password:
-            raise Exception("Failed to hash password, check the secret_salt")
-        return password
+        return sha256(username + cloud_pass).hexdigest()
 
     def get_project_name_for(self, username):
         """
@@ -883,31 +896,69 @@ class AccountDriver(BaseAccountDriver):
         return "https://%s/horizon/auth/switch/%s/?next=/horizon/project/" %\
             (parsed_url.hostname, tenant_id)
 
-
     def get_openstack_clients(self, username, password=None, tenant_name=None):
         # Build credentials for each manager
         all_creds = self._get_openstack_credentials(
             username, password, tenant_name)
         # Initialize managers with respective credentials
-        image_creds = self._build_image_creds(all_creds)
-        net_creds = self._build_network_creds(all_creds)
-        sdk_creds = self._build_sdk_creds(all_creds)
-        user_creds = self._build_user_creds(all_creds)
-        openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
-        (keystone, nova, swift) = self.user_manager.new_connection(
-            **user_creds)
-        neutron = self.network_manager.new_connection(**net_creds)
-        _, _, glance = self.image_manager._new_connection(
-            **image_creds)
-
-        return {
+        all_clients = self.get_user_clients(all_creds)
+        openstack_sdk = self.get_openstack_sdk_client(all_creds)
+        neutron = self.get_neutron_client(all_creds)
+        glance = self.get_glance_client(all_creds)
+        all_clients.update({
             "glance": glance,
-            "keystone": keystone,
-            "nova": nova,
             "neutron": neutron,
             "openstack_sdk": openstack_sdk,
-            "horizon": self._get_horizon_url(keystone.tenant_id)
+            "horizon": self._get_horizon_url(all_clients['keystone'].tenant_id)
+        })
+        return all_clients
+
+    def get_openstack_client(self, identity, client_name):
+        identity_creds = self.parse_identity(identity)
+        username = identity_creds["username"]
+        password = identity_creds["password"]
+        project_name = identity_creds["tenant_name"]
+        all_creds = self._get_openstack_credentials(
+            username, password, project_name)
+
+        if client_name == 'neutron':
+            return self.get_neutron_client(all_creds)
+        elif client_name == 'glance':
+            return self.get_glance_client(all_creds)
+        elif client_name == 'keystone':
+            return self.get_user_clients(all_creds)['keystone']
+        elif client_name == 'nova':
+            return self.get_user_clients(all_creds)['nova']
+        elif client_name == 'swift':
+            return self.get_user_clients(all_creds)['swift']
+        elif client_name == 'openstack':
+            return self.get_openstack_sdk_client(all_creds)
+        else:
+            raise ValueError("Invalid client_name %s" % client_name)
+
+    def get_glance_client(self, all_creds):
+        image_creds = self._build_image_creds(all_creds)
+        _, _, glance = self.image_manager._new_connection(**image_creds)
+        return glance
+
+    def get_neutron_client(self, all_creds):
+        net_creds = self._build_network_creds(all_creds)
+        neutron = self.network_manager.new_connection(**net_creds)
+        return neutron
+
+    def get_user_clients(self, all_creds):
+        user_creds = self._build_user_creds(all_creds)
+        (keystone, nova, swift) = self.user_manager.new_connection(
+            **user_creds)
+        return {
+            "keystone": keystone,
+            "nova": nova,
+            "swift": swift
         }
+    def get_openstack_sdk_client(self, all_creds):
+        sdk_creds = self._build_sdk_creds(all_creds)
+        openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
+        return openstack_sdk
 
     def _get_openstack_credentials(self, username,
                                    password=None, tenant_name=None):

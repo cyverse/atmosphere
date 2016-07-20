@@ -146,7 +146,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
         remove_ips(esh_driver, esh_instance)
     stopped = esh_driver.stop_instance(esh_instance)
     if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid)
     update_status(
         esh_driver,
         esh_instance.id,
@@ -211,7 +211,7 @@ def suspend_instance(esh_driver, esh_instance,
         remove_ips(esh_driver, esh_instance)
     suspended = esh_driver.suspend_instance(esh_instance)
     if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid)
     update_status(
         esh_driver,
         esh_instance.id,
@@ -268,11 +268,15 @@ def detach_port(esh_driver, esh_instance):
     return result
 
 
-def remove_network(esh_driver, identity_uuid, remove_network=False):
-    from service.tasks.driver import remove_empty_network
-    remove_empty_network.s(esh_driver.__class__, esh_driver.provider,
-                           esh_driver.identity, identity_uuid,
-                           remove_network=remove_network).apply_async()
+def remove_empty_network(esh_driver, identity_uuid):
+    #FIXME: I think the original intent of why we called this was:
+    # 1. IF you are the last instance, remove the network.
+    # 2. Remove the fixed IP that was allocated for the instance.
+    # If so, i don't believe #2 is being completed
+    from service.tasks.driver import remove_empty_network as remove_empty_network_task
+    remove_empty_network_task.s(
+        esh_driver.__class__, esh_driver.provider,
+        esh_driver.identity, identity_uuid).apply_async()
 
 
 def restore_network(esh_driver, esh_instance, identity_uuid):
@@ -562,7 +566,7 @@ def shelve_instance(esh_driver, esh_instance,
         remove_ips(esh_driver, esh_instance)
     shelved = esh_driver._connection.ex_shelve_instance(esh_instance)
     if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid)
     update_status(
         esh_driver,
         esh_instance.id,
@@ -614,7 +618,7 @@ def offload_instance(esh_driver, esh_instance,
         remove_ips(esh_driver, esh_instance)
     offloaded = esh_driver._connection.ex_shelve_offload_instance(esh_instance)
     if reclaim_ip:
-        remove_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid)
     update_status(
         esh_driver,
         esh_instance.id,
@@ -1264,7 +1268,6 @@ def check_quota(username, identity_uuid, esh_size,
 
 def security_group_init(core_identity, max_attempts=3):
     os_driver = OSAccountDriver(core_identity.provider)
-    creds = core_identity.get_credentials()
     # TODO: Remove kludge when openstack connections can be
     # Deemed reliable. Otherwise generalize this pattern so it
     # can be arbitrarilly applied to any call that is deemed 'unstable'.
@@ -1272,10 +1275,7 @@ def security_group_init(core_identity, max_attempts=3):
     attempt = 0
     while attempt < max_attempts:
         attempt += 1
-        security_group = os_driver.init_security_group(
-            creds['key'], creds['secret'],
-            creds['ex_tenant_name'], creds['ex_tenant_name'],
-            os_driver.MASTER_RULES_LIST)
+        security_group = os_driver.init_security_group(core_identity)
         if security_group:
             return security_group
         time.sleep(2**attempt)
@@ -1296,13 +1296,10 @@ def keypair_init(core_identity):
 
 
 def network_init(core_identity):
-    provider_creds = core_identity.provider.get_credentials()
-    if 'router_name' not in provider_creds.keys():
-        logger.warn("ProviderCredential 'router_name' missing:"
-                    "cannot create virtual network")
-        return
     os_driver = OSAccountDriver(core_identity.provider)
-    (network, subnet) = os_driver.create_network(core_identity)
+    network_resources = os_driver.create_user_network(core_identity)
+    logger.info("Created user network - %s" % network_resources)
+    network, subnet = network_resources['network'], network_resources['subnet']
     lc_network = _to_lc_network(os_driver.admin_driver, network, subnet)
     return lc_network
 

@@ -2,8 +2,6 @@ from django.db import models
 
 from threepio import logger
 
-from core.ldap import get_uid_number
-
 from core.models.user import AtmosphereUser, get_default_identity
 from core.models.identity import Identity
 

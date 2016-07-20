@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from rtwo.exceptions import ConnectionFailure
-from libcloud.common.types import InvalidCredsError, MalformedResponseError
+from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError
 
 from threepio import logger
 
@@ -55,9 +55,9 @@ class VolumeSnapshot(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         try:
             esh_snapshots = esh_driver._connection.ex_list_snapshots()
-        except MalformedResponseError:
+        except LibcloudBadResponseError:
             return malformed_response(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         snapshot_data = []
         for ss in esh_snapshots:
@@ -106,7 +106,7 @@ class VolumeSnapshot(AuthAPIView):
             esh_volume = esh_driver.get_volume(volume_id)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
@@ -159,7 +159,7 @@ class VolumeSnapshot(AuthAPIView):
             return over_quota(oqe)
         except ConnectionFailure:
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
 
 
@@ -244,9 +244,9 @@ class VolumeList(AuthAPIView):
             esh_volume_list = volume_list_method()
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except MalformedResponseError:
+        except LibcloudBadResponseError:
             return malformed_response(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception:
             logger.exception("Uncaught Exception in Volume list method")
@@ -319,9 +319,9 @@ class VolumeList(AuthAPIView):
             return over_quota(oqe)
         except ConnectionFailure:
             return connection_failure(provider_uuid, identity_uuid)
-        except MalformedResponseError:
+        except LibcloudBadResponseError:
             return malformed_response(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         if not success:
             return failure_response(
@@ -360,7 +360,7 @@ class Volume(AuthAPIView):
             esh_volume = esh_driver.get_volume(volume_id)
         except ConnectionFailure:
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
@@ -406,7 +406,7 @@ class Volume(AuthAPIView):
             esh_volume = esh_driver.get_volume(volume_id)
         except ConnectionFailure:
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
@@ -454,7 +454,7 @@ class Volume(AuthAPIView):
             esh_volume = esh_driver.get_volume(volume_id)
         except ConnectionFailure:
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
@@ -499,7 +499,7 @@ class Volume(AuthAPIView):
             esh_volume = esh_driver.get_volume(volume_id)
         except ConnectionFailure:
             return connection_failure(provider_uuid, identity_uuid)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "

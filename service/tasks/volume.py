@@ -13,12 +13,11 @@ from celery import chain
 
 from threepio import celery_logger
 from rtwo.driver import EucaDriver, OSDriver
-from libcloud.compute.types import DeploymentError
+from rtwo.exceptions import LibcloudDeploymentError
 
 from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 
 from core.email import send_instance_email
-from core.ldap import get_uid_number as get_unique_number
 
 from service.driver import get_driver
 from service.deploy import mount_volume, check_volume, mkfs_volume,\
@@ -47,7 +46,7 @@ def check_volume_task(driverCls, provider, identity,
         # One script to make two checks:
         # 1. Voume exists 2. Volume has a filesystem
         cv_script = check_volume(device)
-        # NOTE: non_zero_deploy needed to stop DeploymentError from being
+        # NOTE: non_zero_deploy needed to stop LibcloudDeploymentError from being
         # raised
         kwargs.update({'deploy': cv_script,
                        'non_zero_deploy': True})
@@ -70,7 +69,7 @@ def check_volume_task(driverCls, provider, identity,
                 raise Exception('Volume check failed: Something weird')
 
         celery_logger.debug("check_volume task finished at %s." % datetime.now())
-    except DeploymentError as exc:
+    except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
     except Exception as exc:
         celery_logger.warn(exc)

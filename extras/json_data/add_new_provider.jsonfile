@@ -1,0 +1,50 @@
+{
+  "network": {
+    "dns_nameservers": [
+      "8.8.8.8",
+      "8.8.4.4"
+    ],
+    "default_security_rules": [
+      [
+        "ICMP",
+        -1,
+        -1
+      ],
+      [
+        "UDP",
+        20,
+        20
+      ],
+      [
+        "TCP",
+        20,
+        21
+      ],
+      [
+        "TCP",
+        22,
+        23
+      ],
+      [
+        "UDP",
+        22,
+        23
+      ],
+      [
+        "TCP",
+        80,
+        80
+      ],
+    ],
+    "topology": "External Router Topology"
+  },
+  "user": {
+    "admin_role_name": "admin",
+    "user_role_name": "_member_",
+    "domain": "default",
+    "secret": "<SECRET REDACTED>"
+  },
+  "deploy": {
+    "hostname_format": "vm%(three)s-%(four)s.iplantc.org"
+  }
+}

@@ -5,7 +5,7 @@ Atmosphere service meta rest api.
 from datetime import datetime
 import time
 
-from libcloud.common.types import InvalidCredsError
+from rtwo.exceptions import LibcloudInvalidCredsError
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -126,7 +126,7 @@ class MetaAction(AuthAPIView):
             if 'test_links' in action:
                 test_links = esh_meta.test_links()
                 return Response(test_links, status=status.HTTP_200_OK)
-        except InvalidCredsError:
+        except LibcloudInvalidCredsError:
             logger.warn('Authentication Failed. Provider-id:%s Identity-id:%s'
                         % (provider_uuid, identity_uuid))
             return failure_response(

@@ -27,6 +27,7 @@ from iplantauth.protocol import ldap
 from core.logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
 from core.models import AtmosphereUser as User
+from core.models import Provider, Identity
 
 from service.exceptions import AnsibleDeployException
 
@@ -105,11 +106,17 @@ def ansible_deployment(
         instance_ip,
         username,
         instance_id)
-    hostname = build_host_name(instance_ip)
+    hostname = build_host_name(instance_id, instance_ip)
     configure_ansible()
     if not limit_hosts:
         limit_hosts = {"hostname": hostname, "ip": instance_ip}
     host_file = settings.ANSIBLE_HOST_FILE
+    identity = Identity.find_instance(instance_id)
+    if identity:
+        time_zone = identity.provider.timezone
+        extra_vars.update({
+            "TIMEZONE": time_zone,
+        })
     extra_vars.update({
         "ATMOUSERNAME": username,
     })
@@ -292,31 +299,40 @@ def configure_ansible():
         subspace.constants.reload_config()
 
 
-def build_host_name(ip):
+def build_host_name(instance_id, ip):
     """
     Build host name from the configuration in settings
     See:
     * INSTANCE_HOSTNAMING_FORMAT
     * INSTANCE_HOSTNAMING_DOMAIN (Required if you use `%(domain)s`)
     """
-    #NOTE: This is a hack until we address 'provider specific' hostnaming
-    if '114.5' in ip:
+    try:
+        provider = Provider.objects.get(instancesource__instances__provider_alias=instance_id)
+        hostname_format_str = provider.cloud_config['deploy']['hostname_format']
+    except Provider.DoesNotExist:
+        logger.warn("Using an instance %s that is *NOT* in your database. Cannot determine hostnaming format. Using IP address as hostname.")
         return raw_hostname(ip)
+    except KeyError:
+        logger.warn("Cloud config ['deploy']['hostname_format'] is missing -- using deprecated settings.INSTANCE_HOSTNAMING_FORMAT")
+        if not hasattr(settings, 'INSTANCE_HOSTNAMING_FORMAT'):
+            logger.warn("settings.INSTANCE_HOSTNAMING_FORMAT MISSING! Using IP address as hostname.")
+            return raw_hostname(ip)
+        hostname_format_str = settings.INSTANCE_HOSTNAMING_FORMAT
 
-    if not hasattr(settings, 'INSTANCE_HOSTNAMING_FORMAT'):
-        return raw_hostname(ip)
-    if all((str_val not in settings.INSTANCE_HOSTNAMING_FORMAT) for str_val
-            in ['one', 'two', 'three', 'four']):
-        logger.error(
-            "Invalid INSTANCE_HOSTNAMING_FORMAT: Expected string containing "
-            "at least one of the IP octets. "
-            "(ex:'vm%(three)s-%(four)s.%(domain)s')")
-    # IP --> octet_tuple (127,0,0,1)
+    # Convert IP into a dictionary broken into octets
     hostnaming_format_map = create_hostnaming_map(ip)
     try:
-        return settings.INSTANCE_HOSTNAMING_FORMAT % hostnaming_format_map
-    except (KeyError, TypeError) as exc:
-        logger.error("Invalid INSTANCE_HOSTNAMING_FORMAT: %s" % exc)
+        if all((str_val not in hostname_format_str) for str_val
+                in ['one', 'two', 'three', 'four']):
+            raise ValueError(
+                "Invalid HOSTNAME_FORMAT: Expected string containing "
+                "at least one of the IP octets. Received: %s"
+                "(ex:'vm%(three)s-%(four)s.my_domain.com')"
+                % hostname_format_str)
+        return hostname_format_str % hostnaming_format_map
+    except (KeyError, TypeError, ValueError):
+        logger.exception("Invalid instance_hostname_format: %s" % hostname_format_str)
+        return raw_hostname(ip)
 
 
 def create_hostnaming_map(ip):

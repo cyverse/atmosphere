@@ -255,6 +255,8 @@ def in_provider_list(provider_list, key_override=None):
     """
     if not key_override:
         key_override = "instance_source__provider"
+    if not key_override.endswith("__in"):
+        key_override += "__in"
     return Q(**{key_override: provider_list})
 
 

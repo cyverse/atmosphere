@@ -26,7 +26,7 @@ from service.monitoring import (
 from service.monitoring import user_over_allocation_enforcement
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
-from glanceclient.exc import HTTPConflict, HTTPForbidden
+from rtwo.exceptions import GlanceConflict, GlanceForbidden
 
 from threepio import celery_logger
 
@@ -741,10 +741,10 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
     if not dry_run:
         try:
             account_driver.image_manager.share_image(cloud_machine, tenant_name.value)
-        except HTTPConflict as exc:
+        except GlanceConflict as exc:
             if 'already associated with image' in exc.message:
                 pass
-        except HTTPForbidden as exc:
+        except GlanceForbidden as exc:
             if 'Public images do not have members' in exc.message:
                 celery_logger.warn("CONFLICT -- This image should have been marked 'private'! %s" % cloud_machine)
                 pass
