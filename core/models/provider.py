@@ -11,7 +11,7 @@ from django.contrib.postgres.fields import JSONField
 
 from rtwo.models.provider import EucaProvider, OSProvider
 from core.validators import validate_timezone
-import uuid
+
 from uuid import uuid4
 from threepio import logger
 
