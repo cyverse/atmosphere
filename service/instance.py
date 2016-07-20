@@ -39,7 +39,7 @@ from service.exceptions import (
     OverAllocationError, OverQuotaError, SizeNotAvailable,
     HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
-    socket_error, ConnectionFailure, InstanceDoesNotExist, InvalidCredsError)
+    socket_error, ConnectionFailure, InstanceDoesNotExist, LibcloudInvalidCredsError)
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
@@ -139,7 +139,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
                   reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
     """
     _permission_to_act(identity_uuid, "Stop")
     if reclaim_ip:
@@ -162,7 +162,7 @@ def start_instance(esh_driver, esh_instance,
                    restore_ip=True, update_meta=True):
     """
 
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
     """
     from service.tasks.driver import update_metadata
     # Don't check capacity because.. I think.. its already being counted.
@@ -204,7 +204,7 @@ def suspend_instance(esh_driver, esh_instance,
                      user, reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
     """
     _permission_to_act(identity_uuid, "Suspend")
     if reclaim_ip:
@@ -525,7 +525,7 @@ def resume_instance(esh_driver, esh_instance,
                     user, restore_ip=True,
                     update_meta=True):
     """
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Resume")
@@ -557,7 +557,7 @@ def shelve_instance(esh_driver, esh_instance,
                     user, reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Shelve")
@@ -584,7 +584,7 @@ def unshelve_instance(esh_driver, esh_instance,
                       user, restore_ip=True,
                       update_meta=True):
     """
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Unshelve")
@@ -609,7 +609,7 @@ def offload_instance(esh_driver, esh_instance,
                      user, reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, InvalidCredsError
+    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Shelve Offload")
@@ -667,8 +667,8 @@ def end_date_instance(user, esh_instance, core_identity_uuid):
     except (socket_error, ConnectionFailure):
         logger.exception("connection failure during destroy instance")
         return None
-    except InvalidCredsError:
-        logger.exception("InvalidCredsError during destroy instance")
+    except LibcloudInvalidCredsError:
+        logger.exception("LibcloudInvalidCredsError during destroy instance")
         return None
 
 
@@ -1594,7 +1594,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     """
     esh_driver = get_cached_driver(identity=identity)
     if not esh_driver:
-        raise InvalidCredsError("Driver could not be created")
+        raise LibcloudInvalidCredsError("Driver could not be created")
 
     esh_instance = esh_driver.get_instance(instance_id)
     if not esh_instance:

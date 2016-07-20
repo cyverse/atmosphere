@@ -9,7 +9,7 @@ from urlparse import urlparse
 from django.db.models import Max
 
 from django.db.models import ObjectDoesNotExist
-from novaclient.exceptions import OverLimit
+from rtwo.exceptions import NovaOverLimit
 from rtwo.exceptions import NeutronClientException
 from requests.exceptions import ConnectionError
 from hashlib import sha256
@@ -169,7 +169,7 @@ class AccountDriver(BaseAccountDriver):
                 logger.exception("Connection reset by peer. "
                                  "Waiting for one minute.")
                 time.sleep(60)  # Wait one minute
-            except OverLimit:
+            except NovaOverLimit:
                 logger.exception("OverLimit on POST requests. "
                                  "Waiting for one minute.")
                 time.sleep(60)  # Wait one minute
