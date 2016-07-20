@@ -14,8 +14,8 @@ from django.utils import timezone
 
 import pytz
 
-from rtwo.machine import MockMachine
-from rtwo.size import MockSize
+from rtwo.models.machine import MockMachine
+from rtwo.models.size import MockSize
 
 from threepio import logger
 
@@ -669,8 +669,8 @@ def convert_instance_source(
     """
     Given the instance source, create the appropriate core REPR and return
     """
-    from rtwo.volume import BaseVolume
-    from rtwo.machine import BaseMachine
+    from rtwo.models.volume import BaseVolume
+    from rtwo.models.machine import BaseMachine
     # TODO: Future Release..
     new_source = None
     if isinstance(esh_source, BaseVolume):
