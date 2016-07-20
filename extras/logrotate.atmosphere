@@ -12,7 +12,6 @@
 /opt/dev/atmosphere/logs/libcloud.log {
     su www-data www-data
     daily
-    size 100M
     rotate 10
     missingok
     compress

@@ -402,6 +402,10 @@ def user_deploy_failed(
         celery_logger.error(err_str)
         # Send deploy email
         _send_instance_email_with_failure(driverCls, provider, identity, instance_id, user.username, err_str)
+	# Update metadata on the instance
+        metadata={'tmp_status': 'user_deploy_error'}
+        update_metadata.s(driverCls, provider, identity, instance_id,
+                          metadata, replace_metadata=False).apply_async()
         celery_logger.debug("user_deploy_failed task finished at %s." % datetime.now())
         return err_str
     except Exception as exc:

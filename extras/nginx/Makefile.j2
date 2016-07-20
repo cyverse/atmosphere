@@ -3,7 +3,6 @@ BUNDLE_PATH={{ CERT_DIR }}/{{ BUNDLE_FILE }}
 CERT_PATH={{ CERT_DIR }}/{{ CERT_FILE }}
 COMBINED_CERT_PATH={{ CERT_DIR }}/{{ COMBINED_CERT_FILE }}
 DHPARAM={{ DHPARAM }}
-LEADERBOARD_URL={{ LEADERBOARD_URL }}
 LOCATIONS_DIR={{ LOCATIONS_DIR }}
 KEY_PATH={{ KEY_PATH }}/{{ KEY_FILE }}
 KEY_SIZE={{ KEY_SIZE }}
@@ -23,18 +22,16 @@ FLOWER_CONF_FILE=flower.conf
 FLOWER_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(FLOWER_CONF_FILE)
 JENKINS_CONF_FILE=jenkins.conf
 JENKINS_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(JENKINS_CONF_FILE)
-LB_CONF_FILE=lb.conf
-LB_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(LB_CONF_FILE)
 
 
-.PHONY: all clean restart test setup setup-site setup-atmo setup-flower setup-jenkins setup-lb deploy deploy-atmo deploy-flower deploy-jenkins deploy-lb unlink unlink-site unlink-atmo unlink-flower unlink-jenkins unlink-lb $(DHPARAM) $(COMBINED_CERT_PATH)
+.PHONY: all clean restart test setup setup-site setup-atmo setup-flower setup-jenkins deploy deploy-atmo deploy-flower deploy-jenkins unlink unlink-site unlink-atmo unlink-flower unlink-jenkins $(DHPARAM) $(COMBINED_CERT_PATH)
 
 all: deploy
 
 $(DHPARAM):
 	openssl dhparam -out $(DHPARAM) $(KEY_SIZE)
 
-setup: setup-site setup-atmo setup-flower setup-jenkins setup-lb
+setup: setup-site setup-atmo setup-flower setup-jenkins
 
 setup-site:
 	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/configure -c nginx:nginx-site
@@ -48,13 +45,10 @@ setup-flower:
 setup-jenkins:
 	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/configure -c nginx:nginx-jenkins
 
-setup-lb:
-	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/configure -c nginx:nginx-lb
-
 $(COMBINED_CERT_PATH):
 	cat $(CERT_PATH) $(BUNDLE_PATH) > $(COMBINED_CERT_PATH)
 
-deploy: $(COMBINED_CERT_PATH) $(DHPARAM) setup unlink deploy-atmo deploy-flower deploy-jenkins deploy-lb
+deploy: $(COMBINED_CERT_PATH) $(DHPARAM) setup unlink deploy-atmo deploy-flower deploy-jenkins
 	mkdir -p $(SITES_AVAILABLE_DIR)
 	mkdir -p $(SITES_ENABLED_DIR)
 	ln -fs $(ATMOSPHERE_PATH)/extras/nginx/site.conf $(SITES_AVAILABLE_DIR)/$(SITE_CONF_FILE)
@@ -73,11 +67,7 @@ deploy-jenkins:
 	mkdir -p $(LOCATIONS_DIR)
 	ln -fs $(JENKINS_CONF_PATH) $(LOCATIONS_DIR)/$(JENKINS_CONF_FILE)
 
-deploy-lb:
-	mkdir -p $(LOCATIONS_DIR)
-	ln -fs $(LB_CONF_PATH) $(LOCATIONS_DIR)/$(LB_CONF_FILE)
-
-unlink: unlink-site unlink-atmo unlink-flower unlink-jenkins unlink-lb
+unlink: unlink-site unlink-atmo unlink-flower unlink-jenkins
 
 unlink-site:
 	-rm $(SITES_ENABLED_DIR)/$(SITE_CONF_FILE)
@@ -92,9 +82,6 @@ unlink-flower:
 
 unlink-jenkins:
 	-rm $(LOCATIONS_DIR)/$(JENKINS_CONF_FILE)
-
-unlink-lb:
-	-rm $(LOCATIONS_DIR)/$(LB_CONF_FILE)
 
 test:
 	service nginx configtest
