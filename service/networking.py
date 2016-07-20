@@ -2,6 +2,8 @@
 Atmosphere network
 
 This file will help a driver infer the strategy to use when creating or destroying a "project network".
+
+For more information, see docs/NETWORKING.md
 """
 import random
 
