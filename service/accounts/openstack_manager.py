@@ -12,6 +12,7 @@ from django.db.models import ObjectDoesNotExist
 from novaclient.exceptions import OverLimit
 from neutronclient.common.exceptions import NeutronClientException, NotFound
 from requests.exceptions import ConnectionError
+from hashlib import sha256
 
 from threepio import logger
 from rtwo.drivers.common import _connect_to_openstack_sdk
@@ -27,7 +28,7 @@ from service.accounts.base import BaseAccountDriver
 from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
 
 from atmosphere.settings.secrets import SECRET_SEED
-from atmosphere.settings import DEFAULT_PASSWORD_LOOKUP, DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
+from atmosphere.settings import DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
 
 
 class AccountDriver(BaseAccountDriver):
@@ -577,57 +578,20 @@ class AccountDriver(BaseAccountDriver):
             self.user_manager.delete_user(username)
         return True
 
-    def hashpass(self, username, strategy=None):
+    def hashpass(self, username):
         """
-        Create a unique password using 'Username' as the wored
-        and the SECRET_KEY as your salt
+        Create a unique password using 'username'
         """
-        # Get salt from config or settings
-        try:
-            secret_salt = self.cloud_config['user']['password_salt']
-        except KeyError:
-            logger.warn("Cloud config ['user']['password_salt'] is missing -- using deprecated secrets.SECRET_SEED")
-            secret_salt = SECRET_SEED
-        if not secret_salt:
-            raise ValueError("The secret salt was not defined -- Password cannot be hashed")
+        cloud_pass = self.cloud_config['user'].get("secret")
 
-        secret_salt = str(secret_salt).translate(None, string.punctuation)
+        if not cloud_pass or len(cloud_pass) < 32:
+            raise ValueError("Cloud config ['user']['secret'] is required and " +
+                    "must be of length 32 or more")
 
-        # Get strategy from config or settings
-        if not strategy:
-            try:
-                strategy = self.cloud_config['user']['password_lookup']
-            except KeyError:
-                logger.warn("Cloud config ['user']['password_lookup'] is missing -- using deprecated settings.DEFAULT_PASSWORD_LOOKUP")
-                strategy = DEFAULT_PASSWORD_LOOKUP
+        if not username:
+            raise ValueError("Missing username, cannot create hash")
 
-        if not strategy\
-                or strategy == 'crypt_hashpass':
-            return self.crypt_hashpass(username, secret_salt)
-        elif strategy == 'salt_hashpass':
-            return self.salt_hashpass(username)
-        else:
-            raise ValueError(
-                "Invalid DEFAULT_PASSWORD_LOOKUP: %s"
-                % DEFAULT_PASSWORD_LOOKUP)
-
-    def salt_hashpass(self, username, secret_salt):
-        from hashlib import sha256
-        if not secret_salt:
-            secret_salt = SECRET_SEED.translate(None, string.punctuation)
-        password = sha256(secret_salt + username).hexdigest()
-        if not password:
-            raise Exception("Failed to hash password, check the secret_salt")
-        return password
-
-    def crypt_hashpass(self, username, secret_salt):
-        import crypt
-        if not secret_salt:
-            secret_salt = SECRET_SEED.translate(None, string.punctuation)
-        password = crypt.crypt(username, secret_salt)
-        if not password:
-            raise Exception("Failed to hash password, check the secret_salt")
-        return password
+        return sha256(username + cloud_pass).hexdigest()
 
     def get_project_name_for(self, username):
         """

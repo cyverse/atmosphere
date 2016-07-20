@@ -302,21 +302,16 @@ def set_user_config(user_config):
         print "What is the domain name for your provider? (Default: default)"
         domain = require_input("domain name for the provider: ", default='default')
 
-    #get/set password_lookup
-    password_lookup = user_config.get('password_lookup')
-    password_salt = user_config.get('password_salt')
-    print "password_lookup function allows your account driver to auto-generate passwords (and passwords previously created) for a given set of user information."
-    if not password_lookup:
-        print "What password lookup function should be used for your provider? (Default: salt_hashpass)"
-        password_lookup = require_input("password lookup for the provider: ", default='salt_hashpass')
-    if not password_salt:
-        password_salt = require_input("What salt should be used for the password lookup?: (Default: See <secrets.SECRET_SEED>)", default=secrets.SECRET_SEED)
+    secret = user_config.get('secret')
+    if not secret or len(secret) < 32:
+        secret = require_input("What secret would you like to use to create " +
+                "user accounts? (32 character minimum) ",
+                lambda answer: len(answer) >= 32)
     user_config.update({
         'admin_role_name': admin_role_name,
         'user_role_name': user_role_name,
         'domain': domain,
-        'password_lookup': password_lookup,
-        'password_salt': password_salt
+        'secret': secret,
     })
     return user_config
 
