@@ -1,50 +1,36 @@
 {
-  "network": {
-    "dns_nameservers": [
-      "8.8.8.8",
-      "8.8.4.4"
-    ],
-    "default_security_rules": [
-      [
-        "ICMP",
-        -1,
-        -1
-      ],
-      [
-        "UDP",
-        20,
-        20
-      ],
-      [
-        "TCP",
-        20,
-        21
-      ],
-      [
-        "TCP",
-        22,
-        23
-      ],
-      [
-        "UDP",
-        22,
-        23
-      ],
-      [
-        "TCP",
-        80,
-        80
-      ],
-    ],
-    "topology": "External Router Topology"
+  "admin": {
+      "username": "username",
+      "password": "password",
+      "tenant": "tenantName"
   },
-  "user": {
-    "admin_role_name": "admin",
-    "user_role_name": "_member_",
-    "domain": "default",
-    "secret": "<SECRET REDACTED>"
+  "credential": {
+      "admin_url": "http://path.to.cloud:port",
+      "auth_url": "http://path.to.cloud:port",
+      "public_routers": "public_router",
+      "network_name": "",
+      "region_name": "RegionName",
+      "ex_force_auth_version": "2.0_password"
   },
-  "deploy": {
-    "hostname_format": "vm%(three)s-%(four)s.iplantc.org"
+  "provider": {
+      "public": true
+  },
+  "cloud_config": {
+    "network": {
+      "dns_nameservers": [
+        "8.8.8.8",
+        "8.8.4.4"
+      ],
+      "topology": "External Router Topology"
+    },
+    "user": {
+      "admin_role_name": "admin",
+      "user_role_name": "_member_",
+      "domain": "default",
+      "secret": "<REDACTED>"
+    },
+    "deploy": {
+      "hostname_format": "vm%(three)s-%(four)s.iplantc.org"
+    }
   }
 }

@@ -334,7 +334,7 @@ def get_provider_credentials(credential_info={}):
         print "List the public routers available for the provider, comma-separated. (Ex: public-router,atmosphere-router -- NOTE: If you are using one-user-per-router, this value will be ignored))"
         credential_info['public_routers'] = require_input("List of public routers (comma-separated): ", get_comma_list, blank=True)
 
-    if not credential_info.get('network_name'):
+    if 'network_name' not in credential_info:
         print "The external/public network that will Atmosphere instances will connect to in order to communicate. (NOTE: If you are *NOT* using one-user-per-router (One-user-per-network), this value will be ignored.)"
         credential_info['network_name'] = require_input("External network name: ", blank=True)
 
