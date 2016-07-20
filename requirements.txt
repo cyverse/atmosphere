@@ -34,5 +34,5 @@ uWSGI==2.0.13
 chromogenic==0.3.0
 django-iplant-auth==0.1.14
 threepio==0.2.0
-rtwo==0.4.3
+rtwo==0.4.4
 subspace==0.2.5
