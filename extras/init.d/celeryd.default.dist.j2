@@ -102,13 +102,13 @@ CELERYD_FLOWER="$FLOWER_BIN"
 {% if FLOWER_AUTH_SCHEME == "basic" %}
 ADMIN_USER="{{ FLOWER_BASIC_USERNAME }}"
 ADMIN_PASS="{{ FLOWER_BASIC_PASSWORD }}"
-FLOWER_AUTH_OPT="--basic_auth=$ADMIN_USER:$ADMIN_PASS"
+FLOWER_AUTH_OPT="--app=$CELERY_APP --basic_auth=$ADMIN_USER:$ADMIN_PASS"
 {% elif FLOWER_AUTH_SCHEME == "google" %}
 OAUTH2_ACCESS_LIST="{{ FLOWER_EMAIL_ACCESS_LIST }}"
 OAUTH2_CLIENT_ID="{{ FLOWER_OAUTH2_CLIENT_ID }}"
 OAUTH2_CLIENT_SECRET="{{ FLOWER_OAUTH2_CLIENT_SECRET }}"
 OAUTH2_REDIRECT_URI="{{ FLOWER_OAUTH2_REDIRECT_URI }}"
-FLOWER_AUTH_OPT="--auth=$OAUTH2_ACCESS_LIST --oauth2_key=$OAUTH2_CLIENT_ID --oauth2_secret=$OAUTH2_CLIENT_SECRET --oauth2_redirect_uri=$OAUTH2_REDIRECT_URI --auth_provider=flower.views.auth.GoogleAuth2LoginHandler"
+FLOWER_AUTH_OPT="--app=$CELERY_APP --auth=$OAUTH2_ACCESS_LIST --oauth2_key=$OAUTH2_CLIENT_ID --oauth2_secret=$OAUTH2_CLIENT_SECRET --oauth2_redirect_uri=$OAUTH2_REDIRECT_URI --auth_provider=flower.views.auth.GoogleAuth2LoginHandler"
 {% else %}
 {% endif %}
 #Include the atmosphere app when calling flower

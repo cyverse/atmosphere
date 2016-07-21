@@ -95,7 +95,8 @@ class LoggedScriptDeployment(ScriptDeployment):
 
 def ansible_deployment(
     instance_ip, username, instance_id, playbooks_dir,
-    limit_playbooks=[], limit_hosts={}, extra_vars={}):
+    limit_playbooks=[], limit_hosts={}, extra_vars={},
+    raise_exception=True):
     """
     Use service.ansible to deploy to an instance.
     """
@@ -123,7 +124,8 @@ def ansible_deployment(
     pbs = execute_playbooks(
         playbooks_dir, host_file, extra_vars, limit_hosts,
         logger=logger, limit_playbooks=limit_playbooks)
-    raise_playbook_errors(pbs, instance_ip, hostname)
+    if raise_exception:
+        raise_playbook_errors(pbs, instance_ip, hostname)
     return pbs
 
 
@@ -170,7 +172,7 @@ def user_deploy(instance_ip, username, instance_id):
 
 
 def run_utility_playbooks(instance_ip, username, instance_id,
-                          limit_playbooks=[]):
+                          limit_playbooks=[], raise_exception=True):
     """
     Use service.ansible to deploy utility_playbooks to an instance.
     'limit_playbooks' is a list of strings
@@ -179,7 +181,8 @@ def run_utility_playbooks(instance_ip, username, instance_id,
     """
     playbooks_dir = os.path.join(settings.ANSIBLE_PLAYBOOKS_DIR, 'utils')
     return ansible_deployment(
-        instance_ip, username, instance_id, playbooks_dir, limit_playbooks)
+        instance_ip, username, instance_id, playbooks_dir, limit_playbooks,
+	 raise_exception=raise_exception)
 
 
 def select_install_playbooks(install_action):

@@ -24,9 +24,16 @@ def unresolved_requests_only(fn):
     @wraps(fn)
     def wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
-        user_can_act = request.user.is_staff or request.user.is_superuser or CloudAdministrator.objects.filter(user=request.user.id).exists()
-        #TODO: Logic needs 're-worked' here. MachineRequests in 'non-final' states should be allowed to be PATCH'ed for re-submission.
-        if (not user_can_act and hasattr(instance, "is_closed") and instance.is_closed()):
+        staff_can_act = request.user.is_staff or request.user.is_superuser or CloudAdministrator.objects.filter(user=request.user.id).exists()
+        user_can_act = request.user == getattr(instance, 'created_by')
+        if not user_can_act and not staff_can_act:
+            message = (
+                "Method '%s' not allowed: "
+                "Only staff members and the owner are authorized to make this request."
+                % self.request.method
+            )
+            raise exceptions.NotAuthenticated(detail=message)
+        if hasattr(instance, "is_closed" and instance.is_closed()):
             message = (
                 "Method '%s' not allowed: "
                 "the request has already been resolved."
@@ -157,8 +164,24 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
     @unresolved_requests_only
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            message = {
+                "An error was encoutered when closing the request: %s" % e.message
+            }
+            logger.exception(e)
+            raise exceptions.ParseError(detail=message)
+
+    def perform_destroy(self, instance):
+        """
+        Add an end date to a request and take no further action
+        """
+        status, _ = StatusType.objects.get_or_create(name="closed")
+        instance.status = status
+        instance.end_date = timezone.now()
+        instance.save()
 
     def perform_update(self, serializer):
         """
