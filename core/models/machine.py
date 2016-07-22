@@ -4,6 +4,7 @@
 from hashlib import md5
 import json
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist as DoesNotExist
@@ -55,6 +56,38 @@ class ProviderMachine(BaseSource):
         return ProviderMachine.objects.filter(
             instance_source__identifier=identifier,
             instance_source__provider=provider).count()
+
+    @classmethod
+    def _split_cloud_name(cls, machine_name):
+        version_sep = settings.APPLICATION_VERSION_SEPARATOR
+        if version_sep in machine_name:
+            split_list = machine_name.split(version_sep)
+
+        if len(split_list) == 1:
+            logger.warn(
+                "Version separator(%s) was not found: %s"
+                % (version_sep, machine_name))
+            split_list = [split_list[0].trim(), '']
+
+        if len(split_list) > 2:
+            logger.warn(
+                "Version separator(%s) is ambiguous: %s"
+                % (version_sep, machine_name))
+            version_parts = machine_name.rpartition(version_sep)
+            split_list = [version_parts[0].trim(), version_parts[2].trim()]
+        return split_list
+
+    def generated_name(self):
+        application = self.application
+        version = self.application_version
+        if not application:
+            raise ValueError("Application is None")
+        if not version:
+            raise ValueError("Version is None")
+        return "%s %s%s" % (
+            application.name,
+            settings.APPLICATION_VERSION_SEPARATOR,
+            version.name),
 
     def is_owner(self, atmo_user):
         return (self.application_version.created_by == atmo_user or

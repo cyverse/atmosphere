@@ -241,11 +241,16 @@ DEFAULT_RULES = [
     ("TCP", 4200, 4200, u"129.114.104.5/32"),
     ("UDP", 4200, 4200, u"129.114.104.5/32")
 ]
-# Stops 500 errors when logs are missing.
-# NOTE: If the permissions are wrong, this won't help
+# ATMOSPHERE NAMING CONVENTIONS
+# NOTE: If these values are overriden often, make this configurable
+APPLICATION_VERSION_SEPARATOR = "v."
 
 
 def check_and_touch(file_path):
+    """
+    Stops 500 errors when logs are missing.
+    NOTE: If the permissions are wrong, this won't help
+    """
     if os.path.exists(file_path):
         return
     parent_dir = os.path.dirname(file_path)
