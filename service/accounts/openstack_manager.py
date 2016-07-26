@@ -66,6 +66,11 @@ class AccountDriver(BaseAccountDriver):
             all_creds = self._init_by_provider(provider, *args, **kwargs)
         else:
             all_creds = kwargs
+        if 'cloud_config' in all_creds:
+            self.cloud_config = all_creds['cloud_config']
+        if not self.cloud_config:
+            self.cloud_config = {}
+
         if 'location' in all_creds:
             self.namespace = "Atmosphere_OpenStack:%s" % all_creds['location']
         else:
@@ -582,8 +587,12 @@ class AccountDriver(BaseAccountDriver):
         """
         Create a unique password using 'username'
         """
+        #FIXME: Remove these lines when crypt_hashpass is no longer used.
+        if self.cloud_config.get('user', {}).get('strategy','') == 'crypt':
+            return self.crypt_hashpass(username)
+
         try:
-            cloud_pass = self.cloud_config['user'].get("secret")
+            cloud_pass = self.cloud_config.get('user',{}).get("secret")
         except KeyError, TypeError:
             cloud_pass = None
 
@@ -595,6 +604,19 @@ class AccountDriver(BaseAccountDriver):
             raise ValueError("Missing username, cannot create hash")
 
         return sha256(username + cloud_pass).hexdigest()
+
+    def crypt_hashpass(self, username):
+        """
+        Create a unique password using 'username'
+        """
+        import crypt
+        try:
+            cloud_pass = self.cloud_config.get('user',{}).get("secret")
+        except KeyError, TypeError:
+            cloud_pass = None
+        secret_salt = str(cloud_pass).translate(None, string.punctuation)
+        password = crypt.crypt(username, secret_salt)
+        return password
 
     def get_project_name_for(self, username):
         """
