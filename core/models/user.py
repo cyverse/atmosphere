@@ -32,8 +32,9 @@ class AtmosphereUser(AbstractUser):
 
         """
         # iPlant way:
+        # FIXME: I think this is an 'old' way of doing things? perhaps not.
         if 'jetstream' in settings.INSTALLED_APPS:
-            return self._jetstream_valid()
+            return True#return self._jetstream_valid()
         else:
             return self._iplant_valid()
 
