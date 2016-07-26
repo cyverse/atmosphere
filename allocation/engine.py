@@ -91,6 +91,8 @@ def calculate_allocation(allocation, print_logs=False):
             # "Chatty" Warning - Uncomment at your own risk
             # logger.debug("> > Calculating Instance history:%s"
             #             % instance.identifier)
+            if not instance:
+                continue
             history_list = _calculate_instance_history_list(
                 instance, instance_rules,
                 current_period.start_counting_date,
