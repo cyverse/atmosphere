@@ -753,10 +753,12 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
 def _exit_stdout_logging(consolehandler):
     celery_logger.removeHandler(consolehandler)
 
-def _init_stdout_logging():
+def _init_stdout_logging(logger=None):
+    if not logger:
+        logger = celery_logger
     import logging
     import sys
     consolehandler = logging.StreamHandler(sys.stdout)
     consolehandler.setLevel(logging.DEBUG)
-    celery_logger.addHandler(consolehandler)
+    logger.addHandler(consolehandler)
     return consolehandler

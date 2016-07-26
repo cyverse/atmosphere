@@ -115,6 +115,12 @@ def get_allocation_result_for(
     * Create 'Allocation' using core representation
     * Calculate the 'AllocationResult' and return both
     """
+    #FIXME: Remove this after debug testing is complete
+    if print_logs:
+        from service.tasks.monitoring import _init_stdout_logging, _exit_stdout_logging
+        console_handler = _init_stdout_logging(logger)
+    #ENDFIXME: Remove this after debug testing is complete
+
     identity = _get_identity_from_tenant_name(provider, username)
     # Attempt to run through the allocation engine
     try:
@@ -134,6 +140,11 @@ def get_allocation_result_for(
         logger.exception("Unable to monitor Identity:%s"
                          % (identity,))
         raise
+    #FIXME: Remove this after debug testing is complete
+    else:
+        if print_logs:
+            _exit_stdout_logging(console_handler)
+    #ENDFIXME: Remove this after debug testing is complete
 
 
 def user_over_allocation_enforcement(
