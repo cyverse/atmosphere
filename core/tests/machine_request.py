@@ -1,9 +1,13 @@
-from django.test import TestCase
-from django.utils import unittest
-from uuid import uuid4
 from dateutil.relativedelta import relativedelta
-from django.utils.timezone import datetime
+from uuid import uuid4
+
+import unittest
+
 import pytz
+
+from django.test import TestCase
+from django.utils.timezone import datetime
+
 from core.tests.helpers import CoreProviderMachineHelper, CoreMachineRequestHelper, CoreInstanceHelper
 from service.machine import process_machine_request
 
