@@ -124,6 +124,13 @@ API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
 AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
 DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 
+# FIXME: j2-ify this...
+VALIDATION_PLUGINS = (
+    #'jetstream.plugins.auth.validation.XsedeProjectRequired',
+    'atmosphere.plugins.auth.validation.LDAPGroupRequired',
+    #'atmosphere.plugins.auth.validation.AlwaysAllow',
+)
+
 # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
