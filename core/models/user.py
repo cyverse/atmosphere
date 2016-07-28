@@ -1,4 +1,5 @@
 import uuid
+import inspect
 
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -6,7 +7,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
-
+from core.plugins import load_validation_plugins
 from threepio import logger
 
 
@@ -25,6 +26,28 @@ class AtmosphereUser(AbstractUser):
         identity = self.select_identity()
         identity_member = identity.identity_memberships.all()[0]
         return identity_member.quota
+
+    def is_valid(self):
+        """
+        """
+        _is_valid = False
+        #FIXME: This pattern is probably better served in a Manager, to be called by this function..
+        for ValidationPlugin in load_validation_plugins():
+            plugin = ValidationPlugin()
+            try:
+                inspect.getcallargs(
+                    getattr(plugin,'validate_user'),
+                    user=self)
+            except AttributeError:
+                logger.info("Validation plugin %s does not have a 'validate_user' method"
+                            % ValidationPlugin)
+            except TypeError:
+                logger.info("Validation plugin %s does not accept (self, user)"
+                            % ValidationPlugin)
+            _is_valid = plugin.validate_user(user=self)
+            if _is_valid:
+                break
+        return _is_valid
 
     @property
     def is_enabled(self):
