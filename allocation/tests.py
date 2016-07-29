@@ -18,8 +18,9 @@ from dateutil.relativedelta import relativedelta
 import pytz
 
 from django.test import TestCase
-from django.utils import unittest
 from django.utils.timezone import datetime, timedelta
+
+import unittest
 
 from allocation import engine, validate_interval
 from allocation.models import Provider, Machine, Size, Instance,\

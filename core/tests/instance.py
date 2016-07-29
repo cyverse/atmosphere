@@ -1,6 +1,7 @@
 from django.core.urlresolvers import reverse
 from django.test import TestCase
-from django.utils import unittest
+
+import unittest
 
 from dateutil.relativedelta import relativedelta
 from django.utils.timezone import datetime
