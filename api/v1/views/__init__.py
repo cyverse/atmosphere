@@ -14,6 +14,7 @@ from api.v1.views.instance import InstanceList, Instance,\
     InstanceAction, InstanceHistory, InstanceHistoryDetail,\
     InstanceStatusHistoryDetail, InstanceTagList, InstanceTagDetail
 from api.v1.views.instance_action import InstanceActionList, InstanceActionDetail
+from api.v1.views.instance_query import ip_request
 from api.v1.views.license import LicenseList, License
 from api.v1.views.machine import MachineList, Machine, MachineHistory,\
     MachineSearch, MachineIcon, MachineLicense
@@ -36,6 +37,7 @@ from api.v1.views.size import SizeList, Size
 from api.v1.views.hypervisor import HypervisorList, HypervisorDetail
 from api.v1.views.tag import TagList, Tag
 from api.v1.views.token import TokenEmulate
+from api.v1.views.resources import get_resource
 from api.v1.views.volume import BootVolume,\
     VolumeSnapshot, VolumeSnapshotDetail,\
     VolumeList, Volume
