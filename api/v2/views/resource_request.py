@@ -6,6 +6,7 @@ from django.utils import timezone
 from api.v2.serializers.details import ResourceRequestSerializer,\
     UserResourceRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
+from api.pagination import OptionalPagination
 from core import tasks
 from service.tasks import admin as admin_task
 
@@ -18,6 +19,7 @@ class ResourceRequestViewSet(BaseRequestViewSet):
     queryset = ResourceRequest.objects.none()
     model = ResourceRequest
     serializer_class = UserResourceRequestSerializer
+    pagination_class = OptionalPagination
     admin_serializer_class = ResourceRequestSerializer
     filter_fields = ('status__id', 'status__name', 'created_by__username')
 
