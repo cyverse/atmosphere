@@ -2,7 +2,7 @@
 """
 Routes for api v2 endpoints
 """
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 from rest_framework import routers
 from api.v2 import views
 from api.base import views as base_views
@@ -84,4 +84,4 @@ router.register(r'deploy_version', base_views.DeployVersionViewSet,
                 base_name='version-deploy')
 
 api_v2_urls = router.urls
-urlpatterns = patterns('', url(r'^', include(api_v2_urls)),)
+urlpatterns = [url(r'^', include(api_v2_urls))]

@@ -2,7 +2,7 @@
 """
 Routes for api v1 endpoints
 """
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 from rest_framework.urlpatterns import format_suffix_patterns
 
@@ -19,8 +19,7 @@ provider_specific = r'^provider/(?P<provider_uuid>%s)' % uuid_match
 identity_specific = provider_specific +\
     r'/identity/(?P<identity_uuid>%s)' % uuid_match
 
-urlpatterns = format_suffix_patterns(patterns(
-    '',
+urlpatterns = format_suffix_patterns([
     # E-mail API
     url(r'^email/feedback', views.Feedback.as_view()),
     url(r'^email/support', views.SupportEmail.as_view()),
@@ -28,11 +27,11 @@ urlpatterns = format_suffix_patterns(patterns(
 
     # TODO: Deprecate this if it isn't going to be used.
     # instance service (Calls from within the instance)
-    url(r'^instancequery/', 'api.v1.views.ip_request'),
+    url(r'^instancequery/', views.ip_request),
 
     # File Retrieval:
     # static files
-    url(r'^init_files/(?P<file_location>.*)$', 'api.v1.views.get_resource'),
+    url(r'^init_files/(?P<file_location>.*)$', views.get_resource),
     # boot_script Related APIs
     url(r'^boot_script$',
         views.BootScriptList.as_view(),
@@ -276,4 +275,5 @@ urlpatterns = format_suffix_patterns(patterns(
         name='identity-membership-list'),
     url(identity_specific + r'/members/(?P<group_name>%s)$' % user_match,
         views.IdentityMembership.as_view(),
-        name='identity-membership-detail')))
+        name='identity-membership-detail')
+])

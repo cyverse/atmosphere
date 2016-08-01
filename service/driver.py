@@ -93,7 +93,7 @@ def get_admin_driver(provider):
         return None
 
 
-def get_account_driver(provider):
+def get_account_driver(provider, raise_exception=False):
     """
     Create an account driver for a given provider.
     """
@@ -116,6 +116,8 @@ def get_account_driver(provider):
             provider_str = "Provider %s" % provider.location
         logger.exception("Account driver for provider %s not found." %
                          (provider_str))
+        if raise_exception:
+            raise
         return None
 
 

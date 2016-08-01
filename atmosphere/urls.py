@@ -2,19 +2,15 @@
 """
 Routes for the atmosphere application
 """
-import os
-
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf import settings
-from django.conf.urls import patterns, url, include
-
+from django.conf.urls import url, include
+from rest_framework.authtoken.views import ObtainAuthToken
 from api.auth import Authentication
 admin.autodiscover()
 
-urlpatterns = patterns(
-    '',
-
+urlpatterns = [
     # Core endpoints
     url(r'', include("core.urls", namespace="core")),
 
@@ -33,10 +29,11 @@ urlpatterns = patterns(
 
     # Token login (Used internally by DRF?)
     url(r'^api-token-auth/',
-        'rest_framework.authtoken.views.obtain_auth_token'),
+        ObtainAuthToken.as_view()),
 
     # DB Admin Panel for admin users
-    url(r'^admin/', include(admin.site.urls)))
+    url(r'^admin/', include(admin.site.urls))
+]
 
 
 if settings.DEBUG and 'debug_toolbar.middleware.DebugToolbarMiddleware' in settings.MIDDLEWARE_CLASSES:

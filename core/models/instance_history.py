@@ -44,7 +44,7 @@ class InstanceStatusHistory(models.Model):
     def get_total_hours(self):
         from service.monitoring import _get_allocation_result
         identity = self.instance.created_by_identity
-        history_list = self._base_manager.filter(id=self.id)
+        history_list = self.__class__.objects.filter(id=self.id)
         limit_history = [hist.id for hist in history_list]
         limit_instances = [self.instance.provider_alias]
         result = _get_allocation_result(
