@@ -12,7 +12,7 @@ def update_status_types(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('core', '0053_expand_quota_pt2')
+        ('core', '0055_update_username_validators')
     ]
 
     operations = [

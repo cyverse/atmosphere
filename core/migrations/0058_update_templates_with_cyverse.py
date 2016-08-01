@@ -16,7 +16,7 @@ def try_update_iplant_to_cyverse(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0054_rename_status_types'),
+        ('core', '0057_allow_non_unique_allocation_pair'),
     ]
 
     operations = [
