@@ -194,6 +194,14 @@ class ProviderCredentialInline(admin.TabularInline):
     model = models.ProviderCredential
     extra = 1
 
+@admin.register(models.EventTable)
+class EventTableAdmin(admin.ModelAdmin):
+    search_fields = ["agg_id", "name"]
+    list_display = ["uuid", "agg_id", "name", "payload", "timestamp"]
+    list_filter = ["agg_id", "name"]
+
+     
+
 
 @admin.register(models.Provider)
 class ProviderAdmin(admin.ModelAdmin):

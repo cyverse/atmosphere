@@ -12,6 +12,7 @@ from core.models.application_version import ApplicationVersion, ApplicationVersi
 from core.models.cloud_admin import CloudAdministrator
 from core.models.credential import Credential, ProviderCredential
 from core.models.export_request import ExportRequest
+from core.models.event_table import EventTable
 from core.models.group import Group, IdentityMembership,\
     InstanceMembership, Leadership
 from core.models.identity import Identity
