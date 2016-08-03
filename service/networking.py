@@ -160,7 +160,7 @@ class GenericNetworkTopology(object):
         if not success or not cidr:
             raise Exception("Unable to create subnet for user: %s" % username)
 
-    def get_or_create_router(self, network_driver, user_neutron, router_name, subnet):
+    def get_or_create_router(self, network_driver, user_neutron, router_name):
         router = network_driver.create_router(
             user_neutron, router_name)
         return router
