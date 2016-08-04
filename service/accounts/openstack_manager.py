@@ -161,7 +161,7 @@ class AccountDriver(BaseAccountDriver):
                     try:
                         role_name = self.cloud_config['user']['user_role_name']
                     except KeyError, TypeError:
-                        logger.warn("Cloud config ['user']['user_role_name'] is missing -- using deprecated settings.DEFAULT_KEYSTONE_ROLE")
+                        logger.error("Cloud config ['user']['user_role_name'] is missing -- using deprecated settings.DEFAULT_KEYSTONE_ROLE")
                         role_name = settings.DEFAULT_KEYSTONE_ROLE
                 self.user_manager.add_project_membership(
                     project_name, username, role_name)# , domain_name)
@@ -243,7 +243,7 @@ class AccountDriver(BaseAccountDriver):
         try:
             rules_list = core_identity.provider.cloud_config['network']['default_security_rules']
         except KeyError, TypeError:
-            logger.warn("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
+            logger.error("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
             rules_list = DEFAULT_RULES
         identity_creds = self.parse_identity(core_identity)
         username = identity_creds["username"]
@@ -368,7 +368,7 @@ class AccountDriver(BaseAccountDriver):
             try:
                 rules_list = self.cloud_config['network']['default_security_rules']
             except KeyError, TypeError:
-                logger.warn("Cloud config ['network']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
+                logger.error("Cloud config ['network']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
                 rules_list = DEFAULT_RULES
         return self.user_manager.build_security_group(
             creds["username"], creds["password"], creds["tenant_name"],
@@ -447,6 +447,7 @@ class AccountDriver(BaseAccountDriver):
         """
         # Select Cls
         if not topology_name:
+            logger.info("Selecting default topology - ExternalRouter")
             NetworkTopologyStrategyCls = ExternalRouter
         else:
             NetworkTopologyStrategyCls = get_topology_cls(topology_name)
@@ -480,7 +481,7 @@ class AccountDriver(BaseAccountDriver):
         try:
             topology_name = self.cloud_config['network']['topology']
         except KeyError, TypeError:
-            logger.exception(
+            logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
             topology_name = None
@@ -526,7 +527,7 @@ class AccountDriver(BaseAccountDriver):
         try:
             topology_name = self.cloud_config['network']['topology']
         except KeyError, TypeError:
-            logger.exception(
+            logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
             topology_name = None
