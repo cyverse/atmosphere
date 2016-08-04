@@ -5,7 +5,7 @@ from api.v2.views.mixins import MultipleFieldLookup
 from api.v2.views.instance_action import InstanceActionViewSet
 
 from core.exceptions import ProviderNotActive
-from core.models import Instance, Identity
+from core.models import Instance, Identity, AllocationSource, EventTable
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
 from core.models.instance_action import InstanceAction
@@ -202,6 +202,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         identity_uuid = data.get('identity')
         source_alias = data.get('source_alias')
         size_alias = data.get('size_alias')
+        allocation_source_id = data.get('allocation_source_id')
         if not name:
             error_map['name'] = "This field is required."
         if not identity_uuid:
@@ -210,6 +211,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             error_map['source_alias'] = "This field is required."
         if not size_alias:
             error_map['size_alias'] = "This field is required."
+        if not allocation_source_id:
+            error_map['allocation_source_id'] = "This field is required."
 
         if error_map:
             raise Exception(error_map)
@@ -241,11 +244,13 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         identity_uuid = data.get('identity')
         source_alias = data.get('source_alias')
         size_alias = data.get('size_alias')
+        allocation_source_id = data.get('allocation_source_id')
         boot_scripts = data.pop("scripts", [])
         deploy = data.get('deploy')
         extra = data.get('extra')
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
+            allocation_source = AllocationSource.objects.get(source_id=allocation_source_id)
             core_instance = launch_instance(
                 user, identity_uuid, size_alias, source_alias, name, deploy,
                 **extra)
@@ -259,6 +264,14 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             instance = serialized_instance.save()
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
+            payload = {
+                    'allocation_source_id': allocation_source.source_id,
+                    'instance_id': instance.provider_alias
+            }
+            EventTable.create_event(
+                "instance_allocation_source_changed",
+                payload,
+                user.username)
             return Response(
                 serialized_instance.data, status=status.HTTP_201_CREATED)
         except UnderThresholdError as ute:

@@ -3,7 +3,6 @@
 from __future__ import unicode_literals
 
 from django.conf import settings
-import django.contrib.auth.validators
 from django.db import migrations, models
 import django.db.models.deletion
 
@@ -51,11 +50,6 @@ class Migration(migrations.Migration):
             options={
                 'db_table': 'user_allocation_burn_rate_snapshot',
             },
-        ),
-        migrations.AlterField(
-            model_name='atmosphereuser',
-            name='username',
-            field=models.CharField(error_messages={'unique': 'A user with that username already exists.'}, help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.', max_length=150, unique=True, validators=[django.contrib.auth.validators.ASCIIUsernameValidator()], verbose_name='username'),
         ),
         migrations.AddField(
             model_name='userallocationburnratesnapshot',

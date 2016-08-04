@@ -49,7 +49,7 @@ def listen_for_allocation_snapshot_changes(sender, instance, created, **kwargs):
 def listen_for_user_burn_rate_changes(sender, instance, created, **kwargs):
     """
     This listener expects:
-    EventType - 'instance_allocation_source_changed'
+    EventType - 'user_burn_rate_changed'
     EventPayload - {
         "allocation_source_id": "37623",
         "username":"sgregory",

@@ -7,16 +7,6 @@ class AllocationSource(models.Model):
     source_id = models.CharField(max_length=255)
     compute_allowed = models.IntegerField()
 
-    # The remaining fields will be 'derived' or 'materialized' from a separate view of the 'events' class
-    """
-    1. Filter down the EventTable to the *user* who matches agg_id and order by _pk_
-    2. start 'reading' the stream from the beginning.
-    3. Feed this into the engine
-    4. Return the result
-    Working of this as ref: http://romscodecorner.blogspot.com/2015/02/experimenting-with-event-sourcing-3.html
-    and https://github.com/rtouze/event_sourcing_example
-    """
-
     def __unicode__(self):
         return "%s (ID:%s, Compute Allowed:%s)" %\
             (self.name, self.source_id,
