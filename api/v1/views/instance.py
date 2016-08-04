@@ -8,6 +8,7 @@ from threepio import logger
 
 from core.exceptions import ProviderNotActive
 from core.models import AtmosphereUser as User
+from core.models.allocation_source import AllocationSource
 from core.models.identity import Identity
 from core.models.instance import convert_esh_instance
 from core.models.instance import Instance as CoreInstance
@@ -156,6 +157,7 @@ class InstanceList(AuthAPIView):
             return keys_not_found(missing_keys)
         # Pass these as args
         size_alias = data.pop("size_alias")
+        allocation_source_id = data.pop("allocation_source_id")
         machine_alias = data.pop("machine_alias")
         hypervisor_name = data.pop("hypervisor", None)
         if hypervisor_name:
@@ -170,6 +172,8 @@ class InstanceList(AuthAPIView):
         boot_scripts = data.pop("scripts", [])
         try:
             logger.debug(data)
+            allocation_source = AllocationSource.objects.get(
+                source_id=allocation_source_id)
             core_instance = launch_instance(
                 user, identity_uuid,
                 size_alias, machine_alias,
@@ -201,6 +205,7 @@ class InstanceList(AuthAPIView):
             instance = serializer.save()
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
+            instance.change_allocation_source(allocation_source)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,
