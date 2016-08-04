@@ -1,4 +1,5 @@
 # flake8: noqa
+from .allocation_source import AllocationSourceSerializer
 from .boot_script import BootScriptSerializer
 from .credential import CredentialSerializer
 from .email_template import EmailTemplateSerializer

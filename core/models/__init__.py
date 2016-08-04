@@ -5,7 +5,9 @@ Collection of models
 """
 from django.db.models import ObjectDoesNotExist
 from core.models.allocation_strategy import Allocation, AllocationStrategy
-from core.models.allocation_source import AllocationSource, UserAllocationSource
+from core.models.allocation_source import (
+        AllocationSource, UserAllocationSource, UserAllocationBurnRateSnapshot,
+        InstanceAllocationSourceSnapshot, AllocationSourceSnapshot)
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark, ApplicationThreshold
 from core.models.application_tag import ApplicationTag
@@ -13,7 +15,6 @@ from core.models.application_version import ApplicationVersion, ApplicationVersi
 from core.models.cloud_admin import CloudAdministrator
 from core.models.credential import Credential, ProviderCredential
 from core.models.export_request import ExportRequest
-from core.models.event_table import EventTable
 from core.models.group import Group, IdentityMembership,\
     InstanceMembership, Leadership
 from core.models.identity import Identity
@@ -51,3 +52,5 @@ from core.models.template import (EmailTemplate, HelpLink)
 from core.models.user import AtmosphereUser
 from core.models.volume import Volume
 from core.models.ssh_key import SSHKey
+
+from core.models.event_table import EventTable
