@@ -250,3 +250,11 @@ def get_available_providers():
     from core.query import only_current
     available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
     return available_providers
+
+def total_usage(username, allocation_source, start_date, end_date):
+    from service.allocation_logic import create_report
+    user_allocation = create_report(start_date,end_date,user_id=username,allocation_source=allocation_source)
+    total_allocation = 0.0
+    for data in user_allocation:
+    	total_allocation += data['applicable_duration']
+    return total_allocation
