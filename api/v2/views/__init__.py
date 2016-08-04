@@ -5,6 +5,7 @@ from .boot_script import BootScriptViewSet
 from .base import BaseRequestViewSet
 from .credential import CredentialViewSet
 from .email_template import EmailTemplateViewSet
+from .event import EventViewSet
 from .group import GroupViewSet
 from .help_link import HelpLinkViewSet
 from .identity import IdentityViewSet

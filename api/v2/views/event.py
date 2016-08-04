@@ -1,0 +1,29 @@
+import django_filters
+
+from core.models import EventTable
+from api.v2.serializers.details import EventSerializer
+from api.v2.views.base import AuthViewSet
+from api.v2.views.mixins import MultipleFieldLookup
+
+
+class EventFilter(django_filters.FilterSet):
+    aggregate_id = django_filters.CharFilter(
+        'agg_id')
+
+    class Meta:
+        model = EventTable
+        fields = ['aggregate_id', 'name']
+
+
+class EventViewSet(MultipleFieldLookup, AuthViewSet):
+
+    """
+    API endpoint that allows scripts to be viewed or edited.
+    """
+
+    queryset = EventTable.objects.none()
+    serializer_class = EventSerializer
+    filter_class = EventFilter
+    search_fields = ('^title',)
+    lookup_fields = ('id', 'uuid')
+    http_method_names = ['options','head','post']

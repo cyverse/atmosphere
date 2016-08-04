@@ -3,6 +3,7 @@ from .allocation_source import AllocationSourceSerializer
 from .boot_script import BootScriptSerializer
 from .credential import CredentialSerializer
 from .email_template import EmailTemplateSerializer
+from .event import EventSerializer
 from .group import GroupSerializer
 from .help_link import HelpLinkSerializer
 from .image_version import ImageVersionSerializer

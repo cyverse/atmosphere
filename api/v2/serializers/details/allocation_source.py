@@ -24,8 +24,13 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
             return None
         return getattr(snapshot, attr_name)
 
+    def _get_request_user(self):
+        if 'request' not in self.context:
+            raise ValueError("Expected 'request' context for this serializer")
+        return self.context['request'].user
+
     def _get_user_burn_rate_snapshot(self, allocation_source, attr_name):
-        user = self.request.user
+        user = self._get_request_user()
         snapshot = UserAllocationBurnRateSnapshot.objects.filter(
             allocation_source=allocation_source, user=user).first()
         if not snapshot:
@@ -34,6 +39,7 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_global_burn_rate (self, allocation_source):
         return self._get_allocation_source_snapshot(allocation_source, 'global_burn_rate')
+
     def get_user_burn_rate_updated(self, allocation_source):
         return self._get_user_burn_rate_snapshot(allocation_source, 'updated')
 
@@ -50,4 +56,5 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
         model = AllocationSource
         fields = (
             'id', 'name', 'source_id', 'compute_allowed',
-            'compute_used', 'global_burn_rate', 'updated')
+            'compute_used', 'global_burn_rate', 'updated',
+            'user_burn_rate', 'user_burn_rate_updated')
