@@ -264,14 +264,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             instance = serialized_instance.save()
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
-            payload = {
-                    'allocation_source_id': allocation_source.source_id,
-                    'instance_id': instance.provider_alias
-            }
-            EventTable.create_event(
-                "instance_allocation_source_changed",
-                payload,
-                user.username)
+            instance.change_allocation_source(allocation_source)
             return Response(
                 serialized_instance.data, status=status.HTTP_201_CREATED)
         except UnderThresholdError as ute:
