@@ -58,7 +58,7 @@ def filter_events_and_instances(report_start_date,report_end_date,username=None)
     if username:
         from core.models.user import AtmosphereUser
         user_id_int = AtmosphereUser.objects.get(username=username)
-	events = events.filter(Q(agg_id__exact=username))
+	events = events.filter(Q(filter_id__exact=username))
         instances = instances.filter(Q(created_by__exact=user_id_int))
 	
     return {'events':events,'instances':instances}
