@@ -61,6 +61,13 @@ class Instance(models.Model):
     # FIXME  Problems when setting a default, missing auto_now_add
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True, blank=True)
+    # Jetstream plugin -- should be able to MATERIALIZE this field. we don't know what this means exactly.
+    # allocation_source = models.ForeignKey("AllocationSource", null=True, blank=True)
+
+    @property
+    def allocation_source(self):
+        #FIXME: look up the current allocation source by "Scanning the event table" on this instance.
+        return None
 
     # Model Managers
     objects = models.Manager()  # The default manager.

@@ -16,6 +16,8 @@ class EventTable(models.Model):
 
     uuid = models.UUIDField(default=uuid4, unique=True, blank=True)
     agg_id = models.UUIDField(default=uuid4, unique=True, blank=True) # TODO : change to charfield
+    #FIXME: is sequence something that we want to add in order to avoid double-input payload clobbering?
+
     name = models.CharField(max_length=128)
     payload = JSONField()
     timestamp = models.DateTimeField(default=timezone.now)

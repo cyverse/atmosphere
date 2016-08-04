@@ -4,7 +4,7 @@ from django.conf import settings
 
 from .exceptions import TASAPIException
 from .api import tacc_api_post, tacc_api_get
-
+from core.models.allocation_source import AllocationSource, UserAllocationSource
 
 logger = logging.getLogger(__name__)
 
@@ -25,28 +25,90 @@ def get_username_from_xsede(xsede_username, tacc_api=None):
         raise TASAPIException("JSON Decode error -- %s" % exc)
 
 
-def get_project_allocations(username, tacc_api=None):
+
+def get_all_allocations(tacc_api=None, resource_name='Jetstream'):
+    """
+    """
+    if not tacc_api:
+        tacc_api = settings.TACC_API_URL
+    path = '/v1/allocations/resource/%s' % resource_name
+    allocations = {}
+    url_match = tacc_api + path
+    resp, data = tacc_api_get(url_match)
+    try:
+        _validate_tas_data(data)
+        allocations = data['result']
+        return allocations
+    except ValueError as exc:
+        raise TASAPIException("JSON Decode error -- %s" % exc)
+
+def get_all_projects(tacc_api=None, resource_name='Jetstream'):
+    """
+    """
+    if not tacc_api:
+        tacc_api = settings.TACC_API_URL
+    path = '/v1/projects/resource/%s' % resource_name
+    url_match = tacc_api + path
+    resp, data = tacc_api_get(url_match)
+    try:
+        _validate_tas_data(data)
+        projects = data['result']
+        return projects
+    except ValueError as exc:
+        raise TASAPIException("JSON Decode error -- %s" % exc)
+
+
+def _get_tacc_user(user):
+    try:
+        tacc_user = get_username_from_xsede(
+            user.username)
+    except:
+        logger.info("User: %s has no tacc username" % user.username)
+        tacc_user = user.username
+    return tacc_user
+
+
+def _validate_tas_data(data):
+    if not data or 'status' not in data or 'result' not in data:
+        raise TASAPIException(
+            "API is returning a malformed response - "
+            "Expected json object including "
+            "a 'status' key and a 'result' key. - "
+            "Received: %s" % data)
+    if data['status'] != 'success':
+        raise TASAPIException(
+            "API is returning an unexpected status %s - "
+            "Received: %s"
+            % (data['status'], data)
+        )
+    return True
+
+
+def get_user_allocations(username, tacc_api=None, resource_name='Jetstream', raise_exception=True):
     if not tacc_api:
         tacc_api = settings.TACC_API_URL
     path = '/v1/projects/username/%s' % username
     url_match = tacc_api + path
     resp, data = tacc_api_get(url_match)
-    project_allocations = {}
+    user_allocations = []
     try:
-        if data['status'] != 'success':
-            raise TASAPIException(
-                "API is returning an unexpected status: %s"
-                % data['status'])
+        _validate_tas_data(data)
         projects = data['result']
         for project in projects:
-            project_title = project['title']
             allocations = project['allocations']
             for allocation in allocations:
-                if allocation['resource'].lower() == 'jetstream':
-                    project_allocations[project_title] = allocation
-        return project_allocations
+                if allocation['resource'] == resource_name:
+                    user_allocations.append( (project, allocation) )
+        return user_allocations
     except ValueError as exc:
-        raise TASAPIException("JSON Decode error -- %s" % exc)
+        if raise_exception:
+            raise TASAPIException("JSON Decode error -- %s" % exc)
+        logger.info( exc)
+    except Exception as exc:
+        if raise_exception:
+            raise
+        logger.info( exc)
+    return None
 
 
 def report_project_allocation(username, project_name, su_total, start_date, end_date, queueName=None, schedulerId=None, resourceName=None, tacc_api=None):
@@ -97,3 +159,64 @@ def report_project_allocation(username, project_name, su_total, start_date, end_
         raise Exception(exc_message)
 
     return data
+
+def get_or_create_allocation_source(api_allocation, update_source=False):
+    try:
+        title = "%s: %s" % (api_allocation['project'], api_allocation['justification'])
+        source_id = api_allocation['id']
+        compute_allowed = int(api_allocation['computeAllocated'])
+    except:
+        raise#raise TASAPIException("Malformed API Allocation - %s" % api_allocation)
+
+    try:
+        source = AllocationSource.objects.get(
+            name=title,
+            source_id=source_id
+        )
+        if update_source and compute_allowed != source.compute_allowed:
+            source.compute_allowed = compute_allowed
+            source.save()
+        return source, False
+    except AllocationSource.DoesNotExist:
+        source = AllocationSource.objects.create(
+            name=title,
+            compute_allowed = compute_allowed,
+            source_id=source_id
+        )
+        return source, True
+
+
+def fill_allocation_sources(force_update=False):
+    allocations = get_all_allocations()
+    create_list = []
+    for api_allocation in allocations:
+        obj, created = get_or_create_allocation_source(
+            api_allocation, update_source=force_update)
+        if created:
+            create_list.append(obj)
+    return len(create_list)
+
+
+def fill_user_allocation_sources():
+    from core.models import AtmosphereUser
+    for user in AtmosphereUser.objects.order_by('id'):
+        fill_user_allocation_source_for(user, force_update=True)
+
+
+def fill_user_allocation_source_for(user, force_update=False):
+    """
+    FIXME: Hook this function into calls for new AtmosphereUser objects. We need to know the users valid projects immediately after we create the AtmosphereUser account :)
+    """
+    tacc_user = _get_tacc_user(user)
+    logger.info( "%s -> %s" % (user, tacc_user))
+    user_allocations = get_user_allocations(
+        tacc_user, raise_exception=False)
+    if not user_allocations:
+        logger.info( "User %s does not have any valid allocations" % tacc_user)
+        return
+    for (project, api_allocation) in user_allocations:
+        allocation_source, _ = get_or_create_allocation_source(
+            api_allocation, update_source=force_update)
+        resource, _ = UserAllocationSource.objects.get_or_create(
+            allocation_source=allocation_source,
+            user=user)

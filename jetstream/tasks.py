@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from .models import TASAllocationReport
-from .allocation import get_project_allocations, get_username_from_xsede
+from .allocation import get_project_allocations, get_username_from_xsede, fill_allocation_sources
 
 from .exceptions import TASPluginException
 
@@ -20,6 +20,13 @@ def xsede_tacc_map(username):
     """
     #FIXME this is wrong
     return get_username_from_xsede(username)
+
+def monitor_jetstream_allocation_sources():
+    """
+    Queries the TACC API for Jetstream allocations
+    """
+    new_sources = fill_allocation_sources(True)
+    return new_sources
 
 def create_reports():
     """
@@ -87,9 +94,13 @@ def _create_tas_report(identity, user,
         start_date = last_report.end_date
     end_date = timezone.now()
 
-    #NOTE: This is where the magic happens.
+    ##########################
+    #FIXME: This is where the magic happens. This function will be replaced by the latest engine.
     compute_used = identity.total_usage(start_date, end_date)
-    #NOTE: Future version change
+
+    #END-FIXME
+    ##########################
+
     #project = user.shared_projects(tacc_project)
     #compute_used = project.total_usage(identity, start_date, end_date)
     if compute_used < 0:
@@ -109,8 +120,10 @@ def _create_tas_report(identity, user,
     # NOTE:sending these reports will happen all at once, in a different task.
     return new_report
 
-"""
-Methods yet to be created
-#1: Enforcing the allocation strategy when AU are :100:% consumed.
-#2: Mapping from XSede to TACC
-"""
+def update_materialized_views():
+    """
+    method will "update the materialized views" regularly.
+    Values to be updated include but are not limited to:
+    - compute_used, compute_remaining, user_burn_rate global_burn_rate time_to_zero
+    """
+    pass

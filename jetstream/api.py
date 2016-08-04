@@ -34,6 +34,7 @@ def tacc_api_get(url):
     # Expects *ALL* GET calls to return application/json
     try:
         data = resp.json()
+        logger.info(data)
     except ValueError as exc:
         raise TASAPIException(
             "JSON Decode error -- %s" % exc)
