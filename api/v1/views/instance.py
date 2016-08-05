@@ -873,7 +873,7 @@ def valid_post_data(data):
     """
     Return any missing required post key names.
     """
-    required = ['machine_alias', 'size_alias', 'name']
+    required = ['machine_alias', 'size_alias', 'allocation_source_id', 'name']
     return [key for key in required
             if key not in data or
             (isinstance(data[key], str) and len(data[key]) > 0)]
