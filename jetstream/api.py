@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def tacc_api_post(url, post_data):
+    #import ipdb;ipdb.set_trace()
     username = settings.TACC_API_USER
     password = settings.TACC_API_PASS
     logger.info(url)
@@ -20,6 +21,7 @@ def tacc_api_post(url, post_data):
 
 
 def tacc_api_get(url):
+    #import ipdb;ipdb.set_trace()
     username = settings.TACC_API_USER
     password = settings.TACC_API_PASS
     logger.info(url)

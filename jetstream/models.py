@@ -10,7 +10,8 @@ def update_user_allocation_sources(sender, instance, created, **kwargs):
     user = instance
     fill_user_allocation_source_for(user)
 
-post_save.connect(update_user_allocation_sources, sender=AUTH_USER_MODEL)
+#FIXME: Re-add this when you have access to the XSede API
+#post_save.connect(update_user_allocation_sources, sender=AUTH_USER_MODEL)
 
 # Create your models here.
 class TASAllocationReport(models.Model):
