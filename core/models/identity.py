@@ -184,7 +184,7 @@ class Identity(models.Model):
 
         (user, group) = Group.create_usergroup(username)
 
-        identity = cls._get_identity(user, group, credentials)
+        identity = cls._get_identity(user, group, provider, credentials)
         # NOTE: This specific query will need to be modified if we want
         # 2+ Identities on a single provider
 

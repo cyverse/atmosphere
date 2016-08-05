@@ -29,7 +29,7 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
         payload = data['payload']
         if name.lower() == 'instance_allocation_source_changed':
             self._validate_ias_event(payload)
-        return super(EventSerializer, self).create(data)
+        return super(EventSerializer, self).validate(data)
 
     class Meta:
         model = EventTable
