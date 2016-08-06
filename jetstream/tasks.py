@@ -109,7 +109,6 @@ def _create_tas_report(identity, user,
 
     ##########################
     #FIXME: This is where the magic happens. This function will be replaced by the latest engine.
-    import ipdb; ipdb.set_trace()
     compute_used = total_usage(user,tacc_project,start_date,end_date)#identity.total_usage(start_date, end_date)
 
     #END-FIXME
