@@ -251,10 +251,13 @@ def get_available_providers():
     available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
     return available_providers
 
-def total_usage(username, allocation_source, start_date, end_date):
+def total_usage(username, allocation_source, start_date, end_date, burn_rate=False):
     from service.allocation_logic import create_report
-    user_allocation = create_report(start_date,end_date,user_id=username,allocation_source=allocation_source)
+    user_allocation = create_report(start_date,end_date,user_id=username,allocation_source=allocation_source)   
     total_allocation = 0.0
     for data in user_allocation:
     	total_allocation += data['applicable_duration']
-    return total_allocation
+    if burn_rate:
+        burn_rate_total = 0 if len(user_allocation)<1 else user_allocation[-1]['burn_rate']
+	return [round(total_allocation/3600.0,2),burn_rate_total]
+    return round(total_allocation/3600.0,2)

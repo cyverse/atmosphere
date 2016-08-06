@@ -52,7 +52,7 @@ DATABASES = {
     'default': {
         'NAME': 'atmosphere',
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'USER': 'atmo_app',
+        'USER': 'jetstream_new',
         'PASSWORD': 'atmosphere',
         'HOST': 'localhost',
         'PORT': '5432'
@@ -271,6 +271,7 @@ EMAIL_LOG_FILENAME = create_log_path('atmosphere_email.log')
 STATUS_LOG_FILENAME = create_log_path('atmosphere_status.log')
 DEPLOY_LOG_FILENAME = create_log_path('atmosphere_deploy.log')
 
+
 check_and_touch(LOG_FILENAME)
 check_and_touch(API_LOG_FILENAME)
 check_and_touch(AUTH_LOG_FILENAME)
@@ -452,6 +453,16 @@ djcelery.setup_loader()
 CELERYBEAT_CHDIR = PROJECT_ROOT
 
 CELERYBEAT_SCHEDULE = {
+    "create_report":{
+	"task":"create_report",
+        "schedule" : timedelta(minutes=60),
+        "options" : {"expires": 10 * 60,"time_limit": 2 * 60}
+    },
+    "update_snapshot":{
+	"task":"update_snapshot",
+        "schedule":timedelta(minutes=15)
+	"options":{"expires":10*60 , "time_limit":10*60}
+    },
     "check_image_membership": {
         "task": "check_image_membership",
         "schedule": timedelta(minutes=60),

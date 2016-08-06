@@ -5,12 +5,17 @@ from django.db.models.query import Q
 from core.models.instance_history import InstanceStatusHistory
 from core.models.event_table import EventTable
 from core.models.instance import Instance
-from core.models.allocation_source import UserAllocationSource
+from core.models.allocation_source import UserAllocationSource, AllocationSource
 
 def create_report(report_start_date,report_end_date,user_id=None,allocation_source=None):
-    
-    report_start_date = report_start_date if isinstance(report_start_date,datetime.datetime) else parse(report_start_date)#("2016-04-01T00:00+00:00")
-    report_end_date = report_end_date if isinstance(report_end_date,datetime.datetime) else parse(report_end_date)#("2016-05-01T00:00+00:00")
+        
+    if not report_start_date or not report_end_date:
+	raise Exception("start date and end date missing for allocation calculation function")
+    try:
+    	report_start_date = report_start_date if isinstance(report_start_date,datetime.datetime) else parse(report_start_date)#("2016-04-01T00:00+00:00")
+    	report_end_date = report_end_date if isinstance(report_end_date,datetime.datetime) else parse(report_end_date)#("2016-05-01T00:00+00:00")
+    except:
+	raise Exception("cannot parse start and end dates for allocation calculation function")
     data = generate_data(report_start_date,report_end_date,username=user_id)
     if user_id:
         if allocation_source:
@@ -43,7 +48,7 @@ def generate_data(report_start_date,report_end_date,username=None):
 
 def filter_events_and_instances(report_start_date,report_end_date,username=None):
 	
-    events = EventTable.objects.filter(Q(timestamp__gte=report_start_date) & Q(timestamp__lte=report_end_date))
+    events = EventTable.objects.filter(Q(timestamp__gte=report_start_date) & Q(timestamp__lte=report_end_date) & Q(name__exact="instance_allocation_source_changed"))
     instances = Instance.objects.filter(
    	Q(
 		Q(start_date__gte=report_start_date) & Q(start_date__lte=report_end_date)
@@ -69,7 +74,7 @@ def group_events_by_instances(events):
     out_dic = {}
 
     for event in events:
-        out_dic.setdefault(event.payload['instance_id'],[]).append(event.payload)
+        out_dic.setdefault(event.payload['instance_id'],[]).append(event)
 
     return out_dic
 
@@ -86,9 +91,10 @@ def get_all_histories_for_instance(instances,report_start_date,report_end_date):
 def map_events_to_histories(filtered_instance_histories,event_instance_dict):
     out_dic = {}
     for instance,events in event_instance_dict.iteritems():
-        hist_list = filtered_instance_histories[instance]
+        #convert instance_id to int
+        hist_list = filtered_instance_histories[int(instance)]
         for info in events:
-            ts = parse(info['timestamp'])
+            ts = info.timestamp
             inst_history = [i.id for i in hist_list if i.start_date <= ts and i.end_date >= ts]
             if inst_history:
                 out_dic.setdefault(inst_history[-1],[]).append(info)
@@ -99,13 +105,18 @@ def create_rows(filtered_instance_histories,events_histories_dict,report_start_d
     data = []
     current_user = ''
     current_user_allocation = ''
+    burn_rate_per_user = {}
+    
     for instance,histories in filtered_instance_histories.iteritems():
         for hist in histories:
             if not current_user == hist.instance.created_by.username:
                #try:
-                current_user = hist.instance.created_by.username
+                if current_user:
+                    burn_rate_per_user[current_user] = burn_rate_per_user.get(current_user,0) + total_burn_rate
+                total_burn_rate = 0
+                current_user = hist.instance.created_by.username                
 		allocation = UserAllocationSource.objects.filter(user__exact=hist.instance.created_by.id)
-		current_user_allocation = allocation[0].allocation_source.name
+		current_user_allocation = 'N/A' if len(allocation)<1 else allocation[0].allocation_source.name
 	       #except Exception as e: 
  			#print e
 	 	#	current_user_allocation = 'N/A'#temp solution
@@ -113,26 +124,33 @@ def create_rows(filtered_instance_histories,events_histories_dict,report_start_d
              
 	    empty_row = {'username':'','instance_id':'','allocation_source':'','provider_alias':'','instance_status_history_id':'','cpu':'','memory':'',
 	                'disk':'','instance_status_start_date':'','instance_status_end_date':'','report_start_date':report_start_date,'report_end_date':report_end_date,
-			'instance_status':'','duration':'','applicable_duration':''}
+			'instance_status':'','duration':'','applicable_duration':'','burn_rate':''}
 	    filled_row = fill_data(empty_row,hist,current_user_allocation)
-
+	    # check if instance is active and has no end date. If so, increment total burn rate
+            if hist.status.name=='active' and not hist.end_date:
+		total_burn_rate += 1
+            filled_row['burn_rate'] = total_burn_rate
             if hist.id in events_histories_dict:
 	        events = events_histories_dict[hist.id]
 	        start_date = hist.start_date
 	        for event in events:
-		    end_date = parse(event['timestamp'])
+		    end_date = event.timestamp
 					# fill out stuff
 		    filled_row_temp = filled_row.copy()
 		    filled_row_temp['instance_status_start_date'] = start_date
 		    filled_row_temp['instance_status_end_date'] = end_date
 		    filled_row_temp['allocation_source'] = current_user_allocation
-                    current_user_allocation = event['new_allocation_source_id']
+                    try:
+			new_allocation_source = AllocationSource.objects.get(id=int(event.payload['allocation_source_id'])).name
+		    except:
+			new_allocation_source = 'N/A'
+                    current_user_allocation = new_allocation_source
 		    filled_row_temp['applicable_duration']  = calculate_allocation(hist,start_date,end_date,report_start_date,report_end_date)
 		    data.append(filled_row_temp)
 		    filled_row_temp = ''
-		    start_date = parse(event['timestamp'])
-
-                end_date = hist.end_date
+		    start_date = event.timestamp
+		
+                end_date = 'Still Running' if not hist.end_date else hist.end_date
 		filled_row_temp = filled_row.copy()
 		filled_row_temp['instance_status_start_date'] = start_date
 		filled_row_temp['instance_status_end_date'] = end_date
