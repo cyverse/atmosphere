@@ -460,8 +460,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "update_snapshot":{
 	"task":"update_snapshot",
-        "schedule":timedelta(minutes=15)
-	"options":{"expires":10*60 , "time_limit":10*60}
+        "schedule":timedelta(minutes=15),
+	"options" : {"expires":10*60 , "time_limit":10*60}
     },
     "check_image_membership": {
         "task": "check_image_membership",

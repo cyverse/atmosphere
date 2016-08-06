@@ -95,9 +95,9 @@ def map_events_to_histories(filtered_instance_histories,event_instance_dict):
         hist_list = filtered_instance_histories[int(instance)]
         for info in events:
             ts = info.timestamp
-            inst_history = [i.id for i in hist_list if i.start_date <= ts and i.end_date >= ts]
+            inst_history = [i.id for i in hist_list if i.start_date <= ts and ((not i.end_date) or (i.end_date and i.end_date >= ts) )]
             if inst_history:
-                out_dic.setdefault(inst_history[-1],[]).append(info)
+               out_dic.setdefault(inst_history[-1],[]).append(info)
      
     return out_dic
 
