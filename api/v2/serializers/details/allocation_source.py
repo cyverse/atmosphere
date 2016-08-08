@@ -1,5 +1,5 @@
 import django_filters
-
+from decimal import Decimal
 from rest_framework import serializers
 
 from core.models.allocation_source import AllocationSource, AllocationSourceSnapshot, UserAllocationBurnRateSnapshot
@@ -53,7 +53,7 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
         Return last known value of AllocationSourceSnapshot in hrs
         """
         time_in_sec = self._get_allocation_source_snapshot(allocation_source, 'compute_used')
-        return int(time_in_sec / 3600.0)
+        return int(time_in_sec / Decimal(3600.0))
 
     def get_updated(self, allocation_source):
         return self._get_allocation_source_snapshot(allocation_source, 'updated')
