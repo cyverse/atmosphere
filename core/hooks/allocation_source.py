@@ -28,15 +28,13 @@ def listen_for_allocation_snapshot_changes(sender, instance, created, **kwargs):
     allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
     if not allocation_source:
         return None
-
     try:
         snapshot = AllocationSourceSnapshot.objects.get(
             allocation_source=allocation_source
         )
-        snapshot.save(
-                compute_used=compute_used,
-                global_burn_rate=global_burn_rate
-            )
+        snapshot.compute_used = compute_used
+        snapshot.global_burn_rate = global_burn_rate
+        snapshot.save()
     except AllocationSourceSnapshot.DoesNotExist:
         snapshot = AllocationSourceSnapshot.objects.create(
             allocation_source=allocation_source,
@@ -79,7 +77,7 @@ def listen_for_user_burn_rate_changes(sender, instance, created, **kwargs):
                 allocation_source=allocation_source,
                 user=user,
             )
-        snapshot.burn_rate=burn_rate
+        snapshot.burn_rate = burn_rate
         snapshot.save()
     except UserAllocationBurnRateSnapshot.DoesNotExist:
         snapshot = UserAllocationBurnRateSnapshot.objects.create(

@@ -1,5 +1,6 @@
 from dateutil.parser import parse
 import json
+import pytz
 import datetime
 from django.db.models.query import Q
 from core.models.instance_history import InstanceStatusHistory
@@ -81,7 +82,7 @@ def group_events_by_instances(events):
 def get_all_histories_for_instance(instances,report_start_date,report_end_date):
     histories = {}
     for instance in instances:
-        histories[instance.id] = instance.instancestatushistory_set.filter(
+        histories[instance.provider_alias] = instance.instancestatushistory_set.filter(
     	    ~Q(start_date__gte=report_end_date) & 
     	    ~Q( Q(end_date__isnull=False) & Q(end_date__lte=report_start_date) )
     	)
@@ -92,7 +93,7 @@ def map_events_to_histories(filtered_instance_histories,event_instance_dict):
     out_dic = {}
     for instance,events in event_instance_dict.iteritems():
         #convert instance_id to int
-        hist_list = filtered_instance_histories[int(instance)]
+        hist_list = filtered_instance_histories[instance]
         for info in events:
             ts = info.timestamp
             inst_history = [i.id for i in hist_list if i.start_date <= ts and ((not i.end_date) or (i.end_date and i.end_date >= ts) )]
@@ -107,6 +108,10 @@ def create_rows(filtered_instance_histories,events_histories_dict,report_start_d
     current_user_allocation = ''
     burn_rate_per_user = {}
     
+    still_running = _get_current_date_utc()
+    # FIXME: How do we want to handle this? I believe we need to explicitly set end-date so that it will be === `AllocationSourceSnapshot().updated`
+    # However, if all that matters is that we *know* what instance_status_end_date *is* for this row, maybe it does not matter?
+
     for instance,histories in filtered_instance_histories.iteritems():
         for hist in histories:
             if not current_user == hist.instance.created_by.username:
@@ -150,7 +155,7 @@ def create_rows(filtered_instance_histories,events_histories_dict,report_start_d
 		    filled_row_temp = ''
 		    start_date = event.timestamp
 		
-                end_date = 'Still Running' if not hist.end_date else hist.end_date
+                end_date = still_running if not hist.end_date else hist.end_date
 		filled_row_temp = filled_row.copy()
 		filled_row_temp['instance_status_start_date'] = start_date
 		filled_row_temp['instance_status_end_date'] = end_date
@@ -175,8 +180,13 @@ def calculate_allocation(hist,start_date,end_date,report_start_date,report_end_d
     else:
         return 0
 
+def _get_current_date_utc():
+    return datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
 def fill_data(row,history_obj,allocation_source):
+    still_running = _get_current_date_utc()
+    # FIXME: How do we want to handle this? I believe we need to explicitly set end-date so that it will be === `AllocationSourceSnapshot().updated`
+    # However, if all that matters is that we *know* what instance_status_end_date *is* for this row, maybe it does not matter?
     row['username'] = history_obj.instance.created_by.username
     row['allocation_source'] = allocation_source
     row['instance_id'] = history_obj.instance_id
@@ -186,9 +196,9 @@ def fill_data(row,history_obj,allocation_source):
     row['memory'] = history_obj.size.mem
     row['disk'] = history_obj.size.disk
     row['instance_status_start_date'] = history_obj.start_date
-    row['instance_status_end_date'] = 'Still Running' if not history_obj.end_date else history_obj.end_date
+    row['instance_status_end_date'] = still_running if not history_obj.end_date else history_obj.end_date
     row['instance_status'] = history_obj.status.name
-    row['duration'] = 'Still Running' if not history_obj.end_date else (history_obj.end_date - history_obj.start_date).total_seconds()
+    row['duration'] = (still_running - history_obj.start_date).total_seconds() if not history_obj.end_date else (history_obj.end_date - history_obj.start_date).total_seconds()
     return row
 
 def write_csv(data):

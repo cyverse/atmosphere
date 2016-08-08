@@ -252,8 +252,10 @@ def get_available_providers():
     return available_providers
 
 def total_usage(username, allocation_source, start_date, end_date, burn_rate=False):
+    # FIXME: Lets get this out of core/models/user.py
     from service.allocation_logic import create_report
-    user_allocation = create_report(start_date,end_date,user_id=username,allocation_source=allocation_source)   
+    logger.info("Calculating total usage for User %s with AllocationSource %s from %s-%s" % (username, allocation_source, start_date, end_date))
+    user_allocation = create_report(start_date,end_date,user_id=username,allocation_source=allocation_source)
     total_allocation = 0.0
     for data in user_allocation:
     	total_allocation += data['applicable_duration']
