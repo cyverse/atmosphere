@@ -52,8 +52,7 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
         """
         Return last known value of AllocationSourceSnapshot in hrs
         """
-        time_in_sec = self._get_allocation_source_snapshot(allocation_source, 'compute_used')
-        return int(time_in_sec / Decimal(3600.0))
+        return self._get_allocation_source_snapshot(allocation_source, 'compute_used')
 
     def get_updated(self, allocation_source):
         return self._get_allocation_source_snapshot(allocation_source, 'updated')
