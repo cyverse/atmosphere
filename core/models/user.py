@@ -258,6 +258,10 @@ def total_usage(username, allocation_source, start_date, end_date, burn_rate=Fal
     user_allocation = create_report(start_date,end_date,user_id=username,allocation_source=allocation_source)
     total_allocation = 0.0
     for data in user_allocation:
+        # print "AS: %s + User %s + Instance %s (%s CPU) consumed %s (Status:%s) (Burn Rate:%s + Valid:%s)"\
+        #         % (allocation_source, data['username'], data['instance_id'], data['cpu'],
+        #            data['applicable_duration'], data['instance_status'], data['burn_rate'],
+        #            data['instance_status_end_date'] >= data['report_end_date'])
     	total_allocation += data['applicable_duration']
     if burn_rate:
         burn_rate_total = 0 if len(user_allocation)<1 else user_allocation[-1]['burn_rate']
