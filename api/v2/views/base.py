@@ -33,7 +33,7 @@ def unresolved_requests_only(fn):
                 % self.request.method
             )
             raise exceptions.NotAuthenticated(detail=message)
-        if hasattr(instance, "is_closed" and instance.is_closed()):
+        if hasattr(instance, "is_closed") and instance.is_closed():
             message = (
                 "Method '%s' not allowed: "
                 "the request has already been resolved."
