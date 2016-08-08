@@ -121,8 +121,12 @@ def _create_tas_report(identity, user,
 def create_report():
     create_reports()
     #write code to post data to TACC api
-    #send_reports()
+    send_reports()
 
+
+def send_reports():
+    for tas_report in TASAllocationReport.objects.filter(success=False):
+        tas_report.send()
 
 @task(name="update_snapshot")
 def update_snapshot():
