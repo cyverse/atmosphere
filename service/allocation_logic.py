@@ -65,8 +65,7 @@ def filter_events_and_instances(report_start_date,report_end_date,username=None)
         from core.models.user import AtmosphereUser
         user_id_int = AtmosphereUser.objects.get(username=username)
 	events = events.filter(Q(filter_id__exact=username))
-        instances = instances.filter(Q(created_by__exact=user_id_int))
-	
+        instances = instances.filter(Q(created_by__exact=user_id_int))	
     return {'events':events,'instances':instances}
 
 
@@ -144,9 +143,9 @@ def create_rows(filtered_instance_histories,events_histories_dict,report_start_d
 		    filled_row_temp = filled_row.copy()
 		    filled_row_temp['instance_status_start_date'] = start_date
 		    filled_row_temp['instance_status_end_date'] = end_date
-		    filled_row_temp['allocation_source'] = current_user_allocation
+		    filled_row_temp['allocation_source'] = current_user_allocation 
                     try:
-			new_allocation_source = AllocationSource.objects.get(id=int(event.payload['allocation_source_id'])).name
+			new_allocation_source = AllocationSource.objects.get(source_id=int(event.payload['allocation_source_id'])).name
 		    except:
 			new_allocation_source = 'N/A'
                     current_user_allocation = new_allocation_source
