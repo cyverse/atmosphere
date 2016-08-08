@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from celery.decorators import task
-from core.models.user import total_usage
+from core.models.allocation_source import total_usage
 from core.models.allocation_source import UserAllocationSource, AllocationSourceSnapshot, AllocationSource, UserAllocationBurnRateSnapshot
 from core.models.event_table import EventTable
 
@@ -99,7 +99,7 @@ def _create_tas_report(identity, user,
         start_date = last_report.end_date
     end_date = timezone.now()
 
-    compute_used = total_usage(user,tacc_project,start_date,end_date)
+    compute_used = total_usage(user,start_date,allocation_source=tacc_project,end_date=end_date)
 
     if compute_used < 0:
         raise TASPluginException(
@@ -144,7 +144,7 @@ def update_snapshot():
                  start_date = last_snapshot.updated
              end_date = timezone.now()
              # calculate compute used and burn rate for the user and allocation source combo
-             compute_used, burn_rate = total_usage(user,source.name,start_date,end_date,burn_rate=True)
+             compute_used, burn_rate = total_usage(user,start_date,allocation_source=source.name,end_date=end_date,burn_rate=True)
 
              allocation_source_total_compute[source.name] = allocation_source_total_compute.get(source.name,0) + compute_used
              allocation_source_total_burn_rate[source.name] = allocation_source_total_burn_rate.get(source.name,0) + burn_rate

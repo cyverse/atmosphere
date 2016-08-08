@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from threepio import logger
+from pprint import pprint
 
 class AllocationSource(models.Model):
     name = models.CharField(max_length=255)
@@ -87,3 +89,19 @@ class AllocationSourceSnapshot(models.Model):
         db_table = 'allocation_source_snapshot'
         app_label = 'core'
 
+def total_usage(username, start_date, allocation_source=None,end_date=None, burn_rate=False):
+    """ 
+        This function outputs the total allocation usage in hours
+    """
+    from service.allocation_logic import create_report
+    if not end_date:
+        end_date = timezone.now()
+    logger.info("Calculating total usage for User %s with AllocationSource %s from %s-%s" % (username, allocation_source, start_date, end_date))
+    user_allocation = create_report(start_date,end_date,user_id=username,allocation_source=allocation_source)
+    total_allocation = 0.0
+    for data in user_allocation:
+        total_allocation += data['applicable_duration']
+    if burn_rate:
+        burn_rate_total = 0 if len(user_allocation)<1 else user_allocation[-1]['burn_rate']
+        return [round(total_allocation/3600.0,2),burn_rate_total]
+    return round(total_allocation/3600.0,2)

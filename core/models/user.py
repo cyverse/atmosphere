@@ -6,6 +6,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
+from pprint import pprint
 
 from threepio import logger
 
@@ -250,20 +251,3 @@ def get_available_providers():
     from core.query import only_current
     available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
     return available_providers
-
-def total_usage(username, allocation_source, start_date, end_date, burn_rate=False):
-    # FIXME: Lets get this out of core/models/user.py
-    from service.allocation_logic import create_report
-    logger.info("Calculating total usage for User %s with AllocationSource %s from %s-%s" % (username, allocation_source, start_date, end_date))
-    user_allocation = create_report(start_date,end_date,user_id=username,allocation_source=allocation_source)
-    total_allocation = 0.0
-    for data in user_allocation:
-        # print "AS: %s + User %s + Instance %s (%s CPU) consumed %s (Status:%s) (Burn Rate:%s + Valid:%s)"\
-        #         % (allocation_source, data['username'], data['instance_id'], data['cpu'],
-        #            data['applicable_duration'], data['instance_status'], data['burn_rate'],
-        #            data['instance_status_end_date'] >= data['report_end_date'])
-    	total_allocation += data['applicable_duration']
-    if burn_rate:
-        burn_rate_total = 0 if len(user_allocation)<1 else user_allocation[-1]['burn_rate']
-	return [round(total_allocation/3600.0,2),burn_rate_total]
-    return round(total_allocation/3600.0,2)
