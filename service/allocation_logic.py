@@ -146,7 +146,7 @@ def create_rows(filtered_instance_histories,events_histories_dict,report_start_d
 		    filled_row_temp['instance_status_end_date'] = end_date
 		    filled_row_temp['allocation_source'] = current_user_allocation
                     try:
-			new_allocation_source = AllocationSource.objects.get(id=int(event.payload['allocation_source_id'])).name
+			new_allocation_source = AllocationSource.objects.get(source_id=event.payload['allocation_source_id']).name
 		    except:
 			new_allocation_source = 'N/A'
                     current_user_allocation = new_allocation_source
