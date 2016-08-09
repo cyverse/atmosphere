@@ -251,4 +251,3 @@ def get_available_providers():
     from core.query import only_current
     available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
     return available_providers
-

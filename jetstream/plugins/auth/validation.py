@@ -1,5 +1,4 @@
-from jetstream.tasks import xsede_tacc_map
-from jetstream.allocation import get_project_allocations
+from jetstream.allocation import TASAPIDriver
 
 
 def validate_account(username):
@@ -9,8 +8,9 @@ def validate_account(username):
     * Accounts are *ONLY* valid if they have 1+ 'jetstream' allocations.
     * All other allocations are ignored.
     """
-    tacc_username = xsede_tacc_map(username)
-    project_allocations = get_project_allocations(tacc_username)
+    tas_driver = TASAPIDriver()
+    tacc_username = tas_driver.get_username_for_xsede(username)
+    project_allocations = tas_driver.get_project_allocations(tacc_username)
     if not project_allocations:
         return False
     return True
