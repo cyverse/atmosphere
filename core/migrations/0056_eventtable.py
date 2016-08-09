@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('uuid', models.UUIDField(blank=True, default=uuid.uuid4, unique=True)),
-                ('agg_id', models.UUIDField(blank=True, default=uuid.uuid4, unique=True)),
+                ('entity_id', models.CharField(blank=True, default=b'', max_length=255)),
                 ('name', models.CharField(max_length=128)),
                 ('payload', django.contrib.postgres.fields.jsonb.JSONField()),
                 ('timestamp', models.DateTimeField(default=django.utils.timezone.now)),
