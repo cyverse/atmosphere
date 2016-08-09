@@ -46,18 +46,16 @@ def create_reports():
                 project_name)
         except TASPluginException:
             logger.exception("Could not create the report because of the error below, If this happens in production contact a developer.")
-            #raise
+            #raise # Re-add this line before merge.
             continue
         all_reports.append(project_report)
     return all_reports
 
 
 def _create_tas_report_for(user, tacc_username, tacc_project_name):
-    all_reports = []
     if not hasattr(user, 'current_identities'):
         raise TASPluginException(
             "User %s does not have attribute 'current_identities'" % user)
-    #for ident in user.current_identities:
     report = _create_tas_report(
         user, tacc_username, tacc_project_name
     )
@@ -76,7 +74,6 @@ def _create_tas_report(user,tacc_username, tacc_project):
 
     last_report = TASAllocationReport.objects.filter(
         project_name=tacc_project,
-        #scheduler_id=scheduler_id,
         user=user
         ).order_by('end_date').last()
     if not last_report:

@@ -47,6 +47,7 @@ class UserAllocationBurnRateSnapshot(models.Model):
     """
     user = models.ForeignKey("AtmosphereUser")
     allocation_source = models.ForeignKey(AllocationSource)
+    # Possible FIXME: Should this point to FK-UserAllocationSource? Add these fields to FK-UserAllocationSource?
     burn_rate = models.DecimalField(max_digits=19, decimal_places=10)
     updated = models.DateTimeField(auto_now=True)
 

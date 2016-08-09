@@ -32,10 +32,9 @@ class AtmosphereUser(AbstractUser):
         FIXME: How do we make this 'pluggable'?
 
         """
-        # iPlant way:
-        # FIXME: I think this is an 'old' way of doing things? perhaps not.
+        # FIXME: This code fixed in a future PR. Ignore this.
         if 'jetstream' in settings.INSTALLED_APPS:
-            return True#return self._jetstream_valid()
+            return self._jetstream_valid()
         else:
             return self._iplant_valid()
 
