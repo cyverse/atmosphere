@@ -11,7 +11,7 @@ from core.models.allocation_source import UserAllocationSource, AllocationSource
 from core.models.event_table import EventTable
 
 from .models import TASAllocationReport
-from .allocation import get_username_from_xsede, fill_allocation_sources
+from .allocation import TASAPIDriver, fill_allocation_sources
 
 from .exceptions import TASPluginException
 
@@ -19,19 +19,13 @@ from .exceptions import TASPluginException
 logger = logging.getLogger(__name__)
 
 
-def xsede_tacc_map(username):
-    """
-    Given a XSEDE username, query the XSEDEAPI to produce a TACC username
-    """
-    #FIXME this is wrong
-    return get_username_from_xsede(username)
-
 def monitor_jetstream_allocation_sources():
     """
     Queries the TACC API for Jetstream allocations
     """
     new_sources = fill_allocation_sources(True)
     return new_sources
+
 
 def create_reports():
     """
@@ -41,52 +35,46 @@ def create_reports():
     """
     user_allocation_list = UserAllocationSource.objects.all()
     all_reports = []
+    driver = TASAPIDriver()
     for item in user_allocation_list:
-        project_reports = _create_tas_reports_for(
-            item.user,
-            item.user.username,
-            item.allocation_source.name)
-        all_reports.extend(project_reports)
+        allocation_id = item.allocation_source.source_id
+        project_name = driver.get_allocation_project_name(allocation_id)
+        try:
+            project_report = _create_tas_report_for(
+                item.user,
+                item.user.username,
+                project_name)
+        except TASPluginException:
+            logger.exception("Could not create the report because of the error below, If this happens in production contact a developer.")
+            #raise
+            continue
+        all_reports.append(project_report)
     return all_reports
 
 
-def _create_tas_reports_for(user, tacc_username, tacc_project_name):
+def _create_tas_report_for(user, tacc_username, tacc_project_name):
     all_reports = []
     if not hasattr(user, 'current_identities'):
         raise TASPluginException(
             "User %s does not have attribute 'current_identities'" % user)
     #for ident in user.current_identities:
-    ident = None if len(user.current_identities)<1 else user.current_identities[0]
     report = _create_tas_report(
-            ident, user,
-            tacc_username, tacc_project_name,
+            user, tacc_username, tacc_project_name
     )
-    all_reports.append(report)
-    return all_reports
+    return report
 
 
-def _create_tas_report(identity, user,
-                       tacc_username, tacc_project, scheduler_id=None
-                       ):
+def _create_tas_report(user,
+                       tacc_username, tacc_project):
     """
     Create a new report
     """
     if not user:
         raise TASPluginException("User missing")
-    #if not identity:
-        #raise TASPluginException("Identity missing")
-  
     if not tacc_username:
         raise TASPluginException("TACC Username missing")
     if not tacc_project:
         raise TASPluginException("OpenStack/TACC Project missing")
-    #if not identity:
-        #raise TASPluginException("Identity missing")
-    if not scheduler_id:
-        if not identity:
-            scheduler_id = "n/a"
-        else:
-            scheduler_id = "%s + %s" % (identity.provider.location, tacc_project)
 
     last_report = TASAllocationReport.objects.filter(
         project_name=tacc_project,
@@ -109,8 +97,8 @@ def _create_tas_report(identity, user,
     new_report = TASAllocationReport.objects.create(
         user=user, username=tacc_username, project_name=tacc_project,
         compute_used=compute_used,
-        queue_name="Jetstream - User:%s" % user.username,
-        scheduler_id=scheduler_id,
+        queue_name="Atmosphere",
+        scheduler_id="use.jetstream-cloud.org",
         start_date=start_date,
         end_date=end_date,
         tacc_api=settings.TACC_API_URL)

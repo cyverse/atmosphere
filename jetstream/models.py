@@ -3,7 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.db.models.signals import post_save
 
-from .allocation import report_project_allocation, fill_user_allocation_source_for
+from .allocation import TASAPIDriver, fill_user_allocation_source_for
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", 'auth.User')
 
 def update_user_allocation_sources(sender, instance, created, **kwargs):
@@ -39,11 +39,11 @@ class TASAllocationReport(models.Model):
         if self.success:
             raise Exception("ERROR -- This report has already been *saved*! Create a new report!")
         try:
-            success = report_project_allocation(
+            driver = TASAPIDriver()
+            success = driver.report_project_allocation(
                 self.username, self.project_name, float(self.compute_used),
                 self.start_date, self.end_date,
-                self.queue_name, self.scheduler_id,
-                self.resource_name, self.tacc_api)
+                self.queue_name, self.scheduler_id)
             self.success = True if success else False
             if self.success:
                 self.report_date = timezone.now()
