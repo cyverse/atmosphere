@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q
 
 from core.models import Group, Size, Provider
 from core.query import only_current, only_current_provider
@@ -37,8 +38,9 @@ class SizeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
 
         # Switch based on query
         if 'archived' in self.request.query_params:
-            return Size.objects.filter(
+            filtered_sizes = Size.objects.filter(
                 provider__id__in=provider_ids)
         else:
-            return Size.objects.filter(
+            filtered_sizes = Size.objects.filter(
                 only_current(), provider__id__in=provider_ids)
+        return filtered_sizes.filter(~Q(alias='N/A'))
