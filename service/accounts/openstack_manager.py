@@ -589,22 +589,37 @@ class AccountDriver(BaseAccountDriver):
         Create a unique password using 'username'
         """
         #FIXME: Remove these lines when crypt_hashpass is no longer used.
-        if self.cloud_config.get('user', {}).get('strategy','') == 'crypt':
-            return self.crypt_hashpass(username)
-
+        strategy = None
+        cloud_pass = None
         try:
+            strategy = self.cloud_config.get('user', {}).get('strategy','')
             cloud_pass = self.cloud_config.get('user',{}).get("secret")
-        except KeyError, TypeError:
-            cloud_pass = None
+        except (KeyError, TypeError):
+            pass
 
+        if strategy == 'crypt':
+            return self.crypt_hashpass(username)
+        elif strategy == 'sha_v1':
+            return self.sha_v1_hashpass(username, cloud_pass)
+        else:
+            return self.sha_v2_hashpass(username, cloud_pass)
+
+    def sha_v2_hashpass(self, username, cloud_pass):
         if not cloud_pass or len(cloud_pass) < 32:
             raise ValueError("Cloud config ['user']['secret'] is required and " +
                     "must be of length 32 or more")
 
         if not username:
             raise ValueError("Missing username, cannot create hash")
-
         return sha256(username + cloud_pass).hexdigest()
+
+    def sha_v1_hashpass(self, username, cloud_pass):
+        if not cloud_pass:
+            raise ValueError("Cloud config ['user']['secret'] is required")
+
+        if not username:
+            raise ValueError("Missing username, cannot create hash")
+        return sha256(cloud_pass + username).hexdigest()
 
     def crypt_hashpass(self, username):
         """
