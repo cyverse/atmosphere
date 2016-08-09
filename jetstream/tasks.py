@@ -11,7 +11,7 @@ from core.models.allocation_source import UserAllocationSource, AllocationSource
 from core.models.event_table import EventTable
 
 from .models import TASAllocationReport
-from .allocation import TASAPIDriver, fill_allocation_sources
+from .allocation import TASAPIDriver, fill_allocation_sources, fill_user_allocation_sources
 
 from .exceptions import TASPluginException
 
@@ -21,9 +21,11 @@ logger = logging.getLogger(__name__)
 
 def monitor_jetstream_allocation_sources():
     """
-    Queries the TACC API for Jetstream allocations
+    Queries the TACC API for Jetstream allocation sources
+    Adds each new source (And user association) to the DB.
     """
     new_sources = fill_allocation_sources(True)
+    fill_user_allocation_sources()
     return new_sources
 
 
