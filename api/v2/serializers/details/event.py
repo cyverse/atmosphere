@@ -37,7 +37,7 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
             'id',
             'uuid',
             'url',
-            'filter_id',
+            'entity_id',
             'name',
             'payload',
             'timestamp',

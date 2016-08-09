@@ -22,17 +22,16 @@ class EventTable(models.Model):
     """
 
     uuid = models.UUIDField(default=uuid4, unique=True, blank=True)
-    agg_id = models.UUIDField(default=uuid4, unique=True, blank=True)
-    filter_id = models.CharField(max_length=255, default='', blank=True)
+    entity_id = models.CharField(max_length=255, default='', blank=True)
     name = models.CharField(max_length=128)
     payload = JSONField()
     timestamp = models.DateTimeField(default=timezone.now)
 
     @classmethod
-    def create_event(cls, name, payload, filter_id):
+    def create_event(cls, name, payload, entity_id):
         return EventTable.objects.create(
             name=name,
-            filter_id=filter_id,
+            entity_id=entity_id,
             payload=payload
         )
 
