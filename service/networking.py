@@ -167,7 +167,7 @@ class GenericNetworkTopology(object):
 
     def get_or_create_router_gateway(self, network_driver, user_neutron, router, network):
         gateway = network_driver.set_router_gateway(
-            user_neutron, router.name, network.name)
+            user_neutron, router['name'], network['name'])
         return gateway
 
     def get_or_create_router_interface(self, network_driver, user_neutron, router, subnet, interface_name):
