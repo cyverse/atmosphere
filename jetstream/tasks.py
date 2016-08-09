@@ -106,6 +106,8 @@ def _create_tas_report(user,tacc_username, tacc_project):
 
 @task(name="create_report")
 def create_report():
+    if 'jetstream' not in settings.INSTALLED_APPS:
+        return
     create_reports()
     #write code to post data to TACC api
     send_reports()
@@ -117,6 +119,8 @@ def send_reports():
 
 @task(name="update_snapshot")
 def update_snapshot():
+    if not settings.USE_ALLOCATION_SOURCE:
+        return
     allocation_source_total_compute = {}
     allocation_source_total_burn_rate = {}
     for source in AllocationSource.objects.all():
