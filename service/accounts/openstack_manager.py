@@ -38,6 +38,53 @@ class AccountDriver(BaseAccountDriver):
     core_provider = None
     cloud_config = {}
 
+    @classmethod
+    def generate_openrc(cls, identity, filename=None):
+        export_data = cls.export_identity(identity)
+        str_builder = ""
+        for key, val in export_data.iteritems():
+            str_builder += "export %s=%s\n" % (key, val)
+        if filename:
+            with open(filename,'w') as the_file:
+                the_file.write(str_builder)
+        return str_builder
+
+    @classmethod
+    def export_identity(cls, identity):
+        """
+        Returns the dict required to generate an openrc.
+        This can be used to verify cloud connectivity
+        via external CLI tools.
+        """
+        all_creds = identity.get_all_credentials()
+        tenant_name = all_creds.get('ex_project_name', "<PROJECT MISSING>")
+        username = all_creds.get('key', "<USERNAME MISSING>")
+        password = all_creds.get('secret',"<PASSWORD MISSING>")
+        project_domain = all_creds.get('project_domain', 'default')
+        user_domain = all_creds.get('user_domain', 'default')
+        region_name = all_creds.get('region_name', 'RegionOne')
+        keystone_auth_version = all_creds.get('ex_force_auth_version', '2.0_password').replace('/v2.0/tokens', '')
+        is_v2 = '2' in keystone_auth_version
+        is_v3 = '3' in keystone_auth_version
+        version_prefix = "/v2.0" if is_v2 else '/v3'
+        #auth_url = all_creds.get('auth_url', '<AUTH URL MISSING>') + version_prefix
+        admin_url = all_creds.get('admin_url', '<ADMIN URL MISSING>') + version_prefix
+        export_data = {
+            "OS_REGION_NAME": region_name,
+            "OS_AUTH_URL": admin_url,
+            "OS_USERNAME": username,
+            "OS_PASSWORD": password,
+            "OS_TENANT_NAME": tenant_name,
+        }
+        if is_v3:
+            export_data.update({
+                "OS_IDENTITY_API_VERSION": 3,
+                "OS_PROJECT_NAME": tenant_name,
+                "OS_PROJECT_DOMAIN_NAME": project_domain,
+                "OS_USER_DOMAIN_NAME": user_domain,
+            })
+        return export_data
+
     def clear_cache(self):
         self.admin_driver.provider.machineCls.invalidate_provider_cache(
                 self.admin_driver.provider)

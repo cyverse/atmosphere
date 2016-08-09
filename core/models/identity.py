@@ -50,6 +50,28 @@ class Identity(models.Model):
         user.delete()
         return
 
+    def export_to_file(self, filename=None):
+        """
+        Depending on the ProviderType, appropriately
+        generate 'export data' into an appropriate source-file
+        """
+        provider_type = self.provider.type.name
+        if provider_type.lower() == 'openstack':
+            from service.accounts.openstack_manager import AccountDriver
+            return AccountDriver.generate_openrc(self, filename)
+        return None
+
+    def export(self):
+        """
+        Depending on the ProviderType, appropriately
+        generate 'export data', a dict.
+        """
+        provider_type = self.provider.type.name
+        if provider_type.lower() == 'openstack':
+            from service.accounts.openstack_manager import AccountDriver
+            return AccountDriver.export_identity(self)
+        return None
+
     def can_share(self, django_user):
         """
         You CAN share an identity IFF:
