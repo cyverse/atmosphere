@@ -54,7 +54,7 @@ DATABASES = {
     'default': {
         'NAME': 'atmosphere',
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'USER': 'jetstream_new',
+        'USER': 'atmo_prod',
         'PASSWORD': 'atmosphere',
         'HOST': 'localhost',
         'PORT': '5432'
@@ -87,9 +87,6 @@ INSTALLED_APPS = (
     'allocation',
     'service',
     'core',
-    # This should be removed *BEFORE* the branch is merged.
-    # the Jetstream app is optional, and site-specific.
-    'jetstream',
 )
 
 TIME_ZONE = 'America/Phoenix'
@@ -455,16 +452,6 @@ djcelery.setup_loader()
 CELERYBEAT_CHDIR = PROJECT_ROOT
 
 CELERYBEAT_SCHEDULE = {
-    "create_report":{
-	"task":"create_report",
-        "schedule" : timedelta(minutes=60),
-        "options" : {"expires": 10 * 60,"time_limit": 2 * 60}
-    },
-    "update_snapshot":{
-	"task":"update_snapshot",
-        "schedule":timedelta(minutes=15),
-	"options" : {"expires":10*60 , "time_limit":10*60}
-    },
     "check_image_membership": {
         "task": "check_image_membership",
         "schedule": timedelta(minutes=60),

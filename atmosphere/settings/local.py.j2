@@ -81,6 +81,26 @@ CELERYBEAT_SCHEDULE["{{task_key}}"]["{{task_opt}}"] = {{task_opt_value}}
     {%- endfor %}
   {%- endfor %}
 {%- endif %}
+{% if USE_JETSTREAM_PLUGIN %}
+JETSTREAM_CELERYBEAT_SCHEDULE = {
+  "create_report":{
+	"task":"create_report",
+        "schedule" : timedelta(minutes=60),
+        "options" : {"expires": 10 * 60,"time_limit": 2 * 60}
+    },
+  "update_snapshot":{
+	"task":"update_snapshot",
+        "schedule":timedelta(minutes=15),
+	"options" : {"expires":10*60 , "time_limit":10*60}
+    },
+  "monitor_jetstream_allocation_sources":{
+	"task":"create_report",
+        "schedule" : timedelta(minutes=60),
+        "options" : {"expires": 10 * 60,"time_limit": 2 * 60}
+    }
+}
+CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
+{% endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL }}
 # Logging level for dependencies.
@@ -126,6 +146,16 @@ DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 
 # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+{% if USE_ALLOCATION_SOURCE %}
+USE_ALLOCATION_SOURCE = True
+{% endif %}
+{% if USE_JETSTREAM_PLUGIN %}
+# Include Jetstream
+INSTALLED_APPS += (
+    'jetstream',
+)
+{% endif %}
+
 
 # Configure authentication plugin
 AUTHENTICATION = {
