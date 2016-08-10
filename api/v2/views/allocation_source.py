@@ -23,5 +23,4 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthViewSet):
         Filter out tags for deleted instances
         """
         user = self.request.user
-        source_ids = UserAllocationSource.objects.filter(user=user).values_list('allocation_source', flat=True)
-        return AllocationSource.objects.filter(id__in=source_ids)
+        return AllocationSource.for_user(user)

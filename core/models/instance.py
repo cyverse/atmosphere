@@ -76,6 +76,12 @@ class Instance(models.Model):
     def provider(self):
         return self.source.provider
 
+    @classmethod
+    def for_user(self, user):
+        identity_ids = user.current_identities.values_list('id', flat=True)
+        qs = Instance.objects.filter(created_by_identity__in=identity_ids)
+        return qs
+
     def get_total_hours(self):
         from service.monitoring import _get_allocation_result
         identity = self.created_by_identity

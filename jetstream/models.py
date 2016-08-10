@@ -22,9 +22,9 @@ class TASAllocationReport(models.Model):
     username = models.CharField(max_length=128)  # TACC_USERNAME
     project_name = models.CharField(max_length=128)  # TACC_PROJECT_NAME aka OpenStack Tenant Credential
     compute_used = models.DecimalField(max_digits=19, decimal_places=3)  # up to approximately one billion with a resolution of 10 decimal places
-    queue_name = models.CharField(max_length=128)
+    queue_name = models.CharField(max_length=128, default="Atmosphere")
     resource_name = models.CharField(max_length=128, default="Jetstream")
-    scheduler_id = models.CharField(max_length=128)
+    scheduler_id = models.CharField(max_length=128, default="use.jetstream-cloud.org")
     start_date = models.DateTimeField()  # Required
     end_date = models.DateTimeField()  # Required
     # Meta-Metrics

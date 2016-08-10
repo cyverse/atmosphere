@@ -86,18 +86,21 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
     else:
         start_date = last_report.end_date
 
-    compute_used = total_usage(user,start_date,allocation_source=tacc_project_name, end_date=end_date)
+    compute_used = total_usage(
+        user, start_date,
+        allocation_source_name=tacc_project_name,
+        end_date=end_date)
 
     if compute_used < 0:
         raise TASPluginException(
-            "Identity was not able to accurately calculate usage: %s"
-            % identity)
+            "Compute usage was not accurately calculated for user:%s"
+            % user)
 
     new_report = TASAllocationReport.objects.create(
-        user=user, username=tacc_username, project_name=tacc_project_name,
+        user=user,
+        username=tacc_username,
+        project_name=tacc_project_name,
         compute_used=compute_used,
-        queue_name="Atmosphere",
-        scheduler_id="use.jetstream-cloud.org",
         start_date=start_date,
         end_date=end_date,
         tacc_api=settings.TACC_API_URL)

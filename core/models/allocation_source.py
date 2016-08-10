@@ -9,6 +9,11 @@ class AllocationSource(models.Model):
     source_id = models.CharField(max_length=255)
     compute_allowed = models.IntegerField()
 
+    @classmethod
+    def for_user(cls, user):
+        source_ids = UserAllocationSource.objects.filter(user=user).values_list('allocation_source', flat=True)
+        return AllocationSource.objects.filter(id__in=source_ids)
+
     def __unicode__(self):
         return "%s (ID:%s, Compute Allowed:%s)" %\
             (self.name, self.source_id,
@@ -90,15 +95,15 @@ class AllocationSourceSnapshot(models.Model):
         db_table = 'allocation_source_snapshot'
         app_label = 'core'
 
-def total_usage(username, start_date, allocation_source=None,end_date=None, burn_rate=False):
+def total_usage(username, start_date, allocation_source_name=None,end_date=None, burn_rate=False):
     """ 
         This function outputs the total allocation usage in hours
     """
     from service.allocation_logic import create_report
     if not end_date:
         end_date = timezone.now()
-    logger.info("Calculating total usage for User %s with AllocationSource %s from %s-%s" % (username, allocation_source, start_date, end_date))
-    user_allocation = create_report(start_date,end_date,user_id=username,allocation_source=allocation_source)
+    logger.info("Calculating total usage for User %s with AllocationSource %s from %s-%s" % (username, allocation_source_name, start_date, end_date))
+    user_allocation = create_report(start_date,end_date,user_id=username,allocation_source_name=allocation_source_name)
     total_allocation = 0.0
     for data in user_allocation:
         total_allocation += data['applicable_duration']

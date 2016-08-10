@@ -11,9 +11,10 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
     def _validate_ias_event(self, payload):
         allocation_source_id = payload.get('allocation_source_id', '')
         instance_id = payload.get('instance_id', '')
-        allocation_source = AllocationSource.objects.filter(
+        user = self._get_request_user()
+        allocation_source = AllocationSource.for_user(user=user).filter(
             source_id=allocation_source_id).first()
-        instance = Instance.objects.filter(provider_alias=instance_id).first()
+        instance = Instance.for_user(user=user).filter(provider_alias=instance_id).first()
         if not allocation_source:
             raise serializers.ValidationError(
                 "AllocationSource with source_id=%s DoesNotExist"
@@ -24,11 +25,20 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
                 % instance_id)
         return True
 
+    def _get_request_user(self):
+        if 'request' not in self.context:
+            raise ValueError("Expected 'request' context for this serializer")
+        return self.context['request'].user
+
     def validate(self, data):
         name = data['name']
         payload = data['payload']
         if name.lower() == 'instance_allocation_source_changed':
             self._validate_ias_event(payload)
+        else:
+            raise serializers.ValidationError(
+                "Unknown event type %s" % name
+            )
         return super(EventSerializer, self).validate(data)
 
     class Meta:

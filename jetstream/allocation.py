@@ -189,7 +189,7 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
         source_id = api_allocation['id']
         compute_allowed = int(api_allocation['computeAllocated'])
     except:
-        raise#raise TASAPIException("Malformed API Allocation - %s" % api_allocation)
+        raise TASAPIException("Malformed API Allocation - Missing keys in dict: %s" % api_allocation)
 
     try:
         source = AllocationSource.objects.get(
@@ -203,7 +203,7 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
     except AllocationSource.DoesNotExist:
         source = AllocationSource.objects.create(
             name=title,
-            compute_allowed = compute_allowed,
+            compute_allowed=compute_allowed,
             source_id=source_id
         )
         return source, True
