@@ -57,6 +57,7 @@ class Instance(models.Model):
     created_by_identity = models.ForeignKey(Identity, null=True)
     shell = models.BooleanField(default=False)
     vnc = models.BooleanField(default=False)
+    web_desktop = models.BooleanField(default=False)
     password = models.CharField(max_length=64, blank=True, null=True)
     # FIXME  Problems when setting a default, missing auto_now_add
     start_date = models.DateTimeField()

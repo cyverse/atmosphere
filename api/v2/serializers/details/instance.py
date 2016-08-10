@@ -90,6 +90,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'ip_address',
             'shell',
             'vnc',
+            'web_desktop',
             'identity',
             'user',
             'provider',
