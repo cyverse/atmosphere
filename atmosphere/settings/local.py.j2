@@ -83,8 +83,8 @@ CELERYBEAT_SCHEDULE["{{task_key}}"]["{{task_opt}}"] = {{task_opt_value}}
 {%- endif %}
 {% if USE_JETSTREAM_PLUGIN %}
 JETSTREAM_CELERYBEAT_SCHEDULE = {
-  "create_report":{
-	"task":"create_report",
+  "report_allocations_to_tas":{
+	"task":"report_allocations_to_tas",
         "schedule" : timedelta(minutes=60),
         "options" : {"expires": 10 * 60,"time_limit": 2 * 60}
     },
@@ -94,7 +94,7 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
 	"options" : {"expires":10*60 , "time_limit":10*60}
     },
   "monitor_jetstream_allocation_sources":{
-	"task":"create_report",
+	"task":"report_allocations_to_tas",
         "schedule" : timedelta(minutes=60),
         "options" : {"expires": 10 * 60,"time_limit": 2 * 60}
     }

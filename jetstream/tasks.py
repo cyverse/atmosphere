@@ -105,8 +105,8 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
     return new_report
 
 
-@task(name="create_report")
-def create_report():
+@task(name="report_allocations_to_tas")
+def report_allocations_to_tas():
     if 'jetstream' not in settings.INSTALLED_APPS:
         return
     create_reports()
