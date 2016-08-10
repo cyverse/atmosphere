@@ -7,11 +7,17 @@ from django.utils import timezone
 
 from celery.decorators import task
 from core.models.allocation_source import total_usage
-from core.models.allocation_source import UserAllocationSource, AllocationSourceSnapshot, AllocationSource, UserAllocationSnapshot
+from core.models.allocation_source import (
+    UserAllocationSource, AllocationSourceSnapshot,
+    AllocationSource, UserAllocationSnapshot
+)
 from core.models.event_table import EventTable
 
 from .models import TASAllocationReport
-from .allocation import TASAPIDriver, fill_allocation_sources, fill_user_allocation_sources
+from .allocation import (
+    TASAPIDriver, fill_allocation_sources,
+    fill_user_allocation_sources
+)
 
 from .exceptions import TASPluginException
 
@@ -41,7 +47,7 @@ def create_reports():
     end_date = timezone.now()
     for item in user_allocation_list:
         allocation_id = item.allocation_source.source_id
-        tacc_username = driver._get_tacc_user(item.user.username)
+        tacc_username = driver._get_tacc_user(item.user)
         project_name = driver.get_allocation_project_name(allocation_id)
         try:
             project_report = _create_tas_report_for(
@@ -50,8 +56,10 @@ def create_reports():
                 project_name,
                 end_date)
         except TASPluginException:
-            logger.exception("Could not create the report because of the error below, If this happens in production contact a developer.")
-            raise # Re-add this line before merge.
+            logger.exception(
+                "Could not create the report because of the error below"
+            )
+            continue
         all_reports.append(project_report)
     return all_reports
 
@@ -66,11 +74,11 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
         raise TASPluginException("User missing")
     if not tacc_username:
         raise TASPluginException("TACC Username missing")
-    if not tacc_project:
+    if not tacc_project_name:
         raise TASPluginException("OpenStack/TACC Project missing")
 
     last_report = TASAllocationReport.objects.filter(
-        project_name=tacc_project,
+        project_name=tacc_project_name,
         user=user
         ).order_by('end_date').last()
     if not last_report:
@@ -78,7 +86,7 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
     else:
         start_date = last_report.end_date
 
-    compute_used = total_usage(user,start_date,allocation_source=tacc_project,end_date=end_date)
+    compute_used = total_usage(user,start_date,allocation_source=tacc_project_name, end_date=end_date)
 
     if compute_used < 0:
         raise TASPluginException(
@@ -86,7 +94,7 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
             % identity)
 
     new_report = TASAllocationReport.objects.create(
-        user=user, username=tacc_username, project_name=tacc_project,
+        user=user, username=tacc_username, project_name=tacc_project_name,
         compute_used=compute_used,
         queue_name="Atmosphere",
         scheduler_id="use.jetstream-cloud.org",
@@ -102,7 +110,6 @@ def create_report():
     if 'jetstream' not in settings.INSTALLED_APPS:
         return
     create_reports()
-    #write code to post data to TACC api
     send_reports()
 
 
