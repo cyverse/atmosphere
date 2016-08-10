@@ -68,7 +68,7 @@ SSH_KEY_FILE="{{ SSL_LOCATION }}/private/{{ SSL_KEY }}"
 CELERY_ACCEPT_CONTENT="['pickle', 'json', 'msgpack']"
 
 # Environment location
-VIRTUALENV="{{ VIRTUAL_ENV_ATMOSPHERE }}"
+VIRTUALENV="{{ VIRTUALENV_PATH }}"
 # Abs path to the 'celery' command
 CELERY_BIN="$VIRTUALENV/bin/celery"
 FLOWER_BIN="$VIRTUALENV/bin/flower"

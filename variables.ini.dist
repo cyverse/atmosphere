@@ -5,6 +5,7 @@ LDAP_SERVER = ; ldap://my.ldap.com
 LDAP_SERVER_DN = ; ou=example,dc=org
 TOKEN_EXPIRY_TIME_DAYS = ; 1
 DJANGO_SERVER_URL = ; https://www.my-website.com
+VIRTUALENV_PATH =; /path/virtualenv/atmo
 
 [nginx]
 ATMOSPHERE_PATH = ; /path/to/atmosphere
@@ -22,12 +23,10 @@ LOCATIONS_DIR = ; /etc/nginx/locations
 SITES_ENABLED_DIR = ; /etc/nginx/sites-enabled
 SITES_AVAILABLE_DIR = ; /etc/nginx/sites-available
 SERVER_URL = ; www.my-website.com
-VIRTUALENV_PATH = ; /path/virtualenv/atmo
 
 [uwsgi.ini]
 LOCAL_DEV = ; False
 PATH_TO_ATMOSPHERE = ; /path/to/atmosphere
-VIRTUALENV_PATH = ; /path/virtualenv/atmo
 UWSGI_USER = ; www-data
 UWSGI_GROUP = ; www-data
 UWSGI_LOG_PATH = ; /var/log/uwsgi/atmosphere_uwsgi.log
@@ -122,7 +121,6 @@ ATMOSPHERE_SECRET_SEED = ; (Random value:) 9oe5q7cp714zmmjl51
 ATMOSPHERE_VNC_LICENSE = ; vnc_license_key
 
 [celeryd.default]
-VIRTUAL_ENV_ATMOSPHERE= ; /path/virtualenv/atmo
 ATMOSPHERE_LOCATION= ; /path/to/atmosphere
 SSL_LOCATION= ; /etc/ssl
 SSL_CERTIFICATE= ; selfsigned_server.crt
