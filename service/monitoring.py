@@ -115,6 +115,12 @@ def get_allocation_result_for(
     * Create 'Allocation' using core representation
     * Calculate the 'AllocationResult' and return both
     """
+    #FIXME: Remove this after debug testing is complete
+    if print_logs:
+        from service.tasks.monitoring import _init_stdout_logging, _exit_stdout_logging
+        console_handler = _init_stdout_logging(logger)
+    #ENDFIXME: Remove this after debug testing is complete
+
     identity = _get_identity_from_tenant_name(provider, username)
     # Attempt to run through the allocation engine
     try:
@@ -134,6 +140,11 @@ def get_allocation_result_for(
         logger.exception("Unable to monitor Identity:%s"
                          % (identity,))
         raise
+    #FIXME: Remove this after debug testing is complete
+    else:
+        if print_logs:
+            _exit_stdout_logging(console_handler)
+    #ENDFIXME: Remove this after debug testing is complete
 
 
 def user_over_allocation_enforcement(
@@ -507,15 +518,15 @@ def _get_allocation_result(identity, start_date=None, end_date=None,
                     % (username, identity))
     allocation_input = apply_strategy(
         identity, core_allocation,
-        limit_instances=limit_instances, limit_history=limit_history
-        )
+        limit_instances=limit_instances, limit_history=limit_history,
+        start_date=start_date, end_date=end_date)
     allocation_result = calculate_allocation(
         allocation_input,
         print_logs=print_logs)
     return allocation_result
 
 
-def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=[]):
+def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=[], start_date=None, end_date=None):
     """
     Given identity and core allocation, grab the ProviderStrategy
     and apply it. Returns an "AllocationInput"
@@ -523,10 +534,11 @@ def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=
     strategy = _get_strategy(identity)
     if not strategy:
         return Allocation(credits=[], rules=[], instances=[],
-                          start_date=None, end_date=None, interval_delta=None)
+            start_date=start_date, end_date=end_date)
     return strategy.apply(
         identity, core_allocation,
-        limit_instances=limit_instances, limit_history=limit_history)
+        limit_instances=limit_instances, limit_history=limit_history,
+        start_date=start_date, end_date=end_date)
 
 
 def _get_strategy(identity):

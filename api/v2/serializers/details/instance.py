@@ -1,6 +1,10 @@
-from core.models import BootScript, Instance, Application as Image
+from core.models import (
+    BootScript, Instance, Application as Image,
+    InstanceAllocationSourceSnapshot
+)
 from rest_framework import serializers
 from api.v2.serializers.fields import ModelRelatedField
+from api.v2.serializers.details import AllocationSourceSerializer
 from api.v2.serializers.summaries import (
     IdentitySummarySerializer,
     UserSummarySerializer,
@@ -30,11 +34,21 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     ip_address = serializers.SerializerMethodField()
     usage = serializers.SerializerMethodField()
     version = serializers.SerializerMethodField()
+    allocation_source = serializers.SerializerMethodField()
     uuid = serializers.CharField(source='provider_alias')
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:instance-detail',
         uuid_field='provider_alias'
     )
+
+    def get_allocation_source(self, instance):
+        snapshot = InstanceAllocationSourceSnapshot.objects.filter(
+            instance=instance).first()
+        if not snapshot:
+            return None
+        serializer = AllocationSourceSerializer(snapshot.allocation_source, context=self.context)
+        return serializer.data
+
 
     def get_usage(self, instance):
         return instance.get_total_hours()
@@ -76,6 +90,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'ip_address',
             'shell',
             'vnc',
+            'web_desktop',
             'identity',
             'user',
             'provider',
@@ -86,4 +101,5 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'projects',
             'start_date',
             'end_date',
+            'allocation_source',
         )

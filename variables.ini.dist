@@ -83,6 +83,8 @@ TEST_RUNNER_PASS = ; test_secret
 MOCK_USER = ; test_user
 USE_MOCK_AUTH = ; False
 #local.py - site configuration
+USE_JETSTREAM_PLUGIN = ; False
+USE_ALLOCATION_SOURCE = ; False
 TIME_ZONE = ; America/Phoenix
 SITE_NAME = ; CyVerse
 ADMINS_EMAIL_TUPLE = ; [('Atmosphere Admin', 'atmo-admin@website.com'),('System Admins', 'sys-admin@website.com')]
@@ -103,6 +105,11 @@ DEFAULT_PASSWORD_UPDATE = ; 'keystone_password_update', 'openstack_sdk_password_
 INSTANCE_HOSTNAMING_DOMAIN = ; iplantcollaborative.org
 INSTANCE_HOSTNAMING_FORMAT = ; vm%(three)s-%(four)s.%(domain)s
 DEPLOYMENT_KEYPAIR_NAME = ; keypair name inject by atmo-ansible during instance deploy
+
+#NOTE: Jetstream Specific
+TACC_API_USER = ; "tas-username"
+TACC_API_PASS = ; "tas-password"
+TACC_API_URL  = ; "/path to api/"
 
 #NOTE: Their are *REQUIRED* quotations around 'timedelta(..)'!
 CELERYBEAT_SCHEDULE = ; {"monitor_instances": {"schedule": 'timedelta(minutes=5)',}}
