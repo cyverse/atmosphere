@@ -232,7 +232,7 @@ def fill_user_allocation_source_for(driver, user, force_update=False):
     """
     FIXME: Hook this function into calls for new AtmosphereUser objects. We need to know the users valid projects immediately after we create the AtmosphereUser account :)
     """
-    tacc_user = _get_tacc_user(user)
+    tacc_user = driver._get_tacc_user(user)
     logger.info( "%s -> %s" % (user, tacc_user))
     user_allocations = driver.get_user_allocations(
         tacc_user, raise_exception=False)

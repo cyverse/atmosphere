@@ -10,7 +10,7 @@ from django.contrib.postgres.fields import JSONField
 from threepio import logger
 from core.hooks.allocation_source import (
     listen_for_allocation_snapshot_changes,
-    listen_for_user_burn_rate_changes,
+    listen_for_user_snapshot_changes,
     listen_for_instance_allocation_changes
 )
 
@@ -56,4 +56,4 @@ def listen_for_changes(sender, instance, created, **kwargs):
 #post_save.connect(listen_for_changes, sender=EventTable)
 post_save.connect(listen_for_instance_allocation_changes, sender=EventTable)
 post_save.connect(listen_for_allocation_snapshot_changes, sender=EventTable)
-post_save.connect(listen_for_user_burn_rate_changes, sender=EventTable)
+post_save.connect(listen_for_user_snapshot_changes, sender=EventTable)

@@ -21,7 +21,7 @@ class TASAllocationReport(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, related_name='tas_reports')  # User that matches the report
     username = models.CharField(max_length=128)  # TACC_USERNAME
     project_name = models.CharField(max_length=128)  # TACC_PROJECT_NAME aka OpenStack Tenant Credential
-    compute_used = models.DecimalField(max_digits=19, decimal_places=10)  # up to approximately one billion with a resolution of 10 decimal places
+    compute_used = models.DecimalField(max_digits=19, decimal_places=3)  # up to approximately one billion with a resolution of 10 decimal places
     queue_name = models.CharField(max_length=128)
     resource_name = models.CharField(max_length=128, default="Jetstream")
     scheduler_id = models.CharField(max_length=128)

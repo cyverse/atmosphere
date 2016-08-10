@@ -1,6 +1,6 @@
 from core.models import (
     AllocationSource, Instance, AtmosphereUser,
-    UserAllocationBurnRateSnapshot,
+    UserAllocationSnapshot,
     InstanceAllocationSourceSnapshot,
     AllocationSourceSnapshot)
 
@@ -44,25 +44,27 @@ def listen_for_allocation_snapshot_changes(sender, instance, created, **kwargs):
     return snapshot
 
 
-def listen_for_user_burn_rate_changes(sender, instance, created, **kwargs):
+def listen_for_user_snapshot_changes(sender, instance, created, **kwargs):
     """
     This listener expects:
-    EventType - 'user_burn_rate_changed'
+    EventType - 'user_allocation_snapshot_changed'
     EventPayload - {
         "allocation_source_id": "37623",
         "username":"sgregory",
-        "burn_rate": 3.00 # 3 hours used each hour
+        "compute_used":100.00,  # 100 hours used total ( a number, not a string!)
+        "burn_rate": 3.00 # 3 hours used every hour
     }
 
-    The method should result in an up-to-date burn rate snapshot for the specific User+AllocationSource
+    The method should result in an up-to-date compute used + burn rate snapshot for the specific User+AllocationSource
     """
     event = instance
-    if event.name != 'user_burn_rate_changed':
+    if event.name != 'user_allocation_snapshot_changed':
         return None
 
     payload = event.payload
     allocation_source_id = payload['allocation_source_id']
     burn_rate = payload['burn_rate']
+    compute_used = payload['compute_used']
     username = payload['username']
 
     allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
@@ -73,17 +75,19 @@ def listen_for_user_burn_rate_changes(sender, instance, created, **kwargs):
         return None
 
     try:
-        snapshot = UserAllocationBurnRateSnapshot.objects.get(
+        snapshot = UserAllocationSnapshot.objects.get(
                 allocation_source=allocation_source,
                 user=user,
             )
         snapshot.burn_rate = burn_rate
+        snapshot.compute_used = compute_used
         snapshot.save()
-    except UserAllocationBurnRateSnapshot.DoesNotExist:
-        snapshot = UserAllocationBurnRateSnapshot.objects.create(
+    except UserAllocationSnapshot.DoesNotExist:
+        snapshot = UserAllocationSnapshot.objects.create(
                 allocation_source=allocation_source,
                 user=user,
-                burn_rate=burn_rate
+                burn_rate=burn_rate,
+                compute_used=compute_used
             )
     return snapshot
 
@@ -124,5 +128,3 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
             allocation_source=allocation_source,
             instance=instance)
     return snapshot
-
-

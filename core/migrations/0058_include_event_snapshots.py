@@ -19,8 +19,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('updated', models.DateTimeField(auto_now=True)),
-                ('global_burn_rate', models.DecimalField(decimal_places=10, max_digits=19)),
-                ('compute_used', models.DecimalField(decimal_places=10, max_digits=19)),
+                ('global_burn_rate', models.DecimalField(decimal_places=3, max_digits=19)),
+                ('compute_used', models.DecimalField(decimal_places=3, max_digits=19)),
                 ('allocation_source', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='core.AllocationSource')),
             ],
             options={
@@ -40,24 +40,25 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='UserAllocationBurnRateSnapshot',
+            name='UserAllocationSnapshot',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('burn_rate', models.DecimalField(decimal_places=10, max_digits=19)),
+                ('compute_used', models.DecimalField(decimal_places=3, max_digits=19)),
+                ('burn_rate', models.DecimalField(decimal_places=3, max_digits=19)),
                 ('updated', models.DateTimeField(auto_now=True)),
                 ('allocation_source', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.AllocationSource')),
             ],
             options={
-                'db_table': 'user_allocation_burn_rate_snapshot',
+                'db_table': 'user_allocation_snapshot',
             },
         ),
         migrations.AddField(
-            model_name='userallocationburnratesnapshot',
+            model_name='userallocationsnapshot',
             name='user',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
         ),
         migrations.AlterUniqueTogether(
-            name='userallocationburnratesnapshot',
+            name='userallocationsnapshot',
             unique_together=set([('user', 'allocation_source')]),
         ),
     ]

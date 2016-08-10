@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('resource_name', models.CharField(max_length=128, default="Jetstream")),
                 ('tacc_api', models.CharField(max_length=512)),
                 ('scheduler_id', models.CharField(max_length=128)),
-                ('compute_used', models.DecimalField(max_digits=19, decimal_places=10)),
+                ('compute_used', models.DecimalField(max_digits=19, decimal_places=3)),
                 ('start_date', models.DateTimeField()),
                 ('end_date', models.DateTimeField()),
                 ('report_date', models.DateTimeField(blank=True, null=True)),

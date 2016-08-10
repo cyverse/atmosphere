@@ -41,22 +41,23 @@ class UserAllocationSource(models.Model):
         app_label = 'core'
 
 
-class UserAllocationBurnRateSnapshot(models.Model):
+class UserAllocationSnapshot(models.Model):
     """
     Fixme: Potential optimization -- user_allocation_source could just store burn_rate and updated?
     """
     user = models.ForeignKey("AtmosphereUser")
     allocation_source = models.ForeignKey(AllocationSource)
-    # Possible FIXME: Should this point to FK-UserAllocationSource? Add these fields to FK-UserAllocationSource?
-    burn_rate = models.DecimalField(max_digits=19, decimal_places=10)
+    # all fields are stored in DecimalField to allow for partial hour calculation
+    compute_used = models.DecimalField(max_digits=19, decimal_places=3)
+    burn_rate = models.DecimalField(max_digits=19, decimal_places=3)
     updated = models.DateTimeField(auto_now=True)
 
     def __unicode__(self):
-        return "Instance %s is using Allocation %s at %s hours/hour (Updated:%s)" %\
-            (self.user, self.allocation_source, self.burn_rate, self.updated)
+        return "User %s + AllocationSource %s: Total AU Usage:%s Burn Rate:%s hours/hour Updated:%s" %\
+            (self.user, self.allocation_source, self.compute_used, self.burn_rate, self.updated)
 
     class Meta:
-        db_table = 'user_allocation_burn_rate_snapshot'
+        db_table = 'user_allocation_snapshot'
         app_label = 'core'
         unique_together = ('user','allocation_source')
 
@@ -78,9 +79,8 @@ class AllocationSourceSnapshot(models.Model):
     allocation_source = models.OneToOneField(AllocationSource)
     updated = models.DateTimeField(auto_now=True)
     # all fields are stored in DecimalField to allow for partial hour calculation
-    # of up to approximately one billion with a resolution of 10 decimal places
-    global_burn_rate = models.DecimalField(max_digits=19, decimal_places=10)
-    compute_used = models.DecimalField(max_digits=19, decimal_places=10)
+    global_burn_rate = models.DecimalField(max_digits=19, decimal_places=3)
+    compute_used = models.DecimalField(max_digits=19, decimal_places=3)
 
     def __unicode__(self):
         return "%s (Used:%s, Burn Rate:%s Updated on:%s)" %\
