@@ -44,7 +44,7 @@ def generate_data(report_start_date, report_end_date, username=None):
 
 
 def filter_events_and_instances(report_start_date, report_end_date, username=None):
-    events = EventTable.objects.filter(Q(timestamp__gte=report_start_date) & Q(timestamp__lte=report_end_date) & Q(name__exact="instance_allocation_source_changed"))
+    events = EventTable.objects.filter(Q(timestamp__gte=report_start_date) & Q(timestamp__lte=report_end_date) & Q(name__exact="instance_allocation_source_changed")).order_by('timestamp')
     instances = Instance.objects.filter(
         Q(
             Q(start_date__gte=report_start_date) & Q(start_date__lte=report_end_date)
@@ -59,7 +59,7 @@ def filter_events_and_instances(report_start_date, report_end_date, username=Non
     if username:
         from core.models.user import AtmosphereUser
         user_id_int = AtmosphereUser.objects.get(username=username)
-        events = events.filter(Q(payload__username__exact=username))
+        events = events.filter(Q(payload__username__exact=username)).order_by('timestamp')
         instances = instances.filter(Q(created_by__exact=user_id_int))
     return {'events': events, 'instances': instances}
 
