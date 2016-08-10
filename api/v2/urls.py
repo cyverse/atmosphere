@@ -12,8 +12,10 @@ router.register(
     r'allocations',
     views.AllocationViewSet,
     base_name='allocation')
+router.register(r'allocation_sources', views.AllocationSourceViewSet)
 router.register(r'boot_scripts', views.BootScriptViewSet)
 router.register(r'credentials', views.CredentialViewSet)
+router.register(r'events', views.EventViewSet, base_name='event')
 router.register(r'email_template', views.EmailTemplateViewSet)
 router.register(r'email_feedback', views.FeedbackEmailViewSet, base_name='email-feedback')
 router.register(r'email_instance_report', views.InstanceSupportEmailViewSet, base_name='instance-email-support')

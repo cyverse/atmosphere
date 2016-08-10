@@ -6,6 +6,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
+from pprint import pprint
 
 from threepio import logger
 
@@ -25,6 +26,31 @@ class AtmosphereUser(AbstractUser):
         identity = self.select_identity()
         identity_member = identity.identity_memberships.all()[0]
         return identity_member.quota
+
+    def is_valid(self):
+        """
+        FIXME: How do we make this 'pluggable'?
+
+        """
+        # FIXME: This code fixed in a future PR. Ignore this.
+        if 'jetstream' in settings.INSTALLED_APPS:
+            return self._jetstream_valid()
+        else:
+            return self._iplant_valid()
+
+    def _jetstream_valid(self):
+        """
+        True/False if user is valid based on Jetstream rules
+        """
+        from jetstream.plugins.auth.validation import validate_account
+        return validate_account(self.username)
+
+    def _iplant_valid(self):
+        """
+        True/False if user is valid based on iPlant rules
+        """
+        from iplantauth.protocol.ldap import is_atmo_user
+        return is_atmo_user(self.username)
 
     @property
     def is_enabled(self):
@@ -53,6 +79,12 @@ class AtmosphereUser(AbstractUser):
         for group in self.group_set.all():
             all_identities |= group.current_identities.all()
         return all_identities
+
+    @classmethod
+    def for_allocation_source(cls, allocation_source_id):
+        from core.models import UserAllocationSource
+        user_ids = UserAllocationSource.objects.filter(allocation_source__source_id=allocation_source_id).values_list('user',flat=True)
+        return AtmosphereUser.objects.filter(id__in=user_ids)
 
     def can_use_identity(self, identity_id):
         return self.current_identities.filter(id=identity_id).count() > 0
@@ -185,30 +217,39 @@ def get_default_identity(username, provider=None):
         logger.exception(e)
         return None
 
-def create_new_accounts(username, provider=None):
-    from service.driver import get_account_driver
+def create_new_accounts(username, selected_provider=None):
     user = AtmosphereUser.objects.get(username=username)
+    if not user.is_valid():
+        raise Exception("This account is not yet valid.")
+
     providers = get_available_providers()
     identities = []
     if not providers:
         logger.error("No currently active providers")
         return identities
-    if provider and provider not in providers:
-        logger.error("The provider %s is NOT in the list of currently active providers. Account will not be created" % provider)
+    if selected_provider and selected_provider not in providers:
+        logger.error("The provider %s is NOT in the list of currently active providers. Account will not be created" % selected_provider)
         return identities
     for provider in providers:
-        existing_user_list = provider.identity_set.values_list('created_by__username', flat=True)
-        if user.username in existing_user_list:
-            logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
-            continue
-        try:
-            accounts = get_account_driver(provider)
-            logger.info("Create NEW account for %s" % user.username)
-            new_identity = accounts.create_account(user.username)
+        new_identity = create_new_account_for(provider, user)
+        if new_identity:
             identities.append(new_identity)
-        except:
-            logger.exception("Could *NOT* Create NEW account for %s" % user.username)
     return identities
+
+def create_new_account_for(provider, user):
+    from service.driver import get_account_driver
+    existing_user_list = provider.identity_set.values_list('created_by__username', flat=True)
+    if user.username in existing_user_list:
+        logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
+        return None
+    try:
+        accounts = get_account_driver(provider)
+        logger.info("Create NEW account for %s" % user.username)
+        new_identity = accounts.create_account(user.username)
+        return new_identity
+    except:
+        logger.exception("Could *NOT* Create NEW account for %s" % user.username)
+        return None
 
 def get_available_providers():
     from core.models.provider import Provider

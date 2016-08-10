@@ -107,13 +107,16 @@ class Instance(object):
             else:
                 # Shorter list
                 history_list = core_instance.instancestatushistory_set.filter(
-                    Q(end_date=None) | Q(end_date__gt=start_date))
+                    # FIXME: Remove line below before this PR is merged.
+                    Q(status__name='active') &
+                    (Q(end_date=None) | Q(end_date__gt=start_date)))
         for history in history_list.order_by('start_date'):
             if limit_history and history.id not in limit_history:
                 continue
             alloc_history = InstanceHistory.from_core(history)
             instance_history.append(alloc_history)
-
+        if not instance_history:
+            return None
         # Create the Allocation.Instance object.
         return cls(core_instance.provider_alias, prov, mach, instance_history)
 

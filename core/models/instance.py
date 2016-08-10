@@ -76,6 +76,12 @@ class Instance(models.Model):
     def provider(self):
         return self.source.provider
 
+    @classmethod
+    def for_user(self, user):
+        identity_ids = user.current_identities.values_list('id', flat=True)
+        qs = Instance.objects.filter(created_by_identity__in=identity_ids)
+        return qs
+
     def get_total_hours(self):
         from service.monitoring import _get_allocation_result
         identity = self.created_by_identity
@@ -451,6 +457,33 @@ class Instance(models.Model):
 
     def esh_source(self):
         return self.source.identifier
+
+    @property
+    def allocation_source(self):
+        #FIXME: look up the current allocation source by "Scanning the event table" on this instance.
+        from core.models.allocation_source import \
+                InstanceAllocationSourceSnapshot as Snapshot
+        snapshot = Snapshot.objects.filter(instance=self).first()
+        return snapshot.allocation_source if snapshot else None
+
+    def change_allocation_source(self, allocation_source, user=None):
+        """
+        Call this method when you want to issue a 'change_allocation_source' event to the database.
+        """
+        from core.models.event_table import EventTable
+        if not user:
+            user = self.created_by
+        #FIXME: comment out this line for AllocationSource
+        if not allocation_source:
+            raise Exception("Allocation source must not be null")
+        payload = {
+                'allocation_source_id': allocation_source.source_id,
+                'instance_id': self.provider_alias
+        }
+        return EventTable.create_event(
+            "instance_allocation_source_changed",
+            payload,
+            user.username)
 
     def json(self):
         return {

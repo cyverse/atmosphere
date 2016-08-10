@@ -23,6 +23,8 @@ DEBUG = True
 # Enforcing mode -- True, when in production (Debug=False)
 ENFORCING = not DEBUG
 
+USE_ALLOCATION_SOURCE = False
+
 SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                             '../..'))
@@ -52,7 +54,7 @@ DATABASES = {
     'default': {
         'NAME': 'atmosphere',
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'USER': 'atmo_app',
+        'USER': 'atmo_prod',
         'PASSWORD': 'atmosphere',
         'HOST': 'localhost',
         'PORT': '5432'
@@ -267,6 +269,7 @@ AUTH_LOG_FILENAME = create_log_path('atmosphere_auth.log')
 EMAIL_LOG_FILENAME = create_log_path('atmosphere_email.log')
 STATUS_LOG_FILENAME = create_log_path('atmosphere_status.log')
 DEPLOY_LOG_FILENAME = create_log_path('atmosphere_deploy.log')
+
 
 check_and_touch(LOG_FILENAME)
 check_and_touch(API_LOG_FILENAME)
