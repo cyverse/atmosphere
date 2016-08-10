@@ -59,7 +59,7 @@ def filter_events_and_instances(report_start_date, report_end_date, username=Non
     if username:
         from core.models.user import AtmosphereUser
         user_id_int = AtmosphereUser.objects.get(username=username)
-        events = events.filter(Q(entity_id__exact=username))
+        events = events.filter(Q(payload__username__exact=username))
         instances = instances.filter(Q(created_by__exact=user_id_int))
     return {'events': events, 'instances': instances}
 
@@ -97,6 +97,17 @@ def map_events_to_histories(filtered_instance_histories, event_instance_dict):
                 out_dic.setdefault(inst_history[-1], []).append(info)
     return out_dic
 
+def get_allocation_source_name_from_event(username, report_start_date):
+    events = EventTable.objects.filter(Q(timestamp__lt=report_start_date) & Q(name__exact="instance_allocation_source_changed") & Q(payload__username__exact=username)).order_by('timestamp')
+    if not events:
+        return False
+    else:
+        allocation_source_object = AllocationSource.objects.filter(source_id=events.last().payload['allocation_source_id'])
+        if allocation_source_object:
+            return allocation_source_object.last().name
+        else:
+            raise Exception('Allocation Source ID %s in event %s does not exist' % (events.last().payload['allocation_source_id'],events.last().id))
+       
 
 def create_rows(filtered_instance_histories, events_histories_dict, report_start_date, report_end_date):
     data = []
@@ -112,8 +123,9 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                 if current_user:
                     burn_rate_per_user[current_user] = burn_rate_per_user.get(current_user, 0) + total_burn_rate
                 current_user = hist.instance.created_by.username
-                uas = UserAllocationSource.objects.filter(user__exact=hist.instance.created_by.id).first()
-                allocation_source_name = 'N/A' if uas else uas.allocation_source.name
+                current_as_name = get_allocation_source_name_from_event(current_user,report_start_date)
+                allocation_source_name = current_as_name if current_as_name else 'N/A'
+            
             empty_row = {'username': '', 'instance_id': '', 'allocation_source': '', 'provider_alias': '', 'instance_status_history_id': '', 'cpu': '', 'memory': '',
                          'disk': '', 'instance_status_start_date': '', 'instance_status_end_date': '', 'report_start_date': report_start_date, 'report_end_date': report_end_date,
                          'instance_status': '', 'duration': '', 'applicable_duration': '', 'burn_rate': ''}
