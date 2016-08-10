@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
             name='UserAllocationSource',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('allocation_source', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.AllocationSource')),
+                ('allocation_source', models.ForeignKey(related_name="users", on_delete=django.db.models.deletion.CASCADE, to='core.AllocationSource')),
             ],
             options={
                 'db_table': 'user_allocation_source',

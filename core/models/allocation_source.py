@@ -34,7 +34,7 @@ class UserAllocationSource(models.Model):
     """
 
     user = models.ForeignKey("AtmosphereUser")
-    allocation_source = models.ForeignKey(AllocationSource)
+    allocation_source = models.ForeignKey(AllocationSource, related_name="users")
 
     def __unicode__(self):
         return "%s (User:%s, AllocationSource:%s)" %\
@@ -50,8 +50,8 @@ class UserAllocationSnapshot(models.Model):
     """
     Fixme: Potential optimization -- user_allocation_source could just store burn_rate and updated?
     """
-    user = models.ForeignKey("AtmosphereUser")
-    allocation_source = models.ForeignKey(AllocationSource)
+    user = models.ForeignKey("AtmosphereUser", related_name="user_allocation_snapshots")
+    allocation_source = models.ForeignKey(AllocationSource, related_name="user_allocation_snapshots")
     # all fields are stored in DecimalField to allow for partial hour calculation
     compute_used = models.DecimalField(max_digits=19, decimal_places=3)
     burn_rate = models.DecimalField(max_digits=19, decimal_places=3)
@@ -81,7 +81,7 @@ class InstanceAllocationSourceSnapshot(models.Model):
 
 
 class AllocationSourceSnapshot(models.Model):
-    allocation_source = models.OneToOneField(AllocationSource)
+    allocation_source = models.OneToOneField(AllocationSource, related_name="snapshot")
     updated = models.DateTimeField(auto_now=True)
     # all fields are stored in DecimalField to allow for partial hour calculation
     global_burn_rate = models.DecimalField(max_digits=19, decimal_places=3)

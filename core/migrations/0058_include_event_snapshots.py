@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('updated', models.DateTimeField(auto_now=True)),
                 ('global_burn_rate', models.DecimalField(decimal_places=3, max_digits=19)),
                 ('compute_used', models.DecimalField(decimal_places=3, max_digits=19)),
-                ('allocation_source', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='core.AllocationSource')),
+                ('allocation_source', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='core.AllocationSource', related_name="snapshot")),
             ],
             options={
                 'db_table': 'allocation_source_snapshot',
@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
                 ('compute_used', models.DecimalField(decimal_places=3, max_digits=19)),
                 ('burn_rate', models.DecimalField(decimal_places=3, max_digits=19)),
                 ('updated', models.DateTimeField(auto_now=True)),
-                ('allocation_source', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.AllocationSource')),
+                ('allocation_source', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.AllocationSource', related_name="user_allocation_snapshots")),
             ],
             options={
                 'db_table': 'user_allocation_snapshot',
@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='userallocationsnapshot',
             name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL, related_name="user_allocation_snapshots"),
         ),
         migrations.AlterUniqueTogether(
             name='userallocationsnapshot',
