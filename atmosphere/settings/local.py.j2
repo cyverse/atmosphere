@@ -82,6 +82,7 @@ CELERYBEAT_SCHEDULE["{{task_key}}"]["{{task_opt}}"] = {{task_opt_value}}
   {%- endfor %}
 {%- endif %}
 {% if USE_JETSTREAM_PLUGIN %}
+ALLOCATION_SOURCE_WARNINGS = [10, 25, 50, 75, 90]
 JETSTREAM_CELERYBEAT_SCHEDULE = {
   "report_allocations_to_tas":{
 	"task":"report_allocations_to_tas",

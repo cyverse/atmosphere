@@ -80,6 +80,12 @@ class AtmosphereUser(AbstractUser):
             all_identities |= group.current_identities.all()
         return all_identities
 
+    @classmethod
+    def for_allocation_source(cls, allocation_source_id):
+        from core.models import UserAllocationSource
+        user_ids = UserAllocationSource.objects.filter(allocation_source__source_id=allocation_source_id).values_list('user',flat=True)
+        return AtmosphereUser.objects.filter(id__in=user_ids)
+
     def can_use_identity(self, identity_id):
         return self.current_identities.filter(id=identity_id).count() > 0
 
