@@ -30,6 +30,8 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     new_compute_used = payload['compute_used']
     threshold_values = getattr(settings, "ALLOCATION_SOURCE_WARNINGS", [])
     source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    if not source:
+        return
     prev_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source__source_id=allocation_source_id).first()
     if not prev_snapshot:
         prev_compute_used = 0

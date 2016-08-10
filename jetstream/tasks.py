@@ -134,7 +134,7 @@ def update_snapshot():
             # determine end date and start date using last snapshot
             start_date = user.date_joined
             # calculate compute used and burn rate for the user and allocation source combo
-            compute_used, burn_rate = total_usage(user,start_date,allocation_source=source.name,end_date=end_date,burn_rate=True)
+            compute_used, burn_rate = total_usage(user.username,start_date,allocation_source_name=source.name,end_date=end_date,burn_rate=True)
 
             allocation_source_total_compute[source.name] = allocation_source_total_compute.get(source.name,0) + compute_used
             allocation_source_total_burn_rate[source.name] = allocation_source_total_burn_rate.get(source.name,0) + burn_rate
