@@ -294,8 +294,22 @@ INSTALLED_APPS += (
 {% endif %}
 
 {% if USE_JETSTREAM_PLUGIN %}
-INSTALLED_APPS += ('jetstream',)
+INSTALLED_APPS += (
+    'jetstream',
+)
 TACC_API_USER = '{{ TACC_API_USER }}'
 TACC_API_PASS = '{{ TACC_API_PASS }}'
 TACC_API_URL = '{{ TACC_API_URL }}'
+
+VALIDATION_PLUGINS = (
+    'jetstream.plugins.auth.validation.XsedeProjectRequired',
+    #'atmosphere.plugins.auth.validation.LDAPGroupRequired',
+    #'atmosphere.plugins.auth.validation.AlwaysAllow',
+)
+{% else %}
+VALIDATION_PLUGINS = (
+    #'jetstream.plugins.auth.validation.XsedeProjectRequired',
+    'atmosphere.plugins.auth.validation.LDAPGroupRequired',
+    #'atmosphere.plugins.auth.validation.AlwaysAllow',
+)
 {% endif %}
