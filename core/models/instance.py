@@ -30,7 +30,7 @@ from core.models.size import (
 )
 from core.models.tag import Tag
 from core.models.managers import ActiveInstancesManager
-
+from atmosphere import settings
 
 class Instance(models.Model):
     """
@@ -471,6 +471,8 @@ class Instance(models.Model):
         """
         Call this method when you want to issue a 'change_allocation_source' event to the database.
         """
+        if not settings.USE_ALLOCATION_SOURCE:
+            return
         from core.models.event_table import EventTable
         if not user:
             user = self.created_by

@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from threepio import logger
+from atmosphere import settings
 
 from core.exceptions import ProviderNotActive
 from core.models import AtmosphereUser as User
@@ -157,7 +158,7 @@ class InstanceList(AuthAPIView):
             return keys_not_found(missing_keys)
         # Pass these as args
         size_alias = data.pop("size_alias")
-        allocation_source_id = data.pop("allocation_source_id")
+        allocation_source_id = data.pop("allocation_source_id",None)
         machine_alias = data.pop("machine_alias")
         hypervisor_name = data.pop("hypervisor", None)
         if hypervisor_name:
@@ -172,8 +173,11 @@ class InstanceList(AuthAPIView):
         boot_scripts = data.pop("scripts", [])
         try:
             logger.debug(data)
-            allocation_source = AllocationSource.objects.get(
-                source_id=allocation_source_id)
+            if not settings.USE_ALLOCATION_SOURCE:
+                allocation_source = None
+            else:
+                allocation_source = AllocationSource.objects.get(
+                    source_id=allocation_source_id)
             core_instance = launch_instance(
                 user, identity_uuid,
                 size_alias, machine_alias,
@@ -873,7 +877,7 @@ def valid_post_data(data):
     """
     Return any missing required post key names.
     """
-    required = ['machine_alias', 'size_alias', 'allocation_source_id', 'name']
+    required = ['machine_alias', 'size_alias', 'name']
     return [key for key in required
             if key not in data or
             (isinstance(data[key], str) and len(data[key]) > 0)]

@@ -315,7 +315,7 @@ def build_host_name(instance_id, ip):
     except Provider.DoesNotExist:
         logger.warn("Using an instance %s that is *NOT* in your database. Cannot determine hostnaming format. Using IP address as hostname.")
         return raw_hostname(ip)
-    except KeyError, TypeError:
+    except (KeyError, TypeError):
         logger.warn("Cloud config ['deploy']['hostname_format'] is missing -- using IP address as a hostname.")
         return raw_hostname(ip)
 

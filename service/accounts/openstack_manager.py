@@ -207,7 +207,7 @@ class AccountDriver(BaseAccountDriver):
                 if not role_name:
                     try:
                         role_name = self.cloud_config['user']['user_role_name']
-                    except KeyError, TypeError:
+                    except (KeyError, TypeError):
                         logger.error("Cloud config ['user']['user_role_name'] is missing -- using deprecated settings.DEFAULT_KEYSTONE_ROLE")
                         role_name = settings.DEFAULT_KEYSTONE_ROLE
                 self.user_manager.add_project_membership(
@@ -289,7 +289,7 @@ class AccountDriver(BaseAccountDriver):
         # -- User:Keystone rev.
         try:
             rules_list = core_identity.provider.cloud_config['network']['default_security_rules']
-        except KeyError, TypeError:
+        except (KeyError, TypeError):
             logger.error("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
             rules_list = DEFAULT_RULES
         identity_creds = self.parse_identity(core_identity)
@@ -414,7 +414,7 @@ class AccountDriver(BaseAccountDriver):
         if not rules_list:
             try:
                 rules_list = self.cloud_config['network']['default_security_rules']
-            except KeyError, TypeError:
+            except (KeyError, TypeError):
                 logger.error("Cloud config ['network']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
                 rules_list = DEFAULT_RULES
         return self.user_manager.build_security_group(
@@ -527,7 +527,7 @@ class AccountDriver(BaseAccountDriver):
         neutron = self.get_openstack_client(identity, 'neutron')
         try:
             topology_name = self.cloud_config['network']['topology']
-        except KeyError, TypeError:
+        except (KeyError, TypeError):
             logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
@@ -573,7 +573,7 @@ class AccountDriver(BaseAccountDriver):
         dns_nameservers = self.dns_nameservers_for(identity)
         try:
             topology_name = self.cloud_config['network']['topology']
-        except KeyError, TypeError:
+        except (KeyError, TypeError):
             logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
@@ -675,7 +675,7 @@ class AccountDriver(BaseAccountDriver):
         import crypt
         try:
             cloud_pass = self.cloud_config.get('user',{}).get("secret")
-        except KeyError, TypeError:
+        except (KeyError, TypeError):
             cloud_pass = None
         secret_salt = str(cloud_pass).translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
