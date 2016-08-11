@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0059_eventtable_filter_id'),
+        ('core', '0058_include_event_snapshots'),
     ]
 
     operations = [
