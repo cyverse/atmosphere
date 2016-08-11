@@ -88,6 +88,9 @@ INSTALLED_APPS = (
     'service',
     'core',
 )
+SESSION_COOKIE_NAME = 'atmo_sessionid'
+
+CSRF_COOKIE_NAME = 'atmo_csrftoken'
 
 TIME_ZONE = 'America/Phoenix'
 
