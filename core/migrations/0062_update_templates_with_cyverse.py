@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 
+
 def try_update_iplant_to_cyverse(apps, schema_editor):
     try:
         EmailTemplate = apps.get_model("core", "EmailTemplate")
@@ -13,10 +14,11 @@ def try_update_iplant_to_cyverse(apps, schema_editor):
     except:
         pass
 
+
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0057_allow_non_unique_allocation_pair'),
+        ('core', '0061_allow_non_unique_allocation_pair'),
     ]
 
     operations = [

@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0056_rename_status_types'),
+        ('core', '0060_rename_status_types'),
     ]
 
     operations = [
