@@ -56,7 +56,7 @@ class TASAllocationReport(models.Model):
         """
         """
         duration = self.end_date - self.start_date
-        return "%s (Username:%s Project:%s) used %s AU - Duration:%s (%s - %s) Reported:%s" % \
+        return "%s (Username:%s Project:%s) used %s AU over the Duration:%s (%s - %s) Reported:%s" % \
             (self.user.username,
              self.username, self.project_name,
              self.compute_used, duration,
