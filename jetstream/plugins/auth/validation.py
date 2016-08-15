@@ -9,7 +9,7 @@ def validate_account(username):
     * All other allocations are ignored.
     """
     tas_driver = TASAPIDriver()
-    tacc_username = tas_driver.get_username_for_xsede(username)
+    tacc_username = tas_driver.get_username_from_xsede(username)
     project_allocations = tas_driver.get_project_allocations(tacc_username)
     if not project_allocations:
         return False
