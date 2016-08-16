@@ -130,6 +130,7 @@ DATABASES = {
 
 # Prevents warnings
 ALLOWED_HOSTS = [SERVER_URL.replace('https://', '')]
+CSRF_TRUSTED_ORIGINS = ALLOWED_HOSTS
 
 
 # Atmosphere Keypair/Deployment Configs
