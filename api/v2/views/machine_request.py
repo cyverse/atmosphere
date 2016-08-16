@@ -140,6 +140,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
         """
         provider = instance.active_provider()
         pre_approved = provider.auto_imaging
+        #FIXME: This should be `pre_approved` based on `new_machine_provider` *NOT* `instance.active_provider`
         requestImaging(self.request, instance.id, auto_approve=pre_approved)
 
         if pre_approved:
