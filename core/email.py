@@ -244,13 +244,12 @@ def email_to_admin(
         cc = []
     else:
         cc = [email_address_str(username, user_email)]
-
-    send_email(subject, body,
+    celery_task = send_email.si(subject, body,
                from_email=email_address_str(username, user_email),
                to=[email_address_str(sendto, sendto_email)],
                cc=cc,
                html=html)
-
+    celery_task.delay() # Task executes here
     return True
 
 
@@ -263,12 +262,12 @@ def email_from_admin(username, subject, message, html=False):
     user_email = lookupEmail(username)
     if not user_email:
         user_email = "%s@%s" % (username, settings.DEFAULT_EMAIL_DOMAIN)
-    send_email(subject, message,
+    celery_task = send_email.si(subject, message,
                from_email=email_address_str(from_name, from_email),
                to=[email_address_str(username, user_email)],
                cc=[email_address_str(from_name, from_email)],
                html=html)
-
+    celery_task.delay() # Task executes here
     return True
 
 
