@@ -120,7 +120,8 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
             "%s should include an `admin_serializer_class` attribute."
             % self.__class__.__name__
         )
-        if self.request.user.is_staff:
+        http_method = self.request._request.method
+        if http_method != 'POST' and self.request.user.is_staff:
             return self.admin_serializer_class
         return self.serializer_class
 
