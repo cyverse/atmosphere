@@ -19,7 +19,6 @@ class RemoveCSRFMiddleware(object):
         # check if the url is valid
         path = new_path = request.path_info
         if '/api' in new_path:
-            logger.info("Middleware has disabled CSRF")
             setattr(request, '_dont_enforce_csrf_checks', True)
 
 
