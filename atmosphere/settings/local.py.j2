@@ -44,15 +44,26 @@ ADMINS = [
   {{ email_tuple }},
 {%- endfor %}
 ]
+{% endif %}
 
 # Required to send RequestTracker emails
+{% if ATMO_SUPPORT_EMAIL_TUPLE %}
+ATMO_SUPPORT = [
+# The first admin will AUTHOR all e-mails.
+# These ATMO_SUPPORT override values set in __init__.py
+{%- for email_tuple in ATMO_SUPPORT_EMAIL_TUPLE %}
+  {{ email_tuple }},
+{%- endfor %}
+]
+{%- else %}
 ATMO_SUPPORT = ADMINS
+{% endif %}
+
 ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
 
 # Django uses this one..
 MANAGERS = ADMINS
 
-{% endif %}
 SUPPORT_EMAIL = '{{ SUPPORT_EMAIL }}'
 SUPPORT_EMAIL_SIGNATURE = '{{ SUPPORT_EMAIL_SIGNATURE }}'
 SUPPORT_LINKS = {{ SUPPORT_LINKS }}
