@@ -88,7 +88,6 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     if event.name != 'allocation_source_threshold_met':
         return None
     from core.email import send_allocation_usage_email
-    import ipdb;ipdb.set_trace()
     payload = event.payload
     allocation_source_id = payload['allocation_source_id']
     threshold = payload['threshold']

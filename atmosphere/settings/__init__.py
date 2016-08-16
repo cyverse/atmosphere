@@ -132,6 +132,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'atmosphere.slash_middleware.RemoveSlashMiddleware',
+    'atmosphere.slash_middleware.RemoveCSRFMiddleware',
 )
 
 ROOT_URLCONF = 'atmosphere.urls'
