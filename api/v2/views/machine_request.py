@@ -9,6 +9,8 @@ from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
 
+from atmosphere import settings
+
 from core import exceptions as core_exceptions
 from core.email import send_denied_resource_email
 from core.models import MachineRequest, IdentityMembership, AtmosphereUser,\
@@ -60,15 +62,22 @@ class MachineRequestViewSet(BaseRequestViewSet):
         if len(q) > 0:
             message = "Only one active request is allowed per provider."
             raise rest_exceptions.MethodNotAllowed('create', detail=message)
-
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
         new_owner=self.request.user
         parent_machine = serializer.validated_data['instance'].provider_machine
-
-        # TODO: This is a hack that can be removed POST-ll (When MachineRequest validates new_machine_provider)
-        new_provider = parent_machine.provider  # <--HACK!
+        new_provider = serializer.validated_data['new_machine_provider']
+        if hasattr(settings, 'REPLICATION_PROVIDER_LOCATION'):
+            try:
+                replication_provider = Provider.objects.get(
+                    location=settings.REPLICATION_PROVIDER_LOCATION)
+                if new_provider.location != replication_provider.location:
+                    serializer._validated_data['new_machine_provider'] = replication_provider
+            except:
+                # Will skip this step if no provider is named
+                # as the REPLICATION_PROVIDER_LOCATION
+                pass
 
         access_list = serializer.initial_data.get("access_list") or []
         visibility = serializer.initial_data.get("new_application_visibility") 

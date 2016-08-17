@@ -1,6 +1,14 @@
 from rest_framework import exceptions, serializers
-from core.models import ApplicationVersion, ProviderMachine, Group, BootScript, Provider, License, Instance, MachineRequest, Identity, AtmosphereUser as User, IdentityMembership
+
+from core.models import (
+    ApplicationVersion, ProviderMachine, Group,
+    BootScript, Provider, License, Instance,
+    MachineRequest, Identity,
+    AtmosphereUser as User,
+    IdentityMembership
+)
 from core.models.status_type import StatusType
+
 from api.v2.serializers.summaries import (
     AllocationSummarySerializer,
     ImageVersionSummarySerializer,
@@ -108,34 +116,6 @@ class StatusTypeRelatedField(serializers.RelatedField):
 
 class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     
-    def validate(self, data):
-
-        # set the parent machine
-        parent_machine = ProviderMachine.objects.get(instance_source__id=data['instance'].source_id,
-                                                     instance_source__provider=data['instance'].provider)
-        data['parent_machine'] = parent_machine
-
-        # make sure user has access to the new provider
-        user = data['new_machine_owner']
-        provider = data['new_machine_provider']
-        queryset = user.identity_set.filter(provider = provider)
-        if not queryset.exists():
-            raise exceptions.ValidationError(
-                "User %s does not have access to provider %s."
-                % (user.username, provider)
-            )
-
-        # make sure provider has imaging enabled
-        if not provider.active:
-            raise exceptions.ValidationError(
-                "Provider %s does not allow imaging."
-                % (provider)
-            )
-
-        # TODO: make sure user has access to parent machine
-
-        return data
-
     uuid = serializers.CharField(read_only=True)
     identity = IdentityRelatedField(source='membership.identity',
                                     queryset=Identity.objects.none())
@@ -148,7 +128,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
                                     required=False)
     admin_message = serializers.CharField(read_only=True)
     parent_machine = ModelRelatedField(
-       required = False, 
+       required=False,
        lookup_field="uuid",
        queryset=ProviderMachine.objects.all(),
        serializer_class=ProviderMachineSummarySerializer,
@@ -252,6 +232,10 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         queryset=Instance.objects.all(),
         serializer_class=InstanceSummarySerializer,
         style={'base_template': 'input.html'})
+    new_machine_provider = ModelRelatedField(
+        queryset=Provider.objects.all(),
+        serializer_class=ProviderSummarySerializer,
+        style={'base_template':'input.html'})
     status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
                                     allow_null=True,
                                     required=False)
@@ -282,6 +266,7 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'old_status',
             'new_version_tags',
             'new_version_change_log',
+            'new_machine_provider',
             'admin_message',
             'new_application_name',
             'new_application_version',
