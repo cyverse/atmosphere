@@ -34,7 +34,7 @@ class TASAPIDriver(object):
             self.project_list = self._get_all_projects()
         return self.project_list
 
-    def get_username_from_xsede(self, xsede_username):
+    def get_username_for_xsede(self, xsede_username):
         path = '/v1/users/xsede/%s' % xsede_username
         url_match = self.tacc_api + path
         resp, data = tacc_api_get(url_match)
@@ -150,7 +150,7 @@ class TASAPIDriver(object):
 
     def _get_tacc_user(self, user):
         try:
-            tacc_user = self.get_username_from_xsede(
+            tacc_user = self.get_username_for_xsede(
                 user.username)
         except:
             logger.info("User: %s has no tacc username" % user.username)
