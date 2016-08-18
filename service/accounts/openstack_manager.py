@@ -568,7 +568,7 @@ class AccountDriver(BaseAccountDriver):
 
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
-        project_name = identity_creds["tenant_name"]
+        prefix_name = "%s" % (identity_creds["tenant_name"],)
         neutron = self.get_openstack_client(identity, 'neutron')
         dns_nameservers = self.dns_nameservers_for(identity)
         try:
@@ -579,33 +579,32 @@ class AccountDriver(BaseAccountDriver):
                 "Will attempt to use the last known default: ExternalRouter.")
             topology_name = None
         network_strategy = self.select_network_strategy(identity, topology_name)
-        #May raise exception
+        # validate should raise exception if mis-configured.
         network_strategy.validate(identity)
-
         network = network_strategy.get_or_create_network(
             self.network_manager, neutron,
-            "%s-net" % project_name)  # NOTE: the name of the network here is a *hint* not a guarantee.
-        # Use `network.name` from here
+            "%s-net" % prefix_name)
         subnet = network_strategy.get_or_create_user_subnet(
             self.network_manager, neutron,
             network['id'], username,
-            "%s-subnet" % project_name,
+            "%s-subnet" % prefix_name,
             dns_nameservers=dns_nameservers)
         router = network_strategy.get_or_create_router(
             self.network_manager, neutron,
-            "%s-router" % project_name)
+            "%s-router" % prefix_name)
         gateway = network_strategy.get_or_create_router_gateway(
             self.network_manager, neutron,
             router, network)
         interface = network_strategy.get_or_create_router_interface(
             self.network_manager, neutron, router, subnet,
-            '%s-router-intf' % project_name)
+            '%s-router-intf' % prefix_name)
         network_resources = {
             'network': network,
             'subnet': subnet,
             'router': router,
             'interface': interface,
         }
+        network_strategy.post_create_hook(self.network_manager, neutron, network_resources)
         return network_resources
 
     # Useful methods called from above..

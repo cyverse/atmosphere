@@ -112,6 +112,13 @@ class GenericNetworkTopology(object):
         """
         return True
 
+    def post_create_hook(self, network_driver, user_neutron, network_resources_dict):
+        """
+        Given the options in your strategy and your newly created resources,
+        use this space to "make the connections"
+        """
+        return
+
     def get_or_create_network(self, network_driver, user_neutron, network_name):
         network = network_driver.create_network(user_neutron, network_name)
         return network
@@ -213,7 +220,7 @@ class GenericNetworkTopology(object):
 class ExternalNetwork(GenericNetworkTopology):
     """
     This topology assumes:
-    user_subnet --> user_router --> interface --> external_network
+    user_network --> user_subnet --> user_router --> interface --> external_network
     """
     name = "External Network Topology"
     external_network_name = None
@@ -229,19 +236,10 @@ class ExternalNetwork(GenericNetworkTopology):
             raise Exception("Unknown Network - Identity %s is missing 'network_name' " % identity)
         self.external_network_name = network_name
 
-    def validate(self, core_identity):
-        identity_creds = core_identity.get_all_credentials()
-        if 'network_name' not in identity_creds.keys():
-            logger.warn("Credential 'network_name' missing:"
-                        "cannot create user network")
-            raise Exception("Identity %s has not been assigned a 'network_name'" % core_identity)
-        return True
-
-    def delete_network(self, network_driver, user_neutron, network_name):
-        return None
-
-    def get_or_create_network(self, network_driver, user_neutron, network_name):
-        # Step 1. Does public network exist?
+    def get_public_network(self, network_driver):
+        """
+        This method is special to ExternalNetwork
+        """
         public_network = network_driver.find_network(
             self.external_network_name)
         if type(public_network) == list:
@@ -253,13 +251,31 @@ class ExternalNetwork(GenericNetworkTopology):
                 % self.external_network_name)
         return public_network
 
+    def post_create_hook(self, network_driver, user_neutron, network_resources_dict):
+        """
+        Given the options in your strategy and your newly created resources,
+        use this space to "make the connections"
+        """
+        return
 
-    def get_or_create_router_interface(self, network_driver, user_neutron, router, subnet, interface_name):
-        #TODO: Determine if this is required in this Topology or not.
-        # interface = network_driver.add_router_interface(
-        #     router, subnet, interface_name)
-        # return interface
+    def validate(self, core_identity):
+        identity_creds = core_identity.get_all_credentials()
+        if 'network_name' not in identity_creds.keys():
+            logger.warn("Credential 'network_name' missing:"
+                        "cannot create user network")
+            raise Exception("Identity %s has not been assigned a 'network_name'" % core_identity)
+        return True
+
+    def delete_network(self, network_driver, user_neutron, network_name):
         return None
+
+
+    def get_or_create_router_gateway(self, network_driver, user_neutron, router, network):
+        public_network = self.get_public_network(network_driver)
+        gateway = network_driver.set_router_gateway(
+            user_neutron, router['name'], public_network['name'])
+        return gateway
+
 
 class ExternalRouter(GenericNetworkTopology):
     """
