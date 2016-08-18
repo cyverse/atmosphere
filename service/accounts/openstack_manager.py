@@ -568,6 +568,11 @@ class AccountDriver(BaseAccountDriver):
 
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
+        # NOTE: While 'prefixing' would be nice, how we transition to this
+        #       when we already have "non-prefixed" resources might be tough.
+        #       to avoid conflicts with production boxes, we will not implement
+        #       the prefixing portion now.
+        #prefix_name = "atmo_%s" % (identity_creds["tenant_name"],)
         prefix_name = "%s" % (identity_creds["tenant_name"],)
         neutron = self.get_openstack_client(identity, 'neutron')
         dns_nameservers = self.dns_nameservers_for(identity)
