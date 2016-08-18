@@ -273,11 +273,11 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         serializer_class=GroupSummarySerializer,
         style={'base_template':'input.html'},
         required=False)
-
     new_machine_provider = ModelRelatedField(
         queryset=Provider.objects.all(),
         serializer_class=ProviderSummarySerializer,
-        style={'base_template':'input.html'})
+        style={'base_template':'input.html'},
+        required=False)
     # Absent: new_machine_owner -- determined by User submission
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:machinerequest-detail',
