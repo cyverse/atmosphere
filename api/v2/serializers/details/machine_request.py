@@ -115,17 +115,11 @@ class StatusTypeRelatedField(serializers.RelatedField):
 
 
 class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
-    
+
     uuid = serializers.CharField(read_only=True)
     identity = IdentityRelatedField(source='membership.identity',
                                     queryset=Identity.objects.none())
-    instance = ModelRelatedField(
-        queryset=Instance.objects.all(),
-        serializer_class=InstanceSummarySerializer,
-        style={'base_template': 'input.html'})
-    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
-                                    allow_null=True,
-                                    required=False)
+    # This is a *STAFF EXCLUSIVE* serializer. These are the values that make it that way:
     admin_message = serializers.CharField(read_only=True)
     parent_machine = ModelRelatedField(
        required=False,
@@ -134,10 +128,19 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
        serializer_class=ProviderMachineSummarySerializer,
        style={'base_template': 'input.html'})
 
+    instance = ModelRelatedField(
+        queryset=Instance.objects.all(),
+        serializer_class=InstanceSummarySerializer,
+        style={'base_template': 'input.html'})
+    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
+                                    allow_null=True,
+                                    required=False)
+    old_status = serializers.CharField(required = False)
+
+    new_application_visibility = serializers.CharField()
+    new_application_version = ImageVersionSummarySerializer(read_only=True)
     new_application_name = serializers.CharField(validators=[NoSpecialCharacters('!"#$%&\'*+,/;<=>?@[\\]^_`{|}~')])
     new_application_description = serializers.CharField()
-    old_status = serializers.CharField(required = False)
-    new_application_visibility = serializers.CharField()
     access_list = serializers.CharField(allow_blank=True)
     system_files = serializers.CharField(allow_blank=True, required=False)
     installed_software = serializers.CharField()
@@ -182,7 +185,6 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         queryset = ProviderMachine.objects.all(),
         serializer_class = ProviderMachineSummarySerializer,
         style = {'base_template':'input.html'})
-    new_application_version = ImageVersionSummarySerializer(read_only=True)
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:machinerequest-detail',
     )
@@ -228,27 +230,55 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
 class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
 
     uuid = serializers.CharField(read_only=True)
+    admin_message = serializers.CharField(read_only=True)
     instance = ModelRelatedField(
         queryset=Instance.objects.all(),
         serializer_class=InstanceSummarySerializer,
         style={'base_template': 'input.html'})
-    new_machine_provider = ModelRelatedField(
-        queryset=Provider.objects.all(),
-        serializer_class=ProviderSummarySerializer,
-        style={'base_template':'input.html'})
     status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
                                     allow_null=True,
                                     required=False)
     old_status = serializers.CharField(required = False)
-    new_version_tags = serializers.CharField(required=False, allow_blank=True)
+
+    new_application_visibility = serializers.CharField()
+    new_application_version = ImageVersionSummarySerializer(read_only=True)
+    new_application_name = serializers.CharField(validators=[NoSpecialCharacters('!"#$%&\'*+,/;<=>?@[\\]^`{|}~')])
+    new_application_description = serializers.CharField()
+    access_list = serializers.CharField(allow_blank=True)
+    system_files = serializers.CharField(allow_blank=True, required=False)
+    installed_software = serializers.CharField()
+    exclude_files = serializers.CharField(allow_blank=True)
+    new_version_name = serializers.CharField()
     new_version_change_log = serializers.CharField(required=False, allow_blank=True)
+    new_version_tags = serializers.CharField(required=False, allow_blank=True)
     new_version_memory_min = serializers.CharField()
     new_version_cpu_min = serializers.CharField()
-    new_application_name = serializers.CharField(validators=[NoSpecialCharacters('!"#$%&\'*+,/;<=>?@[\\]^`{|}~')])
-    new_application_version = ImageVersionSummarySerializer(read_only=True)
-    new_application_visibility = serializers.CharField()
-    admin_message = serializers.CharField(read_only=True)
-    access_list = serializers.CharField(allow_blank=True)
+    new_version_allow_imaging = serializers.BooleanField()
+    new_version_forked = serializers.BooleanField()
+    new_version_licenses = ModelRelatedField(
+        many=True,
+        queryset=License.objects.all(),
+        serializer_class=LicenseSummarySerializer,
+        style={'base_template': 'input.html'},
+        required=False)
+    new_version_scripts = ModelRelatedField(
+        many=True,
+        queryset=BootScript.objects.all(),
+        serializer_class=BootScriptSummarySerializer,
+        style={'base_template': 'input.html'},
+        required=False)
+    new_version_membership = ModelRelatedField(
+        many=True,
+        queryset=Group.objects.all(),
+        serializer_class=GroupSummarySerializer,
+        style={'base_template':'input.html'},
+        required=False)
+
+    new_machine_provider = ModelRelatedField(
+        queryset=Provider.objects.all(),
+        serializer_class=ProviderSummarySerializer,
+        style={'base_template':'input.html'})
+    # Absent: new_machine_owner -- determined by User submission
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:machinerequest-detail',
     )
@@ -261,18 +291,27 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'id',
             'uuid',
             'url',
+            'admin_message',
             'instance',
             'status',
             'old_status',
-            'new_version_tags',
-            'new_version_change_log',
-            'new_machine_provider',
-            'admin_message',
-            'new_application_name',
-            'new_application_version',
             'new_application_visibility',
+            'new_application_version',
+            'new_application_name',
+            'new_application_description',
+            'access_list',
+            'system_files',
+            'installed_software',
+            'exclude_files',
+            'new_version_name',
+            'new_version_change_log',
+            'new_version_tags',
             'new_version_memory_min',
             'new_version_cpu_min',
-            'access_list',
-
+            'new_version_allow_imaging',
+            'new_version_forked',
+            'new_version_licenses',
+            'new_version_scripts',
+            'new_version_membership',
+            'new_machine_provider',
         )
