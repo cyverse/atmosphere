@@ -95,16 +95,69 @@ class GenericNetworkTopology(object):
     This network topology describes how networks should be created per openstack project.
     """
     name = None
-    user_network_required = False
-    user_router_required = False
-    options = {}
 
     # Standard implementation for Network Topology
-    def __init__(self, identity):
-        pass
+    def __init__(self, identity, network_driver, neutron):
+        self.network_driver = network_driver
+        self.user_neutron = neutron
+        self.identity = identity 
 
-    def configure(self, **options):
-        self.options.update(options)
+    def _delete_user_subnet(self, prefix_name):
+        self.delete_router_interface(
+            "%s-router" % prefix_name,
+            "%s-subnet" % prefix_name)
+        self.delete_router(
+            "%s-router" % prefix_name)
+        self.delete_subnet(
+            "%s-subnet" % prefix_name)
+
+    def _delete_user_network(self, prefix_name):
+        self._delete_user_subnet(prefix_name)
+        self.delete_network("%s-net" % prefix_name)
+        return
+
+    def get_prefix_name(self):
+        return self.identity.get_credential('ex_project_name')
+
+    def execute_delete(self, options):
+        """
+        Modify the delete behavior based on the options
+        This function should be modified by the Subclass if it does not work out-of-the-box
+        """
+        prefix_name = self.get_prefix_name()
+        if options.get('skip_network'):
+            return self._delete_user_subnet(prefix_name)
+        return self._delete_user_network(
+            prefix_name)
+
+    def execute_create(self, options={}):
+        """
+        Modify the create behavior based on the options
+        This function should be modified by the Subclass if it does not work out-of-the-box
+        """
+        username = options.get("username")
+        dns_nameservers = options.get("dns_nameservers",None)
+        prefix_name = self.get_prefix_name()
+        network = self.get_or_create_network(
+            "%s-net" % prefix_name)
+        subnet = self.get_or_create_user_subnet(
+            network['id'], username,
+            "%s-subnet" % prefix_name,
+            dns_nameservers=dns_nameservers)
+        router = self.get_or_create_router(
+            "%s-router" % prefix_name)
+        gateway = self.get_or_create_router_gateway(
+            router, network)
+        interface = self.get_or_create_router_interface(
+            router, subnet,
+            '%s-router-intf' % prefix_name)
+        network_resources = {
+            'network': network,
+            'subnet': subnet,
+            'router': router,
+            'interface': interface,
+        }
+        return network_resources
 
     def validate(self, core_identity):
         """
@@ -112,20 +165,19 @@ class GenericNetworkTopology(object):
         """
         return True
 
-    def post_create_hook(self, network_driver, user_neutron, network_resources_dict):
+    def post_create_hook(self, network_resources_dict):
         """
         Given the options in your strategy and your newly created resources,
         use this space to "make the connections"
         """
         return
 
-    def get_or_create_network(self, network_driver, user_neutron, network_name):
-        network = network_driver.create_network(user_neutron, network_name)
+    def get_or_create_network(self, network_name):
+        network = self.network_driver.create_network(self.user_neutron, network_name)
         return network
 
     def get_or_create_user_subnet(
-            self, network_driver, neutron,
-            network_id, username, subnet_name,
+            self, network_id, username, subnet_name,
             ip_version=4, dns_nameservers=[],
             get_unique_number=_get_unique_id,
             get_cidr=get_default_subnet):
@@ -133,6 +185,8 @@ class GenericNetworkTopology(object):
         Create a subnet for the user using the get_cidr function to get
         a private subnet range.
         """
+        # FIXME: Remove the username dependency -- if its just a seed value?
+        # FIXME: Look into get_cidr and get_unique_number -- is there a better way?
         success = False
         inc = 0
         MAX_SUBNET = 4064
@@ -141,7 +195,7 @@ class GenericNetworkTopology(object):
             try:
                 cidr = get_cidr(username, inc, get_unique_number)
                 if cidr:
-                    return network_driver.create_subnet(neutron, subnet_name,
+                    return self.network_driver.create_subnet(self.user_neutron, subnet_name,
                                               network_id, ip_version,
                                               cidr, dns_nameservers)
                 else:
@@ -167,27 +221,26 @@ class GenericNetworkTopology(object):
         if not success or not cidr:
             raise Exception("Unable to create subnet for user: %s" % username)
 
-    def get_or_create_router(self, network_driver, user_neutron, router_name):
-        router = network_driver.create_router(
-            user_neutron, router_name)
+    def get_or_create_router(self, router_name):
+        router = self.network_driver.create_router(
+            self.user_neutron, router_name)
         return router
 
-    def get_or_create_router_gateway(self, network_driver, user_neutron, router, network):
+    def get_or_create_router_gateway(self, router, network):
         gateway = network_driver.set_router_gateway(
-            user_neutron, router['name'], network['name'])
+            self.user_neutron, router['name'], network['name'])
         return gateway
 
-    def get_or_create_router_interface(self, network_driver, user_neutron, router, subnet, interface_name):
-        interface = network_driver.add_router_interface(
+    def get_or_create_router_interface(self, router, subnet, interface_name):
+        interface = self.network_driver.add_router_interface(
             router, subnet, interface_name)
         return interface
 
     #NOTE: Reversed order for deletes.
-    def delete_router_interface(self, network_driver, user_neutron,
-                                router_name, subnet_name):
+    def delete_router_interface(self, router_name, subnet_name):
         try:
-            interface = network_driver.remove_router_interface(
-                network_driver.neutron, router_name, subnet_name)
+            interface = self.network_driver.remove_router_interface(
+                self.network_driver.neutron, router_name, subnet_name)
         except NeutronNotFound:
             #This is OKAY!
             return None
@@ -195,16 +248,16 @@ class GenericNetworkTopology(object):
             raise
         return interface
 
-    def delete_router_gateway(self, network_driver, user_neutron, router_name):
-        return network_driver.remove_router_gateway(router_name)
+    def delete_router_gateway(self, router_name):
+        return self.network_driver.remove_router_gateway(router_name)
 
-    def delete_router(self, network_driver, user_neutron, router_name):
-        return network_driver.delete_router(user_neutron, router_name)
+    def delete_router(self, router_name):
+        return self.network_driver.delete_router(self.user_neutron, router_name)
 
-    def delete_network(self, network_driver, user_neutron, network_name):
-        return network_driver.delete_network(user_neutron, network_name)
+    def delete_network(self, network_name):
+        return self.network_driver.delete_network(self.user_neutron, network_name)
 
-    def delete_subnet(self, network_driver, user_neutron, subnet_name):
+    def delete_subnet(self, subnet_name):
         """
         NOTE: If you see errors like the one below when you attempt to delete
         the users network, and no instances remain, you are likely
@@ -214,7 +267,7 @@ class GenericNetworkTopology(object):
                       One or more ports have an IP allocation from this subnet.
         ```
         """
-        return network_driver.delete_subnet(user_neutron, subnet_name)
+        return self.network_driver.delete_subnet(self.user_neutron, subnet_name)
 
 
 class ExternalNetwork(GenericNetworkTopology):
@@ -224,23 +277,21 @@ class ExternalNetwork(GenericNetworkTopology):
     """
     name = "External Network Topology"
     external_network_name = None
-    user_subnet_required = True
-    user_network_required = False
-    user_router_required = True
 
-    def __init__(self, identity):
+    def __init__(self, identity, network_driver, neutron):
         network_name = identity.get_credential('network_name')
         if not network_name:
             network_name = identity.provider.get_credential('network_name')
         if not network_name:
             raise Exception("Unknown Network - Identity %s is missing 'network_name' " % identity)
         self.external_network_name = network_name
+        return super(ExternalNetwork, self).__init__(identity, network_driver, neutron)
 
-    def get_public_network(self, network_driver):
+    def get_public_network(self):
         """
         This method is special to ExternalNetwork
         """
-        public_network = network_driver.find_network(
+        public_network = self.network_driver.find_network(
             self.external_network_name)
         if type(public_network) == list:
             public_network = public_network[0]
@@ -251,13 +302,6 @@ class ExternalNetwork(GenericNetworkTopology):
                 % self.external_network_name)
         return public_network
 
-    def post_create_hook(self, network_driver, user_neutron, network_resources_dict):
-        """
-        Given the options in your strategy and your newly created resources,
-        use this space to "make the connections"
-        """
-        return
-
     def validate(self, core_identity):
         identity_creds = core_identity.get_all_credentials()
         if 'network_name' not in identity_creds.keys():
@@ -266,14 +310,17 @@ class ExternalNetwork(GenericNetworkTopology):
             raise Exception("Identity %s has not been assigned a 'network_name'" % core_identity)
         return True
 
-    def delete_network(self, network_driver, user_neutron, network_name):
+    def delete_network(self, network_name):
+        """
+        Skip this step, if called.
+        """
         return None
 
 
-    def get_or_create_router_gateway(self, network_driver, user_neutron, router, network):
-        public_network = self.get_public_network(network_driver)
-        gateway = network_driver.set_router_gateway(
-            user_neutron, router['name'], public_network['name'])
+    def get_or_create_router_gateway(self, router, network):
+        public_network = self.get_public_network()
+        gateway = self.network_driver.set_router_gateway(
+            self.user_neutron, router['name'], public_network['name'])
         return gateway
 
 
@@ -283,18 +330,15 @@ class ExternalRouter(GenericNetworkTopology):
     user_network --> user_subnet --> interface --> external_router
     """
     name = "External Router Topology"
-    external_network_name = None
-    user_subnet_required = True
-    user_network_required = True
-    user_router_required = False
 
-    def __init__(self, identity):
+    def __init__(self, identity, network_driver, neutron):
         router_name = identity.get_credential('router_name')
         if not router_name:
             router_name = identity.provider.get_credential('router_name')
         if not router_name:
             raise Exception("Unknown Router - Identity %s is missing 'router_name' " % identity)
         self.external_router_name = router_name
+        return super(ExternalRouter, self).__init__(identity, network_driver, neutron)
 
     def validate(self, core_identity):
         identity_creds = core_identity.get_all_credentials()
@@ -304,25 +348,26 @@ class ExternalRouter(GenericNetworkTopology):
             raise Exception("Identity %s has not been assigned a 'router_name'" % core_identity)
         return True
 
-    def delete_router(self, network_driver, user_neutron, router_name):
+    def delete_router(self, router_name):
+        """ Skip this step """
         return None
 
-    def delete_router_gateway(self, network_driver, user_neutron, router_name):
+    def delete_router_gateway(self, router_name):
+        """ Skip this step """
         return None
 
-    def delete_router_interface(self, network_driver, user_neutron,
-                                router_name, subnet_name):
+    def delete_router_interface(self, router_name, subnet_name):
         return super(ExternalRouter, self).delete_router_interface(
-            network_driver, user_neutron,
             self.external_router_name,  # strategy choice
             subnet_name)
 
-    def get_or_create_router_gateway(self, network_driver, user_neutron, router, network):
+    def get_or_create_router_gateway(self, router, network):
+        """ Skip this step """
         return None
 
-    def get_or_create_router(self, network_driver, user_neutron, router_name):
+    def get_or_create_router(self, router_name):
         router_name = self.external_router_name  # strategy choice
-        public_router = network_driver.find_router(router_name)
+        public_router = self.network_driver.find_router(router_name)
         if not public_router:
             raise Exception("Default public router %s was not found." % self.external_router_name)
         return public_router[0]

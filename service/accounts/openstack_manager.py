@@ -488,7 +488,7 @@ class AccountDriver(BaseAccountDriver):
             self.network_manager.neutron.delete_security_group(sec_group["id"])
         return True
 
-    def select_network_strategy(self, identity, topology_name=None):
+    def initialize_network_strategy(self, topology_name, identity, network_driver, neutron):
         """
         Select a network topology and initialize it with the identity/provider specific information required.
         """
@@ -500,7 +500,9 @@ class AccountDriver(BaseAccountDriver):
             NetworkTopologyStrategyCls = get_topology_cls(topology_name)
 
         try:
-            network_strategy = NetworkTopologyStrategyCls(identity)
+            network_strategy = NetworkTopologyStrategyCls(identity, network_driver, neutron)
+            # validate should raise exception if mis-configured.
+            network_strategy.validate(identity)
         except:
             logger.exception(
                 "Error initializing Network Topology - %s + %s " %
@@ -532,31 +534,9 @@ class AccountDriver(BaseAccountDriver):
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
             topology_name = None
-        network_strategy = self.select_network_strategy(identity, topology_name)
-        if options.get('skip_network'):
-            return self._delete_user_subnet(
-                network_strategy, neutron, project_name)
-        return self._delete_user_network(
-            network_strategy, neutron, project_name)
-
-    def _delete_user_subnet(self, network_strategy, neutron, prefix_name):
-        network_strategy.delete_router_interface(
-            self.network_manager, neutron,
-            "%s-router" % prefix_name,
-            "%s-subnet" % prefix_name)
-        network_strategy.delete_router(
-            self.network_manager, neutron,
-            "%s-router" % prefix_name)
-        network_strategy.delete_subnet(
-            self.network_manager, neutron,
-            "%s-subnet" % prefix_name)
-
-    def _delete_user_network(self, network_strategy, neutron, prefix_name):
-        self._delete_user_subnet(network_strategy, neutron, prefix_name)
-        network_strategy.delete_network(
-            self.network_manager, neutron,
-            "%s-net" % prefix_name)
-        return
+        network_strategy = self.initialize_network_strategy(
+            topology_name, identity, self.network_manager, neutron)
+        return network_strategy.execute_delete(options)
 
     def create_user_network(self, identity):
         """
@@ -583,33 +563,13 @@ class AccountDriver(BaseAccountDriver):
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
             topology_name = None
-        network_strategy = self.select_network_strategy(identity, topology_name)
-        # validate should raise exception if mis-configured.
-        network_strategy.validate(identity)
-        network = network_strategy.get_or_create_network(
-            self.network_manager, neutron,
-            "%s-net" % prefix_name)
-        subnet = network_strategy.get_or_create_user_subnet(
-            self.network_manager, neutron,
-            network['id'], username,
-            "%s-subnet" % prefix_name,
-            dns_nameservers=dns_nameservers)
-        router = network_strategy.get_or_create_router(
-            self.network_manager, neutron,
-            "%s-router" % prefix_name)
-        gateway = network_strategy.get_or_create_router_gateway(
-            self.network_manager, neutron,
-            router, network)
-        interface = network_strategy.get_or_create_router_interface(
-            self.network_manager, neutron, router, subnet,
-            '%s-router-intf' % prefix_name)
-        network_resources = {
-            'network': network,
-            'subnet': subnet,
-            'router': router,
-            'interface': interface,
-        }
-        network_strategy.post_create_hook(self.network_manager, neutron, network_resources)
+        network_strategy = self.initialize_network_strategy(
+            topology_name, identity, self.network_manager, neutron)
+        network_resources = network_strategy.execute_create({
+                "username": username,
+                "dns_nameservers": dns_nameservers,
+            })
+        network_strategy.post_create_hook(network_resources)
         return network_resources
 
     # Useful methods called from above..
