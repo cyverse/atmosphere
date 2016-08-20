@@ -536,7 +536,8 @@ class AccountDriver(BaseAccountDriver):
             topology_name = None
         network_strategy = self.initialize_network_strategy(
             topology_name, identity, self.network_manager, neutron)
-        return network_strategy.execute_delete(options)
+        skip_network = options.get("skip_network", False)
+        return network_strategy.delete(skip_network=skip_network)
 
     def create_user_network(self, identity):
         """
@@ -565,10 +566,8 @@ class AccountDriver(BaseAccountDriver):
             topology_name = None
         network_strategy = self.initialize_network_strategy(
             topology_name, identity, self.network_manager, neutron)
-        network_resources = network_strategy.execute_create({
-                "username": username,
-                "dns_nameservers": dns_nameservers,
-            })
+        network_resources = network_strategy.create(
+            username=username, dns_nameservers=dns_nameservers)
         network_strategy.post_create_hook(network_resources)
         return network_resources
 
