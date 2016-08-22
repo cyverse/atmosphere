@@ -122,7 +122,11 @@ def ldap_get_email_info(username):
     Returns a 3-tuple of:
     ("username", "email@address.com", "My Name")
     """
-    ldap_attrs = lookupUser(username)
+    try:
+        ldap_attrs = lookupUser(username)
+    except IndexError:
+        raise Exception("Username %s could not be found in LDAP" % username)
+
     user_email = ldap_attrs.get('mail', [None])[0]
     if not user_email:
         raise Exception(
