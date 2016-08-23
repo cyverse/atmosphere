@@ -157,12 +157,23 @@ API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
 AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
 DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 
-# FIXME: j2-ify this...
-VALIDATION_PLUGINS = (
+# Validation Plugins:
+# These plugins will be checked, in order, until one passes
+# If all validation plugins fail, user will be "kicked out" of the API.
+{% if VALIDATION_PLUGINS %}
+VALIDATION_PLUGINS = [
+{%- for plugin in VALIDATION_PLUGINS %}
+  "{{ plugin }}",
+{%- endfor %}
+]
+{%- else %}
+# NOTE: No VALIDATION_PLUGINS were present during configure.
+VALIDATION_PLUGINS = [
     #'jetstream.plugins.auth.validation.XsedeProjectRequired',
-    'atmosphere.plugins.auth.validation.LDAPGroupRequired',
-    #'atmosphere.plugins.auth.validation.AlwaysAllow',
-)
+    #'atmosphere.plugins.auth.validation.LDAPGroupRequired',
+    'atmosphere.plugins.auth.validation.AlwaysAllow',
+]
+{% endif %}
 
 # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
