@@ -54,7 +54,9 @@ PERIODIC_TASKS = [
     "remove_empty_networks",
     "remove_empty_networks_for",
     "reset_provider_allocation",
-    "monthly_allocation_reset"
+    "monthly_allocation_reset",
+    "report_allocations_to_tas",
+    "update_snapshot",
 
 ]
 SHORT_TASKS = [

@@ -2,7 +2,7 @@
 """
 Routes for api v2 endpoints
 """
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 from rest_framework import routers
 from api.v2 import views
 from api.base import views as base_views
@@ -12,8 +12,10 @@ router.register(
     r'allocations',
     views.AllocationViewSet,
     base_name='allocation')
+router.register(r'allocation_sources', views.AllocationSourceViewSet)
 router.register(r'boot_scripts', views.BootScriptViewSet)
 router.register(r'credentials', views.CredentialViewSet)
+router.register(r'events', views.EventViewSet, base_name='event')
 router.register(r'email_template', views.EmailTemplateViewSet)
 router.register(r'email_feedback', views.FeedbackEmailViewSet, base_name='email-feedback')
 router.register(r'email_instance_report', views.InstanceSupportEmailViewSet, base_name='instance-email-support')
@@ -84,4 +86,4 @@ router.register(r'deploy_version', base_views.DeployVersionViewSet,
                 base_name='version-deploy')
 
 api_v2_urls = router.urls
-urlpatterns = patterns('', url(r'^', include(api_v2_urls)),)
+urlpatterns = [url(r'^', include(api_v2_urls))]

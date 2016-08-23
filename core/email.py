@@ -244,13 +244,12 @@ def email_to_admin(
         cc = []
     else:
         cc = [email_address_str(username, user_email)]
-
-    send_email(subject, body,
+    celery_task = send_email.si(subject, body,
                from_email=email_address_str(username, user_email),
                to=[email_address_str(sendto, sendto_email)],
                cc=cc,
                html=html)
-
+    celery_task.delay() # Task executes here
     return True
 
 
@@ -263,12 +262,12 @@ def email_from_admin(username, subject, message, html=False):
     user_email = lookupEmail(username)
     if not user_email:
         user_email = "%s@%s" % (username, settings.DEFAULT_EMAIL_DOMAIN)
-    send_email(subject, message,
+    celery_task = send_email.si(subject, message,
                from_email=email_address_str(from_name, from_email),
                to=[email_address_str(username, user_email)],
                cc=[email_address_str(from_name, from_email)],
                html=html)
-
+    celery_task.delay() # Task executes here
     return True
 
 
@@ -372,6 +371,29 @@ def send_instance_email(username, instance_id, instance_name,
     subject = 'Your Atmosphere Instance is Available'
     email_args = (username, subject, body)
     return email_from_admin(*email_args)
+
+
+def send_allocation_usage_email(user, allocation_source, threshold, usage_percentage):
+    """
+    Sends an email to the user to inform them that their Usage has hit a predefined checkpoint.
+    #TODO: Version 2.0 -- The event-sending becomes async (CELERY!)
+    #TODO: In version 2.0 we add a 1sec delay before firing this task/listener and allow `allocation_source_snapshot` to be created.
+    #TODO: Use the values in `allocation_source_snapshot` and possibly the `TASAPIDriver` to inform the user of more relevant details!
+    """
+    username, user_email, user_name = user_email_info(user.username)
+    context = {
+        "owner": user,
+        "user": user_name,
+        "email": user_email,
+        "allocation_source": allocation_source,
+        "threshold": threshold,
+        "total_used": allocation_source.compute_allowed * (usage_percentage/100.0),
+        "actual": usage_percentage,
+    }
+    body = render_to_string("core/email/allocation_warning.html", Context(context))
+    from_name, from_email = atmo_daemon_address()
+    subject = '(%s) Allocation Usage Notice' % username
+    return email_from_admin(user.username, subject, body)
 
 
 def send_preemptive_deploy_failed_email(core_instance, message):

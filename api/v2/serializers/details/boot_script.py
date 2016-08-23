@@ -19,8 +19,19 @@ class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:bootscript-detail',
     )
-    def create(self, validated_data):
 
+    def is_valid(self, raise_exception=False):
+        """
+        """
+        raw_type = self.initial_data.get("type", "").lower()
+        if 'raw text' in raw_type:
+            ScriptType.objects.get_or_create(name="Raw Text")
+        elif 'url' in raw_type:
+            ScriptType.objects.get_or_create(name="URL")
+        return super(BootScriptSerializer, self).is_valid(
+                raise_exception=raise_exception)
+
+    def create(self, validated_data):
         if 'created_by' not in validated_data:
             request = self.context.get('request')
             if request and request.user:

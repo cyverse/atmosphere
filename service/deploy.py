@@ -24,7 +24,7 @@ from atmosphere.settings import secrets
 
 from iplantauth.protocol import ldap
 
-from core.logging import create_instance_logger
+from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
@@ -141,7 +141,8 @@ def ready_to_deploy(instance_ip, username, instance_id):
         limit_playbooks=['check_networking.yml'])
 
 
-def instance_deploy(instance_ip, username, instance_id):
+def instance_deploy(instance_ip, username, instance_id,
+		    limit_playbooks=[]):
     """
     Use service.ansible to deploy to an instance.
     """
@@ -153,6 +154,7 @@ def instance_deploy(instance_ip, username, instance_id):
 
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=limit_playbooks,
         extra_vars=extra_vars)
 
 
@@ -315,12 +317,9 @@ def build_host_name(instance_id, ip):
     except Provider.DoesNotExist:
         logger.warn("Using an instance %s that is *NOT* in your database. Cannot determine hostnaming format. Using IP address as hostname.")
         return raw_hostname(ip)
-    except KeyError, TypeError:
-        logger.warn("Cloud config ['deploy']['hostname_format'] is missing -- using deprecated settings.INSTANCE_HOSTNAMING_FORMAT")
-        if not hasattr(settings, 'INSTANCE_HOSTNAMING_FORMAT'):
-            logger.warn("settings.INSTANCE_HOSTNAMING_FORMAT MISSING! Using IP address as hostname.")
-            return raw_hostname(ip)
-        hostname_format_str = settings.INSTANCE_HOSTNAMING_FORMAT
+    except (KeyError, TypeError):
+        logger.warn("Cloud config ['deploy']['hostname_format'] is missing -- using IP address as a hostname.")
+        return raw_hostname(ip)
 
     # Convert IP into a dictionary broken into octets
     hostnaming_format_map = create_hostnaming_map(ip)

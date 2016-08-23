@@ -43,13 +43,13 @@ class PythonAllocationStrategy(object):
             if limit_instances and inst.provider_alias not in limit_instances:
                 continue
             try:
-                alloc_instances.append(
-                    AllocInstance.from_core(
+                allocation_instance = AllocInstance.from_core(
                         inst,
                         self.counting_behavior.start_date,
                         limit_history=limit_history
                     )
-                )
+                if allocation_instance:
+                    alloc_instances.append(allocation_instance)
             except Exception as exc:
                 logger.exception("Instance %s could not be counted: %s" % (inst, exc))
         return alloc_instances

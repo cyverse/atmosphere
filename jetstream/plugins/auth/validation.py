@@ -1,7 +1,6 @@
 from jetstream.tasks import xsede_tacc_map
-from jetstream.allocation import get_project_allocations
+from jetstream.allocation import TASAPIDriver
 
-#FIXME: move this import somewhere else? feels weird.
 from atmosphere.plugins.auth.validation import ValidationPlugin
 
 class XsedeProjectRequired(ValidationPlugin):
@@ -12,9 +11,9 @@ class XsedeProjectRequired(ValidationPlugin):
         * Accounts are *ONLY* valid if they have 1+ 'jetstream' allocations.
         * All other allocations are ignored.
         """
-        username = user.username
-        tacc_username = xsede_tacc_map(username)
-        project_allocations = get_project_allocations(tacc_username)
+        tas_driver = TASAPIDriver()
+        tacc_username = tas_driver.get_username_for_xsede(username)
+        project_allocations = tas_driver.get_user_allocations(tacc_username)
         if not project_allocations:
             return False
         return True

@@ -64,6 +64,8 @@ def review_information(provider_info, admin_info, provider_credentials, cloud_co
     pprint.pprint(admin_info)
     print "3. Provider Credentials"
     pprint.pprint(provider_credentials)
+    #jsonfile_text = json.dumps({'provider':provider_info, 'admin': admin_info, 'credentials': provider_credentials})
+    #print jsonfile_text
     review_completed = raw_input("Does everything above look correct? [Yes]/No")
     if not review_completed or review_completed.lower() == 'yes':
         return
@@ -133,7 +135,7 @@ def read_json_file(filename):
     except:
         raise
         print("Invalid file format expected a json file.")
-        sys.exit(1)
+        raise
 
     provider_info = info["provider"]
     admin_info = info["admin"]
@@ -181,6 +183,7 @@ def read_openrc_file(filename):
 
 def get_provider_info(provider_info={}):
     # 1.  Collect name
+    platform = None
     if not provider_info.get('name'):
         print "What is the name of your new provider?"
         provider_info['name'] = require_input("Name of new provider: ")
@@ -198,7 +201,7 @@ def get_provider_info(provider_info={}):
         platform = require_input("Select a platform type ([1]/2): ", lambda answer: answer in ['1','2'], default='1')
         if platform == '1':
             platform = KVM
-        elif platform == '2':
+        elif platform_choice == '2':
             platform = XEN
         provider_info['platform'] = platform
 

@@ -1,3 +1,7 @@
+from rest_framework.decorators import detail_route
+from rest_framework.response import Response
+from rest_framework import status
+
 from core.models import Identity, Group
 
 from api.v2.serializers.details import IdentitySerializer
@@ -12,8 +16,28 @@ class IdentityViewSet(MultipleFieldLookup, AuthViewSet):
     """
     lookup_fields = ("id", "uuid")
     queryset = Identity.objects.all()
-    serializer_class = IdentitySerializer
     http_method_names = ['get', 'head', 'options', 'trace']
+
+    @detail_route(methods=['GET'])
+    def export(self, request, pk=None):
+        """
+        Until a better method comes about, we will handle InstanceActions here.
+        """
+        if type(pk) == int:
+            kwargs = {"id": pk}
+        else:
+            kwargs = {"uuid": pk}
+        identity = Identity.objects.get(**kwargs)
+        export_data = identity.export()
+        return Response(
+            export_data,
+            status=status.HTTP_200_OK)
+
+    def get_serializer_class(self):
+        serializer_class = IdentitySerializer
+        if self.action == 'openrc':
+            return serializer_class
+        return serializer_class
 
     def get_queryset(self):
         """

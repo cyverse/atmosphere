@@ -26,17 +26,18 @@ def unresolved_requests_only(fn):
         instance = self.get_object()
         staff_can_act = request.user.is_staff or request.user.is_superuser or CloudAdministrator.objects.filter(user=request.user.id).exists()
         user_can_act = request.user == getattr(instance, 'created_by')
-        if not user_can_act and not staff_can_act:
+        if not (user_can_act or staff_can_act):
             message = (
                 "Method '%s' not allowed: "
                 "Only staff members and the owner are authorized to make this request."
                 % self.request.method
             )
             raise exceptions.NotAuthenticated(detail=message)
-        if hasattr(instance, "is_closed" and instance.is_closed()):
+        if not staff_can_act and (hasattr(instance, "is_closed") and instance.is_closed()):
             message = (
                 "Method '%s' not allowed: "
-                "the request has already been resolved."
+                "the request has already been resolved "
+                "and cannot be modified by a non-staff user."
                 % self.request.method
             )
             raise exceptions.MethodNotAllowed(self.request.method,
@@ -119,7 +120,8 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
             "%s should include an `admin_serializer_class` attribute."
             % self.__class__.__name__
         )
-        if self.request.user.is_staff:
+        http_method = self.request._request.method
+        if http_method != 'POST' and self.request.user.is_staff:
             return self.admin_serializer_class
         return self.serializer_class
 

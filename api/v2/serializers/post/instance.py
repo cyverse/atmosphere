@@ -1,6 +1,6 @@
 from core.models import (
     BootScript, Identity, Instance, InstanceSource,
-    Provider, ProviderMachine, Project,
+    Provider, ProviderMachine, Project, UserAllocationSource,
     Size, Volume)
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -34,6 +34,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     # Optional kwargs to be inluded
     deploy = serializers.BooleanField(default=True)
     extra = serializers.DictField(required=False)
+    allocation_source_id = serializers.CharField(write_only=True)
 
     def to_internal_value(self, data):
         """
@@ -48,8 +49,22 @@ class InstanceSerializer(serializers.ModelSerializer):
             raise ValidationError({
                 'identity': 'This field is required.'
             })
+        request_user = self.context['request'].user
+
         size_queryset = self.fields['size_alias'].queryset
+        allocation_source_queryset = UserAllocationSource.objects.filter(user=request_user)
         source_queryset = self.fields['source_alias'].queryset
+
+        allocation_source_id = data.get('allocation_source_id')
+        if not allocation_source_id:
+            raise ValidationError({
+                'allocation_source_id': 'This field is required.'
+            })
+        allocation_source = allocation_source_queryset.filter(allocation_source__source_id=allocation_source_id)
+        if not allocation_source:
+            raise ValidationError({
+                'allocation_source_id': 'Value %s did not match a allocation_source.' % allocation_source_id
+            })
 
         size_alias = data.get('size_alias')
         if not size_alias:
@@ -122,5 +137,6 @@ class InstanceSerializer(serializers.ModelSerializer):
             'scripts',
             'deploy',
             'extra',
+            'allocation_source_id'
         )
 

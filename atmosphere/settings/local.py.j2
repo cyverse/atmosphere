@@ -44,15 +44,26 @@ ADMINS = [
   {{ email_tuple }},
 {%- endfor %}
 ]
+{% endif %}
 
 # Required to send RequestTracker emails
+{% if ATMO_SUPPORT_EMAIL_TUPLE %}
+ATMO_SUPPORT = [
+# The first admin will AUTHOR all e-mails.
+# These ATMO_SUPPORT override values set in __init__.py
+{%- for email_tuple in ATMO_SUPPORT_EMAIL_TUPLE %}
+  {{ email_tuple }},
+{%- endfor %}
+]
+{%- else %}
 ATMO_SUPPORT = ADMINS
+{% endif %}
+
 ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
 
 # Django uses this one..
 MANAGERS = ADMINS
 
-{% endif %}
 SUPPORT_EMAIL = '{{ SUPPORT_EMAIL }}'
 SUPPORT_EMAIL_SIGNATURE = '{{ SUPPORT_EMAIL_SIGNATURE }}'
 SUPPORT_LINKS = {{ SUPPORT_LINKS }}
@@ -81,6 +92,27 @@ CELERYBEAT_SCHEDULE["{{task_key}}"]["{{task_opt}}"] = {{task_opt_value}}
     {%- endfor %}
   {%- endfor %}
 {%- endif %}
+{% if USE_JETSTREAM_PLUGIN %}
+ALLOCATION_SOURCE_WARNINGS = [10, 25, 50, 75, 90]
+JETSTREAM_CELERYBEAT_SCHEDULE = {
+  "report_allocations_to_tas":{
+	"task":"report_allocations_to_tas",
+        "schedule" : timedelta(minutes=60),
+        "options" : {"expires": 10 * 60,"time_limit": 2 * 60}
+    },
+  "update_snapshot":{
+	"task":"update_snapshot",
+        "schedule":timedelta(minutes=15),
+	"options" : {"expires":10*60 , "time_limit":10*60}
+    },
+  "monitor_jetstream_allocation_sources":{
+	"task":"report_allocations_to_tas",
+        "schedule" : timedelta(minutes=60),
+        "options" : {"expires": 10 * 60,"time_limit": 2 * 60}
+    }
+}
+CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
+{% endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL }}
 # Logging level for dependencies.
@@ -109,6 +141,7 @@ DATABASES = {
 
 # Prevents warnings
 ALLOWED_HOSTS = [SERVER_URL.replace('https://', '')]
+CSRF_TRUSTED_ORIGINS = ALLOWED_HOSTS
 
 
 # Atmosphere Keypair/Deployment Configs
@@ -133,6 +166,10 @@ VALIDATION_PLUGINS = (
 
 # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
+{% if USE_ALLOCATION_SOURCE %}
+USE_ALLOCATION_SOURCE = True
+{% endif %}
+
 
 # Configure authentication plugin
 AUTHENTICATION = {
@@ -272,5 +309,26 @@ if has_logstash and LOGSTASH_HOST:
 # Include runsslserver
 INSTALLED_APPS += (
     'sslserver',
+)
+{% endif %}
+
+{% if USE_JETSTREAM_PLUGIN %}
+INSTALLED_APPS += (
+    'jetstream',
+)
+TACC_API_USER = '{{ TACC_API_USER }}'
+TACC_API_PASS = '{{ TACC_API_PASS }}'
+TACC_API_URL = '{{ TACC_API_URL }}'
+
+VALIDATION_PLUGINS = (
+    'jetstream.plugins.auth.validation.XsedeProjectRequired',
+    #'atmosphere.plugins.auth.validation.LDAPGroupRequired',
+    #'atmosphere.plugins.auth.validation.AlwaysAllow',
+)
+{% else %}
+VALIDATION_PLUGINS = (
+    #'jetstream.plugins.auth.validation.XsedeProjectRequired',
+    'atmosphere.plugins.auth.validation.LDAPGroupRequired',
+    #'atmosphere.plugins.auth.validation.AlwaysAllow',
 )
 {% endif %}

@@ -38,6 +38,53 @@ class AccountDriver(BaseAccountDriver):
     core_provider = None
     cloud_config = {}
 
+    @classmethod
+    def generate_openrc(cls, identity, filename=None):
+        export_data = cls.export_identity(identity)
+        str_builder = ""
+        for key, val in export_data.iteritems():
+            str_builder += "export %s=%s\n" % (key, val)
+        if filename:
+            with open(filename,'w') as the_file:
+                the_file.write(str_builder)
+        return str_builder
+
+    @classmethod
+    def export_identity(cls, identity):
+        """
+        Returns the dict required to generate an openrc.
+        This can be used to verify cloud connectivity
+        via external CLI tools.
+        """
+        all_creds = identity.get_all_credentials()
+        tenant_name = all_creds.get('ex_project_name', "<PROJECT MISSING>")
+        username = all_creds.get('key', "<USERNAME MISSING>")
+        password = all_creds.get('secret',"<PASSWORD MISSING>")
+        project_domain = all_creds.get('project_domain', 'default')
+        user_domain = all_creds.get('user_domain', 'default')
+        region_name = all_creds.get('region_name', 'RegionOne')
+        keystone_auth_version = all_creds.get('ex_force_auth_version', '2.0_password').replace('/v2.0/tokens', '')
+        is_v2 = '2' in keystone_auth_version
+        is_v3 = '3' in keystone_auth_version
+        version_prefix = "/v2.0" if is_v2 else '/v3'
+        #auth_url = all_creds.get('auth_url', '<AUTH URL MISSING>') + version_prefix
+        admin_url = all_creds.get('admin_url', '<ADMIN URL MISSING>') + version_prefix
+        export_data = {
+            "OS_REGION_NAME": region_name,
+            "OS_AUTH_URL": admin_url,
+            "OS_USERNAME": username,
+            "OS_PASSWORD": password,
+            "OS_TENANT_NAME": tenant_name,
+        }
+        if is_v3:
+            export_data.update({
+                "OS_IDENTITY_API_VERSION": 3,
+                "OS_PROJECT_NAME": tenant_name,
+                "OS_PROJECT_DOMAIN_NAME": project_domain,
+                "OS_USER_DOMAIN_NAME": user_domain,
+            })
+        return export_data
+
     def clear_cache(self):
         self.admin_driver.provider.machineCls.invalidate_provider_cache(
                 self.admin_driver.provider)
@@ -160,8 +207,8 @@ class AccountDriver(BaseAccountDriver):
                 if not role_name:
                     try:
                         role_name = self.cloud_config['user']['user_role_name']
-                    except KeyError, TypeError:
-                        logger.warn("Cloud config ['user']['user_role_name'] is missing -- using deprecated settings.DEFAULT_KEYSTONE_ROLE")
+                    except (KeyError, TypeError):
+                        logger.error("Cloud config ['user']['user_role_name'] is missing -- using deprecated settings.DEFAULT_KEYSTONE_ROLE")
                         role_name = settings.DEFAULT_KEYSTONE_ROLE
                 self.user_manager.add_project_membership(
                     project_name, username, role_name)# , domain_name)
@@ -242,8 +289,8 @@ class AccountDriver(BaseAccountDriver):
         # -- User:Keystone rev.
         try:
             rules_list = core_identity.provider.cloud_config['network']['default_security_rules']
-        except KeyError, TypeError:
-            logger.warn("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
+        except (KeyError, TypeError):
+            logger.error("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
             rules_list = DEFAULT_RULES
         identity_creds = self.parse_identity(core_identity)
         username = identity_creds["username"]
@@ -367,8 +414,8 @@ class AccountDriver(BaseAccountDriver):
         if not rules_list:
             try:
                 rules_list = self.cloud_config['network']['default_security_rules']
-            except KeyError, TypeError:
-                logger.warn("Cloud config ['network']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
+            except (KeyError, TypeError):
+                logger.error("Cloud config ['network']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
                 rules_list = DEFAULT_RULES
         return self.user_manager.build_security_group(
             creds["username"], creds["password"], creds["tenant_name"],
@@ -447,6 +494,7 @@ class AccountDriver(BaseAccountDriver):
         """
         # Select Cls
         if not topology_name:
+            logger.info("Selecting default topology - ExternalRouter")
             NetworkTopologyStrategyCls = ExternalRouter
         else:
             NetworkTopologyStrategyCls = get_topology_cls(topology_name)
@@ -479,8 +527,8 @@ class AccountDriver(BaseAccountDriver):
         neutron = self.get_openstack_client(identity, 'neutron')
         try:
             topology_name = self.cloud_config['network']['topology']
-        except KeyError, TypeError:
-            logger.exception(
+        except (KeyError, TypeError):
+            logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
             topology_name = None
@@ -525,8 +573,8 @@ class AccountDriver(BaseAccountDriver):
         dns_nameservers = self.dns_nameservers_for(identity)
         try:
             topology_name = self.cloud_config['network']['topology']
-        except KeyError, TypeError:
-            logger.exception(
+        except (KeyError, TypeError):
+            logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
             topology_name = None
@@ -588,22 +636,37 @@ class AccountDriver(BaseAccountDriver):
         Create a unique password using 'username'
         """
         #FIXME: Remove these lines when crypt_hashpass is no longer used.
-        if self.cloud_config.get('user', {}).get('strategy','') == 'crypt':
-            return self.crypt_hashpass(username)
-
+        strategy = None
+        cloud_pass = None
         try:
+            strategy = self.cloud_config.get('user', {}).get('strategy','')
             cloud_pass = self.cloud_config.get('user',{}).get("secret")
-        except KeyError, TypeError:
-            cloud_pass = None
+        except (KeyError, TypeError):
+            pass
 
+        if strategy == 'crypt':
+            return self.crypt_hashpass(username)
+        elif strategy == 'sha_v1':
+            return self.sha_v1_hashpass(username, cloud_pass)
+        else:
+            return self.sha_v2_hashpass(username, cloud_pass)
+
+    def sha_v2_hashpass(self, username, cloud_pass):
         if not cloud_pass or len(cloud_pass) < 32:
             raise ValueError("Cloud config ['user']['secret'] is required and " +
                     "must be of length 32 or more")
 
         if not username:
             raise ValueError("Missing username, cannot create hash")
-
         return sha256(username + cloud_pass).hexdigest()
+
+    def sha_v1_hashpass(self, username, cloud_pass):
+        if not cloud_pass:
+            raise ValueError("Cloud config ['user']['secret'] is required")
+
+        if not username:
+            raise ValueError("Missing username, cannot create hash")
+        return sha256(cloud_pass + username).hexdigest()
 
     def crypt_hashpass(self, username):
         """
@@ -612,7 +675,7 @@ class AccountDriver(BaseAccountDriver):
         import crypt
         try:
             cloud_pass = self.cloud_config.get('user',{}).get("secret")
-        except KeyError, TypeError:
+        except (KeyError, TypeError):
             cloud_pass = None
         secret_salt = str(cloud_pass).translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)

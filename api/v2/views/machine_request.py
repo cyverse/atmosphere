@@ -9,6 +9,8 @@ from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
 
+from atmosphere import settings
+
 from core import exceptions as core_exceptions
 from core.email import send_denied_resource_email
 from core.models import MachineRequest, IdentityMembership, AtmosphereUser,\
@@ -45,6 +47,21 @@ class MachineRequestViewSet(BaseRequestViewSet):
                 ).order_by('-start_date')
         return super(MachineRequestViewSet, self).get_queryset()
 
+    def _get_new_provider(self):
+        """
+        NOTE: This is a hotfix to ensure the replication provider location is always selected.
+        In the future, we will fix this by:
+        Creating a strategy for "Provider Groupings" that handles image replication
+        This will also be handy because we have a "Provider Grouping" that has a "shared" allocation source as part of their strategy.
+        """
+        try:
+            new_provider = Provider.objects.get(
+                location=settings.REPLICATION_PROVIDER_LOCATION)
+            return new_provider
+        except:
+            raise Exception("settings.REPLICATION_PROVIDER_LOCATION could not be set. Contact a developer.")
+
+
     def perform_create(self, serializer):
 
         q = MachineRequest.objects.filter(
@@ -60,18 +77,14 @@ class MachineRequestViewSet(BaseRequestViewSet):
         if len(q) > 0:
             message = "Only one active request is allowed per provider."
             raise rest_exceptions.MethodNotAllowed('create', detail=message)
-
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
         new_owner=self.request.user
         parent_machine = serializer.validated_data['instance'].provider_machine
-
-        # TODO: This is a hack that can be removed POST-ll (When MachineRequest validates new_machine_provider)
-        new_provider = parent_machine.provider  # <--HACK!
-
         access_list = serializer.initial_data.get("access_list") or []
         visibility = serializer.initial_data.get("new_application_visibility") 
+        new_provider = self._get_new_provider()
         if  visibility in ["select", "private"]:
             share_with_admins(access_list, parent_machine.provider.uuid)
             share_with_self(access_list, new_owner.username)
@@ -96,7 +109,6 @@ class MachineRequestViewSet(BaseRequestViewSet):
             parent_machine = parent_machine[0]
         else:
             raise rest_exceptions.ParseError(detail="Could not retrieve parent machine.")
-
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
             instance = serializer.save(
@@ -138,8 +150,9 @@ class MachineRequestViewSet(BaseRequestViewSet):
         """
         Submits a resource request email
         """
-        provider = instance.active_provider()
-        pre_approved = provider.auto_imaging
+        #NOTE/FIXME: This should be considered when locking down "Imaging Strategy" for a "Provider Grouping"
+        new_provider = self._get_new_provider()
+        pre_approved = new_provider.auto_imaging
         requestImaging(self.request, instance.id, auto_approve=pre_approved)
 
         if pre_approved:

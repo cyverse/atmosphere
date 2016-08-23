@@ -704,6 +704,8 @@ def get_chain_from_active_with_ip(
         username, None, redeploy)
     check_vnc_task = check_process_task.si(
         driverCls, provider, identity, instance.id)
+    check_web_desktop = check_web_desktop_task.si(
+        driverCls, provider, identity, instance.id)
     remove_status_chain = get_remove_status_chain(
         driverCls,
         provider,
@@ -732,7 +734,8 @@ def get_chain_from_active_with_ip(
 
     deploy_ready_task.link(deploy_meta_task)
     deploy_meta_task.link(deploy_task)
-    deploy_task.link(check_vnc_task)  # Above this line, atmo is responsible for success.
+    deploy_task.link(check_web_desktop)
+    check_web_desktop.link(check_vnc_task)  # Above this line, atmo is responsible for success.
     check_vnc_task.link(deploy_user_task)  # this line and below, user can create a failure.
     # ready -> metadata -> deployment..
 
@@ -1155,6 +1158,41 @@ def _parse_script_output(script, idx=1, length=1):
     return output
 
 
+@task(name="check_web_desktop_task",
+      max_retries=2,
+      default_retry_delay=15)
+def check_web_desktop_task(driverCls, provider, identity,
+                       instance_alias, *args, **kwargs):
+    """
+    """
+    try:
+        celery_logger.debug("check_web_desktop_task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_alias)
+        if not instance:
+            return False
+        # USE ANSIBLE
+        username = identity.user.username
+        hostname = build_host_name(instance.id, instance.ip)
+        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_web_desktop.yml"], raise_exception=False)
+        result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
+
+        # NOTE: Throws Instance.DoesNotExist
+        core_instance = Instance.objects.get(provider_alias=instance_alias)
+        core_instance.web_desktop = result
+        core_instance.save()
+        celery_logger.debug("check_web_desktop_task finished at %s." % datetime.now())
+        return result
+    except AnsibleDeployException as exc:
+        check_web_desktop_task.retry(exc=exc)
+    except Instance.DoesNotExist:
+        celery_logger.warn("check_web_desktop_task failed: Instance %s no longer exists"
+                    % instance_alias)
+    except (BaseException, Exception) as exc:
+        celery_logger.exception(exc)
+        check_web_desktop_task.retry(exc=exc)
+
+
 @task(name="check_process_task",
       max_retries=2,
       default_retry_delay=15)
@@ -1172,10 +1210,10 @@ def check_process_task(driverCls, provider, identity,
         instance = driver.get_instance(instance_alias)
         if not instance:
             return False
+        hostname = build_host_name(instance.id, instance.ip)
         # USE ANSIBLE
         username = identity.user.username
         playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_vnc.yml"], raise_exception=False)
-        hostname = build_host_name(instance.ip)
         result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
 
         # NOTE: Throws Instance.DoesNotExist
