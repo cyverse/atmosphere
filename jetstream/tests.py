@@ -6,6 +6,7 @@ from django.test import TestCase
 
 
 def scrub_host_name(request):
+    """Replaces any host name with 'localhost'"""
     parse_result = urlparse(request.uri)
     # noinspection PyProtectedMember
     scrubbed_parts = parse_result._replace(netloc='localhost')
