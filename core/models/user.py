@@ -29,14 +29,10 @@ class AtmosphereUser(AbstractUser):
 
     def is_valid(self):
         """
-        FIXME: How do we make this 'pluggable'?
+        FIXME: Don't keep this. Find the *REAL* is_valid.
 
         """
-        # FIXME: This code fixed in a future PR. Ignore this.
-        if 'jetstream' in settings.INSTALLED_APPS:
-            return self._jetstream_valid()
-        else:
-            return self._iplant_valid()
+        return True
 
     def _jetstream_valid(self):
         """
