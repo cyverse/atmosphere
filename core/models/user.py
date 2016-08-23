@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 from core.plugins import load_validation_plugins
+from core.exceptions import InvalidUser
 from threepio import logger
 
 
@@ -31,7 +32,7 @@ class AtmosphereUser(AbstractUser):
         """
         """
         _is_valid = False
-        #FIXME: This pattern is probably better served in a Manager, to be called by this function..
+        #FIXME: Improvement for later: This pattern is probably better served in a Manager, to be called by this function..
         for ValidationPlugin in load_validation_plugins():
             plugin = ValidationPlugin()
             try:
@@ -46,8 +47,8 @@ class AtmosphereUser(AbstractUser):
                             % ValidationPlugin)
             _is_valid = plugin.validate_user(user=self)
             if _is_valid:
-                break
-        return _is_valid
+                return True
+        return False
 
     @property
     def is_enabled(self):
@@ -217,7 +218,7 @@ def get_default_identity(username, provider=None):
 def create_new_accounts(username, selected_provider=None):
     user = AtmosphereUser.objects.get(username=username)
     if not user.is_valid():
-        raise Exception("This account is not yet valid.")
+        raise InvalidUser("The account %s is not yet valid." % username)
 
     providers = get_available_providers()
     identities = []

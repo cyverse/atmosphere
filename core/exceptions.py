@@ -3,6 +3,13 @@ exceptions - Core exceptions
 """
 
 
+class InvalidUser(Exception):
+    """
+    The user provided is not valid
+    """
+    pass
+
+
 class InvalidMembership(Exception):
     """
     The membership provided is not valid

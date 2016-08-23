@@ -3,8 +3,10 @@ Atmosphere service instance rest api.
 
 """
 from rest_framework.response import Response
+from rest_framework import status
 
 from django.utils import timezone
+from core.exceptions import InvalidUser
 from api.v1.views.base import AuthAPIView
 from api.v1.serializers import ProfileSerializer, AtmoUserSerializer
 
@@ -31,7 +33,11 @@ class Profile(AuthAPIView):
                 % (user.username,), status=403)  # Forbidden
 
         profile = user.userprofile
-        serialized_data = ProfileSerializer(profile).data
+        try:
+            serialized_data = ProfileSerializer(profile).data
+        except InvalidUser as exc:
+            return Response(exc.message,
+                            status=status.HTTP_403_FORBIDDEN)
         user.select_identity()
         response = Response(serialized_data)
         return response
