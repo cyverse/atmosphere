@@ -35,6 +35,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
     ordering = ('-start_date',)
 
     def get_queryset(self):
+        request_user = self.request.user
         if 'active' in self.request.query_params:
             all_active = MachineRequest.objects.filter(
                 (
