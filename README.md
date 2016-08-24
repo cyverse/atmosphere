@@ -56,18 +56,20 @@ See LICENSE.txt for license information
 
 + **Edwin Skidmore <edwin@iplantcollaborative.org>**
 
-## Authors
+## Authors 
 
-+ **J. Matt Peterson <jmatt@iplantcollaborative.org>**
-+ **Steven Gregory <sgregory@iplantcollaborative.org>**
-+ **Andre Mercer <amercer@iplantcollaborative.org>**
-+ **Evan Briones <evrick@iplantcollaborative.org>**
-+ **Joseph Garcia <prosif@iplantcollaborative.org>**
-+ **Monica Lent <mlent@iplantcollaborative.org>**
-+ **Christopher James LaRose <cjlarose@iplantcollaborative.org>**
-+ **Jason Hansen <jchansen@iplantcollaborative.org>**
+The following individuals who have help/helped make :cloud: great appear in alphabetic order, by surname.
+
++ **Evan Briones <cloud-alum@iplantcollaborative.org>**
 + **Tharon Carlson <tharon@iplantcollaborative.org>**
++ **Joseph Garcia <cloud-alum@iplantcollaborative.org>**
++ **Steven Gregory <sgregory@iplantcollaborative.org>**
++ **Jason Hansen <cloud-alum@iplantcollaborative.org>**
++ **Christopher James LaRose <cloud-alum@iplantcollaborative.org>**
 + **Andrew Lenards <lenards@iplantcollaborative.org>**
++ **Monica Lent <cloud-alum@iplantcollaborative.org>**
++ **Andre Mercer <amercer@iplantcollaborative.org>**
++ **J. Matt Peterson <cloud-alum@iplantcollaborative.org>**
 + **Julian Pistorius <julianp@iplantcollaborative.org>**
 
 Where the cloud lives!
