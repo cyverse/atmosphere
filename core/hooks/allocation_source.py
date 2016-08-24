@@ -37,6 +37,8 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
         return
     if not source:
         return
+    if not source.compute_allowed:
+        return
     prev_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source__source_id=allocation_source_id).first()
     if not prev_snapshot:
         prev_compute_used = 0
