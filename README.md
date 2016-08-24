@@ -68,5 +68,6 @@ See LICENSE.txt for license information
 + **Jason Hansen <jchansen@iplantcollaborative.org>**
 + **Tharon Carlson <tharon@iplantcollaborative.org>**
 + **Andrew Lenards <lenards@iplantcollaborative.org>**
++ **Julian Pistorius <julianp@iplantcollaborative.org>**
 
 Where the cloud lives!
