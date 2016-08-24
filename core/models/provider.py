@@ -240,7 +240,7 @@ class Provider(models.Model):
 
     def missing_routers(self):
         query = Q(credential__key='router_name')
-        needs_router = self.identity_set.filter(~query)
+        needs_router = self.identity_set.filter(~query).order_by('created_by__username')
         return needs_router
 
     def list_users(self):
