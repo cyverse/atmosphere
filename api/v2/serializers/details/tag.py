@@ -14,10 +14,14 @@ class TagSerializer(serializers.HyperlinkedModelSerializer):
     )
     allow_access = serializers.SerializerMethodField()
 
+    def _get_request_user(self):
+        if 'request' not in self.context:
+            raise ValueError("Expected 'request' context for this serializer")
+        return self.context['request'].user
+
     def get_allow_access(self, tag):
-        tag_name = tag.name.lower()
-        return any(tag_name == black_tag.lower()
-                   for black_tag in BLACKLIST_TAGS)
+        user = self._get_request_user()
+        return tag.allow_access(user)
 
     class Meta:
         model = Tag

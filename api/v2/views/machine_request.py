@@ -13,8 +13,10 @@ from atmosphere import settings
 
 from core import exceptions as core_exceptions
 from core.email import send_denied_resource_email
-from core.models import MachineRequest, IdentityMembership, AtmosphereUser,\
-    Provider, ProviderMachine, Group
+from core.models import (
+    MachineRequest, IdentityMembership, AtmosphereUser,
+    Provider, ProviderMachine, Group, Tag
+)
 from core.models.status_type import StatusType
 from core.email import requestImaging
 
@@ -40,10 +42,10 @@ class MachineRequestViewSet(BaseRequestViewSet):
                     Q(start_date__gt=timezone.now() - timedelta(days=7))
                 )
             )
-            if self.request.user.is_staff:
+            if request_user.is_staff:
                 return all_active.order_by('-start_date')
             return all_active.filter(
-                created_by=self.request.user
+                created_by=request_user
                 ).order_by('-start_date')
         return super(MachineRequestViewSet, self).get_queryset()
 
@@ -62,11 +64,23 @@ class MachineRequestViewSet(BaseRequestViewSet):
             raise Exception("settings.REPLICATION_PROVIDER_LOCATION could not be set. Contact a developer.")
 
 
+    def filter_tags(self, user, tag_names):
+        new_tag_names = []
+        for tag in sorted(tag_names.split(", ")):
+            core_tag = Tag.objects.filter(name__iexact=tag).first()
+            if not core_tag:
+                continue
+            if not core_tag.allow_access(user):
+                continue
+            new_tag_names.append(tag)
+        return ", ".join(new_tag_names)
+
     def perform_create(self, serializer):
 
+        request_user = self.request.user
         q = MachineRequest.objects.filter(
             (
-                Q(created_by__id=self.request.user.id) &
+                Q(created_by__id=request_user.id) &
                 Q(instance_id=serializer.validated_data['instance'].id) &
                 ~Q(status__name="failed") &
                 ~Q(status__name="rejected") &
@@ -80,19 +94,18 @@ class MachineRequestViewSet(BaseRequestViewSet):
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
-        new_owner=self.request.user
         parent_machine = serializer.validated_data['instance'].provider_machine
         access_list = serializer.initial_data.get("access_list") or []
         visibility = serializer.initial_data.get("new_application_visibility") 
         new_provider = self._get_new_provider()
         if  visibility in ["select", "private"]:
             share_with_admins(access_list, parent_machine.provider.uuid)
-            share_with_self(access_list, new_owner.username)
+            share_with_self(access_list, request_user.username)
             access_list = remove_duplicate_users(access_list)
 
         status, _ = StatusType.objects.get_or_create(name="pending")
         new_machine_provider = Provider.objects.filter(id=new_provider.id)
-        new_machine_owner = AtmosphereUser.objects.filter(id=new_owner.id)
+        new_machine_owner = AtmosphereUser.objects.filter(id=request_user.id)
         parent_machine = ProviderMachine.objects.filter(id=parent_machine.id)
 
         if new_machine_provider.count():
@@ -109,15 +122,17 @@ class MachineRequestViewSet(BaseRequestViewSet):
             parent_machine = parent_machine[0]
         else:
             raise rest_exceptions.ParseError(detail="Could not retrieve parent machine.")
+        new_tags = self.filter_tags(request_user, serializer.validated_data.get("new_version_tags",""))
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
             instance = serializer.save(
                 membership=membership,
                 status=status,
-                created_by=self.request.user,
+                created_by=request_user,
                 new_machine_provider=new_provider,
-                new_machine_owner=new_owner,
-                access_list = access_list,
+                new_machine_owner=request_user,
+                new_version_tags=new_tags,
+                access_list=access_list,
                 old_status="pending",  # TODO: Is this required or will it default to pending?
                 parent_machine=parent_machine
             )
@@ -130,7 +145,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
         except core_exceptions.InvalidMembership:
             message = (
                 "The user '%s' is not a valid member."
-                % self.request.user.username
+                % request_user.username
             )
             raise rest_exceptions.ParseError(detail=message)
         except IdentityMembership.DoesNotExist:

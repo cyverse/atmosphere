@@ -1,7 +1,5 @@
 from rest_framework import serializers
 
-from atmosphere.settings import BLACKLIST_TAGS
-
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from core.models import Tag
 
@@ -18,13 +16,8 @@ class TagSummarySerializer(serializers.HyperlinkedModelSerializer):
         return self.context['request'].user
 
     def get_allow_access(self, tag):
-        tag_name = tag.name.lower()
         user = self._get_request_user()
-        if user and (user.is_staff or user.is_superuser):
-            return True
-        in_black_list = any(tag_name == black_tag.lower()
-                            for black_tag in BLACKLIST_TAGS)
-        return not in_black_list
+        return tag.allow_access(user)
 
     class Meta:
         model = Tag
