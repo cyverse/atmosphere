@@ -148,6 +148,10 @@ class Volume(BaseSource):
         instance_alias = self.get_instance_alias()
         if status != VolumeStatus.UNKNOWN:
             last_history = self._get_last_history()
+            # This is a living volume!
+            if self.end_date:
+                self.end_date = None
+                self.save()
             if self._should_update(last_history):
                 with transaction.atomic():
                     try:

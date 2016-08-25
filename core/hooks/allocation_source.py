@@ -1,4 +1,7 @@
 from django.conf import settings
+
+from threepio import logger
+
 from core.models import (
     AllocationSource, Instance, AtmosphereUser,
     UserAllocationSnapshot,
@@ -30,6 +33,8 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     new_compute_used = payload['compute_used']
     threshold_values = getattr(settings, "ALLOCATION_SOURCE_WARNINGS", [])
     source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    if new_compute_used == 0:
+        return
     if not source:
         return
     if not source.compute_allowed:
@@ -94,13 +99,18 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     allocation_source_id = payload['allocation_source_id']
     threshold = payload['threshold']
     actual_value = payload['actual_value']
+    if not settings.ENFORCING:
+        return None
 
     source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
     if not source:
         return None
     users = AtmosphereUser.for_allocation_source(source.source_id)
     for user in users:
-        send_allocation_usage_email(user, source, threshold, actual_value)
+        try:
+            send_allocation_usage_email(user, source, threshold, actual_value)
+        except Exception:
+            logger.error("Could not send a usage email to user %s" % user)
 
 
 def listen_for_allocation_snapshot_changes(sender, instance, created, **kwargs):

@@ -324,10 +324,9 @@ def validate_new_image(image_id, machine_request_id):
                 using_admin=True)
             return instance.id
         except Exception as exc:
-            raise
-            # FIXME: Determine if this exception is based on 'size too small'
             logger.exception(exc)
-            pass
+            # FIXME: Determine if this exception is based on 'size too small'
+            raise
     raise Exception("Validation of new Image %s has *FAILED*" % image_id)
 
 
