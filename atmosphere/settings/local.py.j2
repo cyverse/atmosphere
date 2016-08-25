@@ -106,7 +106,7 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
 	"options" : {"expires":10*60 , "time_limit":10*60}
     },
   "monitor_jetstream_allocation_sources":{
-	"task":"report_allocations_to_tas",
+	"task":"monitor_jetstream_allocation_sources",
         "schedule" : timedelta(minutes=60),
         "options" : {"expires": 10 * 60,"time_limit": 2 * 60}
     }

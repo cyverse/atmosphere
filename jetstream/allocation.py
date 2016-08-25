@@ -225,6 +225,7 @@ def fill_user_allocation_sources():
     from core.models import AtmosphereUser
     driver = TASAPIDriver()
     for user in AtmosphereUser.objects.order_by('id'):
+    #for user in AtmosphereUser.objects.filter(username='sgregory').order_by('id'):
         fill_user_allocation_source_for(driver, user, force_update=True)
 
 

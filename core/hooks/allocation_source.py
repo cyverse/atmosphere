@@ -214,7 +214,7 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
     event = instance
     if event.name != 'instance_allocation_source_changed':
         return None
-
+    logger.info("Instance allocation changed event: %s" % event.__dict__)
     payload = event.payload
     allocation_source_id = payload['allocation_source_id']
     instance_id = payload['instance_id']
