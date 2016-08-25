@@ -30,6 +30,7 @@ class AtmosphereUser(AbstractUser):
 
     def is_valid(self):
         """
+        Call validation plugin to determine user validity
         """
         _is_valid = False
         #FIXME: Improvement for later: This pattern is probably better served in a Manager, to be called by this function..

@@ -24,6 +24,7 @@ DEBUG = True
 ENFORCING = not DEBUG
 
 USE_ALLOCATION_SOURCE = False
+BLACKLIST_TAGS = ["Featured",]
 
 SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),
