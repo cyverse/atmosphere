@@ -1,0 +1,28 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Basic XXXXX]
+      Connection: [keep-alive]
+      User-Agent: [python-requests/2.9.1]
+    method: GET
+    uri: https://localhost/api-test/v1/allocations/resource/Jetstream
+  response:
+    body: {string: !!python/unicode '{"status":"success","message":null,"result":[{"status":"Active","resourceId":94,"requestorId":90681,"dateRequested":"2015-12-15T22:13:43Z","memoryAllocated":0,"reviewer":null,"id":97193,"dateReviewed":"2015-12-15T22:13:43Z","end":"2016-10-15T05:00:00Z","computeRequested":0,"start":"2015-10-15T05:00:00Z","projectId":96079,"requestor":"Some Guy","storageAllocated":0,"storageRequested":0,"computeUsed":0,"memoryRequested":0,"justification":"friendly user period allocation","decisionSummary":"_system - FUP allocation approval","reviewerId":0,"resource":"Jetstream","computeAllocated":0,"project":"CH-916862"},{"status":"Active","resourceId":94,"requestorId":908949,"dateRequested":"2016-08-03T20:01:29Z","memoryAllocated":0,"reviewer":null,"id":93883,"dateReviewed":"2016-08-03T20:01:29Z","end":"2017-08-02T05:00:00Z","computeRequested":50000,"start":"2016-08-03T05:00:00Z","projectId":93104,"requestor":"Some other guy","storageAllocated":0,"storageRequested":0,"computeUsed":0,"memoryRequested":0,"justification":"TeraGrid New allocation.","decisionSummary":"Automatic TG AMIE approval.","reviewerId":0,"resource":"Jetstream","computeAllocated":50000,"project":"TG-MCB960139"}]}'}
+    headers:
+      access-control-allow-credentials: ['true']
+      access-control-allow-headers: ['Content-Type, Accept, Authorization']
+      access-control-allow-methods: ['GET, POST, PUT, DELETE, OPTIONS']
+      access-control-allow-origin: ['*']
+      cache-control: ['private, s-maxage=0,no-cache']
+      content-length: ['95413']
+      content-type: [application/json; charset=utf-8]
+      date: ['Fri, 19 Aug 2016 04:59:26 GMT']
+      server: [Microsoft-IIS/7.5]
+      x-aspnet-version: [4.0.30319]
+      x-aspnetmvc-version: ['3.0']
+      x-powered-by: [ASP.NET]
+    status: {code: 200, message: OK}
+version: 1
