@@ -97,8 +97,8 @@ def map_events_to_histories(filtered_instance_histories, event_instance_dict):
                 out_dic.setdefault(inst_history[-1], []).append(info)
     return out_dic
 
-def get_allocation_source_name_from_event(username, report_start_date):
-    events = EventTable.objects.filter(Q(timestamp__lt=report_start_date) & Q(name__exact="instance_allocation_source_changed") & Q(payload__username__exact=username)).order_by('timestamp')
+def get_allocation_source_name_from_event(username, report_start_date, instance_id):
+    events = EventTable.objects.filter(Q(timestamp__lt=report_start_date) & Q(name__exact="instance_allocation_source_changed") & Q(payload__username__exact=username) & Q(payload__instance_id__exact=instance_id)).order_by('timestamp')
     if not events:
         return False
     else:
@@ -126,7 +126,7 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                 current_user = hist.instance.created_by.username
 
             if current_instance_id != hist.instance.id:
-                current_as_name = get_allocation_source_name_from_event(current_user,report_start_date)
+                current_as_name = get_allocation_source_name_from_event(current_user,report_start_date,hist.instance.provider_alias)
                 allocation_source_name = current_as_name if current_as_name else 'N/A' 
                 current_instance_id = hist.instance.id
             
