@@ -1,4 +1,5 @@
 import uuid
+import inspect
 
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -6,8 +7,8 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
-from pprint import pprint
-
+from core.plugins import load_validation_plugins
+from core.exceptions import InvalidUser
 from threepio import logger
 
 
@@ -29,24 +30,26 @@ class AtmosphereUser(AbstractUser):
 
     def is_valid(self):
         """
-        FIXME: Don't keep this. Find the *REAL* is_valid.
-
+        Call validation plugin to determine user validity
         """
-        return True
-
-    def _jetstream_valid(self):
-        """
-        True/False if user is valid based on Jetstream rules
-        """
-        from jetstream.plugins.auth.validation import validate_account
-        return validate_account(self.username)
-
-    def _iplant_valid(self):
-        """
-        True/False if user is valid based on iPlant rules
-        """
-        from iplantauth.protocol.ldap import is_atmo_user
-        return is_atmo_user(self.username)
+        _is_valid = False
+        #FIXME: Improvement for later: This pattern is probably better served in a Manager, to be called by this function..
+        for ValidationPlugin in load_validation_plugins():
+            plugin = ValidationPlugin()
+            try:
+                inspect.getcallargs(
+                    getattr(plugin,'validate_user'),
+                    user=self)
+            except AttributeError:
+                logger.info("Validation plugin %s does not have a 'validate_user' method"
+                            % ValidationPlugin)
+            except TypeError:
+                logger.info("Validation plugin %s does not accept (self, user)"
+                            % ValidationPlugin)
+            _is_valid = plugin.validate_user(user=self)
+            if _is_valid:
+                return True
+        return False
 
     @property
     def is_enabled(self):
@@ -216,7 +219,7 @@ def get_default_identity(username, provider=None):
 def create_new_accounts(username, selected_provider=None):
     user = AtmosphereUser.objects.get(username=username)
     if not user.is_valid():
-        raise Exception("This account is not yet valid.")
+        raise InvalidUser("The account %s is not yet valid." % username)
 
     providers = get_available_providers()
     identities = []
