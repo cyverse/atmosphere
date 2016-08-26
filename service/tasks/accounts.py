@@ -7,7 +7,7 @@ from rtwo.exceptions import NeutronClientException, NeutronException
 from threepio import celery_logger
 
 from core.models import AtmosphereUser as User
-from core.models import Provider
+from core.models import Provider,Identity
 
 from service.driver import get_account_driver
 
