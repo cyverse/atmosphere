@@ -3,6 +3,7 @@ from urlparse import urlparse
 
 import vcr
 from django.test import TestCase
+from mock import Mock
 
 
 def scrub_host_name(request):
@@ -29,13 +30,25 @@ class TestJetstream(TestCase):
     def setUp(self):
         pass
 
+    def _check_cassette(self, cassette, expected_cassette_length):
+        """Make sure the cassette is:
+         1. The expected length and either
+         2. New (dirty) or
+         3. Existing, rewound
+         """
+        self.assertEqual(len(cassette), expected_cassette_length)
+        self.assertTrue(cassette.dirty or cassette.all_played)
+
     @my_vcr.use_cassette()
     def test_validate_account(self, cassette):
         """Test for a valid account based on the business logic assigned by Jetstream"""
-        from jetstream.plugins.auth.validation import validate_account
-        is_jetstream_valid = validate_account('sgregory')
+        from jetstream.plugins.auth.validation import XsedeProjectRequired
+        jetstream_auth_plugin = XsedeProjectRequired()
+        mock_user = Mock()
+        mock_user.username = 'sgregory'
+        is_jetstream_valid = jetstream_auth_plugin.validate_user(mock_user)
         self.assertTrue(is_jetstream_valid)
-        self.assertTrue(cassette.all_played)
+        self._check_cassette(cassette, 2)
 
     @my_vcr.use_cassette()
     def test_get_all_allocations(self, cassette):
@@ -43,6 +56,7 @@ class TestJetstream(TestCase):
         from jetstream.allocation import TASAPIDriver
         tas_driver = TASAPIDriver()
         allocations = tas_driver.get_all_allocations()
+
         self.assertEquals(len(allocations), 2)
         self.maxDiff = None
         self.assertEquals(allocations[0]['project'], u'CH-916862')
@@ -53,7 +67,8 @@ class TestJetstream(TestCase):
         self.assertEquals(len(allocations), len(result))
         self.assertEquals(allocations[0], result[0])
         self.assertEquals(allocations[-1], result[-1])
-        self.assertTrue(cassette.all_played)
+
+        self._check_cassette(cassette, 1)
 
     @my_vcr.use_cassette()
     def test_get_all_projects(self, cassette):
@@ -61,6 +76,7 @@ class TestJetstream(TestCase):
         from jetstream.allocation import TASAPIDriver
         tas_driver = TASAPIDriver()
         projects = tas_driver.get_all_projects()
+
         self.assertEquals(len(projects), 2)
         self.assertEquals(projects[0]['chargeCode'], u'CH-916862')
         self.assertEquals(projects[-1]['chargeCode'], u'TG-MCB960139')
@@ -70,3 +86,5 @@ class TestJetstream(TestCase):
         self.assertEquals(len(projects), len(result))
         self.assertEquals(projects[0], result[0])
         self.assertEquals(projects[-1], result[-1])
+
+        self._check_cassette(cassette, 1)
