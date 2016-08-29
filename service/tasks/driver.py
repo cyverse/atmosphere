@@ -1179,6 +1179,7 @@ def check_web_desktop_task(driverCls, provider, identity,
 
         # NOTE: Throws Instance.DoesNotExist
         core_instance = Instance.objects.get(provider_alias=instance_alias)
+        #FIXME: REMOVE THIS LINE WHEN NON STAFF USERS SHOULD SEE WEB DESKTOP -- Thanks, MGMT
         core_instance.web_desktop = result if identity.user.is_staff else False
         core_instance.save()
         celery_logger.debug("check_web_desktop_task finished at %s." % datetime.now())
