@@ -10,7 +10,6 @@ from core.models import AtmosphereUser as User
 from core.models import AccountProvider
 from core.models.allocation_strategy import Allocation as CoreAllocation
 from core.models.allocation_strategy import AllocationStrategy as CoreAllocationStrategy
-from core.models.allocation_strategy import InstanceAllocationSourceSnapshot
 from core.models.credential import Credential
 from core.models import IdentityMembership, Identity, InstanceStatusHistory
 from core.models.instance import Instance as CoreInstance
@@ -528,6 +527,8 @@ def allocation_source_overage_enforcement(allocation_source):
 
 
 def filter_allocation_source_instances(allocation_source, esh_instances):
+    #Circ Dep
+    from core.models.allocation_strategy import InstanceAllocationSourceSnapshot
     as_instances = []
     for inst in esh_instances:
         provider_alias = inst.id
