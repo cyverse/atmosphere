@@ -123,8 +123,8 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                 if current_user:
                     burn_rate_per_user[current_user] = burn_rate_per_user.get(current_user, 0) + total_burn_rate
                 current_user = hist.instance.created_by.username
-                current_as_name = get_allocation_source_name_from_event(current_user,report_start_date)
-                allocation_source_name = current_as_name if current_as_name else 'N/A'
+            current_as_name = get_allocation_source_name_from_event(current_user,report_start_date)
+            allocation_source_name = current_as_name if current_as_name else 'N/A'
             
             empty_row = {'username': '', 'instance_id': '', 'allocation_source': '', 'provider_alias': '', 'instance_status_history_id': '', 'cpu': '', 'memory': '',
                          'disk': '', 'instance_status_start_date': '', 'instance_status_end_date': '', 'report_start_date': report_start_date, 'report_end_date': report_end_date,

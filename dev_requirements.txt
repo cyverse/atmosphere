@@ -16,3 +16,4 @@ newrelic==2.64.0.48 # newrelic investigation.
 pep8
 pip-tools==0.3.5 #TODO: Do we need a specific version here? -steve
 wheel
+vcrpy

@@ -1,4 +1,6 @@
 from django.conf import settings
+
+from threepio import logger
 from core.models import (
     AllocationSource, Instance, AtmosphereUser,
     UserAllocationSnapshot,
@@ -7,6 +9,57 @@ from core.models import (
 
 
 # Pre-Save hooks
+
+# Post-Save hooks
+def listen_for_allocation_overage(sender, instance, raw, **kwargs):
+    """
+    This listener expects:
+    EventType - 'allocation_source_snapshot'
+    EventPayload - {
+        "allocation_source_id": "37623",
+        "compute_used":100.00,  # 100 hours used ( a number, not a string, IN HOURS!)
+        "global_burn_rate":2.00,  # 2 hours used each hour
+    }
+    The method will only run in the case where an allocation_source `compute_used` >= source.compute_allowed
+    """
+
+    event = instance
+    if event.name != 'allocation_source_snapshot':
+        return None
+    # Circular dep...
+    from core.models import EventTable
+    from service.tasks.monitoring import enforce_allocation_overage
+    payload = event.payload
+    allocation_source_id = payload['allocation_source_id']
+    new_compute_used = payload['compute_used']
+    source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    current_percentage = int(100.0*new_compute_used/source.compute_allowed)
+    if new_compute_used == 0:
+        return
+    if not source:
+        return
+    if not source.compute_allowed:
+        return
+    if new_compute_used < source.compute_allowed:
+        return
+    # FIXME: test for previous event of 'allocation_source_threshold_enforced'
+    prev_enforcement_event = EventTable.objects\
+        .filter(name="allocation_source_threshold_enforced")\
+        .filter(entity_id=allocation_source_id).last()
+    if prev_enforcement_event:
+        return
+    enforce_allocation_overage.apply_async(args=source.source_id)
+    new_payload = {
+        "allocation_source_id": source.source_id,
+        "actual_value": current_percentage
+    }
+    EventTable.create_event(
+        name="allocation_source_threshold_enforced",
+        entity_id=source.source_id,
+        payload=new_payload)
+    return
+
+
 def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     """
     This listener expects:
@@ -30,7 +83,11 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     new_compute_used = payload['compute_used']
     threshold_values = getattr(settings, "ALLOCATION_SOURCE_WARNINGS", [])
     source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    if new_compute_used == 0:
+        return
     if not source:
+        return
+    if not source.compute_allowed:
         return
     prev_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source__source_id=allocation_source_id).first()
     if not prev_snapshot:
@@ -71,7 +128,6 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     return
 
 
-# Post-Save hooks
 def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     """
     This listener expects:
@@ -88,18 +144,22 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     if event.name != 'allocation_source_threshold_met':
         return None
     from core.email import send_allocation_usage_email
-    import ipdb;ipdb.set_trace()
     payload = event.payload
     allocation_source_id = payload['allocation_source_id']
     threshold = payload['threshold']
     actual_value = payload['actual_value']
+    if not settings.ENFORCING:
+        return None
 
     source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
     if not source:
         return None
     users = AtmosphereUser.for_allocation_source(source.source_id)
     for user in users:
-        send_allocation_usage_email(user, source, threshold, actual_value)
+        try:
+            send_allocation_usage_email(user, source, threshold, actual_value)
+        except Exception:
+            logger.error("Could not send a usage email to user %s" % user)
 
 
 def listen_for_allocation_snapshot_changes(sender, instance, created, **kwargs):
@@ -203,7 +263,7 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
     event = instance
     if event.name != 'instance_allocation_source_changed':
         return None
-
+    logger.info("Instance allocation changed event: %s" % event.__dict__)
     payload = event.payload
     allocation_source_id = payload['allocation_source_id']
     instance_id = payload['instance_id']

@@ -87,7 +87,7 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
         start_date = last_report.end_date
 
     compute_used = total_usage(
-        user, start_date,
+        user.username, start_date,
         allocation_source_name=tacc_project_name,
         end_date=end_date)
 

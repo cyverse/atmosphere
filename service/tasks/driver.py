@@ -1173,12 +1173,13 @@ def check_web_desktop_task(driverCls, provider, identity,
             return False
         # USE ANSIBLE
         username = identity.user.username
+        hostname = build_host_name(instance.id, instance.ip)
         playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_web_desktop.yml"], raise_exception=False)
         result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
 
         # NOTE: Throws Instance.DoesNotExist
         core_instance = Instance.objects.get(provider_alias=instance_alias)
-        core_instance.web_desktop = result
+        core_instance.web_desktop = result if identity.user.is_staff else False
         core_instance.save()
         celery_logger.debug("check_web_desktop_task finished at %s." % datetime.now())
         return result
@@ -1209,6 +1210,7 @@ def check_process_task(driverCls, provider, identity,
         instance = driver.get_instance(instance_alias)
         if not instance:
             return False
+        hostname = build_host_name(instance.id, instance.ip)
         # USE ANSIBLE
         username = identity.user.username
         playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_vnc.yml"], raise_exception=False)

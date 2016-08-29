@@ -20,6 +20,17 @@ class LicenseSerializer(serializers.HyperlinkedModelSerializer):
         slug_field='username', queryset=AtmosphereUser.objects.all(),
         required=False)
 
+    def is_valid(self, raise_exception=False):
+        """
+        """
+        raw_type = self.initial_data.get("type", "").lower()
+        if 'raw text' in raw_type:
+            LicenseType.objects.get_or_create(name="Raw Text")
+        elif 'url' in raw_type:
+            LicenseType.objects.get_or_create(name="URL")
+        return super(LicenseSerializer, self).is_valid(
+                raise_exception=raise_exception)
+
     def create(self, validated_data):
 
         if 'created_by' not in validated_data:

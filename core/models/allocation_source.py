@@ -14,6 +14,16 @@ class AllocationSource(models.Model):
         source_ids = UserAllocationSource.objects.filter(user=user).values_list('allocation_source', flat=True)
         return AllocationSource.objects.filter(id__in=source_ids)
 
+    @property
+    def all_users(self):
+        """
+        Using the UserAllocationSource join-table, return a list of all (known) users.
+        """
+        from core.models import AtmosphereUser
+        user_ids = self.users.values_list('user', flat=True)
+        user_qry = AtmosphereUser.objects.filter(id__in=user_ids)
+        return user_qry
+
     def __unicode__(self):
         return "%s (ID:%s, Compute Allowed:%s)" %\
             (self.name, self.source_id,
@@ -102,12 +112,15 @@ def total_usage(username, start_date, allocation_source_name=None,end_date=None,
     from service.allocation_logic import create_report
     if not end_date:
         end_date = timezone.now()
-    logger.info("Calculating total usage for User %s with AllocationSource %s from %s-%s" % (username, allocation_source_name, start_date, end_date))
     user_allocation = create_report(start_date,end_date,user_id=username,allocation_source_name=allocation_source_name)
     total_allocation = 0.0
     for data in user_allocation:
-        total_allocation += data['applicable_duration']
+        print data['instance_id'], data['allocation_source'], data['instance_status_start_date'], data['instance_status_end_date'], data['applicable_duration']
+        if not data['allocation_source']=='N/A':
+            total_allocation += data['applicable_duration']
+    compute_used_total = round(total_allocation/3600.0,2)
+    logger.info("Total usage for User %s with AllocationSource %s from %s-%s = %s" % (username, allocation_source_name, start_date, end_date, compute_used_total))
     if burn_rate:
         burn_rate_total = 0 if len(user_allocation)<1 else user_allocation[-1]['burn_rate']
-        return [round(total_allocation/3600.0,2),burn_rate_total]
-    return round(total_allocation/3600.0,2)
+        return [compute_used_total, burn_rate_total]
+    return compute_used_total
