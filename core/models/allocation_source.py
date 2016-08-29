@@ -14,6 +14,16 @@ class AllocationSource(models.Model):
         source_ids = UserAllocationSource.objects.filter(user=user).values_list('allocation_source', flat=True)
         return AllocationSource.objects.filter(id__in=source_ids)
 
+    @property
+    def all_users(self):
+        """
+        Using the UserAllocationSource join-table, return a list of all (known) users.
+        """
+        from core.models import AtmosphereUser
+        user_ids = self.users.values_list('user', flat=True)
+        user_qry = AtmosphereUser.objects.filter(id__in=user_ids)
+        return user_qry
+
     def __unicode__(self):
         return "%s (ID:%s, Compute Allowed:%s)" %\
             (self.name, self.source_id,

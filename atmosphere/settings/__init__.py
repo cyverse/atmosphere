@@ -20,8 +20,8 @@ from kombu import Exchange, Queue
 # Debug Mode
 DEBUG = True
 
-# Enforcing mode -- True, when in production (Debug=False)
-ENFORCING = not DEBUG
+# Enforcing mode -- False, unless set otherwise. (ONLY ONE Production server should be set to 'ENFORCING'.)
+ENFORCING = False
 
 USE_ALLOCATION_SOURCE = False
 BLACKLIST_TAGS = ["Featured",]
@@ -485,11 +485,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=30),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
-    "monitor_instance_allocations": {
-        "task": "monitor_instance_allocations",
-        "schedule": timedelta(minutes=15),
-        "options": {"expires": 25 * 60, "time_limit": 25 * 60}
-    },
+    # "monitor_instance_allocations": {
+    #     "task": "monitor_instance_allocations",
+    #     "schedule": timedelta(minutes=15),
+    #     "options": {"expires": 25 * 60, "time_limit": 25 * 60}
+    # },
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule": timedelta(minutes=15),
