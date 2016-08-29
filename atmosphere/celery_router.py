@@ -55,9 +55,10 @@ PERIODIC_TASKS = [
     "remove_empty_networks_for",
     "reset_provider_allocation",
     "monthly_allocation_reset",
+    #JETSTREAM_SPECIFIC PERIODIC TASKS
     "report_allocations_to_tas",
     "update_snapshot",
-
+    "monitor_jetstream_allocation_sources"
 ]
 SHORT_TASKS = [
     "wait_for_instance",

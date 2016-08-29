@@ -25,6 +25,7 @@ from .exceptions import TASPluginException
 logger = logging.getLogger(__name__)
 
 
+@task(name="monitor_jetstream_allocation_sources")
 def monitor_jetstream_allocation_sources():
     """
     Queries the TACC API for Jetstream allocation sources
@@ -123,7 +124,7 @@ def send_reports():
 @task(name="update_snapshot")
 def update_snapshot():
     if not settings.USE_ALLOCATION_SOURCE:
-        return
+        return False
     allocation_source_total_compute = {}
     allocation_source_total_burn_rate = {}
     end_date = timezone.now()
@@ -148,3 +149,4 @@ def update_snapshot():
             "global_burn_rate":allocation_source_total_burn_rate[source.name]
         }
         EventTable.create_event("allocation_source_snapshot", payload_as,source.name)
+    return True
