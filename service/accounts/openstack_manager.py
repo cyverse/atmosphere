@@ -558,6 +558,41 @@ class AccountDriver(BaseAccountDriver):
             "%s-net" % prefix_name)
         return
 
+    def find_user_network(self, identity):
+        """
+        1. Look at the provider for network topology hints
+        2. If no network topology exists, use the "Default network" settings.
+        3. Create network based on topology
+        """
+        # Prepare args
+
+        identity_creds = self.parse_identity(identity)
+        username = identity_creds["username"]
+        project_name = identity_creds["tenant_name"]
+        neutron = self.get_openstack_client(identity, 'neutron')
+        dns_nameservers = self.dns_nameservers_for(identity)
+        network = self.network_manager.find_network(
+            "%s-net" % project_name)
+        # Use `network.name` from here
+        subnet = self.network_manager.find_subnet(
+            "%s-subnet" % project_name)
+        router = self.network_manager.find_router(
+            "%s-router" % project_name)
+        # gateway = self.network_manager.find_router_gateway(
+        #     "%s-router" % project_name)
+        interface = None
+        if router and subnet:
+            interface = self.network_manager.find_router_interface(
+            router[0], subnet[0])
+        network_resources = {
+            'network': network,
+            'subnet': subnet,
+            'router': router,
+            #'gateway': gateway,
+            'interface': interface,
+        }
+        return network_resources
+
     def create_user_network(self, identity):
         """
         1. Look at the provider for network topology hints

@@ -221,6 +221,18 @@ def fill_allocation_sources(force_update=False):
     return len(create_list)
 
 
+def collect_users_without_allocation(driver):
+    from core.models import AtmosphereUser
+    missing = []
+    for user in AtmosphereUser.objects.order_by('username'):
+        tacc_user = driver._get_tacc_user(user)
+        user_allocations = driver.get_user_allocations(
+            tacc_user, raise_exception=False)
+        if not user_allocations:
+            missing.append(user)
+    return missing
+
+
 def fill_user_allocation_sources():
     from core.models import AtmosphereUser
     driver = TASAPIDriver()
