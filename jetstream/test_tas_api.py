@@ -1,19 +1,10 @@
 import json
-from urlparse import urlparse
 
 import vcr
 from django.test import TestCase
 from mock import Mock
 
-
-def scrub_host_name(request):
-    """Replaces any host name with 'localhost'"""
-    parse_result = urlparse(request.uri)
-    # noinspection PyProtectedMember
-    scrubbed_parts = parse_result._replace(netloc='localhost')
-    request.uri = scrubbed_parts.geturl()
-    return request
-
+from test_utils.cassette_utils import assert_cassette_playback_length, scrub_host_name
 
 my_vcr = vcr.VCR(
     before_record=scrub_host_name,
@@ -27,18 +18,6 @@ my_vcr = vcr.VCR(
 class TestJetstream(TestCase):
     """Tests for Jetstream allocation source API"""
 
-    def setUp(self):
-        pass
-
-    def _check_cassette(self, cassette, expected_cassette_length):
-        """Make sure the cassette is:
-         1. The expected length and either
-         2. New (dirty) or
-         3. Existing, rewound
-         """
-        self.assertEqual(len(cassette), expected_cassette_length)
-        self.assertTrue(cassette.dirty or cassette.all_played)
-
     @my_vcr.use_cassette()
     def test_validate_account(self, cassette):
         """Test for a valid account based on the business logic assigned by Jetstream"""
@@ -48,7 +27,7 @@ class TestJetstream(TestCase):
         mock_user.username = 'sgregory'
         is_jetstream_valid = jetstream_auth_plugin.validate_user(mock_user)
         self.assertTrue(is_jetstream_valid)
-        self._check_cassette(cassette, 2)
+        assert_cassette_playback_length(cassette, 2)
 
     @my_vcr.use_cassette()
     def test_get_all_allocations(self, cassette):
@@ -68,7 +47,7 @@ class TestJetstream(TestCase):
         self.assertEquals(allocations[0], result[0])
         self.assertEquals(allocations[-1], result[-1])
 
-        self._check_cassette(cassette, 1)
+        assert_cassette_playback_length(cassette, 1)
 
     @my_vcr.use_cassette()
     def test_get_all_projects(self, cassette):
@@ -87,4 +66,4 @@ class TestJetstream(TestCase):
         self.assertEquals(projects[0], result[0])
         self.assertEquals(projects[-1], result[-1])
 
-        self._check_cassette(cassette, 1)
+        assert_cassette_playback_length(cassette, 1)
