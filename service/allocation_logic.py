@@ -9,12 +9,12 @@ from core.models.allocation_source import UserAllocationSource, AllocationSource
 
 def create_report(report_start_date, report_end_date, user_id=None, allocation_source_name=None):
     if not report_start_date or not report_end_date:
-        raise Exception("start date and end date missing for allocation calculation function")
+        raise Exception("Start date and end date missing for allocation calculation function")
     try:
         report_start_date = report_start_date if isinstance(report_start_date, datetime.datetime) else parse(report_start_date)
         report_end_date = report_end_date if isinstance(report_end_date, datetime.datetime) else parse(report_end_date)
     except:
-        raise Exception("cannot parse start and end dates for allocation calculation function")
+        raise Exception("Cannot parse start and end dates for allocation calculation function")
     data = generate_data(report_start_date, report_end_date, username=user_id)
     if user_id:
         if allocation_source_name:
@@ -58,7 +58,10 @@ def filter_events_and_instances(report_start_date, report_end_date, username=Non
     )
     if username:
         from core.models.user import AtmosphereUser
-        user_id_int = AtmosphereUser.objects.get(username=username)
+        try:
+            user_id_int = AtmosphereUser.objects.get(username=username)
+        except:
+            raise Exception("User '%s' does not exist"%(username))
         events = events.filter(Q(payload__username__exact=username)).order_by('timestamp')
         instances = instances.filter(Q(created_by__exact=user_id_int))
     return {'events': events, 'instances': instances}
@@ -89,7 +92,7 @@ def get_all_histories_for_instance(instances, report_start_date, report_end_date
 def map_events_to_histories(filtered_instance_histories, event_instance_dict):
     out_dic = {}
     for instance, events in event_instance_dict.iteritems():
-        hist_list = filtered_instance_histories[instance]
+        hist_list = filtered_instance_histories.get(instance,[])
         for info in events:
             ts = info.timestamp
             inst_history = [i.id for i in hist_list if i.start_date <= ts and ((not i.end_date) or (i.end_date and i.end_date >= ts))]
@@ -165,7 +168,8 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                 filled_row_temp['applicable_duration'] = calculate_allocation(hist, start_date, end_date, report_start_date, report_end_date)
                 data.append(filled_row_temp)
             else:
-                filled_row['applicable_duration'] = calculate_allocation(hist, hist.start_date, hist.end_date, report_start_date, report_end_date)
+                end_date = still_running if not hist.end_date else hist.end_date
+                filled_row['applicable_duration'] = calculate_allocation(hist, hist.start_date, end_date, report_start_date, report_end_date)
                 data.append(filled_row)
 
     return data
