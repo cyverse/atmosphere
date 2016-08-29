@@ -33,13 +33,13 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
     allocation_source_id = payload['allocation_source_id']
     new_compute_used = payload['compute_used']
     source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
-    current_percentage = int(100.0*new_compute_used/source.compute_allowed)
     if new_compute_used == 0:
         return
     if not source:
         return
-    if not source.compute_allowed:
+    if source.compute_allowed in [None, 0]:
         return
+    current_percentage = int(100.0*new_compute_used/source.compute_allowed) if source.compute_allowed != 0 else 0
     if new_compute_used < source.compute_allowed:
         return
     # FIXME: test for previous event of 'allocation_source_threshold_enforced'
@@ -87,7 +87,7 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
         return
     if not source:
         return
-    if not source.compute_allowed:
+    if source.compute_allowed in [None, 0]:
         return
     prev_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source__source_id=allocation_source_id).first()
     if not prev_snapshot:
