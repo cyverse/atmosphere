@@ -1261,6 +1261,9 @@ def check_quota(username, identity_uuid, esh_size,
     except ValidationError as bad_quota:
         raise OverQuotaError(message=bad_quota.message)
 
+    if settings.USE_ALLOCATION_SOURCE:
+        logger.info("Settings dictate that USE_ALLOCATION_SOURCE = True. A new method will be required to determine over-allocation based on the selected allocation_source. Returning..")
+        return
     (over_allocation, time_diff) =\
         check_over_allocation(username,
                               identity_uuid)

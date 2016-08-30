@@ -30,7 +30,7 @@ def tacc_api_get(url):
     if resp.status_code != 200:
         raise TASAPIException(
             "Invalid Response - "
-            "Expected 200 Response: %s" % resp)
+            "Expected 200 Response: %s" % resp.__dict__)
     # Expects *ALL* GET calls to return application/json
     try:
         data = resp.json()

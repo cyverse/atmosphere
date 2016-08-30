@@ -229,7 +229,7 @@ class AccountDriver(BaseAccountDriver):
 
     def change_password(self, identity, new_password, old_password=None):
         try:
-            self.update_openstack_password(identity, new_password, old_password=old_password)
+            self.update_password_for(identity, new_password)
             self.update_password_credential(identity, new_password)
             return True
         except Exception:
@@ -249,9 +249,12 @@ class AccountDriver(BaseAccountDriver):
                 "The 'key' for a secret has changed! "
                 "Ask a programmer for help!")
 
-    def update_openstack_password(self, identity, new_password, strategy=None):
+    def update_password_for(self, identity, new_password, strategy=None):
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
+        return self.update_password_for_user(username, new_password, strategy=strategy)
+
+    def update_password_for_user(self, username, new_password, strategy=None):
 
         if not strategy:
             strategy = DEFAULT_PASSWORD_UPDATE
@@ -259,7 +262,8 @@ class AccountDriver(BaseAccountDriver):
         if not strategy\
                 or strategy == 'keystone_password_update':
             return self.keystone_password_update(username, new_password)
-        if strategy == 'openstack_sdk_password_update':
+        if strategy in ['openstack_sdk_password_update',
+                        'openstack_password_update']:
             return self.openstack_sdk_password_update(username, new_password)
         else:
             raise ValueError(
@@ -557,6 +561,41 @@ class AccountDriver(BaseAccountDriver):
             self.network_manager, neutron,
             "%s-net" % prefix_name)
         return
+
+    def find_user_network(self, identity):
+        """
+        1. Look at the provider for network topology hints
+        2. If no network topology exists, use the "Default network" settings.
+        3. Create network based on topology
+        """
+        # Prepare args
+
+        identity_creds = self.parse_identity(identity)
+        username = identity_creds["username"]
+        project_name = identity_creds["tenant_name"]
+        neutron = self.get_openstack_client(identity, 'neutron')
+        dns_nameservers = self.dns_nameservers_for(identity)
+        network = self.network_manager.find_network(
+            "%s-net" % project_name)
+        # Use `network.name` from here
+        subnet = self.network_manager.find_subnet(
+            "%s-subnet" % project_name)
+        router = self.network_manager.find_router(
+            "%s-router" % project_name)
+        # gateway = self.network_manager.find_router_gateway(
+        #     "%s-router" % project_name)
+        interface = None
+        if router and subnet:
+            interface = self.network_manager.find_router_interface(
+            router[0], subnet[0])
+        network_resources = {
+            'network': network,
+            'subnet': subnet,
+            'router': router,
+            #'gateway': gateway,
+            'interface': interface,
+        }
+        return network_resources
 
     def create_user_network(self, identity):
         """

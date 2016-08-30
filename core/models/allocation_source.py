@@ -15,6 +15,24 @@ class AllocationSource(models.Model):
         return AllocationSource.objects.filter(id__in=source_ids)
 
     @property
+    def compute_used_updated(self):
+        """
+        Using the AllocationSourceSnapshot table, return updated
+        """
+        if not self.snapshot:
+            return -1
+        return self.snapshot.updated
+
+    @property
+    def compute_used(self):
+        """
+        Using the AllocationSourceSnapshot table, return compute_used
+        """
+        if not self.snapshot:
+            return -1
+        return self.snapshot.compute_used
+
+    @property
     def all_users(self):
         """
         Using the UserAllocationSource join-table, return a list of all (known) users.
@@ -115,7 +133,7 @@ def total_usage(username, start_date, allocation_source_name=None,end_date=None,
     user_allocation = create_report(start_date,end_date,user_id=username,allocation_source_name=allocation_source_name)
     total_allocation = 0.0
     for data in user_allocation:
-        print data['instance_id'], data['allocation_source'], data['instance_status_start_date'], data['instance_status_end_date'], data['applicable_duration']
+        #print data['instance_id'], data['allocation_source'], data['instance_status_start_date'], data['instance_status_end_date'], data['applicable_duration']
         if not data['allocation_source']=='N/A':
             total_allocation += data['applicable_duration']
     compute_used_total = round(total_allocation/3600.0,2)

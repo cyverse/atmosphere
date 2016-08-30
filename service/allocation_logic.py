@@ -9,12 +9,12 @@ from core.models.allocation_source import UserAllocationSource, AllocationSource
 
 def create_report(report_start_date, report_end_date, user_id=None, allocation_source_name=None):
     if not report_start_date or not report_end_date:
-        raise Exception("start date and end date missing for allocation calculation function")
+        raise Exception("Start date and end date missing for allocation calculation function")
     try:
         report_start_date = report_start_date if isinstance(report_start_date, datetime.datetime) else parse(report_start_date)
         report_end_date = report_end_date if isinstance(report_end_date, datetime.datetime) else parse(report_end_date)
     except:
-        raise Exception("cannot parse start and end dates for allocation calculation function")
+        raise Exception("Cannot parse start and end dates for allocation calculation function")
     data = generate_data(report_start_date, report_end_date, username=user_id)
     if user_id:
         if allocation_source_name:
@@ -58,7 +58,10 @@ def filter_events_and_instances(report_start_date, report_end_date, username=Non
     )
     if username:
         from core.models.user import AtmosphereUser
-        user_id_int = AtmosphereUser.objects.get(username=username)
+        try:
+            user_id_int = AtmosphereUser.objects.get(username=username)
+        except:
+            raise Exception("User '%s' does not exist"%(username))
         events = events.filter(Q(payload__username__exact=username)).order_by('timestamp')
         instances = instances.filter(Q(created_by__exact=user_id_int))
     return {'events': events, 'instances': instances}
@@ -89,7 +92,7 @@ def get_all_histories_for_instance(instances, report_start_date, report_end_date
 def map_events_to_histories(filtered_instance_histories, event_instance_dict):
     out_dic = {}
     for instance, events in event_instance_dict.iteritems():
-        hist_list = filtered_instance_histories[instance]
+        hist_list = filtered_instance_histories.get(instance,[])
         for info in events:
             ts = info.timestamp
             inst_history = [i.id for i in hist_list if i.start_date <= ts and ((not i.end_date) or (i.end_date and i.end_date >= ts))]
@@ -97,8 +100,8 @@ def map_events_to_histories(filtered_instance_histories, event_instance_dict):
                 out_dic.setdefault(inst_history[-1], []).append(info)
     return out_dic
 
-def get_allocation_source_name_from_event(username, report_start_date):
-    events = EventTable.objects.filter(Q(timestamp__lt=report_start_date) & Q(name__exact="instance_allocation_source_changed") & Q(payload__username__exact=username)).order_by('timestamp')
+def get_allocation_source_name_from_event(username, report_start_date, instance_id):
+    events = EventTable.objects.filter(Q(timestamp__lt=report_start_date) & Q(name__exact="instance_allocation_source_changed") & Q(payload__username__exact=username) & Q(payload__instance_id__exact=instance_id)).order_by('timestamp')
     if not events:
         return False
     else:
@@ -113,18 +116,22 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
     data = []
     current_user = ''
     allocation_source_name = ''
+    current_instance_id = ''
     burn_rate_per_user = {}
 
     still_running = _get_current_date_utc()
     total_burn_rate = 0
     for instance, histories in filtered_instance_histories.iteritems():
         for hist in histories:
-            if not current_user == hist.instance.created_by.username:
+            if current_user != hist.instance.created_by.username:
                 if current_user:
                     burn_rate_per_user[current_user] = burn_rate_per_user.get(current_user, 0) + total_burn_rate
                 current_user = hist.instance.created_by.username
-            current_as_name = get_allocation_source_name_from_event(current_user,report_start_date)
-            allocation_source_name = current_as_name if current_as_name else 'N/A'
+
+            if current_instance_id != hist.instance.id:
+                current_as_name = get_allocation_source_name_from_event(current_user,report_start_date,hist.instance.provider_alias)
+                allocation_source_name = current_as_name if current_as_name else 'N/A' 
+                current_instance_id = hist.instance.id
             
             empty_row = {'username': '', 'instance_id': '', 'allocation_source': '', 'provider_alias': '', 'instance_status_history_id': '', 'cpu': '', 'memory': '',
                          'disk': '', 'instance_status_start_date': '', 'instance_status_end_date': '', 'report_start_date': report_start_date, 'report_end_date': report_end_date,
@@ -161,7 +168,8 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                 filled_row_temp['applicable_duration'] = calculate_allocation(hist, start_date, end_date, report_start_date, report_end_date)
                 data.append(filled_row_temp)
             else:
-                filled_row['applicable_duration'] = calculate_allocation(hist, hist.start_date, hist.end_date, report_start_date, report_end_date)
+                end_date = still_running if not hist.end_date else hist.end_date
+                filled_row['applicable_duration'] = calculate_allocation(hist, hist.start_date, end_date, report_start_date, report_end_date)
                 data.append(filled_row)
 
     return data

@@ -17,6 +17,7 @@ from core.models.provider import Provider
 from core.models.machine import get_or_create_provider_machine, ProviderMachine
 from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
+from core.models.event_table import EventTable
 from core.models.application_version import ApplicationVersion
 from core.models import Allocation, Credential
 
@@ -457,7 +458,12 @@ def enforce_allocation_overage(allocation_source_id):
     Update instances for each active provider.
     """
     allocation_source = AllocationSource.objects.get(source_id=allocation_source_id)
-    return allocation_source_overage_enforcement(allocation_source)
+    user_instances_enforced = allocation_source_overage_enforcement(allocation_source)
+    EventTable.create_event(
+        name="allocation_source_threshold_enforced",
+        entity_id=source.source_id,
+        payload=new_payload)
+    return user_instances_enforced
 
 @task(name="monitor_instance_allocations")
 def monitor_instance_allocations():

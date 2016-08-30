@@ -22,7 +22,7 @@ from service.cache import get_cached_instances, get_cached_driver
 from service.instance import suspend_instance, stop_instance, destroy_instance, shelve_instance, offload_instance
 from allocation.engine import calculate_allocation
 from django.conf import settings
-
+from rtwo.exceptions import LibcloudInvalidCredsError
 
 # Private
 def _include_all_idents(identities, owner_map):
@@ -208,6 +208,7 @@ def enforce_allocation_policy(identity, user):
 
 def _execute_provider_action(identity, user, instance, action_name):
     driver = get_cached_driver(identity=identity)
+    logger.info("User %s has gone over their allocation on Instance %s - Enforcement Choice: %s" % (user, instance, action_name))
     try:
         if not action_name:
             logger.debug("No 'action_name' provided")
@@ -521,9 +522,16 @@ def _get_strategy(identity):
 
 
 def allocation_source_overage_enforcement(allocation_source):
-    for user in allocation_source.all_users():
+    all_user_instances = {}
+    for user in allocation_source.all_users:
+        all_user_instances[user.username] = []
         for identity in user.current_identities:
-            allocation_source_overage_enforcement_for(allocation_source, user, identity)
+            affected_instances = allocation_source_overage_enforcement_for(
+                    allocation_source, user, identity)
+            user_instances = all_user_instances[user.username]
+            user_instances.extend(affected_instances)
+            all_user_instances[user.username] = user_instances
+    return all_user_instances
 
 
 def filter_allocation_source_instances(allocation_source, esh_instances):
@@ -544,18 +552,23 @@ def allocation_source_overage_enforcement_for(allocation_source, user, identity)
     action = provider.over_allocation_action
     if not action:
         logger.debug("No 'over_allocation_action' provided for %s" % provider)
-        return False  # Over_allocation was not attempted
+        return []  # Over_allocation was not attempted
     if not settings.ENFORCING:
         logger.info("Settings dictate that ENFORCING = False. Returning..")
-        return False
-    driver = get_cached_driver(identity=identity)
-    esh_instances = driver.list_instances()
+        return []
+    try:
+        driver = get_cached_driver(identity=identity)
+        esh_instances = driver.list_instances()
+    except LibcloudInvalidCredsError:
+        raise Exception("User %s has invalid credentials on Identity %s" % (user, identity))
     filtered_instances = filter_allocation_source_instances(allocation_source, esh_instances)
     # TODO: Parallelize this operation so you don't wait for larger instances
     # to finish 'wait_for' task below..
+    instances = []
     for instance in filtered_instances:
-        execute_provider_action(user, driver, identity, instance, action)
-    return True  # Over_allocation enforment was attempted
+        core_instance = execute_provider_action(user, driver, identity, instance, action)
+        instances.append(core_instance)
+    return instances
 
 def execute_provider_action(user, driver, identity, instance, action):
     try:
@@ -576,11 +589,12 @@ def execute_provider_action(user, driver, identity, instance, action):
             wait_time = random.uniform(2, 6)
             time.sleep(wait_time)
             updated_esh = driver.get_instance(instance.id)
-            convert_esh_instance(
+            core_instance = convert_esh_instance(
                 driver, updated_esh,
                 identity.provider.uuid,
                 identity.uuid,
                 user)
+            return core_instance
     except Exception as e:
         # Raise ANY exception that doesn't say
         # 'This instance is already in the requested VM state'

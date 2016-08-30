@@ -33,30 +33,26 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
     allocation_source_id = payload['allocation_source_id']
     new_compute_used = payload['compute_used']
     source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
-    current_percentage = int(100.0*new_compute_used/source.compute_allowed)
+    prev_enforcement_event = EventTable.objects\
+        .filter(name="allocation_source_threshold_enforced")\
+        .filter(entity_id=allocation_source_id).last()
+    # test for previous event of 'allocation_source_threshold_enforced'
+    if prev_enforcement_event:
+        return
     if new_compute_used == 0:
         return
     if not source:
         return
-    if not source.compute_allowed:
+    if source.compute_allowed in [None, 0]:
         return
+    current_percentage = int(100.0*new_compute_used/source.compute_allowed) if source.compute_allowed != 0 else 0
     if new_compute_used < source.compute_allowed:
         return
-    # FIXME: test for previous event of 'allocation_source_threshold_enforced'
-    prev_enforcement_event = EventTable.objects\
-        .filter(name="allocation_source_threshold_enforced")\
-        .filter(entity_id=allocation_source_id).last()
-    if prev_enforcement_event:
-        return
-    enforce_allocation_overage.apply_async(args=source.source_id)
+    enforce_allocation_overage.apply_async(args=(source.source_id,) )
     new_payload = {
         "allocation_source_id": source.source_id,
         "actual_value": current_percentage
     }
-    EventTable.create_event(
-        name="allocation_source_threshold_enforced",
-        entity_id=source.source_id,
-        payload=new_payload)
     return
 
 
@@ -87,7 +83,7 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
         return
     if not source:
         return
-    if not source.compute_allowed:
+    if source.compute_allowed in [None, 0]:
         return
     prev_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source__source_id=allocation_source_id).first()
     if not prev_snapshot:

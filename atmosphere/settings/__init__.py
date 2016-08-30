@@ -228,7 +228,7 @@ DEFAULT_RULES = [
     # SKIP PORT 4200.. See Below
     ("TCP", 4201, 65535),
     ("UDP", 4201, 65535),
-    # Poke hole in 4200 for iPlant VMs proxy-access only (Shellinabox)
+    # Poke hole in 4200 for iPlant VMs proxy-access only (WebDesktop//NoVNC)
     ("TCP", 4200, 4200, "128.196.0.0/16"),
     ("UDP", 4200, 4200, "128.196.0.0/16"),
     ("TCP", 4200, 4200, "150.135.0.0/16"),
@@ -236,7 +236,8 @@ DEFAULT_RULES = [
     # Poke hole in 4200 for Jetsteam "Service VMs" only (WebDesktop//NoVNC)
     ("TCP", 4200, 4200, "149.165.238.0/24"),
     ("UDP", 4200, 4200, "149.165.238.0/24"),
-
+    ("TCP", 4200, 4200, u"129.114.104.5/32"),
+    ("UDP", 4200, 4200, u"129.114.104.5/32")
 ]
 # Stops 500 errors when logs are missing.
 # NOTE: If the permissions are wrong, this won't help
