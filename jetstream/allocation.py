@@ -13,6 +13,7 @@ class TASAPIDriver(object):
     tacc_api = None
     allocation_list = []
     project_list = []
+    user_project_list = []
 
     def __init__(self, tacc_api=None, resource_name='Jetstream'):
         if not tacc_api:
@@ -21,6 +22,7 @@ class TASAPIDriver(object):
         self.resource_name = resource_name
 
     def clear_cache(self):
+        self.user_project_list = []
         self.project_list = []
         self.allocation_list = []
 
@@ -33,6 +35,23 @@ class TASAPIDriver(object):
         if not self.project_list:
             self.project_list = self._get_all_projects()
         return self.project_list
+
+    def find_projects_for(self, tacc_username, resource_name='Jetstream'):
+        if not self.user_project_list:
+            self.user_project_list = self.get_all_project_users()
+        if not tacc_username:
+            return self.user_project_list
+        filtered_user_list = [p for p in self.user_project_list if tacc_username in p['users']]
+        return filtered_user_list
+
+    def get_all_project_users(self, resource_name='Jetstream'):
+        if not self.user_project_list:
+            self.project_list = self._get_all_projects()
+            for project in self.project_list:
+                project_users = self.get_project_users(project['id'])
+                project['users'] = project_users
+            self.user_project_list = self.project_list
+        return self.user_project_list
 
     def get_username_for_xsede(self, xsede_username):
         path = '/v1/users/xsede/%s' % xsede_username
@@ -156,6 +175,30 @@ class TASAPIDriver(object):
             logger.info("User: %s has no tacc username" % user.username)
             tacc_user = user.username
         return tacc_user
+
+    def get_project_users(self, project_id):
+        path = '/v1/projects/%s/users' % project_id
+        url_match = self.tacc_api + path
+        resp, data = tacc_api_get(url_match)
+        user_names = []
+        try:
+            _validate_tas_data(data)
+            users = data['result']
+            for user in users:
+                username = user['username']
+                user_names.append(username)
+            return user_names
+        except ValueError as exc:
+            if raise_exception:
+                raise TASAPIException("JSON Decode error -- %s" % exc)
+            logger.info( exc)
+        except Exception as exc:
+            if raise_exception:
+                raise
+            logger.info( exc)
+        return user_names
+
+    
 
     def get_user_allocations(self, username, resource_name='Jetstream', raise_exception=True):
         path = '/v1/projects/username/%s' % username
