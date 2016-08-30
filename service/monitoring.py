@@ -22,7 +22,7 @@ from service.cache import get_cached_instances, get_cached_driver
 from service.instance import suspend_instance, stop_instance, destroy_instance, shelve_instance, offload_instance
 from allocation.engine import calculate_allocation
 from django.conf import settings
-
+from rtwo.exceptions import LibcloudInvalidCredsError
 
 # Private
 def _include_all_idents(identities, owner_map):
@@ -556,8 +556,11 @@ def allocation_source_overage_enforcement_for(allocation_source, user, identity)
     if not settings.ENFORCING:
         logger.info("Settings dictate that ENFORCING = False. Returning..")
         return []
-    driver = get_cached_driver(identity=identity)
-    esh_instances = driver.list_instances()
+    try:
+        driver = get_cached_driver(identity=identity)
+        esh_instances = driver.list_instances()
+    except LibcloudInvalidCredsError:
+        raise Exception("User %s has invalid credentials on Identity %s" % (user, identity))
     filtered_instances = filter_allocation_source_instances(allocation_source, esh_instances)
     # TODO: Parallelize this operation so you don't wait for larger instances
     # to finish 'wait_for' task below..
