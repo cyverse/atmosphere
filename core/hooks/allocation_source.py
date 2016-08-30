@@ -53,10 +53,6 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
         "allocation_source_id": source.source_id,
         "actual_value": current_percentage
     }
-    EventTable.create_event(
-        name="allocation_source_threshold_enforced",
-        entity_id=source.source_id,
-        payload=new_payload)
     return
 
 
