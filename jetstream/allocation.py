@@ -1,6 +1,8 @@
 import logging
 
 from django.conf import settings
+from django.utils import timezone
+from dateutil.parser import parse
 
 from .exceptions import TASAPIException
 from .api import tacc_api_post, tacc_api_get
@@ -38,7 +40,7 @@ class TASAPIDriver(object):
 
     def find_projects_for(self, tacc_username, resource_name='Jetstream'):
         if not self.user_project_list:
-            self.user_project_list = self.get_all_project_users()
+            self.user_project_list = self.get_all_project_users(resource_name=resource_name)
         if not tacc_username:
             return self.user_project_list
         filtered_user_list = [p for p in self.user_project_list if tacc_username in p['users']]
@@ -276,6 +278,41 @@ def collect_users_without_allocation(driver):
         if not user_allocations:
             missing.append(user)
     return missing
+
+
+def fill_user_allocation_sources_v2():
+    from core.models import AtmosphereUser
+    driver = TASAPIDriver()
+    for user in AtmosphereUser.objects.order_by('id'):
+        tacc_user = driver._get_tacc_user(user)
+        projects = driver.find_projects_for(tacc_user)
+        for api_project in projects:
+            api_allocation = select_valid_allocation(api_project['allocations'])
+            if not api_allocation:
+                raise TASAPIException("API shows no valid allocation exists for project %s" % api_project)
+            allocation_source, _ = get_or_create_allocation_source(
+                api_allocation, update_source=force_update)
+            resource, _ = UserAllocationSource.objects.get_or_create(
+                allocation_source=allocation_source,
+                user=user)
+
+
+def select_valid_allocation(allocation_list):
+    now = timezone.now()
+    for allocation in allocation_list:
+        start_timestamp = allocation['start']
+        end_timestamp = allocation['end']
+        status = allocation['status']
+        start_date = parse(start_timestamp)
+        end_date = parse(end_timestamp)
+        if start_date <= now or end_date >= now:
+           logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
+           continue
+        if status.lower() != 'active':
+           logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+           continue
+        return allocation
+    return None
 
 
 def fill_user_allocation_sources():
