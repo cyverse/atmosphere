@@ -145,8 +145,8 @@ def update_snapshot():
 
         payload_as = { 
             "allocation_source_id":source.source_id, 
-            "compute_used":allocation_source_total_compute[source.name],
-            "global_burn_rate":allocation_source_total_burn_rate[source.name]
+            "compute_used":allocation_source_total_compute.get(source.name,0),
+            "global_burn_rate":allocation_source_total_burn_rate.get(source.name,0)
         }
         EventTable.create_event("allocation_source_snapshot", payload_as,source.name)
     return True
