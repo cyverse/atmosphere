@@ -185,7 +185,7 @@ class TASAPIDriver(object):
 
 def get_or_create_allocation_source(api_allocation, update_source=False):
     try:
-        title = "%s: %s" % (api_allocation['project'], api_allocation['justification'])
+        title = "%s" % (api_allocation['project'],)
         source_id = api_allocation['id']
         compute_allowed = int(api_allocation['computeAllocated'])
     except:
