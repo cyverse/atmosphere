@@ -193,11 +193,13 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
 
     try:
         source = AllocationSource.objects.get(
-            name=title,
             source_id=source_id
         )
-        if update_source and compute_allowed != source.compute_allowed:
-            source.compute_allowed = compute_allowed
+        if update_source:
+            if compute_allowed != source.compute_allowed:
+                #FIXME: Here would be a *great* place to create a new event to "ignore" all previous allocation_source_`threshold_met/threshold_enforced`
+                source.compute_allowed = compute_allowed
+            source.title = title
             source.save()
         return source, False
     except AllocationSource.DoesNotExist:
