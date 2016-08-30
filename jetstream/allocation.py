@@ -247,7 +247,7 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
         return source, False
     except AllocationSource.DoesNotExist:
         source = AllocationSource.objects.create(
-            name=title,
+            name=source_name,
             compute_allowed=compute_allowed,
             source_id=source_id
         )
@@ -282,7 +282,6 @@ def fill_user_allocation_sources():
     from core.models import AtmosphereUser
     driver = TASAPIDriver()
     for user in AtmosphereUser.objects.order_by('id'):
-    #for user in AtmosphereUser.objects.filter(username='sgregory').order_by('id'):
         fill_user_allocation_source_for(driver, user, force_update=True)
 
 
