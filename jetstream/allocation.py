@@ -185,7 +185,7 @@ class TASAPIDriver(object):
 
 def get_or_create_allocation_source(api_allocation, update_source=False):
     try:
-        title = "%s" % (api_allocation['project'],)
+        source_name = "%s" % (api_allocation['project'],)
         source_id = api_allocation['id']
         compute_allowed = int(api_allocation['computeAllocated'])
     except:
@@ -199,7 +199,7 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
             if compute_allowed != source.compute_allowed:
                 #FIXME: Here would be a *great* place to create a new event to "ignore" all previous allocation_source_`threshold_met/threshold_enforced`
                 source.compute_allowed = compute_allowed
-            source.title = title
+            source.name = source_name
             source.save()
         return source, False
     except AllocationSource.DoesNotExist:
