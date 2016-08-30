@@ -228,7 +228,7 @@ DEFAULT_RULES = [
     # SKIP PORT 4200.. See Below
     ("TCP", 4201, 65535),
     ("UDP", 4201, 65535),
-    # Poke hole in 4200 for iPlant VMs proxy-access only (Shellinabox)
+    # Poke hole in 4200 for iPlant VMs proxy-access only (WebDesktop//NoVNC)
     ("TCP", 4200, 4200, "128.196.0.0/16"),
     ("UDP", 4200, 4200, "128.196.0.0/16"),
     ("TCP", 4200, 4200, "150.135.0.0/16"),
