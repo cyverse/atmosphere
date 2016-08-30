@@ -33,9 +33,8 @@ def monitor_jetstream_allocation_sources():
     Queries the TACC API for Jetstream allocation sources
     Adds each new source (And user association) to the DB.
     """
-    new_sources = fill_allocation_sources(True)
-    fill_user_allocation_sources()
-    return new_sources
+    resources = fill_user_allocation_sources()
+    return resources
 
 
 def create_reports():
