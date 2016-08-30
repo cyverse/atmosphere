@@ -15,6 +15,24 @@ class AllocationSource(models.Model):
         return AllocationSource.objects.filter(id__in=source_ids)
 
     @property
+    def compute_used_updated(self):
+        """
+        Using the AllocationSourceSnapshot table, return updated
+        """
+        if not self.snapshot:
+            return -1
+        return self.snapshot.updated
+
+    @property
+    def compute_used(self):
+        """
+        Using the AllocationSourceSnapshot table, return compute_used
+        """
+        if not self.snapshot:
+            return -1
+        return self.snapshot.compute_used
+
+    @property
     def all_users(self):
         """
         Using the UserAllocationSource join-table, return a list of all (known) users.
