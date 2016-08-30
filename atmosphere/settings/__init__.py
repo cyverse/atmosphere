@@ -236,7 +236,8 @@ DEFAULT_RULES = [
     # Poke hole in 4200 for Jetsteam "Service VMs" only (WebDesktop//NoVNC)
     ("TCP", 4200, 4200, "149.165.238.0/24"),
     ("UDP", 4200, 4200, "149.165.238.0/24"),
-
+    ("TCP", 4200, 4200, u"129.114.104.5/32"),
+    ("UDP", 4200, 4200, u"129.114.104.5/32")
 ]
 # Stops 500 errors when logs are missing.
 # NOTE: If the permissions are wrong, this won't help
