@@ -393,9 +393,11 @@ def send_allocation_usage_email(user, allocation_source, threshold, usage_percen
     for row in data:
         if row['instance_status'] == 'active':
             duration = round(row['applicable_duration']/3600, 2)
+            date_range = "%s - %s" % (row['instance_status_start_date'],row['instance_status_end_date'])
             instance_breakdown.append((row['instance_id'],
                                       duration,  # instance usage in hours
-                                      (duration/allocation_source.compute_allowed)*100.0))  # instance usage in percentage
+                                      round((duration/allocation_source.compute_allowed)*100.0, 3),  # instance usage in percentage
+                                      date_range))  # date range for instance
     context = {
         "owner": user,
         "user": user_name,
