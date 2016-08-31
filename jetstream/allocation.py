@@ -311,6 +311,7 @@ def fill_user_allocation_sources():
 
 def fill_user_allocation_source_for(driver, user, force_update=True):
     allocation_list = find_user_allocation_source_for(driver, user)
+    allocation_resources = []
     for api_allocation in allocation_list:
         allocation_source, _ = get_or_create_allocation_source(
             api_allocation, update_source=force_update)
