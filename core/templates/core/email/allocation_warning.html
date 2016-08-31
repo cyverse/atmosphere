@@ -2,6 +2,11 @@
 
 Allocation Source : {{allocation_source.name}}
 Total allocation usage : {{total_used}}/{{allocation_source.compute_allowed}} {{actual}}%
+Allocation usage by user : {{user_compute_used}}
+Allocation usage by instances:
+{% for data in instance_breakdown %}
+    Instance ID : {{data.0}} [ {{data.3}} ], Usage(hrs) : {{data.1}} , Usage(%) : {{data.2}}
+{% endfor %}
 Allocation Threshold Exceeded : {{threshold}} %
 Instance Owner : {{owner}} ({{user}} Email: {{email}})
 
