@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 
 
 @task(name="monitor_jetstream_allocation_sources",
-      time_limit=10 * 60  # 10minute hard-set time limit
      )
 def monitor_jetstream_allocation_sources():
     """
