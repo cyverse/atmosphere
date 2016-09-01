@@ -97,9 +97,9 @@ CELERYBEAT_SCHEDULE["{{task_key}}"]["{{task_opt}}"] = {{task_opt_value}}
 ALLOCATION_SOURCE_WARNINGS = [10, 25, 50, 75, 90]
 JETSTREAM_CELERYBEAT_SCHEDULE = {
   "report_allocations_to_tas":{
-	"task":"report_allocations_to_tas",
+        "task":"report_allocations_to_tas",
         "schedule" : timedelta(minutes=60),
-        "options" : {"expires": 10 * 60,"time_limit": 2 * 60}
+        "options" : {"expires": 30 * 60,"time_limit": 30 * 60}
     },
   "update_snapshot":{
 	"task":"update_snapshot",
@@ -108,9 +108,10 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
     },
   "monitor_jetstream_allocation_sources":{
 	"task":"monitor_jetstream_allocation_sources",
-        "schedule" : timedelta(minutes=60),
+        # Every 15 minutes
+        "schedule": crontab(minute="*/15"),
         "options" : {"expires": 10 * 60,"time_limit": 10 * 60}
-    }
+  }
 }
 CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
 {% endif %}
