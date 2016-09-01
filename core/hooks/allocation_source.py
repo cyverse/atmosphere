@@ -153,14 +153,16 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     for user in users:
         send_usage_email_to(user, source, threshold, actual_value)
 
-def send_email_usage_to(user, source, threshold, actual_value):
+def send_email_usage_to(user, source, threshold, actual_value=None):
     from core.email import send_allocation_usage_email
-    snapshot = UserAllocationSnapshot.objects.filter(
-        allocation_source=source, user=user).first()
-    if not snapshot:
+    user_snapshot = UserAllocationSnapshot.objects.filter(
+        allocation_source=source, user=user).last()
+    if not actual_value:
+        actual_value = int(source.snapshot.compute_used / source.compute_allowed*100)
+    if not user_snapshot:
         compute_used = None
     else:
-        compute_used = getattr(snapshot, 'compute_used')
+        compute_used = getattr(user_snapshot, 'compute_used')
     try:
         send_allocation_usage_email(
             user, source, threshold, actual_value,

@@ -1,10 +1,14 @@
-
-
 Allocation Source : {{allocation_source.name}}
-Total allocation usage : {{total_used}}/{{allocation_source.compute_allowed}} {{actual}}%
-Allocation usage by user : {{user_compute_used}}/{{allocation_source.compute_allowed}} {{user_compute_used_percentage}}%
 Allocation Threshold Exceeded : {{threshold}} %
-Instance Owner : {{owner}} ({{user}} Email: {{email}})
+
+Allocation breakdown by User:
+
+	{{owner}} ({{user}} Email: {{email}}): {{user_compute_used}}/{{allocation_source_total}} {{user_compute_used_percentage}}%
+
+
+Total allocation usage by all Users:
+
+	{{ allocation_source.all_users.count }} Users of {{allocation_source.name}}: {{total_used}}/{{allocation_source_total}} {{actual}}%
 
 ---
 NOTE: This e-mail notification is an auto-generated alert to help you manage your Allocation.
