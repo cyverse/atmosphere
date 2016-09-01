@@ -101,9 +101,9 @@ class TASAPIDriver(object):
         """
         if not type(su_total) in [int, float]:
             raise Exception("SU total should be integer or float")
-    
+
         post_data = {
-            "sus": su_total,  # NOTE: This is likely to change in future v.
+            "sus": su_total,
             "username": username,
             "project": project_name,
             "queueName": queue_name,
