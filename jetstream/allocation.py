@@ -16,6 +16,7 @@ class TASAPIDriver(object):
     allocation_list = []
     project_list = []
     user_project_list = []
+    username_map = {}
 
     def __init__(self, tacc_api=None, resource_name='Jetstream'):
         if not tacc_api:
@@ -27,35 +28,60 @@ class TASAPIDriver(object):
         self.user_project_list = []
         self.project_list = []
         self.allocation_list = []
+        self.username_map = {}
 
     def get_all_allocations(self):
         if not self.allocation_list:
             self.allocation_list = self._get_all_allocations()
         return self.allocation_list
 
-    def get_all_projects(self, resource_name='Jetstream'):
+    def get_all_projects(self):
         if not self.project_list:
             self.project_list = self._get_all_projects()
         return self.project_list
 
-    def find_projects_for(self, tacc_username, resource_name='Jetstream'):
+    def get_tacc_username(self, user):
+        if self.username_map.get(user.username):
+            return self.username_map[user.username]
+
+        try:
+            tacc_user = self._xsede_to_tacc_username(
+                user.username)
+        except:
+            logger.info("User: %s has no tacc username" % user.username)
+            tacc_user = user.username
+        self.username_map[user.username] = tacc_user
+        return tacc_user
+
+    def find_projects_for(self, tacc_username):
         if not self.user_project_list:
-            self.user_project_list = self.get_all_project_users(resource_name=resource_name)
+            self.user_project_list = self.get_all_project_users()
         if not tacc_username:
             return self.user_project_list
         filtered_user_list = [p for p in self.user_project_list if tacc_username in p['users']]
         return filtered_user_list
 
-    def get_all_project_users(self, resource_name='Jetstream'):
+    def find_allocations_for(self, tacc_username):
+        api_projects = self.find_projects_for(tacc_username)
+        allocations = []
+        for api_project in api_projects:
+            api_allocation = select_valid_allocation(api_project['allocations'])
+            if not api_allocation:
+                logger.error("API shows no valid allocation exists for project %s" % api_project)
+                continue
+            allocations.append(api_allocation)
+        return allocations
+
+    def get_all_project_users(self):
         if not self.user_project_list:
             self.project_list = self._get_all_projects()
-            for project in self.project_list:
+            for project in sorted(self.project_list, key=lambda p: p['id']):
                 project_users = self.get_project_users(project['id'])
                 project['users'] = project_users
             self.user_project_list = self.project_list
         return self.user_project_list
 
-    def get_username_for_xsede(self, xsede_username):
+    def _xsede_to_tacc_username(self, xsede_username):
         path = '/v1/users/xsede/%s' % xsede_username
         url_match = self.tacc_api + path
         resp, data = tacc_api_get(url_match)
@@ -75,9 +101,9 @@ class TASAPIDriver(object):
         """
         if not type(su_total) in [int, float]:
             raise Exception("SU total should be integer or float")
-    
+
         post_data = {
-            "sus": su_total,  # NOTE: This is likely to change in future v.
+            "sus": su_total,
             "username": username,
             "project": project_name,
             "queueName": queue_name,
@@ -88,7 +114,6 @@ class TASAPIDriver(object):
             "startUTC": start_date.strftime("%Y-%m-%dT%H:%M:%S"),
             "endUTC": end_date.strftime("%Y-%m-%dT%H:%M:%S"),
         }
-    
         path = '/v1/jobs'
         url_match = self.tacc_api + path
         logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
@@ -99,12 +124,12 @@ class TASAPIDriver(object):
             logger.debug("TAS_RESP - Data: %s" % data)
             resp_status = data['status']
         except ValueError:
-            exc_message = ("Invalid Response - Expected 'status' in the json response: %s" % (resp.text,))
+            exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (self.id, resp.text,))
             logger.exception(exc_message)
             raise ValueError(exc_message)
     
         if resp_status != 'success' or resp.status_code != 200:
-            exc_message = ("Invalid Response - Expected 200 and 'success' response: %s - %s" % (resp.status_code, resp_status))
+            exc_message = ("Report %s produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (self.id, resp.status_code, resp_status))
             logger.exception(exc_message)
             raise Exception(exc_message)
     
@@ -169,15 +194,6 @@ class TASAPIDriver(object):
         except ValueError as exc:
             raise TASAPIException("JSON Decode error -- %s" % exc)
 
-    def _get_tacc_user(self, user):
-        try:
-            tacc_user = self.get_username_for_xsede(
-                user.username)
-        except:
-            logger.info("User: %s has no tacc username" % user.username)
-            tacc_user = user.username
-        return tacc_user
-
     def get_project_users(self, project_id):
         path = '/v1/projects/%s/users' % project_id
         url_match = self.tacc_api + path
@@ -202,7 +218,7 @@ class TASAPIDriver(object):
 
     
 
-    def get_user_allocations(self, username, resource_name='Jetstream', raise_exception=True):
+    def get_user_allocations(self, username, raise_exception=True):
         path = '/v1/projects/username/%s' % username
         url_match = self.tacc_api + path
         resp, data = tacc_api_get(url_match)
@@ -213,7 +229,7 @@ class TASAPIDriver(object):
             for project in projects:
                 allocations = project['allocations']
                 for allocation in allocations:
-                    if allocation['resource'] == resource_name:
+                    if allocation['resource'] == self.resource_name:
                         user_allocations.append( (project, allocation) )
             return user_allocations
         except ValueError as exc:
@@ -256,6 +272,12 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
         return source, True
 
 
+def find_user_allocation_source_for(driver, user):
+    tacc_user = driver.get_tacc_username(user)
+    allocations = driver.find_allocations_for(tacc_user)
+    return allocations
+
+
 def fill_allocation_sources(force_update=False):
     driver = TASAPIDriver()
     allocations = driver.get_all_allocations()
@@ -269,10 +291,13 @@ def fill_allocation_sources(force_update=False):
 
 
 def collect_users_without_allocation(driver):
+    """
+    Should be able to refactor this to make faster...
+    """
     from core.models import AtmosphereUser
     missing = []
     for user in AtmosphereUser.objects.order_by('username'):
-        tacc_user = driver._get_tacc_user(user)
+        tacc_user = driver.get_tacc_username(user)
         user_allocations = driver.get_user_allocations(
             tacc_user, raise_exception=False)
         if not user_allocations:
@@ -290,14 +315,9 @@ def fill_user_allocation_sources():
     return allocation_resources
 
 def fill_user_allocation_source_for(driver, user, force_update=True):
-    tacc_user = driver._get_tacc_user(user)
-    projects = driver.find_projects_for(tacc_user)
+    allocation_list = find_user_allocation_source_for(driver, user)
     allocation_resources = []
-    for api_project in projects:
-        api_allocation = select_valid_allocation(api_project['allocations'])
-        if not api_allocation:
-            logger.error("API shows no valid allocation exists for project %s" % api_project)
-            continue
+    for api_allocation in allocation_list:
         allocation_source, _ = get_or_create_allocation_source(
             api_allocation, update_source=force_update)
         resource, _ = UserAllocationSource.objects.get_or_create(

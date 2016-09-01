@@ -9,7 +9,7 @@ class ProjectInstance(models.Model):
 
     def __unicode__(self):
         return "%s: %s - %s" %\
-            (self.id, self.project, self.instance)
+            (self.id, unicode(self.project), self.instance)
 
     class Meta:
         db_table = 'project_instances'

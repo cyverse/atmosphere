@@ -123,7 +123,7 @@ class AllocationSourceSnapshot(models.Model):
         db_table = 'allocation_source_snapshot'
         app_label = 'core'
 
-def total_usage(username, start_date, allocation_source_name=None,end_date=None, burn_rate=False):
+def total_usage(username, start_date, allocation_source_name=None,end_date=None, burn_rate=False, email=None):
     """ 
         This function outputs the total allocation usage in hours
     """
@@ -131,6 +131,8 @@ def total_usage(username, start_date, allocation_source_name=None,end_date=None,
     if not end_date:
         end_date = timezone.now()
     user_allocation = create_report(start_date,end_date,user_id=username,allocation_source_name=allocation_source_name)
+    if email:
+        return user_allocation
     total_allocation = 0.0
     for data in user_allocation:
         #print data['instance_id'], data['allocation_source'], data['instance_status_start_date'], data['instance_status_end_date'], data['applicable_duration']

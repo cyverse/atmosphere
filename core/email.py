@@ -16,6 +16,7 @@ from pytz import timezone as pytz_timezone
 from threepio import logger
 
 from atmosphere import settings
+from core.models.allocation_source import total_usage
 from core.models import IdentityMembership, MachineRequest, EmailTemplate
 
 from iplantauth.protocol.ldap import lookupEmail as ldapLookupEmail, lookupUser
@@ -199,8 +200,7 @@ def request_info(request):
             request.POST.get('resolution[screen][height]', '') + ")"
     return (user_agent, remote_ip, location, resolution)
 
-
-def email_admin(request, subject, message, 
+def email_admin(request, subject, message,
         cc_user=True, request_tracker=False, html=False):
     """ Use request, subject and message to build and send a standard
         Atmosphere user request email. From an atmosphere user to admins.
@@ -382,7 +382,7 @@ def send_instance_email(username, instance_id, instance_name,
     return email_from_admin(*email_args)
 
 
-def send_allocation_usage_email(user, allocation_source, threshold, usage_percentage):
+def send_allocation_usage_email(user, allocation_source, threshold, usage_percentage, user_compute_used=None):
     """
     Sends an email to the user to inform them that their Usage has hit a predefined checkpoint.
     #TODO: Version 2.0 -- The event-sending becomes async (CELERY!)
@@ -390,18 +390,34 @@ def send_allocation_usage_email(user, allocation_source, threshold, usage_percen
     #TODO: Use the values in `allocation_source_snapshot` and possibly the `TASAPIDriver` to inform the user of more relevant details!
     """
     username, user_email, user_name = user_email_info(user.username)
+
+    # For simplicity, force all values to integer.
+    usage_percentage = int(usage_percentage)
+    threshold = int(threshold)
+    total_used = int(allocation_source.compute_allowed * (usage_percentage/100.0))
+    if user_compute_used is None:
+        user_compute_used = "N/A"
+        user_compute_used_percent = "N/A"
+    else:
+        user_compute_used_percent = int((user_compute_used/allocation_source.compute_allowed)*100)
+        user_compute_used = min(int(user_compute_used), total_used)  # This is a hack until the values can be more accurately calcualted in EventTable.
+
+    allocation_source_total = int(allocation_source.compute_allowed)
     context = {
         "owner": user,
         "user": user_name,
         "email": user_email,
         "allocation_source": allocation_source,
+        "allocation_source_total": allocation_source_total,
+        "user_compute_used": user_compute_used,
+        "user_compute_used_percentage": user_compute_used_percent,
         "threshold": threshold,
-        "total_used": allocation_source.compute_allowed * (usage_percentage/100.0),
+        "total_used": total_used,
         "actual": usage_percentage,
     }
     body = render_to_string("core/email/allocation_warning.html", Context(context))
     from_name, from_email = atmo_daemon_address()
-    subject = '(%s) Allocation Usage Notice' % username
+    subject = '(%s) Jetstream Allocation Usage Notice' % username
     return email_from_admin(user.username, subject, body)
 
 
@@ -572,7 +588,7 @@ def resource_request_email(request, username, quota, reason, options={}):
     admin_url = reverse('admin:core_identitymembership_change',
                         args=(membership.id,))
 
-    # TODO: To enable joseph's admin_url this will need to be uncommented 
+    # TODO: To enable joseph's admin_url this will need to be uncommented
     # See https://pods.iplantcollaborative.org/jira/browse/ATMO-1155
     #
     # if 'admin_url' in options:

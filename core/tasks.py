@@ -7,6 +7,7 @@ from celery.decorators import task
 
 from django.core.mail import EmailMessage
 
+from atmosphere import settings
 from threepio import celery_logger, email_logger
 
 from core.models.status_type import get_status_type
@@ -28,7 +29,8 @@ def send_email(subject, body, from_email, to, cc=None,
         log_message = "\n> From:{0}\n> To:{1}\n> Cc:{2}\n> Subject:{3}\n> Body:\n{4}"
         args = (from_email, to, cc, subject, body)
         email_logger.info(log_message.format(*args))
-        msg.send(fail_silently=fail_silently)
+        if getattr(settings, "SEND_EMAILS", True):
+            msg.send(fail_silently=fail_silently)
         return True
     except Exception as e:
         celery_logger.exception(e)
