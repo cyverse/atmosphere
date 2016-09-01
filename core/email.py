@@ -377,7 +377,7 @@ def send_instance_email(username, instance_id, instance_name,
     return email_from_admin(*email_args)
 
 
-def send_allocation_usage_email(user, allocation_source, threshold, usage_percentage, timestamp, user_compute_used=None):
+def send_allocation_usage_email(user, allocation_source, threshold, usage_percentage, user_compute_used=None):
     """
     Sends an email to the user to inform them that their Usage has hit a predefined checkpoint.
     #TODO: Version 2.0 -- The event-sending becomes async (CELERY!)
@@ -386,27 +386,19 @@ def send_allocation_usage_email(user, allocation_source, threshold, usage_percen
     """
     username, user_email, user_name = user_email_info(user.username)
     if user_compute_used is None:
-        user_compute_used = 'N/A'
-    # Calculate instance wise breakdown
-    data = total_usage(username, user.date_joined, allocation_source_name=allocation_source.name, end_date=timestamp, email=True)
-    instance_breakdown = []
-    for row in data:
-        if row['instance_status'] == 'active':
-            duration = round(row['applicable_duration']/3600, 2)
-            date_range = "%s - %s" % (row['instance_status_start_date'],row['instance_status_end_date'])
-            instance_breakdown.append((row['instance_id'],
-                                      duration,  # instance usage in hours
-                                      round((duration/allocation_source.compute_allowed)*100.0, 3),  # instance usage in percentage
-                                      date_range))  # date range for instance
+        user_compute_used = "N/A"
+        user_compute_used_percent = "N/A"
+    else:
+        user_compute_used_percent = round((user_compute_used/allocation_source.compute_allowed)*100, 3)
+
     context = {
         "owner": user,
         "user": user_name,
         "email": user_email,
         "allocation_source": allocation_source,
         "user_compute_used": user_compute_used,
-        "user_compute_used_percentage": (user_compute_used/allocation_source.compute_allowed)*100,
+        "user_compute_used_percentage": user_compute_used_percent,
         "threshold": threshold,
-        "instance_breakdown": instance_breakdown,
         "total_used": allocation_source.compute_allowed * (usage_percentage/100.0),
         "actual": usage_percentage,
     }
