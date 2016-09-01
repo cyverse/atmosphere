@@ -16,6 +16,7 @@ class TASAPIDriver(object):
     allocation_list = []
     project_list = []
     user_project_list = []
+    username_map = {}
 
     def __init__(self, tacc_api=None, resource_name='Jetstream'):
         if not tacc_api:
@@ -27,6 +28,7 @@ class TASAPIDriver(object):
         self.user_project_list = []
         self.project_list = []
         self.allocation_list = []
+        self.username_map = {}
 
     def get_all_allocations(self):
         if not self.allocation_list:
@@ -37,6 +39,19 @@ class TASAPIDriver(object):
         if not self.project_list:
             self.project_list = self._get_all_projects()
         return self.project_list
+
+    def get_tacc_username(self, user):
+        if self.username_map.get(user.username):
+            return self.username_map[user.username]
+
+        try:
+            tacc_user = self._xsede_to_tacc_username(
+                user.username)
+        except:
+            logger.info("User: %s has no tacc username" % user.username)
+            tacc_user = user.username
+        self.username_map[user.username] = tacc_user
+        return tacc_user
 
     def find_projects_for(self, tacc_username):
         if not self.user_project_list:
@@ -66,7 +81,7 @@ class TASAPIDriver(object):
             self.user_project_list = self.project_list
         return self.user_project_list
 
-    def get_username_for_xsede(self, xsede_username):
+    def _xsede_to_tacc_username(self, xsede_username):
         path = '/v1/users/xsede/%s' % xsede_username
         url_match = self.tacc_api + path
         resp, data = tacc_api_get(url_match)
@@ -99,7 +114,6 @@ class TASAPIDriver(object):
             "startUTC": start_date.strftime("%Y-%m-%dT%H:%M:%S"),
             "endUTC": end_date.strftime("%Y-%m-%dT%H:%M:%S"),
         }
-    
         path = '/v1/jobs'
         url_match = self.tacc_api + path
         logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
@@ -110,12 +124,12 @@ class TASAPIDriver(object):
             logger.debug("TAS_RESP - Data: %s" % data)
             resp_status = data['status']
         except ValueError:
-            exc_message = ("Invalid Response - Expected 'status' in the json response: %s" % (resp.text,))
+            exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (self.id, resp.text,))
             logger.exception(exc_message)
             raise ValueError(exc_message)
     
         if resp_status != 'success' or resp.status_code != 200:
-            exc_message = ("Invalid Response - Expected 200 and 'success' response: %s - %s" % (resp.status_code, resp_status))
+            exc_message = ("Report %s produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (self.id, resp.status_code, resp_status))
             logger.exception(exc_message)
             raise Exception(exc_message)
     
@@ -179,15 +193,6 @@ class TASAPIDriver(object):
             return projects
         except ValueError as exc:
             raise TASAPIException("JSON Decode error -- %s" % exc)
-
-    def _get_tacc_user(self, user):
-        try:
-            tacc_user = self.get_username_for_xsede(
-                user.username)
-        except:
-            logger.info("User: %s has no tacc username" % user.username)
-            tacc_user = user.username
-        return tacc_user
 
     def get_project_users(self, project_id):
         path = '/v1/projects/%s/users' % project_id
@@ -268,7 +273,7 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
 
 
 def find_user_allocation_source_for(driver, user):
-    tacc_user = driver._get_tacc_user(user)
+    tacc_user = driver.get_tacc_username(user)
     allocations = driver.find_allocations_for(tacc_user)
     return allocations
 
@@ -292,7 +297,7 @@ def collect_users_without_allocation(driver):
     from core.models import AtmosphereUser
     missing = []
     for user in AtmosphereUser.objects.order_by('username'):
-        tacc_user = driver._get_tacc_user(user)
+        tacc_user = driver.get_tacc_username(user)
         user_allocations = driver.get_user_allocations(
             tacc_user, raise_exception=False)
         if not user_allocations:

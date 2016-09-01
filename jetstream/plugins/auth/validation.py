@@ -14,7 +14,7 @@ class XsedeProjectRequired(ValidationPlugin):
         """
         tas_driver = TASAPIDriver()
         try:
-            tacc_username = tas_driver.get_username_for_xsede(user.username)
+            tacc_username = tas_driver.get_tacc_username(user)
             project_allocations = tas_driver.get_user_allocations(tacc_username)
             if not project_allocations:
                 return False
