@@ -13,6 +13,7 @@ globals().update(vars(sys.modules['atmosphere.settings']))
 
 # Debug Mode
 DEBUG = {{ DJANGO_DEBUG }}
+SEND_EMAILS = {{ not DJANGO_DEBUG }}
 
 {% if DJANGO_TEMPLATE_DEBUG -%}
 template_backends = filter(lambda t:
