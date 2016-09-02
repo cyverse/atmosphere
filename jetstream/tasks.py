@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from celery.decorators import task
+from core.models.user import AtmosphereUser
 from core.models.allocation_source import total_usage
 from core.models.allocation_source import (
     UserAllocationSource, AllocationSourceSnapshot,
@@ -23,6 +24,54 @@ from .exceptions import TASPluginException
 
 
 logger = logging.getLogger(__name__)
+
+
+def allocation_source_breakdown(allocation_source, start_date=None, end_date=None, csv=False, show_data=False):
+    usage_breakdown = {}
+    usage_data = {}
+
+    if not end_date:
+        end_date=timezone.now()
+    source = AllocationSource.objects.filter(name=allocation_source).last()
+    if not source:
+        return 'Allocation Source not found'
+
+    users = AtmosphereUser.for_allocation_source(source.source_id)
+
+    for user in users:
+        start_date_to_use=user.date_joined if not start_date else start_date
+        data,compute_used = allocation_source_breakdown_for(user.username,source.name,user.date_joined,end_date,csv)
+        usage_data[user.username] = data
+        usage_breakdown[user.username] = compute_used
+    
+    print_usage_breakdown(usage_breakdown,source.name, source.compute_used, source.compute_allowed)
+
+    if show_data:
+        return usage_breakdown,usage_data
+    else:
+        return usage_breakdown
+
+def allocation_source_breakdown_for(user,allocation_source,start_date,end_date,csv):
+    output = []
+    payload = total_usage(user,start_date,allocation_source_name=allocation_source,end_date=end_date,email=True)
+    compute_used = 0
+    for row in payload:
+        if row['instance_status']=='active':
+            output.append(row)
+            compute_used += round(row['applicable_duration']/3600.0,3)
+    return output,compute_used
+
+def print_usage_breakdown(usage_breakdown,source_name,compute_used,compute_allowed):
+   
+    from pprint import pprint
+    pprint(usage_breakdown)
+    total_user_compute = 0
+    for k,v in usage_breakdown.iteritems():
+        total_user_compute += v
+    print 'Allocation Source Name : %s'%(source_name)
+    print 'Compute Used according to db : %s'%(compute_used)
+    print 'Compute Used according to user data: %s'%(total_user_compute)
+    print 'Compute Allowed : %s'%(compute_allowed) 
 
 
 @task(name="monitor_jetstream_allocation_sources",
