@@ -95,7 +95,7 @@ class TASAPIDriver(object):
             raise TASAPIException("JSON Decode error -- %s" % exc)
 
 
-    def report_project_allocation(self, username, project_name, su_total, start_date, end_date, queue_name, scheduler_id):
+    def report_project_allocation(self, report_id, username, project_name, su_total, start_date, end_date, queue_name, scheduler_id):
         """
         Send back a report
         """
@@ -124,12 +124,12 @@ class TASAPIDriver(object):
             logger.debug("TAS_RESP - Data: %s" % data)
             resp_status = data['status']
         except ValueError:
-            exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (self.id, resp.text,))
+            exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (report_id, resp.text,))
             logger.exception(exc_message)
             raise ValueError(exc_message)
     
         if resp_status != 'success' or resp.status_code != 200:
-            exc_message = ("Report %s produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (self.id, resp.status_code, resp_status))
+            exc_message = ("Report %s produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (report_id, resp.status_code, resp_status))
             logger.exception(exc_message)
             raise Exception(exc_message)
     

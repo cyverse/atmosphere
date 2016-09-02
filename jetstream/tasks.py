@@ -132,9 +132,9 @@ def update_snapshot():
     allocation_source_total_compute = {}
     allocation_source_total_burn_rate = {}
     end_date = timezone.now()
-    for source in AllocationSource.objects.all():
+    for source in AllocationSource.objects.order_by('source_id'):
         # iterate over user + allocation_source combo
-        for user_allocation_source in UserAllocationSource.objects.filter(allocation_source__exact=source.id):
+        for user_allocation_source in UserAllocationSource.objects.filter(allocation_source__exact=source.id).order_by('user__username'):
             user = user_allocation_source.user
             # determine end date and start date using last snapshot
             start_date = user.date_joined
