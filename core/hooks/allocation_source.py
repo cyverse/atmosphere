@@ -45,6 +45,8 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
         return
     if source.compute_allowed in [None, 0]:
         return
+    #FIXME: Remove this line when you are ready to start enforcing 100% allocation:
+    return
     current_percentage = int(100.0*new_compute_used/source.compute_allowed) if source.compute_allowed != 0 else 0
     if new_compute_used < source.compute_allowed:
         return

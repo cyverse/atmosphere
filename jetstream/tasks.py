@@ -122,8 +122,20 @@ def report_allocations_to_tas():
 
 
 def send_reports():
-    for tas_report in TASAllocationReport.objects.filter(success=False).order_by('user__username','start_date'):
-        tas_report.send()
+    failed_reports = 0
+    reports_to_send = TASAllocationReport.objects.filter(success=False).order_by('user__username','start_date')
+    counot = reports_to_send.count()
+    for tas_report in reports_to_send:
+        try:
+            tas_report.send()
+        except TASPluginException:
+            logger.exception(
+                "Could not send the report because of the error below"
+            )
+            failed_reports += 1
+            continue
+    if failed_reports != 0:
+        raise Exception("%s/%s reports failed to send to TAS" % (failed_reports, count))
 
 @task(name="update_snapshot")
 def update_snapshot():

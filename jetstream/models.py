@@ -51,8 +51,7 @@ class TASAllocationReport(models.Model):
                 self.report_date = timezone.now()
             self.save()
         except:
-            # self.success = False
-            raise
+            return
 
     @property
     def cpu_count(self):
