@@ -315,6 +315,14 @@ INSTALLED_APPS += (
 TACC_API_USER = '{{ TACC_API_USER }}'
 TACC_API_PASS = '{{ TACC_API_PASS }}'
 TACC_API_URL = '{{ TACC_API_URL }}'
+{% else %}
+# Uncomment and add values to TACC_API if you intend to use the jetstream plugin
+# INSTALLED_APPS += (
+#     'jetstream',
+# )
+TACC_API_USER = ''
+TACC_API_PASS = ''
+TACC_API_URL = ''
 {% endif %}
 # Validation Plugins:
 # These plugins will be checked, in order, until one passes
