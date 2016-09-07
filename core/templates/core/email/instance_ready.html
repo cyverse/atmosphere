@@ -23,16 +23,7 @@ Your Instance Information:
 * Name: {{instance_name}}
 * IP Address: {{instance_ip}}
 * SSH Username: {{sshuser}}
-{% spaceless %}
-{% if use_ssh_keys and ssh_keys %}
-* SSH Keys deployed to /home/{{sshuser}}:
-{% spaceless %}
-{% for ssh_key in ssh_keys %}
-* {{ forloop.counter }}: {{ ssh_key.name }}
-{% endfor %}
-{% endspaceless %}
-{% endif %}
-{% endspaceless %}
+* SSH Keys deployed for root: {{ ssh_keys|join:", " }}
 * UUID: {{instance_id}}
 * Cloud Provider: {{provider_location}}
 * Launched at: {{launched_at}} UTC ({{local_launched_at}} Arizona time)
