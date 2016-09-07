@@ -31,11 +31,17 @@ ENFORCING = False
 {% endif %}
 
 #Cloud-Operator specific information
+{%- if SITE_NAME %}
 SITE_NAME = '{{ SITE_NAME }}'
-{% if TIME_ZONE %}
+{%- else %}
+SITE_NAME = 'Atmosphere'
+{%- endif %}
+
+{%- if TIME_ZONE %}
 TIME_ZONE = '{{ TIME_ZONE }}'
 CELERY_TIMEZONE = TIME_ZONE
-{% endif %}
+{%- endif %}
+
 DEFAULT_EMAIL_DOMAIN = '{{ DEFAULT_EMAIL_DOMAIN }}'
 {% if ADMINS_EMAIL_TUPLE %}
 ADMINS = [
@@ -65,21 +71,52 @@ ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
 # Django uses this one..
 MANAGERS = ADMINS
 
+{%- if SUPPORT_EMAIL %}
 SUPPORT_EMAIL = '{{ SUPPORT_EMAIL }}'
+{%- else %}
+SUPPORT_EMAIL = ADMINS[0][1]  # First email in ADMINS
+{%- endif %}
+
+{%- if SUPPORT_EMAIL_SIGNATURE %}
 SUPPORT_EMAIL_SIGNATURE = '{{ SUPPORT_EMAIL_SIGNATURE }}'
+{%- else %}
+SUPPORT_EMAIL_SIGNATURE = 'Atmosphere Support Team'
+{%- endif %}
+
+# These support links will be made available through Troposphere.
+{%- if SUPPORT_LINKS %}
 SUPPORT_LINKS = {{ SUPPORT_LINKS }}
+{%- else %}
+SUPPORT_LINKS = {'getting_started': "https://link_to.wiki.org/Using+Instances", 'new_provider': "https://link_to.wiki.org/Changing+Providers", "faq": "https://link_to.wiki.org/Cloud_FAQ"}
+{%- endif %}
+
 REPLICATION_PROVIDER_LOCATION = '{{ REPLICATION_PROVIDER_LOCATION }}'
+{%- if MONTHLY_RESET_PROVIDER_LOCATIONS %}
 MONTHLY_RESET_PROVIDER_LOCATIONS = {{ MONTHLY_RESET_PROVIDER_LOCATIONS }}
+{%- else %}
+MONTHLY_RESET_PROVIDER_LOCATIONS = []
+{%- endif %}
 USER_EMAIL_LOOKUP_METHOD = '{{ USER_EMAIL_LOOKUP_METHOD }}'
 EMAIL_LOOKUP_METHOD = '{{ EMAIL_LOOKUP_METHOD }}'
+
+# Marked for deletion when BYOC is available to set "per-provider-defaults"
+{%- if DEFAULT_ALLOCATION_THRESHOLD and DEFAULT_ALLOCATION_DELTA and DEFAULT_QUOTA %}
 DEFAULT_ALLOCATION_THRESHOLD = {{ DEFAULT_ALLOCATION_THRESHOLD }}
 DEFAULT_ALLOCATION_DELTA = {{ DEFAULT_ALLOCATION_DELTA }}
 DEFAULT_QUOTA = {{ DEFAULT_QUOTA }}
+{%- else %}
+DEFAULT_ALLOCATION_THRESHOLD = None
+DEFAULT_ALLOCATION_DELTA = None
+DEFAULT_QUOTA = None
+{%- endif %}
+
+# Marked for deletion -- Use provider.cloud_config instead
 DEFAULT_KEYSTONE_ROLE = '{{ DEFAULT_KEYSTONE_ROLE }}'
 DEFAULT_IP_LOOKUP = '{{ DEFAULT_IP_LOOKUP }}'
 DEFAULT_PASSWORD_UPDATE = '{{ DEFAULT_PASSWORD_UPDATE }}'
 INSTANCE_HOSTNAMING_DOMAIN = '{{ INSTANCE_HOSTNAMING_DOMAIN }}'
 INSTANCE_HOSTNAMING_FORMAT = '{{ INSTANCE_HOSTNAMING_FORMAT }}'
+
 {%- if AUTO_CREATE_NEW_ACCOUNTS %}
 AUTO_CREATE_NEW_ACCOUNTS = True
 {%- else %}
@@ -275,8 +312,13 @@ ANSIBLE_ROLES_PATH = os.path.join(ANSIBLE_ROOT, 'ansible/roles')
 os.environ["ANSIBLE_CONFIG"] = ANSIBLE_CONFIG_FILE 
 
 # LOGSTASH
+{%- if LOGSTASH_HOST and LOGSTASH_PORT %}
 LOGSTASH_HOST = '{{ LOGSTASH_HOST }}'
 LOGSTASH_PORT = {{ LOGSTASH_PORT }}
+{%- else %}
+LOGSTASH_HOST = ''
+LOGSTASH_PORT = -1
+{%- endif %}
 try:
     import logstash
     import threepio
