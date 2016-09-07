@@ -164,7 +164,7 @@ def user_deploy(instance_ip, username, instance_id):
     """
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
     playbooks_dir = os.path.join(playbooks_dir, 'user_deploy')
-    user_keys = _get_user_keys(username)
+    user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
     extra_vars = {
         "USERSSHKEYS": user_keys
     }
@@ -206,14 +206,6 @@ def user_deploy_install(instance_ip, username, instance_id, install_action, inst
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
         limit_playbooks, extra_vars=install_args)
-
-
-def _get_user_keys(username):
-    user_keys = []
-    user = User.objects.get(username=username)
-    if user.userprofile.use_ssh_keys:
-        user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
-    return user_keys
 
 
 def execute_playbooks(playbook_dir, host_file, extra_vars, my_limit,
