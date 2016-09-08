@@ -27,8 +27,15 @@ logger = logging.getLogger(__name__)
 
 
 def calculate_correction(json_data):
+    if not json_data:
+        raise Exception('No data from API found')
+    if type(json_data) != list:
+        raise Exception('List argument expected')
     correction_delta = []
-    allocations_from_json = {str(row['id']): row['computeUsed'] for row in json_data if row['resource'] == "Jetstream"}
+    try:
+        allocations_from_json = {str(row['id']): row['computeUsed'] for row in json_data if row['resource'] == "Jetstream"}
+    except Exception as e:
+        raise Exception('Error occurred while iterating over data from API.\n %s' % e)
     # TODO : Create snapshots of TAS reports for consistency
     for allocation_source in AllocationSource.objects.all():
         compute_used_atmo, usage_not_reported = calculate_total_allocation_for_source_from_report(allocation_source)
