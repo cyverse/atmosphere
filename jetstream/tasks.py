@@ -26,6 +26,29 @@ from .exceptions import TASPluginException
 logger = logging.getLogger(__name__)
 
 
+def calculate_correction(json_data):
+    correction_delta = []
+    allocations_from_json = {str(row['id']): row['computeUsed'] for row in json_data if row['resource'] == "Jetstream"}
+    # TODO : Create snapshots of TAS reports for consistency
+    for allocation_source in AllocationSource.objects.all():
+        compute_used_atmo, usage_not_reported = calculate_total_allocation_for_source_from_report(allocation_source)
+        if allocation_source.source_id in allocations_from_json:
+            compute_used_jetstream = allocations_from_json[allocation_source.source_id]
+            # print "%s : %s / %s"%(i.name,compute_used_atmo,compute_used_jetstream)
+            delta = round(float(compute_used_atmo) - compute_used_jetstream, 3)
+            correction_delta.append((allocation_source.name, allocation_source.source_id, delta, usage_not_reported))
+    return correction_delta
+
+def calculate_total_allocation_for_source_from_report(allocation_source):
+    total_used = 0
+    usage_not_reported = 0
+    reports = TASAllocationReport.objects.filter(project_name=allocation_source.name)
+    for report in reports:
+        if not report.success:
+            usage_not_reported += report.compute_used
+        total_used += report.compute_used
+    return total_used, float(usage_not_reported)
+
 def allocation_source_breakdown(allocation_source, start_date=None, end_date=None, csv=False, show_data=False):
     usage_breakdown = {}
     usage_data = {}
@@ -167,8 +190,6 @@ def report_allocations_to_tas():
     logger.info("Reporting: Completed, begin sending reports")
     send_reports()
     logger.info("Reporting: Reports sent")
-
-
 
 def send_reports():
     for tas_report in TASAllocationReport.objects.filter(success=False).order_by('user__username','start_date'):
