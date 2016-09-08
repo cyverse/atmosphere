@@ -38,13 +38,19 @@ def calculate_correction(json_data):
         raise Exception('Error occurred while iterating over data from API.\n %s' % e)
     # TODO : Create snapshots of TAS reports for consistency
     for allocation_source in AllocationSource.objects.all():
-        compute_used_atmo, usage_not_reported = calculate_total_allocation_for_source_from_report(allocation_source)
-        if allocation_source.source_id in allocations_from_json:
-            compute_used_jetstream = allocations_from_json[allocation_source.source_id]
-            # print "%s : %s / %s"%(i.name,compute_used_atmo,compute_used_jetstream)
-            delta = round(float(compute_used_atmo) - compute_used_jetstream, 3)
-            correction_delta.append((allocation_source.name, allocation_source.source_id, delta, usage_not_reported))
+        delta_tuple = calculate_correction_for(allocation_source,allocations_from_json)
+        if delta_tuple:
+            correction_delta.append(delta_tuple)
     return correction_delta
+
+def calculate_correction_for(allocation_source,allocations_from_json):
+    compute_used_atmo, usage_not_reported = calculate_total_allocation_for_source_from_report(allocation_source)
+    if allocation_source.source_id in allocations_from_json:
+        compute_used_jetstream = allocations_from_json[allocation_source.source_id]
+        # print "%s : %s / %s"%(i.name,compute_used_atmo,compute_used_jetstream)
+        delta = round(float(compute_used_atmo) - compute_used_jetstream, 3)
+        return (allocation_source.name, allocation_source.source_id, delta, usage_not_reported)
+    return False 
 
 def calculate_total_allocation_for_source_from_report(allocation_source):
     total_used = 0
