@@ -26,42 +26,6 @@ from .exceptions import TASPluginException
 logger = logging.getLogger(__name__)
 
 
-def calculate_correction(json_data):
-    if not json_data:
-        raise Exception('No data from API found')
-    if type(json_data) != list:
-        raise Exception('List argument expected')
-    correction_delta = []
-    try:
-        allocations_from_json = {str(row['id']): row['computeUsed'] for row in json_data if row['resource'] == "Jetstream"}
-    except Exception as e:
-        raise Exception('Error occurred while iterating over data from API.\n %s' % e)
-    # TODO : Create snapshots of TAS reports for consistency
-    for allocation_source in AllocationSource.objects.all():
-        delta_tuple = calculate_correction_for(allocation_source,allocations_from_json)
-        if delta_tuple:
-            correction_delta.append(delta_tuple)
-    return correction_delta
-
-def calculate_correction_for(allocation_source,allocations_from_json):
-    compute_used_atmo, usage_not_reported = calculate_total_allocation_for_source_from_report(allocation_source)
-    if allocation_source.source_id in allocations_from_json:
-        compute_used_jetstream = allocations_from_json[allocation_source.source_id]
-        # print "%s : %s / %s"%(i.name,compute_used_atmo,compute_used_jetstream)
-        delta = round(float(compute_used_atmo) - compute_used_jetstream, 3)
-        return (allocation_source.name, allocation_source.source_id, delta, usage_not_reported)
-    return False 
-
-def calculate_total_allocation_for_source_from_report(allocation_source):
-    total_used = 0
-    usage_not_reported = 0
-    reports = TASAllocationReport.objects.filter(project_name=allocation_source.name)
-    for report in reports:
-        if not report.success:
-            usage_not_reported += report.compute_used
-        total_used += report.compute_used
-    return total_used, float(usage_not_reported)
-
 def allocation_source_breakdown(allocation_source, start_date=None, end_date=None, csv=False, show_data=False):
     usage_breakdown = {}
     usage_data = {}
