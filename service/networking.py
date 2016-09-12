@@ -131,7 +131,7 @@ class GenericNetworkTopology(object):
         inc = 0
         MAX_SUBNET = 4064
         cidr = None
-        if subnet_pool:
+        if subnet_pool_id:
             return network_driver.create_subnet(neutron, subnet_name,
                                                 network_id, ip_version, subnet_pool_id)
                                                 
