@@ -26,7 +26,8 @@ def create_report(report_start_date, report_end_date, user_id=None, allocation_s
         else:
             return data
     else:
-        write_csv(data)
+        return data
+        #write_csv(data)
 
 
 def generate_data(report_start_date, report_end_date, username=None):
@@ -66,6 +67,8 @@ def filter_events_and_instances(report_start_date, report_end_date, username=Non
         instances = instances.filter(Q(created_by__exact=user_id_int))
     return {'events': events, 'instances': instances}
 
+
+# blah
 
 def group_events_by_instances(events):
     out_dic = {}
