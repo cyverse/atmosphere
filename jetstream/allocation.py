@@ -204,7 +204,7 @@ class TASAPIDriver(object):
         except ValueError as exc:
             raise TASAPIException("JSON Decode error -- %s" % exc)
 
-    def get_project_users(self, project_id):
+    def get_project_users(self, project_id, raise_exception=True):
         path = '/v1/projects/%s/users' % project_id
         url_match = self.tacc_api + path
         resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
