@@ -7,9 +7,11 @@ from .exceptions import TASAPIException
 logger = logging.getLogger(__name__)
 
 
-def tacc_api_post(url, post_data):
-    username = settings.TACC_API_USER
-    password = settings.TACC_API_PASS
+def tacc_api_post(url, post_data, username=None, password=None):
+    if not username:
+        username = settings.TACC_API_USER
+    if not password:
+        password = settings.TACC_API_PASS
     logger.info("REQ: %s" % url)
     logger.info("REQ BODY: %s" % post_data)
     resp = requests.post(
@@ -19,9 +21,11 @@ def tacc_api_post(url, post_data):
     return resp
 
 
-def tacc_api_get(url):
-    username = settings.TACC_API_USER
-    password = settings.TACC_API_PASS
+def tacc_api_get(url, username=None, password=None):
+    if not username:
+        username = settings.TACC_API_USER
+    if not password:
+        password = settings.TACC_API_PASS
     logger.info("REQ: %s" % url)
     resp = requests.get(
         url,

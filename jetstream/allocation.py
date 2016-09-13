@@ -5,6 +5,7 @@ from django.utils import timezone
 from dateutil.parser import parse
 
 from .exceptions import TASAPIException
+#FIXME: Next iteration, move this into the driver.
 from .api import tacc_api_post, tacc_api_get
 from core.models.allocation_source import AllocationSource, UserAllocationSource
 
@@ -13,15 +14,24 @@ logger = logging.getLogger(__name__)
 
 class TASAPIDriver(object):
     tacc_api = None
+    tacc_username = None
+    tacc_password = None
     allocation_list = []
     project_list = []
     user_project_list = []
     username_map = {}
 
-    def __init__(self, tacc_api=None, resource_name='Jetstream'):
+    def __init__(self, tacc_api=None, tacc_username=None, tacc_password=None,
+                 resource_name='Jetstream'):
         if not tacc_api:
             tacc_api = settings.TACC_API_URL
+        if not tacc_username:
+            tacc_username = settings.TACC_API_USER
+        if not tacc_password:
+            tacc_password = settings.TACC_API_PASS
         self.tacc_api = tacc_api
+        self.tacc_username = tacc_username
+        self.tacc_password = tacc_password
         self.resource_name = resource_name
 
     def clear_cache(self):
@@ -84,7 +94,7 @@ class TASAPIDriver(object):
     def _xsede_to_tacc_username(self, xsede_username):
         path = '/v1/users/xsede/%s' % xsede_username
         url_match = self.tacc_api + path
-        resp, data = tacc_api_get(url_match)
+        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
         try:
             if data['status'] != 'success':
                 raise TASAPIException(
@@ -95,7 +105,7 @@ class TASAPIDriver(object):
             raise TASAPIException("JSON Decode error -- %s" % exc)
 
 
-    def report_project_allocation(self, username, project_name, su_total, start_date, end_date, queue_name, scheduler_id):
+    def report_project_allocation(self, report_id, username, project_name, su_total, start_date, end_date, queue_name, scheduler_id):
         """
         Send back a report
         """
@@ -117,19 +127,19 @@ class TASAPIDriver(object):
         path = '/v1/jobs'
         url_match = self.tacc_api + path
         logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
-        resp = tacc_api_post(url_match, post_data)
+        resp = tacc_api_post(url_match, post_data, self.tacc_username, self.tacc_password)
         logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
         try:
             data = resp.json()
             logger.debug("TAS_RESP - Data: %s" % data)
             resp_status = data['status']
         except ValueError:
-            exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (self.id, resp.text,))
+            exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (report_id, resp.text,))
             logger.exception(exc_message)
             raise ValueError(exc_message)
     
         if resp_status != 'success' or resp.status_code != 200:
-            exc_message = ("Report %s produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (self.id, resp.status_code, resp_status))
+            exc_message = ("Report %s produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (report_id, resp.status_code, resp_status))
             logger.exception(exc_message)
             raise Exception(exc_message)
     
@@ -173,7 +183,7 @@ class TASAPIDriver(object):
         path = '/v1/allocations/resource/%s' % self.resource_name
         allocations = {}
         url_match = self.tacc_api + path
-        resp, data = tacc_api_get(url_match)
+        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
         try:
             _validate_tas_data(data)
             allocations = data['result']
@@ -186,7 +196,7 @@ class TASAPIDriver(object):
         """
         path = '/v1/projects/resource/%s' % self.resource_name
         url_match = self.tacc_api + path
-        resp, data = tacc_api_get(url_match)
+        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
         try:
             _validate_tas_data(data)
             projects = data['result']
@@ -194,10 +204,10 @@ class TASAPIDriver(object):
         except ValueError as exc:
             raise TASAPIException("JSON Decode error -- %s" % exc)
 
-    def get_project_users(self, project_id):
+    def get_project_users(self, project_id, raise_exception=True):
         path = '/v1/projects/%s/users' % project_id
         url_match = self.tacc_api + path
-        resp, data = tacc_api_get(url_match)
+        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
         user_names = []
         try:
             _validate_tas_data(data)
@@ -221,7 +231,7 @@ class TASAPIDriver(object):
     def get_user_allocations(self, username, raise_exception=True):
         path = '/v1/projects/username/%s' % username
         url_match = self.tacc_api + path
-        resp, data = tacc_api_get(url_match)
+        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
         user_allocations = []
         try:
             _validate_tas_data(data)
