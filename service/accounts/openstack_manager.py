@@ -629,6 +629,7 @@ class AccountDriver(BaseAccountDriver):
             self.network_manager, neutron,
             network['id'], username,
             "%s-subnet" % project_name,
+            subnet_pool_id = settings.DEFAULT_SUBNET_POOL_ID,
             dns_nameservers=dns_nameservers)
         router = network_strategy.get_or_create_router(
             self.network_manager, neutron,

@@ -120,6 +120,7 @@ class GenericNetworkTopology(object):
             self, network_driver, neutron,
             network_id, username, subnet_name,
             ip_version=4, dns_nameservers=[],
+            subnet_pool_id=None,
             get_unique_number=_get_unique_id,
             get_cidr=get_default_subnet):
         """
@@ -130,6 +131,10 @@ class GenericNetworkTopology(object):
         inc = 0
         MAX_SUBNET = 4064
         cidr = None
+        if subnet_pool_id:
+            return network_driver.create_subnet(neutron, subnet_name,
+                                                network_id, ip_version, subnet_pool_id)
+                                                
         while not success and inc < MAX_SUBNET:
             try:
                 cidr = get_cidr(username, inc, get_unique_number)
