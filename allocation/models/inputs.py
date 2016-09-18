@@ -100,13 +100,14 @@ class Instance(object):
         prov = Provider.from_core(source.provider)
         mach = Machine.from_core(source)
         instance_history = []
-        if not start_date:
-            # Full list
-            history_list = core_instance.instancestatushistory_set.all()
-        else:
-            # Shorter list
-            history_list = core_instance.instancestatushistory_set.filter(
-                Q(end_date=None) | Q(end_date__gt=start_date))
+        if not history_list:
+            if not start_date:
+                # Full list
+                history_list = core_instance.instancestatushistory_set.all()
+            else:
+                # Shorter list
+                history_list = core_instance.instancestatushistory_set.filter(
+                    Q(end_date=None) | Q(end_date__gt=start_date))
         for history in history_list.order_by('start_date'):
             if limit_history and history.id not in limit_history:
                 continue
