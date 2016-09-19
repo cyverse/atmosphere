@@ -35,7 +35,7 @@ def main():
     parser.add_argument("--rebuild", action="store_true",
                         help="Rebuild all accounts that are in the provider")
     parser.add_argument("--users",
-                        help="LDAP usernames to import. (comma separated)")
+                        help="LDAP usernames to import. (comma separated list with no spaces)")
     parser.add_argument("--admin", action="store_true",
                         help="Users addded as admin and staff users.")
     args = parser.parse_args()
