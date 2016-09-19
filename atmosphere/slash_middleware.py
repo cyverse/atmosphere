@@ -7,6 +7,20 @@ from django import http
 from django.utils.http import urlquote
 from django.core import urlresolvers
 
+from threepio import logger
+
+class RemoveCSRFMiddleware(object):
+
+    """
+    This middleware disables CSRF from the DRF endpoints (Namespaced by /api/...)
+    """
+
+    def process_request(self, request):
+        # check if the url is valid
+        path = new_path = request.path_info
+        if '/api' in new_path:
+            setattr(request, '_dont_enforce_csrf_checks', True)
+
 
 class RemoveSlashMiddleware(object):
 

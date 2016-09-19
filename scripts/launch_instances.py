@@ -208,7 +208,7 @@ def launch(user, name_prefix, provider, machines, size,
                 instances.append(instance_id)
             except Exception as exc:
                 print "Error on launch of Machine %s : %s" \
-                    % (machine.instance_source.identifier, exc)
+                      % (machine.instance_source.identifier, exc)
     return instances
 
 

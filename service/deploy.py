@@ -141,7 +141,8 @@ def ready_to_deploy(instance_ip, username, instance_id):
         limit_playbooks=['check_networking.yml'])
 
 
-def instance_deploy(instance_ip, username, instance_id):
+def instance_deploy(instance_ip, username, instance_id,
+		    limit_playbooks=[]):
     """
     Use service.ansible to deploy to an instance.
     """
@@ -153,6 +154,7 @@ def instance_deploy(instance_ip, username, instance_id):
 
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=limit_playbooks,
         extra_vars=extra_vars)
 
 
@@ -315,7 +317,7 @@ def build_host_name(instance_id, ip):
     except Provider.DoesNotExist:
         logger.warn("Using an instance %s that is *NOT* in your database. Cannot determine hostnaming format. Using IP address as hostname.")
         return raw_hostname(ip)
-    except KeyError, TypeError:
+    except (KeyError, TypeError):
         logger.warn("Cloud config ['deploy']['hostname_format'] is missing -- using IP address as a hostname.")
         return raw_hostname(ip)
 

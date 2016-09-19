@@ -8,7 +8,8 @@ AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", 'auth.User')
 
 def update_user_allocation_sources(sender, instance, created, **kwargs):
     user = instance
-    fill_user_allocation_source_for(user)
+    driver = TASAPIDriver()
+    fill_user_allocation_source_for(driver, user)
 
 #FIXME: Re-add this when you have access to the XSede API
 #post_save.connect(update_user_allocation_sources, sender=AUTH_USER_MODEL)
@@ -52,11 +53,22 @@ class TASAllocationReport(models.Model):
             # self.success = False
             raise
 
+    @property
+    def cpu_count(self):
+        """
+        NOTE: This is currently not returning the values we expect
+        Outputs: 0.999, 3.684, 8.999, etc. etc.
+        Expected Outputs: 1, 3, 9, ...
+        """
+        hours_between = (self.end_date - self.start_date).total_seconds()/3600.0
+        cpu_count = float(self.compute_used)/hours_between
+        return cpu_count
+
     def __unicode__(self):
         """
         """
         duration = self.end_date - self.start_date
-        return "%s (Username:%s Project:%s) used %s AU - Duration:%s (%s - %s) Reported:%s" % \
+        return "%s (Username:%s Project:%s) used %s AU over the Duration:%s (%s - %s) Reported:%s" % \
             (self.user.username,
              self.username, self.project_name,
              self.compute_used, duration,

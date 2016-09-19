@@ -69,6 +69,21 @@ class QuotaAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(models.AllocationSource)
+class AllocationSourceAdmin(admin.ModelAdmin):
+    search_fields = [
+        "name","source_id",
+        "users__user__username"
+    ]
+    actions = [end_date_object, ]
+    list_display = (
+        "id",
+        "name",
+        "source_id",
+        "compute_used",
+        "compute_allowed",
+    )
+
 @admin.register(models.AllocationStrategy)
 class AllocationStrategyAdmin(admin.ModelAdmin):
     pass

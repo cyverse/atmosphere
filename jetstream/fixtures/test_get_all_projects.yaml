@@ -1,0 +1,28 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Basic XXXXX]
+      Connection: [keep-alive]
+      User-Agent: [python-requests/2.9.1]
+    method: GET
+    uri: https://localhost/api-test/v1/projects/resource/Jetstream
+  response:
+    body: {string: '{"status":"success","message":null,"result":[{"typeId":0,"description":"test project for someguy","piId":90681,"source":"Chameleon","type":"Research","title":"someguy_studies","field":"COMPUTER AND INFORMATION SCIENCE AND ENGINEERING (CISE)","gid":916862,"allocations":[{"status":"Active","resourceId":94,"requestorId":90681,"dateRequested":"2015-12-15T22:13:43Z","memoryAllocated":0,"reviewer":null,"id":97193,"dateReviewed":"2015-12-15T22:13:43Z","end":"2016-10-15T05:00:00Z","computeRequested":0,"start":"2015-10-15T05:00:00Z","projectId":96079,"requestor":"Some Guy","storageAllocated":0,"storageRequested":0,"computeUsed":0,"memoryRequested":0,"justification":"friendly user period allocation","decisionSummary":"_system - FUP allocation approval","reviewerId":0,"resource":"Jetstream","computeAllocated":0,"project":"CH-916862"}],"chargeCode":"CH-916862","pi":{"citizenshipId":0,"username":"someguy","countryId":230,"citizenship":null,"firstName":"John","source":"Standard","institutionId":1,"country":"United States","title":"Center Non-Researcher Staff","institution":"University of Texas at Austin","id":90681,"piEligibility":"Eligible","phone":"555-555-5555","departmentId":127,"lastName":"Smith","department":"Texas Advanced Computing Center","emailConfirmations":[],"email":"someguy@tacc.utexas.edu"},"fieldId":3,"id":96079},{"typeId":0,"description":"I will be using this allocation for introduction and education purposes.","piId":908949,"source":"TeraGrid Site","type":"Research","title":"Campus Champion for the University of Oklahoma","field":"Biochemistry and Molecular Structure and Function","gid":918118,"allocations":[{"status":"Active","resourceId":94,"requestorId":908949,"dateRequested":"2016-08-03T20:01:29Z","memoryAllocated":0,"reviewer":null,"id":93883,"dateReviewed":"2016-08-03T20:01:29Z","end":"2017-08-02T05:00:00Z","computeRequested":50000,"start":"2016-08-03T05:00:00Z","projectId":93104,"requestor":"Some other guy","storageAllocated":0,"storageRequested":0,"computeUsed":0,"memoryRequested":0,"justification":"TeraGrid New allocation.","decisionSummary":"Automatic TG AMIE approval.","reviewerId":0,"resource":"Jetstream","computeAllocated":50000,"project":"TG-MCB960139"}],"chargeCode":"TG-MCB960139","pi":{"citizenshipId":0,"username":"someotherguy","countryId":230,"citizenship":null,"firstName":"Someother","source":"TeraGrid","institutionId":164,"country":"United States","title":"","institution":"University of Oklahoma","id":908949,"piEligibility":"Eligible","phone":null,"departmentId":0,"lastName":"Guy","department":null,"emailConfirmations":[],"email":"someotherguy@ou.edu"},"fieldId":107,"id":93104}]}'}
+    headers:
+      access-control-allow-credentials: ['true']
+      access-control-allow-headers: ['Content-Type, Accept, Authorization']
+      access-control-allow-methods: ['GET, POST, PUT, DELETE, OPTIONS']
+      access-control-allow-origin: ['*']
+      cache-control: ['private, s-maxage=0,no-cache']
+      content-length: ['334673']
+      content-type: [application/json; charset=utf-8]
+      date: ['Fri, 19 Aug 2016 05:13:45 GMT']
+      server: [Microsoft-IIS/7.5]
+      x-aspnet-version: [4.0.30319]
+      x-aspnetmvc-version: ['3.0']
+      x-powered-by: [ASP.NET]
+    status: {code: 200, message: OK}
+version: 1

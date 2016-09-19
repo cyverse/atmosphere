@@ -25,14 +25,15 @@ from .exceptions import TASPluginException
 logger = logging.getLogger(__name__)
 
 
+@task(name="monitor_jetstream_allocation_sources",
+     )
 def monitor_jetstream_allocation_sources():
     """
     Queries the TACC API for Jetstream allocation sources
     Adds each new source (And user association) to the DB.
     """
-    new_sources = fill_allocation_sources(True)
-    fill_user_allocation_sources()
-    return new_sources
+    resources = fill_user_allocation_sources()
+    return resources
 
 
 def create_reports():
@@ -47,7 +48,7 @@ def create_reports():
     end_date = timezone.now()
     for item in user_allocation_list:
         allocation_id = item.allocation_source.source_id
-        tacc_username = driver._get_tacc_user(item.user)
+        tacc_username = driver.get_tacc_username(item.user)
         project_name = driver.get_allocation_project_name(allocation_id)
         try:
             project_report = _create_tas_report_for(
@@ -87,7 +88,7 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
         start_date = last_report.end_date
 
     compute_used = total_usage(
-        user, start_date,
+        user.username, start_date,
         allocation_source_name=tacc_project_name,
         end_date=end_date)
 
@@ -112,18 +113,22 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
 def report_allocations_to_tas():
     if 'jetstream' not in settings.INSTALLED_APPS:
         return
+    logger.info("Reporting: Begin creating reports")
     create_reports()
+    logger.info("Reporting: Completed, begin sending reports")
     send_reports()
+    logger.info("Reporting: Reports sent")
+
 
 
 def send_reports():
-    for tas_report in TASAllocationReport.objects.filter(success=False):
+    for tas_report in TASAllocationReport.objects.filter(success=False).order_by('user__username','start_date'):
         tas_report.send()
 
 @task(name="update_snapshot")
 def update_snapshot():
     if not settings.USE_ALLOCATION_SOURCE:
-        return
+        return False
     allocation_source_total_compute = {}
     allocation_source_total_burn_rate = {}
     end_date = timezone.now()
@@ -144,7 +149,8 @@ def update_snapshot():
 
         payload_as = { 
             "allocation_source_id":source.source_id, 
-            "compute_used":allocation_source_total_compute[source.name],
-            "global_burn_rate":allocation_source_total_burn_rate[source.name]
+            "compute_used":allocation_source_total_compute.get(source.name,0),
+            "global_burn_rate":allocation_source_total_burn_rate.get(source.name,0)
         }
         EventTable.create_event("allocation_source_snapshot", payload_as,source.name)
+    return True

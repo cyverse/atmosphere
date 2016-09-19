@@ -29,10 +29,11 @@ python-logstash==0.4.5
 psycopg2==2.5.4
 python-ldap==2.4.19
 uWSGI==2.0.13
+urllib3[secure]
 
 ## ours
-chromogenic==0.3.0
-django-iplant-auth==0.1.16
+chromogenic==0.3.1
+django-iplant-auth==0.1.17
 threepio==0.2.0
-rtwo==0.4.6
+rtwo==0.4.7
 subspace==0.2.5

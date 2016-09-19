@@ -1,0 +1,54 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Basic XXXXX]
+      Connection: [keep-alive]
+      User-Agent: [python-requests/2.9.1]
+    method: GET
+    uri: https://localhost/api-test/v1/users/xsede/sgregory
+  response:
+    body: {string: !!python/unicode '{"status":"success","message":null,"result":"tg830649"}'}
+    headers:
+      access-control-allow-credentials: ['true']
+      access-control-allow-headers: ['Content-Type, Accept, Authorization']
+      access-control-allow-methods: ['GET, POST, PUT, DELETE, OPTIONS']
+      access-control-allow-origin: ['*']
+      cache-control: ['private, s-maxage=0,no-cache']
+      content-length: ['55']
+      content-type: [application/json; charset=utf-8]
+      date: ['Fri, 19 Aug 2016 04:21:57 GMT']
+      server: [Microsoft-IIS/7.5]
+      x-aspnet-version: [4.0.30319]
+      x-aspnetmvc-version: ['3.0']
+      x-powered-by: [ASP.NET]
+    status: {code: 200, message: OK}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Basic XXXXX]
+      Connection: [keep-alive]
+      User-Agent: [python-requests/2.9.1]
+    method: GET
+    uri: https://localhost/api-test/v1/projects/username/tg830649
+  response:
+    body: {string: !!python/unicode '{"status":"success","message":null,"result":[{"typeId":0,"description":"Jetstream Admin Project.","piId":90681,"source":null,"type":"Research","title":"jetstream-admin","field":"Advanced Scientific Computing (ASC)","gid":917191,"allocations":[{"status":"Active","resourceId":94,"requestorId":90681,"dateRequested":"2015-10-15T17:54:34Z","memoryAllocated":0,"reviewer":null,"id":94587,"dateReviewed":"2015-11-03T15:52:10Z","end":"2016-10-15T05:00:00Z","computeRequested":0,"start":"2015-11-03T06:00:00Z","projectId":96417,"requestor":"Some Guy","storageAllocated":10,"storageRequested":10,"computeUsed":0,"memoryRequested":0,"justification":"dummy allocation to get started","decisionSummary":"Based upon your justification, your request for a storage allocation on Jetstream under project jetstream-admin has been approved for 10GB.  Please let me know if you have any questions.","reviewerId":0,"resource":"Jetstream","computeAllocated":0,"project":"jetstream-admin"}],"chargeCode":"jetstream-admin","pi":{"citizenshipId":0,"username":"someguy","countryId":230,"citizenship":null,"firstName":"John","source":"Standard","institutionId":1,"country":"United States","title":"Center Non-Researcher Staff","institution":"University of Texas at Austin","id":90681,"piEligibility":"Eligible","phone":"555-555-5555","departmentId":127,"lastName":"Smith","department":"Texas Advanced Computing Center","emailConfirmations":[],"email":"someguy@tacc.utexas.edu"},"fieldId":16,"id":96417}]}'}
+    headers:
+      access-control-allow-credentials: ['true']
+      access-control-allow-headers: ['Content-Type, Accept, Authorization']
+      access-control-allow-methods: ['GET, POST, PUT, DELETE, OPTIONS']
+      access-control-allow-origin: ['*']
+      cache-control: ['private, s-maxage=0,no-cache']
+      content-length: ['7152']
+      content-type: [application/json; charset=utf-8]
+      date: ['Fri, 19 Aug 2016 04:21:57 GMT']
+      server: [Microsoft-IIS/7.5]
+      x-aspnet-version: [4.0.30319]
+      x-aspnetmvc-version: ['3.0']
+      x-powered-by: [ASP.NET]
+    status: {code: 200, message: OK}
+version: 1

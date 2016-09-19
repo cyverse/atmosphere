@@ -146,7 +146,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
         remove_ips(esh_driver, esh_instance)
     stopped = esh_driver.stop_instance(esh_instance)
     if reclaim_ip:
-        remove_empty_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
     update_status(
         esh_driver,
         esh_instance.id,
@@ -211,7 +211,7 @@ def suspend_instance(esh_driver, esh_instance,
         remove_ips(esh_driver, esh_instance)
     suspended = esh_driver.suspend_instance(esh_instance)
     if reclaim_ip:
-        remove_empty_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
     update_status(
         esh_driver,
         esh_instance.id,
@@ -268,15 +268,17 @@ def detach_port(esh_driver, esh_instance):
     return result
 
 
-def remove_empty_network(esh_driver, identity_uuid):
+def remove_empty_network(esh_driver, identity_uuid, network_options={}):
+    """
     #FIXME: I think the original intent of why we called this was:
     # 1. IF you are the last instance, remove the network.
     # 2. Remove the fixed IP that was allocated for the instance.
     # If so, i don't believe #2 is being completed
+    """
     from service.tasks.driver import remove_empty_network as remove_empty_network_task
     remove_empty_network_task.s(
         esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, identity_uuid).apply_async()
+        esh_driver.identity, identity_uuid, network_options).apply_async()
 
 
 def restore_network(esh_driver, esh_instance, identity_uuid):
@@ -566,7 +568,7 @@ def shelve_instance(esh_driver, esh_instance,
         remove_ips(esh_driver, esh_instance)
     shelved = esh_driver._connection.ex_shelve_instance(esh_instance)
     if reclaim_ip:
-        remove_empty_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
     update_status(
         esh_driver,
         esh_instance.id,
@@ -618,7 +620,7 @@ def offload_instance(esh_driver, esh_instance,
         remove_ips(esh_driver, esh_instance)
     offloaded = esh_driver._connection.ex_shelve_offload_instance(esh_instance)
     if reclaim_ip:
-        remove_empty_network(esh_driver, identity_uuid)
+        remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
     update_status(
         esh_driver,
         esh_instance.id,
@@ -699,7 +701,7 @@ def os_cleanup_networking(core_identity_uuid):
         clean_task = clean_empty_ips.si(driverCls, provider, identity,
                                         immutable=True, countdown=5)
         remove_task = remove_empty_network.si(
-            driverCls, provider, identity, core_identity_uuid,
+            driverCls, provider, identity, core_identity_uuid, {"skip_network":False},
             immutable=True, countdown=60)
         clean_task.link(remove_task)
         clean_task.apply_async()
@@ -1259,6 +1261,9 @@ def check_quota(username, identity_uuid, esh_size,
     except ValidationError as bad_quota:
         raise OverQuotaError(message=bad_quota.message)
 
+    if settings.USE_ALLOCATION_SOURCE:
+        logger.info("Settings dictate that USE_ALLOCATION_SOURCE = True. A new method will be required to determine over-allocation based on the selected allocation_source. Returning..")
+        return
     (over_allocation, time_diff) =\
         check_over_allocation(username,
                               identity_uuid)

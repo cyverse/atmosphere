@@ -20,10 +20,11 @@ from kombu import Exchange, Queue
 # Debug Mode
 DEBUG = True
 
-# Enforcing mode -- True, when in production (Debug=False)
-ENFORCING = not DEBUG
+# Enforcing mode -- False, unless set otherwise. (ONLY ONE Production server should be set to 'ENFORCING'.)
+ENFORCING = False
 
 USE_ALLOCATION_SOURCE = False
+BLACKLIST_TAGS = ["Featured",]
 
 SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),
@@ -88,6 +89,9 @@ INSTALLED_APPS = (
     'service',
     'core',
 )
+SESSION_COOKIE_NAME = 'atmo_sessionid'
+
+CSRF_COOKIE_NAME = 'atmo_csrftoken'
 
 TIME_ZONE = 'America/Phoenix'
 
@@ -129,6 +133,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'atmosphere.slash_middleware.RemoveSlashMiddleware',
+    'atmosphere.slash_middleware.RemoveCSRFMiddleware',
 )
 
 ROOT_URLCONF = 'atmosphere.urls'
@@ -223,7 +228,7 @@ DEFAULT_RULES = [
     # SKIP PORT 4200.. See Below
     ("TCP", 4201, 65535),
     ("UDP", 4201, 65535),
-    # Poke hole in 4200 for iPlant VMs proxy-access only (Shellinabox)
+    # Poke hole in 4200 for iPlant VMs proxy-access only (WebDesktop//NoVNC)
     ("TCP", 4200, 4200, "128.196.0.0/16"),
     ("UDP", 4200, 4200, "128.196.0.0/16"),
     ("TCP", 4200, 4200, "150.135.0.0/16"),
@@ -231,7 +236,8 @@ DEFAULT_RULES = [
     # Poke hole in 4200 for Jetsteam "Service VMs" only (WebDesktop//NoVNC)
     ("TCP", 4200, 4200, "149.165.238.0/24"),
     ("UDP", 4200, 4200, "149.165.238.0/24"),
-
+    ("TCP", 4200, 4200, u"129.114.104.5/32"),
+    ("UDP", 4200, 4200, u"129.114.104.5/32")
 ]
 # Stops 500 errors when logs are missing.
 # NOTE: If the permissions are wrong, this won't help
@@ -480,11 +486,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=30),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
-    "monitor_instance_allocations": {
-        "task": "monitor_instance_allocations",
-        "schedule": timedelta(minutes=15),
-        "options": {"expires": 25 * 60, "time_limit": 25 * 60}
-    },
+    # "monitor_instance_allocations": {
+    #     "task": "monitor_instance_allocations",
+    #     "schedule": timedelta(minutes=15),
+    #     "options": {"expires": 25 * 60, "time_limit": 25 * 60}
+    # },
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule": timedelta(minutes=15),

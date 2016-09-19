@@ -22,7 +22,7 @@ from service.cache import get_cached_instances, get_cached_driver
 from service.instance import suspend_instance, stop_instance, destroy_instance, shelve_instance, offload_instance
 from allocation.engine import calculate_allocation
 from django.conf import settings
-
+from rtwo.exceptions import LibcloudInvalidCredsError
 
 # Private
 def _include_all_idents(identities, owner_map):
@@ -208,6 +208,7 @@ def enforce_allocation_policy(identity, user):
 
 def _execute_provider_action(identity, user, instance, action_name):
     driver = get_cached_driver(identity=identity)
+    logger.info("User %s has gone over their allocation on Instance %s - Enforcement Choice: %s" % (user, instance, action_name))
     try:
         if not action_name:
             logger.debug("No 'action_name' provided")
@@ -263,35 +264,7 @@ def provider_over_allocation_enforcement(identity, user):
     # TODO: Parallelize this operation so you don't wait for larger instances
     # to finish 'wait_for' task below..
     for instance in esh_instances:
-        try:
-            if driver._is_active_instance(instance):
-                # Suspend active instances, update the task in the DB
-                # NOTE: identity.created_by COULD BE the Admin User, indicating that this action/InstanceHistory was
-                #       executed by the administrator.. Future Release Idea.
-                _execute_provider_action(
-                    identity,
-                    identity.created_by,
-                    instance,
-                    action.name)
-                # NOTE: Intentionally added to allow time for
-                #      the Cloud to begin 'suspend' operation
-                #      before querying for the instance again.
-                # TODO: Instead: Add "wait_for" change from active to any
-                # terminal, non-active state?
-                wait_time = random.uniform(2, 6)
-                time.sleep(wait_time)
-                updated_esh = driver.get_instance(instance.id)
-                convert_esh_instance(
-                    driver, updated_esh,
-                    identity.provider.uuid,
-                    identity.uuid,
-                    user)
-        except Exception as e:
-            # Raise ANY exception that doesn't say
-            # 'This instance is already in the requested VM state'
-            # NOTE: This is OpenStack specific
-            if 'in vm_state' not in e.message:
-                raise
+        execute_provider_action(user, driver, identity, instance, action)
     return True  # User was over_allocation
 
 
@@ -546,3 +519,85 @@ def _get_strategy(identity):
         return identity.provider.allocationstrategy
     except CoreAllocationStrategy.DoesNotExist:
         return None
+
+
+def allocation_source_overage_enforcement(allocation_source):
+    all_user_instances = {}
+    for user in allocation_source.all_users:
+        all_user_instances[user.username] = []
+        for identity in user.current_identities:
+            affected_instances = allocation_source_overage_enforcement_for(
+                    allocation_source, user, identity)
+            user_instances = all_user_instances[user.username]
+            user_instances.extend(affected_instances)
+            all_user_instances[user.username] = user_instances
+    return all_user_instances
+
+
+def filter_allocation_source_instances(allocation_source, esh_instances):
+    #Circ Dep
+    from core.models.allocation_strategy import InstanceAllocationSourceSnapshot
+    as_instances = []
+    for inst in esh_instances:
+        provider_alias = inst.id
+        snapshot = InstanceAllocationSourceSnapshot.objects.filter(
+            instance__provider_alias=provider_alias).first()
+        if snapshot and snapshot.allocation_source == allocation_source:
+            as_instances.append(inst)
+    return as_instances
+
+
+def allocation_source_overage_enforcement_for(allocation_source, user, identity):
+    provider = identity.provider
+    action = provider.over_allocation_action
+    if not action:
+        logger.debug("No 'over_allocation_action' provided for %s" % provider)
+        return []  # Over_allocation was not attempted
+    if not settings.ENFORCING:
+        logger.info("Settings dictate that ENFORCING = False. Returning..")
+        return []
+    try:
+        driver = get_cached_driver(identity=identity)
+        esh_instances = driver.list_instances()
+    except LibcloudInvalidCredsError:
+        raise Exception("User %s has invalid credentials on Identity %s" % (user, identity))
+    filtered_instances = filter_allocation_source_instances(allocation_source, esh_instances)
+    # TODO: Parallelize this operation so you don't wait for larger instances
+    # to finish 'wait_for' task below..
+    instances = []
+    for instance in filtered_instances:
+        core_instance = execute_provider_action(user, driver, identity, instance, action)
+        instances.append(core_instance)
+    return instances
+
+def execute_provider_action(user, driver, identity, instance, action):
+    try:
+        if driver._is_active_instance(instance):
+            # Suspend active instances, update the task in the DB
+            # NOTE: identity.created_by COULD BE the Admin User, indicating that this action/InstanceHistory was
+            #       executed by the administrator.. Future Release Idea.
+            _execute_provider_action(
+                identity,
+                identity.created_by,
+                instance,
+                action.name)
+            # NOTE: Intentionally added to allow time for
+            #      the Cloud to begin 'suspend' operation
+            #      before querying for the instance again.
+            # TODO: Instead: Add "wait_for" change from active to any
+            # terminal, non-active state?
+            wait_time = random.uniform(2, 6)
+            time.sleep(wait_time)
+            updated_esh = driver.get_instance(instance.id)
+            core_instance = convert_esh_instance(
+                driver, updated_esh,
+                identity.provider.uuid,
+                identity.uuid,
+                user)
+            return core_instance
+    except Exception as e:
+        # Raise ANY exception that doesn't say
+        # 'This instance is already in the requested VM state'
+        # NOTE: This is OpenStack specific
+        if 'in vm_state' not in e.message:
+            raise

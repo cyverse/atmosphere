@@ -23,7 +23,7 @@ JENKINS_CONF_FILE=jenkins.conf
 JENKINS_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(JENKINS_CONF_FILE)
 
 
-.PHONY: all clean restart test setup setup-site setup-atmo setup-flower setup-jenkins deploy deploy-atmo deploy-flower deploy-jenkins unlink unlink-site unlink-atmo unlink-flower unlink-jenkins $(DHPARAM) $(COMBINED_CERT_PATH)
+.PHONY: all clean restart test setup setup-site setup-atmo setup-flower setup-jenkins deploy deploy-atmo deploy-flower deploy-jenkins unlink unlink-site unlink-atmo unlink-flower unlink-jenkins $(COMBINED_CERT_PATH)
 
 all: deploy
 

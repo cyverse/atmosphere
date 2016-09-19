@@ -2,6 +2,8 @@
   Service Tag models for Atmosphere.
 """
 
+from atmosphere.settings import BLACKLIST_TAGS
+
 from django.db import models
 import uuid
 
@@ -11,6 +13,14 @@ class Tag(models.Model):
     description = models.CharField(max_length=1024)
     # Not-Null="User-Specific"
     user = models.ForeignKey('AtmosphereUser', null=True, blank=True)
+
+    def allow_access(self, user):
+        tag_name = self.name.lower()
+        if user and (user.is_staff or user.is_superuser):
+            return True
+        in_black_list = any(tag_name == black_tag.lower()
+                            for black_tag in BLACKLIST_TAGS)
+        return not in_black_list
 
     def in_use(self):
         if self.application_set.count() != 0:

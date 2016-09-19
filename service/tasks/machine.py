@@ -10,7 +10,7 @@ from chromogenic.export import export_source
 from chromogenic.tasks import machine_imaging_task, migrate_instance_task
 
 from atmosphere.celery_init import app
-
+from libcloud.common.exceptions import BaseHTTPError
 from core.email import \
     send_image_request_email, send_image_request_failed_email
 from core.models.machine_request import MachineRequest
@@ -323,11 +323,12 @@ def validate_new_image(image_id, machine_request_id):
                 username='atmoadmin',
                 using_admin=True)
             return instance.id
+        except BaseHTTPError as http_error:
+            if "Flavor's disk is too small for requested image" in http_error.message:
+                continue
         except Exception as exc:
-            raise
-            # FIXME: Determine if this exception is based on 'size too small'
             logger.exception(exc)
-            pass
+            raise
     raise Exception("Validation of new Image %s has *FAILED*" % image_id)
 
 

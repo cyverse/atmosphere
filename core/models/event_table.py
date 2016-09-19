@@ -13,6 +13,7 @@ from core.hooks.allocation_source import (
     listen_for_allocation_snapshot_changes,
     listen_for_user_snapshot_changes,
     listen_for_allocation_threshold_met,
+    listen_for_allocation_overage,
     listen_for_instance_allocation_changes
 )
 
@@ -56,6 +57,7 @@ def listen_for_changes(sender, instance, created, **kwargs):
 
 # Instantiate the hooks:
 pre_save.connect(listen_before_allocation_snapshot_changes, sender=EventTable)
+post_save.connect(listen_for_allocation_overage, sender=EventTable)
 #post_save.connect(listen_for_changes, sender=EventTable)
 post_save.connect(listen_for_allocation_threshold_met, sender=EventTable)
 post_save.connect(listen_for_instance_allocation_changes, sender=EventTable)

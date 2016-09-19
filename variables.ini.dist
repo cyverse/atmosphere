@@ -88,6 +88,7 @@ USE_ALLOCATION_SOURCE = ; False
 TIME_ZONE = ; America/Phoenix
 SITE_NAME = ; CyVerse
 ADMINS_EMAIL_TUPLE = ; [('Atmosphere Admin', 'atmo-admin@website.com'),('System Admins', 'sys-admin@website.com')]
+ATMO_SUPPORT_EMAIL_TUPLE = ; [('Different Email for Request Tracking', 'rt@website.com'),('System Admins', 'sys-admin@website.com')]
 SUPPORT_EMAIL = ; help@website.org
 SUPPORT_EMAIL_SIGNATURE = ; CyVerse Atmosphere Team
 SUPPORT_LINKS = ; {'getting_started': "https://link_to.wiki.org/Using+Instances", 'new_provider': "https://link_to.wiki.org/Changing+Providers", "faq": "https://link_to.wiki.org/Cloud_FAQ"}
@@ -105,6 +106,7 @@ DEFAULT_PASSWORD_UPDATE = ; 'keystone_password_update', 'openstack_sdk_password_
 INSTANCE_HOSTNAMING_DOMAIN = ; iplantcollaborative.org
 INSTANCE_HOSTNAMING_FORMAT = ; vm%(three)s-%(four)s.%(domain)s
 DEPLOYMENT_KEYPAIR_NAME = ; keypair name inject by atmo-ansible during instance deploy
+VALIDATION_PLUGINS = ; ["atmosphere.plugins.auth.validation.AlwaysAllow"]
 
 #NOTE: Jetstream Specific
 TACC_API_USER = ; "tas-username"
