@@ -8,7 +8,7 @@ from rest_framework import permissions
 from threepio import logger
 
 from core.models.cloud_admin import CloudAdministrator, cloud_admin_list, get_cloud_admin_for_provider
-from core.models import Group, MaintenanceRecord
+from core.models import Group, MaintenanceRecord, AtmosphereUser
 
 from api import ServiceUnavailable
 
@@ -170,6 +170,10 @@ class InMaintenance(permissions.BasePermission):
         records = MaintenanceRecord.active()\
                                    .filter(provider__isnull=True)
         if records:
+            staff_username = request.session.get('username','')
+            staff_user = AtmosphereUser.objects.filter(username=staff_username).first()
+            if staff_user and staff_user.is_staff:
+                return True
             if not request.user.is_staff:
                 raise ServiceUnavailable(
                     detail=get_maintenance_messages(records))
