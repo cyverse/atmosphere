@@ -1174,7 +1174,7 @@ def check_web_desktop_task(driverCls, provider, identity,
         # USE ANSIBLE
         username = identity.user.username
         hostname = build_host_name(instance.id, instance.ip)
-        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_web_desktop.yml"], raise_exception=False)
+        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_novnc.yml"], raise_exception=False)
         result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
 
         # NOTE: Throws Instance.DoesNotExist
