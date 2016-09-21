@@ -16,13 +16,13 @@ from allocation.models.strategy import \
 
 
 def _get_default_threshold():
-    if not hasattr(settings, 'DEFAULT_ALLOCATION_THRESHOLD'):
+    if not getattr(settings, 'DEFAULT_ALLOCATION_THRESHOLD',None):
         return -1
     return settings.DEFAULT_ALLOCATION_THRESHOLD
 
 
 def _get_default_delta():
-    if not hasattr(settings, 'DEFAULT_ALLOCATION_DELTA'):
+    if not getattr(settings, 'DEFAULT_ALLOCATION_DELTA', None):
         return -1
     return settings.DEFAULT_ALLOCATION_DELTA
 

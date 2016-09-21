@@ -195,6 +195,37 @@ def get_cached_machine(provider_alias, provider_id):
     return cached_mach
 
 
+def convert_glance_image(glance_image, provider_uuid):
+    """
+    Guaranteed Return of ProviderMachine.
+    1. Load provider machine from DB and return
+    2a. If 'Miss':
+        * Lookup application based on glance_machine metadata for application_uuid
+        If 'Miss':
+          * Create application based on available glance_machine metadata
+    2b. Using application from 2. Create provider machine
+    """
+    image_id = glance_image.id
+    machine_name = glance_image.name
+    application_name = machine_name  # Future: application_name will partition at the 'Application Version separator'.. and pass the version_name to create_version
+    provider_machine = get_provider_machine(image_id, provider_uuid)
+    if provider_machine:
+        return (provider_machine, False)
+    app = create_application(provider_uuid, image_id, application_name)
+    version = get_version_for_machine(provider_uuid, image_id, fuzzy=True)
+    if not version:
+        version = create_app_version(app, "1.0", provider_machine_id=image_id)
+    #TODO: fuzzy=True returns a list, but call comes through as a .get()?
+    #      this line will cover that edge-case.
+    if type(version) in [models.QuerySet, list]:
+        version = version[0]
+
+    provider_machine = create_provider_machine(
+        image_id, provider_uuid,
+        app, version=version),
+    return (provider_machine, True)
+
+
 def get_or_create_provider_machine(image_id, machine_name,
                                    provider_uuid, app=None, version=None):
     """

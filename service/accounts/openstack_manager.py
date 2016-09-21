@@ -398,6 +398,20 @@ class AccountDriver(BaseAccountDriver):
                 public_key=public_key)
         return keypair
 
+    def shared_images_for(self, image_id):
+        projects = []
+        shared_with = self.image_manager.shared_images_for(
+            image_id=image_id)
+        projects = [self.get_project_by_id(member.member_id)
+                    for member in shared_with]
+        return projects
+
+    def share_image_with_project(self, glance_image, project_name):
+        self.image_manager.share_image(glance_image, project_name)
+        self.accept_shared_image(glance_image, project_name)
+        logger.info("Added Cloud Access: %s-%s"
+                    % (glance_image, project_name))
+
     def accept_shared_image(self, glance_image, project_name):
         """
         This is only required when sharing using 'the v2 api' on glance.

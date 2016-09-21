@@ -1089,7 +1089,7 @@ def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
 
 @task(name="_deploy_instance",
       default_retry_delay=124,
-      time_limit=32 * 60,  # 32 minute hard-set time limit.
+      soft_time_limit=32 * 60,  # 32 minute hard-set time limit.
       max_retries=10
       )
 def _deploy_instance(driverCls, provider, identity, instance_id,
@@ -1174,7 +1174,7 @@ def check_web_desktop_task(driverCls, provider, identity,
         # USE ANSIBLE
         username = identity.user.username
         hostname = build_host_name(instance.id, instance.ip)
-        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_web_desktop.yml"], raise_exception=False)
+        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_novnc.yml"], raise_exception=False)
         result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
 
         # NOTE: Throws Instance.DoesNotExist

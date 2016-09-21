@@ -122,8 +122,20 @@ def report_allocations_to_tas():
 
 
 def send_reports():
-    for tas_report in TASAllocationReport.objects.filter(success=False).order_by('user__username','start_date'):
-        tas_report.send()
+    failed_reports = 0
+    reports_to_send = TASAllocationReport.objects.filter(success=False).order_by('user__username','start_date')
+    counot = reports_to_send.count()
+    for tas_report in reports_to_send:
+        try:
+            tas_report.send()
+        except TASPluginException:
+            logger.exception(
+                "Could not send the report because of the error below"
+            )
+            failed_reports += 1
+            continue
+    if failed_reports != 0:
+        raise Exception("%s/%s reports failed to send to TAS" % (failed_reports, count))
 
 @task(name="update_snapshot")
 def update_snapshot():
@@ -132,9 +144,9 @@ def update_snapshot():
     allocation_source_total_compute = {}
     allocation_source_total_burn_rate = {}
     end_date = timezone.now()
-    for source in AllocationSource.objects.all():
+    for source in AllocationSource.objects.order_by('source_id'):
         # iterate over user + allocation_source combo
-        for user_allocation_source in UserAllocationSource.objects.filter(allocation_source__exact=source.id):
+        for user_allocation_source in UserAllocationSource.objects.filter(allocation_source__exact=source.id).order_by('user__username'):
             user = user_allocation_source.user
             # determine end date and start date using last snapshot
             start_date = user.date_joined
@@ -146,11 +158,14 @@ def update_snapshot():
 
             payload_ubr = {"allocation_source_id":source.source_id, "username":user.username, "burn_rate":burn_rate, "compute_used":compute_used}
             EventTable.create_event("user_allocation_snapshot_changed", payload_ubr, user.username)
-
+        compute_used_total = allocation_source_total_compute.get(source.name,0)
+        global_burn_rate = allocation_source_total_burn_rate.get(source.name,0)
+        if compute_used_total != 0:
+            logger.info("Total usage for AllocationSource %s (%s-%s) = %s (Burn Rate: %s)" % (source.name, start_date, end_date, compute_used_total, global_burn_rate))
         payload_as = { 
             "allocation_source_id":source.source_id, 
-            "compute_used":allocation_source_total_compute.get(source.name,0),
-            "global_burn_rate":allocation_source_total_burn_rate.get(source.name,0)
+            "compute_used":compute_used_total,
+            "global_burn_rate":global_burn_rate
         }
         EventTable.create_event("allocation_source_snapshot", payload_as,source.name)
     return True

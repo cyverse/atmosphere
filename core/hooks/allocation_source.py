@@ -45,6 +45,8 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
         return
     if source.compute_allowed in [None, 0]:
         return
+    #FIXME: Remove this line when you are ready to start enforcing 100% allocation:
+    return
     current_percentage = int(100.0*new_compute_used/source.compute_allowed) if source.compute_allowed != 0 else 0
     if new_compute_used < source.compute_allowed:
         return
@@ -58,6 +60,8 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
 
 def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     """
+    DEV NOTE: This is a *pre_save* signal. As such, the arguments are slightly different and the object in the database matching the data will be the "before", while the data coming into the function should be considered the "after". For more details about pre_save signals: https://docs.djangoproject.com/en/dev/ref/signals/#pre-save
+
     This listener expects:
     EventType - 'allocation_source_snapshot'
     EventPayload - {
@@ -92,7 +96,7 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
         prev_compute_used = float(prev_snapshot.compute_used)
     prev_percentage = int(100.0*prev_compute_used/source.compute_allowed)
     current_percentage = int(100.0*new_compute_used/source.compute_allowed)
-    print "Previous:%s - New:%s" % (prev_percentage, current_percentage)
+    print "Souce: %s (%s) Previous:%s - New:%s" % (source.name, allocation_source_id, prev_percentage, current_percentage)
     percent_event_triggered = None
     # Compare 'Now snapshot' with Previous snapshot. Have we "crossed a threshold?"
     # If yes:
@@ -103,9 +107,9 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
         if prev_percentage < test_threshold \
                 and current_percentage >= test_threshold:
             percent_event_triggered = test_threshold
-    print "Event triggered: %s" % percent_event_triggered
     if not percent_event_triggered:
         return
+    print "Email Event triggered for %s users: %s" % (source.all_users.count(), percent_event_triggered)
     prev_email_event = EventTable.objects\
         .filter(name="allocation_source_threshold_met")\
         .filter(entity_id=allocation_source_id,

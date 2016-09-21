@@ -84,7 +84,7 @@ def get_all_histories_for_instance(instances, report_start_date, report_end_date
                 ~Q(
                     Q(end_date__isnull=False) & Q(end_date__lte=report_start_date)
                   )
-            )
+            ).order_by('start_date')
 
     return histories
 

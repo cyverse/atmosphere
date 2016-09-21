@@ -168,6 +168,8 @@ class AllocationIncrease(object):
         self.amount = amount
         if unit != TimeUnit.infinite:
             self._validate_input(unit, amount, increase_date)
+        if amount <= 0:
+            self.amount = 0
         self.increase_date = increase_date
 
     def __repr__(self):
@@ -182,8 +184,6 @@ class AllocationIncrease(object):
         return time_added
 
     def _validate_input(self, unit, amount, increase_date):
-        if amount <= 0:
-            raise ValueError("Bad amount:%s Value must be positive." % amount)
         if not increase_date:
             raise ValueError("Increase_date is required "
                              "to know how it fits in a timeperiod")

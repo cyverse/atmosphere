@@ -139,8 +139,13 @@ def total_usage(username, start_date, allocation_source_name=None,end_date=None,
         if not data['allocation_source']=='N/A':
             total_allocation += data['applicable_duration']
     compute_used_total = round(total_allocation/3600.0,2)
-    logger.info("Total usage for User %s with AllocationSource %s from %s-%s = %s" % (username, allocation_source_name, start_date, end_date, compute_used_total))
+    if compute_used_total > 0:
+        logger.info("Total usage for User %s with AllocationSource %s from %s-%s = %s"
+                    % (username, allocation_source_name, start_date, end_date, compute_used_total))
     if burn_rate:
         burn_rate_total = 0 if len(user_allocation)<1 else user_allocation[-1]['burn_rate']
+        if burn_rate_total != 0:
+            logger.info("User %s with AllocationSource %s Burn Rate: %s"
+                        % (username, allocation_source_name, burn_rate_total))
         return [compute_used_total, burn_rate_total]
     return compute_used_total
