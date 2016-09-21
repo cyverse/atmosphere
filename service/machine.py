@@ -236,49 +236,63 @@ def add_membership(image_version, group):
     O(N^2)
     """
     for provider_machine in image_version.machines.filter(only_current_source()):
-        prov = provider_machine.instance_source.provider
-        accounts = get_account_driver(prov)
-        if not accounts:
-            raise NotImplemented("Account Driver could not be created for %s" % prov)
-        accounts.clear_cache()
-        admin_driver = accounts.admin_driver  # cache has been cleared
-        if not admin_driver:
-            raise NotImplemented("Admin Driver could not be created for %s" % prov)
-        img = accounts.get_image(provider_machine.identifier)
-        projects = get_current_projects_for_image(accounts, img.id)
-        for identity_membership in group.identitymembership_set.all():
-            if identity_membership.identity.provider != prov:
-                continue
-            # Get project name from the identity's credential-list
-            project_name = identity_membership.identity.get_credential('ex_project_name')
-            project = accounts.get_project(project_name)
-            if project and project in projects:
-                continue
-            # Share with the *database* first!
-            obj, created = models.ApplicationMembership.objects.get_or_create(
-                group=group,
-                application=provider_machine.application)
-            if created:
-                print "Created new ApplicationMembership: %s" \
-                    % (obj,)
-            obj, created = models.ApplicationVersionMembership.objects.get_or_create(
-                group=group,
-                image_version=provider_machine.application_version)
-            if created:
-                print "Created new ApplicationVersionMembership: %s" \
-                    % (obj,)
-            obj, created = models.ProviderMachineMembership.objects.get_or_create(
-                group=group,
-                provider_machine=provider_machine)
-            if created:
-                print "Created new ProviderMachineMembership: %s" \
-                    % (obj,)
-            # Share with the *cloud* last!
-            accounts.image_manager.share_image(img, project_name)
-            accounts.accept_shared_image(img, project_name)
-            logger.info("Added Cloud Access: %s-%s"
-                        % (img, project_name))
+        add_machine_membership(provider_machine, group)
+
+
+def add_machine_membership(provider_machine, group):
+    update_db_membership_for_group(provider_machine, group)
+    update_cloud_membership_for_machine(provider_machine, group)
+
+
+def update_cloud_membership_for_machine(provider_machine, group):
+    """
+    Given a provider_machine and a group
+    * Loop through identities owned by group
+    * * If identity.provider == provider_machine.provider, allow identity to launch via cloud ACLs
+    """
+    prov = provider_machine.instance_source.provider
+    accounts = get_account_driver(prov)
+    if not accounts:
+        raise NotImplemented("Account Driver could not be created for %s" % prov)
+    accounts.clear_cache()
+    admin_driver = accounts.admin_driver  # cache has been cleared
+    if not admin_driver:
+        raise NotImplemented("Admin Driver could not be created for %s" % prov)
+    img = accounts.get_image(provider_machine.identifier)
+    projects = accounts.shared_images_for(img.id)
+    for identity_membership in group.identitymembership_set.all():
+        if identity_membership.identity.provider != prov:
+            logger.debug("Skipped %s -- Wrong provider" % identity_membership.identity)
             continue
+        # Get project name from the identity's credential-list
+        project_name = identity_membership.identity.get_credential('ex_project_name')
+        project = accounts.get_project(project_name)
+        if project and project not in projects:
+            logger.debug("Skipped Project: %s -- Already shared" % project)
+            continue
+        accounts.share_image_with_project(img, project_name)
+
+
+def update_db_membership_for_group(provider_machine, group):
+    # Share with the *database* first!
+    obj, created = models.ApplicationMembership.objects.get_or_create(
+        group=group,
+        application=provider_machine.application)
+    if created:
+        logger.info("Created new ApplicationMembership: %s" \
+            % (obj,))
+    obj, created = models.ApplicationVersionMembership.objects.get_or_create(
+        group=group,
+        image_version=provider_machine.application_version)
+    if created:
+        logger.info("Created new ApplicationVersionMembership: %s" \
+            % (obj,))
+    obj, created = models.ProviderMachineMembership.objects.get_or_create(
+        group=group,
+        provider_machine=provider_machine)
+    if created:
+        logger.info("Created new ProviderMachineMembership: %s" \
+            % (obj,))
 
 
 def remove_membership(image_version, group):
@@ -296,7 +310,7 @@ def remove_membership(image_version, group):
         if not admin_driver:
             raise NotImplemented("Admin Driver could not be created for %s" % prov)
         img = accounts.get_image(provider_machine.identifier)
-        projects = get_current_projects_for_image(accounts, img.id)
+        projects = accounts.shared_images_for(img.id)
         for identity_membership in group.identitymembership_set.all():
             if identity_membership.identity.provider != prov:
                 continue
@@ -353,30 +367,12 @@ def share_with_self(private_userlist, username):
     private_userlist.append(str(username))
     return private_userlist
 
-def get_current_projects_for_image(accounts, image_id):
-    projects = []
-    shared_with = accounts.image_manager.shared_images_for(
-        image_id=image_id)
-    projects = [accounts.get_project_by_id(member.member_id)
-                for member in shared_with]
-    return projects
-  
-
-def get_current_projects_for_image(accounts, image_id):
-    projects = []
-    shared_with = accounts.image_manager.shared_images_for(
-        image_id=image_id)
-    projects = [accounts.get_project_by_id(member.member_id)
-                for member in shared_with]
-    return projects
-
-
 def sync_cloud_access(accounts, img, names=None):
     shared_with = accounts.image_manager.shared_images_for(
         image_id=img.id)
     # Find tenants who are marked as 'sharing' on openstack but not on DB
     # Or just in One-line..
-    projects = get_current_projects_for_image(accounts, img.id)
+    projects = accounts.shared_images_for(img.id)
     # Any names who aren't already on the image should be added
     # Find names who are marked as 'sharing' on DB but not on OpenStack
     for name in names:

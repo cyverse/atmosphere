@@ -10,17 +10,22 @@ from celery.decorators import task
 from core.query import (
     only_current, only_current_source,
     source_in_range, inactive_versions)
+from core.models.group import Group
 from core.models.size import Size, convert_esh_size
 from core.models.volume import Volume, convert_esh_volume
 from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
-from core.models.machine import get_or_create_provider_machine, ProviderMachine
+from core.models.machine import convert_glance_image, get_or_create_provider_machine, ProviderMachine, ProviderMachineMembership
 from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
 from core.models.event_table import EventTable
 from core.models.application_version import ApplicationVersion
 from core.models import Allocation, Credential
 
+from service.machine import (
+    update_db_membership_for_group,
+    update_cloud_membership_for_machine
+)
 from service.monitoring import (
     _cleanup_missing_instances,
     _get_instance_owner_map,
@@ -160,48 +165,84 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     start_date and end_date allow you to search a 'non-standard' window of time.
 
     NEW LOGIC:
-    * Membership and Privacy is dictated at the APPLICATION level.
-    * loop over all machines on the cloud
-    *   * If machine is PUBLIC, ensure the APP is public.
-    *   * If machine is PRIVATE, ensure the APP is private && sync the membership!
-    *   * Ignore the possibility of conflicts, prior schema should be sufficient for ensuring the above two usecases
     """
     provider = Provider.objects.get(id=provider_id)
 
     if print_logs:
         console_handler = _init_stdout_logging()
 
-    #STEP 1: get the apps
-    new_public_apps, private_apps = get_public_and_private_apps(provider)
+    account_driver = get_account_driver(provider)
+    cloud_machines = account_driver.list_all_images()
 
-    #STEP 2: Find conflicts and report them.
-    intersection = set(private_apps.keys()) & set(new_public_apps)
-    if intersection:
-        celery_logger.error("These applications were listed as BOTH public && private apps. Manual conflict correction required: %s" % intersection)
+    # ASSERT: All non-end-dated machines in the DB can be found in the cloud
+    # if you do not believe this is the case, you should call 'prune_machines_for'
+    for cloud_machine in cloud_machines:
+        #Filter out: ChromoSnapShot, eri-, eki-, ... (Or dont..)
+        if not machine_is_valid(cloud_machine):
+            continue
+        #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
+        db_machine, created = convert_glance_image(cloud_machine, provider.uuid)
+        #STEP 2: For any private cloud_machine, convert the 'shared users' as known by cloud
+        update_image_membership(account_driver, cloud_machine, db_machine)
 
-    #STEP 3: Apply the changes at app-level
-    #Memoization at this high of a level will help save time
-    account_drivers = {} # Provider -> accountDriver
-    provider_tenant_mapping = {}  # Provider -> [{TenantId : TenantName},...]
-    image_maps = {}
-    if settings.ENFORCING:
-        for app in new_public_apps:
-            if app in intersection:
-                celery_logger.error("Skipped public app: %s <%s>" % (app, app.id))
-                continue
-            make_machines_public(app, account_drivers, dry_run=dry_run)
-
-        for app, membership in private_apps.items():
-            if app in intersection:
-                celery_logger.error("Skipped private app: %s <%s>" % (app, app.id))
-                continue
-            make_machines_private(app, membership, account_drivers, provider_tenant_mapping, image_maps, dry_run=dry_run)
-    else:  # settings.ENFORCING = False
-        celery_logger.warn("Settings.ENFORCING is set to False -- So we assume this is a development build and *NO* changes should be made to glance as a result of an 'information mismatch'")
+        # into DB relationships: ApplicationVersionMembership, ProviderMachineMembership
+        #STEP 3: if ENFORCING -- occasionally 're-distribute' any ACLs that are *listed on DB but not on cloud* -- removals should be done explicitly, outside of this function
+        if settings.ENFORCING:
+            distribute_image_membership(account_driver, cloud_machine)
+        # ASSERTIONS about this method: 
+        # 1) We will never 'remove' membership,
+        # 2) We will never 'remove' a public or private flag as listed in application.
+        # 2b) Future: Individual versions/machines as described by relationships above dictate whats shown in the application.
 
     if print_logs:
         _exit_stdout_logging(console_handler)
     return
+
+
+def machine_is_valid(cloud_machine):
+    """
+    As the criteria for "what makes a glance image an atmosphere ProviderMachine" changes, we can use this function to hook out to external plugins, etc.
+    """
+    # If the name of the machine indicates that it is a Ramdisk, Kernel, or Chromogenic Snapshot, skip it.
+    if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
+        celery_logger.debug("Skipping cloud machine %s" % cloud_machine)
+        return False
+    # If the metadata 'skip_atmosphere' is found, do not add the machine.
+    if cloud_machine.get('skip_atmosphere', False):
+        return False
+    return True
+
+
+def distribute_image_membership(account_driver, cloud_machine):
+    """
+    Based on what we know about the DB, at a minimum, ensure that their projects are added to the image_members list for this cloud_machine.
+    """
+    pm = ProviderMachine.objects.get(instance_source__identifier=cloud_machine.id)
+    group_ids = ProviderMachineMembership.objects.filter(provider_machine=pm).values_list('group', flat=True)
+    groups = Group.objects.filter(id__in=group_ids)
+    for group in groups:
+        update_cloud_membership_for_machine(pm, group)
+
+
+def update_image_membership(account_driver, cloud_machine, db_machine):
+    """
+    Given a cloud_machine and db_machine, create any relationships possible for ProviderMachineMembership and ApplicationVersionMembership
+    """
+    image_visibility = cloud_machine.get('visibility','private')
+    if image_visibility.lower() == 'public':
+        return
+    image_owner = cloud_machine.get('application_owner','')
+    #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
+    shared_group_names = [image_owner]
+    shared_projects = account_driver.shared_images_for(cloud_machine.id)
+    shared_group_names.extend(p.name for p in shared_projects)
+    groups = Group.objects.filter(name__in=shared_group_names)
+    if not groups:
+        return
+    for group in groups:
+        update_db_membership_for_group(db_machine, group)
+
+
 
 def get_public_and_private_apps(provider):
     """
