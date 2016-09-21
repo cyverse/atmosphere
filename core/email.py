@@ -332,18 +332,10 @@ def send_instance_email(username, instance_id, instance_name,
     """
     format_string = '%b, %d %Y %H:%M:%S'
     email_template = get_email_template()
-    try:
-        instance = Instance.objects.get(provider_alias=instance_id)
-        author = instance.created_by
-        provider_location = instance.provider.location
-        ssh_keys = author.sshkey_set.all()
-        use_ssh_keys = author.userprofile.use_ssh_keys and ssh_keys.count() > 0
-    except:
-        raise
-        provider_location = "N/A"
-        ssh_keys = []
-        use_ssh_keys = False
-
+    instance = Instance.objects.get(provider_alias=instance_id)
+    author = instance.created_by
+    provider_location = instance.provider.location
+    ssh_keys = [key.name for key in author.sshkey_set.all()]
     username, user_email, user_name = user_email_info(username)
     launched_at = launched_at.replace(tzinfo=None)
     utc_date = django_timezone.make_aware(launched_at,
@@ -357,7 +349,6 @@ def send_instance_email(username, instance_id, instance_name,
         "getting_started_instances_name": getting_started_link.topic,
         "faq_link": faq_link.href,
         "faq_link_name": faq_link.topic,
-        "use_ssh_keys": use_ssh_keys,
         "ssh_keys": ssh_keys,
         "provider_location": provider_location,
         "support_email": support_email,
