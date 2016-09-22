@@ -2,6 +2,7 @@ import json
 
 import vcr
 from django.test import TestCase
+from django.conf import settings
 from mock import Mock
 
 from test_utils.cassette_utils import assert_cassette_playback_length, scrub_host_name
@@ -17,6 +18,10 @@ my_vcr = vcr.VCR(
 
 class TestJetstream(TestCase):
     """Tests for Jetstream allocation source API"""
+
+    def setUp(self):
+        if 'jetstream' not in settings.INSTALLED_APPS:
+            self.skipTest('jetstream not in settings.INSTALLED_APPS')
 
     @my_vcr.use_cassette()
     def test_validate_account(self, cassette):
