@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from api.tests.factories import UserFactory
 from core.models import EventTable, AllocationSource
@@ -9,6 +9,7 @@ class EventTableTest(TestCase):
     def setUp(self):
         pass
 
+    @override_settings(ALLOCATION_SOURCE_WARNINGS=[10, 25, 50, 75, 90])
     def test_create_event(self):
         event_count = EventTable.objects.count()
         self.assertEqual(event_count, 0)
