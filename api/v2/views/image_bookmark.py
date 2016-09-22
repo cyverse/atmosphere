@@ -1,4 +1,6 @@
 from core.models import ApplicationBookmark as ImageBookmark
+from django.utils import timezone
+from django.db.models import Q
 
 from api.v2.serializers.details import ImageBookmarkSerializer
 from api.v2.views.base import AuthViewSet
@@ -24,4 +26,7 @@ class ImageBookmarkViewSet(MultipleFieldLookup, AuthViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        return ImageBookmark.objects.filter(user=user)
+        now_time = timezone.now()
+        return ImageBookmark.objects.filter(user=user).filter(
+            Q(application__end_date__isnull=True) & Q(application__end_date__gt=now_time)
+        )
