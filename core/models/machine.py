@@ -194,6 +194,17 @@ def get_cached_machine(provider_alias, provider_id):
                     % (provider_alias, provider_id))
     return cached_mach
 
+def collect_image_metadata(glance_image):
+    app_kwargs = {}
+    try:
+        app_kwargs['private'] = glance_image.visibility.lower() != 'public'
+        app_kwargs['description'] = glance_image.application_description
+        app_kwargs['tags'] = glance_image.application_tags
+        app_kwargs['uuid'] = glance_image.application_uuid
+    except AttributeError as exc:
+        logger.exception("Glance image %s was not initialized with atmosphere metadata - %s" % glance_image.id, exc.message)
+    return app_kwargs
+
 
 def convert_glance_image(glance_image, provider_uuid):
     """
@@ -205,24 +216,50 @@ def convert_glance_image(glance_image, provider_uuid):
           * Create application based on available glance_machine metadata
     2b. Using application from 2. Create provider machine
     """
+    from core.models import AtmosphereUser
     image_id = glance_image.id
     machine_name = glance_image.name
     application_name = machine_name  # Future: application_name will partition at the 'Application Version separator'.. and pass the version_name to create_version
     provider_machine = get_provider_machine(image_id, provider_uuid)
     if provider_machine:
         return (provider_machine, False)
-    app = create_application(provider_uuid, image_id, application_name)
+    app_kwargs = collect_image_metadata(glance_image)
+    owner_name = glance_image.application_owner
+#NOThis operates under the assumption the owner is the 'user' who created it, rather than the 'original openstack tenant name'. Update these lines if the assumption is invalid.
+    user = AtmosphereUser.objects.filter(username=owner_name).first()
+    if user:
+        identity = Identity.objects.filter(
+            provider__uuid=provider_uuid, created_by=user).first()
+    else:
+        identity = None
+    app_kwargs.update({
+        'created_by': user,
+        'created_by_identity': identity
+    })
+    app = create_application(
+        provider_uuid, image_id, application_name,
+        **app_kwargs)
     version = get_version_for_machine(provider_uuid, image_id, fuzzy=True)
     if not version:
-        version = create_app_version(app, "1.0", provider_machine_id=image_id)
+        version_kwargs = {
+            'version_str': glance_image.get('application_version', '1.0'),
+            'created_by': user,
+            'created_by_identity': identity,
+            'provider_machine_id': image_id
+        }
+        version = create_app_version(app, **version_kwargs)
     #TODO: fuzzy=True returns a list, but call comes through as a .get()?
     #      this line will cover that edge-case.
     if type(version) in [models.QuerySet, list]:
         version = version[0]
 
+    machine_kwargs = {
+        'created_by_identity': identity,
+        'version': version
+    }
     provider_machine = create_provider_machine(
         image_id, provider_uuid,
-        app, version=version),
+        app, **machine_kwargs)
     return (provider_machine, True)
 
 
