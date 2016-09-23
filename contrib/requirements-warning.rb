@@ -11,7 +11,7 @@ end
 files = `git diff --name-only #{heads[1]} #{heads[0]}`
 
 # If (dev_)requrements.txt changed, alert the user!
-if /requirements.txt/.match files  then
+if /requirements.txt/ =~ files
     default = "\e[0m"
     red = "\e[31m"
     puts "[#{red}requirements-warning.rb hook#{default}]: New python requirements."
