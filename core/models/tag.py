@@ -58,7 +58,7 @@ def updateTags(coreObject, tags, user=None):
             tag.machinerequest_set.remove(coreObject)
     # Add all tags in tags to core*
     for tag in tags:
-        if isinstance(tag, str):
+        if isinstance(tag, basestring):
             tag = find_or_create_tag(tag, user)
         elif not isinstance(tag, Tag):
             raise TypeError("Expected list of str or Tag, found %s"

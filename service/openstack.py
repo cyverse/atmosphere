@@ -131,8 +131,7 @@ def glance_update_machine(new_machine):
         base_source.save()
 
     logger.debug("Found glance image for %s" % new_machine)
-
-    if g_image.get('visibility','public') is not 'public':
+    if g_image.get('visibility','public') != 'public':
         new_app.private = True
 
     if new_app.first_machine() is new_machine:

@@ -124,7 +124,7 @@ def report_allocations_to_tas():
 def send_reports():
     failed_reports = 0
     reports_to_send = TASAllocationReport.objects.filter(success=False).order_by('user__username','start_date')
-    counot = reports_to_send.count()
+    count = reports_to_send.count()
     for tas_report in reports_to_send:
         try:
             tas_report.send()

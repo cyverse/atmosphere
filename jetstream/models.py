@@ -34,13 +34,17 @@ class TASAllocationReport(models.Model):
     report_date = models.DateTimeField(blank=True, null=True)
     success = models.BooleanField(default=False)
 
-    def send(self):
+    def send(self, use_beta=False):
         if not self.id:
             raise Exception("ERROR -- This report should be *saved* before you send it!")
         if self.success:
             raise Exception("ERROR -- This report has already been *saved*! Create a new report!")
         try:
-            driver = TASAPIDriver()
+            if use_beta:
+                from atmosphere.settings.local import BETA_TACC_API_URL, BETA_TACC_API_USER, BETA_TACC_API_PASS
+                driver = TASAPIDriver(BETA_TACC_API_URL, BETA_TACC_API_USER, BETA_TACC_API_PASS)
+            else:
+                driver = TASAPIDriver()
             success = driver.report_project_allocation(
                 self.id, self.username,
 		self.project_name, float(self.compute_used),
