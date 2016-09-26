@@ -153,7 +153,7 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     if not source:
         return None
     users = AtmosphereUser.for_allocation_source(source.source_id)
-    
+
     for user in users:
         send_usage_email_to(user, source, threshold, actual_value)
 
@@ -298,3 +298,32 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
             allocation_source=allocation_source,
             instance=instance)
     return snapshot
+
+
+def listen_for_allocation_source_created(sender, instance, created, **kwargs):
+    """
+    This listener expects:
+    EventType - 'allocation_source_created'
+    EventPayload - {
+        "source_id": "2439b15a-293a-4c11-b447-bf349f16ed2e",
+        "name": "TestAllocationSource",
+        "compute_used": 50000
+    }
+
+    The method should result in a new AllocationSource
+    """
+    event = instance
+    if event.name != 'allocation_source_created':
+        return None
+    logger.info('Allocation source created event: %s', event.__dict__)
+    payload = event.payload
+    # TODO: Some web-request/marshmallow validation
+    allocation_source_id = payload['source_id']
+    allocation_source_name = payload['name']
+    allocation_compute_allowed = payload['compute_allowed']
+
+    allocation_source = AllocationSource(source_id=allocation_source_id,
+                                         name=allocation_source_name,
+                                         compute_allowed=allocation_compute_allowed
+                                         )
+    allocation_source.save()
