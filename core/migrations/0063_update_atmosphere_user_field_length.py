@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0063_remove_ssh_keys_toggle'),
+        ('core', '0062_update_templates_with_cyverse'),
     ]
 
     operations = [
