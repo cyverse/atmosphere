@@ -11,6 +11,9 @@ from core.models import (
 # Pre-Save hooks
 
 # Post-Save hooks
+from core.models import UserAllocationSource
+
+
 def listen_for_allocation_overage(sender, instance, raw, **kwargs):
     """
     This listener expects:
@@ -326,4 +329,36 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
                                          name=allocation_source_name,
                                          compute_allowed=allocation_compute_allowed
                                          )
+    allocation_source.save()
+
+
+def listen_for_user_allocation_source_assigned(sender, instance, created, **kwargs):
+    """
+        This listener expects:
+        EventType - 'allocation_source_created'
+        EventPayload - {
+            "source_id": "2439b15a-293a-4c11-b447-bf349f16ed2e",
+            "username": "amitj",
+        }
+
+        The method should result in User being assigned an AllocationSource
+        """
+    event = instance
+    if event.name != 'user_allocation_source_assigned':
+        return None
+    logger.info('User allocation source assigned event: %s', event.__dict__)
+    payload = event.payload
+    allocation_source_id = payload['source_id']
+    username = payload['username']
+
+    user = AtmosphereUser.objects.filter(username=username).first()
+    allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+
+    if not user:
+        raise Exception('User does not exist')
+    if not allocation_source:
+        raise Exception('Allocation Source does not exist')
+
+    allocation_source = UserAllocationSource(allocation_source=allocation_source,
+                                             user=user)
     allocation_source.save()
