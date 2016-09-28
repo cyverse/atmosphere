@@ -362,9 +362,13 @@ class ExternalRouter(GenericNetworkTopology):
         return super(ExternalRouter, self).delete_router_interface(
             router_name=self.external_router_name)  # strategy choice
 
-    def get_or_create_router(self, router_name):
+    def get_or_create_router(self):
         router_name = self.external_router_name  # strategy choice
         public_router = self.network_driver.find_router(router_name)
         if not public_router:
             raise Exception("Default public router %s was not found." % self.external_router_name)
         return public_router[0]
+
+
+    def get_or_create_router_gateway(self, router, network):
+        return None
