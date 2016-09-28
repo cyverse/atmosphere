@@ -9,7 +9,7 @@ import uuid
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0062_update_templates_with_cyverse'),
+        ('core', '0063_update_atmosphere_user_field_length'),
     ]
 
     operations = [
