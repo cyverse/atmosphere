@@ -60,6 +60,8 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['email']
 
     class Meta:
+        db_table = 'atmosphere_user'
+        app_label = 'core'
         verbose_name = _('user')
         verbose_name_plural = _('users')
 
@@ -189,10 +191,6 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         m = md5()
         m.update(self.user.email)
         return m.hexdigest()
-
-    class Meta:
-        db_table = 'atmosphere_user'
-        app_label = 'core'
 
 # Save Hooks Here:
 
