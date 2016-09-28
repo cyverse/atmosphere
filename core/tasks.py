@@ -31,6 +31,11 @@ def send_email(subject, body, from_email, to, cc=None,
         email_logger.info(log_message.format(*args))
         if getattr(settings, "SEND_EMAILS", True):
             msg.send(fail_silently=fail_silently)
+            email_logger.info("NOTE: Above message sent successfully")
+            celery_logger.info("NOTE: Above message sent successfully")
+        else:
+            email_logger.info("NOTE: Above message not sent -- SEND_EMAILS was False")
+            celery_logger.info("NOTE: Above message not sent -- SEND_EMAILS was False")
         return True
     except Exception as e:
         celery_logger.exception(e)
