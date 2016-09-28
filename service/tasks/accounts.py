@@ -7,7 +7,7 @@ from rtwo.exceptions import NeutronClientException, NeutronException
 from threepio import celery_logger
 
 from core.models import AtmosphereUser as User
-from core.models import Provider,Identity
+from core.models import Provider,Identity, Credential
 
 from service.driver import get_account_driver
 
@@ -18,7 +18,9 @@ def remove_empty_networks_for(provider_id):
     os_driver = get_account_driver(provider)
     all_instances = os_driver.admin_driver.list_all_instances()
     project_map = os_driver.network_manager.project_network_map()
-    projects_with_networks = project_map.keys()
+    known_project_names = Credential.objects.filter(
+        key='ex_project_name').values_list('value',flat=True)
+    projects_with_networks = sorted([k for k in project_map.keys() if k in known_project_names])
     for project in projects_with_networks:
         networks = project_map[project]['network']
         if not isinstance(networks, list):
@@ -28,13 +30,16 @@ def remove_empty_networks_for(provider_id):
             celery_logger.debug("Checking if network %s is in use" % network_name)
             if running_instances(network_name, all_instances):
                 continue
-            # TODO: MUST change when not using 'usergroups' explicitly.
             user = project
-            identity = Identity.objects.filter().first()
+            identity = Identity.objects.filter(provider_id=provider_id, credential__key='ex_project_name', credential__value=project).filter(credential__key='key', credential__value=user).first()
+            if not identity:
+                celery_logger.warn("NOT Removing project network for User:%s, Project:%s -- No Valid Identity found!"
+                             % (user, project))
+                continue
             try:
                 celery_logger.debug("Removing project network for User:%s, Project:%s"
                              % (user, project))
-                os_driver.network_manager.delete_user_network(identity)
+                os_driver.delete_user_network(identity)
             except NeutronClientException:
                 celery_logger.exception("Neutron unable to remove project"
                                  "network for %s-%s" % (user, project))
