@@ -12,10 +12,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelOptions(
-            name='atmosphereuser',
-            options={'verbose_name': 'user', 'verbose_name_plural': 'users'},
-        ),
         migrations.AlterField(
             model_name='machinerequest',
             name='new_application_description',
