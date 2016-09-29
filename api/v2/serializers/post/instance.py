@@ -34,7 +34,8 @@ class InstanceSerializer(serializers.ModelSerializer):
     # Optional kwargs to be inluded
     deploy = serializers.BooleanField(default=True)
     extra = serializers.DictField(required=False)
-    allocation_source_id = serializers.CharField(write_only=True)
+    # Note: When CyVerse uses the allocation_source, remove 'required=False'
+    allocation_source_id = serializers.CharField(write_only=True, required=False)
 
     def to_internal_value(self, data):
         """
@@ -56,7 +57,8 @@ class InstanceSerializer(serializers.ModelSerializer):
         source_queryset = self.fields['source_alias'].queryset
 
         allocation_source_id = data.get('allocation_source_id')
-        if not allocation_source_id:
+        #NOTE: When CyVerse uses the allocation_source feature, remove 'and 'jetstream' in settings.INSTALLED_APPS'
+        if not allocation_source_id and 'jetstream' in settings.INSTALLED_APPS:
             raise ValidationError({
                 'allocation_source_id': 'This field is required.'
             })
