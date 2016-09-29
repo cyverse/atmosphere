@@ -62,8 +62,6 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
     class Meta:
         db_table = 'atmosphere_user'
         app_label = 'core'
-        verbose_name = _('user')
-        verbose_name_plural = _('users')
 
     def get_full_name(self):
         """
