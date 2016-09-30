@@ -224,7 +224,7 @@ def convert_glance_image(glance_image, provider_uuid):
     if provider_machine:
         return (provider_machine, False)
     app_kwargs = collect_image_metadata(glance_image)
-    owner_name = glance_image.application_owner
+    owner_name = glance_image.get('application_owner')
 #NOThis operates under the assumption the owner is the 'user' who created it, rather than the 'original openstack tenant name'. Update these lines if the assumption is invalid.
     user = AtmosphereUser.objects.filter(username=owner_name).first()
     if user:
