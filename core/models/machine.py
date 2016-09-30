@@ -202,7 +202,7 @@ def collect_image_metadata(glance_image):
         app_kwargs['tags'] = glance_image.application_tags
         app_kwargs['uuid'] = glance_image.application_uuid
     except AttributeError as exc:
-        logger.exception("Glance image %s was not initialized with atmosphere metadata - %s" % glance_image.id, exc.message)
+        logger.exception("Glance image %s was not initialized with atmosphere metadata - %s" % (glance_image.id, exc.message))
     return app_kwargs
 
 
