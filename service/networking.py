@@ -277,15 +277,17 @@ class ExternalNetwork(GenericNetworkTopology):
         self.delete_subnet()
 
     def create(self, username=None, dns_nameservers=None):
-        network = self.get_or_create_network()
+        network = self.get_or_create_network()  #NOTE: This also might be wrong.
         subnet = self.get_or_create_user_subnet(
             network['id'], username,
             dns_nameservers=dns_nameservers)
         router = self.get_or_create_router()
+        gateway = self.get_or_create_router_gateway(router, network)
         interface = self.get_or_create_router_interface(
             router, subnet)
         network_resources = {
             'network': network,
+            'gateway': gateway,
             'subnet': subnet,
             'router': router,
             'interface': interface,
