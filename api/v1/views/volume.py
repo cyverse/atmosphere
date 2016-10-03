@@ -10,6 +10,7 @@ from rest_framework import status
 
 from rtwo.exceptions import ConnectionFailure
 from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError
+from libcloud.common.exceptions import BaseHTTPError
 
 from threepio import logger
 
@@ -315,6 +316,10 @@ class VolumeList(AuthAPIView):
             success, esh_volume = create_esh_volume(driver, user.username, identity_uuid,
                                                 name, size, description,
                                                 snapshot=snapshot, image=image)
+        except BaseHTTPError as http_error:
+            if 'Requested volume or snapshot exceed' in http_error.message:
+                return over_quota(http_error)
+            return failure_response(status.HTTP_400_BAD_REQUEST, http_error.message)
         except OverQuotaError as oqe:
             return over_quota(oqe)
         except ConnectionFailure:
