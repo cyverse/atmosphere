@@ -29,7 +29,7 @@ def main():
 
     for provider_machine in all_images:
         glance_write_machine(provider_machine)
-        print "Updated metadata for %s" % provider_machine
+        print "Updated metadata for %s" % (provider_machine,)
 
 if __name__ == "__main__":
     main()
