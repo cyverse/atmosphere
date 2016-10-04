@@ -21,7 +21,7 @@ from core.models.identity import Identity
 from core.models.instance_tag import InstanceTag
 from core.models.link import ExternalLink
 from core.models.profile import UserProfile
-from core.models.project import Project
+from core.models.project import (Project, ProjectMembership)
 from core.models.project_application import ProjectApplication
 from core.models.project_link import ProjectExternalLink
 from core.models.project_instance import ProjectInstance

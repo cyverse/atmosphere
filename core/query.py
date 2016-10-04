@@ -223,6 +223,16 @@ def only_active_provider_memberships(user=None, now_time=None):
     return query
 
 
+def only_active_projects(now_time=None):
+    if not now_time:
+        now_time = timezone.now()
+    query = (
+        Q(project__end_date__isnull=True) |
+        Q(project__end_date__gt=now_time)
+    )
+    return query
+
+
 def only_active_memberships(user=None, now_time=None):
     if not now_time:
         now_time = timezone.now()

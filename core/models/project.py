@@ -4,7 +4,6 @@ from django.utils import timezone
 from core.models.application import Application
 from core.models.link import ExternalLink
 from core.models.instance import Instance
-from core.models.group import Group
 from core.models.volume import Volume
 from core.query import only_current_source
 
@@ -24,7 +23,7 @@ class Project(models.Model):
     description = models.TextField(blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
-    owner = models.ForeignKey(Group, related_name="projects")
+    owner = models.ForeignKey('Group', related_name="projects")
     applications = models.ManyToManyField(Application, related_name="projects",
                                           blank=True)
     # FIXME: Instances + Volumes are *NOT* MANYTOMANY
@@ -121,3 +120,27 @@ class Project(models.Model):
     class Meta:
         db_table = 'project'
         app_label = 'core'
+
+
+class ProjectMembership(models.Model):
+
+    """
+    Members of a private image can view & launch its respective machines. If
+    the can_modify flag is set, then members also have ownership--they can make
+    changes. The unique_together field ensures just one of those states is
+    true.
+    """
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey('Group')
+    can_edit = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return "%s %s %s" %\
+            (self.group.name,
+             "can edit" if self.can_edit else "can view",
+             self.project.name)
+
+    class Meta:
+        db_table = 'project_membership'
+        app_label = 'core'
+        unique_together = ('project', 'group')

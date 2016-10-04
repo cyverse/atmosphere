@@ -1,4 +1,5 @@
-from core.models.project import Project, Group
+from core.models.project import Project
+from core.models.group import Group
 from core.query import only_current, only_current_source
 from rest_framework import serializers
 from .instance_serializer import InstanceSerializer

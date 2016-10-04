@@ -27,6 +27,7 @@ from .machine_request import MachineRequestViewSet
 from .maintenance_record import MaintenanceRecordViewSet
 from .platform_type import PlatformTypeViewSet
 from .project import ProjectViewSet
+from .project_membership import ProjectMembershipViewSet
 from .project_application import ProjectApplicationViewSet
 from .project_link import ProjectExternalLinkViewSet
 from .project_instance import ProjectInstanceViewSet
