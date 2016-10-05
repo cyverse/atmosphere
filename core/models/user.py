@@ -143,6 +143,65 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
             all_identities |= group.current_identities.all()
         return all_identities
 
+    def shared_identities(self, can_edit=False):
+        from core.models import Identity
+        user_ids = self.shared_projects(can_edit).values_list('owner__user', flat=True).distinct()
+        return Identity.objects.filter(created_by__in=user_ids)
+
+    def shared_projects(self, can_edit=False):
+        from core.models import Project
+        from core.query import is_member, is_owner
+        query = is_owner(self) if can_edit else is_member(self)
+        return Project.objects.filter(query)
+
+    def shared_volumes(self, can_edit=False):
+        from core.models import Volume, ProjectVolume
+        from core.query import (
+            is_project_member, project_member_can_edit
+        )
+        query = is_project_member(self)
+        if can_edit:
+            query &= project_member_can_edit(self)
+        volume_ids = ProjectVolume.objects.filter(query)\
+            .values_list('volume__id', flat=True)
+        return Volume.objects.filter(id__in=volume_ids)
+
+    def shared_images(self, can_edit=False):
+        from core.models import Application, ProjectApplication
+        from core.query import (
+            is_project_member, project_member_can_edit
+        )
+        query = is_project_member(self)
+        if can_edit:
+            query &= project_member_can_edit(self)
+        app_ids = ProjectApplication.objects.filter(query)\
+            .values_list('application__id', flat=True)
+        return Application.objects.filter(id__in=app_ids)
+
+    def shared_links(self, can_edit=False):
+        from core.models import ExternalLink, ProjectExternalLink
+        from core.query import (
+            is_project_member, project_member_can_edit
+        )
+        query = is_project_member(self)
+        if can_edit:
+            query &= project_member_can_edit(self)
+        link_ids = ProjectExternalLink.objects.filter(query)\
+            .values_list('externallink__id', flat=True)
+        return ExternalLink.objects.filter(id__in=link_ids)
+
+    def shared_instances(self, can_edit=False):
+        from core.models import Instance, ProjectInstance
+        from core.query import (
+            is_project_member, project_member_can_edit
+        )
+        query = is_project_member(self)
+        if can_edit:
+            query &= project_member_can_edit(self)
+        instance_ids = ProjectInstance.objects.filter(query)\
+            .values_list('instance__id', flat=True)
+        return Instance.objects.filter(id__in=instance_ids)
+
     @classmethod
     def for_allocation_source(cls, allocation_source_id):
         from core.models import UserAllocationSource
@@ -159,6 +218,9 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         # Return previously selected identity
         if settings.AUTO_CREATE_NEW_ACCOUNTS:
             new_identities = create_new_accounts(self.username)
+            if new_identities:
+                logger.info("Created new identities for User: %s - %s" % (self.username, new_identities))
+
         if self.selected_identity and self.selected_identity.is_active(user=self):
             return self.selected_identity
         else:

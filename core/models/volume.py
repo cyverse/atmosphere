@@ -34,6 +34,12 @@ class Volume(BaseSource):
         db_table = "volume"
         app_label = "core"
 
+    @classmethod
+    def for_user(self, user):
+        identity_ids = user.current_identities.values_list('id', flat=True)
+        return Volume.objects.filter(
+            instance_source__created_by_identity__in=identity_ids)
+
     def update(self, *args, **kwargs):
         """
         Allows for partial updating of the model

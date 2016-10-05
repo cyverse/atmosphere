@@ -5,7 +5,9 @@ from core.models.application import Application
 from core.models.link import ExternalLink
 from core.models.instance import Instance
 from core.models.volume import Volume
-from core.query import only_current_source
+from core.query import (
+    only_current_source,
+)
 
 from threepio import logger
 
@@ -33,7 +35,16 @@ class Project(models.Model):
     volumes = models.ManyToManyField(Volume, related_name="projects",
                                      blank=True)
     links = models.ManyToManyField(ExternalLink, related_name="projects",
-                                          blank=True)
+                                   blank=True)
+
+    @property
+    def members(self):
+        from core.models.user import AtmosphereUser
+        valid_group_ids = list(
+            self.projectmembership_set.values_list('group', flat=True)
+        )
+        valid_group_ids.append(self.owner.id)
+        return AtmosphereUser.objects.filter(group__id__in=valid_group_ids)
 
     def active_volumes(self):
         return self.volumes.model.active_volumes.filter(
