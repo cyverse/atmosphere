@@ -32,7 +32,7 @@ from service.exceptions import OverQuotaError
 from api import invalid_creds, connection_failure,\
     malformed_response
 from api.v1.serializers import VolumeSerializer, InstanceSerializer
-from api.v1.views.base import AuthAPIView
+from api.v1.views.base import AuthAPIView, ProjectOwnerAPIView
 
 
 class VolumeSnapshot(AuthAPIView):
@@ -215,7 +215,7 @@ class VolumeSnapshotDetail(AuthAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class VolumeList(AuthAPIView):
+class VolumeList(ProjectOwnerAPIView):
 
     """
     List all volumes on Identity.
@@ -340,7 +340,7 @@ class VolumeList(AuthAPIView):
         return Response(serialized_data, status=status.HTTP_201_CREATED)
 
 
-class Volume(AuthAPIView):
+class Volume(ProjectOwnerAPIView):
 
     """
     Details of specific volume on Identity.
@@ -526,7 +526,7 @@ class Volume(AuthAPIView):
         return response
 
 
-class BootVolume(AuthAPIView):
+class BootVolume(ProjectOwnerAPIView):
 
     """
     Launch an instance using this volume as the source

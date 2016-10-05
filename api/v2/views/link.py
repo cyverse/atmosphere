@@ -3,7 +3,7 @@ from rest_framework import filters
 import django_filters
 
 from core.models import ExternalLink as ExternalLink
-from api.v2.views.base import AuthOptionalViewSet
+from api.v2.views.base import ProjectOwnerViewSet
 from api.v2.serializers.details import ExternalLinkSerializer
 
 
@@ -16,7 +16,7 @@ class LinkFilter(django_filters.FilterSet):
         fields = ['image_id', 'created_by']
 
 
-class ExternalLinkViewSet(AuthOptionalViewSet):
+class ExternalLinkViewSet(ProjectOwnerViewSet):
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
@@ -31,6 +31,7 @@ class ExternalLinkViewSet(AuthOptionalViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
+        links = request_user.shared_links()
         if type(request_user) == AnonymousUser:
             return ExternalLink.objects.none()
-        return ExternalLink.objects.filter(created_by=request_user)
+        return links

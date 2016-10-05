@@ -2,6 +2,7 @@ from django.db.models import Q
 import django_filters
 
 from core.models import ProjectMembership
+from core.query import only_active_projects
 from api.v2.serializers.details import ProjectMembershipSerializer
 from api.v2.views.base import AuthViewSet
 
@@ -36,7 +37,8 @@ class ProjectMembershipViewSet(AuthViewSet):
 
     def get_queryset(self):
         """
-        Filter out tags for deleted versions
+        Filter out Project Memberships that I am not the project owner of
         """
         return ProjectMembership.objects.filter(
+            only_active_projects(),
             project__owner__user=self.request.user)

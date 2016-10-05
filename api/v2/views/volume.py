@@ -10,7 +10,7 @@ from rest_framework import status
 from api.exceptions import (inactive_provider)
 from api.v2.serializers.details import VolumeSerializer, UpdateVolumeSerializer
 from api.v2.serializers.post import VolumeSerializer as POSTVolumeSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import ProjectOwnerViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 from core.exceptions import ProviderNotActive
@@ -35,7 +35,7 @@ class VolumeFilter(django_filters.FilterSet):
         fields = ['min_size', 'max_size', 'projects']
 
 
-class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
+class VolumeViewSet(MultipleFieldLookup, ProjectOwnerViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.
@@ -58,10 +58,9 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        identity_ids = user.current_identities.values_list('id',flat=True)
-        return Volume.objects.filter(
-            only_current_source(),
-            instance_source__created_by_identity__in=identity_ids)
+        qs = user.shared_volumes()
+        return qs.filter(
+            only_current_source())
 
     @detail_route(methods=['post'])
     def update_metadata(self, request, pk=None):

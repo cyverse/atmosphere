@@ -44,7 +44,7 @@ from api.pagination import OptionalPagination
 from api.v1.serializers import InstanceStatusHistorySerializer,\
     InstanceSerializer, InstanceHistorySerializer, VolumeSerializer,\
     TagSerializer
-from api.v1.views.base import AuthAPIView, AuthListAPIView
+from api.v1.views.base import AuthAPIView, AuthListAPIView, ProjectOwnerAPIView
 
 
 def get_core_instance(request, provider_uuid, identity_uuid, instance_id):
@@ -89,7 +89,7 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
     return esh_instance
 
 
-class InstanceList(AuthAPIView):
+class InstanceList(ProjectOwnerAPIView):
 
     """
     Instances are the objects created when you launch a machine. They are
@@ -385,7 +385,7 @@ def _further_process_result(request, action, result):
         return result
 
 
-class InstanceAction(AuthAPIView):
+class InstanceAction(ProjectOwnerAPIView):
 
     """
     This endpoint will allow you to run a specific action on an instance.
@@ -524,7 +524,7 @@ class InstanceAction(AuthAPIView):
                 % (action_params['action'], message))
 
 
-class Instance(AuthAPIView):
+class Instance(ProjectOwnerAPIView):
 
     """
     Instances are the objects created when you launch a machine. They are
