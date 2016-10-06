@@ -12,6 +12,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True, source='user.username')
     email = serializers.CharField(read_only=True, source='user.email')
     groups = serializers.CharField(read_only=True, source='user.groups.all')
+    is_expired = serializers.BooleanField(source='user.is_expired')
     is_staff = serializers.BooleanField(source='user.is_staff')
     is_superuser = serializers.BooleanField(source='user.is_superuser')
     selected_identity = IdentityRelatedField(
