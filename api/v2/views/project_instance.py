@@ -2,12 +2,13 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.models import ProjectInstance, Provider
+from core.query import is_project_member
 
 from api.v2.serializers.details import ProjectInstanceSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import ProjectOwnerViewSet
 
 
-class ProjectInstanceViewSet(AuthViewSet):
+class ProjectInstanceViewSet(ProjectOwnerViewSet):
 
     """
     API endpoint that allows instance actions to be viewed or edited.
@@ -24,10 +25,11 @@ class ProjectInstanceViewSet(AuthViewSet):
         user = self.request.user
         now = timezone.now()
         p_instances = ProjectInstance.objects.filter(
+            is_project_member(user),
             Q(instance__end_date__gt=now) |
             Q(instance__end_date__isnull=True),
-            instance__start_date__lt=now,
-            project__owner__user=user)
+            instance__start_date__lt=now
+            )
         active_provider_uuids = [ap.uuid for ap in Provider.get_active()]
         return p_instances.filter(
             pk__in=[i.id for i in p_instances

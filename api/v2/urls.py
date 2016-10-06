@@ -26,6 +26,7 @@ router.register(r'emulate_session', views.SessionEmulateViewSet, base_name='emul
 router.register(r'help_links', views.HelpLinkViewSet)
 router.register(r'identities', views.IdentityViewSet)
 router.register(r'identity_memberships', views.IdentityMembershipViewSet, base_name='identitymembership')
+router.register(r'project_memberships', views.ProjectMembershipViewSet, base_name='projectmembership')
 router.register(r'images', views.ImageViewSet, base_name='application')
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
 router.register(r'image_tags', views.ImageTagViewSet)

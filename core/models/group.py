@@ -18,11 +18,12 @@ from core.models.allocation_strategy import Allocation
 from core.models.application import Application
 from core.models.identity import Identity
 from core.models.provider import Provider
+from core.models.project import Project
 from core.models.quota import Quota
 from core.models.user import AtmosphereUser
 
 from core.query import (
-        only_active_memberships, only_active_provider, only_current_provider
+        only_active_projects, only_active_memberships, only_active_provider, only_current_provider
     )
 
 class Group(DjangoGroup):
@@ -40,6 +41,9 @@ class Group(DjangoGroup):
     applications = models.ManyToManyField(Application,
                                           related_name='members',
                                           through='ApplicationMembership',
+                                          blank=True)
+    project_memberships = models.ManyToManyField(Project,
+                                          through='ProjectMembership',
                                           blank=True)
     provider_machines = models.ManyToManyField(
         'ProviderMachine',
@@ -64,6 +68,12 @@ class Group(DjangoGroup):
         identity_ids = self.identity_memberships.filter(
                 only_active_memberships()).values_list('identity',flat=True)
         return Identity.objects.filter(only_current_provider(), only_active_provider(), id__in=identity_ids)
+
+    @property
+    def current_projects(self):
+        project_ids = self.project_memberships.filter(
+            only_active_projects()).values_list('project',flat=True)
+        return Project.objects.filter(id__in=project_ids)
 
     @property
     def current_providers(self):

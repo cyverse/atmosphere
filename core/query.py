@@ -223,6 +223,79 @@ def only_active_provider_memberships(user=None, now_time=None):
     return query
 
 
+def only_active_projects(now_time=None):
+    if not now_time:
+        now_time = timezone.now()
+    query = (
+        Q(project__end_date__isnull=True) |
+        Q(project__end_date__gt=now_time)
+    )
+    return query
+
+
+def project_member_can_edit(user):
+    """
+    Use this when you have *only* the project to look at
+    Project*(Resources)
+    """
+    query = (
+        Q(project__projectmembership__can_edit=True) &
+        Q(project__projectmembership__group__user=user)
+    ) | (
+        Q(project__owner__user=user)
+    )
+    return query
+
+
+def is_project_member(user):
+    """
+    Use this when you have *only* the project to look at
+    Project*(Resources)
+    """
+    query = (
+        Q(project__owner__user=user) |
+        Q(project__projectmembership__group__user=user)
+    )
+    return query
+
+
+def is_member(user):
+    """
+    Use this when querying a Project class
+    """
+    query = (
+        Q(projectmembership__group__user=user)
+    ) | (
+        Q(owner__user=user)
+    )
+    return query
+
+
+def is_owner(user):
+    """
+    Use this when querying a Project class
+    """
+    query = (
+        Q(projectmembership__can_edit=True) &
+        Q(projectmembership__group__user=user)
+    ) | (
+        Q(owner__user=user)
+    )
+    return query
+
+
+def has_project_membership(user):
+    """
+    Use this to filter down the ProjectMembership table to a specific user.
+    This will *not* disambiguate between Ownership and Membership.
+    """
+    query = (
+        Q(project__owner__user=user) |
+        Q(group__user=user)
+    )
+    return query
+
+
 def only_active_memberships(user=None, now_time=None):
     if not now_time:
         now_time = timezone.now()

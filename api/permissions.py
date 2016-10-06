@@ -8,10 +8,15 @@ from rest_framework import permissions
 from threepio import logger
 
 from core.models.cloud_admin import CloudAdministrator, cloud_admin_list, get_cloud_admin_for_provider
-from core.models import Group, MaintenanceRecord, AtmosphereUser
+from core.models import Group, MaintenanceRecord, AtmosphereUser, Project
 
 from api import ServiceUnavailable
-
+from api.v2.serializers.details import (
+    ProjectSerializer, VolumeSerializer,
+    InstanceSerializer, ExternalLinkSerializer,
+    ProjectInstanceSerializer, ProjectVolumeSerializer,
+    ProjectExternalLinkSerializer, ProjectApplicationSerializer
+)
 
 class ImageOwnerUpdateAllowed(permissions.BasePermission):
 
@@ -32,16 +37,130 @@ class ImageOwnerUpdateAllowed(permissions.BasePermission):
 
 
 class ProjectOwnerRequired(permissions.BasePermission):
+    message = "You must be the project owner to execute this command."
 
     def has_permission(self, request, view):
         auth_user = request.user
-        project_uuid = view.kwargs.get('project_uuid')
-        if not project_uuid:
-            logger.warn("Could not find kwarg:'project_uuid'")
+        provider_uuid = view.kwargs.get('provider_uuid')
+        identity_uuid = view.kwargs.get('identity_uuid')
+        instance_id = view.kwargs.get('instance_id')
+        volume_id = view.kwargs.get('volume_id')
+        key = view.kwargs.get('pk')
+        request_method = request._request.META['REQUEST_METHOD']
+        request_path = request._request.path
+        SerializerCls = getattr(view, 'serializer_class', None)
+        # The V2 APIs don't use 'named kwargs' so everything comes in as 'pk'
+        # To overcome this hurdle and disambiguate views, we use the fact that every viewset defines a serializer class.
+        if SerializerCls == VolumeSerializer:
+            volume_id = key
+        elif SerializerCls == InstanceSerializer:
+            instance_id = key
+
+        if instance_id or SerializerCls == InstanceSerializer:
+            # Permissions specific to /v1/views/instance.py, /v2/views/volume.py
+            if request_method == 'GET':
+                # Allow 'GET' list/details requests for the v1 APIs
+                return True
+            return self.test_instance_permissions(auth_user, instance_id)
+        elif volume_id or SerializerCls == VolumeSerializer:
+            # Permissions specific to /v1/views/volume.py, /v2/views/volume.py
+            if request_method == 'GET':
+                # Allow 'GET' list/details requests for the v1 APIs
+                return True
+            return self.test_volume_permissions(auth_user, volume_id)
+        elif SerializerCls == ProjectSerializer:
+            if not key and request_method == 'GET':
+                return True  # Querying for the list -- Allow it.
+            # Permissions specific to /v2/views/project.py
+            return self.test_project_permissions(auth_user, key)
+        elif SerializerCls == ExternalLinkSerializer:
+            if not key and request_method == 'GET':
+                return True  # Querying for the list -- Allow it.
+            # Permissions specific to /v2/views/link.py
+            return self.test_link_permissions(auth_user, key)
+        elif SerializerCls in [
+                ProjectApplicationSerializer, ProjectExternalLinkSerializer,
+                ProjectInstanceSerializer, ProjectVolumeSerializer]:
+            if request_method == 'GET':
+                # Allow 'GET' requests for the v1 APIs
+                return True
+            # Permissions specific to /v2/views/link.py
+            return self.test_project_resource_permissions(
+                SerializerCls.Meta.model, auth_user, key)
+        elif identity_uuid:
+            # Permissions specific to v1 Instance and Volume Creation
+            return self.test_identity_permissions(auth_user, identity_uuid)
+        else:
+            logger.warn("Could not find kwarg:'instance_id' or 'volume_id'")
             return False
-        return any(
-            group for group in auth_user.group_set.all()
-            if group.projects.filter(uuid=project_uuid))
+
+    def test_identity_permissions(self, auth_user, identity_id):
+        identity = auth_user.shared_identities(can_edit=True).filter(
+            uuid=identity_id).first()
+        return identity
+
+    def test_link_permissions(self, auth_user, link_id):
+        link = auth_user.shared_links(can_edit=True).filter(
+            pk=link_id).first()
+        return link
+
+    def test_project_resource_permissions(self, ModelCls, auth_user, project_id):
+        from core.query import (
+            is_project_member, project_member_can_edit
+        )
+        query = is_project_member(auth_user)
+        query &= project_member_can_edit(auth_user)
+
+        proj = ModelCls.objects.filter(
+            query).filter(pk=project_id).first()
+        return proj
+
+    def test_project_permissions(self, auth_user, project_id):
+        proj = auth_user.shared_projects(can_edit=True).filter(
+            pk=project_id).first()
+        return proj
+
+    def test_volume_permissions(self, auth_user, volume_id):
+        volume = auth_user.shared_volumes(can_edit=True).filter(
+            instance_source__identifier=volume_id).first()
+        return volume
+
+    def test_instance_permissions(self, auth_user, instance_id):
+        instance = auth_user.shared_instances(can_edit=True).filter(
+            provider_alias=instance_id).first()
+        return instance
+
+
+class ProjectMemberRequired(ProjectOwnerRequired):
+    def test_link_permissions(self, auth_user, link_id):
+        link = auth_user.shared_links(can_edit=False).filter(
+            pk=link_id).first()
+        return link
+
+    def test_project_resource_permissions(self, ModelCls, auth_user, project_id):
+        from core.query import (
+            is_project_member, project_member_can_edit
+        )
+        query = is_project_member(auth_user)
+
+        proj = ModelCls.objects.filter(
+            query).filter(pk=project_id).first()
+        return proj
+
+    def test_project_permissions(self, auth_user, project_id):
+        proj = auth_user.shared_projects().filter(
+            pk=project_id).first()
+        return proj
+
+    def test_volume_permissions(self, auth_user, volume_id):
+        volume = auth_user.shared_volumes().filter(
+            provider_alias=volume_id).first()
+        return volume
+
+    def test_instance_permissions(self, auth_user, instance_id):
+        instance = auth_user.shared_instances().filter(
+            provider_alias=instance_id).first()
+        return instance
 
 
 class ApiAuthRequired(permissions.BasePermission):

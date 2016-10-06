@@ -2,12 +2,13 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.models import ProjectVolume
+from core.query import is_project_member
 
 from api.v2.serializers.details import ProjectVolumeSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import ProjectOwnerViewSet
 
 
-class ProjectVolumeViewSet(AuthViewSet):
+class ProjectVolumeViewSet(ProjectOwnerViewSet):
 
     """
     API endpoint that allows instance actions to be viewed or edited.
@@ -25,11 +26,11 @@ class ProjectVolumeViewSet(AuthViewSet):
         now = timezone.now()
         # TODO: Refactor -- core.query
         return ProjectVolume.objects.filter(
+            is_project_member(user),
             Q(volume__instance_source__end_date__gt=now)
             | Q(volume__instance_source__end_date__isnull=True),
             Q(volume__instance_source__provider__end_date__gt=now)
             | Q(volume__instance_source__provider__end_date__isnull=True),
             volume__instance_source__provider__active=True,
             volume__instance_source__start_date__lt=now,
-            volume__instance_source__provider__start_date__lt=now,
-            project__owner__user=user)
+            volume__instance_source__provider__start_date__lt=now)

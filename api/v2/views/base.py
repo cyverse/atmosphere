@@ -11,7 +11,8 @@ from core.models import IdentityMembership, CloudAdministrator
 from core.models.status_type import StatusType
 
 from api.permissions import (
-        ApiAuthOptional, ApiAuthRequired, EnabledUserRequired,
+        ApiAuthOptional, ApiAuthRequired,
+        EnabledUserRequired, ProjectOwnerRequired, ProjectMemberRequired,
         InMaintenance, CloudAdminRequired
     )
 from api.v2.views.mixins import MultipleFieldLookup
@@ -53,6 +54,24 @@ class AuthViewSet(ModelViewSet):
     permission_classes = (InMaintenance,
                           EnabledUserRequired,
                           ApiAuthRequired,)
+
+
+class ProjectOwnerViewSet(ModelViewSet):
+    http_method_names = ['get', 'put', 'patch', 'post',
+                         'delete', 'head', 'options', 'trace']
+    permission_classes = (InMaintenance,
+                          EnabledUserRequired,
+                          ApiAuthRequired,
+                          ProjectOwnerRequired)
+
+
+class ProjectMemberViewSet(ModelViewSet):
+    http_method_names = ['get', 'put', 'patch', 'post',
+                         'delete', 'head', 'options', 'trace']
+    permission_classes = (InMaintenance,
+                          EnabledUserRequired,
+                          ApiAuthRequired,
+                          ProjectMemberRequired)
 
 
 class AdminAuthViewSet(AuthViewSet):

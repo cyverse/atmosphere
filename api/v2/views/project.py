@@ -1,15 +1,15 @@
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ValidationError
-from core.models import Project, Group
-from core.query import only_current
+from core.models import Project, Group, ProjectMembership
+from core.query import only_current, has_project_membership
 
 from api.v2.serializers.details import ProjectSerializer,\
     VolumeSerializer, InstanceSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import ProjectOwnerViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 
-class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
+class ProjectViewSet(MultipleFieldLookup, ProjectOwnerViewSet):
 
     """
     API endpoint that allows projects to be viewed or edited.
@@ -58,13 +58,15 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
         Filter projects by current user.
         """
         user = self.request.user
-        return Project.objects.filter(only_current(),
-                                      owner__name=user.username)
+        owned_project_ids = Project.objects.filter(only_current(), owner__name=user.username).values_list('id', flat=True)
+        shared_project_ids = list(ProjectMembership.objects.filter(has_project_membership(user)).values_list('project__id', flat=True))
+        shared_project_ids.extend(owned_project_ids)
+        return Project.objects.filter(only_current(), id__in=shared_project_ids)
 
     @detail_route()
     def instances(self, *args, **kwargs):
         project = self.get_object()
-        self.get_queryset = super(AuthViewSet, self).get_queryset
+        self.get_queryset = super(ProjectOwnerViewSet, self).get_queryset
         self.queryset = project.instances.get_queryset()
         self.serializer_class = InstanceSerializer
         return self.list(self, *args, **kwargs)
@@ -72,7 +74,7 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
     @detail_route()
     def volumes(self, *args, **kwargs):
         project = self.get_object()
-        self.get_queryset = super(AuthViewSet, self).get_queryset
+        self.get_queryset = super(ProjectOwnerViewSet, self).get_queryset
         self.queryset = project.volumes.get_queryset()
         self.serializer_class = VolumeSerializer
         return self.list(self, *args, **kwargs)

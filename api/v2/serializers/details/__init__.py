@@ -24,6 +24,7 @@ from .link import ExternalLinkSerializer
 from .maintenance_record import MaintenanceRecordSerializer
 from .machine_request import (MachineRequestSerializer, UserMachineRequestSerializer)
 from .project import ProjectSerializer
+from .project_membership import ProjectMembershipSerializer
 from .project_application import ProjectApplicationSerializer
 from .project_link import ProjectExternalLinkSerializer
 from .project_instance import ProjectInstanceSerializer

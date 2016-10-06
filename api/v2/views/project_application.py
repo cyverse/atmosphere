@@ -2,12 +2,13 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.models import ProjectApplication, Provider, Application
+from core.query import is_project_member
 
 from api.v2.serializers.details import ProjectApplicationSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import ProjectOwnerViewSet
 
 
-class ProjectApplicationViewSet(AuthViewSet):
+class ProjectApplicationViewSet(ProjectOwnerViewSet):
 
     """
     API endpoint that allows application actions to be viewed or edited.
@@ -23,5 +24,5 @@ class ProjectApplicationViewSet(AuthViewSet):
         aren't in a project you have access to.
         """
         user = self.request.user
-        p_applications = ProjectApplication.objects.filter(project__owner__user=user)
+        p_applications = ProjectApplication.objects.filter(is_project_member(user))
         return p_applications
