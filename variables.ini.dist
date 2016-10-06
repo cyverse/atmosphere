@@ -89,6 +89,7 @@ TIME_ZONE = ; America/Phoenix
 SITE_NAME = ; CyVerse
 ADMINS_EMAIL_TUPLE = ; [('Atmosphere Admin', 'atmo-admin@website.com'),('System Admins', 'sys-admin@website.com')]
 ATMO_SUPPORT_EMAIL_TUPLE = ; [('Different Email for Request Tracking', 'rt@website.com'),('System Admins', 'sys-admin@website.com')]
+SERVER_EMAIL = ; help@website.org
 SUPPORT_EMAIL = ; help@website.org
 SUPPORT_EMAIL_SIGNATURE = ; CyVerse Atmosphere Team
 SUPPORT_LINKS = ; {'getting_started': "https://link_to.wiki.org/Using+Instances", 'new_provider': "https://link_to.wiki.org/Changing+Providers", "faq": "https://link_to.wiki.org/Cloud_FAQ"}

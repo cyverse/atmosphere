@@ -99,6 +99,9 @@ LANGUAGE_CODE = 'en-us'
 
 SITE_ID = 1
 
+SITE_TITLE = "Atmosphere"
+ORG_NAME = "CyVerse"
+
 USE_I18N = True
 
 USE_TZ = True
