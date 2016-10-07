@@ -92,3 +92,10 @@ class GroupViewSet(MultipleFieldLookup, AuthViewSet):
         group.user_set.remove(user)
         serialized_data = GroupSerializer(group, context={'request': request}).data
         return Response(serialized_data)
+
+    def get_queryset(self):
+        """
+        Filter out tags for deleted instances
+        """
+        user_id = self.request.user.id
+        return Group.objects.filter(user__id=user_id)

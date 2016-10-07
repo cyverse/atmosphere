@@ -397,15 +397,6 @@ def create_provider_machine(identifier, provider_uuid, app,
     return provider_machine
 
 
-def _username_lookup(provider_uuid, username):
-    try:
-        return Identity.objects.get(
-            provider__uuid=provider_uuid,
-            created_by__username=username)
-    except Identity.DoesNotExist:
-        return None
-
-
 def update_provider_machine(
         provider_machine,
         new_created_by_identity=None,

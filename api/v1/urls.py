@@ -270,10 +270,4 @@ urlpatterns = format_suffix_patterns([
     url(identity_specific + r'/meta/(?P<action>.*)$',
         views.MetaAction.as_view(), name='meta-action'),
 
-    url(identity_specific + r'/members$',
-        views.IdentityMembershipList.as_view(),
-        name='identity-membership-list'),
-    url(identity_specific + r'/members/(?P<group_name>%s)$' % user_match,
-        views.IdentityMembership.as_view(),
-        name='identity-membership-detail')
 ])

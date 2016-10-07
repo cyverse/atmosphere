@@ -6,11 +6,73 @@ from django.conf import settings
 from threepio import logger
 
 
+DEFAULT_ACCOUNT_CREATION_PLUGIN = 'atmosphere.plugins.accounts'\
+    '.creation.UserGroup'
+
+
 def load_plugin_class(plugin_path):
     return import_string(plugin_path)
 
 
 class PluginManager(object):
+    """
+    Move "Similar functionality" here as appropriate.
+    """
+    pass
+
+
+class AccountCreationPluginManager(PluginManager):
+    """
+    At least one plugin is required to create accounts for Atmosphere
+    A sample account creation plugin has been provided for you:
+    - atmosphere.plugins.accounts.creation.UserGroup
+
+    This plugin will he validation plugin test
+    they will not be able to access the Atmosphere API.
+    """
+
+    def __init__(self):
+        plugin_class = getattr(
+            settings, 'ACCOUNT_CREATION_PLUGIN',
+            DEFAULT_ACCOUNT_CREATION_PLUGIN)
+
+        if not isinstance(plugin_class, basestring):
+            raise ValueError(
+                "Please pass only one class-string to "
+                "settings.ACCOUNT_CREATION_PLUGIN")
+        self.AccountCreationPlugin = load_plugin_class(plugin_class)
+        self.plugin = self.AccountCreationPlugin()
+
+    def create_accounts(self, provider, usernames):
+        accounts_map = {}
+        for username in usernames:
+            accounts_map[username] = self.plugin_create_accounts(
+                provider, username)
+        return accounts_map
+
+    def plugin_create_accounts(self, provider, username):
+        """
+        Load the accountsCreationPlugin and call `plugin.create_accounts(provider, username)`
+        """
+        try:
+            inspect.getcallargs(
+                getattr(self.plugin, 'create_accounts'),
+                username=username,
+                provider=provider)
+        except AttributeError:
+            logger.info(
+                "Validation plugin %s missing method 'validate_user'"
+                % self.AccountCreationPlugin)
+        except TypeError:
+            logger.info(
+                "Validation plugin %s does not accept kwarg "
+                "`username` or `provider`"
+                % self.AccountCreationPlugin)
+        accounts = self.plugin.create_accounts(provider=provider, username=username)
+        return accounts
+
+
+class PluginListManager(object):
     plugin_required = False
     plugin_required_message = "At least one plugin is required."
 
@@ -31,7 +93,7 @@ class PluginManager(object):
         return plugin_classes
 
 
-class ValidationPluginManager(PluginManager):
+class ValidationPluginManager(PluginListManager):
     """
     At least one plugin is required to test user validation.
     A sample validation plugin has been provided for you:
@@ -73,7 +135,7 @@ please set settings.VALIDATION_PLUGINS to:
         return _is_valid
 
 
-class ExpirationPluginManager(PluginManager):
+class ExpirationPluginManager(PluginListManager):
     """
     Plugins to test user expiration are not required.
     Use this if you wish to signal to Troposphere that a user has authenticated

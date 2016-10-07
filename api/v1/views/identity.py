@@ -18,17 +18,13 @@ def get_provider(user, provider_uuid):
     return None or an Active provider
     """
     try:
-        group = Group.objects.get(name=user.username)
-    except Group.DoesNotExist:
-        logger.warn("Group %s DoesNotExist" % user.username)
-        return None
-
-    try:
-        provider = group.current_providers.get(uuid=provider_uuid)
+        provider = user.current_providers.get(uuid=provider_uuid)
         return provider
     except Provider.DoesNotExist:
-        logger.warn("Provider %s DoesNotExist for User:%s in Group:%s"
-                    % (provider_uuid, user, group))
+        logger.warn(
+            "Provider %s DoesNotExist and/or has not "
+            "been shared with any of the groups for User:%s"
+            % (provider_uuid, user))
         return None
 
 
@@ -37,20 +33,12 @@ def get_identity_list(user, provider=None):
     Given the (request) user
     return all identities on all active providers
     """
-    try:
-        group = Group.objects.get(name=user.username)
-        if provider:
-            identity_list = group.current_identities.filter(
-                provider=provider)
-        else:
-            identity_list = group.current_identities.all()
-        return identity_list
-    except Group.DoesNotExist:
-        logger.warn("Group %s DoesNotExist" % user.username)
-        return None
-    except CoreIdentity.DoesNotExist:
-        logger.warn("Identity DoesNotExist for user %s" % user.username)
-        return None
+    if provider:
+        identity_list = user.current_identities.filter(
+            provider=provider)
+    else:
+        identity_list = user.current_identities.all()
+    return identity_list
 
 
 def get_identity(user, identity_uuid):

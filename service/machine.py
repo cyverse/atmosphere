@@ -392,21 +392,21 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
         provider_machine.application.save()
     # Add all these people by default..
     owner = provider_machine.application.created_by
-    group_list = owner.group_set.all()
+    membership_list = owner.memberships.select_related('group')
     if tenant_list:
         # ASSERT: Groupnames == Usernames
-        tenant_list.extend([group.name for group in group_list])
+        tenant_list.extend([membership.group.name for membership in membership_list])
     else:
-        tenant_list = [group.name for group in group_list]
+        tenant_list = [membership.group.name for membership in membership_list]
     for tenant in tenant_list:
         if type(tenant) != unicode:
-            name = tenant.name
+            groupname = tenant.name
         else:
-            name = tenant
+            groupname = tenant
         try:
-            group = models.Group.objects.get(name=name)
+            group = models.Group.objects.get(name=groupname)
         except models.Group.DoesNotExist:
-            logger.warn("Group %s does not exist - Skipped sharing" % name)
+            logger.warn("Group %s does not exist - Skipped sharing" % groupname)
             pass
 
         obj, created = models.ApplicationMembership.objects.get_or_create(

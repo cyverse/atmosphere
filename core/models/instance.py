@@ -79,7 +79,7 @@ class Instance(models.Model):
 
     @classmethod
     def for_user(self, user):
-        identity_ids = user.current_identities.values_list('id', flat=True)
+        identity_ids = user.shared_identities.values_list('id', flat=True)
         qs = Instance.objects.filter(created_by_identity__in=identity_ids)
         return qs
 

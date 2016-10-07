@@ -1,8 +1,11 @@
-from core.models import Project
+from core.models import Project, Group
 from rest_framework import serializers
-from api.v2.serializers.summaries import InstanceSummarySerializer,\
-    VolumeSummarySerializer, ImageSummarySerializer, ExternalLinkSummarySerializer
-from api.v2.serializers.fields import UserRelatedField
+from api.v2.serializers.summaries import (
+    InstanceSummarySerializer, VolumeSummarySerializer,
+    ImageSummarySerializer, ExternalLinkSummarySerializer,
+    GroupSummarySerializer
+)
+from api.v2.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
@@ -18,7 +21,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     # note: both of these requests become a single DB query, but I'm choosing
     # the owner.name route so the API doesn't break when we start adding users
     # to groups owner = UserSerializer(source='owner.user_set.first')
-    owner = UserRelatedField(source='owner.name')
+    owner = ModelRelatedField(
+        lookup_field="name",
+        queryset=Group.objects.all(),
+        serializer_class=GroupSummarySerializer,
+        style={'base_template': 'input.html'})
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:project-detail',
     )

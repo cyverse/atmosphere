@@ -36,22 +36,8 @@ class ProviderViewSet(MultipleFieldLookup, AuthViewSet):
         if (type(user) == AnonymousUser):
             return Provider.objects.filter(
                 only_current(), active=True, public=True)
-        method = self.request.method
-        admin_qs = Provider.objects.filter(cloud_admin=user)
-        # User modify/create/delete queryset:
-        if method in ['DELETE', 'PUT', 'POST']:
-            return admin_qs
-        # User get queryset: Show *shared* + *admin*
-        try:
-            group = Group.objects.get(name=user.username)
-            provider_ids = group.identities.filter(
-                only_current_provider(),
-                provider__active=True).values_list('provider', flat=True)
-            shared_qs = Provider.objects.filter(id__in=provider_ids)
-        except Group.DoesNotExist:
-            shared_qs = Provider.objects.none()
-        queryset = shared_qs | admin_qs
-        return queryset
+        # TODO: Should probably still filter this qs to exclude maintenance
+        return user.current_providers
 
     @detail_route()
     def sizes(self, *args, **kwargs):

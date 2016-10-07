@@ -438,10 +438,10 @@ def check_over_allocation(username, identity_uuid,
 
 def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
-    group = user.group_set.get(name=user.username)
+    group_ids = user.memberships.values_list('group__id', flat=True)
     try:
         membership = IdentityMembership.objects.get(
-            identity__uuid=identity_uuid, member=group)
+            identity__uuid=identity_uuid, member__in=group_ids)
     except IdentityMembership.DoesNotExist:
         logger.warn(
             "WARNING: User %s does not"

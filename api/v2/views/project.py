@@ -47,19 +47,21 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        try:
-            group = Group.objects.get(name=user.username)
-        except Group.DoesNotExist:
-            raise ValidationError("Group for %s does not exist." % user.username)
-        serializer.save(owner=group)
+        group = serializer.validated_data['owner']
+        if not group.user_set.filter(id=user.id).exists():
+            raise ValidationError(
+                "%s is not a member of group %s"
+                % (user.username, group.name))
+        serializer.save()
 
     def get_queryset(self):
         """
         Filter projects by current user.
         """
         user = self.request.user
+        group_names = user.memberships.values_list('group__name', flat=True)
         return Project.objects.filter(only_current(),
-                                      owner__name=user.username)
+                                      owner__name__in=group_names)
 
     @detail_route()
     def instances(self, *args, **kwargs):

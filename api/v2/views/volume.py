@@ -58,7 +58,7 @@ class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        identity_ids = user.current_identities.values_list('id',flat=True)
+        identity_ids = user.shared_identities.values_list('id',flat=True)
         return Volume.objects.filter(
             only_current_source(),
             instance_source__created_by_identity__in=identity_ids)

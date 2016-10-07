@@ -8,7 +8,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
-from core.plugins import ValidationPluginManager, ExpirationPluginManager
+from core.plugins import ValidationPluginManager, ExpirationPluginManager, AccountCreationPluginManager
 from core.exceptions import InvalidUser
 from threepio import logger
 from django.utils.translation import ugettext_lazy as _
@@ -86,7 +86,7 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         return False
 
     def group_ids(self):
-        return self.group_set.values_list('id', flat=True)
+        return self.memberships.values_list('group__id', flat=True)
 
     def provider_ids(self):
         return self.identity_set.values_list('provider', flat=True)
@@ -125,17 +125,24 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
     def current_providers(self):
         from core.models import Provider
         all_providers = Provider.objects.none()
-        for group in self.group_set.all():
+        for membership in self.memberships.select_related('group'):
+            group = membership.group
             all_providers |= Provider.objects.filter(id__in=group.current_identities.values_list('provider', flat=True))
         return all_providers
 
     @property
-    def current_identities(self):
+    def shared_identities(self):
         from core.models import Identity
         all_identities = Identity.objects.none()
-        for group in self.group_set.all():
+        for membership in self.memberships.select_related('group'):
+            group = membership.group
             all_identities |= group.current_identities.all()
         return all_identities
+
+    @property
+    def current_identities(self):
+        all_identities = self.shared_identities
+        return all_identities.filter(created_by=self)  # Limit identities to those you created
 
     @classmethod
     def for_allocation_source(cls, allocation_source_id):
@@ -160,14 +167,15 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
             if self.selected_identity:
                 self.save()
                 return self.selected_identity
-
         from core.models import IdentityMembership
 
-        for group in self.group_set.all():
-            membership = IdentityMembership.get_membership_for(group.name)
-            if not membership:
+        for membership in self.memberships.select_related('group'):
+            group = membership.group
+            id_memberships = IdentityMembership.get_membership_for(group.name)
+            if not id_memberships:
                 continue
-            self.selected_identity = membership.identity
+            #TODO: this can now be *a list of members* -- just pick first for now.
+            self.selected_identity = id_memberships.first().identity
             if self.selected_identity and self.selected_identity.is_active():
                 logger.debug("Selected Identity:%s" % self.selected_identity)
                 self.save()
@@ -284,25 +292,22 @@ def create_new_accounts(username, selected_provider=None):
         logger.error("The provider %s is NOT in the list of currently active providers. Account will not be created" % selected_provider)
         return identities
     for provider in providers:
-        new_identity = create_new_account_for(provider, user)
-        if new_identity:
-            identities.append(new_identity)
+        new_identities = create_new_accounts_for(provider, user)
+        if new_identities:
+            identities.extend(new_identities)
     return identities
 
-def create_new_account_for(provider, user):
-    from service.driver import get_account_driver
+def create_new_accounts_for(provider, user, force=False):
     existing_user_list = provider.identity_set.values_list('created_by__username', flat=True)
-    if user.username in existing_user_list:
+    #TODO: Determine if this if statement should continue to be used
+    if not force and user.username in existing_user_list:
         logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
         return None
-    try:
-        accounts = get_account_driver(provider)
-        logger.info("Create NEW account for %s" % user.username)
-        new_identity = accounts.create_account(user.username)
-        return new_identity
-    except:
-        logger.exception("Could *NOT* Create NEW account for %s" % user.username)
-        return None
+    logger.info("Create NEW account for %s" % user.username)
+    manager = AccountCreationPluginManager()
+    accounts = manager.plugin_create_accounts(provider, user)
+    return accounts
+
 
 def get_available_providers():
     from core.models.provider import Provider

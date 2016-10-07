@@ -44,9 +44,4 @@ class IdentityViewSet(MultipleFieldLookup, AuthViewSet):
         Filter identities by current user
         """
         user = self.request.user
-        try:
-            group = Group.objects.get(name=user.username)
-        except Group.DoesNotExist:
-            return Identity.objects.none()
-        identities = group.current_identities.all()
-        return identities
+        return user.current_identities

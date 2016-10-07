@@ -264,6 +264,8 @@ class Provider(models.Model):
         return AtmosphereUser.objects.filter(username__in=users_on_provider)
 
     def list_admin_names(self):
+        #FIXME: We're trying to show 'usernames of the admins' but this will show 'the users who created the admins'
+        #FIXME: We need a way to query for `identity__credential__key=key` and then values_list `identity__credential__value`
         return self.accountprovider_set.values_list(
             'identity__created_by__username',
             flat=True)

@@ -157,8 +157,8 @@ class AccountDriver(BaseAccountDriver):
             value = default_value
         return value
 
-    def create_account(self, username, password=None, project_name=None,
-                       role_name=None, quota=None, max_quota=False):
+    def create_account(self, account_user, group_name, username, password=None, project_name=None,
+                       role_name=None, quota=None, is_leader=False, max_quota=False):
         """
         Create (And Update "latest changes") to an account
 
@@ -172,10 +172,12 @@ class AccountDriver(BaseAccountDriver):
             return
         (username, password, project) = self.build_account(
             username, password, project_name, role_name, max_quota)
-        ident = self.create_identity(username, password,
+        ident = self.create_identity(account_user, group_name,
+                                     username, password,
                                      project.name,
                                      quota=quota,
-                                     max_quota=max_quota)
+                                     max_quota=max_quota,
+                                     is_leader=is_leader)
         return ident
 
     def build_account(self, username, password,
@@ -467,17 +469,17 @@ class AccountDriver(BaseAccountDriver):
                 missing_creds.append(c)
         return missing_creds
 
-    def create_identity(self, username, password, project_name,
-                        quota=None, max_quota=False, account_admin=False):
+    def create_identity(self, account_user, group_name, username, password, project_name,
+                        quota=None, max_quota=False, account_admin=False, is_leader=False):
 
         if not self.core_provider:
             raise Exception("AccountDriver not initialized by provider, "
                             "cannot create identity")
         identity = Identity.create_identity(
-            username, self.core_provider.location,
+            account_user, group_name, username, self.core_provider.location,
             quota=quota,
             # Flags..
-            max_quota=max_quota, account_admin=account_admin,
+            max_quota=max_quota, account_admin=account_admin, is_leader=is_leader,
             # Pass in credentials with cred_ namespace
             cred_key=username, cred_secret=password,
             cred_ex_tenant_name=project_name,

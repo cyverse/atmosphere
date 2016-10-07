@@ -34,6 +34,34 @@ class TASAPIDriver(object):
         self.tacc_password = tacc_password
         self.resource_name = resource_name
 
+    def _api_post(self, path, post_data):
+        url_match = self.tacc_api + path
+        logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
+        resp = tacc_api_post(url_match, post_data, self.tacc_username, self.tacc_password)
+        try:
+            data = resp.json()
+            logger.debug("TAS_RESP - Data: %s" % data)
+            resp_status = data['status']
+            if resp_status != 'success' or resp.status_code != 200:
+                exc_message = ("API produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (resp.status_code, resp_status))
+                logger.exception(exc_message)
+                raise TASAPIException(exc_message)
+            return data
+        except ValueError:
+            exc_message = ("API produced an Invalid Response - Expected 'status' in the json response: %s" % (resp.text,))
+            logger.exception(exc_message)
+            raise TASAPIException(exc_message)
+
+    def _api_get(self, path):
+        url_match = self.tacc_api+path
+        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
+        try:
+            _validate_tas_data(data)
+            result = data['result']
+            return result
+        except ValueError as exc:
+            raise TASAPIException("JSON Decode error -- %s" % exc)
+
     def clear_cache(self):
         self.user_project_list = []
         self.project_list = []
@@ -64,12 +92,10 @@ class TASAPIDriver(object):
         return tacc_user
 
     def find_projects_for(self, tacc_username):
-        if not self.user_project_list:
-            self.user_project_list = self.get_all_project_users()
         if not tacc_username:
-            return self.user_project_list
-        filtered_user_list = [p for p in self.user_project_list if tacc_username in p['users']]
-        return filtered_user_list
+            return []
+        projects = self.get_projects_for_username(tacc_username)
+        return projects
 
     def find_allocations_for(self, tacc_username):
         api_projects = self.find_projects_for(tacc_username)
@@ -91,23 +117,20 @@ class TASAPIDriver(object):
             self.user_project_list = self.project_list
         return self.user_project_list
 
+    def get_projects_for_username(self, tacc_username):
+        path = '/v1/projects/username/%s' % tacc_username
+        projects = self._api_get(path)
+        return projects
+
     def _xsede_to_tacc_username(self, xsede_username):
         path = '/v1/users/xsede/%s' % xsede_username
-        url_match = self.tacc_api + path
-        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
-        try:
-            if data['status'] != 'success':
-                raise TASAPIException(
-                    "NO valid username found for %s" % xsede_username)
-            tacc_username = data['result']
-            return tacc_username
-        except ValueError as exc:
-            raise TASAPIException("JSON Decode error -- %s" % exc)
-
+        tacc_username = self._api_get(path)
+        return tacc_username
 
     def report_project_allocation(self, report_id, username, project_name, su_total, start_date, end_date, queue_name, scheduler_id):
         """
-        Send back a report
+        Send back a report and return any data after the POST was received
+        If error, return TASAPIException
         """
         if not type(su_total) in [int, float]:
             raise Exception("SU total should be integer or float")
@@ -125,24 +148,11 @@ class TASAPIDriver(object):
             "endUTC": end_date.strftime("%Y-%m-%dT%H:%M:%S"),
         }
         path = '/v1/jobs'
-        url_match = self.tacc_api + path
-        logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
-        resp = tacc_api_post(url_match, post_data, self.tacc_username, self.tacc_password)
-        logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
         try:
-            data = resp.json()
-            logger.debug("TAS_RESP - Data: %s" % data)
-            resp_status = data['status']
-        except ValueError:
-            exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (report_id, resp.text,))
-            logger.exception(exc_message)
-            raise ValueError(exc_message)
-    
-        if resp_status != 'success' or resp.status_code != 200:
-            exc_message = ("Report %s produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (report_id, resp.status_code, resp_status))
-            logger.exception(exc_message)
-            raise Exception(exc_message)
-    
+            data = self._api_post(path, post_data)
+        except TASAPIException:
+            exc_message = ("Report %s produced an Invalid Response - See details in logs." % (report_id,))
+            raise TASAPIException(exc_message)
         return data
 
     def get_allocation_project_id(self, allocation_id):
@@ -181,76 +191,36 @@ class TASAPIDriver(object):
         """
         """
         path = '/v1/allocations/resource/%s' % self.resource_name
-        allocations = {}
-        url_match = self.tacc_api + path
-        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
-        try:
-            _validate_tas_data(data)
-            allocations = data['result']
-            return allocations
-        except ValueError as exc:
-            raise TASAPIException("JSON Decode error -- %s" % exc)
+        allocations = self._api_get(path)
+        return allocations
 
     def _get_all_projects(self):
         """
         """
         path = '/v1/projects/resource/%s' % self.resource_name
-        url_match = self.tacc_api + path
-        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
-        try:
-            _validate_tas_data(data)
-            projects = data['result']
-            return projects
-        except ValueError as exc:
-            raise TASAPIException("JSON Decode error -- %s" % exc)
+        projects = self._api_get(path)
+        return projects
 
     def get_project_users(self, project_id, raise_exception=True):
         path = '/v1/projects/%s/users' % project_id
-        url_match = self.tacc_api + path
-        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
-        user_names = []
-        try:
-            _validate_tas_data(data)
-            users = data['result']
-            for user in users:
-                username = user['username']
-                user_names.append(username)
-            return user_names
-        except ValueError as exc:
-            if raise_exception:
-                raise TASAPIException("JSON Decode error -- %s" % exc)
-            logger.info( exc)
-        except Exception as exc:
-            if raise_exception:
-                raise
-            logger.info( exc)
+        users = self._api_get(path)
+        for user in users:
+            username = user['username']
+            user_names.append(username)
         return user_names
 
     
 
     def get_user_allocations(self, username, raise_exception=True):
         path = '/v1/projects/username/%s' % username
-        url_match = self.tacc_api + path
-        resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
+        projects = self._api_get(path)
         user_allocations = []
-        try:
-            _validate_tas_data(data)
-            projects = data['result']
-            for project in projects:
-                allocations = project['allocations']
-                for allocation in allocations:
-                    if allocation['resource'] == self.resource_name:
-                        user_allocations.append( (project, allocation) )
-            return user_allocations
-        except ValueError as exc:
-            if raise_exception:
-                raise TASAPIException("JSON Decode error -- %s" % exc)
-            logger.info( exc)
-        except Exception as exc:
-            if raise_exception:
-                raise
-            logger.info( exc)
-        return None
+        for project in projects:
+            allocations = project['allocations']
+            for allocation in allocations:
+                if allocation['resource'] == self.resource_name:
+                    user_allocations.append( (project, allocation) )
+        return user_allocations
 
 
 

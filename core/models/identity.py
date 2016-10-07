@@ -10,7 +10,7 @@ from django.db import models
 
 from threepio import logger
 from uuid import uuid5, uuid4
-from core.query import only_active_memberships
+from core.query import only_active_memberships, contains_credential
 from core.models.quota import Quota
 
 class Identity(models.Model):
@@ -34,6 +34,7 @@ class Identity(models.Model):
 
     @classmethod
     def delete_identity(cls, username, provider_location):
+        #FIXME: This *should* be delete_user or delete_account, because thats what it was written to do..
         # Do not move up. ImportError.
         from core.models import AtmosphereUser, Group, Credential, Quota,\
             Provider, AccountProvider,\
@@ -41,14 +42,14 @@ class Identity(models.Model):
 
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
-        group = Group.objects.get(name=username)
+        memberships = user.memberships.all()
         my_ids = Identity.objects.filter(
             created_by=user, provider=provider)
         for ident in my_ids:
             membership_set = ident.identity_memberships.all()
             membership_set.delete()
             ident.delete()
-        group.delete()
+        memberships.delete()
         user.delete()
         return
 
@@ -91,9 +92,10 @@ class Identity(models.Model):
             return True
         # Check 2
         shared = False
-        leader_groups = django_user.group_set.get(leaders__in=[django_user])
-        for group in leader_groups:
-            id_member = g.identity_memberships.get(identity=self)
+        memberships = django_user.memberships.select_related('group').get(is_leader=True, user=django_user)
+        for membership in memberships:
+            group = membership.group
+            id_member = group.identity_memberships.get(identity=self)
             if not id_member:
                 continue
             # ASSERT: You have SHARED access to the identity
@@ -169,9 +171,9 @@ class Identity(models.Model):
         return credentials
 
     @classmethod
-    def create_identity(cls, username, provider_location,
+    def create_identity(cls, account_user, group_name, username, provider_location,
                         quota=None, allocation=None,
-                        max_quota=False, account_admin=False, **kwarg_creds):
+                        is_leader=False, max_quota=False, account_admin=False, **kwarg_creds):
         """
         DEPRECATED: POST to v2/identities API to create an identity.
         """
@@ -190,7 +192,8 @@ class Identity(models.Model):
         if 'router_name' not in credentials:
             credentials['router_name'] = provider.select_router()
 
-        (user, group) = Group.create_usergroup(username)
+        (user, group) = Group.create_usergroup(
+            account_user, group_name, is_leader)
 
         identity = cls._get_identity(user, group, provider, quota, credentials)
         # NOTE: This specific query will need to be modified if we want
@@ -214,26 +217,22 @@ class Identity(models.Model):
         return identity
 
     @classmethod
-    def _get_identity(cls, user, group, provider, quota, credentials):
-        try:
-            # 1. Make sure that an Identity exists for the user/group+provider
-            #FIXME: To make this *more* iron-clad, we should probably
-            # create a method that looks at the provider, and selects
-            # the username/project_name `key/value` pair, and looks *explicitly* for that pairing in an identity they have created..
-            # Otherwise we are limiting the accounts a user can have to one/provider.
-            identity = Identity.objects.get(
-                    created_by=user, provider=provider)
-            # 2. Make sure that all kwargs exist as credentials
-            # NOTE: Because we assume only one identity per provider
-            #       We can add new credentials to
-            #       existing identities if missing..
-            # In the future, we will only update the credentials *once*
-            # during self._create_identity().
-            for (c_key, c_value) in credentials.items():
-                Identity.update_credential(identity, c_key, c_value)
-        except Identity.DoesNotExist:
-            # FIXME: we shouldn't have to create the uuid.. default does this.
-            identity = cls._create_identity(user, group, provider, quota, credentials)
+    def _get_identity(cls, user, group, provider, credentials):
+        credentials_match_query = (
+            contains_credential('key', credentials['key']) &
+            contains_credential('ex_project_name', credentials['ex_project_name'])
+        )
+        identity = Identity.objects\
+            .filter(created_by=user, provider=provider)\
+            .filter(credentials_match_query).first()
+        if not identity:
+            identity = cls._create_identity(user, group, provider, credentials)
+        # 2. Make sure that all kwargs exist as credentials
+        # NOTE: Because we assume a matching username and
+        #       project name, we can update the remaining
+        #       credentials (for any new or updated future-values)
+        for (c_key, c_value) in credentials.items():
+            Identity.update_credential(identity, c_key, c_value)
         return identity
 
     @classmethod

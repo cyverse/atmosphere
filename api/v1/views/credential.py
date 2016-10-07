@@ -17,18 +17,7 @@ def get_identity_list(user, provider=None):
     Given the (request) user
     return all identities on all active providers
     """
-    try:
-        group = Group.objects.get(name=user.username)
-        if provider:
-            # Implicit: Active,non-end dated providers.
-            identity_list = group.current_identities.filter(
-                provider=provider)
-        else:
-            identity_list = group.current_identities.all()
-        return identity_list
-    except Group.DoesNotExist:
-        logger.warn("Group %s DoesNotExist" % user.username)
-        return None
+    return user.current_identities
 
 
 def get_identity(user, identity_uuid):

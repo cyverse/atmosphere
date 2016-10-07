@@ -412,11 +412,11 @@ def _get_app_by_uuid(identifier, app_uuid):
         logger.exception(e)
 
 
-def _username_lookup(provider_uuid, username):
+def _user_identity_lookup(provider_uuid, username):
     try:
-        return Identity.objects.get(
+        return Identity.objects.filter(
             provider__uuid=provider_uuid,
-            created_by__username=username)
+            created_by__username=username).first()
     except Identity.DoesNotExist:
         return None
 
@@ -465,7 +465,7 @@ def create_application(
     if not description:
         description = "Imported Application - %s" % name
     if created_by:
-        created_by_identity = _username_lookup(
+        created_by_identity = _user_identity_lookup(
             provider_uuid,
             created_by.username)
     if not created_by_identity:

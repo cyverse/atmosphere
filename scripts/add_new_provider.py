@@ -2,6 +2,7 @@
 
 # DEPRECATION WARNING -- Will be removed in favor of contacting the Atmosphere API directly
 # or using the GUI to instantiate provider + accounts
+#FIXME: Add 'account_user, group_name, is_leader' args to this script
 import argparse
 import json
 import pprint
@@ -370,6 +371,7 @@ def get_provider_credentials(credential_info={}):
 
 
 def create_admin(provider, admin_info):
+
     REQUIRED_FIELDS = ["username", "password", "tenant"]
 
     if not has_fields(admin_info, REQUIRED_FIELDS):

@@ -41,8 +41,8 @@ class ProjectOwnerRequired(permissions.BasePermission):
             logger.warn("Could not find kwarg:'project_uuid'")
             return False
         return any(
-            group for group in auth_user.group_set.all()
-            if group.projects.filter(uuid=project_uuid))
+            membership.group for membership in auth_user.memberships.all()
+            if membership.group.projects.filter(uuid=project_uuid))
 
 
 class ApiAuthRequired(permissions.BasePermission):

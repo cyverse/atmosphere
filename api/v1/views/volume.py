@@ -271,7 +271,7 @@ class VolumeList(AuthAPIView):
         try:
             membership = IdentityMembership.objects.get(
                 identity__uuid=identity_uuid,
-                member__name=user.username)
+                member__memberships__user=user)
         except:
             return failure_response(
                 status.HTTP_409_CONFLICT,
