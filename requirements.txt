@@ -25,6 +25,11 @@ PyJWT==1.4.0
 
 python-logstash==0.4.5
 
+fastavro==0.10.2
+avro==1.8.1
+avro_json_serializer==0.4
+
+
 #Theirs
 psycopg2==2.5.4
 python-ldap==2.4.19
