@@ -1,13 +1,15 @@
-from django.test import TestCase, override_settings
 from django.core import exceptions
+from django.test import TestCase, override_settings
 
 from api.tests.factories import UserFactory
 from core.models import EventTable, AllocationSource
 from core.models import UserAllocationSource
 
-class EventTableTest(TestCase):
+
+class AllocationSourceSnapshotEventTest(TestCase):
     def setUp(self):
         user = UserFactory.create()
+        self.user = user
         self.alloc_src = AllocationSource.objects.create(name='DefaultAllocation', source_id='37623',
                                                          compute_allowed=1000)
         UserAllocationSource.objects.create(user=user, allocation_source=self.alloc_src)
@@ -83,18 +85,10 @@ class EventTableTest(TestCase):
         event_count = EventTable.objects.count()
         self.assertEqual(event_count, len(valid_events))
 
-
-class EventTableFailTests(TestCase):
-    def setUp(self):
-        user = UserFactory.create()
-        self.alloc_src = AllocationSource.objects.create(name='DefaultAllocation', source_id='37623',
-                                                         compute_allowed=1000)
-
-        UserAllocationSource.objects.create(user=user, allocation_source=self.alloc_src)
-
     def test_fail_schema(self):
         """Ensure event creation fails if it does not match schema"""
 
+        # noinspection SpellCheckingInspection
         invalid_events = (
             {
                 'description': 'Typo in field name',
@@ -157,15 +151,17 @@ class EventTableFailTests(TestCase):
     def test_fail_unknown_event(self):
         """Ensure event creation fails if it does not match known events"""
         event_payload = {
-            'allocation_source_id': '37623',  # Typo in field name
-            'compute_used': 100.00,
+            'allocation_source_id': self.alloc_src.source_id,  # Typo in field name
+            'compute_used': 10.00,
             'global_burn_rate': 2.00
         }
+        # noinspection SpellCheckingInspection
         invalid_event_name = 'allocation_souce_snapshot'  # Test for typo
         with self.assertRaises(exceptions.ValidationError) as validation_error:
             EventTable.create_event(name=invalid_event_name, payload=event_payload,
                                     entity_id=self.alloc_src.source_id)
         self.assertEqual(validation_error.exception.code, 'event_schema')
+        # noinspection SpellCheckingInspection
         self.assertEqual(validation_error.exception.message, 'Unrecognized event name: allocation_souce_snapshot')
 
         event_count = EventTable.objects.count()
