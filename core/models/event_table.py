@@ -1,16 +1,13 @@
-
 from uuid import uuid4
-from datetime import timedelta
 
-import avro
-import avro_json_serializer
+from django.contrib.postgres.fields import JSONField
 from django.core import exceptions
-from django.db import models, transaction, DatabaseError
-from django.db.models import ObjectDoesNotExist
+from django.db import models
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
-from django.contrib.postgres.fields import JSONField
+from rest_framework import serializers
 from threepio import logger
+
 from core.hooks.allocation_source import (
     listen_before_allocation_snapshot_changes,
     listen_for_allocation_snapshot_changes,
@@ -22,120 +19,64 @@ from core.hooks.allocation_source import (
     listen_for_user_allocation_source_assigned
 )
 
-ALLOCATION_SOURCE_CREATED = avro.schema.make_avsc_object(
-    {
-        'namespace': 'org.cyverse.atmosphere.event',
-        'type': 'record',
-        'name': 'allocation_source_created',
-        'fields': [
-            {
-                'name': 'source_id',
-                'type': 'string'
-            },
-            {
-                'name': 'name',
-                'type': 'string'
-            },
-            {
-                'name': 'compute_allowed',
-                'type': 'float'
-            }
-        ]
-    }
-)
-USER_ALLOCATION_SOURCE_ASSIGNED = avro.schema.make_avsc_object(
-    {
-        'namespace': 'org.cyverse.atmosphere.event',
-        'type': 'record',
-        'name': 'user_allocation_source_assigned',
-        'fields': [
-            {
-                'name': 'source_id',
-                'type': 'string'
-            },
-            {
-                'name': 'username',
-                'type': 'string'
-            }
-        ]
-    }
-)
 
-ALLOCATION_SOURCE_SNAPSHOT_SCHEMA = avro.schema.make_avsc_object(
-    {
-        'namespace': 'org.cyverse.atmosphere.event',
-        'type': 'record',
-        'name': 'allocation_source_snapshot',
-        'fields': [
-            {
-                'name': 'allocation_source_id',
-                'type': 'string'
-            },
-            {
-                'name': 'compute_used',
-                'type': 'float'
-            },
-            {
-                'name': 'global_burn_rate',
-                'type': 'float'
-            }
-        ]
-    }
-)
+class AllocationSourceCreatedEventSerializer(serializers.Serializer):
+    source_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=4, max_length=36)
+    name = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=2)
+    compute_allowed = serializers.FloatField(required=True, allow_null=False, min_value=0.0)
 
-ALLOCATION_SOURCE_THRESHOLD_MET = avro.schema.make_avsc_object(
-    {
-        'namespace': 'org.cyverse.atmosphere.event',
-        'type': 'record',
-        'name': 'allocation_source_threshold_met',
-        'fields': [
-            {
-                'name': 'allocation_source_id',
-                'type': 'string'
-            },
-            {
-                'name': 'actual_value',
-                'type': 'float'
-            },
-            {
-                'name': 'threshold',
-                'type': 'float'
-            }
-        ]
-    }
-)
 
-EVENT_SCHEMAS = {
-    'allocation_source_snapshot': ALLOCATION_SOURCE_SNAPSHOT_SCHEMA,
-    'allocation_source_threshold_met': ALLOCATION_SOURCE_THRESHOLD_MET,
-    'allocation_source_created': ALLOCATION_SOURCE_CREATED,
-    'user_allocation_source_assigned': USER_ALLOCATION_SOURCE_ASSIGNED
+class AllocationSourceAssignedEventSerializer(serializers.Serializer):
+    source_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=4, max_length=36)
+    username = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=2)
+
+
+class AllocationSourceSnapshotEventSerializer(serializers.Serializer):
+    allocation_source_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=4,
+                                                 max_length=36)
+    compute_used = serializers.FloatField(required=True, allow_null=False, min_value=0.0)
+    global_burn_rate = serializers.FloatField(required=True, allow_null=False, min_value=0.0)
+
+
+class AllocationSourceThresholdMetEventSerializer(serializers.Serializer):
+    allocation_source_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=4,
+                                                 max_length=36)
+    actual_value = serializers.FloatField(required=True, min_value=0.0)
+    threshold = serializers.FloatField(required=True, min_value=0.0)
+
+
+EVENT_SERIALIZERS = {
+    'allocation_source_snapshot': AllocationSourceSnapshotEventSerializer,
+    'allocation_source_threshold_met': AllocationSourceThresholdMetEventSerializer,
+    'allocation_source_created': AllocationSourceCreatedEventSerializer,
+    'user_allocation_source_assigned': AllocationSourceAssignedEventSerializer
 }
 
 
 def validate_event_schema(event_name, event_payload):
     code = 'event_schema'
     try:
-        event_schema = EVENT_SCHEMAS[event_name]
+        serializer_class = EVENT_SERIALIZERS[event_name]
     except KeyError:
-        limit_value = EVENT_SCHEMAS.keys()
+        limit_value = EVENT_SERIALIZERS.keys()
         message = 'Unrecognized event name: {}'.format(event_name)
         params = {'limit_value': limit_value, 'show_value': event_name, 'value': event_name}
         raise exceptions.ValidationError(message, code=code, params=params)
     try:
-        serializer = avro_json_serializer.AvroJsonSerializer(event_schema)
-        serialized_payload = serializer.to_ordered_dict(event_payload)
+        serializer = serializer_class()
+        assert isinstance(serializer, serializers.Serializer)
+        validated_data = serializer.run_validation(data=event_payload)
+        serialized_payload = validated_data
         return serialized_payload
     except Exception as e:
         logger.warn(e)
         message = 'Does not comply with event schema'
-        limit_value = event_schema
+        limit_value = serializer_class
         params = {'limit_value': limit_value, 'show_value': event_payload, 'value': event_payload}
         raise exceptions.ValidationError(message, code=code, params=params)
 
 
 class EventTable(models.Model):
-
     """
     Used to keep a track of events
     """
@@ -176,11 +117,12 @@ def listen_for_changes(sender, instance, created, **kwargs):
     """
     return None
 
+
 # Instantiate the hooks:
 pre_save.connect(listen_before_allocation_snapshot_changes, sender=EventTable)
 post_save.connect(listen_for_user_allocation_source_assigned, sender=EventTable)
 post_save.connect(listen_for_allocation_overage, sender=EventTable)
-#post_save.connect(listen_for_changes, sender=EventTable)
+# post_save.connect(listen_for_changes, sender=EventTable)
 post_save.connect(listen_for_allocation_threshold_met, sender=EventTable)
 post_save.connect(listen_for_instance_allocation_changes, sender=EventTable)
 post_save.connect(listen_for_allocation_snapshot_changes, sender=EventTable)

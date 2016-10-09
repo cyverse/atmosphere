@@ -1,3 +1,5 @@
+import uuid
+
 from django.core import exceptions
 from django.test import TestCase, override_settings
 
@@ -10,14 +12,16 @@ class AllocationSourceSnapshotEventTest(TestCase):
     def setUp(self):
         user = UserFactory.create()
         self.user = user
-        self.alloc_src = AllocationSource.objects.create(name='DefaultAllocation', source_id='37623',
+        self.allocation_source_id = str(uuid.uuid4())
+        self.alloc_src = AllocationSource.objects.create(name='DefaultAllocation', source_id=self.allocation_source_id,
                                                          compute_allowed=1000)
         UserAllocationSource.objects.create(user=user, allocation_source=self.alloc_src)
 
+
+class AllocationSourceSnapshotEventTestBasicCreate(AllocationSourceSnapshotEventTest):
     @override_settings(ALLOCATION_SOURCE_WARNINGS=[10, 25, 50, 75, 90])
     def test_basic_create_event(self):
-        event_count = EventTable.objects.count()
-        self.assertEqual(event_count, 0)
+        initial_event_count = EventTable.objects.count()
 
         event_payload = {
             'allocation_source_id': self.alloc_src.source_id,
@@ -25,26 +29,31 @@ class AllocationSourceSnapshotEventTest(TestCase):
             'global_burn_rate': 2.00,  # 2 hours used each hour
         }
         print(event_payload)
-        new_event = EventTable.create_event(name='allocation_source_snapshot', payload=event_payload,
-                                            entity_id=self.alloc_src.source_id)
-        event_count = EventTable.objects.count()
-        self.assertEqual(event_count, 2)
-        events = EventTable.objects.all()
-        self.assertEqual(new_event, events[1])
-        self.assertEqual(events[0].name, 'allocation_source_threshold_met')
-        self.assertEqual(events[0].entity_id, self.alloc_src.source_id)
-        self.assertEqual(events[0].payload, {'actual_value': 10,
-                                             'allocation_source_id': self.alloc_src.source_id,
-                                             'threshold': 10})
+        EventTable.create_event(name='allocation_source_snapshot', payload=event_payload,
+                                entity_id=self.alloc_src.source_id)
+        subsequent_event_count = EventTable.objects.count()
+        # self.assertEqual(subsequent_event_count - initial_event_count, 2)
+        # TODO: Figure out why it's not creating the `allocation_source_threshold_met` event.
+        self.assertEqual(subsequent_event_count - initial_event_count, 2)
 
+        threshold_met_event = EventTable.objects.filter(entity_id=self.alloc_src.source_id,
+                                                        name='allocation_source_threshold_met').last()
+
+        self.assertEqual(threshold_met_event.name, 'allocation_source_threshold_met')
+        self.assertEqual(threshold_met_event.entity_id, self.alloc_src.source_id)
+        self.assertEqual(threshold_met_event.payload, {'actual_value': 10,
+                                                       'allocation_source_id': self.alloc_src.source_id,
+                                                       'threshold': 10})
+
+
+class AllocationSourceSnapshotEventTestValidEvents(AllocationSourceSnapshotEventTest):
     def test_valid_events(self):
-        event_count = EventTable.objects.count()
-        self.assertEqual(event_count, 0)
+        initial_event_count = EventTable.objects.count()
 
         valid_events = (
             {
                 'description': 'Basic sanity test',
-                'entity_id': 'some_entity_id',
+                'entity_id': self.alloc_src.source_id,
                 'name': 'allocation_source_snapshot',
                 'raw_payload':
                     {
@@ -55,7 +64,7 @@ class AllocationSourceSnapshotEventTest(TestCase):
             },
             {
                 'description': 'Extra field should be stripped out by serializer',
-                'entity_id': 'some_entity_id',
+                'entity_id': self.alloc_src.source_id,
                 'name': 'allocation_source_snapshot',
                 'raw_payload':
                     {
@@ -70,7 +79,24 @@ class AllocationSourceSnapshotEventTest(TestCase):
                         'compute_used': 10.00,
                         'global_burn_rate': 2.00
                     }
-            }
+            },
+            {
+                'description': 'String instead of float - String should be converted to float',
+                'entity_id': self.alloc_src.source_id,
+                'name': 'allocation_source_snapshot',
+                'raw_payload':
+                    {
+                        'allocation_source_id': self.alloc_src.source_id,
+                        'compute_used': '10.00',  # Case: String instead of float
+                        'global_burn_rate': 2.00
+                    },
+                'expected_serialized_payload':
+                    {
+                        'allocation_source_id': self.alloc_src.source_id,
+                        'compute_used': 10.00,
+                        'global_burn_rate': 2.00
+                    }
+            },
         )
         for event_data in valid_events:
             raw_payload = event_data['raw_payload']
@@ -82,11 +108,16 @@ class AllocationSourceSnapshotEventTest(TestCase):
             expected_serialized_payload = event_data.get('expected_serialized_payload') or raw_payload
             self.assertEqual(new_event.payload, expected_serialized_payload)
 
-        event_count = EventTable.objects.count()
-        self.assertEqual(event_count, len(valid_events))
+        subsequent_event_count = EventTable.objects.count()
+        self.assertEqual(subsequent_event_count - initial_event_count, len(valid_events))
 
+
+class AllocationSourceSnapshotEventTestInvalidEvents(AllocationSourceSnapshotEventTest):
     def test_fail_schema(self):
         """Ensure event creation fails if it does not match schema"""
+
+        initial_event_count = EventTable.objects.count()
+        some_random_uuid = str(uuid.uuid4())
 
         # noinspection SpellCheckingInspection
         invalid_events = (
@@ -102,28 +133,6 @@ class AllocationSourceSnapshotEventTest(TestCase):
                     }
             },
             {
-                'description': 'Number instead of string ID',
-                'entity_id': self.alloc_src.source_id,
-                'name': 'allocation_source_snapshot',
-                'raw_payload':
-                    {
-                        'allocation_source_id': 37623,  # Case: Number instead of string ID
-                        'compute_used': 10.00,
-                        'global_burn_rate': 2.00
-                    }
-            },
-            {
-                'description': 'String instead of float',
-                'entity_id': self.alloc_src.source_id,
-                'name': 'allocation_source_snapshot',
-                'raw_payload':
-                    {
-                        'allocation_source_id': self.alloc_src.source_id,
-                        'compute_used': '10.00',  # Case: String instead of float
-                        'global_burn_rate': 2.00
-                    }
-            },
-            {
                 'description': 'Missing field',
                 'entity_id': self.alloc_src.source_id,
                 'name': 'allocation_source_snapshot',
@@ -134,22 +143,56 @@ class AllocationSourceSnapshotEventTest(TestCase):
                         # Case: Missing field
                     }
             },
+            {
+                'description': 'TODO: Unknown Allocation Source',
+                'skip': True,
+                'entity_id': some_random_uuid,
+                'name': 'allocation_source_snapshot',
+                'raw_payload':
+                    {
+                        'allocation_source_id': some_random_uuid,
+                        'compute_used': '10.00',
+                        'global_burn_rate': 2.00,
+                    }
+            },
+            {
+                'description': 'TODO: The entity_id and allocation_source_id do not match',
+                'skip': True,
+                'entity_id': self.alloc_src.source_id,
+                'name': 'allocation_source_snapshot',
+                'raw_payload':
+                    {
+                        'allocation_source_id': self.alloc_src.source_id,
+                        'compute_used': '10.00',
+                        'global_burn_rate': 2.00,
+                    }
+            },
         )
 
+        missing_error_cases = []
         for event_data in invalid_events:
+            if event_data.get('skip') is True:
+                continue
             raw_payload = event_data['raw_payload']
             print('Testing: {}'.format(event_data['description']))
-            with self.assertRaises(exceptions.ValidationError) as validation_error:
+            try:
                 EventTable.create_event(name='allocation_source_snapshot', payload=raw_payload,
                                         entity_id=self.alloc_src.source_id)
-            self.assertEqual(validation_error.exception.code, 'event_schema')
-            self.assertEqual(validation_error.exception.message, 'Does not comply with event schema')
+            except exceptions.ValidationError as validation_error:
+                self.assertEqual(validation_error.code, 'event_schema')
+                self.assertEqual(validation_error.message, 'Does not comply with event schema')
+            else:
+                missing_error_cases.append(event_data['description'])
 
-            event_count = EventTable.objects.count()
-            self.assertEqual(event_count, 0)
+        # Skip cases which we have not finished implementing yet
+        subsequent_event_count = EventTable.objects.count()
+        self.assertEqual(subsequent_event_count - initial_event_count, 0)
 
     def test_fail_unknown_event(self):
         """Ensure event creation fails if it does not match known events"""
+
+        initial_event_count = EventTable.objects.count()
+
         event_payload = {
             'allocation_source_id': self.alloc_src.source_id,  # Typo in field name
             'compute_used': 10.00,
@@ -164,5 +207,5 @@ class AllocationSourceSnapshotEventTest(TestCase):
         # noinspection SpellCheckingInspection
         self.assertEqual(validation_error.exception.message, 'Unrecognized event name: allocation_souce_snapshot')
 
-        event_count = EventTable.objects.count()
-        self.assertEqual(event_count, 0)
+        subsequent_event_count = EventTable.objects.count()
+        self.assertEqual(subsequent_event_count - initial_event_count, 0)
