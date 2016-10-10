@@ -1,25 +1,24 @@
-
 from uuid import uuid4
-from datetime import timedelta
 
-from django.db import models, transaction, DatabaseError
-from django.db.models import ObjectDoesNotExist
+from django.contrib.postgres.fields import JSONField
+from django.db import models
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
-from django.contrib.postgres.fields import JSONField
-from threepio import logger
+
 from core.hooks.allocation_source import (
+    pre_save_validate_hook,
     listen_before_allocation_snapshot_changes,
     listen_for_allocation_snapshot_changes,
     listen_for_user_snapshot_changes,
     listen_for_allocation_threshold_met,
     listen_for_allocation_overage,
-    listen_for_instance_allocation_changes
+    listen_for_instance_allocation_changes,
+    listen_for_allocation_source_created,
+    listen_for_user_allocation_source_assigned
 )
 
 
 class EventTable(models.Model):
-
     """
     Used to keep a track of events
     """
@@ -55,11 +54,15 @@ def listen_for_changes(sender, instance, created, **kwargs):
     """
     return None
 
+
 # Instantiate the hooks:
+pre_save.connect(pre_save_validate_hook, sender=EventTable)
 pre_save.connect(listen_before_allocation_snapshot_changes, sender=EventTable)
+post_save.connect(listen_for_user_allocation_source_assigned, sender=EventTable)
 post_save.connect(listen_for_allocation_overage, sender=EventTable)
-#post_save.connect(listen_for_changes, sender=EventTable)
+# post_save.connect(listen_for_changes, sender=EventTable)
 post_save.connect(listen_for_allocation_threshold_met, sender=EventTable)
 post_save.connect(listen_for_instance_allocation_changes, sender=EventTable)
 post_save.connect(listen_for_allocation_snapshot_changes, sender=EventTable)
 post_save.connect(listen_for_user_snapshot_changes, sender=EventTable)
+post_save.connect(listen_for_allocation_source_created, sender=EventTable)

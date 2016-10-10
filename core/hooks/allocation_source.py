@@ -1,16 +1,99 @@
 from django.conf import settings
-
+from django.core import exceptions
+from rest_framework import serializers
 from threepio import logger
+
 from core.models import (
-    AllocationSource, Instance, AtmosphereUser,
+    UserAllocationSource, AllocationSource, Instance, AtmosphereUser,
     UserAllocationSnapshot,
     InstanceAllocationSourceSnapshot,
     AllocationSourceSnapshot)
 
 
+class InstanceAllocationSourceChangedEventSerializer(serializers.Serializer):
+    instance_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=36,
+                                        max_length=36)
+    allocation_source_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=4,
+                                                 max_length=36)
+
+
+class UserAllocationSnapshotChanged(serializers.Serializer):
+    username = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=2)
+    burn_rate = serializers.FloatField(required=True, allow_null=False, min_value=0.0)
+    compute_used = serializers.FloatField(required=True, allow_null=False, min_value=0.0)
+    allocation_source_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=4,
+                                                 max_length=36)
+
+
+class AllocationSourceCreatedEventSerializer(serializers.Serializer):
+    source_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=4, max_length=36)
+    name = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=2)
+    compute_allowed = serializers.FloatField(required=True, allow_null=False, min_value=0.0)
+
+
+class AllocationSourceAssignedEventSerializer(serializers.Serializer):
+    source_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=4, max_length=36)
+    username = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=2)
+
+
+class AllocationSourceSnapshotEventSerializer(serializers.Serializer):
+    allocation_source_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=4,
+                                                 max_length=36)
+    compute_used = serializers.FloatField(required=True, allow_null=False, min_value=0.0)
+    global_burn_rate = serializers.FloatField(required=True, allow_null=False, min_value=0.0)
+
+
+class AllocationSourceThresholdMetEventSerializer(serializers.Serializer):
+    allocation_source_id = serializers.CharField(required=True, allow_null=False, allow_blank=False, min_length=4,
+                                                 max_length=36)
+    actual_value = serializers.FloatField(required=True, min_value=0.0)
+    threshold = serializers.FloatField(required=True, min_value=0.0)
+
+
+EVENT_SERIALIZERS = {
+    'instance_allocation_source_changed': InstanceAllocationSourceChangedEventSerializer,
+    'user_allocation_snapshot_changed': UserAllocationSnapshotChanged,
+    'allocation_source_snapshot': AllocationSourceSnapshotEventSerializer,
+    'allocation_source_threshold_met': AllocationSourceThresholdMetEventSerializer,
+    'allocation_source_created': AllocationSourceCreatedEventSerializer,
+    'user_allocation_source_assigned': AllocationSourceAssignedEventSerializer
+}
+
+
+def validate_event_schema(event_name, event_payload):
+    code = 'event_schema'
+    try:
+        serializer_class = EVENT_SERIALIZERS[event_name]
+    except KeyError:
+        limit_value = EVENT_SERIALIZERS.keys()
+        message = 'Unrecognized event name: {}'.format(event_name)
+        params = {'limit_value': limit_value, 'show_value': event_name, 'value': event_name}
+        raise exceptions.ValidationError(message, code=code, params=params)
+    try:
+        serializer = serializer_class()
+        assert isinstance(serializer, serializers.Serializer)
+        validated_data = serializer.run_validation(data=event_payload)
+        serialized_payload = validated_data
+        return serialized_payload
+    except Exception as e:
+        logger.warn(e)
+        message = 'Does not comply with event schema'
+        limit_value = serializer_class
+        params = {'limit_value': limit_value, 'show_value': event_payload, 'value': event_payload}
+        raise exceptions.ValidationError(message, code=code, params=params)
+
+
 # Pre-Save hooks
 
+def pre_save_validate_hook(sender, instance, raw, **kwargs):
+    event = instance
+    serialized_payload = validate_event_schema(event.name, event.payload)
+    event.payload = serialized_payload
+    return
+
 # Post-Save hooks
+
+
 def listen_for_allocation_overage(sender, instance, raw, **kwargs):
     """
     This listener expects:
@@ -28,7 +111,6 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
         return None
     # Circular dep...
     from core.models import EventTable
-    from service.tasks.monitoring import enforce_allocation_overage
     payload = event.payload
     allocation_source_id = payload['allocation_source_id']
     new_compute_used = payload['compute_used']
@@ -153,7 +235,7 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     if not source:
         return None
     users = AtmosphereUser.for_allocation_source(source.source_id)
-    
+
     for user in users:
         send_usage_email_to(user, source, threshold, actual_value)
 
@@ -298,3 +380,64 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
             allocation_source=allocation_source,
             instance=instance)
     return snapshot
+
+
+def listen_for_allocation_source_created(sender, instance, created, **kwargs):
+    """
+    This listener expects:
+    EventType - 'allocation_source_created'
+    EventPayload - {
+        "source_id": "2439b15a-293a-4c11-b447-bf349f16ed2e",
+        "name": "TestAllocationSource",
+        "compute_used": 50000
+    }
+
+    The method should result in a new AllocationSource
+    """
+    event = instance
+    if event.name != 'allocation_source_created':
+        return None
+    logger.info('Allocation source created event: %s', event.__dict__)
+    payload = event.payload
+    # TODO: Some web-request/marshmallow validation
+    allocation_source_id = payload['source_id']
+    allocation_source_name = payload['name']
+    allocation_compute_allowed = payload['compute_allowed']
+
+    allocation_source = AllocationSource(source_id=allocation_source_id,
+                                         name=allocation_source_name,
+                                         compute_allowed=allocation_compute_allowed
+                                         )
+    allocation_source.save()
+
+
+def listen_for_user_allocation_source_assigned(sender, instance, created, **kwargs):
+    """
+        This listener expects:
+        EventType - 'allocation_source_created'
+        EventPayload - {
+            "source_id": "2439b15a-293a-4c11-b447-bf349f16ed2e",
+            "username": "amitj",
+        }
+
+        The method should result in User being assigned an AllocationSource
+        """
+    event = instance
+    if event.name != 'user_allocation_source_assigned':
+        return None
+    logger.info('User allocation source assigned event: %s', event.__dict__)
+    payload = event.payload
+    allocation_source_id = payload['source_id']
+    username = payload['username']
+
+    user = AtmosphereUser.objects.filter(username=username).first()
+    allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+
+    if not user:
+        raise Exception('User does not exist')
+    if not allocation_source:
+        raise Exception('Allocation Source does not exist')
+
+    allocation_source = UserAllocationSource(allocation_source=allocation_source,
+                                             user=user)
+    allocation_source.save()
