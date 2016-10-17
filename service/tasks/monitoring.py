@@ -188,7 +188,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         # into DB relationships: ApplicationVersionMembership, ProviderMachineMembership
         #STEP 3: if ENFORCING -- occasionally 're-distribute' any ACLs that are *listed on DB but not on cloud* -- removals should be done explicitly, outside of this function
         if settings.ENFORCING:
-            distribute_image_membership(account_driver, cloud_machine)
+            distribute_image_membership(account_driver, cloud_machine, provider)
         # ASSERTIONS about this method: 
         # 1) We will never 'remove' membership,
         # 2) We will never 'remove' a public or private flag as listed in application.
@@ -213,11 +213,13 @@ def machine_is_valid(cloud_machine):
     return True
 
 
-def distribute_image_membership(account_driver, cloud_machine):
+def distribute_image_membership(account_driver, cloud_machine, provider):
     """
     Based on what we know about the DB, at a minimum, ensure that their projects are added to the image_members list for this cloud_machine.
     """
-    pm = ProviderMachine.objects.get(instance_source__identifier=cloud_machine.id)
+    pm = ProviderMachine.objects.get(
+        instance_source__provider=provider,
+        instance_source__identifier=cloud_machine.id)
     group_ids = ProviderMachineMembership.objects.filter(provider_machine=pm).values_list('group', flat=True)
     groups = Group.objects.filter(id__in=group_ids)
     for group in groups:
