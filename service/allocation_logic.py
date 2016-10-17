@@ -62,7 +62,7 @@ def filter_events_and_instances(report_start_date, report_end_date, username=Non
             user_id_int = AtmosphereUser.objects.get(username=username)
         except:
             raise Exception("User '%s' does not exist"%(username))
-        events = events.filter(Q(payload__username__exact=username)).order_by('timestamp')
+        events = events.filter(Q(entity_id=username)).order_by('timestamp')
         instances = instances.filter(Q(created_by__exact=user_id_int))
     return {'events': events, 'instances': instances}
 
@@ -101,7 +101,7 @@ def map_events_to_histories(filtered_instance_histories, event_instance_dict):
     return out_dic
 
 def get_allocation_source_name_from_event(username, report_start_date, instance_id):
-    events = EventTable.objects.filter(Q(timestamp__lt=report_start_date) & Q(name__exact="instance_allocation_source_changed") & Q(payload__username__exact=username) & Q(payload__instance_id__exact=instance_id)).order_by('timestamp')
+    events = EventTable.objects.filter(Q(timestamp__lt=report_start_date) & Q(name__exact="instance_allocation_source_changed") & Q(entity_id=username) & Q(payload__instance_id__exact=instance_id)).order_by('timestamp')
     if not events:
         return False
     else:
