@@ -88,6 +88,7 @@ USE_ALLOCATION_SOURCE = ; False
 TIME_ZONE = ; America/Phoenix
 SITE_NAME = ; CyVerse
 ORG_NAME = ; CyVerse
+MAINTENANCE_EXEMPT_USERNAMES = ; ['test1','test2'] -- a list of usernames that will be exempt from Maintenance
 ADMINS_EMAIL_TUPLE = ; [('Atmosphere Admin', 'atmo-admin@website.com'),('System Admins', 'sys-admin@website.com')]
 ATMO_SUPPORT_EMAIL_TUPLE = ; [('Different Email for Request Tracking', 'rt@website.com'),('System Admins', 'sys-admin@website.com')]
 SERVER_EMAIL = ; help@website.org

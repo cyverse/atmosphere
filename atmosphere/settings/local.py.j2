@@ -76,6 +76,12 @@ ATMO_SUPPORT = [
 ATMO_SUPPORT = ADMINS
 {% endif %}
 
+{% if MAINTENANCE_EXEMPT_USERNAMES %}
+MAINTENANCE_EXEMPT_USERNAMES = {{ MAINTENANCE_EXEMPT_USERNAMES }}
+{% else %}
+MAINTENANCE_EXEMPT_USERNAMES = []
+{% endif %}
+
 ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
 
 # Django uses this one..
