@@ -68,8 +68,6 @@ def filter_events_and_instances(report_start_date, report_end_date, username=Non
     return {'events': events, 'instances': instances}
 
 
-# blah
-
 def group_events_by_instances(events):
     out_dic = {}
 
