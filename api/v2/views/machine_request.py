@@ -1,5 +1,6 @@
 from api import exceptions as api_exceptions
 from rest_framework import exceptions as rest_exceptions
+from rest_framework.response import Response
 from api.v2.serializers.details import MachineRequestSerializer,\
     UserMachineRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
@@ -185,8 +186,9 @@ class MachineRequestViewSet(BaseRequestViewSet):
 
     def deny_action(self, instance):
         """
-        Notify the user that the request was denied
+        TODO: Notify the user that the request was denied
         """
+        pass
 
     def close_action(self, instance):
         """
