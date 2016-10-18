@@ -11,14 +11,13 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
     def _validate_ias_event(self, entity_id, payload):
         allocation_source_id = payload.get('allocation_source_id', '')
         instance_id = payload.get('instance_id', '')
-        if entity_id != instance_id:
-            raise serializers.ValidationError(
-                "Expected entity ID to be the Instance ID: %s, Received: %s"
-                % (instance_id, entity_id))
         user = self._get_request_user()
+        if entity_id != user.username:
+            raise serializers.ValidationError(
+                "Expected entity ID to be the Username: %s, Received: %s"
+                % (instance_id, entity_id))
         if not user:
             raise serializers.ValidationError("Request user was not found")
-        payload['username'] = user.username
         allocation_source = AllocationSource.for_user(user=user).filter(
             source_id=allocation_source_id).first()
         instance = Instance.for_user(user=user).filter(provider_alias=instance_id).first()
