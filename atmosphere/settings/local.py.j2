@@ -33,8 +33,13 @@ ENFORCING = False
 #Cloud-Operator specific information
 {%- if SITE_NAME %}
 SITE_NAME = '{{ SITE_NAME }}'
+SITE_TITLE = '{{ SITE_NAME }}'
 {%- else %}
 SITE_NAME = 'Atmosphere'
+SITE_TITLE = 'Atmosphere'
+{%- endif %}
+{%- if ORG_NAME %}
+ORG_NAME = '{{ ORG_NAME }}'
 {%- endif %}
 
 {%- if TIME_ZONE %}
@@ -53,6 +58,11 @@ ADMINS = [
 ]
 {% endif %}
 
+
+{%- if SERVER_EMAIL %}
+# This email will be used as the FROM: address for emails to the ADMINS
+SERVER_EMAIL="{{ SERVER_EMAIL }}"
+{%- endif %}
 # Required to send RequestTracker emails
 {% if ATMO_SUPPORT_EMAIL_TUPLE %}
 ATMO_SUPPORT = [
@@ -219,10 +229,13 @@ USE_ALLOCATION_SOURCE = True
 # Configure authentication plugin
 AUTHENTICATION = {
     #GLOBAL
+    "APP_NAME": SITE_TITLE,
+    "SITE_NAME": ORG_NAME,
     "SERVER_URL": SERVER_URL,
     "TOKEN_EXPIRY_TIME": timedelta(days={{ TOKEN_EXPIRY_TIME_DAYS }}),
     "SELF_SIGNED_CERT": {{ SELF_SIGNED_CERT }},
     "LOGOUT_REDIRECT_URL": '{{ LOGOUT_REDIRECT_URL }}',
+
     #CAS
     "CAS_SERVER": '{{ CAS_SERVER }}',
     "CAS_AUTH_PREFIX": '{{ CAS_AUTH_PREFIX }}',
