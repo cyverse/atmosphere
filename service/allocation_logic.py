@@ -16,19 +16,15 @@ def create_report(report_start_date, report_end_date, user_id=None, allocation_s
     except:
         raise Exception("Cannot parse start and end dates for allocation calculation function")
     data = generate_data(report_start_date, report_end_date, username=user_id)
-    if user_id:
-        if allocation_source_name:
-            output = []
-            for row in data:
-                if row['allocation_source'] == allocation_source_name:
-                    output.append(row)
-            return output
-        else:
-            return data
-    else:
-        return data
-        #write_csv(data)
 
+    if allocation_source_name:
+        output = []
+        for row in data:
+            if row['allocation_source'] == allocation_source_name:
+                output.append(row)
+        return output
+
+    return data
 
 def generate_data(report_start_date, report_end_date, username=None):
     # filter events and instancs)

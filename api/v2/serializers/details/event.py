@@ -15,7 +15,7 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
         if entity_id != user.username:
             raise serializers.ValidationError(
                 "Expected entity ID to be the Username: %s, Received: %s"
-                % (instance_id, entity_id))
+                % (user.username, entity_id))
         if not user:
             raise serializers.ValidationError("Request user was not found")
         allocation_source = AllocationSource.for_user(user=user).filter(
