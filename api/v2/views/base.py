@@ -3,6 +3,8 @@ from threepio import logger
 from django.utils import timezone
 
 from rest_framework import exceptions, status
+from rest_framework.decorators import detail_route
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
@@ -175,6 +177,58 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
             }
             logger.exception(e)
             raise exceptions.ParseError(detail=message)
+
+    @detail_route()
+    def approve(self, *args, **kwargs):
+        """
+        See the deny docs
+        """
+        request_obj = self.get_object()
+        SerializerCls = self.get_serializer_class()
+        serializer = SerializerCls(
+            request_obj, context={'request': self.request})
+        if not request_obj:
+            raise ValidationError(
+                "Request unknown. "
+                "Could not approve request."
+            )
+        if not serializer.is_valid():
+            raise ValidationError(
+                "Serializer could not be validated: %s"
+                "Could not approve request."
+                % (serializer.errors,)
+            )
+        approve_status = StatusType.objects.get(name='approved')
+        request_obj = serializer.save(status=approve_status)
+        self.approve_action(request_obj)
+        return Response(serializer.data)
+
+    @detail_route()
+    def deny(self, *args, **kwargs):
+        """
+        #FIXME: Both of these actions do something similar, they also 'create and abuse' serializers. Is there a better way to handle this? Lets lok into how `create` vs `perform_create` is called in a DRF 'normal' view.
+        """
+        request_obj = self.get_object()
+        SerializerCls = self.get_serializer_class()
+        if not request_obj:
+            raise ValidationError(
+                "Request unknown. "
+                "Could not deny request."
+            )
+        # Mocking a validation of data...
+        serializer = SerializerCls(
+            request_obj, data={}, partial=True,
+            context={'request': self.request})
+        if not serializer.is_valid():
+            raise ValidationError(
+                "Serializer could not be validated: %s"
+                "Could not deny request."
+                % (serializer.errors,)
+            )
+        deny_status = StatusType.objects.get(name='denied')
+        request_obj = serializer.save(status=deny_status)
+        self.deny_action(request_obj)
+        return Response(serializer.data)
 
     def perform_destroy(self, instance):
         """

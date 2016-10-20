@@ -11,6 +11,7 @@ from core.models.cloud_admin import CloudAdministrator, cloud_admin_list, get_cl
 from core.models import Group, MaintenanceRecord, AtmosphereUser
 
 from api import ServiceUnavailable
+from django.conf import settings
 
 
 class ImageOwnerUpdateAllowed(permissions.BasePermission):
@@ -170,11 +171,11 @@ class InMaintenance(permissions.BasePermission):
         records = MaintenanceRecord.active()\
                                    .filter(provider__isnull=True)
         if records:
-            staff_username = request.session.get('username','')
-            staff_user = AtmosphereUser.objects.filter(username=staff_username).first()
-            if staff_user and staff_user.is_staff:
+            session_username = request.session.get('username','')
+            atmo_user = AtmosphereUser.objects.filter(username=session_username).first()
+            if atmo_user and session_username in settings.MAINTENANCE_EXEMPT_USERNAMES:
                 return True
-            if not request.user.is_staff:
+            else:
                 raise ServiceUnavailable(
                     detail=get_maintenance_messages(records))
         return True

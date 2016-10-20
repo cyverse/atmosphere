@@ -241,6 +241,14 @@ def _one_runner_all_playbook_execution(
                 for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
             private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
             **runner_opts)
+    if runner.playbooks == []:
+        msg = "Playbook directory has no playbooks: %s" \
+            % (playbook_dir, )
+        if limit_playbooks:
+            msg = "'limit_playbooks=%s' generated zero playbooks." \
+                  " Available playbooks in directory are: %s" \
+                  % (limit_playbooks, runner._get_files(playbook_dir))
+        raise AnsibleDeployException(msg)
     runner.run()
     return runner
 

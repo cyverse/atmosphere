@@ -10,7 +10,7 @@ from django.db.models import Max
 
 from django.db.models import ObjectDoesNotExist
 from rtwo.exceptions import NovaOverLimit
-from rtwo.exceptions import NeutronClientException
+from rtwo.exceptions import NeutronClientException, GlanceClientException
 from requests.exceptions import ConnectionError
 from hashlib import sha256
 
@@ -407,10 +407,14 @@ class AccountDriver(BaseAccountDriver):
         return projects
 
     def share_image_with_project(self, glance_image, project_name):
-        self.image_manager.share_image(glance_image, project_name)
-        self.accept_shared_image(glance_image, project_name)
-        logger.info("Added Cloud Access: %s-%s"
-                    % (glance_image, project_name))
+        try:
+            self.image_manager.share_image(glance_image, project_name)
+            self.accept_shared_image(glance_image, project_name)
+            logger.info("Added Cloud Access: %s-%s"
+                        % (glance_image, project_name))
+        except GlanceClientException as gce:
+            if 'is duplicated for image' not in gce.details:
+                raise
 
     def accept_shared_image(self, glance_image, project_name):
         """

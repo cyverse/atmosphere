@@ -47,18 +47,11 @@ class MachineRequest(BaseRequest):
 
     # Data for the new machine, version and app...
     # Application specific:
-    new_application_name = models.CharField(
-        max_length=256,
-        null=True,
-        blank=True)
+    new_application_name = models.CharField(max_length=256)
     new_application_description = models.TextField(
-        default='',
-        blank=True,
-        null=True)
+        default='Description Missing')
     new_application_visibility = models.CharField(
-        max_length=256,
-        blank=True,
-        null=True)  # Choices:Public, Private, Select
+        max_length=256, default='private')  # Choices:Public, Private, Select
     access_list = models.TextField(
         default='',
         blank=True,
@@ -69,11 +62,8 @@ class MachineRequest(BaseRequest):
     system_files = models.TextField(default='', blank=True, null=True)
     installed_software = models.TextField(default='', blank=True, null=True)
     exclude_files = models.TextField(default='', blank=True, null=True)
-    new_version_name = models.CharField(max_length=256, blank=True, null=True)
-    new_version_change_log = models.TextField(
-        default='',
-        blank=True,
-        null=True)
+    new_version_name = models.CharField(max_length=256, default='1.0')
+    new_version_change_log = models.TextField(default='Changelog Missing')
     new_version_tags = models.TextField(
         default='', blank=True, null=True)  # Re-rename to new_application_tags
     new_version_memory_min = models.IntegerField(default=0)

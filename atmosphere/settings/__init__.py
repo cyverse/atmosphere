@@ -99,6 +99,9 @@ LANGUAGE_CODE = 'en-us'
 
 SITE_ID = 1
 
+SITE_TITLE = "Atmosphere"
+ORG_NAME = "CyVerse"
+
 USE_I18N = True
 
 USE_TZ = True
@@ -486,11 +489,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=30),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
-    # "monitor_instance_allocations": {
-    #     "task": "monitor_instance_allocations",
-    #     "schedule": timedelta(minutes=15),
-    #     "options": {"expires": 25 * 60, "time_limit": 25 * 60}
-    # },
+    "monitor_instance_allocations": {
+        "task": "monitor_instance_allocations",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 25 * 60, "time_limit": 25 * 60}
+    },
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule": timedelta(minutes=15),

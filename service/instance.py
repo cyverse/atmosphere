@@ -164,7 +164,6 @@ def start_instance(esh_driver, esh_instance,
 
     raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
     """
-    from service.tasks.driver import update_metadata
     # Don't check capacity because.. I think.. its already being counted.
     _permission_to_act(identity_uuid, "Start")
     if restore_ip:
@@ -419,22 +418,32 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
                      core_identity_uuid=None):
     """
     Returns: a task, chained together
-    task chain: wait_for("active") --> AddFixed --> AddFloating
+    task chain: wait_for("active") --> set tmp_status to 'initializing' --> AddFixed --> AddFloating
     --> reDeploy
     start with: task.apply_async()
     """
-    from service.tasks.driver import \
-        wait_for_instance, add_fixed_ip, add_floating_ip, deploy_init_to
+    from service.tasks.driver import (
+        wait_for_instance, add_fixed_ip, add_floating_ip,
+        deploy_init_to, update_metadata
+    )
     init_task = wait_for_instance.s(
         esh_instance.id, esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, "active",
         # TODO: DELETEME below.
         no_tasks=True)
-    # Step 1: Add fixed
+    # Step 1: Set metadata to initializing
+    metadata = {'tmp_status': 'initializing'}
+    metadata_update_task = update_metadata.si(
+        esh_driver.__class__, esh_driver.provider, esh_driver.identity,
+        esh_instance.id, metadata, replace_metadata=False)
+
+    # Step 2: Add fixed
     fixed_ip_task = add_fixed_ip.si(
         esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, esh_instance.id, core_identity_uuid)
-    init_task.link(fixed_ip_task)
+
+    init_task.link(metadata_update_task)
+    metadata_update_task.link(fixed_ip_task)
     # Add float and re-deploy OR just add floating IP...
     if redeploy:
         core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
