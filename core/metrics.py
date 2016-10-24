@@ -13,6 +13,7 @@ def get_metrics(application, now_time=None):
     """
     Aggregate 'all-version' metrics
     More specific metrics can be found at the version level
+    #FIXME: This call is *SLOW*. Once we have all the metrics we want per application, we need a way to store this (EventTable)
     """
     if not now_time:
         now_time = timezone.now()
