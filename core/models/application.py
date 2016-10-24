@@ -176,6 +176,17 @@ class Application(models.Model):
             }
         }
 
+    def _current_versions(self):
+        """
+        Return a list of current application versions.
+        NOTE: Defined as:
+                * The ApplicationVersion has not exceeded its end_date
+        """
+        version_set = self.all_versions
+        active_versions = version_set.filter(
+            only_current())
+        return active_versions
+
     def _current_machines(self, request_user=None):
         """
         Return a list of current provider machines.

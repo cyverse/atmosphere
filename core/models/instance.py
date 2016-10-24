@@ -115,6 +115,17 @@ class Instance(models.Model):
         except ObjectDoesNotExist:
             return None
 
+    def has_history(self, status_name):
+        """
+        Returns the newest InstanceStatusHistory
+        """
+        has_history = self.instancestatushistory_set.order_by(
+            '-start_date').filter(status__name=status_name).first()
+        if has_history:
+            return has_history
+        else:
+            return None
+
     def get_last_history(self):
         """
         Returns the newest InstanceStatusHistory
