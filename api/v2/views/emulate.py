@@ -30,7 +30,7 @@ class TokenEmulateViewSet(ViewSet):
         new_token = create_token(
                 username,
                 token_key='EMULATED-'+str(uuid4()),
-                remote_ip=request.META['REMOTE_ADDR'],
+                remote_ip=self.request.META['REMOTE_ADDR'],
                 token_expire=expireDate,
                 issuer="DRF-EmulatedToken-%s" % user.username)
         serialized_data = TokenSerializer(new_token, context={'request':self.request}).data
