@@ -18,7 +18,7 @@ from rtwo.exceptions import LibcloudDeploymentError
 
 #TODO: Internalize exception into RTwo
 from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
-from neutron.common.exceptions import IpAddressGenerationFailureClient
+from neutronclient.common.exceptions import IpAddressGenerationFailureClient
 
 from threepio import celery_logger, status_logger, logger
 
