@@ -18,6 +18,7 @@ from rtwo.exceptions import LibcloudDeploymentError
 
 #TODO: Internalize exception into RTwo
 from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
+from neutron.common.exceptions import IpAddressGenerationFailureClient
 
 from threepio import celery_logger, status_logger, logger
 
@@ -1318,6 +1319,12 @@ def add_floating_ip(driverCls, provider, identity,
         # End
         celery_logger.debug("add_floating_ip task finished at %s." % datetime.now())
         return {"floating_ip": floating_ip, "hostname": hostname}
+    except IpAddressGenerationFailureClient as floating_ip_err:
+        if 'no more ip addresses available' in floating_ip_err.message.lower():
+            celery_logger.exception("Error occurred while assigning a floating IP")
+        countdown = min(2**current.request.retries, 128)
+        add_floating_ip.retry(exc=floating_ip_err,
+                              countdown=countdown)
     except NeutronBadRequest as bad_request:
         # NOTE: 'Neutron Bad Request' is a good message to 'catch and fix'
         # because its a user-supplied problem.
