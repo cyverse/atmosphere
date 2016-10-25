@@ -22,7 +22,6 @@ class ProjectExternalLinkSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ProjectExternalLink
         validators = [
-            # TODO: Fix that 'application' leaks into real-world here.
             UniqueTogetherValidator(
                 queryset=ProjectExternalLink.objects.all(),
                 fields=('project', 'externallink')

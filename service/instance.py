@@ -942,7 +942,7 @@ def boot_volume_instance(
     kwargs.update(prep_kwargs)
     instance, token, password = _boot_volume(
         driver, identity, copy_source, size,
-        name, userdata, network, **kwargs)
+        name, userdata, network, **prep_kwargs)
     return _complete_launch_instance(
         driver, identity, instance,
         identity.created_by, token, password, deploy=deploy)

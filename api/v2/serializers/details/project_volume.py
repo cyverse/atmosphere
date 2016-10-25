@@ -1,5 +1,6 @@
 from core.models import ProjectVolume, Project, Volume
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 from api.v2.serializers.summaries import ProjectSummarySerializer
 from .volume import VolumeSerializer
 
@@ -32,8 +33,15 @@ class ProjectVolumeSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:projectvolume-detail',
     )
+
     class Meta:
         model = ProjectVolume
+        validators = [
+            UniqueTogetherValidator(
+                queryset=ProjectVolume.objects.all(),
+                fields=('project', 'volume')
+                ),
+        ]
         fields = (
             'id',
             'url',
