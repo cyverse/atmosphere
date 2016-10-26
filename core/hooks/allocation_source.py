@@ -12,6 +12,7 @@ from core.models import (
 
 # Post-Save hooks
 from core.models import UserAllocationSource
+from django.db.models import Q
 
 
 def listen_for_allocation_overage(sender, instance, raw, **kwargs):
@@ -342,7 +343,7 @@ def listen_for_user_allocation_source_assigned(sender, instance, created, **kwar
         }
 
         The method should result in User being assigned an AllocationSource
-        """
+    """
     event = instance
     if event.name != 'user_allocation_source_assigned':
         return None
@@ -362,3 +363,34 @@ def listen_for_user_allocation_source_assigned(sender, instance, created, **kwar
     allocation_source = UserAllocationSource(allocation_source=allocation_source,
                                              user=user)
     allocation_source.save()
+
+
+def listen_for_allocation_source_renewed(sender, instance, created, **kwargs):
+    """
+               This listener expects:
+               EventType - 'allocation_source_renewed'
+               EventPayload - {
+                   "source_id": "32712",
+                   "name": "TestAllocationSource",
+                   "compute_allowed": 50000
+               }
+
+               The method should result in compute allowed of allocation source being renewed
+    """
+    event = instance
+    if event.name != 'allocation_source_renewed':
+        return None
+    logger.info('Allocation Source renewed event: %s', event.__dict__)
+    payload = event.payload
+    allocation_source_id = payload['source_id']
+    allocation_source_name = payload['name']
+    compute_allowed = payload['compute_allowed']
+    allocation_source = AllocationSource.objects.filter( Q(source_id=allocation_source_id) & Q(name=allocation_source_name) ).first()
+    if not allocation_source:
+        raise('Allocation Source %s does not exist'%(payload['source_id']))
+
+    try:
+        allocation_source.compute_allowed = compute_allowed
+        allocation_source.save()
+    except Exception as e:
+        raise('Allocation Source %s could not be renewed because of the following error %s'%(allocation_source.name, e))
