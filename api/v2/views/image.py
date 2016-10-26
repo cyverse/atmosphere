@@ -93,4 +93,4 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        return Image.current_apps(request_user)
+        return Image.images_for_user(request_user)

@@ -10,7 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_current, only_current_apps, only_current_source, in_provider_list
+from core.query import *
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
@@ -114,24 +114,24 @@ class Application(models.Model):
         return admin_images
 
     @classmethod
-    def current_apps(cls, atmo_user=None):
+    def images_for_user(cls, user=None):
         from core.models.user import AtmosphereUser
-        public_images = Application.public_apps()
-        if not atmo_user or isinstance(atmo_user, AnonymousUser):
-            return public_images.distinct()
-        if not isinstance(atmo_user, AtmosphereUser):
-            raise Exception("Expected atmo_user to be of type AtmosphereUser"
-                            " - Received %s" % type(atmo_user))
-        user_images = atmo_user.application_set.all()
-        shared_images = Application.shared_with(atmo_user)
-        if atmo_user.is_staff:
-            admin_images = Application.admin_apps(atmo_user)
+        is_public = Q(private=False)
+        if not user or isinstance(user, AnonymousUser):
+            return Application.objects.filter(is_public).distinct()
+        if not isinstance(user, AtmosphereUser):
+            raise Exception("Expected user to be of type AtmosphereUser"
+                            " - Received %s" % type(user))
+        queryset = None
+        if user.is_staff:
+            queryset = Application.objects.filter(
+                    only_current() & in_users_providers(user))
         else:
-            admin_images = Application.objects.none()
-        all_the_images = (public_images | user_images |
-                shared_images | admin_images).distinct().filter(
-                in_provider_list(atmo_user.current_providers, key_override='versions__machines__instance_source__provider'))
-        return all_the_images
+            queryset = Application.objects.filter(
+                    only_current() &
+                    in_users_providers(user) &
+                    (created_by_user(user) | images_shared_with_user(user) | is_public))
+        return queryset.distinct()
 
     def get_metrics(self):
         """

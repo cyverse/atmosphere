@@ -268,3 +268,23 @@ def _query_membership_for_user(user):
     if not user:
         return None
     return Q(group__id__in=user.group_set.values('id'))
+
+def images_shared_with_user(user):
+    """
+    Images with versions or machines belonging to the user's groups
+    """
+    group_ids = user.group_ids()
+    return (Q(versions__machines__members__id__in=group_ids) |
+        Q(versions__membership__id__in=group_ids))
+
+def created_by_user(user):
+    """
+    Images created by a username
+    """
+    return Q(created_by__username__exact=user.username)
+
+def in_users_providers(user):
+    """
+    Images on providers that the user belongs to
+    """
+    return Q(versions__machines__instance_source__provider__in=user.current_providers)
