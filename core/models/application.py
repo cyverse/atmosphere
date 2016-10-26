@@ -161,17 +161,6 @@ class Application(models.Model):
             }
         }
 
-    def _current_versions(self):
-        """
-        Return a list of current application versions.
-        NOTE: Defined as:
-                * The ApplicationVersion has not exceeded its end_date
-        """
-        version_set = self.all_versions
-        active_versions = version_set.filter(
-            only_current())
-        return active_versions
-
     def _current_machines(self, request_user=None):
         """
         Return a list of current provider machines.
@@ -337,59 +326,6 @@ class ApplicationMembership(models.Model):
         db_table = 'application_membership'
         app_label = 'core'
         unique_together = ('application', 'group')
-
-
-def _has_active_provider(app):
-    providermachine_set = app.all_machines
-    machines = providermachine_set.filter(
-        Q(instance_source__end_date=None) |
-        Q(instance_source__end_date__gt=timezone.now())
-    )
-    providers = (pm.instance_source.provider for pm in machines)
-    return any(p.is_active() for p in providers)
-
-
-# TODO: Validate that these are used, and that the queries are accurate.
-def public_applications():
-    public_apps = []
-    applications = Application.objects.filter(
-        Q(end_date=None) |
-        Q(end_date__gt=timezone.now()),
-        private=False)
-
-    for app in applications:
-        if _has_active_provider(app):
-            _add_app(public_apps, app)
-    return public_apps
-
-
-def visible_applications(user):
-    apps = []
-    if not user:
-        return apps
-    # Look only for 'Active' private applications
-    for app in Application.objects.filter(only_current(), private=True):
-        # Retrieve the machines associated with this app
-        providermachine_set = app.all_machines
-        machine_set = providermachine_set.filter(only_current_source())
-        # Skip app if all their machines are on inactive providers.
-        if all(not pm.instance_source.provider.is_active()
-               for pm in machine_set):
-            continue
-        # Add the application if 'user' is a member of the application or PM
-        if app.members.filter(user=user):
-            _add_app(apps, app)
-        for pm in machine_set:
-            if pm.members.filter(user=user):
-                _add_app(apps, app)
-                break
-    return apps
-# END-TODO
-
-
-def _add_app(app_list, app):
-    if app not in app_list:
-        app_list.append(app)
 
 
 def _get_app_by_name(provider_uuid, name):
