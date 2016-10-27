@@ -20,6 +20,12 @@ class CyverseTestRenewalVariables(BaseVariables):
         if (not self.allocation_source.end_date or (self.allocation_source.end_date > self.current_time)):
             return True
         return False
+    #
+    # @boolean_rule_variable
+    # def is_at_full_capacity(self):
+    #     if self.allocation_source.compute_allowed > AllocationSource.objects.get(allocation_source = self.allocation_source).compute_used:
+    #         return True
+    #     return False
 
     @numeric_rule_variable
     def days_since_renewed(self):
@@ -30,10 +36,6 @@ class CyverseTestRenewalVariables(BaseVariables):
             return (self.current_time - self.allocation_source.start_date).days
         return (last_renewal_event.last().timestamp - self.current_time).days
 
-
-    @numeric_rule_variable
-    def supplement_requested(self):
-        return self.supplement_requested
 
 
 class CyverseTestRenewalActions(BaseActions):

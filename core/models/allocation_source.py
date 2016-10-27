@@ -5,6 +5,9 @@ from threepio import logger
 from pprint import pprint
 from uuid import uuid4
 
+# class RenewalStrategy(models.Model):
+#     name = models.CharField(max_length=255)
+
 class AllocationSource(models.Model):
     source_id = models.UUIDField(default=uuid4, unique=True, editable=False)
     name = models.CharField(max_length=255)
@@ -115,9 +118,11 @@ class InstanceAllocationSourceSnapshot(models.Model):
 class AllocationSourceSnapshot(models.Model):
     allocation_source = models.OneToOneField(AllocationSource, related_name="snapshot")
     updated = models.DateTimeField(auto_now=True)
+    last_renewed = models.DateTimeField(default=timezone.now)
     # all fields are stored in DecimalField to allow for partial hour calculation
     global_burn_rate = models.DecimalField(max_digits=19, decimal_places=3)
     compute_used = models.DecimalField(max_digits=19, decimal_places=3)
+    compute_allowed = models.DecimalField(max_digits=19, decimal_places=3, default=0)
 
     def __unicode__(self):
         return "%s (Used:%s, Burn Rate:%s Updated on:%s)" %\

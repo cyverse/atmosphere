@@ -338,21 +338,13 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
                                          )
     allocation_source.save()
 
-    #update event instance
-    source_id = str(allocation_source.source_id)
-    event.entity_id = source_id
-    event.payload['source_id'] = source_id
-
     #create snapshot
 
     allocation_source_snapshot = AllocationSourceSnapshot(allocation_source=allocation_source,
-                                        global_burn_rate = 0,
-                                        compute_used=0.0,
-                                        compute_allowed=allocation_compute_allowed
+                                          global_burn_rate = 0,
+                                         compute_used=0.0
                                          )
     allocation_source_snapshot.save()
-
-    return allocation_source
 
 def listen_for_user_allocation_source_assigned(sender, instance, created, **kwargs):
     """
