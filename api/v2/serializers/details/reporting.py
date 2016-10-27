@@ -2,6 +2,7 @@ from core.models import (
     Instance
 )
 from rest_framework import serializers
+from django.utils import timezone
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 from api.v2.serializers.summaries import (
@@ -18,6 +19,8 @@ class InstanceReportingSerializer(serializers.ModelSerializer):
     image_name = serializers.SerializerMethodField()
     version_name = serializers.SerializerMethodField()
     is_featured_image = serializers.SerializerMethodField()
+    start_date = serializers.SerializerMethodField()
+    end_date = serializers.SerializerMethodField()
     hit_aborted = serializers.SerializerMethodField()
     hit_active = serializers.SerializerMethodField()
     hit_deploy_error = serializers.SerializerMethodField()
@@ -40,14 +43,14 @@ class InstanceReportingSerializer(serializers.ModelSerializer):
     def get_version_name(self, instance):
         try:
             version = self.get_version(instance)
-            return version.name
+            return version.name.replace(",","-")
         except Exception:
             return "N/A"
 
     def get_image_name(self, instance):
         try:
             application = self.get_application(instance)
-            return application.name
+            return application.name.replace(",", "-")
         except Exception:
             return "Deleted Image"
 
@@ -63,6 +66,12 @@ class InstanceReportingSerializer(serializers.ModelSerializer):
             return instance.source.providermachine.application_version
         except Exception:
             return None
+
+    def get_end_date(self, instance):
+        return instance.end_date.strftime("%x %X") if instance.end_date else timezone.now().strftime("%x %X")
+
+    def get_start_date(self, instance):
+        return instance.start_date.strftime("%x %X")
 
     def get_hit_active_or_aborted_or_error(self, instance):
         return 1 if (
