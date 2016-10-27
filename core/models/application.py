@@ -86,6 +86,15 @@ class Application(models.Model):
     def is_owner(self, atmo_user):
         return self.created_by == atmo_user
 
+    def change_owner(self, identity, user=None, propagate=True):
+        if not user:
+            user = identity.created_by
+        self.created_by = user
+        self.created_by_identity = identity
+        self.save()
+        if propagate:
+           [v.change_owner(identity, user, propagate=propagate) for v in self.versions.all()]
+
     @classmethod
     def public_apps(cls):
         public_images = Application.objects.filter(
