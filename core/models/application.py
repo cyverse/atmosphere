@@ -118,7 +118,7 @@ class Application(models.Model):
         from core.models.user import AtmosphereUser
         is_public = Q(private=False)
         if not user or isinstance(user, AnonymousUser):
-            return Application.objects.filter(is_public).distinct()
+            return Application.objects.filter(only_current() & is_public).distinct()
         if not isinstance(user, AtmosphereUser):
             raise Exception("Expected user to be of type AtmosphereUser"
                             " - Received %s" % type(user))
