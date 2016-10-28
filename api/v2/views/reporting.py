@@ -53,20 +53,38 @@ class ReportingViewSet(AuthViewSet):
             'headers_ordering': ["id", "instance_id", "username", "staff_user", "provider", "start_date", "end_date", "image_name", "version_name", "size.active", "size.start_date", "size.end_date", "size.name", "size.id", "size.uuid", "size.url", "size.alias", "size.cpu", "size.mem", "size.disk", "is_featured_image", "hit_active", "hit_deploy_error", "hit_error", "hit_aborted", "hit_active_or_aborted", "hit_active_or_aborted_or_error"],
         }
 
+    def set_frequency(self):
+        freq = self.request.query_params.get('frequency', 'MS').lower()
+        if freq in ['as', 'yearly']:
+            return 'AS'
+        elif freq in ['qs', 'quarterly']:
+            return 'QS'
+        elif freq in ['ms', 'monthly']:
+            return 'MS'
+        elif freq in ['w', 'weekly']:
+            return 'W'
+        elif freq in ['d', 'daily']:
+            return 'D'
+        elif freq in ['h', 'hourly']:
+            return 'H'
+        else:  # Invalid defaults: Monthly
+            return 'MS'
+
     def create_excel_file(self, raw_dataframe, writer):
         # Return if dataframe is empty
         if len(raw_dataframe.index) <= 1:
             return None
-        new_datasets = self._create_datasets(raw_dataframe, writer)
-        writer = self._format_and_print_workbook(writer, new_datasets)
+        frequency = self.set_frequency()
+        new_datasets = self._create_datasets(raw_dataframe, writer, frequency)
+        writer = self._format_and_print_workbook(writer, new_datasets, frequency)
         return writer
 
-    def _create_datasets(self, raw_dataframe, writer):
+    def _create_datasets(self, raw_dataframe, writer, frequency):
         raw_dataframe['start_date'] = raw_dataframe['start_date'].apply(pd.to_datetime)
         raw_dataframe['end_date'] = raw_dataframe['end_date'].apply(pd.to_datetime)
 
         # Create some new tables
-        global_summary_data = raw_dataframe.set_index('start_date').query('is_featured_image == 1').resample('MS').aggregate([np.mean, np.sum])
+        global_summary_data = raw_dataframe.set_index('start_date').query('is_featured_image == 1').resample(frequency).aggregate([np.mean, np.sum])
         user_summary_data = raw_dataframe.query('is_featured_image == 1').set_index(['start_date', 'username'])
         image_summary_data = raw_dataframe.query('is_featured_image == 1').set_index(['start_date', 'image_name'])
 
@@ -78,7 +96,7 @@ class ReportingViewSet(AuthViewSet):
             'Average of Active/Aborted/Error', 'Sum of Active/Aborted/Error'
         ]
 
-        user_summary_data = user_summary_data.groupby([pd.Grouper(freq='MS', level=0), user_summary_data.index.get_level_values(1)]).aggregate([np.mean, np.sum])
+        user_summary_data = user_summary_data.groupby([pd.Grouper(freq=frequency, level=0), user_summary_data.index.get_level_values(1)]).aggregate([np.mean, np.sum])
         user_summary_data = user_summary_data.drop(['is_featured_image', 'hit_error', 'id', 'size.active', 'size.cpu', 'size.disk', 'size.id', 'size.mem'], axis=1)
         user_summary_data.index.rename(['Start Date', 'Username'], inplace=True)
         user_summary_data.columns = [
@@ -89,7 +107,7 @@ class ReportingViewSet(AuthViewSet):
             'Average of Active/Aborted/Error', 'Sum of Active/Aborted/Error'
         ]
 
-        image_summary_data = image_summary_data.groupby([pd.Grouper(freq='MS', level=0), image_summary_data.index.get_level_values(1)]).aggregate([np.mean, np.sum])
+        image_summary_data = image_summary_data.groupby([pd.Grouper(freq=frequency, level=0), image_summary_data.index.get_level_values(1)]).aggregate([np.mean, np.sum])
         image_summary_data = image_summary_data.drop(['is_featured_image', 'hit_active', 'hit_aborted', 'hit_deploy_error', 'hit_error', 'id', 'size.active', 'size.cpu', 'size.disk', 'size.id', 'size.mem'], axis=1)
         image_summary_data.index.rename(['Start Date', 'Image Name'], inplace=True)
         image_summary_data.columns = [
@@ -105,14 +123,23 @@ class ReportingViewSet(AuthViewSet):
             'Raw Data': raw_dataframe
         }
 
-    def _format_and_print_workbook(self, writer, new_datasets):
+    def _format_and_print_workbook(self, writer, new_datasets, frequency):
         raw_dataframe = new_datasets['Raw Data']
         user_summary_data = new_datasets['User Summary']
         image_summary_data = new_datasets['Image Summary']
         global_summary_data = new_datasets['Global Summary']
 
         #Write summary data to the writer
-        writer.datetime_format = 'mmm yyyy'
+        if frequency in ['AS']:
+            summary_format = 'yyyy'
+        elif frequency in ['MS','QS']:
+            summary_format = 'mmm yyyy'
+        elif frequency in ['W', 'D']:
+            summary_format = 'mmm d yyyy'
+        else:
+            summary_format = 'mmm d yyyy hh:mm:ss'
+
+        writer.datetime_format = summary_format
         global_summary_data.to_excel(writer, 'Monthly Summary')
         image_summary_data.to_excel(writer, 'Image Summary')
         user_summary_data.to_excel(writer, 'User Summary')
