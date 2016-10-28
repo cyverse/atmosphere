@@ -17,15 +17,15 @@ from api.v2.views.base import AuthViewSet
 from api.v2.exceptions import failure_response
 from api.v2.serializers.details import InstanceReportingSerializer
 
-from core.models import AtmosphereUser as User
-from core.models import Instance, Volume
+from core.models import Instance
 from rest_framework_csv.renderers import CSVRenderer
 from rest_framework.settings import api_settings
 from django.http import StreamingHttpResponse
 
-import xlwt, pandas, numpy, pytz
-from datetime import datetime, date
+import pandas
+import pytz
 from StringIO import StringIO
+
 
 class PandasExcelRenderer(CSVRenderer):
     """
