@@ -68,7 +68,7 @@ class InstanceReportingSerializer(serializers.ModelSerializer):
             return None
 
     def get_end_date(self, instance):
-        return instance.end_date.strftime("%x %X") if instance.end_date else timezone.now().strftime("%x %X")
+        return instance.end_date.strftime("%x %X") if instance.end_date else None
 
     def get_start_date(self, instance):
         return instance.start_date.strftime("%x %X")
