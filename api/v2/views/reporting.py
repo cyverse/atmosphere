@@ -13,52 +13,16 @@ from rest_framework import status
 
 from api import permissions
 from api.pagination import StandardResultsSetPagination
+from api.renderers import PandasExcelRenderer
 from api.v2.views.base import AuthViewSet
 from api.v2.exceptions import failure_response
 from api.v2.serializers.details import InstanceReportingSerializer
 
 from core.models import Instance
-from rest_framework_csv.renderers import CSVRenderer
 from rest_framework.settings import api_settings
-from django.http import StreamingHttpResponse
 
 import pandas
 import pytz
-from StringIO import StringIO
-
-
-class PandasExcelRenderer(CSVRenderer):
-    """
-    Renderer which serializes to XLS
-    """
-
-    media_type = 'application/vnd.ms-excel'
-    format = 'xlsx'
-
-    def render(self, data, media_type=None, renderer_context={}):
-        sheetname = renderer_context.get('sheetname', 'raw_data')
-        filename = renderer_context.get('filename', 'workbook.xlsx')
-        header_list = ["id", "instance_id", "username", "staff_user", "provider", "start_date", "end_date", "image_name", "version_name", "size.active", "size.start_date", "size.end_date", "size.name", "size.id", "size.uuid", "size.url", "size.alias", "size.cpu", "size.mem", "size.disk", "is_featured_image", "hit_active", "hit_deploy_error", "hit_error", "hit_aborted", "hit_active_or_aborted", "hit_active_or_aborted_or_error"]
-        table = self.tablize(data, header=header_list)
-        #table = self.tablize(data)
-        headers = table.pop(0)
-        raw_dataframe = pandas.DataFrame(table, columns=headers)
-        #Save to StringIO
-        sio = StringIO()
-        writer = pandas.ExcelWriter(sio, engine='xlsxwriter')
-        if 'writer_callback' in renderer_context:
-            callback = renderer_context.get('writer_callback')
-            raw_dataframe, writer = callback(raw_dataframe, writer, sheetname)
-        # Get access to the workbook and sheet
-
-        writer.save()
-
-        # StringIO to response:
-        sio.seek(0)
-        workbook = sio.getvalue()
-        response = StreamingHttpResponse(workbook, content_type='application/vnd.ms-excel')
-        response['Content-Disposition'] = 'attachment; filename="%s"' % filename
-        return response
 
 
 class ReportingViewSet(AuthViewSet):
