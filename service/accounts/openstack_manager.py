@@ -187,7 +187,6 @@ class AccountDriver(BaseAccountDriver):
                     if self.identity_version > 2:
                         project_kwargs = {'domain': domain_name}
                     project = self.user_manager.create_project(project_name, **project_kwargs)
-
                 # 2. Create User (And add them to the project)
                 user = self.get_user(username)
                 if not user:
@@ -210,8 +209,12 @@ class AccountDriver(BaseAccountDriver):
                     except (KeyError, TypeError):
                         logger.error("Cloud config ['user']['user_role_name'] is missing -- using deprecated settings.DEFAULT_KEYSTONE_ROLE")
                         role_name = settings.DEFAULT_KEYSTONE_ROLE
-                self.user_manager.add_project_membership(
-                    project_name, username, role_name, domain_name)
+                try:
+                    self.user_manager.add_project_membership(
+                        project_name, username, role_name, domain_name)
+                except:
+                    raise Exception("Could not add role %s to user %s for project %s -- Check 'user_role_name'"
+                                    % (role_name, username, project_name))
 
                 # 4. Create a keypair to use when launching with atmosphere
                 self.init_keypair(user.name, password, project.name)
