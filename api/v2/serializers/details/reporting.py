@@ -1,12 +1,10 @@
-from core.models import (
-    Instance
-)
 from rest_framework import serializers
-from django.utils import timezone
-from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 from api.v2.serializers.summaries import (
     SizeSummarySerializer,
+)
+from core.models import (
+    Instance
 )
 
 
@@ -43,7 +41,7 @@ class InstanceReportingSerializer(serializers.ModelSerializer):
     def get_version_name(self, instance):
         try:
             version = self.get_version(instance)
-            return version.name.replace(",","-")
+            return version.name.replace(",", "-")
         except Exception:
             return "N/A"
 
@@ -123,4 +121,3 @@ class InstanceReportingSerializer(serializers.ModelSerializer):
             'start_date',
             'end_date',
         )
-
