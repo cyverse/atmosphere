@@ -195,7 +195,10 @@ DATABASES = {
         'CONN_MAX_AGE': {{ DATABASE_CONN_MAX_AGE }},
         'PASSWORD': '{{ DATABASE_PASSWORD }}',
         'HOST': '{{ DATABASE_HOST }}',
-        'PORT': {{ DATABASE_PORT }}
+        'PORT': {{ DATABASE_PORT }},
+        'TEST': {
+            'SERIALIZE': False
+        }
     },
 }
 
