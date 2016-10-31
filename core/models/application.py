@@ -10,7 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import *
+from core import query
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
@@ -71,7 +71,7 @@ class Application(models.Model):
 
     def active_versions(self, now_time=None):
         return self.versions.filter(
-            only_current(now_time)).order_by('start_date')
+            query.only_current(now_time)).order_by('start_date')
 
     def get_icon_url(self):
         return self.icon.url if self.icon else None
@@ -89,14 +89,14 @@ class Application(models.Model):
     @classmethod
     def public_apps(cls):
         public_images = Application.objects.filter(
-            only_current_apps(), private=False)
+            query.only_current_apps(), private=False)
         return public_images
 
     @classmethod
     def shared_with(cls, user):
         group_ids = user.group_ids()
         shared_images = Application.objects.filter(
-            only_current_apps(),
+            query.only_current_apps(),
             (Q(versions__machines__members__id__in=group_ids) |
              Q(versions__membership__id__in=group_ids))
         )
@@ -109,7 +109,7 @@ class Application(models.Model):
         """
         provider_ids = user.provider_ids()
         admin_images = Application.objects.filter(
-            only_current(),
+            query.only_current(),
             versions__machines__instance_source__provider__id__in=provider_ids)
         return admin_images
 
@@ -118,19 +118,24 @@ class Application(models.Model):
         from core.models.user import AtmosphereUser
         is_public = Q(private=False)
         if not user or isinstance(user, AnonymousUser):
-            return Application.objects.filter(only_current() & is_public).distinct()
+            # Images that are not endated and are public
+            return Application.objects.filter(query.only_current_apps() & is_public).distinct()
         if not isinstance(user, AtmosphereUser):
             raise Exception("Expected user to be of type AtmosphereUser"
                             " - Received %s" % type(user))
         queryset = None
         if user.is_staff:
-            queryset = Application.objects.filter(
-                    only_current() & in_users_providers(user))
+            # Any image on a provider in the staff's provider list
+            queryset = Application.objects.filter(query.in_users_providers(user))
         else:
+            # This query is not the most clear. Here's an explanation:
+            # Include all images created by the user or active images in the
+            # users providers that are either shared with the user or public
             queryset = Application.objects.filter(
-                    only_current() &
-                    in_users_providers(user) &
-                    (created_by_user(user) | images_shared_with_user(user) | is_public))
+                    query.created_by_user(user) |
+                    (query.only_current_apps() &
+                     query.in_users_providers(user) &
+                     (query.images_shared_with_user(user) | is_public)))
         return queryset.distinct()
 
     def get_metrics(self):
@@ -171,7 +176,7 @@ class Application(models.Model):
         """
         providermachine_set = self.all_machines
         pms = providermachine_set.filter(
-            only_current_source(),
+            query.only_current_source(),
             instance_source__provider__active=True)
         if request_user:
             if isinstance(request_user, AnonymousUser):
@@ -186,7 +191,7 @@ class Application(models.Model):
         # Out of all non-end dated machines in this application
         providermachine_set = self.all_machines
         first = providermachine_set.filter(
-            only_current_source()
+            query.only_current_source()
             ).order_by('instance_source__start_date').first()
         return first
 
@@ -194,13 +199,13 @@ class Application(models.Model):
         providermachine_set = self.all_machines
         # Out of all non-end dated machines in this application
         last = providermachine_set.filter(
-            only_current_source()
+            query.only_current_source()
             ).order_by('instance_source__start_date').last()
         return last
 
     def get_projects(self, user):
         projects = self.projects.filter(
-            only_current(),
+            query.only_current(),
             owner=user)
         return projects
 
