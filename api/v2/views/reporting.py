@@ -1,29 +1,20 @@
 """
  RESTful Reporting API
 """
+import numpy as np
+import pandas as pd
+import pytz
 from dateutil.parser import parse
-
-from django.conf import settings
-from django.template.loader import render_to_string
-from django.template import Context
 from django.db.models import Q
-
-from rest_framework.response import Response
+from rest_framework import exceptions
 from rest_framework import status
-
-from api import permissions
-from api.pagination import StandardResultsSetPagination
-from api.renderers import PandasExcelRenderer
-from api.v2.views.base import AuthViewSet
-from api.v2.exceptions import failure_response
-from api.v2.serializers.details import InstanceReportingSerializer
-
-from core.models import Instance
 from rest_framework.settings import api_settings
 
-import pandas as pd
-import numpy as np
-import pytz
+from api.renderers import PandasExcelRenderer
+from api.v2.exceptions import failure_response
+from api.v2.serializers.details import InstanceReportingSerializer
+from api.v2.views.base import AuthViewSet
+from core.models import Instance
 
 
 class ReportingViewSet(AuthViewSet):
@@ -50,7 +41,11 @@ class ReportingViewSet(AuthViewSet):
             'request': getattr(self, 'request', None),
             'filename': 'reporting.xlsx',
             'excel_writer_hook': self.create_excel_file,
-            'headers_ordering': ["id", "instance_id", "username", "staff_user", "provider", "start_date", "end_date", "image_name", "version_name", "size.active", "size.start_date", "size.end_date", "size.name", "size.id", "size.uuid", "size.url", "size.alias", "size.cpu", "size.mem", "size.disk", "is_featured_image", "hit_active", "hit_deploy_error", "hit_error", "hit_aborted", "hit_active_or_aborted", "hit_active_or_aborted_or_error"],
+            'headers_ordering': ["id", "instance_id", "username", "staff_user", "provider", "start_date", "end_date",
+                                 "image_name", "version_name", "size.active", "size.start_date", "size.end_date",
+                                 "size.name", "size.id", "size.uuid", "size.url", "size.alias", "size.cpu", "size.mem",
+                                 "size.disk", "is_featured_image", "hit_active", "hit_deploy_error", "hit_error",
+                                 "hit_aborted", "hit_active_or_aborted", "hit_active_or_aborted_or_error"],
         }
 
     def set_frequency(self):
@@ -75,29 +70,37 @@ class ReportingViewSet(AuthViewSet):
         if len(raw_dataframe.index) <= 1:
             return None
         frequency = self.set_frequency()
-        new_datasets = self._create_datasets(raw_dataframe, writer, frequency)
+        new_datasets = self._create_datasets(raw_dataframe, frequency)
         writer = self._format_and_print_workbook(writer, new_datasets, frequency)
         return writer
 
-    def _create_datasets(self, raw_dataframe, writer, frequency):
+    @staticmethod
+    def _create_datasets(raw_dataframe, frequency):
         raw_dataframe['start_date'] = raw_dataframe['start_date'].apply(pd.to_datetime)
         raw_dataframe['end_date'] = raw_dataframe['end_date'].apply(pd.to_datetime)
 
         # Create some new tables
-        global_summary_data = raw_dataframe.set_index('start_date').query('is_featured_image == 1').resample(frequency).aggregate([np.mean, np.sum])
+        global_summary_data = raw_dataframe.set_index('start_date').query('is_featured_image == 1').resample(
+            frequency).aggregate([np.mean, np.sum])
         user_summary_data = raw_dataframe.query('is_featured_image == 1').set_index(['start_date', 'username'])
         image_summary_data = raw_dataframe.query('is_featured_image == 1').set_index(['start_date', 'image_name'])
 
         # Group things, filter things, drop unneeded columns, rename things
-        global_summary_data = global_summary_data.drop(['is_featured_image', 'hit_active', 'hit_aborted', 'hit_deploy_error', 'hit_error', 'id', 'size.active', 'size.cpu', 'size.disk', 'size.id', 'size.mem'], axis=1)
+        global_summary_data = global_summary_data.drop(
+            ['is_featured_image', 'hit_active', 'hit_aborted', 'hit_deploy_error', 'hit_error', 'id', 'size.active',
+             'size.cpu', 'size.disk', 'size.id', 'size.mem'], axis=1)
         global_summary_data.index.rename('Start Date', inplace=True)
         global_summary_data.columns = [
             'Average of Active/Aborted', 'Sum of Active/Aborted',
             'Average of Active/Aborted/Error', 'Sum of Active/Aborted/Error'
         ]
 
-        user_summary_data = user_summary_data.groupby([pd.Grouper(freq=frequency, level=0), user_summary_data.index.get_level_values(1)]).aggregate([np.mean, np.sum])
-        user_summary_data = user_summary_data.drop(['is_featured_image', 'hit_error', 'id', 'size.active', 'size.cpu', 'size.disk', 'size.id', 'size.mem'], axis=1)
+        user_summary_data = user_summary_data.groupby(
+            [pd.Grouper(freq=frequency, level=0), user_summary_data.index.get_level_values(1)]).aggregate(
+            [np.mean, np.sum])
+        user_summary_data = user_summary_data.drop(
+            ['is_featured_image', 'hit_error', 'id', 'size.active', 'size.cpu', 'size.disk', 'size.id', 'size.mem'],
+            axis=1)
         user_summary_data.index.rename(['Start Date', 'Username'], inplace=True)
         user_summary_data.columns = [
             'Average of Active', 'Sum of Active',
@@ -107,14 +110,20 @@ class ReportingViewSet(AuthViewSet):
             'Average of Active/Aborted/Error', 'Sum of Active/Aborted/Error'
         ]
 
-        image_summary_data = image_summary_data.groupby([pd.Grouper(freq=frequency, level=0), image_summary_data.index.get_level_values(1)]).aggregate([np.mean, np.sum])
-        image_summary_data = image_summary_data.drop(['is_featured_image', 'hit_active', 'hit_aborted', 'hit_deploy_error', 'hit_error', 'id', 'size.active', 'size.cpu', 'size.disk', 'size.id', 'size.mem'], axis=1)
+        image_summary_data = image_summary_data.groupby(
+            [pd.Grouper(freq=frequency, level=0), image_summary_data.index.get_level_values(1)]).aggregate(
+            [np.mean, np.sum])
+        image_summary_data = image_summary_data.drop(
+            ['is_featured_image', 'hit_active', 'hit_aborted', 'hit_deploy_error', 'hit_error', 'id', 'size.active',
+             'size.cpu', 'size.disk', 'size.id', 'size.mem'], axis=1)
         image_summary_data.index.rename(['Start Date', 'Image Name'], inplace=True)
         image_summary_data.columns = [
             'Average of Active/Aborted', 'Sum of Active/Aborted',
             'Average of Active/Aborted/Error', 'Sum of Active/Aborted/Error'
         ]
-        raw_dataframe = raw_dataframe.drop(['size.id', 'size.uuid', 'size.alias', 'size.active', 'size.start_date', 'size.end_date','size.url'], axis=1)
+        raw_dataframe = raw_dataframe.drop(
+            ['size.id', 'size.uuid', 'size.alias', 'size.active', 'size.start_date', 'size.end_date', 'size.url'],
+            axis=1)
 
         return {
             'User Summary': user_summary_data,
@@ -123,16 +132,17 @@ class ReportingViewSet(AuthViewSet):
             'Raw Data': raw_dataframe
         }
 
-    def _format_and_print_workbook(self, writer, new_datasets, frequency):
+    @staticmethod
+    def _format_and_print_workbook(writer, new_datasets, frequency):
         raw_dataframe = new_datasets['Raw Data']
         user_summary_data = new_datasets['User Summary']
         image_summary_data = new_datasets['Image Summary']
         global_summary_data = new_datasets['Global Summary']
 
-        #Write summary data to the writer
+        # Write summary data to the writer
         if frequency in ['AS']:
             summary_format = 'yyyy'
-        elif frequency in ['MS','QS']:
+        elif frequency in ['MS', 'QS']:
             summary_format = 'mmm yyyy'
         elif frequency in ['W', 'D']:
             summary_format = 'mmm d yyyy'
@@ -207,13 +217,16 @@ class ReportingViewSet(AuthViewSet):
             instances_qs = Instance.objects.all()
         elif request_user.is_authenticated():
             instances_qs = Instance.for_user(request_user)
+        else:
+            raise exceptions.NotAuthenticated()
         query_params = self.request.query_params
         query = self.get_filter_query(query_params)
 
         queryset = instances_qs.filter(query)
         return queryset
 
-    def get_filter_query(self, query_params):
+    @staticmethod
+    def get_filter_query(query_params):
         query = Q()
 
         if 'provider_id' in query_params:
@@ -242,5 +255,11 @@ class ReportingViewSet(AuthViewSet):
         """
         query_params = self.request.query_params
         if not query_params.items():
-            return failure_response(status.HTTP_400_BAD_REQUEST, "The reporting API should be accessed via the query parameters: ['start_date', 'end_date', 'provider_id']")
-        return super(ReportingViewSet, self).list(request, *args, **kwargs)
+            return failure_response(status.HTTP_400_BAD_REQUEST,
+                                    "The reporting API should be accessed via the query parameters:"
+                                    " ['start_date', 'end_date', 'provider_id']")
+        try:
+            results = super(ReportingViewSet, self).list(request, *args, **kwargs)
+        except ValueError:
+            return failure_response(status.HTTP_400_BAD_REQUEST, 'Invalid filter parameters')
+        return results

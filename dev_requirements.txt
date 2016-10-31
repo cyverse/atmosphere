@@ -17,3 +17,4 @@ pep8
 pip-tools==0.3.5 #TODO: Do we need a specific version here? -steve
 wheel
 vcrpy
+json_delta
