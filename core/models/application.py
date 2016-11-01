@@ -10,7 +10,7 @@ from threepio import logger
 
 from atmosphere import settings
 
-from core.query import only_current, only_current_apps, only_current_source, in_provider_list
+from core import query
 from core.models.provider import Provider, AccountProvider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
@@ -71,7 +71,7 @@ class Application(models.Model):
 
     def active_versions(self, now_time=None):
         return self.versions.filter(
-            only_current(now_time)).order_by('start_date')
+            query.only_current(now_time)).order_by('start_date')
 
     def get_icon_url(self):
         return self.icon.url if self.icon else None
@@ -86,17 +86,26 @@ class Application(models.Model):
     def is_owner(self, atmo_user):
         return self.created_by == atmo_user
 
+    def change_owner(self, identity, user=None, propagate=True):
+        if not user:
+            user = identity.created_by
+        self.created_by = user
+        self.created_by_identity = identity
+        self.save()
+        if propagate:
+           [v.change_owner(identity, user, propagate=propagate) for v in self.versions.all()]
+
     @classmethod
     def public_apps(cls):
         public_images = Application.objects.filter(
-            only_current_apps(), private=False)
+            query.only_current_apps(), private=False)
         return public_images
 
     @classmethod
     def shared_with(cls, user):
         group_ids = user.group_ids()
         shared_images = Application.objects.filter(
-            only_current_apps(),
+            query.only_current_apps(),
             (Q(versions__machines__members__id__in=group_ids) |
              Q(versions__membership__id__in=group_ids))
         )
@@ -109,29 +118,34 @@ class Application(models.Model):
         """
         provider_ids = user.provider_ids()
         admin_images = Application.objects.filter(
-            only_current(),
+            query.only_current(),
             versions__machines__instance_source__provider__id__in=provider_ids)
         return admin_images
 
     @classmethod
-    def current_apps(cls, atmo_user=None):
+    def images_for_user(cls, user=None):
         from core.models.user import AtmosphereUser
-        public_images = Application.public_apps()
-        if not atmo_user or isinstance(atmo_user, AnonymousUser):
-            return public_images.distinct()
-        if not isinstance(atmo_user, AtmosphereUser):
-            raise Exception("Expected atmo_user to be of type AtmosphereUser"
-                            " - Received %s" % type(atmo_user))
-        user_images = atmo_user.application_set.all()
-        shared_images = Application.shared_with(atmo_user)
-        if atmo_user.is_staff:
-            admin_images = Application.admin_apps(atmo_user)
+        is_public = Q(private=False)
+        if not user or isinstance(user, AnonymousUser):
+            # Images that are not endated and are public
+            return Application.objects.filter(query.only_current_apps() & is_public).distinct()
+        if not isinstance(user, AtmosphereUser):
+            raise Exception("Expected user to be of type AtmosphereUser"
+                            " - Received %s" % type(user))
+        queryset = None
+        if user.is_staff:
+            # Any image on a provider in the staff's provider list
+            queryset = Application.objects.filter(query.in_users_providers(user))
         else:
-            admin_images = Application.objects.none()
-        all_the_images = (public_images | user_images |
-                shared_images | admin_images).distinct().filter(
-                in_provider_list(atmo_user.current_providers, key_override='versions__machines__instance_source__provider'))
-        return all_the_images
+            # This query is not the most clear. Here's an explanation:
+            # Include all images created by the user or active images in the
+            # users providers that are either shared with the user or public
+            queryset = Application.objects.filter(
+                    query.created_by_user(user) |
+                    (query.only_current_apps() &
+                     query.in_users_providers(user) &
+                     (query.images_shared_with_user(user) | is_public)))
+        return queryset.distinct()
 
     def get_metrics(self):
         """
@@ -161,17 +175,6 @@ class Application(models.Model):
             }
         }
 
-    def _current_versions(self):
-        """
-        Return a list of current application versions.
-        NOTE: Defined as:
-                * The ApplicationVersion has not exceeded its end_date
-        """
-        version_set = self.all_versions
-        active_versions = version_set.filter(
-            only_current())
-        return active_versions
-
     def _current_machines(self, request_user=None):
         """
         Return a list of current provider machines.
@@ -182,7 +185,7 @@ class Application(models.Model):
         """
         providermachine_set = self.all_machines
         pms = providermachine_set.filter(
-            only_current_source(),
+            query.only_current_source(),
             instance_source__provider__active=True)
         if request_user:
             if isinstance(request_user, AnonymousUser):
@@ -197,7 +200,7 @@ class Application(models.Model):
         # Out of all non-end dated machines in this application
         providermachine_set = self.all_machines
         first = providermachine_set.filter(
-            only_current_source()
+            query.only_current_source()
             ).order_by('instance_source__start_date').first()
         return first
 
@@ -205,13 +208,13 @@ class Application(models.Model):
         providermachine_set = self.all_machines
         # Out of all non-end dated machines in this application
         last = providermachine_set.filter(
-            only_current_source()
+            query.only_current_source()
             ).order_by('instance_source__start_date').last()
         return last
 
     def get_projects(self, user):
         projects = self.projects.filter(
-            only_current(),
+            query.only_current(),
             owner=user)
         return projects
 
@@ -337,59 +340,6 @@ class ApplicationMembership(models.Model):
         db_table = 'application_membership'
         app_label = 'core'
         unique_together = ('application', 'group')
-
-
-def _has_active_provider(app):
-    providermachine_set = app.all_machines
-    machines = providermachine_set.filter(
-        Q(instance_source__end_date=None) |
-        Q(instance_source__end_date__gt=timezone.now())
-    )
-    providers = (pm.instance_source.provider for pm in machines)
-    return any(p.is_active() for p in providers)
-
-
-# TODO: Validate that these are used, and that the queries are accurate.
-def public_applications():
-    public_apps = []
-    applications = Application.objects.filter(
-        Q(end_date=None) |
-        Q(end_date__gt=timezone.now()),
-        private=False)
-
-    for app in applications:
-        if _has_active_provider(app):
-            _add_app(public_apps, app)
-    return public_apps
-
-
-def visible_applications(user):
-    apps = []
-    if not user:
-        return apps
-    # Look only for 'Active' private applications
-    for app in Application.objects.filter(only_current(), private=True):
-        # Retrieve the machines associated with this app
-        providermachine_set = app.all_machines
-        machine_set = providermachine_set.filter(only_current_source())
-        # Skip app if all their machines are on inactive providers.
-        if all(not pm.instance_source.provider.is_active()
-               for pm in machine_set):
-            continue
-        # Add the application if 'user' is a member of the application or PM
-        if app.members.filter(user=user):
-            _add_app(apps, app)
-        for pm in machine_set:
-            if pm.members.filter(user=user):
-                _add_app(apps, app)
-                break
-    return apps
-# END-TODO
-
-
-def _add_app(app_list, app):
-    if app not in app_list:
-        app_list.append(app)
 
 
 def _get_app_by_name(provider_uuid, name):

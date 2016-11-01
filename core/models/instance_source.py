@@ -130,6 +130,18 @@ class InstanceSource(models.Model):
         else:
             return True
 
+    def is_owner(self, atmo_user):
+        return (self.created_by == atmo_user |
+                self.application.created_by == atmo_user)
+
+    def change_owner(self, identity, user=None):
+        if not user:
+            user = identity.created_by
+
+        self.created_by = user
+        self.created_by_identity = identity
+        self.save()
+
     class Meta:
         db_table = "instance_source"
         app_label = "core"
