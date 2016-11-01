@@ -104,8 +104,8 @@ class ReportingViewSet(AuthViewSet):
         user_summary_data.index.rename(['Start Date', 'Username'], inplace=True)
         user_summary_data.columns = [
             'Average of Active', 'Sum of Active',
-            'Average of Aborted', 'Sum of Aborted',
             'Average of Deploy Error', 'Sum of Deploy Error',
+            'Average of Aborted', 'Sum of Aborted',
             'Average of Active/Aborted', 'Sum of Active/Aborted',
             'Average of Active/Aborted/Error', 'Sum of Active/Aborted/Error'
         ]
@@ -143,7 +143,7 @@ class ReportingViewSet(AuthViewSet):
         if frequency in ['AS']:
             summary_format = 'yyyy'
         elif frequency in ['MS', 'QS']:
-            summary_format = 'mmm yyyy'
+            summary_format = 'mmmm yyyy'
         elif frequency in ['W', 'D']:
             summary_format = 'mmm d yyyy'
         else:
@@ -241,6 +241,9 @@ class ReportingViewSet(AuthViewSet):
         if 'end_date' in query_params:
             end_date = parse(query_params['end_date']).replace(tzinfo=pytz.utc)
             query &= Q(start_date__lt=end_date)
+        if 'username' in query_params:
+            query &= Q(created_by__username=query_params['username'])
+
         return query
 
     def get(self, request, pk=None):

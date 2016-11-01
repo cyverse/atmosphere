@@ -95,9 +95,13 @@ class InstanceReportingSerializer(serializers.ModelSerializer):
         return instance.instancestatushistory_set.filter(status__name='active').count() > 0
 
     def get_hit_deploy_error(self, instance):
+        if self.get_hit_active(instance):
+            return False
         return instance.instancestatushistory_set.filter(status__name='deploy_error').count() > 0
 
     def get_hit_error(self, instance):
+        if self.get_hit_active(instance):
+            return False
         return instance.instancestatushistory_set.filter(status__name='error').count() > 0
 
     class Meta:
