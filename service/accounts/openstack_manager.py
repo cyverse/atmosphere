@@ -338,7 +338,6 @@ class AccountDriver(BaseAccountDriver):
                 logger.exception("Encountered unknown exception while renaming"
                                  " the security group")
             return None
-
         # Start creating security group
         return self.user_manager.build_security_group(
             user.name, password, project.name,
