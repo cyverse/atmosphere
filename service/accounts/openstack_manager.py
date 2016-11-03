@@ -147,6 +147,14 @@ class AccountDriver(BaseAccountDriver):
         self.network_manager = NetworkManager(**net_creds)
         self.openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
 
+    def get_config(self, section, config_key, default_value):
+        try:
+            value = self.cloud_config[section][config_key]
+        except (KeyError, TypeError):
+            logger.error("Cloud config ['%s']['%s'] is missing -- using default value (%s)" % (section, config_key, default_value))
+            value = default_value
+        return value
+
     def create_account(self, username, password=None, project_name=None,
                        role_name=None, quota=None, max_quota=False):
         """
@@ -204,11 +212,7 @@ class AccountDriver(BaseAccountDriver):
 
                 # 3.2 Check the user has been given an appropriate role
                 if not role_name:
-                    try:
-                        role_name = self.cloud_config['user']['user_role_name']
-                    except (KeyError, TypeError):
-                        logger.error("Cloud config ['user']['user_role_name'] is missing -- using deprecated settings.DEFAULT_KEYSTONE_ROLE")
-                        role_name = settings.DEFAULT_KEYSTONE_ROLE
+                    role_name = self.get_config('user', 'user_role_name', settings.DEFAULT_KEYSTONE_ROLE)
                 try:
                     self.user_manager.add_project_membership(
                         project_name, username, role_name, domain_name)
@@ -294,11 +298,7 @@ class AccountDriver(BaseAccountDriver):
         # roles than what is necessary
         # user = user_matches[0]
         # -- User:Keystone rev.
-        try:
-            rules_list = core_identity.provider.cloud_config['network']['default_security_rules']
-        except (KeyError, TypeError):
-            logger.error("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
-            rules_list = DEFAULT_RULES
+        rules_list = self.get_config('network', 'default_security_rules', DEFAULT_RULES)
         identity_creds = self.parse_identity(core_identity)
         username = identity_creds["username"]
         password = identity_creds["password"]
@@ -436,11 +436,7 @@ class AccountDriver(BaseAccountDriver):
     def rebuild_security_groups(self, core_identity, rules_list=None):
         creds = self.parse_identity(core_identity)
         if not rules_list:
-            try:
-                rules_list = self.cloud_config['network']['default_security_rules']
-            except (KeyError, TypeError):
-                logger.error("Cloud config ['network']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
-                rules_list = DEFAULT_RULES
+            rules_list = self.get_config('network', 'default_security_rules', DEFAULT_RULES)
         return self.user_manager.build_security_group(
             creds["username"], creds["password"], creds["tenant_name"],
             creds["tenant_name"], rules_list, rebuild=True)
@@ -551,13 +547,11 @@ class AccountDriver(BaseAccountDriver):
         identity_creds = self.parse_identity(identity)
         project_name = identity_creds["tenant_name"]
         neutron = self.get_openstack_client(identity, 'neutron')
-        try:
-            topology_name = self.cloud_config['network']['topology']
-        except (KeyError, TypeError):
+        topology_name = self.get_config('network', 'topology', None)
+        if not topology_name:
             logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
-            topology_name = None
         network_strategy = self.initialize_network_strategy(
             topology_name, identity, self.network_manager, neutron)
         skip_network = options.get("skip_network", False)
@@ -616,13 +610,11 @@ class AccountDriver(BaseAccountDriver):
         prefix_name = "%s" % (identity_creds["tenant_name"],)
         neutron = self.get_openstack_client(identity, 'neutron')
         dns_nameservers = self.dns_nameservers_for(identity)
-        try:
-            topology_name = self.cloud_config['network']['topology']
-        except (KeyError, TypeError):
+        topology_name = self.get_config('network', 'topology', None)
+        if not topology_name:
             logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
-            topology_name = None
         network_strategy = self.initialize_network_strategy(
             topology_name, identity, self.network_manager, neutron)
         network_resources = network_strategy.create(
@@ -658,13 +650,8 @@ class AccountDriver(BaseAccountDriver):
         Create a unique password using 'username'
         """
         #FIXME: Remove these lines when crypt_hashpass is no longer used.
-        strategy = None
-        cloud_pass = None
-        try:
-            strategy = self.cloud_config.get('user', {}).get('strategy','')
-            cloud_pass = self.cloud_config.get('user',{}).get("secret")
-        except (KeyError, TypeError):
-            pass
+        strategy = self.get_config('user', 'strategy', '')
+        cloud_pass = self.get_config('user', 'secret', '')
 
         if strategy == 'crypt':
             return self.crypt_hashpass(username)
@@ -695,10 +682,7 @@ class AccountDriver(BaseAccountDriver):
         Create a unique password using 'username'
         """
         import crypt
-        try:
-            cloud_pass = self.cloud_config.get('user',{}).get("secret")
-        except (KeyError, TypeError):
-            cloud_pass = None
+        cloud_pass = self.get_config('user', 'secret', None)
         secret_salt = str(cloud_pass).translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         return password
