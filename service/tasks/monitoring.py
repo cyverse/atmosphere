@@ -213,6 +213,11 @@ def machine_is_valid(cloud_machine, accounts):
         return False
     # If the metadata 'skip_atmosphere' is found, do not add the machine.
     if cloud_machine.get('skip_atmosphere', False):
+        celery_logger.info("Skipping cloud machine %s - Includes 'skip_atmosphere' metadata" % cloud_machine)
+        return False
+    # If the metadata indicates that the image-type is snapshot -- skip it.
+    if cloud_machine.get('image_type', 'image') == 'snapshot':
+        celery_logger.info("Skipping cloud machine %s - Image type indicates a snapshot" % cloud_machine)
         return False
     owner_project = accounts.get_project_by_id(cloud_machine.owner)
     # If the image is private, ensure that an owner can be found inside the system.
