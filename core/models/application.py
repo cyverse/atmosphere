@@ -16,6 +16,7 @@ from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.models.application_version import ApplicationVersion
 
+import json
 
 class Application(models.Model):
 
@@ -471,6 +472,15 @@ def create_application(
         created_by_identity = _get_admin_owner(provider_uuid)
     if not tags:
         tags = []
+    elif isinstance(tags, basestring):
+        if "[" in tags:
+            #Format expected -- ["CentOS", "development", "test1"]
+            tags = json.loads(tags)
+        elif "," in tags:
+            #Format expected -- CentOS, development, test1,test2,test3
+            tags = [t.strip() for t in tags.split(',')]
+        else:
+            tags = [tags]
     if new_app:
         new_app.name = name
         new_app.description = description

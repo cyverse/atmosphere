@@ -314,7 +314,6 @@ class Identity(models.Model):
             project_name = self.get_credential('tenant_name')
         return project_name
 
-
     def get_credential(self, key):
         cred = self.credential_set.filter(key=key)
         return cred[0].value if cred else None

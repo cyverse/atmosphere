@@ -177,8 +177,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     # ASSERT: All non-end-dated machines in the DB can be found in the cloud
     # if you do not believe this is the case, you should call 'prune_machines_for'
     for cloud_machine in cloud_machines:
-        #Filter out: ChromoSnapShot, eri-, eki-, ... (Or dont..)
-        if not machine_is_valid(cloud_machine):
+        if not machine_is_valid(cloud_machine, account_driver):
             continue
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
         (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid)
@@ -199,16 +198,48 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     return
 
 
-def machine_is_valid(cloud_machine):
+def machine_is_valid(cloud_machine, accounts):
     """
     As the criteria for "what makes a glance image an atmosphere ProviderMachine" changes, we can use this function to hook out to external plugins, etc.
+    Filters out:
+        - ChromoSnapShot, eri-, eki-
+        - Private images not shared with atmosphere accounts
+        - Domain-specific image catalog(?)
     """
+    provider = accounts.core_provider
     # If the name of the machine indicates that it is a Ramdisk, Kernel, or Chromogenic Snapshot, skip it.
     if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
-        celery_logger.debug("Skipping cloud machine %s" % cloud_machine)
+        celery_logger.info("Skipping cloud machine %s" % cloud_machine)
         return False
     # If the metadata 'skip_atmosphere' is found, do not add the machine.
     if cloud_machine.get('skip_atmosphere', False):
+        celery_logger.info("Skipping cloud machine %s - Includes 'skip_atmosphere' metadata" % cloud_machine)
+        return False
+    # If the metadata indicates that the image-type is snapshot -- skip it.
+    if cloud_machine.get('image_type', 'image') == 'snapshot':
+        celery_logger.info("Skipping cloud machine %s - Image type indicates a snapshot" % cloud_machine)
+        return False
+    owner_project = accounts.get_project_by_id(cloud_machine.owner)
+    # If the image is private, ensure that an owner can be found inside the system.
+    if cloud_machine.get('visibility', '') == 'private':
+        shared_with_projects = accounts.shared_images_for(cloud_machine.id)
+        shared_with_projects.append(owner_project)
+        project_names = [p.name for p in shared_with_projects]
+        identity_matches = provider.identity_set.filter(
+            credential__key='ex_project_name', credential__value__in=project_names).count() > 0
+        if not identity_matches:
+            celery_logger.info("Skipping private machine %s - The owner does not exist in Atmosphere" % cloud_machine)
+            return False
+    if accounts.provider_creds.get('ex_force_auth_version', '2.0_password') != '3.x_password':
+        return True
+    # NOTE: Potentially if we wanted to do 'domain-restrictions' *inside* of atmosphere,
+    # we could do that (based on the domain of the image owner) here.
+    domain_id = owner_project.domain_id
+    config_domain = accounts.get_config('user', 'domain', 'default')
+    owner_domain = accounts.openstack_sdk.identity.get_domain(domain_id)
+    account_domain = accounts.openstack_sdk.identity.get_domain(config_domain)
+    if owner_domain != account_domain: # and if FLAG FOR DOMAIN-SPECIFIC ATMOSPHERE
+        celery_logger.info("Skipping private machine %s - The owner belongs to a different domain (%s)" % (cloud_machine, owner_domain))
         return False
     return True
 

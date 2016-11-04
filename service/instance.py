@@ -1623,6 +1623,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     # Gather instance related parameters
     provider_uuid = identity.provider.uuid
     identity_uuid = identity.uuid
+    logger.info("User %s has initiated instance action %s to be executed on Instance %s" % (user, action_type, instance_id))
     if 'resize' == action_type:
         size_alias = action_params.get('size', '')
         if isinstance(size_alias, int):
