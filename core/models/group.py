@@ -199,7 +199,7 @@ class IdentityMembership(models.Model):
         """
         NOTE: Remove when airport has been disabled.
         """
-        quota = self.quota
+        quota = self.identity.quota
         quota_dict = {
             "mem": quota.memory,
             "cpu": quota.cpu,

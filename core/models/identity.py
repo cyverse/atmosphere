@@ -355,8 +355,7 @@ class Identity(models.Model):
         return hours
 
     def get_quota(self):
-        id_member = self.identity_memberships.all()[0]
-        return id_member.quota
+        return self.quota
 
     def total_usage(self, start_date, end_date):
         # Undoubtedly will cause circular dependencies

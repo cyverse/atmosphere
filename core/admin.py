@@ -535,10 +535,12 @@ class ResourceRequestAdmin(admin.ModelAdmin):
 
         if obj.is_approved():
             membership = obj.membership
-            membership.allocation = obj.allocation or membership.allocation
-            membership.quota = obj.quota or membership.quota
-            membership.save()
             identity = membership.identity
+            identity.quota = obj.quota or identity.quota
+            identity.save()
+            # Marked for deletion
+            membership.allocation = obj.allocation or membership.allocation
+            membership.save()
 
             email_task = email.send_approved_resource_email(
                 user=obj.created_by,
