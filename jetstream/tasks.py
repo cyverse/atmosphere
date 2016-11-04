@@ -12,6 +12,8 @@ from core.models.allocation_source import (
     AllocationSource, UserAllocationSnapshot
 )
 from core.models.event_table import EventTable
+from service.allocation_logic import create_report
+from core.models.user import AtmosphereUser
 
 from .models import TASAllocationReport
 from .allocation import (
@@ -169,3 +171,77 @@ def update_snapshot():
         }
         EventTable.create_event("allocation_source_snapshot", payload_as,source.name)
     return True
+
+@task(name="update_snapshot")
+def update_snapshot2():
+    if not settings.USE_ALLOCATION_SOURCE:
+        return False
+    allocation_source_total_compute = {}
+    allocation_source_total_burn_rate = {}
+    end_date = timezone.now()
+    start_date = '2016-09-01T00:00+00:00'
+    all_data = create_report(start_date, end_date)
+    tas_api_obj = TASAPIDriver()
+    allocation_source_usage_from_tas = tas_api_obj.get_all_projects()
+    for source in AllocationSource.objects.order_by('source_id'):
+        compute_used_total = 0
+        global_burn_rate = 0
+        for user in AtmosphereUser.objects.all():
+            compute_used, burn_rate = usage_for_user_allocation_snapshot(all_data, user.username, source.name)
+            user_snapshot_changes(source, user, compute_used, burn_rate)
+            compute_used_total += compute_used
+            global_burn_rate += burn_rate
+        allocation_snapshot_changes(source, allocation_source_usage_from_tas, global_burn_rate)
+    return True
+
+def usage_for_user_allocation_snapshot(data, username, allocation_source_name):
+    total_allocation = 0
+    burn_rate = 0
+    for row in data:
+        if row['allocation_source'] == allocation_source_name and row['username']==username:
+            total_allocation += row['applicable_duration']
+            burn_rate = row['burn_rate']
+    return round(total_allocation/3600.0,2),burn_rate
+
+def allocation_snapshot_changes(allocation_source,tas_api_usage_data, global_burn_rate):
+    """
+    The method should result in an up-to-date snapshot of AllocationSource usage.
+    """
+    compute_used = [i['allocations'][-1]['computeUsed'] for i in tas_api_usage_data if i['chargeCode'] == allocation_source.name][-1]
+    try:
+        snapshot = AllocationSourceSnapshot.objects.get(
+            allocation_source=allocation_source
+        )
+        snapshot.compute_used = compute_used
+        snapshot.global_burn_rate = global_burn_rate
+        snapshot.save()
+    except AllocationSourceSnapshot.DoesNotExist:
+        snapshot = AllocationSourceSnapshot.objects.create(
+            allocation_source=allocation_source,
+            compute_used=compute_used,
+            global_burn_rate=global_burn_rate
+        )
+    return snapshot
+
+
+def user_snapshot_changes(allocation_source, user, compute_used, burn_rate):
+    """
+    The method should result in an up-to-date compute used + burn rate snapshot for the specific User+AllocationSource
+    """
+
+    try:
+        snapshot = UserAllocationSnapshot.objects.get(
+                allocation_source=allocation_source,
+                user=user,
+            )
+        snapshot.burn_rate = burn_rate
+        snapshot.compute_used = compute_used
+        snapshot.save()
+    except UserAllocationSnapshot.DoesNotExist:
+        snapshot = UserAllocationSnapshot.objects.create(
+                allocation_source=allocation_source,
+                user=user,
+                burn_rate=burn_rate,
+                compute_used=compute_used
+            )
+    return snapshot
