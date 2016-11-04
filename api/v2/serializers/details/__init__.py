@@ -30,6 +30,7 @@ from .project_instance import ProjectInstanceSerializer
 from .project_volume import ProjectVolumeSerializer
 from .provider import (ProviderSerializer, ProviderTypeSerializer,
                        PlatformTypeSerializer)
+from .provider_credential import ProviderCredentialSerializer
 from .provider_machine import ProviderMachineSerializer
 from .quota import QuotaSerializer, AllocationSerializer
 from .resource_request import (

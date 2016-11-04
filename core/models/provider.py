@@ -166,6 +166,10 @@ class Provider(models.Model):
         cred = self.providercredential_set.filter(key=key)
         return cred[0].value if cred else None
 
+    @property
+    def credentials(self):
+        return self.get_credentials()
+
     def get_credentials(self):
         cred_map = {}
         for cred in self.providercredential_set.all():

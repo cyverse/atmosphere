@@ -7,6 +7,7 @@ from core.query import only_current_provider, only_current
 
 from api.permissions import CloudAdminRequired
 from api.v2.serializers.details import ProviderSerializer
+from api.v2.serializers.post import ProviderSerializer as POST_ProviderSerializer
 from api.v2.serializers.summaries import SizeSummarySerializer
 from api.v2.views.base import AuthReadOnlyViewSet
 from api.v2.views.mixins import MultipleFieldLookup
@@ -19,12 +20,16 @@ class ProviderViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     lookup_fields = ("id", "uuid")
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
-    http_method_names = ['get', 'head', 'options', 'trace']
+    http_method_names = ['get', 'post', 'head', 'options', 'trace']
 
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return POST_ProviderSerializer
+        return ProviderSerializer
 
     def get_permissions(self):
         method = self.request.method
-        if method == 'DELETE' or method == 'PUT':
+        if method in ['DELETE', 'PUT', 'POST']:
             self.permission_classes += (CloudAdminRequired,)
         return super(AuthReadOnlyViewSet, self).get_permissions()
 
