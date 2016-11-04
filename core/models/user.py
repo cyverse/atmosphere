@@ -88,8 +88,7 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
 
     def user_quota(self):
         identity = self.select_identity()
-        identity_member = identity.identity_memberships.all()[0]
-        return identity_member.quota
+        return identity.quota
 
     def is_expired(self):
         """

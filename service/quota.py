@@ -35,8 +35,8 @@ def check_over_instance_quota(
     membership = IdentityMembership.objects.get(
         identity__uuid=identity_uuid,
         member__name=username)
-    quota = membership.quota
     identity = membership.identity
+    quota = identity.quota
     driver = get_cached_driver(identity=identity)
     new_port = new_floating_ip = new_instance = new_cpu = new_ram = 0
     if esh_size:
@@ -75,8 +75,8 @@ def check_over_storage_quota(
     """
     membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
                                                 member__name=username)
-    quota = membership.quota
     identity = membership.identity
+    quota = identity.quota
     driver = get_cached_driver(identity=identity)
 
     # FIXME: I don't believe that 'snapshot' size and 'volume' size share
@@ -109,7 +109,7 @@ def set_provider_quota(identity_uuid, limit_dict=None):
     membership = IdentityMembership.objects.get(
         identity__uuid=identity_uuid,
         member__name=username)
-    user_quota = membership.quota
+    user_quota = identity.quota
 
     if not user_quota:
         # Can't update quota if it doesn't exist

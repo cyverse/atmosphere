@@ -49,10 +49,12 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         instance.end_date = timezone.now()
         instance.save()
         membership = instance.membership
-        membership.quota = instance.quota or membership.quota
+        identity = membership.identity
+        identity.quota = instance.quota or identity.quota
+        identity.save()
+        # Marked for removal when CyVerse uses AllocationSource
         membership.allocation = instance.allocation or membership.allocation
         membership.save()
-        identity = membership.identity
 
         email_task = email.send_approved_resource_email(
             user=instance.created_by,
