@@ -7,9 +7,24 @@ from django.db import migrations, models
 
 def move_quota_around(apps, schema_editor):
     Identity = apps.get_model('core', "Identity")
+    Quota = apps.get_model('core', "Quota")
     for ident in Identity.objects.all():
         membership = ident.identity_memberships.first()
-        ident.quota = membership.quota
+        if membership:
+            quota = membership.quota
+        else:
+            q = Quota()
+            q_kwargs = q.__dict__
+            q_kwargs.pop('_state')
+            q_kwargs.pop('id')
+            q_kwargs.pop('uuid')
+            db_quota = Quota.objects.filter(**q_kwargs).first()
+            if db_quota:
+                quota = db_quota
+            else:
+                new_quota = Quota.objects.create(**q_kwargs)
+                quota = new_quota
+        ident.quota = quota
         ident.save()
 
 class Migration(migrations.Migration):
