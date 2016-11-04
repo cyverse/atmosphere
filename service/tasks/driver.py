@@ -999,8 +999,8 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
             raise Exception("Instance maybe terminated? "
                             "-- Going to keep trying anyway")
         if not instance.ip:
-            celery_logger.debug("Instance IP address missing from : %s." % instance)
-            raise Exception("Instance IP Missing? %s" % instance)
+            celery_logger.debug("Instance IP address missing from : %s." % instance_id)
+            raise Exception("Instance IP Missing? %s" % instance_id)
 
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
@@ -1052,6 +1052,9 @@ def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_id)
             return
+        if not instance.ip:
+            celery_logger.debug("Instance IP address missing from : %s." % instance_id)
+            raise Exception("Instance IP Missing? %s" % instance_id)
         # NOTE: This is required to use ssh to connect.
         # TODO: Is this still necessary? What about times when we want to use
         # the adminPass? --Steve
@@ -1108,6 +1111,9 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_id)
             return
+        if not instance.ip:
+            celery_logger.debug("Instance IP address missing from : %s." % instance_id)
+            raise Exception("Instance IP Missing? %s" % instance_id)
         # NOTE: This is required to use ssh to connect.
         # TODO: Is this still necessary? What about times when we want to use
         # the adminPass? --Steve

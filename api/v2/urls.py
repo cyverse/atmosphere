@@ -72,6 +72,7 @@ router.register(
 router.register(r'provider_types', views.ProviderTypeViewSet, base_name='providertype')
 router.register(r'quotas', views.QuotaViewSet)
 router.register(r'resource_requests', views.ResourceRequestViewSet)
+router.register(r'reporting', views.ReportingViewSet, base_name='reporting')
 router.register(r'sizes', views.SizeViewSet)
 router.register(r'status_types', views.StatusTypeViewSet)
 router.register(r'tags', views.TagViewSet)

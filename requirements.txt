@@ -6,6 +6,10 @@ djangorestframework==3.4.1
 djangorestframework-jsonp==1.0.0
 djangorestframework-xml==1.0.1
 djangorestframework-yaml==1.0.2
+djangorestframework-csv
+numpy
+pandas
+xlsxwriter
 django-filter==0.13.0
 django-redis-cache==0.13.0
 redis==2.10.3
