@@ -142,7 +142,6 @@ class IdentityMembership(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     identity = models.ForeignKey(Identity, related_name='identity_memberships')
     member = models.ForeignKey(Group, related_name='identity_memberships')
-    quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
 
@@ -156,6 +155,10 @@ class IdentityMembership(models.Model):
             return group.current_identity_memberships.first()
         except IdentityMembership.DoesNotExist:
             logger.warn("%s is not a member of any identities" % groupname)
+
+    @property
+    def quota(self):
+        return self.identity.quota
 
     def is_active(self):
         if not self.active:

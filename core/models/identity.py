@@ -11,6 +11,7 @@ from django.db import models
 from threepio import logger
 from uuid import uuid5, uuid4
 from core.query import only_active_memberships
+from core.models.quota import Quota
 
 class Identity(models.Model):
 
@@ -22,6 +23,7 @@ class Identity(models.Model):
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     created_by = models.ForeignKey("AtmosphereUser")
     provider = models.ForeignKey("Provider")
+    quota = models.ForeignKey(Quota)
 
     @classmethod
     def find_instance(cls, instance_id):
