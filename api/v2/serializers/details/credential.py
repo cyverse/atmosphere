@@ -11,7 +11,7 @@ class CredentialSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:credential-detail',
     )
-    identity = IdentitySummarySerializer()
+    identity = IdentitySummarySerializer(read_only=True)
 
     def validate_text(self, key, value):
         """
