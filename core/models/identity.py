@@ -122,15 +122,12 @@ class Identity(models.Model):
             return existing_membership[0]
 
         # Ready to create new membership for this group
-        if not quota:
-            quota = Quota.default_quota()
         if not allocation:
             allocation = Allocation.default_allocation()
 
         new_membership = IdentityMembership.objects.get_or_create(
             member=core_group,
             identity=self,
-            quota=quota,
             allocation=allocation)[0]
         return new_membership
 

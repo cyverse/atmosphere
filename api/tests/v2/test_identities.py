@@ -22,15 +22,15 @@ class GetListTests(APITestCase):
         self.staff_user = UserFactory.create(is_staff=True)
 
         self.provider = ProviderFactory.create()
+        self.quota = QuotaFactory.create()
         self.identity = IdentityFactory.create(
             provider=self.provider,
+	    quota=self.quota,
             created_by=self.user)
-        self.quota = QuotaFactory.create()
         self.allocation = AllocationFactory.create()
         IdentityMembershipFactory.create(
             member=self.group,
-            identity=self.identity,
-            quota=self.quota
+            identity=self.identity
         )
 
         factory = APIRequestFactory()
@@ -83,10 +83,11 @@ class GetDetailTests(APITestCase):
         self.staff_user = UserFactory.create(is_staff=True)
 
         self.provider = ProviderFactory.create()
+        self.quota = QuotaFactory.create()
         self.identity = IdentityFactory.create(
             provider=self.provider,
+            quota=self.quota,
             created_by=self.user)
-        self.quota = QuotaFactory.create()
         self.allocation = AllocationFactory.create()
         IdentityMembershipFactory.create(
             member=self.group,
