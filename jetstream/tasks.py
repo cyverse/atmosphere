@@ -10,7 +10,7 @@ from core.models.allocation_source import (
     UserAllocationSource, AllocationSourceSnapshot,
     AllocationSource, UserAllocationSnapshot
 )
-from service.allocation_logic import create_report
+from service.allocation_logic import create_report, get_instance_burn_rate_from_row
 from core.models.user import AtmosphereUser
 
 from .models import TASAllocationReport
@@ -133,19 +133,6 @@ def send_reports():
         raise Exception("%s/%s reports failed to send to TAS" % (failed_reports, count))
 
 
-def _get_instance_burn_rate_from_row(row):
-    burn_rate = 0
-    is_active = row['instance_status'] == 'active'
-    if is_active:
-        no_end_date = not row['instance_status_end_date']
-        ends_after_report_end = row['instance_status_end_date'] >= row['report_end_date']
-        starts_before_report_end = row['instance_status_start_date'] < row['report_end_date']
-        is_running_at_report_end = no_end_date or (starts_before_report_end and ends_after_report_end)
-        if is_running_at_report_end:
-            burn_rate = row['cpu']
-    return burn_rate
-
-
 @task(name="update_snapshot")
 def update_snapshot(start_date=None, end_date=None):
     if not settings.USE_ALLOCATION_SOURCE:
@@ -162,7 +149,7 @@ def update_snapshot(start_date=None, end_date=None):
         key = (row['allocation_source'], row['username'])
         compute_used, instance_burn_rates = user_allocation_snapshots.get(key, (0.0, {}))
         new_compute_used = compute_used + float(row['applicable_duration'])
-        new_instance_burn_rate = int(_get_instance_burn_rate_from_row(row))
+        new_instance_burn_rate = int(get_instance_burn_rate_from_row(row))
         instance_burn_rates['instance_id'] = new_instance_burn_rate
         user_allocation_snapshots[key] = (new_compute_used, instance_burn_rates)
 
