@@ -36,6 +36,7 @@ def only_current_tokens(now_time=None):
 
 def only_current_provider(now_time=None):
     """
+    Use this query on core.Identity:
     Filters 'current' providers by removing those
     who have exceeded their end-date.
     """

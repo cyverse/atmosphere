@@ -1,12 +1,12 @@
 from .instance import InstanceSerializer
-from .identity import IdentitySerializer
+from .account import AccountSerializer
 from .provider import ProviderSerializer
 from .volume import VolumeSerializer
 
 
 __all__ = (
     "InstanceSerializer",
-    "IdentitySerializer",
+    "AccountSerializer",
     "ProviderSerializer",
     "VolumeSerializer",
 )

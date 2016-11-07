@@ -176,20 +176,7 @@ class Identity(models.Model):
                         quota=None, allocation=None,
                         max_quota=False, account_admin=False, **kwarg_creds):
         """
-        Create new User/Group & Identity for given provider_location
-        NOTES:
-        * kwargs prefixed with 'cred_' will be collected as credentials
-        * Can assign optional flags:
-          + max_quota - Assign the highest quota available, rather than
-            default.
-          + account_admin - Private Clouds only - This user should have ALL
-            permissions including:
-              * Image creation (Glance)
-              * Account creation (Keystone)
-              * Access to ALL instances launched over ALL users
-
-          Atmosphere will run fine without an account_admin, but the above
-          features will be disabled.
+        DEPRECATED: POST to v2/identities API to create an identity.
         """
         # Do not move up. ImportError.
         from core.models import Group, Quota,\
