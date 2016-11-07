@@ -134,12 +134,12 @@ def send_reports():
 
 
 @task(name="update_snapshot")
-def update_snapshot():
+def update_snapshot(start_date=None, end_date=None):
     if not settings.USE_ALLOCATION_SOURCE:
         return False
-    end_date = timezone.now()
+    end_date = end_date or timezone.now()
     # TODO: Read this start_date from last 'reset event' for each allocation source
-    start_date = '2016-09-01T00:00+00:00'
+    start_date = start_date or '2016-09-01 00:00:00.0-05'
     all_data = create_report(start_date, end_date)
 
     user_allocation_snapshots = {}
