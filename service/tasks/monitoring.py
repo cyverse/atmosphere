@@ -765,16 +765,6 @@ def reset_provider_allocation(provider_id, default_allocation_id):
     return (users_reset, memberships_reset)
 
 
-def _filter_machines(cloud_machines):
-    valid_machines = []
-    for mach in cloud_machines:
-        if mach.get('skip_atmosphere',False):
-            logger.info("Skipping machine %s - Contains metadata 'skip_atmosphere'" % mach.id)
-            continue
-        valid_machines.append(mach)
-    return cloud_machines
-
-
 def _end_date_missing_database_machines(account_driver, db_machines, cloud_machines, now=None, dry_run=False):
     if not now:
         now = timezone.now()
