@@ -10,7 +10,7 @@ from core.models.allocation_source import (
     UserAllocationSource, AllocationSourceSnapshot,
     AllocationSource, UserAllocationSnapshot
 )
-from service.allocation_logic import create_report
+from service.allocation_logic import create_report, get_instance_burn_rate_from_row
 from core.models.user import AtmosphereUser
 
 from .models import TASAllocationReport
@@ -147,10 +147,11 @@ def update_snapshot(start_date=None, end_date=None):
 
     for row in all_data:
         key = (row['allocation_source'], row['username'])
-        compute_used, burn_rate = user_allocation_snapshots.get(key, (0.0, 0))
+        compute_used, instance_burn_rates = user_allocation_snapshots.get(key, (0.0, {}))
         new_compute_used = compute_used + float(row['applicable_duration'])
-        new_burn_rate = int(row['burn_rate'])
-        user_allocation_snapshots[key] = (new_compute_used, new_burn_rate)
+        new_instance_burn_rate = int(get_instance_burn_rate_from_row(row))
+        instance_burn_rates['instance_id'] = new_instance_burn_rate
+        user_allocation_snapshots[key] = (new_compute_used, instance_burn_rates)
 
         unique_usernames.add(row['username'])
 
@@ -162,21 +163,22 @@ def update_snapshot(start_date=None, end_date=None):
     allocation_source_burn_rates = collections.Counter()
     for key, snapshot_numbers in user_allocation_snapshots.iteritems():
         allocation_source_name, username = key
-        compute_used, burn_rate = snapshot_numbers
+        compute_used, instance_burn_rates = snapshot_numbers
         try:
             allocation_source_id = allocation_source_ids[allocation_source_name]
         except KeyError:
             # This allocation source does not exist in our database yet. Create it? Skip for now. Could be 'N/A' as well
             continue
+        user_allocation_burn_rate = sum(instance_burn_rates.values())
         snapshot, created = UserAllocationSnapshot.objects.update_or_create(
             allocation_source_id=allocation_source_id,
             user_id=relevant_users[username],
             defaults={
                 'compute_used': round(compute_used / 3600, 2),
-                'burn_rate': burn_rate
+                'burn_rate': user_allocation_burn_rate
             }
         )
-        allocation_source_burn_rates[allocation_source_name] += burn_rate
+        allocation_source_burn_rates[allocation_source_name] += user_allocation_burn_rate
 
     tas_api_obj = TASAPIDriver()
     allocation_source_usage_from_tas = tas_api_obj.get_all_projects()
