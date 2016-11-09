@@ -31,6 +31,21 @@ class ProviderSerializer(serializers.ModelSerializer):
     cloud_config = serializers.DictField()
     credentials = ProviderCredentialSerializer(many=True)
 
+    def _get_request_user(self, raise_exception=True):
+        if 'request' in self.context:
+            return self.context['request'].user
+        elif 'user' in self.context:
+            return self.context['user']
+        elif raise_exception:
+            raise ValueError("Expected 'request/user' to be passed in via context for this serializer")
+        return None
+
+    def validate(self, data):
+        validated_data = data
+        request_user = self._get_request_user(raise_exception=False)
+        validated_data['cloud_admin'] = request_user
+        return validated_data
+
     def create(self, validated_data):
         prov_kwargs = validated_data.copy()
         credentials_list = prov_kwargs.pop('credentials')

@@ -289,3 +289,17 @@ def in_users_providers(user):
     Images on providers that the user belongs to
     """
     return Q(versions__machines__instance_source__provider__in=user.current_providers)
+
+def contains_credential(key, value):
+    """
+    Use this query to determine if `Identity` contains credential key/value
+    """
+    return (Q(credential__key=key) &
+        Q(credential__value=value))
+
+def provider_credential(key, value):
+    """
+    Use this query to determine if `Provider` contains credential key/value
+    """
+    return (Q(providercredential__key=key) &
+        Q(providercredential__value=value))

@@ -98,6 +98,8 @@ class AccountDriver(BaseAccountDriver):
         provider_creds = provider.get_credentials()
         self.cloud_config = provider.cloud_config
         self.provider_creds = provider_creds
+        if not provider.admin:
+            raise Exception("Cannot create an account driver yet - A provider admin account has not been created")
         admin_identity = provider.admin
         admin_creds = admin_identity.get_credentials()
         self.admin_driver = get_esh_driver(admin_identity)
