@@ -45,6 +45,14 @@ class ProviderSerializer(serializers.ModelSerializer):
         validated_data = data
         request_user = self._get_request_user(raise_exception=False)
         validated_data['cloud_admin'] = request_user
+        if type(data['type']) == str:
+            validated_data['type'] = ProviderType.objects.get(name=data['type'])
+        if not validated_data['type']:
+            raise serializers.ValidationError("Invalid Provider type %s" % data['type'])
+        if type(data['virtualization']) == str:
+            validated_data['virtualization'] = PlatformType.objects.filter(name=data['virtualization']).first()
+        if not validated_data['virtualization']:
+            raise serializers.ValidationError("Invalid platform type %s" % data['virtualization'])
         return validated_data
 
     def create(self, validated_data):
