@@ -14,17 +14,18 @@ class ProviderSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='location')
     type = serializers.SlugRelatedField(
         slug_field="name",
-        default='KVM',
+        default='OpenStack',
         queryset=ProviderType.objects.all())
     platform = serializers.SlugRelatedField(
         source='virtualization',
+        default='KVM', required=False, allow_null=True,
         slug_field="name",
         queryset=PlatformType.objects.all())
     over_allocation_action = serializers.SlugRelatedField(
         slug_field="name",
         queryset=InstanceAction.objects.all(),
         default=None, required=False, allow_null=True)
-    public = serializers.BooleanField(default=True)
+    public = serializers.BooleanField(default=False)
     active = serializers.BooleanField(default=True)
     auto_imaging = serializers.BooleanField(default=True)
     description = serializers.CharField(default="")
