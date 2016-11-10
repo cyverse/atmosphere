@@ -1,5 +1,5 @@
 import json
-from unittest import skip
+from unittest import skip, skipIf
 
 from django.core.urlresolvers import reverse
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
@@ -10,12 +10,24 @@ from core.models import AtmosphereUser
 from test_utils.comparison_utils import dict_eq_
 
 
+def contains_user(username):
+    """
+    Test if the username exists
+    """
+    try:
+        AtmosphereUser.objects.get_by_natural_key(username=username)
+        return True
+    except AtmosphereUser.DoesNotExist:
+        return False
+
+
 class ReportingTests(APITestCase):
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
         self.view = ReportingViewSet.as_view({'get': 'list'})
 
+    @skipIf(contains_user('test-julianp'), 'The database does not contain the user test-julianp')
     def test_a_sanity_check(self):
         """Will only work with a correct database."""
         factory = APIRequestFactory()
