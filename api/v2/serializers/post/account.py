@@ -4,6 +4,7 @@ from core.models import (
 from core.query import only_current, contains_credential
 from api.v2.serializers.details.credential import CredentialSerializer
 from service.driver import get_esh_driver, get_account_driver
+from rtwo.exceptions import KeystoneUnauthorized
 
 from rest_framework import serializers
 
@@ -134,13 +135,18 @@ class AccountSerializer(serializers.Serializer):
         Create an openstack account.
         """
         acct_driver = get_account_driver(provider, raise_exception=True)
-        (username, password, project) = acct_driver.build_account(
-            credentials.get('key'),
-            credentials.get('secret'),
-            credentials.get('ex_project_name'),
-            credentials.get('role_name'),
-            domain_name=credentials.get('domain_name')
-        )
+        try:
+            (username, password, project) = acct_driver.build_account(
+                credentials.get('key'),
+                credentials.get('secret'),
+                credentials.get('ex_project_name'),
+                credentials.get('role_name'),
+                domain_name=credentials.get('domain_name')
+            )
+        except KeystoneUnauthorized:
+            raise serializers.ValidationError("The credentials used to create this account are invalid. Double-check your credentials and try again.")
+        except:
+            raise serializers.ValidationError("Error creating the account - %s")
         return username, password, project
 
     def create_openstack_identity(self, provider, validated_data):
