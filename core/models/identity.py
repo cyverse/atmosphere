@@ -309,6 +309,9 @@ class Identity(models.Model):
         cred_dict = {}
         for cred in self.credential_set.all():
             cred_dict[cred.key] = cred.value
+        # Hotfix to avoid errors in rtwo+OpenStack
+        if 'ex_tenant_name' not in cred_dict:
+            cred_dict['ex_tenant_name'] = self.project_name()
         return cred_dict
 
     def get_all_credentials(self):

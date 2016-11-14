@@ -214,7 +214,6 @@ class AccountSerializer(serializers.Serializer):
     def create_openstack_identity(self, user, provider, validated_data):
         create_account = validated_data['create_account']
         provider = validated_data['provider']
-        user = validated_data['atmo_user']
         credentials_list = validated_data['credentials']
         credentials_dict = {c['key']: c['value'] for c in credentials_list}
         has_account_provider = provider.accountprovider_set.exists()
@@ -246,6 +245,7 @@ class AccountSerializer(serializers.Serializer):
                 created_by=user,
                 provider=provider,
                 quota=quota)
+        return identity
 
     class Meta:
         fields = (
