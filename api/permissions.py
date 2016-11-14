@@ -24,8 +24,8 @@ class ImageOwnerUpdateAllowed(permissions.BasePermission):
         if not image_id:
             logger.warn("Could not find kwarg:'image_id'")
             return False
-        if user.is_superuser() or \
-                user.is_staff() or \
+        if user.is_superuser or \
+                user.is_staff or \
                 any(app for app in
                     user.application_set.filter(id=image_id)):
             return True

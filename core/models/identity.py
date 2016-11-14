@@ -112,7 +112,7 @@ class Identity(models.Model):
 
         return False
 
-    def share(self, core_group, quota=None, allocation=None):
+    def share(self, core_group, allocation=None):
         """
         """
         from core.models import IdentityMembership, Quota, Allocation
@@ -192,11 +192,11 @@ class Identity(models.Model):
 
         (user, group) = Group.create_usergroup(username)
 
-        identity = cls._get_identity(user, group, provider, credentials)
+        identity = cls._get_identity(user, group, provider, quota, credentials)
         # NOTE: This specific query will need to be modified if we want
         # 2+ Identities on a single provider
 
-        id_membership = identity.share(group, quota=quota, allocation=allocation)
+        id_membership = identity.share(group, allocation=allocation)
         # ID_Membership exists.
 
         # 3. Assign admin account, if requested
@@ -214,7 +214,7 @@ class Identity(models.Model):
         return identity
 
     @classmethod
-    def _get_identity(cls, user, group, provider, credentials):
+    def _get_identity(cls, user, group, provider, quota, credentials):
         try:
             # 1. Make sure that an Identity exists for the user/group+provider
             #FIXME: To make this *more* iron-clad, we should probably
@@ -233,15 +233,16 @@ class Identity(models.Model):
                 Identity.update_credential(identity, c_key, c_value)
         except Identity.DoesNotExist:
             # FIXME: we shouldn't have to create the uuid.. default does this.
-            identity = cls._create_identity(user, group, provider, credentials)
+            identity = cls._create_identity(user, group, provider, quota, credentials)
         return identity
 
     @classmethod
-    def _create_identity(cls, user, group, provider, credentials):
+    def _create_identity(cls, user, group, provider, quota, credentials):
         new_uuid = uuid4()
         identity = Identity.objects.create(
             created_by=user,
             provider=provider,
+            quota=quota,
             uuid=str(new_uuid))
         for (c_key, c_value) in credentials.items():
             Identity.update_credential(identity, c_key, c_value)
