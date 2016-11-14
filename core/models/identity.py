@@ -112,7 +112,7 @@ class Identity(models.Model):
 
         return False
 
-    def share(self, core_group, quota=None, allocation=None):
+    def share(self, core_group, allocation=None):
         """
         """
         from core.models import IdentityMembership, Quota, Allocation
@@ -173,20 +173,7 @@ class Identity(models.Model):
                         quota=None, allocation=None,
                         max_quota=False, account_admin=False, **kwarg_creds):
         """
-        Create new User/Group & Identity for given provider_location
-        NOTES:
-        * kwargs prefixed with 'cred_' will be collected as credentials
-        * Can assign optional flags:
-          + max_quota - Assign the highest quota available, rather than
-            default.
-          + account_admin - Private Clouds only - This user should have ALL
-            permissions including:
-              * Image creation (Glance)
-              * Account creation (Keystone)
-              * Access to ALL instances launched over ALL users
-
-          Atmosphere will run fine without an account_admin, but the above
-          features will be disabled.
+        DEPRECATED: POST to v2/identities API to create an identity.
         """
         # Do not move up. ImportError.
         from core.models import Group, Quota,\
@@ -205,11 +192,11 @@ class Identity(models.Model):
 
         (user, group) = Group.create_usergroup(username)
 
-        identity = cls._get_identity(user, group, provider, credentials)
+        identity = cls._get_identity(user, group, provider, quota, credentials)
         # NOTE: This specific query will need to be modified if we want
         # 2+ Identities on a single provider
 
-        id_membership = identity.share(group, quota=quota, allocation=allocation)
+        id_membership = identity.share(group, allocation=allocation)
         # ID_Membership exists.
 
         # 3. Assign admin account, if requested
@@ -227,7 +214,7 @@ class Identity(models.Model):
         return identity
 
     @classmethod
-    def _get_identity(cls, user, group, provider, credentials):
+    def _get_identity(cls, user, group, provider, quota, credentials):
         try:
             # 1. Make sure that an Identity exists for the user/group+provider
             #FIXME: To make this *more* iron-clad, we should probably
@@ -246,15 +233,16 @@ class Identity(models.Model):
                 Identity.update_credential(identity, c_key, c_value)
         except Identity.DoesNotExist:
             # FIXME: we shouldn't have to create the uuid.. default does this.
-            identity = cls._create_identity(user, group, provider, credentials)
+            identity = cls._create_identity(user, group, provider, quota, credentials)
         return identity
 
     @classmethod
-    def _create_identity(cls, user, group, provider, credentials):
+    def _create_identity(cls, user, group, provider, quota, credentials):
         new_uuid = uuid4()
         identity = Identity.objects.create(
             created_by=user,
             provider=provider,
+            quota=quota,
             uuid=str(new_uuid))
         for (c_key, c_value) in credentials.items():
             Identity.update_credential(identity, c_key, c_value)
@@ -321,6 +309,9 @@ class Identity(models.Model):
         cred_dict = {}
         for cred in self.credential_set.all():
             cred_dict[cred.key] = cred.value
+        # Hotfix to avoid errors in rtwo+OpenStack
+        if 'ex_tenant_name' not in cred_dict:
+            cred_dict['ex_tenant_name'] = self.project_name()
         return cred_dict
 
     def get_all_credentials(self):

@@ -80,6 +80,11 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         send_mail(subject, message, from_email, [self.email], **kwargs)
     # END-rip.
 
+    def is_admin(self):
+        if self.is_superuser or self.is_staff:
+            return True
+        return False
+
     def group_ids(self):
         return self.group_set.values_list('id', flat=True)
 

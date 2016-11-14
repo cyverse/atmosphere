@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+# DEPRECATION WARNING -- Will be removed in favor of periodic task (To facilitate auto-generation of `atmo-user` accounts)
+# and the use of the /v2/accounts API.
 import argparse
 import libcloud.security
 

@@ -98,6 +98,8 @@ class AccountDriver(BaseAccountDriver):
         provider_creds = provider.get_credentials()
         self.cloud_config = provider.cloud_config
         self.provider_creds = provider_creds
+        if not provider.admin:
+            raise Exception("Cannot create an account driver yet - A provider admin account has not been created")
         admin_identity = provider.admin
         admin_creds = admin_identity.get_credentials()
         self.admin_driver = get_esh_driver(admin_identity)
@@ -1078,10 +1080,20 @@ class AccountDriver(BaseAccountDriver):
         return osdk_creds
 
     # Credential manipulaters
+    def get_tenant_name(self, credentials):
+        tenant_name = credentials.get('ex_tenant_name')
+        if not tenant_name:
+            tenant_name = credentials.get('tenant_name')
+        if not tenant_name:
+            tenant_name = credentials.get('ex_project_name')
+        if not tenant_name:
+            tenant_name = credentials.get('project_name')
+        return tenant_name
+
     def _libcloud_to_openstack(self, credentials):
         credentials["username"] = credentials.pop("key")
         credentials["password"] = credentials.pop("secret")
-        credentials["tenant_name"] = credentials.pop("ex_tenant_name")
+        credentials["tenant_name"] = self.get_tenant_name(credentials)
         return credentials
 
     def _base_network_creds(self):
@@ -1092,6 +1104,7 @@ class AccountDriver(BaseAccountDriver):
         """
         net_args = self.provider_creds.copy()
         # NOTE: The neutron 'auth_url' is the ADMIN_URL
+        net_args['tenant_name'] = self.get_tenant_name(self.credentials)
         net_args["auth_url"] = net_args.pop("admin_url")\
             .replace("/tokens", "").replace('/v2.0', '').replace('/v3', '')
         if self.identity_version == 3:
@@ -1144,6 +1157,7 @@ class AccountDriver(BaseAccountDriver):
         NOTE: JETSTREAM auth_url to be '/v3'
         """
         img_args = credentials.copy()
+        img_args['tenant_name'] = self.get_tenant_name(credentials)
         # Required:
         for required_arg in [
                 "username",
@@ -1181,7 +1195,7 @@ class AccountDriver(BaseAccountDriver):
         # Required args:
         user_args.get("username")
         user_args.get("password")
-        user_args.get("tenant_name")
+        user_args["tenant_name"] = self.get_tenant_name(credentials)
         ex_auth_version = user_args.pop("ex_force_auth_version", '2.0_password')
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):
@@ -1216,8 +1230,7 @@ class AccountDriver(BaseAccountDriver):
         # Required args:
         os_args.get("username")
         os_args.get("password")
-        if 'tenant_name' in os_args and 'project_name' not in os_args:
-            os_args['project_name'] = os_args.get("tenant_name")
+        os_args['project_name'] = self.get_tenant_name(os_args)
         os_args.get("region_name")
 
         ex_auth_version = os_args.pop("ex_force_auth_version", '2.0_password')

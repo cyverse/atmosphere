@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+# DEPRECATION WARNING -- Will be removed in favor of contacting the Atmosphere API directly
+# or using the GUI to instantiate provider + accounts
 import argparse
 import json
 import pprint
