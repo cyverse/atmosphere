@@ -10,7 +10,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0064_remove_ssh_keys_toggle'),
+        ('core', '0070_provider_created_by'),
     ]
 
     operations = [
