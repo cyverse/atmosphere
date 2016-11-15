@@ -8,6 +8,7 @@ from atmosphere.settings import secrets
 from iplantauth.models import create_token, lookupSessionToken
 
 from api.permissions import ApiAuthIgnore
+from api.exceptions import invalid_auth
 from api.v1.serializers import TokenSerializer
 
 
@@ -32,9 +33,12 @@ class Authentication(APIView):
         username = data.get('username', None)
         password = data.get('password', None)
         if not username:
-            raise Exception("Where my username")
+            return invalid_auth("Username missing")
         user = authenticate(username=username, password=password,
                             request=request)
+        if not user:
+            return invalid_auth("Username/Password combination was invalid")
+
         login(request, user)
         return self._token_for_username(user.username)
 
