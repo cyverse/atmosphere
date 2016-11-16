@@ -290,6 +290,11 @@ class Identity(models.Model):
     def creator_name(self):
         return self.created_by.username
 
+    def get_key(self):
+        return "%s/%s" % (
+            self.get_credential('key'),
+            self.project_name())
+
     def project_name(self):
         project_name = self.get_credential('ex_project_name')
         if not project_name:

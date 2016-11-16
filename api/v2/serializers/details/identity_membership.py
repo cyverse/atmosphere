@@ -21,7 +21,7 @@ class IdentityMembershipSerializer(serializers.HyperlinkedModelSerializer):
     )
 
     def get_identity_key(self, identity_membership):
-        return identity_membership.identity.get_credential('key')
+        return identity_membership.identity.get_key()
 
     class Meta:
         model = IdentityMembership
