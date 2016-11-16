@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
+from core.query import only_current
 from core.plugins import ValidationPluginManager, ExpirationPluginManager, AccountCreationPluginManager
 from core.exceptions import InvalidUser
 from threepio import logger
@@ -128,6 +129,7 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         for membership in self.memberships.select_related('group'):
             group = membership.group
             all_providers |= Provider.objects.filter(id__in=group.current_identities.values_list('provider', flat=True))
+        all_providers |= Provider.objects.filter(cloud_admin=self)
         return all_providers
 
     @property
@@ -283,7 +285,7 @@ def create_new_accounts(username, selected_provider=None):
     if not user.is_valid():
         raise InvalidUser("The account %s is not yet valid." % username)
 
-    providers = get_available_providers()
+    providers = user.current_providers.filter(only_current(), active=True)
     identities = []
     if not providers:
         logger.error("No currently active providers")
@@ -292,9 +294,12 @@ def create_new_accounts(username, selected_provider=None):
         logger.error("The provider %s is NOT in the list of currently active providers. Account will not be created" % selected_provider)
         return identities
     for provider in providers:
-        new_identities = create_new_accounts_for(provider, user)
-        if new_identities:
-            identities.extend(new_identities)
+        try:
+            new_identities = create_new_accounts_for(provider, user)
+            if new_identities:
+                identities.extend(new_identities)
+        except ValueError as err:
+            logger.warn(err)
     return identities
 
 def create_new_accounts_for(provider, user, force=False):
@@ -311,6 +316,5 @@ def create_new_accounts_for(provider, user, force=False):
 
 def get_available_providers():
     from core.models.provider import Provider
-    from core.query import only_current
     available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
     return available_providers

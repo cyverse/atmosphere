@@ -185,6 +185,8 @@ class Identity(models.Model):
         provider = Provider.objects.get(location__iexact=provider_location)
         credentials = cls._kwargs_to_credentials(kwarg_creds)
 
+        if not quota:
+            quota = Quota.default_quota()
         #DEV NOTE: 'New' identities are expected to have a router name directly assigned
         # upon creation. If the value is not passed in, we can ask the provider to select
         # the router with the least 'usage' to ensure an "eventually consistent" distribution
@@ -193,7 +195,7 @@ class Identity(models.Model):
             credentials['router_name'] = provider.select_router()
 
         (user, group) = Group.create_usergroup(
-            account_user, group_name, is_leader)
+            account_user.username, group_name, is_leader)
 
         identity = cls._get_identity(user, group, provider, quota, credentials)
         # NOTE: This specific query will need to be modified if we want
@@ -217,7 +219,7 @@ class Identity(models.Model):
         return identity
 
     @classmethod
-    def _get_identity(cls, user, group, provider, credentials):
+    def _get_identity(cls, user, group, provider, quota, credentials):
         credentials_match_query = (
             contains_credential('key', credentials['key']) &
             contains_credential('ex_project_name', credentials['ex_project_name'])
@@ -226,7 +228,7 @@ class Identity(models.Model):
             .filter(created_by=user, provider=provider)\
             .filter(credentials_match_query).first()
         if not identity:
-            identity = cls._create_identity(user, group, provider, credentials)
+            identity = cls._create_identity(user, group, provider, quota, credentials)
         # 2. Make sure that all kwargs exist as credentials
         # NOTE: Because we assume a matching username and
         #       project name, we can update the remaining

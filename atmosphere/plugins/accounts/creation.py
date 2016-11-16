@@ -22,7 +22,9 @@ class AccountCreationPlugin(object):
         account_driver = get_account_driver(provider)
         if not account_driver:
             raise ValueError(
-                "Provider %s produced an invalid account driver -- Use plugin after you create a provider."
+                "Provider %s produced an invalid account driver "\
+                "-- Use plugin after you create a core.Provider "\
+                "*AND* assign a core.Identity to be the core.AccountProvider."
                 % provider)
         credentials_list = self.get_credentials_list(provider, username)
         identities = []
@@ -74,6 +76,8 @@ class XsedeGroup(AccountCreationPlugin):
 
     def __init__(self):
         self.tas_driver = TASAPIDriver()
+        if not self.tas_driver.tacc_api:
+            raise Exception("Attempting to use the XsedeGroup CreationPlugin without TAS driver. Fix your configuration to continue")
 
     def get_credentials_list(self, provider, username):
         credentials_list = []
