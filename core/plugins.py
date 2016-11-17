@@ -21,7 +21,7 @@ class PluginManager(object):
     pass
 
 
-class AccountCreationPluginManager(PluginManager):
+class AccountCreation(PluginManager):
     """
     At least one plugin is required to create accounts for Atmosphere
     A sample account creation plugin has been provided for you:
@@ -30,6 +30,25 @@ class AccountCreationPluginManager(PluginManager):
     This plugin will he validation plugin test
     they will not be able to access the Atmosphere API.
     """
+
+    @staticmethod
+    def create_accounts(provider, username, force=False):
+        manager = AccountCreation()
+        from core.models import AtmosphereUser
+        user = AtmosphereUser.objects.filter(username=username).first()
+        if user and not force:
+            existing_accounts = user.current_identities.filter(provider=provider)
+            if existing_accounts:
+                logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
+                return None
+        logger.info("Create NEW account for %s" % username)
+        accounts = manager.plugin_create_accounts(provider, username)
+        return accounts
+
+    @staticmethod
+    def delete_accounts(self, provider, username):
+        manager = AccountCreation()
+        return manager.plugin_delete_accounts(provider, username)
 
     def __init__(self, plugin_class=None):
         if not plugin_class:
@@ -43,13 +62,6 @@ class AccountCreationPluginManager(PluginManager):
                 "settings.ACCOUNT_CREATION_PLUGIN")
         self.AccountCreationPlugin = load_plugin_class(plugin_class)
         self.plugin = self.AccountCreationPlugin()
-
-    def create_accounts(self, provider, usernames):
-        accounts_map = {}
-        for username in usernames:
-            accounts_map[username] = self.plugin_create_accounts(
-                provider, username)
-        return accounts_map
 
     def plugin_create_accounts(self, provider, username):
         """
@@ -71,13 +83,6 @@ class AccountCreationPluginManager(PluginManager):
                 % self.AccountCreationPlugin)
         accounts = self.plugin.create_accounts(provider=provider, username=username)
         return accounts
-
-    def delete_accounts(self, provider, usernames):
-        accounts_map = {}
-        for username in usernames:
-            accounts_map[username] = self.plugin_delete_accounts(
-                provider, username)
-        return accounts_map
 
     def plugin_delete_accounts(self, provider, username):
         """

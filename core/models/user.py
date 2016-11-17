@@ -9,7 +9,7 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 from core.query import only_current
-from core.plugins import ValidationPluginManager, ExpirationPluginManager, AccountCreationPluginManager
+from core.plugins import ValidationPluginManager, ExpirationPluginManager, AccountCreation
 from core.exceptions import InvalidUser
 from threepio import logger
 from django.utils.translation import ugettext_lazy as _
@@ -263,23 +263,12 @@ def create_new_accounts(username, selected_provider=None):
     (user, providers) = _get_providers(username, selected_provider)
     for provider in providers:
         try:
-            new_identities = create_new_accounts_for(provider, user)
+            new_identities = AccountCreation.create_accounts(provider, user)
             if new_identities:
                 identities.extend(new_identities)
         except ValueError as err:
             logger.warn(err)
     return identities
-
-
-def create_new_accounts_for(provider, user, force=False):
-    existing_accounts = user.current_identities.filter(provider=provider)
-    if not force and existing_accounts:
-        logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
-        return None
-    logger.info("Create NEW account for %s" % user.username)
-    manager = AccountCreationPluginManager()
-    accounts = manager.plugin_create_accounts(provider, user.username)
-    return accounts
 
 
 def get_available_providers():
