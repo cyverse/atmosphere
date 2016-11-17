@@ -33,25 +33,33 @@ class Identity(models.Model):
         return Identity.objects.filter(instance__provider_alias=instance_id).first()
 
     @classmethod
-    def delete_identity(cls, username, provider_location):
-        #FIXME: This *should* be delete_user or delete_account, because thats what it was written to do..
+    def destroy_account(cls, username, provider_location):
         # Do not move up. ImportError.
-        from core.models import AtmosphereUser, Group, Credential, Quota,\
-            Provider, AccountProvider,\
-            IdentityMembership
+        from core.models import AtmosphereUser, Provider
 
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
-        memberships = user.memberships.all()
         my_ids = Identity.objects.filter(
             created_by=user, provider=provider)
         for ident in my_ids:
-            membership_set = ident.identity_memberships.all()
-            membership_set.delete()
             ident.delete()
+        Identity._destroy_group_membership(user)
+        if not user.current_identities.exists():
+            user.delete()
+        return my_ids
+
+    @classmethod
+    def _destroy_group_membership(cls, user):
+        from core.models import Group
+        from django.db.models import Q
+        memberships = user.memberships.all()
+        group_names = memberships.values_list('group__name', flat=True)
+        groups = Group.objects.filter(name__in=group_names)
+        for group in groups:
+            others_exist = group.memberships.filter(~Q(user=user)).exists()
+            if not others_exist:
+                group.delete()
         memberships.delete()
-        user.delete()
-        return
 
     def export_to_file(self, filename=None):
         """
@@ -171,7 +179,7 @@ class Identity(models.Model):
         return credentials
 
     @classmethod
-    def create_identity(cls, account_user, group_name, username, provider_location,
+    def build_account(cls, account_user, group_name, username, provider_location,
                         quota=None, allocation=None,
                         is_leader=False, max_quota=False, account_admin=False, **kwarg_creds):
         """

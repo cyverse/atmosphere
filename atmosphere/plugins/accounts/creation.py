@@ -41,6 +41,34 @@ class AccountCreationPlugin(object):
                     % username)
         return identities
 
+    def delete_accounts(self, provider, username):
+        from service.driver import get_account_driver
+        account_driver = get_account_driver(provider)
+        if not account_driver:
+            raise ValueError(
+                "Provider %s produced an invalid account driver "\
+                "-- Use plugin after you create a core.Provider "\
+                "*AND* assign a core.Identity to be the core.AccountProvider."
+                % provider)
+        credentials_list = self.get_credentials_list(provider, username)
+        identity_list = []
+        for credentials in credentials_list:
+            try:
+                identities = account_driver.find_accounts(**credentials)
+                if not identities:
+                    continue
+                logger.debug(
+                    "Removing account for %s with credentials - %s"
+                    % (username, credentials))
+                for identity in identities:
+                    removed_identity = account_driver.delete_account(identity, **credentials)
+                    identity_list.append(removed_identity)
+            except:
+                logger.exception(
+                    "Could *NOT* delete account for %s"
+                    % username)
+        return identity_list
+
 
 class UserGroup(AccountCreationPlugin):
 

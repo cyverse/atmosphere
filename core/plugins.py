@@ -71,6 +71,34 @@ class AccountCreationPluginManager(PluginManager):
         accounts = self.plugin.create_accounts(provider=provider, username=username)
         return accounts
 
+    def delete_accounts(self, provider, usernames):
+        accounts_map = {}
+        for username in usernames:
+            accounts_map[username] = self.plugin_delete_accounts(
+                provider, username)
+        return accounts_map
+
+    def plugin_delete_accounts(self, provider, username):
+        """
+        Load the accountsCreationPlugin and call `plugin.delete_accounts(provider, username)`
+        """
+        try:
+            inspect.getcallargs(
+                getattr(self.plugin, 'delete_accounts'),
+                username=username,
+                provider=provider)
+        except AttributeError:
+            logger.info(
+                "Validation plugin %s missing method 'validate_user'"
+                % self.AccountCreationPlugin)
+        except TypeError:
+            logger.info(
+                "Validation plugin %s does not accept kwarg "
+                "`username` or `provider`"
+                % self.AccountCreationPlugin)
+        accounts = self.plugin.delete_accounts(provider=provider, username=username)
+        return accounts
+
 
 class PluginListManager(object):
     plugin_required = False
