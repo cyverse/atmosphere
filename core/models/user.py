@@ -242,19 +242,21 @@ def get_default_identity(username, provider=None):
 
 
 def _get_providers(username, selected_provider=None):
+    from core.models import Provider
     user = AtmosphereUser.objects.get(username=username)
     if not user.is_valid():
         raise InvalidUser("The account %s is not yet valid." % username)
 
     providers = user.current_providers.filter(only_current(), active=True)
     if not providers:
-        logger.error("No currently active providers")
-        return providers
-    if selected_provider and selected_provider not in providers:
+        public_providers = Provider.objects.filter(only_current(), active=True, public=True)
+        providers = public_providers
+    if selected_provider and providers and selected_provider not in providers:
         logger.error("The provider %s is NOT in the list of currently active providers. Account will not be created" % selected_provider)
-        return providers.none()
+        return (user, providers.none())
 
     return (user, providers)
+
 
 def create_new_accounts(username, selected_provider=None):
     identities = []
@@ -270,14 +272,13 @@ def create_new_accounts(username, selected_provider=None):
 
 
 def create_new_accounts_for(provider, user, force=False):
-    existing_user_list = provider.identity_set.values_list('created_by__username', flat=True)
-    #TODO: Determine if this if statement should continue to be used
-    if not force and user.username in existing_user_list:
+    existing_accounts = user.current_identities.filter(provider=provider)
+    if not force and existing_accounts:
         logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
         return None
     logger.info("Create NEW account for %s" % user.username)
     manager = AccountCreationPluginManager()
-    accounts = manager.plugin_create_accounts(provider, user)
+    accounts = manager.plugin_create_accounts(provider, user.username)
     return accounts
 
 

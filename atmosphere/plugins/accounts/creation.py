@@ -1,6 +1,6 @@
 from threepio import logger
 from jetstream.allocation import TASAPIDriver
-
+from cyverse.api import GrouperDriver
 
 class AccountCreationPlugin(object):
     """
@@ -88,6 +88,39 @@ class UserGroup(AccountCreationPlugin):
         return credentials_list
 
 
+class GrouperPlugin(AccountCreationPlugin):
+    """
+    For CyVerse, AccountCreation respects the "Directory"
+    between User and Group as described by Grouper.
+
+    Because there are *so many* groups that exist for cyverse, we will require a whitelist
+    """
+
+    def __init__(self):
+        self.driver = GrouperDriver()
+
+    def parse_group_name(self, raw_groupname):
+        name_splits = raw_groupname.split(":")
+        if len(name_splits) == 5:
+            return raw_groupname.split(":")[2]
+        raise Exception("Could not parse the group name %s" % raw_groupname)
+
+    def get_credentials_list(self, provider, username):
+        credentials_list = []
+        groups = self.driver.get_groups_for_username(username)
+        for group in groups:
+            new_groupname = self.parse_group_name(group['name'])
+            is_leader = self.driver.is_leader(group['name'], username)
+            credentials_list.append({
+                'account_user': username,
+                'username': username,
+                'project_name': new_groupname,
+                'group_name': new_groupname,
+                'is_leader': is_leader,
+            })
+        return credentials_list
+
+
 class XsedeGroup(AccountCreationPlugin):
     """
     For Jetstream, AccountCreation respects the "Directory"
@@ -109,12 +142,11 @@ class XsedeGroup(AccountCreationPlugin):
 
     def get_credentials_list(self, provider, username):
         credentials_list = []
-        print "Collecting credentials for %s" % username
         tacc_username = self.tas_driver._xsede_to_tacc_username(username)
         if not tacc_username:
             logger.warn(
                 "TAS Driver found no TACC Username for XUP User %s"
-                % user.username)
+                % username)
             tacc_username = username
         tacc_projects = self.tas_driver.find_projects_for(tacc_username)
         for tacc_project in tacc_projects:
@@ -129,5 +161,4 @@ class XsedeGroup(AccountCreationPlugin):
                 'group_name': tacc_projectname,
                 'is_leader': is_leader,
             })
-        print "%s - %s" % (username, credentials_list)
         return credentials_list

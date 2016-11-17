@@ -203,7 +203,7 @@ class Identity(models.Model):
             credentials['router_name'] = provider.select_router()
 
         (user, group) = Group.create_usergroup(
-            account_user.username, group_name, is_leader)
+            account_user, group_name, is_leader)
 
         identity = cls._get_identity(user, group, provider, quota, credentials)
         # NOTE: This specific query will need to be modified if we want

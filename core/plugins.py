@@ -31,10 +31,11 @@ class AccountCreationPluginManager(PluginManager):
     they will not be able to access the Atmosphere API.
     """
 
-    def __init__(self):
-        plugin_class = getattr(
-            settings, 'ACCOUNT_CREATION_PLUGIN',
-            DEFAULT_ACCOUNT_CREATION_PLUGIN)
+    def __init__(self, plugin_class=None):
+        if not plugin_class:
+            plugin_class = getattr(
+                settings, 'ACCOUNT_CREATION_PLUGIN',
+                DEFAULT_ACCOUNT_CREATION_PLUGIN)
 
         if not isinstance(plugin_class, basestring):
             raise ValueError(
