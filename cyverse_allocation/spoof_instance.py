@@ -76,6 +76,10 @@ class UserWorkflow:
                                                                  entity_id=new_user_allocation_source['username'],
                                                                  timestamp=timestamp)
 
+    def is_allocation_source_assigned(self):
+        query = EventTable.objects.filter(name='user_allocation_source_assigned', entity_id=self.user.username)
+        return True if query else False
+
     def assign_allocation_source_to_instance(self, allocation_source, instance, timestamp=None):
 
         if not timestamp:
