@@ -311,7 +311,8 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
     EventPayload - {
         "source_id": "2439b15a-293a-4c11-b447-bf349f16ed2e",
         "name": "TestAllocationSource",
-        "compute_used": 50000
+        "compute_used": 50000,
+        "renewal_strategy": "default"
     }
 
     The method should result in a new AllocationSource
@@ -321,6 +322,7 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
         return None
     logger.info('Allocation source created event: %s', event.__dict__)
     payload = event.payload
+    timestamp = event.timestamp
     # TODO: Some web-request/marshmallow validation
     allocation_source_id = payload['source_id']
     allocation_source_name = payload['name']
@@ -328,7 +330,9 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
 
     allocation_source = AllocationSource(source_id=allocation_source_id,
                                          name=allocation_source_name,
-                                         compute_allowed=allocation_compute_allowed
+                                         compute_allowed=allocation_compute_allowed,
+                                         renewal_strategy=payload['renewal_strategy'],
+                                         start_date = timestamp
                                          )
     allocation_source.save()
 

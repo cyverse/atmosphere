@@ -56,7 +56,7 @@ class UserWorkflow:
                             created_by=self.user, start_date=start_date)
         instance.save()
 
-        self.create_instance_status_history(instance,status='active')
+        self.create_instance_status_history(instance,start_date=start_date,status='active')
 
         return instance
 
@@ -75,10 +75,6 @@ class UserWorkflow:
                                                                  payload=new_user_allocation_source,
                                                                  entity_id=new_user_allocation_source['username'],
                                                                  timestamp=timestamp)
-
-    def is_allocation_source_assigned(self):
-        query = EventTable.objects.filter(name='user_allocation_source_assigned', entity_id=self.user.username)
-        return True if query else False
 
     def assign_allocation_source_to_instance(self, allocation_source, instance, timestamp=None):
 
@@ -112,28 +108,43 @@ class UserWorkflow:
             cpu = 1
 
         if status == 'active' or not status:
-            status = self.active_status
+            current_status = self.active_status
         else:
-            status = self.suspended_status
+            current_status = self.suspended_status
         size = Size(alias=uuid.uuid4(), name='small', provider=self.provider, cpu=cpu, disk=1, root=1, mem=1)
         size.save()
 
+        # find last instance history and end date it
+
+        last_instance_history = InstanceStatusHistory.objects.filter(instance=instance).order_by('start_date').last()
+        if last_instance_history:
+            last_instance_history.end_date = start_date
+            last_instance_history.save()
+
         instance_history1 = InstanceStatusHistory(
-            instance=instance, size=size, status=status, start_date=start_date,
+            instance=instance, size=size, status=current_status, start_date=start_date,
             end_date=end_date)
         instance_history1.save()
 
+    def is_allocation_source_assigned_to_user(self):
+        query = EventTable.objects.filter(name='user_allocation_source_assigned', entity_id=self.user.username)
+        return True if query else False
 
-def create_allocation_source(name, compute_allowed, timestamp=None):
+
+def create_allocation_source(name, compute_allowed,renewal_strategy=None, timestamp=None):
     if not timestamp:
         timestamp = timezone.now()
 
     # Spoof Allocation Source creation
 
+    if not renewal_strategy:
+        renewal_strategy='default'
+
     new_allocation_source = {
         'source_id': str(uuid.uuid4()),
         'name': name,
-        'compute_allowed': compute_allowed
+        'compute_allowed': compute_allowed,
+        'renewal_strategy': renewal_strategy
     }
 
     allocation_source_event = EventTable.objects.create(name='allocation_source_created',
@@ -142,3 +153,5 @@ def create_allocation_source(name, compute_allowed, timestamp=None):
                                                         timestamp=timestamp)
 
     return AllocationSource.objects.filter(name=name).last()
+
+

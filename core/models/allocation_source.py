@@ -8,6 +8,9 @@ class AllocationSource(models.Model):
     name = models.CharField(max_length=255)
     source_id = models.CharField(max_length=255)
     compute_allowed = models.IntegerField()
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField(null=True, blank=True)
+    renewal_strategy = models.CharField(max_length=255)
 
     @classmethod
     def for_user(cls, user):
