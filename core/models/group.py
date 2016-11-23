@@ -51,7 +51,15 @@ class Group(DjangoGroup):
         return "AtmosphereGroup %s" % (self.name,)
 
     def is_leader(self, test_user):
-        return any(user for user in self.users.filter(is_leader=True) if user == test_user)
+        return any(user for user in self.leaders if user == test_user)
+
+    @property
+    def leaders(self):
+        return self.memberships.filter(is_leader=True)
+
+    def get_leaders(self):
+        user_ids = self.leaders.values_list('user__id', flat=True)
+        return AtmosphereUser.objects.filter(id__in=user_ids)
 
     @property
     def identitymembership_set(self):

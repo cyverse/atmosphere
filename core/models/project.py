@@ -44,6 +44,12 @@ class Project(models.Model):
         return self.instances.model.active_instances.filter(
             pk__in=self.instances.values_list("id"))
 
+    def get_users(self):
+        return self.owner.user_set.all()
+
+    def get_leaders(self):
+        return self.owner.get_leaders()
+
     def __unicode__(self):
         return "Name:%s Owner:%s" \
             % (self.name, self.owner)

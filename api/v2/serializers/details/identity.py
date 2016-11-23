@@ -14,13 +14,17 @@ class IdentitySerializer(serializers.HyperlinkedModelSerializer):
     quota = QuotaSummarySerializer(source='get_quota')
     credentials = CredentialSummarySerializer(many=True, source='credential_set')
     allocation = AllocationSummarySerializer(source='get_allocation')
-
+    key = serializers.SerializerMethodField()
     usage = serializers.SerializerMethodField()
     user = UserSummarySerializer(source='created_by')
     provider = ProviderSummarySerializer()
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:identity-detail',
     )
+
+    def get_key(self, identity):
+        return identity.get_key()
+
     def get_usage(self, identity):
         return identity.get_allocation_usage()
 
@@ -30,6 +34,7 @@ class IdentitySerializer(serializers.HyperlinkedModelSerializer):
         fields = ('id',
                   'uuid',
                   'url',
+                  'key',
                   'quota',
                   'credentials',
                   'allocation',

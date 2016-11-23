@@ -3,10 +3,11 @@ from rest_framework import serializers
 from api.v2.serializers.summaries import (
     InstanceSummarySerializer, VolumeSummarySerializer,
     ImageSummarySerializer, ExternalLinkSummarySerializer,
-    GroupSummarySerializer
+    GroupSummarySerializer, UserSummarySerializer
 )
 from api.v2.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
+
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
@@ -29,6 +30,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:project-detail',
     )
+    users = UserSummarySerializer(source='get_users', many=True)
+    leaders = UserSummarySerializer(source='get_leaders', many=True, read_only=True)
 
     class Meta:
         model = Project
@@ -39,6 +42,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             'name',
             'description',
             'owner',
+            'users',
+            'leaders',
             'instances',
             'images',
             'links',
