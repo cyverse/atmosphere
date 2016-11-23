@@ -116,7 +116,7 @@ class GrouperPlugin(AccountCreationPlugin):
                 'username': username,
                 'project_name': new_groupname,
                 'group_name': new_groupname,
-                'is_leader': is_leader,
+                'is_leader': True,
             })
         return credentials_list
 
@@ -159,6 +159,6 @@ class XsedeGroup(AccountCreationPlugin):
                 'username': tacc_username,
                 'project_name': tacc_projectname,
                 'group_name': tacc_projectname,
-                'is_leader': is_leader,
+                'is_leader': True,
             })
         return credentials_list
