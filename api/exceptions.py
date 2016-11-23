@@ -133,3 +133,10 @@ def over_allocation(allocation_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         allocation_exception.message)
+
+
+def action_forbidden(username, instance_id):
+    message = "User %s does not have permission to act on Instance %s. Make sure that you are a Leader of the Project that Instance %s resides in." % (username, instance_id, instance_id)
+    return failure_response(
+        status.HTTP_403_FORBIDDEN,
+        message)
