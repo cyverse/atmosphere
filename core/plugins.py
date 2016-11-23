@@ -6,104 +6,13 @@ from django.conf import settings
 from threepio import logger
 
 
-DEFAULT_ACCOUNT_CREATION_PLUGIN = 'atmosphere.plugins.accounts'\
-    '.creation.UserGroup'
+DEFAULT_ACCOUNT_CREATION_PLUGINS = [
+    'atmosphere.plugins.accounts.creation.UserGroup'
+]
 
 
 def load_plugin_class(plugin_path):
     return import_string(plugin_path)
-
-
-class PluginManager(object):
-    """
-    Move "Similar functionality" here as appropriate.
-    """
-    pass
-
-
-class AccountCreation(PluginManager):
-    """
-    At least one plugin is required to create accounts for Atmosphere
-    A sample account creation plugin has been provided for you:
-    - atmosphere.plugins.accounts.creation.UserGroup
-
-    This plugin will he validation plugin test
-    they will not be able to access the Atmosphere API.
-    """
-
-    @staticmethod
-    def create_accounts(provider, username, force=False):
-        manager = AccountCreation()
-        from core.models import AtmosphereUser
-        user = AtmosphereUser.objects.filter(username=username).first()
-        if user and not force:
-            existing_accounts = user.current_identities.filter(provider=provider)
-            if existing_accounts:
-                logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
-                return None
-        logger.info("Create NEW account for %s" % username)
-        accounts = manager.plugin_create_accounts(provider, username)
-        return accounts
-
-    @staticmethod
-    def delete_accounts(self, provider, username):
-        manager = AccountCreation()
-        return manager.plugin_delete_accounts(provider, username)
-
-    def __init__(self, plugin_class=None):
-        if not plugin_class:
-            plugin_class = getattr(
-                settings, 'ACCOUNT_CREATION_PLUGIN',
-                DEFAULT_ACCOUNT_CREATION_PLUGIN)
-
-        if not isinstance(plugin_class, basestring):
-            raise ValueError(
-                "Please pass only one class-string to "
-                "settings.ACCOUNT_CREATION_PLUGIN")
-        self.AccountCreationPlugin = load_plugin_class(plugin_class)
-        self.plugin = self.AccountCreationPlugin()
-
-    def plugin_create_accounts(self, provider, username):
-        """
-        Load the accountsCreationPlugin and call `plugin.create_accounts(provider, username)`
-        """
-        try:
-            inspect.getcallargs(
-                getattr(self.plugin, 'create_accounts'),
-                username=username,
-                provider=provider)
-        except AttributeError:
-            logger.info(
-                "Validation plugin %s missing method 'validate_user'"
-                % self.AccountCreationPlugin)
-        except TypeError:
-            logger.info(
-                "Validation plugin %s does not accept kwarg "
-                "`username` or `provider`"
-                % self.AccountCreationPlugin)
-        accounts = self.plugin.create_accounts(provider=provider, username=username)
-        return accounts
-
-    def plugin_delete_accounts(self, provider, username):
-        """
-        Load the accountsCreationPlugin and call `plugin.delete_accounts(provider, username)`
-        """
-        try:
-            inspect.getcallargs(
-                getattr(self.plugin, 'delete_accounts'),
-                username=username,
-                provider=provider)
-        except AttributeError:
-            logger.info(
-                "Validation plugin %s missing method 'validate_user'"
-                % self.AccountCreationPlugin)
-        except TypeError:
-            logger.info(
-                "Validation plugin %s does not accept kwarg "
-                "`username` or `provider`"
-                % self.AccountCreationPlugin)
-        accounts = self.plugin.delete_accounts(provider=provider, username=username)
-        return accounts
 
 
 class PluginListManager(object):
@@ -117,14 +26,53 @@ class PluginListManager(object):
         usually based on a list of strings in
         the local.py settings file.
         """
-        plugin_classes = []
+        plugin_class_list = []
         for plugin_path in list_of_classes:
             fn = load_plugin_class(plugin_path)
-            plugin_classes.append(fn)
-        if cls.plugin_required and not plugin_classes:
+            plugin_class_list.append(fn)
+        if cls.plugin_required and not plugin_class_list:
             raise ImproperlyConfigured(
                     cls.plugin_required_message)
-        return plugin_classes
+        return plugin_class_list
+
+
+class AccountCreation(PluginListManager):
+    """
+    At least one plugin is required to create accounts for Atmosphere
+    A sample account creation plugin has been provided for you:
+    - atmosphere.plugins.accounts.creation.UserGroup
+
+    This plugin will be responsible for taking the input (Username and a Provider)
+    And expected to create: AtmosphereUser, Group, Credential+Identity (and associated dependencies, memberships)
+    """
+    list_of_classes = getattr(settings, 'ACCOUNT_CREATION_PLUGINS', [])
+    plugin_required = True
+    plugin_required_message = """No account creation backend has been defined.
+To restore 'basic' functionality, please set settings.ACCOUNT_CREATION_PLUGINS to:
+["atmosphere.plugins.accounts.creation.UserGroup",]"""
+
+
+    @classmethod
+    def create_accounts(cls, provider, username, force=False):
+        accounts = []
+        for AccountCreationPlugin in cls.load_plugins(cls.list_of_classes):
+            created = plugin.create_accounts(provider=provider, username=username)
+            if created:
+                accounts.extend(created)
+        return accounts
+
+    @classmethod
+    def delete_accounts(cls, provider, username):
+        """
+        Load the accountsCreationPlugin and call `plugin.delete_accounts(provider, username)`
+        """
+        accounts = []
+        for AccountCreationPlugin in cls.load_plugins(cls.list_of_classes):
+            plugin = AccountCreationPlugin()
+            deleted = plugin.delete_accounts(provider=provider, username=username)
+            if deleted:
+                accounts.extend(deleted)
+        return accounts
 
 
 class ValidationPluginManager(PluginListManager):

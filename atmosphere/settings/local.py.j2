@@ -411,14 +411,16 @@ VALIDATION_PLUGINS = [
     'atmosphere.plugins.auth.validation.AlwaysAllow',
 ]
 {%- endif %}
-{%- if ACCOUNT_CREATION_PLUGIN %}
-ACCOUNT_CREATION_PLUGIN = "{{ ACCOUNT_CREATION_PLUGIN }}"
+{%- if ACCOUNT_CREATION_PLUGINS %}
+ACCOUNT_CREATION_PLUGINS = "{{ ACCOUNT_CREATION_PLUGINS }}"
 {%- else %}
 # Default creation plugin:
-ACCOUNT_CREATION_PLUGIN = "atmosphere.plugins.accounts.creation.UserGroup"
-# Alternative creation plugins:
-#ACCOUNT_CREATION_PLUGIN = "atmosphere.plugins.accounts.creation.XsedeGroup"
-#ACCOUNT_CREATION_PLUGIN = "atmosphere.plugins.accounts.creation.GrouperPlugin"
+ACCOUNT_CREATION_PLUGINS = [
+    "atmosphere.plugins.accounts.creation.UserGroup",
+    # Alternative creation plugins:
+    #"atmosphere.plugins.accounts.creation.XsedeGroup",
+    #"atmosphere.plugins.accounts.creation.GrouperPlugin",
+]
 {%- endif %}
 
 {%- if GROUPER_API and GROUPER_SEARCH_USER %}
