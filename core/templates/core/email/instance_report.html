@@ -1,9 +1,9 @@
 Username : {{ username }} ({{ name|safe }})
 {% if problems %}
-Problems : 
+Problems :
     {{ problems|join("\n")|indent(4, false)|safe }}
 {% endif %}
-Details : 
+Details :
     {{ message|safe }}
 
 Instance :
@@ -15,7 +15,9 @@ Instance :
     Image : {{ instance.provider_machine.identifier }}
     IP : {{ instance.ip_address }}
 
-Provider : {{ provider }}
+Provider :
+    Location: {{ provider.location }}
+    UUID: {{ provider.uuid }}
 
 User-interface : {{ ui }}
 
