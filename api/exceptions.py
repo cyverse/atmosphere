@@ -135,7 +135,7 @@ def over_allocation(allocation_exception):
         allocation_exception.message)
 
 
-def action_forbidden(username, instance_id):
+def member_action_forbidden(username, instance_id):
     message = "User %s does not have permission to act on Instance %s. Make sure that you are a Leader of the Project that Instance %s resides in." % (username, instance_id, instance_id)
     return failure_response(
         status.HTTP_403_FORBIDDEN,

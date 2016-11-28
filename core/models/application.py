@@ -113,6 +113,19 @@ class Application(models.Model):
         return shared_images
 
     @classmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        ownership_query = Q(created_by=user)
+        project_query = Q(projects__owner__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(projects__owner__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(projects__owner__memberships__is_leader=True)
+        return Application.objects.filter(project_query | ownership_query)
+
+    @classmethod
     def admin_apps(cls, user):
         """
         Just give staff the ability to launch everything that isn't end-dated.

@@ -7,6 +7,7 @@ Note:
 from datetime import timedelta
 
 from django.db import models
+from django.db.models import Q
 
 from threepio import logger
 from uuid import uuid5, uuid4
@@ -33,6 +34,26 @@ class Identity(models.Model):
         return Identity.objects.filter(instance__provider_alias=instance_id).first()
 
     @classmethod
+    def shared_with_group(group):
+        """
+        """
+        project_query = Q(identity_memberships__member=group)
+        return Identity.objects.filter(project_query)
+
+    @classmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        ownership_query = Q(created_by=user)
+        project_query = Q(identity_memberships__member__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(identity_memberships__member__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(identity_memberships__member__memberships__is_leader=True)
+        return Identity.objects.filter(project_query | ownership_query)
+
+    @classmethod
     def destroy_account(cls, username, provider_location):
         # Do not move up. ImportError.
         from core.models import AtmosphereUser, Provider
@@ -44,14 +65,13 @@ class Identity(models.Model):
         for ident in my_ids:
             ident.delete()
         Identity._destroy_group_membership(user)
-        if not user.current_identities.exists():
+        if not Identity.shared_with_user(user):
             user.delete()
         return my_ids
 
     @classmethod
     def _destroy_group_membership(cls, user):
         from core.models import Group
-        from django.db.models import Q
         memberships = user.memberships.all()
         group_names = memberships.values_list('group__name', flat=True)
         groups = Group.objects.filter(name__in=group_names)

@@ -45,6 +45,69 @@ class ProjectOwnerRequired(permissions.BasePermission):
             if membership.group.projects.filter(uuid=project_uuid))
 
 
+class ProjectLeaderRequired(permissions.BasePermission):
+    message = "The requested user is not a leader of the project."
+
+    def has_permission(self, request, view):
+        """ TODO: Finish later"""
+        auth_user = request.user
+        request_method = request._request.META['REQUEST_METHOD']
+        request_path = request._request.path
+        SerializerCls = getattr(view, 'serializer_class', None)
+        if not auth_user.is_authenticated():
+            return False
+        if request_method == 'GET':
+            return True
+        if request_path.startswith("/api/v1"):
+            return self.v1_leadership_test(request, view)
+        return self.v2_leadership_test(request, view)
+
+    def v1_leadership_test(self, request, view):
+        provider_uuid = view.kwargs.get('provider_uuid')
+        identity_uuid = view.kwargs.get('identity_uuid')
+        instance_id = view.kwargs.get('instance_id')
+        volume_id = view.kwargs.get('volume_id')
+
+    def v2_leadership_test(self, request, view):
+        auth_user = request.user
+        key = view.kwargs.get('pk')
+        SerializerCls = getattr(view, 'serializer_class', None)
+        # The V2 APIs don't use 'named kwargs' so everything comes in as 'pk'
+        # To overcome this hurdle and disambiguate views, we use the fact that every viewset defines a serializer class.
+        if SerializerCls == VolumeSerializer:
+            volume_id = key
+            return self.test_volume_permissions(auth_user, volume_id)
+        elif SerializerCls == InstanceSerializer:
+            instance_id = key
+            return self.test_instance_permissions(auth_user, instance_id)
+        #TODO: Re-evaluate logic below this line.
+        elif SerializerCls == ProjectSerializer:
+            if not key and request_method == 'GET':
+                return True  # Querying for the list -- Allow it.
+            # Permissions specific to /v2/views/project.py
+            return self.test_project_permissions(auth_user, key)
+        elif SerializerCls == ExternalLinkSerializer:
+            if not key and request_method == 'GET':
+                return True  # Querying for the list -- Allow it.
+            # Permissions specific to /v2/views/link.py
+            return self.test_link_permissions(auth_user, key)
+        elif SerializerCls in [
+                ProjectApplicationSerializer, ProjectExternalLinkSerializer,
+                ProjectInstanceSerializer, ProjectVolumeSerializer]:
+            if request_method == 'GET':
+                # Allow 'GET' requests for the v1 APIs
+                return True
+            # Permissions specific to /v2/views/link.py
+            return self.test_project_resource_permissions(
+                SerializerCls.Meta.model, auth_user, key)
+        elif identity_uuid:
+            # Permissions specific to v1 Instance and Volume Creation
+            return self.test_identity_permissions(auth_user, identity_uuid)
+        else:
+            logger.warn("Could not find kwarg:'instance_id' or 'volume_id'")
+            return False
+
+
 class ApiAuthRequired(permissions.BasePermission):
     message = "The requested user could not be authenticated."
 

@@ -533,7 +533,8 @@ def allocation_source_overage_enforcement(allocation_source):
     all_user_instances = {}
     for user in allocation_source.all_users:
         all_user_instances[user.username] = []
-        for identity in user.current_identities:
+        #TODO: determine how this will work with project-sharing (i.e. that we aren't issue-ing multiple suspend/stop/etc. for shared instances
+        for identity in Identity.shared_with_user(user):
             affected_instances = allocation_source_overage_enforcement_for(
                     allocation_source, user, identity)
             user_instances = all_user_instances[user.username]

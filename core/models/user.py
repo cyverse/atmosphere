@@ -132,28 +132,21 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         all_providers |= Provider.objects.filter(cloud_admin=self)
         return all_providers
 
-    @property
-    def shared_identities(self):
-        from core.models import Identity
-        all_identities = Identity.objects.none()
-        for membership in self.memberships.select_related('group'):
-            group = membership.group
-            all_identities |= group.current_identities.all()
-        return all_identities
-
-    @property
-    def current_identities(self):
-        all_identities = self.shared_identities
-        return all_identities.filter(created_by=self)  # Limit identities to those you created
+    @classmethod
+    def can_use_instance(user, instance_id):
+        """
+        Using the *Project* as the source of truth, determine if the user requesting the action is allowed to do so.
+        """
+        valid_users = AtmosphereUser.objects.filter(
+            memberships__group__projects__instances__provider_alias=instance_id,
+            memberships__is_leader=True)
+        return valid_users.filter(username=user.username).exists()
 
     @classmethod
     def for_allocation_source(cls, allocation_source_id):
         from core.models import UserAllocationSource
         user_ids = UserAllocationSource.objects.filter(allocation_source__source_id=allocation_source_id).values_list('user',flat=True)
         return AtmosphereUser.objects.filter(id__in=user_ids)
-
-    def can_use_identity(self, identity_id):
-        return self.current_identities.filter(id=identity_id).count() > 0
 
     def select_identity(self):
         """

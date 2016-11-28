@@ -34,7 +34,7 @@ from service.instance import (
     launch_instance)
 from service.tasks.driver import update_metadata
 
-from api import failure_response, action_forbidden, invalid_creds,\
+from api import failure_response, member_action_forbidden, invalid_creds,\
     connection_failure, malformed_response
 from api.decorators import emulate_user
 from api.exceptions import (
@@ -112,10 +112,7 @@ class InstanceList(AuthAPIView):
                 e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        identity = Identity.objects.get(uuid=identity_uuid)
-        # Probably redundant
-        if not user.can_use_identity(identity.id):
-            return invalid_creds(provider_uuid, identity_uuid)
+        identity = Identity.shared_with_user(user).get(uuid=identity_uuid)
         try:
             esh_instance_list = get_cached_instances(identity=identity)
         except LibcloudBadResponseError:
@@ -468,7 +465,7 @@ class InstanceAction(AuthAPIView):
         action = action_params['action']
         try:
             if not is_valid_member(user, instance_id):
-                return action_forbidden(user.username, instance_id)
+                return member_action_forbidden(user.username, instance_id)
 
             result_obj = run_instance_action(user, identity, instance_id, action, action_params)
             result_obj = _further_process_result(request, action, result_obj)
@@ -891,15 +888,14 @@ def valid_post_data(data):
             if key not in data or
             (isinstance(data[key], str) and len(data[key]) > 0)]
 
+
 def is_valid_member(user, instance_id):
     """
     Using the *Project* as the source of truth, determine if the user requesting the action is allowed to do so.
     """
     from core.models import AtmosphereUser
-    valid_users = AtmosphereUser.objects.filter(
-        memberships__group__projects__instances__provider_alias=instance_id,
-        memberships__is_leader=True)
-    return valid_users.filter(username=user.username).exists()
+    return AtmosphereUser.can_use_instance(user, instance_id)
+
 
 def keys_not_found(missing_keys):
     return failure_response(

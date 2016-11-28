@@ -110,6 +110,27 @@ class Provider(models.Model):
                 (self.over_allocation_action.name, Provider.ALLOWED_STATES))
 
     @classmethod
+    def shared_with_group(group):
+        """
+        """
+        group_query = Q(identity__identity_memberships__member=group)
+        return Provider.objects.filter(group_query)
+
+    @classmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        #ownership_query = Q(created_by=user)
+        project_query = Q(identity__identity_memberships__member__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(identity__identity_memberships__member__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(identity__identity_memberships__member__memberships__is_leader=True)
+        #return Provider.objects.filter(project_query | ownership_query)
+        return Provider.objects.filter(project_query)
+
+    @classmethod
     def get_active(cls, provider_uuid=None, type_name=None):
         """
         Get the provider if it's active, otherwise raise
