@@ -347,7 +347,6 @@ def _pre_cache_sizes(driver):
 
 def get_quota(identity_uuid):
     try:
-        return Quota.objects.get(
-            identitymembership__identity__uuid=identity_uuid)
+        return Quota.objects.get(identity__uuid=identity_uuid)
     except Quota.DoesNotExist:
         return None
