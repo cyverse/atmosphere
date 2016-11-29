@@ -34,7 +34,7 @@ from service.instance import (
     launch_instance)
 from service.tasks.driver import update_metadata
 
-from api import failure_response, member_action_forbidden, invalid_creds,\
+from api.exceptions import failure_response, member_action_forbidden, invalid_creds,\
     connection_failure, malformed_response
 from api.decorators import emulate_user
 from api.exceptions import (
@@ -464,8 +464,8 @@ class InstanceAction(AuthAPIView):
         identity = Identity.objects.get(uuid=identity_uuid)
         action = action_params['action']
         try:
-            if not is_valid_member(user, instance_id):
-                return member_action_forbidden(user.username, instance_id)
+            if not can_use_instance(user, instance_id, leader_required=True):
+                return member_action_forbidden(user.username, "Instance", instance_id)
 
             result_obj = run_instance_action(user, identity, instance_id, action, action_params)
             result_obj = _further_process_result(request, action, result_obj)
@@ -598,6 +598,8 @@ class Instance(AuthAPIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
+        if not can_use_instance(user, instance_id, leader_required=True):
+            return member_action_forbidden(user.username, instance_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except (socket_error, ConnectionFailure):
@@ -649,6 +651,8 @@ class Instance(AuthAPIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
+        if not can_use_instance(user, instance_id, leader_required=True):
+            return member_action_forbidden(user.username, instance_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except (socket_error, ConnectionFailure):
@@ -702,8 +706,8 @@ class Instance(AuthAPIView):
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
 
-        if not is_valid_member(user, instance_id):
-            return action_forbidden(user.username, instance_id)
+        if not can_use_instance(user, instance_id, leader_required=True):
+            return member_action_forbidden(user.username, instance_id)
 
         try:
             esh_instance = esh_driver.get_instance(instance_id)
@@ -889,12 +893,15 @@ def valid_post_data(data):
             (isinstance(data[key], str) and len(data[key]) > 0)]
 
 
-def is_valid_member(user, instance_id):
+def can_use_instance(user, instance_id, leader_required=False):
     """
-    Using the *Project* as the source of truth, determine if the user requesting the action is allowed to do so.
+    determine if the user is allowed to act on this instance.
+    Optionally, if leadership is required, test for it.
     """
-    from core.models import AtmosphereUser
-    return AtmosphereUser.can_use_instance(user, instance_id)
+    if leader_required:
+        return Instance.shared_with_user(user, is_leader=True)
+    else:
+        return Instance.shared_with_user(user)
 
 
 def keys_not_found(missing_keys):

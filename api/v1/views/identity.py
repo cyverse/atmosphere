@@ -33,11 +33,9 @@ def get_identity_list(user, provider=None):
     Given the (request) user
     return all identities on all active providers
     """
+    identity_list = CoreIdentity.shared_with_user(user)
     if provider:
-        identity_list = user.current_identities.filter(
-            provider=provider)
-    else:
-        identity_list = user.current_identities.all()
+        identity_list = identity_list.filter(provider=provider)
     return identity_list
 
 

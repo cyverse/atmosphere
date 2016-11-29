@@ -44,4 +44,5 @@ class IdentityViewSet(MultipleFieldLookup, AuthViewSet):
         Filter identities by current user
         """
         user = self.request.user
-        return user.current_identities
+        identity_list = Identity.shared_with_user(user)
+        return identity_list

@@ -14,7 +14,7 @@ from libcloud.common.exceptions import BaseHTTPError
 
 from threepio import logger
 
-from api.exceptions import failure_response, inactive_provider
+from api.exceptions import failure_response, inactive_provider, member_action_forbidden
 
 from core.exceptions import ProviderNotActive
 from core.models.provider import AccountProvider
@@ -204,6 +204,8 @@ class VolumeSnapshotDetail(AuthAPIView):
                 e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
+        if not can_use_snapshot(user, snapshot_id, leader_required=True):
+            return member_action_forbidden(user.username, "Snapshot", snapshot_id)
         snapshot = esh_driver._connection.get_snapshot(snapshot_id)
         if not snapshot:
             return snapshot_not_found(snapshot_id)
@@ -286,6 +288,8 @@ class VolumeList(AuthAPIView):
                 e.message)
         if not driver:
             return invalid_creds(provider_uuid, identity_uuid)
+        if not can_use_volume(user, volume_id, leader_required=True):
+            return member_action_forbidden(user.username, "Volume", volume_id)
         data = request.data
         missing_keys = valid_volume_post_data(data)
         if missing_keys:
@@ -407,6 +411,8 @@ class Volume(AuthAPIView):
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
+        if not can_use_volume(user, volume_id, leader_required=True):
+            return member_action_forbidden(user.username, "Volume", volume_id)
         try:
             esh_volume = esh_driver.get_volume(volume_id)
         except ConnectionFailure:
@@ -455,6 +461,8 @@ class Volume(AuthAPIView):
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
+        if not can_use_volume(user, volume_id, leader_required=True):
+            return member_action_forbidden(user.username, "Volume", volume_id)
         try:
             esh_volume = esh_driver.get_volume(volume_id)
         except ConnectionFailure:
@@ -500,6 +508,8 @@ class Volume(AuthAPIView):
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
+        if not can_use_volume(user, volume_id, leader_required=True):
+            return member_action_forbidden(user.username, "Volume", volume_id)
         try:
             esh_volume = esh_driver.get_volume(volume_id)
         except ConnectionFailure:
@@ -641,3 +651,28 @@ def over_quota(quota_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         quota_exception.message)
+
+
+def can_use_volume(user, volume_id, leader_required=False):
+    """
+    Determine if the user is allowed to act on this volume.
+    Optionally, if leadership is required, test for it.
+    """
+    return True
+    if leader_required:
+        return Volume.shared_with_user(user, is_leader=True)
+    else:
+        return Volume.shared_with_user(user)
+
+
+def can_use_snapshot(user, snapshot_id, leader_required=False):
+    """
+    determine if the user is allowed to act on this snapshot.
+    Optionally, if leadership is required, test for it.
+    """
+    return True
+    # Snapshot is *not* a Django-object. If it was, we might do something like this:
+    #if leader_required:
+    #    return Snapshot.shared_with_user(user, is_leader=True)
+    #else:
+    #    return Snapshot.shared_with_user(user)

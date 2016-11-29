@@ -133,16 +133,6 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         return all_providers
 
     @classmethod
-    def can_use_instance(user, instance_id):
-        """
-        Using the *Project* as the source of truth, determine if the user requesting the action is allowed to do so.
-        """
-        valid_users = AtmosphereUser.objects.filter(
-            memberships__group__projects__instances__provider_alias=instance_id,
-            memberships__is_leader=True)
-        return valid_users.filter(username=user.username).exists()
-
-    @classmethod
     def for_allocation_source(cls, allocation_source_id):
         from core.models import UserAllocationSource
         user_ids = UserAllocationSource.objects.filter(allocation_source__source_id=allocation_source_id).values_list('user',flat=True)

@@ -23,5 +23,5 @@ class AccountViewSet(AdminAuthViewSet):
         if (type(user) == AnonymousUser):
             return Identity.objects.none()
 
-        identities = user.current_identities()
-        return identities
+        identity_list = Identity.shared_with_user(user)
+        return identity_list
