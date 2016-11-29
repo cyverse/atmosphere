@@ -54,6 +54,19 @@ class Volume(BaseSource):
         self.save()
         return self
 
+    @staticmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        ownership_query = Q(instance_source__created_by=user)
+        project_query = Q(projects__owner__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(projects__owner__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(projects__owner__memberships__is_leader=True)
+        return Volume.objects.filter(project_query | ownership_query)
+
     def get_projects(self, user):
         projects = self.projects.filter(
             Q(end_date=None) | Q(end_date__gt=timezone.now()),
@@ -280,19 +293,6 @@ class VolumeStatusHistory(models.Model):
             new_history.start_date = start_date
         logger.debug("Created new history object: %s " % (new_history))
         return new_history
-
-    @classmethod
-    def shared_with_user(user, is_leader=None):
-        """
-        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
-        """
-        ownership_query = Q(created_by=user)
-        project_query = Q(projects__owner__memberships__user=user)
-        if is_leader == False:
-            project_query &= Q(projects__owner__memberships__is_leader=False)
-        elif is_leader == True:
-            project_query &= Q(projects__owner__memberships__is_leader=True)
-        return Volume.objects.filter(project_query | ownership_query)
 
     def get_attach_data(self):
         """

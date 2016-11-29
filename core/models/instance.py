@@ -77,12 +77,7 @@ class Instance(models.Model):
     def provider(self):
         return self.source.provider
 
-    @classmethod
-    def for_user(self, user):
-        # TODO: Delete function!
-        return Instance.shared_with_user(user)
-
-    @classmethod
+    @staticmethod
     def shared_with_user(user, is_leader=None):
         """
         is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.

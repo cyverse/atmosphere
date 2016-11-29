@@ -112,7 +112,7 @@ class Application(models.Model):
         )
         return shared_images
 
-    @classmethod
+    @staticmethod
     def shared_with_user(user, is_leader=None):
         """
         is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.

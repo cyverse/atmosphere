@@ -109,14 +109,14 @@ class Provider(models.Model):
                 "Over allocation action. ALLOWED_STATES=%s" %
                 (self.over_allocation_action.name, Provider.ALLOWED_STATES))
 
-    @classmethod
+    @staticmethod
     def shared_with_group(group):
         """
         """
         group_query = Q(identity__identity_memberships__member=group)
         return Provider.objects.filter(group_query)
 
-    @classmethod
+    @staticmethod
     def shared_with_user(user, is_leader=None):
         """
         is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.

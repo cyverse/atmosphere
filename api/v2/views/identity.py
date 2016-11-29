@@ -1,6 +1,8 @@
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import filters
+import django_filters
 
 from core.models import Identity, Group
 
@@ -9,11 +11,18 @@ from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 
+class IdentityFilter(filters.FilterSet):
+    project_id = django_filters.CharFilter('identity_memberships__member__projects__id')
+    project_uuid = django_filters.CharFilter('identity_memberships__member__projects__uuid')
+    class Meta:
+        model = Identity
+
 class IdentityViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.
     """
+    filter_class = IdentityFilter
     lookup_fields = ("id", "uuid")
     queryset = Identity.objects.all()
     http_method_names = ['get', 'head', 'options', 'trace']

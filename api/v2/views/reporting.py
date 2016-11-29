@@ -216,7 +216,7 @@ class ReportingViewSet(AuthViewSet):
         if request_user.is_staff or request_user.is_superuser:
             instances_qs = Instance.objects.all()
         elif request_user.is_authenticated():
-            instances_qs = Instance.for_user(request_user)
+            instances_qs = Instance.shared_with_user(request_user)
         else:
             raise exceptions.NotAuthenticated()
         query_params = self.request.query_params

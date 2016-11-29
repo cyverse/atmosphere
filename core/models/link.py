@@ -27,7 +27,7 @@ class ExternalLink(models.Model):
     # User/Identity that created the external link
     created_by = models.ForeignKey('AtmosphereUser')
 
-    @classmethod
+    @staticmethod
     def shared_with_user(user, is_leader=None):
         """
         is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.

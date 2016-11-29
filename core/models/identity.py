@@ -33,14 +33,14 @@ class Identity(models.Model):
         """
         return Identity.objects.filter(instance__provider_alias=instance_id).first()
 
-    @classmethod
+    @staticmethod
     def shared_with_group(group):
         """
         """
         project_query = Q(identity_memberships__member=group)
         return Identity.objects.filter(project_query)
 
-    @classmethod
+    @staticmethod
     def shared_with_user(user, is_leader=None):
         """
         is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
@@ -51,7 +51,7 @@ class Identity(models.Model):
             project_query &= Q(identity_memberships__member__memberships__is_leader=False)
         elif is_leader == True:
             project_query &= Q(identity_memberships__member__memberships__is_leader=True)
-        return Identity.objects.filter(project_query | ownership_query)
+        return Identity.objects.filter(project_query | ownership_query).distinct()
 
     @classmethod
     def destroy_account(cls, username, provider_location):
@@ -435,7 +435,7 @@ class Identity(models.Model):
         }
 
     def __unicode__(self):
-        output = "%s %s" % (self.provider, self.project_name())
+        output = "%s %s" % (self.provider, self.get_key())
         return output
 
     class Meta:
