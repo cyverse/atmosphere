@@ -239,4 +239,4 @@ def step_impl(context):
 @then('compute_allowed on the 30th day is 184 after the carry over')
 def step_impl(context):
     source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).last()
-    assert source_snapshot.compute_allowed == 128
+    assert source_snapshot.compute_allowed == 184
