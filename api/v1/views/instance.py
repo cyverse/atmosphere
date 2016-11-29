@@ -899,9 +899,10 @@ def can_use_instance(user, instance_id, leader_required=False):
     Optionally, if leadership is required, test for it.
     """
     if leader_required:
-        return Instance.shared_with_user(user, is_leader=True)
+        instance_qs = CoreInstance.shared_with_user(user, is_leader=True)
     else:
-        return Instance.shared_with_user(user)
+        instance_qs = CoreInstance.shared_with_user(user)
+    return instance_qs.filter(provider_alias=instance_id).exists()
 
 
 def keys_not_found(missing_keys):

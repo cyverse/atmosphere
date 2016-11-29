@@ -1,5 +1,6 @@
 from uuid import uuid4
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from core.models.application import Application
 from core.models.link import ExternalLink
@@ -35,6 +36,18 @@ class Project(models.Model):
                                      blank=True)
     links = models.ManyToManyField(ExternalLink, related_name="projects",
                                           blank=True)
+
+    @staticmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        project_query = Q(owner__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(owner__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(owner__memberships__is_leader=True)
+        return Project.objects.filter(project_query)
 
     def active_volumes(self):
         return self.volumes.model.active_volumes.filter(
