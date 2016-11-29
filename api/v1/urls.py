@@ -161,11 +161,6 @@ urlpatterns = format_suffix_patterns([
     url(identity_specific + r'$', views.Identity.as_view(),
         name='identity-detail'),  # OLD
 
-    url(r'^credential$', views.CredentialList.as_view(),
-        name='credential-list'),
-    url(r'^credential/(?P<identity_uuid>%s)$' % (uuid_match,),
-        views.CredentialDetail.as_view(), name='credential-detail'),
-
     url(r'^identity$', views.IdentityDetailList.as_view(),
         name='identity-detail-list'),
     url(r'^identity/(?P<identity_uuid>%s)$' % (uuid_match,),
