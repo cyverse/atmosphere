@@ -65,7 +65,7 @@ class Volume(BaseSource):
             project_query &= Q(projects__owner__memberships__is_leader=False)
         elif is_leader == True:
             project_query &= Q(projects__owner__memberships__is_leader=True)
-        return Volume.objects.filter(project_query | ownership_query)
+        return Volume.objects.filter(project_query | ownership_query).distinct()
 
     def get_projects(self, user):
         projects = self.projects.filter(

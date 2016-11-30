@@ -123,7 +123,7 @@ class Application(models.Model):
             project_query &= Q(projects__owner__memberships__is_leader=False)
         elif is_leader == True:
             project_query &= Q(projects__owner__memberships__is_leader=True)
-        return Application.objects.filter(project_query | ownership_query)
+        return Application.objects.filter(project_query | ownership_query).distinct()
 
     @classmethod
     def admin_apps(cls, user):
