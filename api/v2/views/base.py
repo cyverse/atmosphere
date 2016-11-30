@@ -14,7 +14,7 @@ from core.models.status_type import StatusType
 
 from api.permissions import (
         ApiAuthOptional, ApiAuthRequired, EnabledUserRequired,
-        InMaintenance, CloudAdminRequired
+        InMaintenance, CloudAdminRequired, ProjectLeaderRequired
     )
 from api.v2.views.mixins import MultipleFieldLookup
 
@@ -54,7 +54,8 @@ class AuthViewSet(ModelViewSet):
                          'delete', 'head', 'options', 'trace']
     permission_classes = (InMaintenance,
                           EnabledUserRequired,
-                          ApiAuthRequired,)
+                          ApiAuthRequired,
+                          ProjectLeaderRequired)
 
 
 class AdminAuthViewSet(AuthViewSet):

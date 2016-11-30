@@ -64,7 +64,7 @@ class ProjectLeaderRequired(permissions.BasePermission):
             project_kwargs = {'id': project_id}
         else:
             project_kwargs = {'uuid': project_id}
-        return Project.shared_with_user(user).filter(**project_kwargs).exists()
+        return Project.shared_with_user(user, is_leader=True).filter(**project_kwargs).exists()
 
     def test_link_permissions(user, link_id):
         link_kwargs = {}
@@ -72,7 +72,7 @@ class ProjectLeaderRequired(permissions.BasePermission):
             link_kwargs = {'id': link_id}
         else:
             link_kwargs = {'uuid': link_id}
-        return ExternalLink.shared_with_user(user).filter(**link_kwargs).exists()
+        return ExternalLink.shared_with_user(user, is_leader=True).filter(**link_kwargs).exists()
 
     def test_volume_permissions(self, user, volume_id):
         volume_kwargs = {}
@@ -80,7 +80,7 @@ class ProjectLeaderRequired(permissions.BasePermission):
             volume_kwargs = {'id': volume_id}
         else:
             volume_kwargs = {'instance_source__identifier': volume_id}
-        return Volume.shared_with_user(user).filter(**volume_kwargs).exists()
+        return Volume.shared_with_user(user, is_leader=True).filter(**volume_kwargs).exists()
 
     def test_instance_permissions(self, user, instance_id):
         instance_kwargs = {}
@@ -88,7 +88,7 @@ class ProjectLeaderRequired(permissions.BasePermission):
             instance_kwargs = {'id': instance_id}
         else:
             instance_kwargs = {'provider_alias': instance_id}
-        return Instance.shared_with_user(user).filter(**instance_kwargs).exists()
+        return Instance.shared_with_user(user, is_leader=True).filter(**instance_kwargs).exists()
 
     def v1_leadership_test(self, request, view):
         auth_user = request.user
@@ -113,28 +113,29 @@ class ProjectLeaderRequired(permissions.BasePermission):
         auth_user = request.user
         key = view.kwargs.get('pk')
         request_method = request._request.META['REQUEST_METHOD']
-        if not key and request_method == 'GET':
+        if request_method == 'GET':
             return True  # Querying for the list -- Allow it.
 
         SerializerCls = getattr(view, 'serializer_class', None)
+        serializer_classname = SerializerCls.__name__
         # The V2 APIs don't use 'named kwargs' so everything comes in as 'pk'
         # To overcome this hurdle and disambiguate views, we use the fact that every viewset defines a serializer class.
-        if SerializerCls == VolumeSerializer:
+        if serializer_classname == "VolumeSerializer":
             volume_id = key
             return self.test_volume_permissions(auth_user, volume_id)
-        elif SerializerCls == InstanceSerializer:
+        elif serializer_classname == "InstanceSerializer":
             instance_id = key
             return self.test_instance_permissions(auth_user, instance_id)
         #TODO: Re-evaluate logic below this line.
-        elif SerializerCls == ProjectSerializer:
+        elif serializer_classname == "ProjectSerializer":
             # Permissions specific to /v2/views/project.py
             return self.test_project_permissions(auth_user, key)
-        elif SerializerCls == ExternalLinkSerializer:
+        elif serializer_classname == "ExternalLinkSerializer":
             # Permissions specific to /v2/views/link.py
             return self.test_link_permissions(auth_user, key)
-        elif SerializerCls in [
-                ProjectApplicationSerializer, ProjectExternalLinkSerializer,
-                ProjectInstanceSerializer, ProjectVolumeSerializer]:
+        elif serializer_classname in [
+                "ProjectApplicationSerializer", "ProjectExternalLinkSerializer",
+                "ProjectInstanceSerializer", "ProjectVolumeSerializer"]:
             # Permissions specific to /v2/views/link.py
             return self.test_project_resource_permissions(
                 SerializerCls.Meta.model, auth_user, key)
