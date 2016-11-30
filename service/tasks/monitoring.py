@@ -20,7 +20,7 @@ from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
 from core.models.event_table import EventTable
 from core.models.application_version import ApplicationVersion
-from core.models import Allocation, Credential
+from core.models import Allocation, Credential, IdentityMembership
 
 from service.machine import (
     update_db_membership_for_group,
@@ -733,29 +733,20 @@ def monthly_allocation_reset():
                 default_allocation.id])
     return
 
-
 @task(name="reset_provider_allocation")
 def reset_provider_allocation(provider_id, default_allocation_id):
     provider = Provider.objects.get(id=provider_id)
     default_allocation = Allocation.objects.get(id=default_allocation_id)
-    exempt_allocation_list = Allocation.objects.filter(delta=-1)
-    users_reset = 0
-    memberships_reset = []
-    for ident in provider.identity_set.all():
-        if ident.created_by.is_staff or ident.created_by.is_superuser:
-            continue
-        for membership in ident.identity_memberships.all():
-            if membership.allocation_id == default_allocation.id:
-                continue
-            if membership.allocation_id in exempt_allocation_list:
-                continue
-            print "Resetting Allocation for %s \t\tOld Allocation:%s" % (membership.member.name, membership.allocation)
-            membership.allocation = default_allocation
-            membership.save()
-            memberships_reset.append(membership)
-            users_reset += 1
-    return (users_reset, memberships_reset)
-
+    thisProvider = Q(identity__provider_id=provider_id)
+    noPrivilege = (Q(identity__created_by__is_staff=False) &
+                   Q(identity__created_by__is_superuser=False))
+    expiringAllocation = ~Q(allocation__delta=-1)
+    members = IdentityMembership.objects.filter(
+            thisProvider,
+            noPrivilege,
+            expiringAllocation)
+    num_reset = members.update(allocation=default_allocation)
+    return num_reset
 
 def _end_date_missing_database_machines(db_machines, cloud_machines, now=None, dry_run=False):
     if not now:
