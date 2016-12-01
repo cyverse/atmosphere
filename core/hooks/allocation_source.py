@@ -328,6 +328,8 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
     allocation_source_name = payload['name']
     allocation_compute_allowed = payload['compute_allowed']
 
+    # validation to check if renewal strategy is a string or not ?
+
     allocation_source = AllocationSource(source_id=allocation_source_id,
                                          name=allocation_source_name,
                                          compute_allowed=allocation_compute_allowed,
@@ -397,7 +399,8 @@ def listen_for_allocation_source_renewed(sender, instance, created, **kwargs):
     allocation_source_id = payload['source_id']
     allocation_source_name = payload['name']
     compute_allowed = payload['compute_allowed']
-    allocation_source = AllocationSource.objects.filter( Q(source_id=allocation_source_id) & Q(name=allocation_source_name) ).first()
+    allocation_source = AllocationSource.objects.filter(
+        Q(source_id=allocation_source_id) & Q(name=allocation_source_name) ).first()
     if not allocation_source:
         raise('Allocation Source %s does not exist'%(payload['source_id']))
 
@@ -406,3 +409,46 @@ def listen_for_allocation_source_renewed(sender, instance, created, **kwargs):
         allocation_source.save()
     except Exception as e:
         raise('Allocation Source %s could not be renewed because of the following error %s'%(allocation_source.name, e))
+
+    allocation_source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source = allocation_source)
+    if not allocation_source_snapshot:
+        raise('Allocation Source Snapshot for Allocation Source %s does not exist'%(allocation_source.name))
+    try:
+        allocation_source_snapshot.compute_used = 0
+        allocation_source_snapshot.compute_allowed = payload['compute_allowed']
+        allocation_source_snapshot.updated = event.timestamp
+        allocation_source_snapshot.save()
+    except Exception as e:
+        raise('Allocation Source Snapshot %s could not be renewed because of the following error %s'%(allocation_source.name, e))
+
+
+def listen_for_allocation_source_renewal_strategy_changed(sender, instance, created, **kwargs):
+    """
+        This listener expects:
+               EventType - 'allocation_source_renewal_strategy_changed'
+               EventPayload - {
+                   "source_id": "32712",
+                   "renewal_strategy": "workshop",
+               }
+
+               The method should result in renewal strategy of allocation source being changed
+
+    """
+    event = instance
+    if event.name != 'allocation_source_renewal_strategy_changed':
+        return None
+    logger.info('Allocation Source renewal strategy changed event: %s',event.__dict__)
+    payload = event.payload
+    allocation_source_id = payload['source_id']
+    new_renewal_strategy = payload['renewal_strategy']
+    allocation_source = AllocationSource.objects.filter(
+        source_id=allocation_source_id).first()
+    if not allocation_source:
+        raise ('Allocation Source %s does not exist' % (payload['source_id']))
+
+    try:
+        allocation_source.renewal_strategy = new_renewal_strategy
+        allocation_source.save()
+
+    except Exception as e:
+        raise ('Allocation Source %s renewal strategy could not be changed because of the following error %s'%(allocation_source.name, e))

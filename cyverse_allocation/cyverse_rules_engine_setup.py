@@ -91,7 +91,7 @@ cyverse_rules = [
     ]},
         "actions": [
             {"name": "renew_allocation_source",
-             "params": {"compute_allowed": 128}
+             "params": {"compute_allowed": 228}
              },
         ],
     },
@@ -105,6 +105,28 @@ cyverse_rules = [
     ]},
         "actions": [
             {"name": "cannot_renew_allocation_source",
+             },
+        ],
+    },
+
+    #if strategy_name == 'bi-weekly' AND isValid(allocation_source) AND days_since_renewed >= 14 THEN renew
+    {"conditions": {"all": [
+        {"name": "renewal_strategy",
+         "operator": "equal_to",
+         "value": 'bi-weekly',
+         },
+        {"name": "is_valid",
+         "operator": "is_true",
+         "value": True
+         },
+        {"name": "days_since_renewed",
+         "operator": "greater_than_or_equal_to",
+         "value": 14,
+         },
+    ]},
+        "actions": [
+            {"name": "renew_allocation_source",
+             "params": {"compute_allowed": 150}
              },
         ],
     },
@@ -143,9 +165,7 @@ class CyverseTestIncreaseAllocationsActions(BaseActions):
         remaining_compute = 0 if source_snapshot.compute_allowed - source_snapshot.compute_used < 0 else source_snapshot.compute_allowed - source_snapshot.compute_used
         source_snapshot.compute_used = 0
         total_compute_allowed = float(remaining_compute + compute_allowed)
-        source_snapshot.compute_allowed = total_compute_allowed
-        source_snapshot.updated = self.current_time
-        source_snapshot.save()
+
 
         # fire renewal event
 

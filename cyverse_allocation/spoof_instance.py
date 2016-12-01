@@ -147,11 +147,30 @@ def create_allocation_source(name, compute_allowed,renewal_strategy=None, timest
         'renewal_strategy': renewal_strategy
     }
 
-    allocation_source_event = EventTable.objects.create(name='allocation_source_created',
+    EventTable.objects.create(name='allocation_source_created',
                                                         payload=new_allocation_source,
                                                         entity_id=new_allocation_source['source_id'],
                                                         timestamp=timestamp)
 
     return AllocationSource.objects.filter(name=name).last()
 
+
+def change_renewal_strategy(allocation_source, renewal_strategy, timestamp=None):
+    if not timestamp:
+        timestamp = timezone.now()
+
+    # Spoof Renewal Strategy change
+
+    if not renewal_strategy:
+        raise('Please provide a renewal strategy to change to')
+
+    renewal_strategy_change_payload = {
+        "source_id": str(allocation_source.source_id),
+        "renewal_strategy": renewal_strategy
+    }
+
+    EventTable.objects.create(name='allocation_source_renewal_strategy_changed',
+                              payload = renewal_strategy_change_payload,
+                              entity_id = renewal_strategy_change_payload['source_id'],
+                              timestamp = timestamp)
 

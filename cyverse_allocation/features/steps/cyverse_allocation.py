@@ -1,5 +1,5 @@
 from behave import *
-from cyverse_allocation.spoof_instance import UserWorkflow,create_allocation_source
+from cyverse_allocation.spoof_instance import UserWorkflow,create_allocation_source,change_renewal_strategy
 from dateutil.parser import parse
 from datetime import timedelta
 from core.models.allocation_source import total_usage
@@ -239,4 +239,149 @@ def step_impl(context):
 @then('compute_allowed on the 30th day is 184 after the carry over')
 def step_impl(context):
     source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).last()
-    assert source_snapshot.compute_allowed == 184
+    assert source_snapshot.compute_allowed == 284
+
+
+#Scenario 7
+
+@given('DefaultAllocationSource changes its renewal strategy to bi-weekly and Julian is assigned to DefaultAllocationSource')
+def step_impl(context):
+    context.execute_steps(
+        u'''
+        Given we create a new user, Amit
+        when we create and assign an allocation source TestAllocationSource with default renewal to Amit
+        Given Amit creates an instance
+        when Amits instance runs for 2 hours
+        Given Amit assigns instance to TestAllocationSource
+        when Amits instance runs for another 2 hours
+        Given we create user, Julian and assign him to TestAllocationSource 1 hour after Amit is assigned
+        when Julian launches an instance on TestAllocationSource and runs it for 3 hours
+        Given default settings
+        when new allocation source DefaultAllocationSource is created with compute allowed 128
+        Given Amit is assigned to DefaultAllocationSource
+        When Amit runs an instance on DefaultAllocationSource for 3 days
+        ''')
+
+    new_renewal_strategy = "bi-weekly"
+    assert len(EventTable.objects.filter(name='allocation_source_renewal_strategy_changed')) == 0
+    change_renewal_strategy(context.allocation_source_2, new_renewal_strategy, timestamp=context.ts + timedelta(days=30))
+    assert len(EventTable.objects.filter(name='allocation_source_renewal_strategy_changed')) == 1
+    context.julian.assign_allocation_source_to_user(context.allocation_source_2,
+                                                    timestamp=context.ts + timedelta(days=30))
+
+
+@when('Amit runs an instance for 5 days before the first renewal and Julian launches a new instance and runs it for 4 days before the first renewal and 8 days before the second renewal on the DefaultAllocationSource')
+def step_impl(context):
+
+    # amit runs instance for 5 days before the first renewal
+    context.amit.create_instance_status_history(context.amit_instance_2,
+                                                start_date=context.ts + timedelta(days=30),
+                                                status='active')
+    context.amit.create_instance_status_history(context.amit_instance_2,
+                                                start_date=context.ts + timedelta(days=35),
+                                                status='suspended')
+
+    # julian creates new instance and assigns it to the DefaultAllocationSource
+    context.julian_instance_2 = context.julian.create_instance(start_date=context.ts + timedelta(days=30))
+    context.julian.assign_allocation_source_to_instance(context.allocation_source_2, context.julian_instance_2,
+                                                        timestamp=context.ts + timedelta(days=30))
+
+    # julian runs the instance for 4 days before the first renewal
+    context.julian.create_instance_status_history(context.julian_instance_2,
+                                                  start_date=context.ts + timedelta(days=4),
+                                                  status='suspended')
+
+    context.julian.create_instance_status_history(context.julian_instance_2,
+                                                  start_date=context.ts + timedelta(days=44),
+                                                  status='active')
+
+    context.julian.create_instance_status_history(context.julian_instance_2,
+                                                  start_date=context.ts + timedelta(days=52),
+                                                  status='suspended')
+
+
+
+@then('renewal event is fired twice twice after every two weeks')
+def step_impl(context):
+
+    # after another 14 days , AllocationSourceSnapshot is updated.
+
+    report_start_date = context.ts + timedelta(days=30)
+    report_end_date = report_start_date + timedelta(days=43)
+    query = EventTable.objects.filter(name='allocation_source_renewed',
+                                      payload__name__exact='DefaultAllocationSource')
+    assert len(query) == 1
+    source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).order_by(
+        'updated').last()
+
+    amit_usage = total_usage(context.amit.user.username, report_start_date,
+                allocation_source_name=context.allocation_source_2.name,
+                end_date=report_end_date)
+
+    julian_usage = total_usage(context.julian.user.username, report_start_date,
+                allocation_source_name=context.allocation_source_2.name,
+                end_date=report_end_date)
+
+
+    assert amit_usage == 120.0
+    assert julian_usage == 96.0
+
+    source_snapshot.compute_used = amit_usage + julian_usage
+    source_snapshot.updated = context.ts + timedelta(days=43)
+    source_snapshot.save()
+
+    assert AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).order_by(
+        'updated').last().compute_used == 216.0
+
+    # rules engine is explicitly run
+
+    current_time = context.ts + timedelta(days=44)
+    run_all(rule_list=cyverse_rules,
+            defined_variables=CyverseTestRenewalVariables(context.allocation_source_2, current_time),
+            defined_actions=CyverseTestRenewalActions(context.allocation_source_2, current_time),
+            )
+
+
+    assert EventTable.objects.filter(name='allocation_source_renewed') == 2
+
+
+    # after another 14 days , AllocationSourceSnapshot is updated.
+
+    report_start_date = context.ts + timedelta(days=44)
+    report_end_date = report_start_date + timedelta(days=57)
+    query = EventTable.objects.filter(name='allocation_source_renewed',
+                                      payload__name__exact='DefaultAllocationSource')
+
+    source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).order_by(
+        'updated').last()
+
+    amit_usage = total_usage(context.amit.user.username, report_start_date,
+                             allocation_source_name=context.allocation_source_2.name,
+                             end_date=report_end_date)
+
+    julian_usage = total_usage(context.julian.user.username, report_start_date,
+                               allocation_source_name=context.allocation_source_2.name,
+                               end_date=report_end_date)
+
+    assert amit_usage == 0.0
+    assert julian_usage == 192.0
+
+    source_snapshot.compute_used = amit_usage + julian_usage
+    source_snapshot.updated = context.ts + timedelta(days=57)
+    source_snapshot.save()
+
+    assert AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).order_by(
+        'updated').last().compute_used == 192.0
+
+    # rules engine is explicitly run
+
+    current_time = context.ts + timedelta(days=58)
+    run_all(rule_list=cyverse_rules,
+            defined_variables=CyverseTestRenewalVariables(context.allocation_source_2, current_time),
+            defined_actions=CyverseTestRenewalActions(context.allocation_source_2, current_time),
+            )
+
+    assert EventTable.objects.filter(name='allocation_source_renewed') == 3
+
+
+
