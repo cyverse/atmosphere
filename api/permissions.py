@@ -8,7 +8,9 @@ from rest_framework import permissions
 from threepio import logger
 
 from core.models.cloud_admin import CloudAdministrator, cloud_admin_list, get_cloud_admin_for_provider
-from core.models import Group, MaintenanceRecord, AtmosphereUser, ExternalLink, Volume, Instance, Project
+from core.models import (
+    Group, MaintenanceRecord, AtmosphereUser, ExternalLink,
+    Volume, Instance, Project, Identity)
 
 from api import ServiceUnavailable
 from django.conf import settings
@@ -66,6 +68,16 @@ class ProjectLeaderRequired(permissions.BasePermission):
             project_kwargs = {'uuid': project_id}
         return Project.shared_with_user(user, is_leader=True).filter(**project_kwargs).exists()
 
+    def test_project_resource_permissions(self, SerializerCls, user, data):
+        if 'instance' in data:
+            return self.test_instance_permissions(user, data['instance'])
+        elif 'volume' in data:
+            return self.test_volume_permissions(user, data['volume'])
+        elif 'external_link' in data:
+            return self.test_link_permissions(user, data['external_link'])
+        else:
+            raise Exception("Unknown data - %s" % data)
+
     def test_link_permissions(user, link_id):
         link_kwargs = {}
         if type(link_id) == int:
@@ -81,6 +93,14 @@ class ProjectLeaderRequired(permissions.BasePermission):
         else:
             volume_kwargs = {'instance_source__identifier': volume_id}
         return Volume.shared_with_user(user, is_leader=True).filter(**volume_kwargs).exists()
+
+    def test_identity_permissions(self, user, identity_id):
+        identity_kwargs = {}
+        if type(identity_id) == int:
+            identity_kwargs = {'id': identity_id}
+        else:
+            identity_kwargs = {'uuid': identity_id}
+        return Identity.shared_with_user(user, is_leader=True).filter(**identity_kwargs).exists()
 
     def test_instance_permissions(self, user, instance_id):
         instance_kwargs = {}
@@ -100,7 +120,7 @@ class ProjectLeaderRequired(permissions.BasePermission):
             return True
         if instance_id:
             return self.test_instance_permissions(auth_user, instance_id)
-        if volume_id:
+        elif volume_id:
             return self.test_volume_permissions(auth_user, volume_id)
         elif identity_uuid:
             # Permissions specific to v1 Instance and Volume Creation
@@ -138,7 +158,7 @@ class ProjectLeaderRequired(permissions.BasePermission):
                 "ProjectInstanceSerializer", "ProjectVolumeSerializer"]:
             # Permissions specific to /v2/views/link.py
             return self.test_project_resource_permissions(
-                SerializerCls.Meta.model, auth_user, key)
+                SerializerCls.Meta.model, auth_user, request.data)
         else:
             return True
 
