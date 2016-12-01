@@ -1,12 +1,24 @@
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ValidationError
-from core.models import Project, Group
+from rest_framework import filters
+
+from core.models import Project
 from core.query import only_current
 
 from api.v2.serializers.details import ProjectSerializer,\
     VolumeSerializer, InstanceSerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
+
+import django_filters
+
+
+class ProjectFilter(filters.FilterSet):
+    identity_id = django_filters.CharFilter('owner__identity_memberships__identity__id')
+    identity_uuid = django_filters.CharFilter('owner__identity_memberships__identity__uuid')
+
+    class Meta:
+        model = Project
 
 
 class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
@@ -18,6 +30,7 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
     lookup_fields = ("id", "uuid")
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
+    filter_class = ProjectFilter
 
     def perform_destroy(self, serializer):
         project = self.get_object()
