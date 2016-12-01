@@ -139,6 +139,8 @@ class ProjectLeaderRequired(permissions.BasePermission):
             # Permissions specific to /v2/views/link.py
             return self.test_project_resource_permissions(
                 SerializerCls.Meta.model, auth_user, key)
+        else:
+            return True
 
 
 class ApiAuthRequired(permissions.BasePermission):
