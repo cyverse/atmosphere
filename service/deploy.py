@@ -27,7 +27,7 @@ from iplantauth.protocol import ldap
 from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
 from core.models import AtmosphereUser as User
-from core.models import Provider, Identity
+from core.models import Provider, Identity, Instance, SSHKey
 
 from service.exceptions import AnsibleDeployException
 
@@ -164,7 +164,10 @@ def user_deploy(instance_ip, username, instance_id):
     """
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
     playbooks_dir = os.path.join(playbooks_dir, 'user_deploy')
-    user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
+    instance = Instance.objects.get(provider_alias=instance_id)
+    group = instance.projects.first().owner
+    group_ssh_keys = SSHKey.keys_for_group(group)
+    user_keys = [k.pub_key for k in group_ssh_keys]
     extra_vars = {
         "USERSSHKEYS": user_keys
     }
