@@ -118,6 +118,11 @@ def ansible_deployment(
         extra_vars.update({
             "TIMEZONE": time_zone,
         })
+    usernames = User.users_for_instance(instance_id).values_list('username', flat=True)
+    if usernames:
+        extra_vars.update({
+            "SHARED_USERS": usernames,
+        })
     extra_vars.update({
         "ATMOUSERNAME": username,
     })

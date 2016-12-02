@@ -81,6 +81,16 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         send_mail(subject, message, from_email, [self.email], **kwargs)
     # END-rip.
 
+    @staticmethod
+    def users_for_instance(instance_id, leader_only=False):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        instance_query = Q(memberships__group__projects__instances__provider_alias=instance_id)
+        if leader_only == True:
+            instance_query &= Q(memberships__is_leader=True)
+        return AtmosphereUser.objects.filter(instance_query).distinct()
+
     def is_admin(self):
         if self.is_superuser or self.is_staff:
             return True

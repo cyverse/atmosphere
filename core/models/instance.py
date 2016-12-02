@@ -77,6 +77,13 @@ class Instance(models.Model):
     def provider(self):
         return self.source.provider
 
+    @property
+    def project_owner(self):
+        project = self.projects.first()
+        if not project:
+            return None
+        return project.owner
+
     @staticmethod
     def shared_with_user(user, is_leader=None):
         """
