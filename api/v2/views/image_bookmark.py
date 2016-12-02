@@ -3,11 +3,11 @@ from django.utils import timezone
 from django.db.models import Q
 
 from api.v2.serializers.details import ImageBookmarkSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 
-class ImageBookmarkViewSet(MultipleFieldLookup, AuthViewSet):
+class ImageBookmarkViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows instance actions to be viewed or edited.

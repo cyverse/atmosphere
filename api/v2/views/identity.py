@@ -5,11 +5,11 @@ from rest_framework import status
 from core.models import Identity, Group
 
 from api.v2.serializers.details import IdentitySerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 
-class IdentityViewSet(MultipleFieldLookup, AuthViewSet):
+class IdentityViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.

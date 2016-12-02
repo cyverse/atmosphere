@@ -5,11 +5,11 @@ from core.query import only_current
 
 from api.v2.serializers.details import ProjectSerializer,\
     VolumeSerializer, InstanceSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 
-class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
+class ProjectViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows projects to be viewed or edited.
@@ -64,7 +64,7 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
     @detail_route()
     def instances(self, *args, **kwargs):
         project = self.get_object()
-        self.get_queryset = super(AuthViewSet, self).get_queryset
+        self.get_queryset = super(AuthModelViewSet, self).get_queryset
         self.queryset = project.instances.get_queryset()
         self.serializer_class = InstanceSerializer
         return self.list(self, *args, **kwargs)
@@ -72,7 +72,7 @@ class ProjectViewSet(MultipleFieldLookup, AuthViewSet):
     @detail_route()
     def volumes(self, *args, **kwargs):
         project = self.get_object()
-        self.get_queryset = super(AuthViewSet, self).get_queryset
+        self.get_queryset = super(AuthModelViewSet, self).get_queryset
         self.queryset = project.volumes.get_queryset()
         self.serializer_class = VolumeSerializer
         return self.list(self, *args, **kwargs)

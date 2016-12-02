@@ -9,7 +9,7 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 
 from api.v2.serializers.details import GroupSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.v2.exceptions import failure_response
 from core.models import AtmosphereUser, Group
@@ -40,7 +40,7 @@ class MinLengthRequiredSearchFilter(SearchFilter):
         fields = ["name", "user_set__email"]
 
 
-class GroupViewSet(MultipleFieldLookup, AuthViewSet):
+class GroupViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows groups to be viewed or edited.

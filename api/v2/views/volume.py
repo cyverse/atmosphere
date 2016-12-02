@@ -10,7 +10,7 @@ from rest_framework import status
 from api.exceptions import (inactive_provider)
 from api.v2.serializers.details import VolumeSerializer, UpdateVolumeSerializer
 from api.v2.serializers.post import VolumeSerializer as POSTVolumeSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 from core.exceptions import ProviderNotActive
@@ -35,7 +35,7 @@ class VolumeFilter(django_filters.FilterSet):
         fields = ['min_size', 'max_size', 'projects']
 
 
-class VolumeViewSet(MultipleFieldLookup, AuthViewSet):
+class VolumeViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.
