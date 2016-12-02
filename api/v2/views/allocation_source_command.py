@@ -22,12 +22,17 @@ commands = {
 
 }
 
+
+#FIXME: Might want this to just be 'views/command.py' and CommandViewSet
 class AllocationSourceCommandViewSet(AuthViewSet):
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
     serializer_class = AllocationSourceCommandSerializer
 
-    def get_queryset(self):
-        serializer = AllocationSourceCommandSerializer(
-            instance = commands.values(), many=True
-        )
-        return Response(serializer.data)
+    def list(self, request):
+        #FIXME: List all the commands that can be executed here
+        return Response()
+
+    def create(self, request):
+        #FIXME: Introspect the request.data and see if you can act on a command
+        #FIXME: Return a structured JSON for each command so that the UI knows what to expect.
+        return Response()
