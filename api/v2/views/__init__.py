@@ -2,6 +2,7 @@
 from .account import AccountViewSet
 from .allocation import AllocationViewSet
 from .allocation_source import AllocationSourceViewSet
+from .allocation_source_command import AllocationSourceCommandViewSet
 from .boot_script import BootScriptViewSet
 from .base import BaseRequestViewSet
 from .credential import CredentialViewSet

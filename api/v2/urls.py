@@ -14,6 +14,7 @@ router.register(
     views.AllocationViewSet,
     base_name='allocation')
 router.register(r'allocation_sources', views.AllocationSourceViewSet)
+router.register(r'allocation_source_command', views.AllocationSourceCommandViewSet, base_name='allocation-source-commands')
 router.register(r'boot_scripts', views.BootScriptViewSet)
 router.register(r'credentials', views.CredentialViewSet)
 router.register(r'events', views.EventViewSet, base_name='event')
