@@ -921,7 +921,7 @@ def _select_and_launch_source(
             boot_source.identifier,
             "machine")
         core_instance = launch_machine_instance(
-            esh_driver, identity, machine, size, name,
+            esh_driver, user, identity, machine, size, name,
             deploy=deploy, **launch_kwargs)
     else:
         raise Exception("Boot source is of an unknown type")
@@ -929,7 +929,7 @@ def _select_and_launch_source(
 
 
 def boot_volume_instance(
-        driver, identity, copy_source, size, name,
+        driver, user, identity, copy_source, size, name,
         # Depending on copy source, these specific kwargs may/may not be used.
         boot_index=0, shutdown=False, volume_size=None,
         # Other kwargs passed for future needs
@@ -938,45 +938,45 @@ def boot_volume_instance(
     Create a new volume and launch it as an instance
     """
     kwargs, userdata, network = _pre_launch_instance(
-        driver, identity, size, name, **kwargs)
+        driver, user, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
     instance, token, password = _boot_volume(
         driver, identity, copy_source, size,
         name, userdata, network, **prep_kwargs)
     return _complete_launch_instance(
         driver, identity, instance,
-        identity.created_by, token, password, deploy=deploy)
+        user, token, password, deploy=deploy)
 
 
-def launch_volume_instance(driver, identity, volume, size, name,
+def launch_volume_instance(driver, user, identity, volume, size, name,
                            deploy=True, **kwargs):
     """
     Re-Launch an existing volume as an instance
     """
     kwargs, userdata, network = _pre_launch_instance(
-        driver, identity, size, name, **kwargs)
+        driver, user, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
     instance, token, password = _launch_volume(
         driver, identity, volume, size,
         name, userdata, network, **kwargs)
     return _complete_launch_instance(driver, identity, instance,
-                                     identity.created_by, token, password,
+                                     user, token, password,
                                      deploy=deploy)
 
 
-def launch_machine_instance(driver, identity, machine, size, name,
+def launch_machine_instance(driver, user, identity, machine, size, name,
                             deploy=True, **kwargs):
     """
     Launch an existing machine as an instance
     """
     prep_kwargs, userdata, network = _pre_launch_instance(
-        driver, identity, size, name, **kwargs)
+        driver, user, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
     instance, token, password = _launch_machine(
         driver, identity, machine, size,
         name, userdata, network, **kwargs)
     return _complete_launch_instance(driver, identity, instance,
-                                     identity.created_by, token, password,
+                                     user, token, password,
                                      deploy=deploy)
 
 
@@ -1051,7 +1051,7 @@ def _launch_machine(driver, identity, machine, size,
     return (esh_instance, token, password)
 
 
-def _pre_launch_instance(driver, identity, size, name, **kwargs):
+def _pre_launch_instance(driver, user, identity, size, name, **kwargs):
     """
     Returns:
     * Prep kwargs (username, password, token, & name)
