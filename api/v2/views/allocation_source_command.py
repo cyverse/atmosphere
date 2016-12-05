@@ -61,7 +61,6 @@ class AllocationSourceCommandViewSet(AuthViewSet):
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
 
-    @staticmethod
     def _validate_input(self,request_data, request_user):
         # user permission checking
         if not request_user.is_staff and not request_user.is_superuser:
@@ -71,17 +70,14 @@ class AllocationSourceCommandViewSet(AuthViewSet):
         self._for_validate_compute_allowed(request_data['compute_allowed'])
         self._for_validate_renewal_strategy(request_data['renewal_strategy'])
 
-    @staticmethod
     def _for_validate_compute_allowed(self,compute_allowed):
         #raise Exception('Error with Compute Allowed')
         return True
 
-    @staticmethod
     def _for_validate_renewal_strategy(self,renewal_strategy):
         #raise Exception('Error with Renewal Strategy')
         return True
 
-    @staticmethod
     def _create_allocation_source(self,request_data):
         payload = {}
         payload['source_id'] = request_data.get('source_id')
