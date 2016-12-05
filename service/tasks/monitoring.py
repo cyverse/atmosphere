@@ -544,6 +544,9 @@ def monitor_instance_allocations():
     """
     Update instances for each active provider.
     """
+    if settings.USE_ALLOCATION_SOURCE:
+        celery_logger.info("Skipping the old method of monitoring instance allocations")
+        return False
     for p in Provider.get_active():
         monitor_instances_for.apply_async(args=[p.id], kwargs={'check_allocations':True})
 
