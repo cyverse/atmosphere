@@ -35,7 +35,6 @@ class AllocationSourceCommandViewSet(AuthViewSet):
         return Response(serializer.data)
 
     def create(self, request):
-
         request_user = request.user
         request_data = request.data
 
@@ -93,7 +92,6 @@ class AllocationSourceCommandViewSet(AuthViewSet):
         return EventTable.create_event(
             'allocation_source_created',
              payload,
-             payload['source_id']
-            )
+             payload['source_id'])
 
 
