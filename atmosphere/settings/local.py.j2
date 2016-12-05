@@ -280,42 +280,42 @@ ALWAYS_AUTH_USER = "{{ AUTH_MOCK_USER }}"
 AUTHENTICATION_BACKENDS = (
     {% if AUTH_ENABLE_MOCK %}
     # Use MockLoginBackend first!
-    'iplantauth.authBackends.MockLoginBackend',
+    'django_cyverse_auth.authBackends.MockLoginBackend',
     {% else %}
     # MOCK - Uncomment these lines to allow one-user-only access. Useful for debug/development
-    # 'iplantauth.authBackends.MockLoginBackend',
+    # 'django_cyverse_auth.authBackends.MockLoginBackend',
     # MOCK - Required to login to 'admin' if the *ONLY* backend is MockLoginBackend.
     # 'django.contrib.auth.backends.ModelBackend',
     {% endif %}
     # Use existing AuthTokens as a login backend (Emulation via API)
-    'iplantauth.authBackends.AuthTokenLoginBackend',
+    'django_cyverse_auth.authBackends.AuthTokenLoginBackend',
     {% if AUTH_ENABLE_GLOBUS %}
     # For Web-Access
-    'iplantauth.authBackends.GlobusOAuthLoginBackend',
+    'django_cyverse_auth.authBackends.GlobusOAuthLoginBackend',
     # Required to login to 'admin' if the *ONLY* backend is GlobusLoginBackend
     'django.contrib.auth.backends.ModelBackend',
     {% endif %}
     {% if AUTH_ENABLE_CAS %}
     # For Web-Access
-    'iplantauth.authBackends.CASLoginBackend',
+    'django_cyverse_auth.authBackends.CASLoginBackend',
     {% endif %}
     {% if AUTH_ENABLE_LDAP %}
     # For Service-Access
-    'iplantauth.authBackends.LDAPLoginBackend',
+    'django_cyverse_auth.authBackends.LDAPLoginBackend',
     {% endif %}
 )
 # UPDATE REST_FRAMEWORK
 REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
-    'iplantauth.token.TokenAuthentication',  # Generic Tokens
+    'django_cyverse_auth.token.TokenAuthentication',  # Generic Tokens
     'rest_framework.authentication.SessionAuthentication',  # Session
     {% if AUTH_ENABLE_GLOBUS %}
-    'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
+    'django_cyverse_auth.token.GlobusOAuthTokenAuthentication',  # Globus
     {% endif %}
     {% if AUTH_ENABLE_JWT %}
-    'iplantauth.token.JWTTokenAuthentication',  # JWT
+    'django_cyverse_auth.token.JWTTokenAuthentication',  # JWT
     {% endif %}
     {% if AUTH_ENABLE_CAS %}
-    'iplantauth.token.OAuthTokenAuthentication',  # CAS
+    'django_cyverse_auth.token.OAuthTokenAuthentication',  # CAS
     {% endif %}
 )
 {% endif %}

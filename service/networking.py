@@ -28,9 +28,9 @@ def _generate_ssh_kwargs(timeout=120):
     return kwargs
 
 def _get_unique_id(userid):
-    if 'iplantauth.authBackends.LDAPLoginBackend' in \
+    if 'django_cyverse_auth.authBackends.LDAPLoginBackend' in \
             settings.AUTHENTICATION_BACKENDS:
-        from iplantauth.protocol.ldap import _get_uid_number
+        from django_cyverse_auth.protocol.ldap import _get_uid_number
         return _get_uid_number(userid)
     else:
         return _get_random_uid(userid)

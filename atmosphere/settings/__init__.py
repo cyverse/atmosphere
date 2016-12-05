@@ -79,8 +79,8 @@ INSTALLED_APPS = (
     #'django_jenkins',
     #'sslserver',
 
-    # iPlant apps
-    'iplantauth',
+    # Cyverse libraries
+    'django_cyverse_auth',
     'rtwo',
 
     # atmosphere apps
@@ -178,13 +178,13 @@ AUTH_USER_MODEL = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
-    #'iplantauth.authBackends.GlobusOAuthLoginBackend',
-    'iplantauth.authBackends.AuthTokenLoginBackend',
+    #'django_cyverse_auth.authBackends.GlobusOAuthLoginBackend',
+    'django_cyverse_auth.authBackends.AuthTokenLoginBackend',
     # For Web-Access
-    'iplantauth.authBackends.CASLoginBackend',
-    #'iplantauth.authBackends.SAMLLoginBackend',
+    'django_cyverse_auth.authBackends.CASLoginBackend',
+    #'django_cyverse_auth.authBackends.SAMLLoginBackend',
     ## For Service-Access
-    'iplantauth.authBackends.LDAPLoginBackend',
+    'django_cyverse_auth.authBackends.LDAPLoginBackend',
 )
 
 # django-cors-headers
@@ -382,11 +382,11 @@ REST_FRAMEWORK = {
         #'rest_framework_xml.renderers.XMLRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'iplantauth.token.TokenAuthentication', # Generic Tokens
-        # 'iplantauth.token.JWTTokenAuthentication',  # WSO2+JWT
-        'iplantauth.token.OAuthTokenAuthentication',  # CAS
-        #'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
-        # 'iplantauth.token.TokenAuthentication',  # Generic Tokens
+        'django_cyverse_auth.token.TokenAuthentication', # Generic Tokens
+        # 'django_cyverse_auth.token.JWTTokenAuthentication',  # WSO2+JWT
+        'django_cyverse_auth.token.OAuthTokenAuthentication',  # CAS
+        #'django_cyverse_auth.token.GlobusOAuthTokenAuthentication',  # Globus
+        # 'django_cyverse_auth.token.TokenAuthentication',  # Generic Tokens
         'rest_framework.authentication.SessionAuthentication',  # Session
     ),
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',

@@ -1,4 +1,4 @@
-from iplantauth.models import Token
+from django_cyverse_auth.models import Token
 from core.query import only_current_tokens
 
 from api.permissions import ApiAuthRequired, InMaintenance
