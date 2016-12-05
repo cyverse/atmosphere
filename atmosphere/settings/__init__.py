@@ -466,19 +466,19 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=60),
         "options": {"expires": 10 * 60, "time_limit": 2 * 60}
     },
-    # "prune_machines": {
-    #     "task": "prune_machines",
-    #     # Every day of the week @ 12am (Midnight)
-    #     "schedule": crontab(hour="0", minute="0", day_of_week="*"),
-    #     "options": {"expires": 10 * 60, "time_limit": 10 * 60}
-    # },
-    # "monitor_machines": {
-    #     "task": "monitor_machines",
-    #     # Every day of the week @ 1am
-    #     #"schedule": crontab(hour="1", minute="0", day_of_week="*"),
-    #     "schedule": timedelta(minutes=30),
-    #     "options": {"expires": 10 * 60, "time_limit": 10 * 60}
-    # },
+    "prune_machines": {
+        "task": "prune_machines",
+        # Every day of the week @ 12am (Midnight)
+        "schedule": crontab(hour="0", minute="0", day_of_week="*"),
+        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+    },
+    "monitor_machines": {
+        "task": "monitor_machines",
+        # Every day of the week @ 1am
+        #"schedule": crontab(hour="1", minute="0", day_of_week="*"),
+        "schedule": timedelta(minutes=30),
+        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+    },
     "monitor_volumes": {
         "task": "monitor_volumes",
         "schedule": timedelta(minutes=30),
