@@ -415,7 +415,9 @@ class AccountDriver(BaseAccountDriver):
             logger.info("Added Cloud Access: %s-%s"
                         % (glance_image, project_name))
         except GlanceClientException as gce:
-            if 'is duplicated for image' not in gce.details:
+            message = gce.details
+            if 'is duplicated for image' not in message\
+                    and 'is already associated with image' not in message:
                 raise
 
     def accept_shared_image(self, glance_image, project_name):
