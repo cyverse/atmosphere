@@ -268,7 +268,7 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
     shared_group_names = [image_owner]
     shared_projects = account_driver.shared_images_for(cloud_machine.id)
-    shared_group_names.extend(p.name for p in shared_projects)
+    shared_group_names.extend(p.name for p in shared_projects if p)
     groups = Group.objects.filter(name__in=shared_group_names)
     if not groups:
         return
@@ -544,6 +544,9 @@ def monitor_instance_allocations():
     """
     Update instances for each active provider.
     """
+    if settings.USE_ALLOCATION_SOURCE:
+        celery_logger.info("Skipping the old method of monitoring instance allocations")
+        return False
     for p in Provider.get_active():
         monitor_instances_for.apply_async(args=[p.id], kwargs={'check_allocations':True})
 

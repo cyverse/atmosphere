@@ -184,7 +184,7 @@ def share_with_admins(private_userlist, provider_uuid):
         raise Exception("Expected private_userlist to be list, got %s: %s"
                         % (type(private_userlist), private_userlist))
 
-    from iplantauth.protocol.ldap import get_core_services
+    from django_cyverse_auth.protocol.ldap import get_core_services
     core_services = get_core_services()
     admin_users = [
         ap.identity.created_by.username

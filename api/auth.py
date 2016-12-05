@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from atmosphere.settings import secrets
-from iplantauth.models import create_token, lookupSessionToken
+from django_cyverse_auth.models import create_token, lookupSessionToken
 
 from api.permissions import ApiAuthIgnore
 from api.exceptions import invalid_auth

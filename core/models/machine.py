@@ -10,7 +10,7 @@ from threepio import logger
 
 from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource
-from core.models.application import create_application, get_application
+from core.models.application import create_application, get_application, verify_app_uuid
 from core.models.application_version import (
         ApplicationVersion,
         create_app_version,
@@ -198,9 +198,10 @@ def collect_image_metadata(glance_image):
     app_kwargs = {}
     try:
         app_kwargs['private'] = glance_image.visibility.lower() != 'public'
-        app_kwargs['description'] = glance_image.application_description
-        app_kwargs['tags'] = glance_image.application_tags
-        app_kwargs['uuid'] = glance_image.application_uuid
+        if verify_app_uuid(glance_image.application_uuid, glance_image.id):
+            app_kwargs['uuid'] = glance_image.application_uuid
+            app_kwargs['description'] = glance_image.application_description
+            app_kwargs['tags'] = glance_image.application_tags
     except AttributeError as exc:
         logger.exception("Glance image %s was not initialized with atmosphere metadata - %s" % (glance_image.id, exc.message))
     return app_kwargs

@@ -384,8 +384,14 @@ def create_admin(provider, admin_info):
 
     (user, group) = Group.create_usergroup(username)
 
-    new_identity = Identity.objects.get_or_create(provider=provider,
-                                                  created_by=user)[0]
+    try:
+        new_identity = Identity.objects.get(provider=provider,
+                                            created_by=user)
+    except Identity.DoesNotExist:
+        new_identity = Identity.objects.create(
+            provider=provider,
+            created_by=user,
+            quota=Quota.default_quota())
     new_identity.credential_set.get_or_create(key='key',
                                               value=username)
     new_identity.credential_set.get_or_create(key='secret',
@@ -405,7 +411,7 @@ def create_admin(provider, admin_info):
     AccountProvider.objects.get_or_create(
         provider=provider, identity=new_identity)
     IdentityMembership.objects.get_or_create(
-        identity=new_identity, member=group, quota=quota)
+        identity=new_identity, member=group)
 
     return new_identity
 

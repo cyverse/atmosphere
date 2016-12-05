@@ -19,7 +19,7 @@ from atmosphere import settings
 from core.models.allocation_source import total_usage
 from core.models import IdentityMembership, MachineRequest, EmailTemplate
 
-from iplantauth.protocol.ldap import lookupEmail as ldapLookupEmail, lookupUser
+from django_cyverse_auth.protocol.ldap import lookupEmail as ldapLookupEmail, lookupUser
 from core.tasks import send_email
 
 

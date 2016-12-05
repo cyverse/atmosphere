@@ -1,4 +1,4 @@
-from iplantauth.protocol.ldap import is_user_in_group as ldap_group_search
+from django_cyverse_auth.protocol.ldap import is_user_in_group as ldap_group_search
 
 
 class ValidationPlugin(object):

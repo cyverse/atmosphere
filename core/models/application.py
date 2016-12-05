@@ -408,6 +408,10 @@ def _generate_app_uuid(identifier):
     return str(app_uuid)
 
 
+def verify_app_uuid(app_uuid, identifier):
+    valid_uuid = _generate_app_uuid(identifier)
+    return valid_uuid == app_uuid
+
 def _get_app_by_uuid(identifier, app_uuid):
     """
     Last-ditch placement effort. Hash the identifier and use that as the lookup

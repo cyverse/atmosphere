@@ -268,6 +268,8 @@ class Identity(models.Model):
     @classmethod
     def _create_identity(cls, user, group, provider, quota, credentials):
         new_uuid = uuid4()
+        if not quota:
+            quota = Quota.default_quota()
         identity = Identity.objects.create(
             created_by=user,
             provider=provider,
