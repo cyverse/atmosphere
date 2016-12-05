@@ -70,6 +70,10 @@ class Group(DjangoGroup):
     def current_identity_memberships(self):
         return self.identity_memberships.filter(only_active_memberships())
 
+    @staticmethod
+    def for_identity(identity_uuid):
+        return Group.objects.filter(identity_memberships__identity__uuid=identity_uuid)
+
     @property
     def current_identities(self):
         return Identity.shared_with_group(self).filter(only_current_provider(), only_active_provider())
