@@ -133,6 +133,16 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
             (not self.end_date or self.end_date > now_time)
 
     @property
+    def current_identities(self):
+        from core.models import Identity
+        all_identities = Identity.objects.none()
+        for membership in self.memberships.select_related('group'):
+            group = membership.group
+            all_identities |= Identity.objects.filter(id__in=group.current_identities.values_list('id', flat=True))
+        all_identities |= Identity.objects.filter(created_by=self).distinct()
+        return all_identities
+
+    @property
     def current_providers(self):
         from core.models import Provider
         all_providers = Provider.objects.none()

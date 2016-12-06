@@ -6,11 +6,6 @@ from django.conf import settings
 from threepio import logger
 
 
-DEFAULT_ACCOUNT_CREATION_PLUGINS = [
-    'atmosphere.plugins.accounts.creation.UserGroup'
-]
-
-
 def load_plugin_class(plugin_path):
     return import_string(plugin_path)
 
@@ -55,9 +50,9 @@ To restore 'basic' functionality, please set settings.ACCOUNT_CREATION_PLUGINS t
     @classmethod
     def create_accounts(cls, provider, username, force=False):
         accounts = []
-        for AccountCreationPlugin in cls.load_plugins(cls.list_of_classes):
-            plugin = AccountCreationPlugin()
-            created = plugin.create_accounts(provider=provider, username=username)
+        for AccountCreationPluginCls in cls.load_plugins(cls.list_of_classes):
+            plugin = AccountCreationPluginCls()
+            created = plugin.create_accounts(provider=provider, username=username, force=force)
             if created:
                 accounts.extend(created)
         return accounts
@@ -68,8 +63,8 @@ To restore 'basic' functionality, please set settings.ACCOUNT_CREATION_PLUGINS t
         Load the accountsCreationPlugin and call `plugin.delete_accounts(provider, username)`
         """
         accounts = []
-        for AccountCreationPlugin in cls.load_plugins(cls.list_of_classes):
-            plugin = AccountCreationPlugin()
+        for AccountCreationPluginCls in cls.load_plugins(cls.list_of_classes):
+            plugin = AccountCreationPluginCls()
             deleted = plugin.delete_accounts(provider=provider, username=username)
             if deleted:
                 accounts.extend(deleted)

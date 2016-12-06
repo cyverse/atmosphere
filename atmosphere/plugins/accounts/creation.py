@@ -17,8 +17,9 @@ class AccountCreationPlugin(object):
     def get_credentials_list(self, provider, username):
         raise NotImplementedError("See docs")
 
-    def create_accounts(self, provider, username):
+    def create_accounts(self, provider, username, force=False):
         from service.driver import get_account_driver
+        from core.models import Identity
         account_driver = get_account_driver(provider)
         if not account_driver:
             raise ValueError(
@@ -27,14 +28,18 @@ class AccountCreationPlugin(object):
                 "*AND* assign a core.Identity to be the core.AccountProvider."
                 % provider)
         credentials_list = self.get_credentials_list(provider, username)
-        identities = []
+        identities = Identity.objects.none()
         for credentials in credentials_list:
             try:
+                created_identities = account_driver.find_accounts(**credentials)
+                if created_identities and not force:
+                    identities |= created_identities
+                    continue
                 logger.debug(
                     "Creating new account for %s with credentials - %s"
                     % (username, credentials))
                 new_identity = account_driver.create_account(**credentials)
-                identities.append(new_identity)
+                identities |= Identity.objects.filter(id=new_identity.id)
             except:
                 logger.exception(
                     "Could *NOT* Create NEW account for %s"
