@@ -30,7 +30,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:project-detail',
     )
-    users = UserSummarySerializer(source='get_users', many=True)
+    users = UserSummarySerializer(source='get_users', many=True, read_only=True)
     leaders = UserSummarySerializer(source='get_leaders', many=True, read_only=True)
 
     class Meta:
