@@ -54,6 +54,15 @@ class Group(DjangoGroup):
         return any(user for user in self.leaders if user == test_user)
 
     @property
+    def is_private(self):
+        """
+        For now, this is how we can verify if the group is 'private'.
+        Later, we might have to remove the property and include a 'context user'
+        so that we can determine the ownership (of the group, or that the name is a perfect match, etc.)
+        """
+        return self.memberships.filter(is_leader=True).count() == 1
+
+    @property
     def leaders(self):
         return self.memberships.filter(is_leader=True)
 
