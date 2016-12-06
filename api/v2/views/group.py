@@ -45,9 +45,19 @@ class MinLengthRequiredSearchFilter(SearchFilter):
 class GroupFilter(filters.FilterSet):
     identity_id = django_filters.CharFilter('identity_memberships__identity__id')
     identity_uuid = django_filters.CharFilter('identity_memberships__identity__uuid')
+    is_private = django_filters.FilterMethod(method='is_private')
+
+    def is_private(self):
+        """
+        For now, this is how we can verify if the group is 'private'.
+        Later, we might have to remove the property and include a 'context user'
+        so that we can determine the ownership (of the group, or that the name is a perfect match, etc.)
+        """
+        return group.leaders.count() == 1
 
     class Meta:
         model = Group
+        fields = ['is_private', 'identity_id', 'identity_uuid']
 
 
 class GroupViewSet(MultipleFieldLookup, AuthViewSet):
