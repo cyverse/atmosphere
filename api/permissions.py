@@ -60,9 +60,11 @@ class ProjectLeaderRequired(permissions.BasePermission):
             return self.v1_leadership_test(request, view)
         return self.v2_leadership_test(request, view)
 
-    def test_project_permissions(user, project_id):
+    def test_project_permissions(self, user, request_method, project_id):
         project_kwargs = {}
-        if type(project_id) == int:
+        if not project_id and request_method == 'POST':
+            return True
+        elif type(project_id) == int:
             project_kwargs = {'id': project_id}
         else:
             project_kwargs = {'uuid': project_id}
@@ -149,7 +151,7 @@ class ProjectLeaderRequired(permissions.BasePermission):
         #TODO: Re-evaluate logic below this line.
         elif serializer_classname == "ProjectSerializer":
             # Permissions specific to /v2/views/project.py
-            return self.test_project_permissions(auth_user, key)
+            return self.test_project_permissions(auth_user, request_method, key)
         elif serializer_classname == "ExternalLinkSerializer":
             # Permissions specific to /v2/views/link.py
             return self.test_link_permissions(auth_user, key)
