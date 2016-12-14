@@ -73,6 +73,8 @@ class AllocationSourceCommandViewSet(AuthViewSet):
 
     def _for_validate_compute_allowed(self,compute_allowed):
         #raise Exception('Error with Compute Allowed')
+        if compute_allowed<0:
+            raise Exception('Compute allowed cannot be less than 0')
         return True
 
     def _for_validate_renewal_strategy(self,renewal_strategy):
@@ -81,7 +83,6 @@ class AllocationSourceCommandViewSet(AuthViewSet):
 
     def _create_allocation_source(self,request_data):
         payload = {}
-        payload['source_id'] = request_data.get('source_id')
         payload['name'] = request_data.get('name')
         payload['compute_allowed'] = request_data.get('compute_allowed')
         payload['renewal_strategy'] = request_data.get('renewal_strategy')
@@ -89,7 +90,7 @@ class AllocationSourceCommandViewSet(AuthViewSet):
         EventTable.create_event(
             'allocation_source_created',
              payload,
-             payload['source_id'])
+             payload['name'])
 
 
         return AllocationSource.objects.filter(source_id=payload['source_id']).last()
