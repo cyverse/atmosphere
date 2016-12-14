@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.settings import api_settings
 from api.v2.exceptions import failure_response
 from threepio import logger
+from core.models.allocation_source import AllocationSource
 from core.models.event_table import EventTable
 from api.v2.serializers.details.allocation_source_command import AllocationSourceCommandSerializer
 from api.v2.serializers.details.allocation_source import AllocationSourceSerializer
@@ -54,7 +55,7 @@ class AllocationSourceCommandViewSet(AuthViewSet):
             allocation_source = self._create_allocation_source(request_data)
             serialized_allocation_source = AllocationSourceSerializer(
                 allocation_source, context = {'request':self.request})
-            return Response(serialized_allocation_source, status=status.HTTP_201_CREATED)
+            return Response(serialized_allocation_source.data, status=status.HTTP_201_CREATED)
 
         except Exception as exc:
             logger.exception("Encountered exception while creating Allocation Source")
@@ -85,9 +86,11 @@ class AllocationSourceCommandViewSet(AuthViewSet):
         payload['compute_allowed'] = request_data.get('compute_allowed')
         payload['renewal_strategy'] = request_data.get('renewal_strategy')
 
-        return EventTable.create_event(
+        EventTable.create_event(
             'allocation_source_created',
              payload,
              payload['source_id'])
 
+
+        return AllocationSource.objects.filter(source_id=payload['source_id']).last()
 
