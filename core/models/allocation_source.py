@@ -3,10 +3,11 @@ from django.db import models
 from django.utils import timezone
 from threepio import logger
 from pprint import pprint
+from uuid import uuid4
 
 class AllocationSource(models.Model):
+    source_id = models.UUIDField(default=uuid4, unique=True, editable=False)
     name = models.CharField(max_length=255)
-    source_id = models.CharField(max_length=255, primary_key=True)
     compute_allowed = models.IntegerField()
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)

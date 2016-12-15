@@ -77,8 +77,8 @@ class AllocationSourceAdmin(admin.ModelAdmin):
     ]
     actions = [end_date_object, ]
     list_display = (
-        "source_id",
         "name",
+        "source_id",
         "compute_used",
         "compute_allowed",
     )
