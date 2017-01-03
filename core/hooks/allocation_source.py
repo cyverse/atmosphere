@@ -338,6 +338,11 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
                                          )
     allocation_source.save()
 
+    #update event instance
+    source_id = str(allocation_source.source_id)
+    event.entity_id = source_id
+    event.payload['source_id'] = source_id
+
     #create snapshot
 
     allocation_source_snapshot = AllocationSourceSnapshot(allocation_source=allocation_source,
@@ -446,9 +451,6 @@ def listen_for_allocation_source_renewal_strategy_changed(sender, instance, crea
     new_renewal_strategy = payload['renewal_strategy']
     allocation_source = AllocationSource.objects.filter(
         source_id=allocation_source_id)
-    if not allocation_source:
-        raise ('Allocation Source %s does not exist' % (payload['source_id']))
-
     try:
         allocation_source = allocation_source.last()
         allocation_source.renewal_strategy = new_renewal_strategy
@@ -456,3 +458,49 @@ def listen_for_allocation_source_renewal_strategy_changed(sender, instance, crea
 
     except Exception as e:
         raise Exception('Allocation Source %s renewal strategy could not be changed because of the following error %s'%(allocation_source.name, e))
+
+def listen_for_allocation_source_name_changed(sender, instance, created, **kwargs):
+    """
+        This listener expects:
+               EventType - 'allocation_source_name_changed'
+               EventPayload - {
+                   "source_id": "32712",
+                   "name": "TestAllocationSource2",
+               }
+
+               The method should result in name of allocation source being changed
+
+    """
+    event = instance
+    if event.name != 'allocation_source_name_changed':
+        return None
+    logger.info('Allocation Source name changed event: %s',event.__dict__)
+    payload = event.payload
+    allocation_source_id = payload['source_id']
+    new_name= payload['name']
+    allocation_source = AllocationSource.objects.filter(
+        source_id=allocation_source_id)
+    try:
+        allocation_source = allocation_source.last()
+        allocation_source.name = new_name
+        allocation_source.save()
+
+    except Exception as e:
+        raise Exception('Allocation Source %s name could not be changed because of the following error %s'%(allocation_source.name, e))
+
+def listen_for_allocation_source_compute_allowed_changed(sender, instance, created, **kwargs):
+    """
+        This listener expects:
+               EventType - 'allocation_source_compute_allowed_changed'
+               EventPayload - {
+                   "source_id": "32712",
+                   "compute_allowed": -1000,
+               }
+
+               The method should result in storing the compute allowed change delta
+
+    """
+    event = instance
+    if event.name != 'allocation_source_compute_allowed_changed':
+        return None
+    logger.info('Allocation Source Compute Allowed Change event: %s', event.__dict__)

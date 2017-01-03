@@ -3,11 +3,13 @@ from rest_framework import serializers
 
 from core.models.allocation_source import AllocationSource, AllocationSourceSnapshot, UserAllocationSnapshot
 from core.models.user import AtmosphereUser
+from core.models.event_table import EventTable
 
 
 class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
 
     compute_used = serializers.SerializerMethodField()
+    compute_allowed = serializers.SerializerMethodField()
     global_burn_rate = serializers.SerializerMethodField()
     user_burn_rate = serializers.SerializerMethodField()
     user_compute_used = serializers.SerializerMethodField()
@@ -39,6 +41,18 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
         attr = getattr(snapshot, attr_name)
         return attr
 
+    def _get_compute_allowed(self, allocation_source, attr_name):
+        snapshot = AllocationSourceSnapshot.objects.filter(
+            allocation_source=allocation_source).first()
+        if not snapshot:
+            return None
+        total_compute_allowed = getattr(snapshot, attr_name)
+        events = EventTable.objects.filter(entity_id=allocation_source.source_id,
+                                           name='allocation_source_compute_allowed_changed')
+        for event in events:
+            total_compute_allowed += event.payload['compute_allowed']
+        return total_compute_allowed
+
     def get_global_burn_rate(self, allocation_source):
         return self._get_allocation_source_snapshot(allocation_source, 'global_burn_rate')
 
@@ -60,9 +74,14 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
     def get_updated(self, allocation_source):
         return self._get_allocation_source_snapshot(allocation_source, 'updated')
 
+    def get_compute_allowed(self,allocation_source):
+        return self._get_compute_allowed(allocation_source,'compute_allowed')
+
     class Meta:
         model = AllocationSource
         fields = (
             'id', 'url', 'name', 'source_id', 'compute_allowed',
-            'compute_used', 'global_burn_rate', 'updated',
+            'compute_used', 'global_burn_rate', 'updated', 'renewal_strategy',
             'user_compute_used', 'user_burn_rate', 'user_snapshot_updated')
+
+
