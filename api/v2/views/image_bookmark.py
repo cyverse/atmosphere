@@ -28,5 +28,5 @@ class ImageBookmarkViewSet(MultipleFieldLookup, AuthViewSet):
         user = self.request.user
         now_time = timezone.now()
         return ImageBookmark.objects.filter(user=user).filter(
-            Q(application__end_date__isnull=True) & Q(application__end_date__gt=now_time)
+            Q(application__end_date__isnull=True) | Q(application__end_date__gt=now_time)
         )
