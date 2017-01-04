@@ -89,7 +89,6 @@ def prune_machines():
     for p in Provider.get_active():
         prune_machines_for.apply_async(args=[p.id])
 
-
 @task(name="prune_machines_for")
 def prune_machines_for(
         provider_id, print_logs=False, dry_run=False, forced_removal=False):
@@ -126,7 +125,7 @@ def prune_machines_for(
     # Loop 1 - End-date All machines in the DB that
     # can NOT be found in the cloud.
     mach_count = _end_date_missing_database_machines(
-        db_machines, cloud_machines, now=now, dry_run=dry_run)
+        account_driver, db_machines, cloud_machines, now=now, dry_run=dry_run)
 
     # Loop 2 and 3 - Capture all (still-active) versions without machines,
     # and all applications without versions.
@@ -206,7 +205,6 @@ def machine_is_valid(cloud_machine, accounts):
         - Private images not shared with atmosphere accounts
         - Domain-specific image catalog(?)
     """
-    provider = accounts.core_provider
     # If the name of the machine indicates that it is a Ramdisk, Kernel, or Chromogenic Snapshot, skip it.
     if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
         celery_logger.info("Skipping cloud machine %s" % cloud_machine)
@@ -219,6 +217,13 @@ def machine_is_valid(cloud_machine, accounts):
     if cloud_machine.get('image_type', 'image') == 'snapshot':
         celery_logger.info("Skipping cloud machine %s - Image type indicates a snapshot" % cloud_machine)
         return False
+
+    # NOTE: All things that can be assumed by image alone go above this line. If no account driver can be created, machine is presumed 'valid'
+    if not accounts:
+        return True
+
+    # Tests below this line require a valid account driver
+    provider = accounts.core_provider
     owner_project = accounts.get_project_by_id(cloud_machine.owner)
     # If the image is private, ensure that an owner can be found inside the system.
     if cloud_machine.get('visibility', '') == 'private':
@@ -230,10 +235,13 @@ def machine_is_valid(cloud_machine, accounts):
         if not identity_matches:
             celery_logger.info("Skipping private machine %s - The owner does not exist in Atmosphere" % cloud_machine)
             return False
+
+    # NOTE: All things that can be assumed by image on *an old openstack cloud* go above this line.
     if accounts.provider_creds.get('ex_force_auth_version', '2.0_password') != '3.x_password':
         return True
-    # NOTE: Potentially if we wanted to do 'domain-restrictions' *inside* of atmosphere,
-    # we could do that (based on the domain of the image owner) here.
+    # Tests below this line require a valid account driver for a *new* openstack cloud.
+
+    # Domain restrictions (based on the image owner) happen here
     domain_id = owner_project.domain_id
     config_domain = accounts.get_config('user', 'domain', 'default')
     owner_domain = accounts.openstack_sdk.identity.get_domain(domain_id)
@@ -760,11 +768,17 @@ def reset_provider_allocation(provider_id, default_allocation_id):
     return (users_reset, memberships_reset)
 
 
-def _end_date_missing_database_machines(db_machines, cloud_machines, now=None, dry_run=False):
+def _end_date_missing_database_machines(account_driver, db_machines, cloud_machines, now=None, dry_run=False):
     if not now:
         now = timezone.now()
     mach_count = 0
-    cloud_machine_ids = [mach.id for mach in cloud_machines]
+    cloud_machine_ids = []
+    # Filter out machines atmosphere does/should not know about
+    for cloud_machine in cloud_machines:
+        if not machine_is_valid(cloud_machine, account_driver):
+            continue
+        cloud_machine_ids.append(cloud_machine.id)
+
     for machine in db_machines:
         cloud_match = [mach for mach in cloud_machine_ids if mach == machine.identifier]
         if not cloud_match:
