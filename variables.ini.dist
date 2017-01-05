@@ -110,6 +110,11 @@ INSTANCE_HOSTNAMING_DOMAIN = ; iplantcollaborative.org
 INSTANCE_HOSTNAMING_FORMAT = ; vm%(three)s-%(four)s.%(domain)s
 DEPLOYMENT_KEYPAIR_NAME = ; keypair name inject by atmo-ansible during instance deploy
 VALIDATION_PLUGINS = ; ["atmosphere.plugins.auth.validation.AlwaysAllow"]
+ACCOUNT_CREATION_PLUGINS = ; ["atmosphere.plugins.accounts.creation.UserGroup"]
+
+#NOTE: CyVerse specific
+GROUPER_API = ; ""
+GROUPER_SEARCH_USER = ; ""
 
 #NOTE: Jetstream Specific
 TACC_API_USER = ; "tas-username"

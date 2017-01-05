@@ -57,7 +57,6 @@ class GroupFilter(filters.FilterSet):
 
     class Meta:
         model = Group
-        fields = ['is_private', 'identity_id', 'identity_uuid']
 
 
 class GroupViewSet(MultipleFieldLookup, AuthViewSet):

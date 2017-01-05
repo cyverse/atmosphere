@@ -266,7 +266,7 @@ def create_new_accounts(username, selected_provider=None):
     (user, providers) = _get_providers(username, selected_provider)
     for provider in providers:
         try:
-            new_identities = AccountCreation.create_accounts(provider, user)
+            new_identities = AccountCreation.create_accounts(provider, username)
             if new_identities:
                 identities.extend(new_identities)
         except ValueError as err:
