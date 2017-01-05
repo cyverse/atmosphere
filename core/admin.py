@@ -331,6 +331,12 @@ class IdentityAdmin(admin.ModelAdmin):
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Credentials'
 
+    def save_model(self, request, obj, form, changed):
+        obj.save()
+        identity = obj
+        admin_task.set_provider_quota.apply_async(
+            args=[str(identity.uuid)])
+
 
 class UserProfileInline(admin.StackedInline):
     model = models.UserProfile
