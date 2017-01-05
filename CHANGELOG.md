@@ -11,6 +11,7 @@ Bugfixes:
   - Fixed a bug that caused the image bookmark API to produce an invalid query
   - Quota foreign key has been re-assigned from IdentityMembership to Identity
   - Create router gateway when using the ExternalNetworkTopology
+  - Quota can now be set "above the pre-set limits" listed in openstack.
 
 Deprecated:
   - [./scripts/add_new_accounts.py](./scripts/add_new_accounts.py) and [./scripts/add_new_provider.py](./scripts/add_new_provider.py) will stop receiving updates after creation is moved into the GUI/API.
