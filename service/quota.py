@@ -221,9 +221,9 @@ def _set_compute_quota(user_quota, identity):
     admin_driver = ad.admin_driver
     try:
         result = admin_driver._connection.ex_update_quota_for_user(
-            tenant_name, user_id, compute_values)
+            tenant_id, user_id, compute_values)
     except Exception:
         logger.exception("Could not set a user-quota, trying to set tenant-quota")
-        result = admin_driver._connection.ex_update_quota(tenant_name, compute_values)
+        result = admin_driver._connection.ex_update_quota(tenant_id, compute_values)
     logger.info("Updated quota for %s to %s" % (username, result))
     return result
