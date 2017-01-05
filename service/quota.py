@@ -115,7 +115,7 @@ def set_provider_quota(identity_uuid, limit_dict=None):
         # Can't update quota if it doesn't exist
         return True
     # Don't go above the hard-set limits per provider.
-    _limit_user_quota(user_quota, identity, limit_dict=limit_dict)
+    #_limit_user_quota(user_quota, identity, limit_dict=limit_dict)
 
     return _set_openstack_quota(user_quota, identity)
 
