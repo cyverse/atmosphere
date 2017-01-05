@@ -307,7 +307,7 @@ AUTHENTICATION_BACKENDS = (
 # UPDATE REST_FRAMEWORK
 REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
     'django_cyverse_auth.token.TokenAuthentication',  # Generic Tokens
-    'rest_framework.authentication.SessionAuthentication',  # Session
+    #'rest_framework.authentication.SessionAuthentication',  # Session
     {% if AUTH_ENABLE_GLOBUS %}
     'django_cyverse_auth.token.GlobusOAuthTokenAuthentication',  # Globus
     {% endif %}
