@@ -216,7 +216,12 @@ def _set_compute_quota(user_quota, identity):
     driver = get_cached_driver(identity=identity)
     user_id = driver._connection.key
     tenant_id = driver._connection._get_tenant_id()
+    tenant_name = identity.project_name()
     ad = get_account_driver(identity.provider)
     admin_driver = ad.admin_driver
-    return admin_driver._connection.ex_update_quota_for_user(
-        tenant_id, user_id, compute_values)
+    try:
+        return admin_driver._connection.ex_update_quota_for_user(
+            tenant_name, user_id, compute_values)
+    except Exception:
+        logger.exception("Could not set a user-quota, trying to set tenant-quota")
+        return admin_driver._connection.ex_update_quota(tenant_name, compute_values)
