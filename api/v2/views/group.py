@@ -45,7 +45,7 @@ class MinLengthRequiredSearchFilter(SearchFilter):
 class GroupFilter(filters.FilterSet):
     identity_id = django_filters.CharFilter('identity_memberships__identity__id')
     identity_uuid = django_filters.CharFilter('identity_memberships__identity__uuid')
-    is_private = django_filters.FilterMethod(method='is_private')
+    #is_private = django_filters.FilterMethod(method='is_private')
 
     def is_private(self):
         """
