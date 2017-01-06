@@ -733,18 +733,18 @@ def monthly_allocation_reset():
                 default_allocation.id])
     return
 
+
 @task(name="reset_provider_allocation")
 def reset_provider_allocation(provider_id, default_allocation_id):
-    provider = Provider.objects.get(id=provider_id)
     default_allocation = Allocation.objects.get(id=default_allocation_id)
-    thisProvider = Q(identity__provider_id=provider_id)
-    noPrivilege = (Q(identity__created_by__is_staff=False) &
+    this_provider = Q(identity__provider_id=provider_id)
+    no_privilege = (Q(identity__created_by__is_staff=False) &
                    Q(identity__created_by__is_superuser=False))
-    expiringAllocation = ~Q(allocation__delta=-1)
+    expiring_allocation = ~Q(allocation__delta=-1)
     members = IdentityMembership.objects.filter(
-            thisProvider,
-            noPrivilege,
-            expiringAllocation)
+        this_provider,
+        no_privilege,
+        expiring_allocation)
     num_reset = members.update(allocation=default_allocation)
     return num_reset
 
