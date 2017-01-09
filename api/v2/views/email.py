@@ -65,7 +65,7 @@ class VolumeSupportEmailViewSet(EmailViewSet):
             "ui": data.get("user-interface", ""),
             "server": settings.SERVER_URL,
             "message": data["message"],
-            "provider": user.selected_identity.provider_uuid(),
+            "provider": user.selected_identity.provider,
             "volume": volume,
         }
 
@@ -99,7 +99,7 @@ class InstanceSupportEmailViewSet(EmailViewSet):
             "ui": data.get("user-interface", ""),
             "server": settings.SERVER_URL,
             "message": data["message"],
-            "provider": user.selected_identity.provider_uuid(),
+            "provider": user.selected_identity.provider,
             "instance": instance,
             "status": last_status
         }
@@ -138,7 +138,7 @@ class FeedbackEmailViewSet(EmailViewSet):
             "ui": data.get("user-interface", ""),
             "server": settings.SERVER_URL,
             "feedback": data["message"],
-            "provider": user.selected_identity.provider_uuid(),
+            "provider": user.selected_identity.provider,
             "instances": instances,
             "volumes": volumes,
         }
