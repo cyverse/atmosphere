@@ -103,7 +103,9 @@ class Provider(models.Model):
         Don't allow 'non-terminal' InstanceAction
         to be set as over_allocation_action
         """
-        if self.over_allocation_action.name not in Provider.ALLOWED_STATES:
+        over_alloc_action = self.over_allocation_action
+
+        if over_alloc_action and over_alloc_action.name not in Provider.ALLOWED_STATES:
             raise ValidationError(
                 "Instance action %s is not in ALLOWED_STATES for "
                 "Over allocation action. ALLOWED_STATES=%s" %
