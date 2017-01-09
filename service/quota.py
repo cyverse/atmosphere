@@ -211,17 +211,21 @@ def _set_compute_quota(user_quota, identity):
         'fixed_ips': user_quota.port_count,
         'instances': user_quota.instance_count,
     }
+    creds = identity.get_all_credentials()
+    if creds.get('ex_force_auth_version','2.0_password') == "2.0_password":
+        compute_values.pop('instances')
     username = identity.created_by.username
     logger.info("Updating quota for %s to %s" % (username, compute_values))
     driver = get_cached_driver(identity=identity)
-    user_id = driver._connection.key
+    username = driver._connection.key
     tenant_id = driver._connection._get_tenant_id()
     tenant_name = identity.project_name()
     ad = get_account_driver(identity.provider)
+    ks_user = ad.get_user(username)
     admin_driver = ad.admin_driver
     try:
         result = admin_driver._connection.ex_update_quota_for_user(
-            tenant_id, user_id, compute_values)
+            tenant_id, ks_user.id, compute_values)
     except Exception:
         logger.exception("Could not set a user-quota, trying to set tenant-quota")
         result = admin_driver._connection.ex_update_quota(tenant_id, compute_values)
