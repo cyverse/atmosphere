@@ -1,5 +1,6 @@
 ATMOSPHERE_PATH={{ ATMOSPHERE_PATH }}
 DHPARAM={{ DHPARAM }}
+DHPARAM_KEY_SIZE={{ DHPARAM_KEY_SIZE }}
 LOCATIONS_DIR={{ LOCATIONS_DIR }}
 SERVER_URL={{ SERVER_URL }}
 SITES_AVAILABLE_DIR={{ SITES_AVAILABLE_DIR }}
@@ -24,7 +25,7 @@ JENKINS_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(JENKINS_CONF_FILE)
 all: deploy
 
 $(DHPARAM):
-	openssl dhparam -out $(DHPARAM) $(KEY_SIZE)
+	openssl dhparam -out $(DHPARAM) $(DHPARAM_KEY_SIZE)
 
 setup: setup-site setup-atmo
 
