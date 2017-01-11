@@ -28,9 +28,9 @@ def _generate_ssh_kwargs(timeout=120):
     return kwargs
 
 def _get_unique_id(userid):
-    if 'iplantauth.authBackends.LDAPLoginBackend' in \
+    if 'django_cyverse_auth.authBackends.LDAPLoginBackend' in \
             settings.AUTHENTICATION_BACKENDS:
-        from iplantauth.protocol.ldap import _get_uid_number
+        from django_cyverse_auth.protocol.ldap import _get_uid_number
         return _get_uid_number(userid)
     else:
         return _get_random_uid(userid)
@@ -157,18 +157,23 @@ class GenericNetworkTopology(object):
         success = False
         inc = 0
         MAX_SUBNET = 4064
-        cidr = None
+        new_cidr = None
         while not success and inc < MAX_SUBNET:
             try:
-                cidr = get_cidr(username, inc, get_unique_number)
-                if cidr:
+                new_cidr = get_cidr(username, inc, get_unique_number)
+                cidr_match = any(sn for sn in self.network_driver.list_subnets() if sn['cidr'] == new_cidr)
+                if new_cidr and not cidr_match:
                     return self.network_driver.create_subnet(
                             self.user_neutron, subnet_name,
                             network_id, ip_version,
-                            cidr, dns_nameservers)
+                            new_cidr, dns_nameservers)
+                elif cidr_match:
+                    logger.warn("Unable to create new_cidr for subnet "
+                                "for user: %s (CIDR already used)" % username)
+                    inc += 1
                 else:
-                    logger.warn("Unable to create cidr for subnet "
-                                "for user: %s" % username)
+                    logger.warn("Unable to create new_cidr for subnet "
+                                "for user: %s (create_subnet failed)" % username)
                     inc += 1
             except NeutronClientException as nce:
                 if "overlap" in nce.message:
@@ -188,7 +193,7 @@ class GenericNetworkTopology(object):
                     logger.warn("No get_unique_number method "
                                 "provided for user: %s" % username)
                 inc += 1
-        if not success or not cidr:
+        if not success or not new_cidr:
             raise Exception("Unable to create subnet for user: %s" % username)
 
     def get_or_create_router(self):

@@ -80,6 +80,11 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         send_mail(subject, message, from_email, [self.email], **kwargs)
     # END-rip.
 
+    def is_admin(self):
+        if self.is_superuser or self.is_staff:
+            return True
+        return False
+
     def group_ids(self):
         return self.group_set.values_list('id', flat=True)
 
@@ -232,7 +237,7 @@ def get_default_identity(username, provider=None):
         group = get_user_group(username)
         if not group or not group.current_identities.all().count():
             if settings.AUTO_CREATE_NEW_ACCOUNTS:
-                new_identities = create_new_accounts(username, provider=provider)
+                new_identities = create_new_accounts(username, selected_provider=provider)
                 if not new_identities:
                     logger.error("%s has no identities. Functionality will be severely limited." % username)
                     return None

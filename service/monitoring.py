@@ -438,7 +438,10 @@ def check_over_allocation(username, identity_uuid,
 
 def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
-    group = user.group_set.get(name=user.username)
+    group = user.group_set.filter(name=user.username).first()
+    if not group:
+        logger.warn("WARNING: User %s does not have a group named %s" % (user, user.username))
+        return None
     try:
         membership = IdentityMembership.objects.get(
             identity__uuid=identity_uuid, member=group)

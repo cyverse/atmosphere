@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+# DEPRECATION WARNING -- Will be removed in favor of periodic task (To facilitate auto-generation of `atmo-user` accounts)
+# and the use of the /v2/accounts API.
 import argparse
 import libcloud.security
 
@@ -8,7 +11,7 @@ django.setup()
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
 
-from iplantauth.protocol.ldap import get_members
+from django_cyverse_auth.protocol.ldap import get_members
 from service.driver import get_account_driver
 from threepio import logger
 

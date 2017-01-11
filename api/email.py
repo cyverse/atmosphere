@@ -9,8 +9,8 @@ from rest_framework import status
 
 from threepio import logger
 
-from iplantauth.decorators import api_auth_token_required
-from iplantauth.protocol.ldap import lookupEmail
+from django_cyverse_auth.decorators import api_auth_token_required
+from django_cyverse_auth.protocol.ldap import lookupEmail
 
 from core.models.provider import AccountProvider
 from core.models.volume import convert_esh_volume

@@ -115,7 +115,7 @@ def set_provider_quota(identity_uuid, limit_dict=None):
         # Can't update quota if it doesn't exist
         return True
     # Don't go above the hard-set limits per provider.
-    _limit_user_quota(user_quota, identity, limit_dict=limit_dict)
+    #_limit_user_quota(user_quota, identity, limit_dict=limit_dict)
 
     return _set_openstack_quota(user_quota, identity)
 
@@ -206,7 +206,7 @@ def _set_compute_quota(user_quota, identity):
     # Use THESE values...
     compute_values = {
         'cores': user_quota.cpu,
-        'ram': user_quota.memory,  # NOTE: Test that this works on havana
+        'ram': user_quota.memory*1024,  # NOTE: Value is stored in GB, Openstack (Liberty) expects MB
         'floating_ips': user_quota.floating_ip_count,
         'fixed_ips': user_quota.port_count,
         'instances': user_quota.instance_count,
@@ -216,7 +216,14 @@ def _set_compute_quota(user_quota, identity):
     driver = get_cached_driver(identity=identity)
     user_id = driver._connection.key
     tenant_id = driver._connection._get_tenant_id()
+    tenant_name = identity.project_name()
     ad = get_account_driver(identity.provider)
     admin_driver = ad.admin_driver
-    return admin_driver._connection.ex_update_quota_for_user(
-        tenant_id, user_id, compute_values)
+    try:
+        result = admin_driver._connection.ex_update_quota_for_user(
+            tenant_id, user_id, compute_values)
+    except Exception:
+        logger.exception("Could not set a user-quota, trying to set tenant-quota")
+        result = admin_driver._connection.ex_update_quota(tenant_id, compute_values)
+    logger.info("Updated quota for %s to %s" % (username, result))
+    return result

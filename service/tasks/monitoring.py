@@ -20,7 +20,7 @@ from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
 from core.models.event_table import EventTable
 from core.models.application_version import ApplicationVersion
-from core.models import Allocation, Credential
+from core.models import Allocation, Credential, IdentityMembership
 
 from service.machine import (
     update_db_membership_for_group,
@@ -268,7 +268,7 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
     shared_group_names = [image_owner]
     shared_projects = account_driver.shared_images_for(cloud_machine.id)
-    shared_group_names.extend(p.name for p in shared_projects)
+    shared_group_names.extend(p.name for p in shared_projects if p)
     groups = Group.objects.filter(name__in=shared_group_names)
     if not groups:
         return
@@ -544,6 +544,9 @@ def monitor_instance_allocations():
     """
     Update instances for each active provider.
     """
+    if settings.USE_ALLOCATION_SOURCE:
+        celery_logger.info("Skipping the old method of monitoring instance allocations")
+        return False
     for p in Provider.get_active():
         monitor_instances_for.apply_async(args=[p.id], kwargs={'check_allocations':True})
 
@@ -736,26 +739,17 @@ def monthly_allocation_reset():
 
 @task(name="reset_provider_allocation")
 def reset_provider_allocation(provider_id, default_allocation_id):
-    provider = Provider.objects.get(id=provider_id)
     default_allocation = Allocation.objects.get(id=default_allocation_id)
-    exempt_allocation_list = Allocation.objects.filter(delta=-1)
-    users_reset = 0
-    memberships_reset = []
-    for ident in provider.identity_set.all():
-        if ident.created_by.is_staff or ident.created_by.is_superuser:
-            continue
-        for membership in ident.identity_memberships.all():
-            if membership.allocation_id == default_allocation.id:
-                continue
-            if membership.allocation_id in exempt_allocation_list:
-                continue
-            print "Resetting Allocation for %s \t\tOld Allocation:%s" % (membership.member.name, membership.allocation)
-            membership.allocation = default_allocation
-            membership.save()
-            memberships_reset.append(membership)
-            users_reset += 1
-    return (users_reset, memberships_reset)
-
+    this_provider = Q(identity__provider_id=provider_id)
+    no_privilege = (Q(identity__created_by__is_staff=False) &
+                   Q(identity__created_by__is_superuser=False))
+    expiring_allocation = ~Q(allocation__delta=-1)
+    members = IdentityMembership.objects.filter(
+        this_provider,
+        no_privilege,
+        expiring_allocation)
+    num_reset = members.update(allocation=default_allocation)
+    return num_reset
 
 def _end_date_missing_database_machines(db_machines, cloud_machines, now=None, dry_run=False):
     if not now:

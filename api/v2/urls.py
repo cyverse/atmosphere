@@ -8,6 +8,7 @@ from api.v2 import views
 from api.base import views as base_views
 
 router = routers.DefaultRouter(trailing_slash=False)
+router.register(r'accounts', views.AccountViewSet, base_name='account')
 router.register(
     r'allocations',
     views.AllocationViewSet,

@@ -94,6 +94,7 @@ class Provider(models.Model):
     over_allocation_action = models.ForeignKey(
         "InstanceAction", blank=True, null=True)
     cloud_config = JSONField(blank=True, null=True)  # Structure will be tightened up in the future
+    cloud_admin = models.ForeignKey("AtmosphereUser", related_name="admin_providers", blank=True, null=True)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
 
@@ -102,7 +103,9 @@ class Provider(models.Model):
         Don't allow 'non-terminal' InstanceAction
         to be set as over_allocation_action
         """
-        if self.over_allocation_action.name not in Provider.ALLOWED_STATES:
+        over_alloc_action = self.over_allocation_action
+
+        if over_alloc_action and over_alloc_action.name not in Provider.ALLOWED_STATES:
             raise ValidationError(
                 "Instance action %s is not in ALLOWED_STATES for "
                 "Over allocation action. ALLOWED_STATES=%s" %
@@ -166,9 +169,18 @@ class Provider(models.Model):
         cred = self.providercredential_set.filter(key=key)
         return cred[0].value if cred else None
 
+    def credentials(self):
+        return self.providercredential_set.all()
+
     def get_credentials(self):
+        """
+        Returns a dict of
+        { 'key': 'abc', 'secret': 'xyz' }
+        instead of
+        [ <Credential: Key=key, Value=abc>, <Credential: Key=secret Value=xyz> ]
+        """
         cred_map = {}
-        for cred in self.providercredential_set.all():
+        for cred in self.credentials():
             cred_map[cred.key] = cred.value
         return cred_map
 
