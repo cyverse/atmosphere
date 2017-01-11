@@ -16,10 +16,11 @@ from rtwo.driver import OSDriver
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
-
+from libcloud.common.exceptions import BaseHTTPError  # Move into rtwo.exceptions later...
 
 from core.query import only_current
 from core.models.instance_source import InstanceSource
+from core.models.ssh_key import get_user_ssh_keys
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance, find_instance
@@ -1281,6 +1282,49 @@ def check_quota(username, identity_uuid, esh_size,
 
 
 def security_group_init(core_identity, max_attempts=3):
+    return user_security_group_init(core_identity)
+
+
+def user_security_group_init(core_identity, security_group_name='default'):
+    # Rules can come from the provider _or_ from settings _otherwise_ empty-list
+    rules = core_identity.provider.get_config('network', 'default_security_rules',getattr(settings,'DEFAULT_RULES',[]))
+    driver = get_cached_driver(identity=core_identity)
+    lc_driver = driver._connection
+    security_group = get_or_create_security_group(lc_driver, security_group_name)
+    set_security_group_rules(lc_driver, security_group, rules)
+    return security_group
+
+
+def set_security_group_rules(lc_driver, security_group, rules):
+    for rule_tuple in rules:
+        if len(rule_tuple) == 3:
+            (ip_protocol, from_port, to_port) = rule_tuple
+            cidr = None
+        elif len(rule_tuple) == 4:
+            (ip_protocol, from_port, to_port, cidr) = rule_tuple
+        else:
+            raise Exception("Invalid DEFAULT_RULES contain a rule, %s, which does not match the expected format" % rule_tuple)
+        try:
+            lc_driver.ex_create_security_group_rule(security_group, ip_protocol, from_port, to_port, cidr)
+        except BaseHTTPError as exc:
+            if "Security group rule already exists" in exc.message:
+                continue
+            raise
+    return security_group
+
+def get_or_create_security_group(lc_driver, security_group_name):
+    sgroup_list = lc_driver.ex_list_security_groups()
+    security_group = [sgroup for sgroup in sgroup_list if sgroup.name == security_group_name]
+    if len(security_group) > 0:
+        security_group = security_group[0]
+    else:
+        security_group = lc_driver.ex_create_security_group(security_group_name,'Security Group created by Atmosphere')
+
+    if security_group is None:
+       raise Exception("Could not find or create security group")
+    return security_group
+
+def admin_security_group_init(core_identity, max_attempts=3):
     os_driver = OSAccountDriver(core_identity.provider)
     # TODO: Remove kludge when openstack connections can be
     # Deemed reliable. Otherwise generalize this pattern so it
@@ -1297,6 +1341,30 @@ def security_group_init(core_identity, max_attempts=3):
 
 
 def keypair_init(core_identity):
+    return user_keypair_init(core_identity)
+
+
+def user_keypair_init(core_identity):
+    user = core_identity.created_by
+    esh_driver = get_cached_driver(identity=core_identity)
+    lc_driver = esh_driver._connection
+    USERNAME = str(user.username)
+    user_keys = get_user_ssh_keys(USERNAME)
+    keys = []
+    for user_key in user_keys:
+        try:
+            key = lc_driver.ex_import_keypair_from_string(user_key.name, user_key.pub_key)
+            keys.append(key)
+        except BaseHTTPError as exc:
+            if "already exists" in exc.message:
+                continue
+            raise
+    if not keys:
+        raise Exception("User has not yet created a key -- instance cannot be launched")
+    return keys
+
+
+def admin_keypair_init(core_identity):
     os_driver = OSAccountDriver(core_identity.provider)
     creds = core_identity.get_credentials()
     with open(settings.ATMOSPHERE_KEYPAIR_FILE, 'r') as pub_key_file:
@@ -1310,6 +1378,17 @@ def keypair_init(core_identity):
 
 
 def network_init(core_identity):
+    user_network_init(core_identity)
+
+
+def user_network_init(core_identity):
+    """
+    WIP -- need to figure out how to do this within the scope of libcloud // OR using existing authtoken to connect with neutron.
+    """
+    return
+
+
+def admin_network_init(core_identity):
     os_driver = OSAccountDriver(core_identity.provider)
     network_resources = os_driver.create_user_network(core_identity)
     logger.info("Created user network - %s" % network_resources)

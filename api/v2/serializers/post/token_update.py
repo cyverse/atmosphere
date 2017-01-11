@@ -21,13 +21,11 @@ class TokenUpdateSerializer(serializers.Serializer):
         IF identity is found validation will:
         - Ensure that user/token produces a valid driver
         """
-        import ipdb;ipdb.set_trace()
         validated_data = data
         self.validate_token_with_driver(data['provider'], data['username'], data['project_name'], data['token'])
         return validated_data
 
     def create(self, validated_data):
-        import ipdb;ipdb.set_trace()
         identity = self._get_identity(validated_data['provider'], validated_data['username'], validated_data['project_name'])
         if not identity:
             identity = self._create_identity(validated_data['provider'], validated_data['username'], validated_data['project_name'], validated_data['token'])

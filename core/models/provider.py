@@ -61,7 +61,6 @@ class ProviderType(models.Model):
 
 
 class Provider(models.Model):
-
     """
     Detailed information about a provider
     Providers have a specific location
@@ -127,6 +126,16 @@ class Provider(models.Model):
             # no longer a list
             active_providers = active_providers.get(uuid=provider_uuid)
         return active_providers
+
+    def get_config(self, section, config_key, default_value=None):
+        try:
+            value = self.cloud_config[section][config_key]
+        except (KeyError, TypeError):
+            logger.error("Cloud config ['%s']['%s'] is missing -- using default value (%s)" % (section, config_key, default_value))
+            if not default_value:
+                raise Exception("Cloud config ['%s']['%s'] is missing -- no default value provided" % (section, config_key))
+            value = default_value
+        return value
 
     def get_esh_credentials(self, esh_provider):
         cred_map = self.get_credentials()
