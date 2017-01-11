@@ -235,7 +235,13 @@ def has_port_count_quota(driver, quota, new_size=0, raise_exc=True):
     # Always True if port_count is null
     if not quota.port_count or quota.port_count < 0:
         return True
-    fixed_ips = [port for port in driver._connection.neutron_list_ports() if port['device_owner'] == 'compute:None']
+    # Consider it true if we fail to connect here
+    try:
+        port_list = driver._connection.neutron_list_ports()
+    except Exception as unauthorized:
+        return True
+
+    fixed_ips = [port for port in port_list if port['device_owner'] == 'compute:None']
     total_size = new_size
     total_size += len(fixed_ips)
     if total_size <= quota.port_count:

@@ -1,10 +1,8 @@
 from core.models import (
-    AtmosphereUser, Identity
+    AtmosphereUser, Identity, Provider
 )
-from core.query import only_current, contains_credential
-from api.v2.serializers.details.credential import CredentialSerializer
-from service.driver import get_esh_driver, get_account_driver
-from rtwo.exceptions import KeystoneUnauthorized
+from core.query import contains_credential
+from service.driver import get_esh_driver
 
 from rest_framework import serializers
 
@@ -13,43 +11,87 @@ class TokenUpdateSerializer(serializers.Serializer):
     """
     """
     # Flags
-    new_token = serializers.CharField(write_only=True)
+    username = serializers.CharField(write_only=True)
+    token = serializers.CharField(write_only=True)
+    project_name = serializers.CharField(write_only=True)
+    provider = serializers.UUIDField(format='hex_verbose')
 
     def validate(self, data):
         """
-        Validation will:
-        - Ensure that user/group exists (Or create it)
-        - 
+        IF identity is found validation will:
+        - Ensure that user/token produces a valid driver
         """
+        import ipdb;ipdb.set_trace()
         validated_data = data
-        self.validate_new_token(data['new_token'])
+        self.validate_token_with_driver(data['provider'], data['username'], data['project_name'], data['token'])
         return validated_data
 
     def create(self, validated_data):
-        #FIXME: Set the user's respective Identities appropriately.
-        raise Exception("Create method not finished")
+        import ipdb;ipdb.set_trace()
+        identity = self._get_identity(validated_data['provider'], validated_data['username'], validated_data['project_name'])
+        if not identity:
+            identity = self._create_identity(validated_data['provider'], validated_data['username'], validated_data['project_name'], validated_data['token'])
+            return identity
 
-    def validate_driver(self, validated_data):
-        request_user = self._get_request_user()
-        raise serializers.ValidationError("Attempting to create a driver for user %s failed. Message: %s" % (request_user.username, "validate_driver method incomplete"))
+        token_cred = identity.credential_set.filter(key='ex_force_auth_token').first()
+        if token_cred:
+            token_cred.value = validated_data['token']
+            token_cred.save()
+        else:
+            identity.credential_set.create(key='ex_force_auth_token', value=validated_data['token'])
+        return identity
 
-    def validate_new_token(self, new_token_key):
+    def validate_token_with_driver(self, provider_uuid, username, project_name, new_token_key):
+        ident = self._get_identity(provider_uuid, username, project_name)
+        if not ident:
+            # Can't validate driver if identity can't be created.
+            return
+
+        try:
+            driver = get_esh_driver(ident, identity_kwargs={'ex_force_auth_token': new_token_key})
+            driver.list_sizes()
+        except:
+            raise serializers.ValidationError("Token returned from keystone could not create an rtwo driver")
+
+    def _create_identity(self, provider_uuid, username, project_name, token):
+        try:
+            provider = Provider.objects.get(uuid=provider_uuid)
+        except Provider.DoesNotExist:
+            raise serializers.ValidationError("Provider %s is invalid" % provider)
+        identity = Identity.create_identity(username, provider.location, cred_ex_project_name=project_name, cred_ex_force_auth_token=token)
+        #FIXME: In a different PR re-work quota to sync with the values in OpenStack.
+        self.validate_token_with_driver(provider_uuid, username, project_name, token)
+        return identity
+
+
+    def _get_identity(self, provider_uuid, username, project_name):
+        try:
+            provider = Provider.objects.get(uuid=provider_uuid)
+        except Provider.DoesNotExist:
+            raise serializers.ValidationError("Provider %s is invalid" % provider)
+
         request_user = self._get_request_user()
-        #TODO: Create a driver, setting this as the new token. Verify you can access a call via driver, *ELSE* throw a ValidationError (token returned was unable to create a rtwo driver!)
-        raise serializers.ValidationError("validate_new_token Method incomplete")
+        ident = Identity.objects\
+            .filter(
+                contains_credential('key', username),
+                created_by=request_user, provider=provider)\
+            .filter(
+                contains_credential('ex_project_name', project_name) | contains_credential('ex_tenant_name', project_name))\
+            .first()
+        return ident
+
+    def _get_request_user(self):
+        if 'request' in self.context:
+            return self.context['request'].user
+        elif 'user' in self.context:
+            return self.context['user']
+        else:
+            raise ValueError("Expected 'request/user' to be passed in via context for this serializer")
 
     class Meta:
         fields = (
             'provider',
             'username',
-            'new_token'
+            'project_name',
+            'token'
         )
-
-
-def validate_identity(new_identity):
-    try:
-        driver = get_esh_driver(new_identity)
-        driver.list_sizes()
-    except:
-        new_identity.delete()
-        raise # Exception("The driver created by this identity was invalid")

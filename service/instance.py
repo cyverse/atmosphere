@@ -1336,6 +1336,7 @@ def _provision_openstack_instance(core_identity, admin_user=False):
           What we should do to provision an instance..
     """
     # NOTE: Admin users do NOT need a security group created for them!
+    # ----------------------------------------FIXME: WIP: FAILS HERE ----------------------------------------
     if not admin_user:
         security_group_init(core_identity)
     network = network_init(core_identity)
