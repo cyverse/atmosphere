@@ -1373,9 +1373,7 @@ def user_keypair_init(core_identity):
             if "already exists" in exc.message:
                 continue
             raise
-    if not keys:
-        raise Exception("User has not yet created a key -- instance cannot be launched")
-    return keys
+    return user_keys
 
 
 def admin_keypair_init(core_identity):
@@ -1392,7 +1390,7 @@ def admin_keypair_init(core_identity):
 
 
 def network_init(core_identity):
-    user_network_init(core_identity)
+    return user_network_init(core_identity)
 
 
 def _to_network_driver(core_identity):
@@ -1424,6 +1422,7 @@ def user_network_init(core_identity):
     username = core_identity.get_credential('key')
     if not username:
         username = core_identity.created_by.username
+    esh_driver = get_cached_driver(identity=core_identity)
     dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
     topology_name = core_identity.provider.get_config('network', 'topology', None)
     if not topology_name:
@@ -1438,7 +1437,10 @@ def user_network_init(core_identity):
     network_resources = network_strategy.create(
         username=username, dns_nameservers=dns_nameservers)
     network_strategy.post_create_hook(network_resources)
-    return network_resources
+    logger.info("Created user network - %s" % network_resources)
+    network, subnet = network_resources['network'], network_resources['subnet']
+    lc_network = _to_lc_network(esh_driver, network, subnet)
+    return lc_network
 
 
 def initialize_user_network_strategy(topology_name, identity, network_driver, neutron):
@@ -1510,7 +1512,16 @@ def _extra_openstack_args(core_identity, ex_metadata={}):
     ex_metadata.update({'tmp_status': 'initializing',
                         'tenant_name': tenant_name,
                         'creator': '%s' % username})
-    ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
+    if getattr(settings, 'ATMOSPHERE_KEYPAIR_NAME'):
+        ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
+    else:
+        user = core_identity.created_by
+        user_keys = get_user_ssh_keys(user.username)
+        if not user_keys:
+            raise Exception("User has not yet created a key -- instance cannot be launched")
+        # FIXME: In a new PR, allow user to select the keypair for launching
+        user_key = user_keys[0]
+        ex_keyname = user_key.name
     return {"ex_metadata": ex_metadata, "ex_keyname": ex_keyname}
 
 
