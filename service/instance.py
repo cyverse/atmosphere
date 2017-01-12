@@ -1448,6 +1448,28 @@ def _to_network_driver(core_identity):
     return network_driver
 
 
+def _to_network_driver(core_identity):
+    all_creds = core_identity.get_all_credentials()
+    project_name = core_identity.project_name()
+    domain_name = all_creds.get('domain_name', 'default')
+    auth_url = all_creds.get('auth_url')
+    if '/v' not in auth_url:  # Add /v3 if no version specified in auth_url
+        auth_url += '/v3'
+    if 'ex_force_auth_token' in all_creds:
+        auth_token = all_creds['ex_force_auth_token']
+        (auth, sess, token) = _token_to_keystone_scoped_project(
+            auth_url, auth_token,
+            project_name, domain_name)
+    else:
+        username = all_creds['key']
+        password = all_creds['secret']
+        (auth, sess, token) = _connect_to_keystone_v3(
+            auth_url, username, password,
+            project_name, domain_name)
+    network_driver = NetworkManager(session=sess)
+    return network_driver
+
+
 def user_network_init(core_identity):
     """
     WIP -- need to figure out how to do this within the scope of libcloud // OR using existing authtoken to connect with neutron.
@@ -1455,7 +1477,6 @@ def user_network_init(core_identity):
     username = core_identity.get_credential('key')
     if not username:
         username = core_identity.created_by.username
-    esh_driver = get_cached_driver(identity=core_identity)
     dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
     topology_name = core_identity.provider.get_config('network', 'topology', None)
     if not topology_name:
@@ -1470,10 +1491,7 @@ def user_network_init(core_identity):
     network_resources = network_strategy.create(
         username=username, dns_nameservers=dns_nameservers)
     network_strategy.post_create_hook(network_resources)
-    logger.info("Created user network - %s" % network_resources)
-    network, subnet = network_resources['network'], network_resources['subnet']
-    lc_network = _to_lc_network(esh_driver, network, subnet)
-    return lc_network
+    return network_resources
 
 
 def initialize_user_network_strategy(topology_name, identity, network_driver, neutron):
@@ -1510,6 +1528,7 @@ def admin_destroy_network(core_identity, options):
     os_acct_driver = get_account_driver(core_identity.provider)
     return os_acct_driver.delete_user_network(
         core_identity, options)
+
 
 def user_destroy_network(core_identity, options):
     topology_name = core_identity.provider.get_config('network', 'topology', None)
