@@ -13,46 +13,59 @@ Feature: Commands Testing
   ######################################################################################################
 
   Scenario Outline: Allocation Source Creation
-      Given <name> <compute allowed> <renewal strategy>
-      When  create_allocation_source command is fired
-      Then  <allocation source is created>
+
+      When create_allocation_source command is fired
+      |  name   |  compute allowed   |  renewal strategy    |
+      |  <name> |  <compute_allowed> |  <renewal_strategy>  |
+
+      Then allocation source is created = <allocation_source_is_created>
 
   Examples: Payloads
-      |  name                     |  compute allowed  |  renewal strategy  |  allocation source is created  |
-      |  DefaultAllocationSource  |  250              |  default           |  True                          |
+      |  name                     |  compute_allowed   |  renewal_strategy   |  allocation_source_is_created  |
+      |  DefaultAllocationSource  |  250               |  default            |  True                          |
+      |  DefaultAllocationSource  |  -100              |  default            |  False                         |
 
   ######################################################################################################
 
   Scenario Outline: Change Renewal Strategy
-      Given An Allocation Source
-      When  change_renewal_strategy command is fired
-      Then  <old renewal strategy> is changed to <new renewal strategy>
+      Given An Allocation Source with renewal strategy
+      |  renewal strategy       |
+      |  <old_renewal_strategy> |
+
+      When  change_renewal_strategy command is fired with <new_renewal_strategy>
+      Then  renewal strategy is changed = <renewal_strategy_is_changed>
 
   Examples: Renewal Strategies
-      |  old renewal strategy  |  new renewal strategy  |
-      |  default               |  workshop              |
+      |  old_renewal_strategy   |  new_renewal_strategy  | renewal_strategy_is_changed  |
+      |  default                |  workshop              | True                         |
+      |  biweekly               |  biyearly              | False                        |
 
-  ######################################################################################################
-
+#  ######################################################################################################
+#
   Scenario Outline: Change Allocation Source Name
-      Given An Allocation Source
-      When  change_allocation_source_name command is fired
-      Then  <old name> is changed to <new name>
+      Given An Allocation Source with name
+      |  name       |
+      |  <old_name> |
+      When  change_allocation_source_name command is fired with <new_name>
+      Then  name is changed = <name_is_changed>
 
   Examples: Names
-      |  old name                |  new name                  |
-      |  DefaultAllocationSource |  WorkshopAllocationSource  |
-
-  ######################################################################################################
+      |  old_name                |  new_name                  |  name_is_changed  |
+      |  DefaultAllocationSource |  WorkshopAllocationSource  |  True             |
+#
+#  ######################################################################################################
 
   Scenario Outline: Change Compute Allowed
-      Given An Allocation Source
-      When  change_compute_allowed command is fired
-      Then  <old compute allowed> is changed to <new compute allowed>
+      Given Allocation Source with compute_allowed
+      | compute_allowed       |
+      | <old_compute_allowed> |
+
+      When  change_compute_allowed command is fired with <new_compute_allowed>
+      Then  compute allowed is changed = <compute_allowed_is_changed>
 
   Examples: Compute Allowed Values
-      |  old compute allowed    |  new compute allowed  |
-      |  128                    |  240                  |
-      |  240                    |  72                   |
+      |  old_compute_allowed    |  new_compute_allowed  | compute_allowed_is_changed |
+      |  128                    |  240                  | True                      |
+      |  240                    |  72                   | True                      |
 
-  ######################################################################################################
+#  ######################################################################################################

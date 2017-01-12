@@ -240,7 +240,7 @@ class AllocationSourceCommandViewSet(AuthViewSet):
 
     def _for_validate_compute_allowed(self,compute_allowed):
         #raise Exception('Error with Compute Allowed')
-        if compute_allowed<0:
+        if int(compute_allowed)<0:
             raise Exception('Compute allowed cannot be less than 0')
         return True
 
@@ -250,6 +250,8 @@ class AllocationSourceCommandViewSet(AuthViewSet):
 
     def _for_validate_renewal_strategy(self,renewal_strategy):
         #raise Exception('Error with Renewal Strategy')
+        if renewal_strategy not in ['default','workshop','biweekly']:
+            raise Exception('Renewal Strategy %s is not valid'%(renewal_strategy))
         return True
 
     def _for_validate_allocation_source(self,source_id):

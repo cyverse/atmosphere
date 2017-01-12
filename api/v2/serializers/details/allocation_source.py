@@ -50,7 +50,7 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
         events = EventTable.objects.filter(entity_id=allocation_source.source_id,
                                            name='allocation_source_compute_allowed_changed')
         for event in events:
-            total_compute_allowed += event.payload['compute_allowed']
+            total_compute_allowed += int(event.payload['compute_allowed'])
         return total_compute_allowed
 
     def get_global_burn_rate(self, allocation_source):
