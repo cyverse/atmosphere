@@ -13,6 +13,8 @@ from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
 from rtwo.driver import OSDriver
+from rtwo.drivers.common import _connect_to_keystone_v3, _token_to_keystone_scoped_project
+from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
@@ -36,6 +38,7 @@ from atmosphere.settings import secrets
 from service.cache import get_cached_driver, invalidate_cached_instances
 from service.driver import _retrieve_source
 from service.licensing import _test_license
+from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
 from service.exceptions import (
     OverAllocationError, OverQuotaError, SizeNotAvailable,
     HypervisorCapacityError, SecurityGroupNotCreated,
@@ -1304,7 +1307,18 @@ def set_security_group_rules(lc_driver, security_group, rules):
             (ip_protocol, from_port, to_port, cidr) = rule_tuple
         else:
             raise Exception("Invalid DEFAULT_RULES contain a rule, %s, which does not match the expected format" % rule_tuple)
+
         try:
+            # attempt to find 
+            rule_found = any(
+                sg_rule for sg_rule in security_group.rules
+                if sg_rule.ip_protocol == ip_protocol.lower() and
+                sg_rule.from_port == from_port and
+                sg_rule.to_port == to_port and
+                (not cidr or sg_rule.ip_range == cidr))
+            if rule_found:
+                continue
+            # Attempt to create
             lc_driver.ex_create_security_group_rule(security_group, ip_protocol, from_port, to_port, cidr)
         except BaseHTTPError as exc:
             if "Security group rule already exists" in exc.message:
@@ -1381,12 +1395,79 @@ def network_init(core_identity):
     user_network_init(core_identity)
 
 
+def _to_network_driver(core_identity):
+    all_creds = core_identity.get_all_credentials()
+    project_name = core_identity.project_name()
+    domain_name = all_creds.get('domain_name', 'default')
+    auth_url = all_creds.get('auth_url')
+    if '/v' not in auth_url:  # Add /v3 if no version specified in auth_url
+        auth_url += '/v3'
+    if 'ex_force_auth_token' in all_creds:
+        auth_token = all_creds['ex_force_auth_token']
+        (auth, sess, token) = _token_to_keystone_scoped_project(
+            auth_url, auth_token,
+            project_name, domain_name)
+    else:
+        username = all_creds['key']
+        password = all_creds['secret']
+        (auth, sess, token) = _connect_to_keystone_v3(
+            auth_url, username, password,
+            project_name, domain_name)
+    network_driver = NetworkManager(session=sess)
+    return network_driver
+
+
 def user_network_init(core_identity):
     """
     WIP -- need to figure out how to do this within the scope of libcloud // OR using existing authtoken to connect with neutron.
     """
-    return
+    username = core_identity.get_credential('key')
+    if not username:
+        username = core_identity.created_by.username
+    dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
+    topology_name = core_identity.provider.get_config('network', 'topology', None)
+    if not topology_name:
+        logger.error(
+            "Network topology not selected -- "
+            "Will attempt to use the last known default: ExternalRouter.")
+        topology_name = "External Router Topology"
+    network_driver = _to_network_driver(core_identity)
+    user_neutron = network_driver.neutron
+    network_strategy = initialize_user_network_strategy(
+        topology_name, core_identity, network_driver, user_neutron)
+    network_resources = network_strategy.create(
+        username=username, dns_nameservers=dns_nameservers)
+    network_strategy.post_create_hook(network_resources)
+    return network_resources
 
+
+def initialize_user_network_strategy(topology_name, identity, network_driver, neutron):
+    """
+    Select a network topology and initialize it with the identity/provider specific information required.
+    """
+    try:
+        NetworkTopologyStrategyCls = get_topology_cls(topology_name)
+        network_strategy = NetworkTopologyStrategyCls(identity, network_driver, neutron)
+        # validate should raise exception if mis-configured.
+        network_strategy.validate(identity)
+    except:
+        logger.exception(
+            "Error initializing Network Topology - %s + %s " %
+            (NetworkTopologyStrategyCls, identity))
+        raise
+    return network_strategy
+
+def user_destroy_network(core_identity):
+    topology_name = core_identity.provider.get_config('network', 'topology', None)
+    if not topology_name:
+        logger.error(
+            "Network topology not selected -- "
+            "Will attempt to use the last known default: ExternalRouter.")
+        topology_name = "External Router Topology"
+    network_strategy = self.initialize_network_strategy(
+        topology_name, identity, self.network_manager, neutron)
+    skip_network = options.get("skip_network", False)
+    return network_strategy.delete(skip_network=skip_network)
 
 def admin_network_init(core_identity):
     os_driver = OSAccountDriver(core_identity.provider)
@@ -1415,7 +1496,6 @@ def _provision_openstack_instance(core_identity, admin_user=False):
           What we should do to provision an instance..
     """
     # NOTE: Admin users do NOT need a security group created for them!
-    # ----------------------------------------FIXME: WIP: FAILS HERE ----------------------------------------
     if not admin_user:
         security_group_init(core_identity)
     network = network_init(core_identity)
