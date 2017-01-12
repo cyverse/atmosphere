@@ -10,8 +10,8 @@ VIRTUALENV_PATH =; /path/virtualenv/atmo
 [nginx]
 ATMOSPHERE_PATH = ; /path/to/atmosphere
 ENABLE_HTTP2 = ; True if nginx has http-v2 module; otherwise False
-NGINX_TLS_PRIVKEY_DEST = ; /etc/ssl/private/my-atmosphere.com.key
-NGINX_TLS_FULLCHAIN_DEST = ; /etc/ssl/certs/my-atmosphere.com.fullchain.crt
+NGINX_TLS_PRIVKEY_DEST = ; /etc/ssl/private/mydomain.org.key
+NGINX_TLS_FULLCHAIN_DEST = ; /etc/ssl/certs/mydomain.org.fullchain.crt
 DHPARAM = ; /etc/ssl/certs/dhparam.pem
 DHPARAM_KEY_SIZE = ; 2048
 LOCATIONS_DIR = ; /etc/nginx/locations
