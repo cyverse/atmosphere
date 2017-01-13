@@ -49,10 +49,10 @@ class Authentication(APIView):
         login(request, user)
         issuer_backend = request.session.get('_auth_user_backend', '').split('.')[-1]
         return self._create_token(
-            user.username, request.session.pop('token_key', None),
+            request, user.username, request.session.pop('token_key', None),
             issuer=issuer_backend)
 
-    def _create_token(self, username, token_key, issuer="DRF"):
+    def _create_token(self, request, username, token_key, issuer="DRF"):
         token = create_token(username, token_key, issuer=issuer)
         expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
         auth_json = {
@@ -60,14 +60,5 @@ class Authentication(APIView):
             'username': token.user.username,
             'expires': expireTime.strftime("%b %d, %Y %H:%M:%S")
         }
-        return Response(auth_json, status=status.HTTP_201_CREATED)
-
-    def _token_for_username(self, username):
-        token = create_token(username, issuer="DRF")
-        expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
-        auth_json = {
-            'token': token.key,
-            'username': token.user.username,
-            'expires': expireTime.strftime("%b %d, %Y %H:%M:%S")
-        }
+        request.session['token'] = token.key
         return Response(auth_json, status=status.HTTP_201_CREATED)

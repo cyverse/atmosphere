@@ -60,4 +60,5 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
             'start_date',
             'end_date',
             'is_admin',
+            'auth_url',
         )
