@@ -1311,6 +1311,8 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
         instance_ports = network_driver.list_ports(
             device_id=instance.id)
         network = network_driver.tenant_networks()
+        if type(network) is list:
+            network = [net for net in network if net['subnets'] != []][0]
         if instance_ports:
             for idx, fixed_ip_port in enumerate(instance_ports):
                 fixed_ips = fixed_ip_port.get('fixed_ips', [])

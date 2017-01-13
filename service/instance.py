@@ -465,6 +465,7 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
             esh_driver.__class__,
             esh_driver.provider,
             esh_driver.identity,
+            str(core_identity.uuid),
             esh_instance.id)
         fixed_ip_task.link(floating_ip_task)
     return init_task
@@ -1509,10 +1510,11 @@ def _extra_openstack_args(core_identity, ex_metadata={}):
     credentials = core_identity.get_credentials()
     username = core_identity.created_by.username
     tenant_name = credentials.get('ex_tenant_name')
+    has_secret = credentials.get('secret') is not None
     ex_metadata.update({'tmp_status': 'initializing',
                         'tenant_name': tenant_name,
                         'creator': '%s' % username})
-    if getattr(settings, 'ATMOSPHERE_KEYPAIR_NAME'):
+    if has_secret and getattr(settings, 'ATMOSPHERE_KEYPAIR_NAME'):
         ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
     else:
         user = core_identity.created_by
@@ -1663,7 +1665,7 @@ def _repair_instance_networking(
     logger.info("Adding floating IP manually, Instance %s" %
                 esh_instance.id)
     add_floating_ip(esh_driver.__class__, esh_driver.provider,
-                    esh_driver.identity, esh_instance.id)
+                    esh_driver.identity, str(core_identity.uuid), esh_instance.id)
     logger.info("Instance %s needs to hard reboot instead of resume" %
                 esh_instance.id)
     esh_driver.reboot_instance(esh_instance, 'HARD')
