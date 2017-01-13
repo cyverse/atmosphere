@@ -230,7 +230,6 @@ def _remove_ips_from_inactive_instances(driver, instances):
 
 
 def _remove_network(
-        os_acct_driver,
         core_identity,
         tenant_name):
     """
@@ -238,8 +237,11 @@ def _remove_network(
     celery_logger.info("Removing project network for %s" % tenant_name)
     # Sec. group can't be deleted if instances are suspended
     # when instances are suspended we pass remove_network=False
-    os_acct_driver.delete_security_group(core_identity)
-    os_acct_driver.delete_user_network(core_identity)
+    from service import instance as instance_service
+
+    instance_service.delete_security_group(core_identity)
+    instance_service.destroy_network(
+        core_identity)
     return True
 
 
@@ -249,14 +251,13 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
     RETURN: (number_ips_removed, delete_network_called)
     """
     from service.driver import get_esh_driver
+    from service import instance as instance_service
     from rtwo.driver import OSDriver
     # Initialize the drivers
     core_identity = Identity.objects.get(uuid=core_identity_uuid)
     driver = get_esh_driver(core_identity)
     if not isinstance(driver, OSDriver):
         return (0, False)
-    os_acct_driver = get_account_driver(core_identity.provider)
-    celery_logger.info("Initialized account driver")
     # Get useful info
     creds = core_identity.get_credentials()
     tenant_name = creds['ex_tenant_name']
@@ -275,17 +276,17 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
     if active_instances and not inactive_instances:
         # User has >1 active instances AND not all instances inactive_instances
         return (num_ips_removed, False)
-    network_id = os_acct_driver.network_manager.get_network_id(
-        os_acct_driver.network_manager.neutron,
-        '%s-net' % tenant_name)
-    if network_id:
+    network_driver = instance_service._to_network_driver(core_identity)
+    network = network_driver.find_network('%s-net' % tenant_name)
+    if network:
+        network = network[0]
+        network_id = network['id']
         # User has 0 active instances OR all instances are inactive_instances
         # Network exists, attempt to dismantle as much as possible
         # Remove network=False IFF inactive_instances=True..
         remove_network = not inactive_instances
         if remove_network:
             _remove_network(
-                os_acct_driver,
                 core_identity,
                 tenant_name)
             return (num_ips_removed, True)
@@ -1401,6 +1402,7 @@ def remove_empty_network(
         driverCls, provider, identity,
         core_identity_uuid,
         network_options):
+    from service import instance as instance_service
     try:
         # For testing ONLY.. Test cases ignore countdown..
         if app.conf.CELERY_ALWAYS_EAGER:
@@ -1429,13 +1431,12 @@ def remove_empty_network(
                 "from %s" % core_identity)
             delete_network_options = {}
             delete_network_options['skip_network'] = inactive_instances_present
-            os_acct_driver = get_account_driver(core_identity.provider)
-            os_acct_driver.delete_user_network(
+            instance_service.destroy_network(
                 core_identity, delete_network_options)
             if not inactive_instances_present:
                 # Sec. group can't be deleted if instances are suspended
                 # when instances are suspended we should leave this intact.
-                os_acct_driver.delete_security_group(core_identity)
+                instance_service.delete_security_group(core_identity)
             return True
         celery_logger.debug("remove_empty_network task finished at %s." %
                      datetime.now())

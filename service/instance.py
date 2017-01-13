@@ -36,7 +36,7 @@ from atmosphere import settings
 from atmosphere.settings import secrets
 
 from service.cache import get_cached_driver, invalidate_cached_instances
-from service.driver import _retrieve_source
+from service.driver import _retrieve_source, get_account_driver
 from service.licensing import _test_license
 from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
 from service.exceptions import (
@@ -147,7 +147,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
     """
     _permission_to_act(identity_uuid, "Stop")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
+        remove_ips(esh_driver, esh_instance, identity_uuid)
     stopped = esh_driver.stop_instance(esh_instance)
     if reclaim_ip:
         remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
@@ -211,7 +211,7 @@ def suspend_instance(esh_driver, esh_instance,
     """
     _permission_to_act(identity_uuid, "Suspend")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
+        remove_ips(esh_driver, esh_instance, identity_uuid)
     suspended = esh_driver.suspend_instance(esh_instance)
     if reclaim_ip:
         remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
@@ -228,14 +228,14 @@ def suspend_instance(esh_driver, esh_instance,
 
 
 # Networking specific
-def remove_ips(esh_driver, esh_instance, update_meta=True):
+def remove_ips(esh_driver, esh_instance, identity_uuid, update_meta=True):
     """
     Returns: (floating_removed, fixed_removed)
     """
     from service.tasks.driver import update_metadata
-    network_manager = esh_driver._connection.get_network_manager()
-    # Delete the Floating IP
-    result = network_manager.disassociate_floating_ip(esh_instance.id)
+    core_identity = Identity.objects.get(uuid=core_identity_uuid)
+    network_driver = _to_network_driver(core_identity)
+    result = network_driver.disassociate_floating_ip(esh_instance.id)
     logger.info("Removed Floating IP for Instance %s - Result:%s"
                 % (esh_instance.id, result))
     if update_meta:
@@ -247,7 +247,7 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
         update_metadata.s(driver_class, provider, identity, esh_instance.id,
                           metadata, replace_metadata=False).apply()
     # Fixed
-    instance_ports = network_manager.list_ports(device_id=esh_instance.id)
+    instance_ports = network_driver.list_ports(device_id=esh_instance.id)
     if instance_ports:
         fixed_ip_port = instance_ports[0]
         fixed_ips = fixed_ip_port.get('fixed_ips', [])
@@ -260,15 +260,15 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
         return (True, True)
     return (True, False)
 
-
-def detach_port(esh_driver, esh_instance):
-    instance_ports = network_manager.list_ports(device_id=esh_instance.id)
-    if instance_ports:
-        fixed_ip_port = instance_ports[0]
-        result = esh_driver._connection.ex_detach_interface(
-            esh_instance.id, fixed_ip_port['id'])
-        logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
-    return result
+# Not in use -- marked for deletion
+# def detach_port(esh_driver, esh_instance):
+#     instance_ports = network_manager.list_ports(device_id=esh_instance.id)
+#     if instance_ports:
+#         fixed_ip_port = instance_ports[0]
+#         result = esh_driver._connection.ex_detach_interface(
+#             esh_instance.id, fixed_ip_port['id'])
+#         logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
+#     return result
 
 
 def remove_empty_network(esh_driver, identity_uuid, network_options={}):
@@ -579,7 +579,7 @@ def shelve_instance(esh_driver, esh_instance,
     _permission_to_act(identity_uuid, "Shelve")
     _update_status_log(esh_instance, "Shelving Instance")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
+        remove_ips(esh_driver, esh_instance, identity_uuid)
     shelved = esh_driver._connection.ex_shelve_instance(esh_instance)
     if reclaim_ip:
         remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
@@ -631,7 +631,7 @@ def offload_instance(esh_driver, esh_instance,
     _permission_to_act(identity_uuid, "Shelve Offload")
     _update_status_log(esh_instance, "Shelve-Offloading Instance")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
+        remove_ips(esh_driver, esh_instance, identity_uuid)
     offloaded = esh_driver._connection.ex_shelve_offload_instance(esh_instance)
     if reclaim_ip:
         remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
@@ -1285,7 +1285,33 @@ def check_quota(username, identity_uuid, esh_size,
         raise OverAllocationError(time_diff)
 
 
+def delete_security_group(core_identity):
+    has_secret = core_identity.get_credential('secret') is not None
+    if has_secret:
+        return admin_delete_security_group(core_identity)
+    return user_delete_security_group(core_identity)
+
+def admin_delete_security_group(core_identity):
+    os_acct_driver = get_account_driver(core_identity.provider)
+    os_acct_driver.delete_security_group(core_identity)
+
+def user_delete_security_group(core_identity):
+    network_driver = _to_network_driver(core_identity)
+    driver = get_cached_driver(identity=core_identity)
+    security_groups = driver._connection.ex_list_security_groups()
+    for security_group in security_groups:
+        try:
+            driver._connection.ex_delete_security_group(security_group)
+        except:
+            # Try as neutron
+            network_driver.neutron.delete_security_group(security_group.id)
+    return
+
+
 def security_group_init(core_identity, max_attempts=3):
+    has_secret = core_identity.get_credential('secret') is not None
+    if has_secret:
+        return admin_security_group_init(core_identity)
     return user_security_group_init(core_identity)
 
 
@@ -1460,17 +1486,38 @@ def initialize_user_network_strategy(topology_name, identity, network_driver, ne
         raise
     return network_strategy
 
-def user_destroy_network(core_identity):
+
+def destroy_network(core_identity, options):
+    has_secret = core_identity.get_credential('secret') is not None
+    if has_secret:
+        return admin_destroy_network(core_identity, options)
+    return user_destroy_network(core_identity, options)
+
+
+def admin_destroy_network(core_identity, options):
     topology_name = core_identity.provider.get_config('network', 'topology', None)
     if not topology_name:
         logger.error(
             "Network topology not selected -- "
             "Will attempt to use the last known default: ExternalRouter.")
         topology_name = "External Router Topology"
-    network_strategy = self.initialize_network_strategy(
-        topology_name, identity, self.network_manager, neutron)
+    os_acct_driver = get_account_driver(core_identity.provider)
+    return os_acct_driver.delete_user_network(
+        core_identity, options)
+
+def user_destroy_network(core_identity, options):
+    topology_name = core_identity.provider.get_config('network', 'topology', None)
+    if not topology_name:
+        logger.error(
+            "Network topology not selected -- "
+            "Will attempt to use the last known default: ExternalRouter.")
+        topology_name = "External Router Topology"
+    network_driver = _to_network_driver(core_identity)
+    network_strategy = initialize_user_network_strategy(
+        topology_name, core_identity, network_driver, network_driver.neutron)
     skip_network = options.get("skip_network", False)
     return network_strategy.delete(skip_network=skip_network)
+
 
 def admin_network_init(core_identity):
     os_driver = OSAccountDriver(core_identity.provider)
