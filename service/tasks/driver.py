@@ -646,7 +646,7 @@ def get_chain_from_active_no_ip(
         driverCls, provider, identity, instance.id,
         {'tmp_status': 'networking'})
     floating_task = add_floating_ip.si(
-        driverCls, provider, identity, instance.id, delete_status=False)
+        driverCls, provider, identity, instance.id, str(core_identity.uuid), delete_status=False)
     floating_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance.id))
 
@@ -1268,10 +1268,11 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata,
       # Defaults will not be used, see countdown call below
       default_retry_delay=15,
       max_retries=30)
-def add_floating_ip(driverCls, provider, identity,
+def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
                     instance_alias, delete_status=True,
                     *args, **kwargs):
     # For testing ONLY.. Test cases ignore countdown..
+    from service import instance as instance_service
     if app.conf.CELERY_ALWAYS_EAGER:
         celery_logger.debug("Eager task waiting 15 seconds")
         time.sleep(15)
@@ -1286,15 +1287,16 @@ def add_floating_ip(driverCls, provider, identity,
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_alias)
             return None
-        floating_ips = driver._connection.neutron_list_ips(instance)
+        core_identity = Identity.objects.get(uuid=core_identity_uuid)
+        network_driver = instance_service._to_network_driver(core_identity)
+        floating_ips = network_driver.list_floating_ips()
         if floating_ips:
             floating_ip = floating_ips[0]["floating_ip_address"]
             celery_logger.debug(
                 "Reusing existing floating_ip_address - %s" %
                 floating_ip)
         else:
-            floating_ip = driver._connection.neutron_associate_ip(
-                instance, *args, **kwargs)["floating_ip_address"]
+            floating_ip = network_driver.associate_floating_ip(instance_alias)["floating_ip_address"]
             celery_logger.debug("Created new floating_ip_address - %s" % floating_ip)
         _update_status_log(instance, "Networking Complete")
         # TODO: Implement this as its own task, with the result from
@@ -1306,9 +1308,9 @@ def add_floating_ip(driverCls, provider, identity,
         }
         # NOTE: This is part of the temp change, should be removed when moving
         # to vxlan
-        instance_ports = driver._connection.neutron_list_ports(
+        instance_ports = network_driver.list_ports(
             device_id=instance.id)
-        network = driver._connection.neutron_get_tenant_network()
+        network = network_driver.tenant_networks()
         if instance_ports:
             for idx, fixed_ip_port in enumerate(instance_ports):
                 fixed_ips = fixed_ip_port.get('fixed_ips', [])
