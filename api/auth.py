@@ -33,17 +33,24 @@ class Authentication(APIView):
         username = data.get('username', None)
         password = data.get('password', None)
         project_name = data.get('project_name', None)
+        auth_url = data.get('auth_url', None)
         if not username:
             return invalid_auth("Username missing")
-        user = authenticate(username=username, password=password,
-                            project_name=project_name, request=request)
+
+        auth_kwargs = {"username":username, "password":password, "request":request}
+        if project_name:
+            auth_kwargs['project_name'] = project_name
+        if auth_url:
+            auth_kwargs['auth_url'] = auth_url
+        user = authenticate(**auth_kwargs)
         if not user:
             return invalid_auth("Username/Password combination was invalid")
 
         login(request, user)
-        if request.session.get('token_key'):
-            return self._create_token(user.username, request.session.pop('token_key'), issuer="OpenStack")
-        return self._token_for_username(user.username)
+        issuer_backend = request.session.get('_auth_user_backend', '').split('.')[-1]
+        return self._create_token(
+            user.username, request.session.pop('token_key', None),
+            issuer=issuer_backend)
 
     def _create_token(self, username, token_key, issuer="DRF"):
         token = create_token(username, token_key, issuer=issuer)
