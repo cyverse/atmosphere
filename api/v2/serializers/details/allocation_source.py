@@ -4,6 +4,7 @@ from rest_framework import serializers
 from core.models.allocation_source import AllocationSource, AllocationSourceSnapshot, UserAllocationSnapshot
 from core.models.user import AtmosphereUser
 from core.models.event_table import EventTable
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
@@ -15,8 +16,9 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
     user_compute_used = serializers.SerializerMethodField()
     user_snapshot_updated = serializers.SerializerMethodField()
     updated = serializers.SerializerMethodField()
-    url = serializers.HyperlinkedIdentityField(
+    url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:allocationsource-detail',
+        uuid_field='source_id'
     )
 
     def _get_allocation_source_snapshot(self, allocation_source, attr_name):
@@ -42,16 +44,7 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
         return attr
 
     def _get_compute_allowed(self, allocation_source, attr_name):
-        snapshot = AllocationSourceSnapshot.objects.filter(
-            allocation_source=allocation_source).first()
-        if not snapshot:
-            return None
-        total_compute_allowed = getattr(snapshot, attr_name)
-        events = EventTable.objects.filter(entity_id=allocation_source.source_id,
-                                           name='allocation_source_compute_allowed_changed')
-        for event in events:
-            total_compute_allowed += int(event.payload['compute_allowed'])
-        return total_compute_allowed
+        return getattr(allocation_source, attr_name)
 
     def get_global_burn_rate(self, allocation_source):
         return self._get_allocation_source_snapshot(allocation_source, 'global_burn_rate')

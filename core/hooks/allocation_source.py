@@ -496,3 +496,15 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
     if event.name != 'allocation_source_compute_allowed_changed':
         return None
     logger.info('Allocation Source Compute Allowed Change event: %s', event.__dict__)
+    payload = event.payload
+    allocation_source_id = payload['source_id']
+    new_compute_allowed= payload['compute_allowed']
+    allocation_source = AllocationSource.objects.filter(
+        source_id=allocation_source_id)
+    try:
+        allocation_source = allocation_source.last()
+        allocation_source.compute_allowed = new_compute_allowed
+        allocation_source.save()
+
+    except Exception as e:
+        raise Exception('Allocation Source %s compute_allowed could not be changed because of the following error %s'%(allocation_source.name, e))

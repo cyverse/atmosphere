@@ -4,8 +4,8 @@
 #    Renewal Strategy Check                AND
 #    Carry Overs                           AND
 #    Instance Suspension
-
-
+#
+#
 #Feature: Operation Testing
 #
 #  Background:
@@ -19,7 +19,7 @@
 #      Then  user can run an instance on the allocation source
 #
 #  ######################################################################################################
-#
+
 #  Scenario: Total Usage calculation
 #      Given user assigned to allocation source
 #      When  user runs instance with <cpu> for <time (hours)>
@@ -66,5 +66,5 @@
 #      |  compute allowed  |  total usage    |  instance is suspended   |
 #      |   300             |  299            |  False                   |
 #      |   128             |  130            |  True                    |
-#
-#  ######################################################################################################
+
+  ######################################################################################################
