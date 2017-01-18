@@ -56,11 +56,12 @@ class TokenUpdateSerializer(serializers.Serializer):
             provider = Provider.objects.get(uuid=provider_uuid)
         except Provider.DoesNotExist:
             raise serializers.ValidationError("Provider %s is invalid" % provider)
-        identity = Identity.create_identity(username, provider.location, cred_ex_project_name=project_name, cred_ex_force_auth_token=token)
-        #FIXME: In a different PR re-work quota to sync with the values in OpenStack.
+        identity = Identity.create_identity(
+            username, provider.location,
+            cred_key=username, cred_ex_project_name=project_name, cred_ex_force_auth_token=token)
+        # FIXME: In a different PR re-work quota to sync with the values in OpenStack.
         self.validate_token_with_driver(provider_uuid, username, project_name, token)
         return identity
-
 
     def _get_identity(self, provider_uuid, username, project_name):
         try:
