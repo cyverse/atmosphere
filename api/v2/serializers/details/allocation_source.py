@@ -10,7 +10,6 @@ from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
 
     compute_used = serializers.SerializerMethodField()
-    compute_allowed = serializers.SerializerMethodField()
     global_burn_rate = serializers.SerializerMethodField()
     user_burn_rate = serializers.SerializerMethodField()
     user_compute_used = serializers.SerializerMethodField()
@@ -43,9 +42,6 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
         attr = getattr(snapshot, attr_name)
         return attr
 
-    def _get_compute_allowed(self, allocation_source, attr_name):
-        return getattr(allocation_source, attr_name)
-
     def get_global_burn_rate(self, allocation_source):
         return self._get_allocation_source_snapshot(allocation_source, 'global_burn_rate')
 
@@ -66,9 +62,6 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_updated(self, allocation_source):
         return self._get_allocation_source_snapshot(allocation_source, 'updated')
-
-    def get_compute_allowed(self,allocation_source):
-        return self._get_compute_allowed(allocation_source,'compute_allowed')
 
     class Meta:
         model = AllocationSource
