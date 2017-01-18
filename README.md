@@ -9,6 +9,16 @@ Atmosphere addresses the growing needs for highly configurable and customized co
 + A fully RESTful API service for integrating with existing infrastructure components
 + Virtual machine images preconfigured for computational science and iPlant's infrastructure
 
+## Running scripts
+
+There are several utility scripts in `./scripts`. To run these:
+```
+cd <path to atmosphere>
+export DJANGO_SETTINGS_MODULE='atmosphere.settings'
+export PYTHONPATH="$PWD:$PYTHONPATH"
+python scripts/<name of script>
+```
+
 ## Contributing
 
 ### Coding Style

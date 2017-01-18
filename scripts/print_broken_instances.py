@@ -1,15 +1,10 @@
+import django; django.setup()
+
 from core.models import *
 
 #
 # Print a list of instances stuck in deploy_error or networking, that have
 # never reached active
-#
-# Note* inorder for this script to work atmosphere's environment must be
-# sourced. (running `atmocd` should do the trick)
-#
-# Then from atmosphere's directory run:
-#
-#   ./manage.py  shell <<< "%run ./scripts/print_broken_instances.py"
 #
 
 instances = []
