@@ -26,7 +26,7 @@ class TokenUpdateSerializer(serializers.Serializer):
         return validated_data
 
     def create(self, validated_data):
-        identity = self._get_identity(validated_data['provider'], validated_data['username'], validated_data['project_name'])
+        identity = self._find_identity_match(validated_data['provider'], validated_data['username'], validated_data['project_name'])
         if not identity:
             identity = self._create_identity(validated_data['provider'], validated_data['username'], validated_data['project_name'], validated_data['token'])
             return identity
@@ -40,7 +40,7 @@ class TokenUpdateSerializer(serializers.Serializer):
         return identity
 
     def validate_token_with_driver(self, provider_uuid, username, project_name, new_token_key):
-        ident = self._get_identity(provider_uuid, username, project_name)
+        ident = self._find_identity_match(provider_uuid, username, project_name)
         if not ident:
             # Can't validate driver if identity can't be created.
             return
@@ -63,7 +63,7 @@ class TokenUpdateSerializer(serializers.Serializer):
         self.validate_token_with_driver(provider_uuid, username, project_name, token)
         return identity
 
-    def _get_identity(self, provider_uuid, username, project_name):
+    def _find_identity_match(self, provider_uuid, username, project_name):
         try:
             provider = Provider.objects.get(uuid=provider_uuid)
         except Provider.DoesNotExist:
