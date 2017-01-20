@@ -68,7 +68,7 @@ class AccountDriver(BaseAccountDriver):
         is_v3 = '3' in keystone_auth_version
         version_prefix = "/v2.0" if is_v2 else '/v3'
         #auth_url = all_creds.get('auth_url', '<AUTH URL MISSING>') + version_prefix
-        admin_url = all_creds.get('admin_url', '<ADMIN URL MISSING>') + version_prefix
+        admin_url = all_creds.get('admin_url', '<ADMIN URL MISSING>').replace('/v2.0/tokens', '') + version_prefix
         export_data = {
             "OS_REGION_NAME": region_name,
             "OS_AUTH_URL": admin_url,
