@@ -18,6 +18,7 @@ from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
+from rtwo.exceptions import LibcloudHTTPError  # Move into rtwo.exceptions later...
 from libcloud.common.exceptions import BaseHTTPError  # Move into rtwo.exceptions later...
 
 from core.query import only_current
@@ -43,7 +44,8 @@ from service.exceptions import (
     OverAllocationError, OverQuotaError, SizeNotAvailable,
     HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
-    socket_error, ConnectionFailure, InstanceDoesNotExist, LibcloudInvalidCredsError)
+    socket_error, ConnectionFailure, InstanceDoesNotExist, LibcloudInvalidCredsError,
+    Unauthorized)
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
@@ -866,7 +868,7 @@ def launch_instance(user, identity_uuid,
 
     esh_driver = get_cached_driver(identity=identity)
 
-    # May raise Exception("Size not available")
+    # May raise Unauthorized/ConnectionFailure/SizeNotAvailable
     size = check_size(esh_driver, size_alias, provider_uuid)
     # May raise Exception("Volume/Machine not available")
     boot_source = get_boot_source(user.username, identity_uuid, source_alias)
@@ -1187,6 +1189,10 @@ def check_size(esh_driver, size_alias, provider_uuid):
         if not convert_esh_size(esh_size, provider_uuid).active():
             raise SizeNotAvailable()
         return esh_size
+    except LibcloudHTTPError as http_err:
+        if http_err.code == 401:
+            raise Unauthorized(http_err.message)
+        raise ConnectionFailure(http_err.message)
     except:
         raise SizeNotAvailable()
 

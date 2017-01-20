@@ -14,6 +14,12 @@ class ServiceException(Exception):
     """
 
 
+class Unauthorized(ServiceException):
+    def __init__(self, message):
+        self.message = message
+        self.status_code = 401
+        super(Unauthorized, self).__init__()
+
 class ActionNotAllowed(ServiceException):
 
     def __init__(self, message):

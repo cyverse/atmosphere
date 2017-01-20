@@ -25,7 +25,7 @@ from service.exceptions import (
     OverAllocationError, OverQuotaError,
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist,
-    UnderThresholdError, ActionNotAllowed,
+    UnderThresholdError, ActionNotAllowed, Unauthorized,
     # Technically owned by another
     socket_error, ConnectionFailure, LibcloudInvalidCredsError, LibcloudBadResponseError
     )
@@ -188,6 +188,8 @@ class InstanceList(AuthAPIView):
             return over_quota(oqe)
         except OverAllocationError as oae:
             return over_quota(oae)
+        except Unauthorized as auth_invalid:
+            return invalid_creds(provider_uuid, identity_uuid)
         except SizeNotAvailable as snae:
             return size_not_available(snae)
         except SecurityGroupNotCreated:
