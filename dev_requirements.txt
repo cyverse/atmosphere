@@ -4,159 +4,54 @@
 #
 #    pip-compile --output-file dev_requirements.txt dev_requirements.in
 #
-amqp==1.4.9               # via kombu
-ansible==2.1              # via subspace
-anyjson==0.3.3            # via kombu
-apache-libcloud==0.20.1
-appdirs==1.4.0            # via os-client-config
-babel==2.3.4              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-neutronclient, python-novaclient, python-openstackclient
 backports.shutil-get-terminal-size==1.0.0  # via ipython
-backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud, tornado
-billiard==3.3.0.23        # via celery
-boto==2.39.0              # via chromogenic
-caslib.py==2.2.2          # via django-cyverse-auth
-celery==3.1.23
-certifi==2016.9.26        # via tornado
-cffi==1.9.1               # via cryptography
-chromogenic==0.3.1
 click==6.7                # via pip-tools
-cliff==2.4.0              # via osc-lib, python-neutronclient, python-openstackclient
-cmd2==0.6.9               # via cliff
 colorama==0.3.3
 configparser==3.5.0       # via flake8
 contextlib2==0.5.4        # via vcrpy
 coverage==3.7.1
-cryptography==1.7.1       # via paramiko, pyopenssl
-debtcollector==1.11.0     # via oslo.config, oslo.utils, python-keystoneclient, python-neutronclient
 decorator==4.0.11         # via ipython, traitlets
-defusedxml==0.4.1         # via djangorestframework-xml
-django-celery==3.1.16
-django-cors-headers==0.12.0
-django-cyverse-auth==1.0.1
 django-debug-toolbar==1.6
-django-filter==0.13.0
 django-jenkins==0.19.0
 django-nose==1.4.4
-django-redis-cache==0.13.0
 django-sslserver==0.19
-django==1.9.8
-djangorestframework-csv==2.0.0
-djangorestframework-jsonp==1.0.0
-djangorestframework-xml==1.0.1
-djangorestframework-yaml==1.0.2
-djangorestframework==3.4.1
+django==1.9.8             # via django-debug-toolbar, django-jenkins, django-sslserver
 emoji==0.3.6
-enum34==1.1.6             # via cryptography, flake8, traitlets
-eventlet==0.18.4
-Fabric==1.10              # via rfive
+enum34==1.1.6             # via flake8, traitlets
 factory-boy==2.4.1
 first==2.0.1              # via pip-tools
 flake8==3.2.1
-flower==0.9.0
-funcsigs==1.0.2           # via debtcollector, oslo.utils
-functools32==3.2.3.post2  # via jsonschema
-futures==3.0.5            # via flower, python-swiftclient
-gevent==1.0.1
 gitdb==0.6.4              # via gitpython
 GitPython==1.0.1
-greenlet==0.4.11          # via eventlet, gevent
-httplib2==0.9.2           # via oauth2client
-idna==2.2                 # via cryptography
-ipaddress==1.0.18         # via cryptography
 ipdb==0.10.1
 ipython-genutils==0.1.0   # via traitlets
 ipython==5.1.0
-iso8601==0.1.11           # via keystoneauth1, oslo.utils, python-neutronclient, python-novaclient
-Jinja2==2.8               # via ansible
 json-delta==2.0
-jsonpatch==1.15           # via warlock
-jsonpointer==1.10         # via jsonpatch
-jsonschema==2.5.1         # via warlock
-jwt.py==0.1.0             # via django-cyverse-auth
-keystoneauth1==2.18.0     # via openstacksdk, os-client-config, osc-lib, python-cinderclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient
-kombu==3.0.37             # via celery
-markupsafe==0.23          # via jinja2
 mccabe==0.5.3             # via flake8
 mock==1.0.1
-monotonic==1.2            # via oslo.utils
-msgpack-python==0.4.8     # via oslo.serialization
-ndg-httpsclient==0.4.2    # via requests
-netaddr==0.7.19           # via oslo.config, oslo.utils, python-neutronclient
-netifaces==0.10.5         # via oslo.utils
 newrelic==2.64.0.48
 nose==1.3.7               # via django-nose
-numpy==1.12.0
-oauth2client==4.0.0       # via django-cyverse-auth
-openstacksdk==0.9.12      # via python-openstackclient
-os-client-config==1.26.0  # via openstacksdk, osc-lib, python-neutronclient
-osc-lib==1.3.0            # via python-neutronclient, python-openstackclient
-oslo.config==3.22.0       # via python-keystoneclient
-oslo.i18n==3.12.0         # via osc-lib, oslo.config, oslo.utils, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient
-oslo.serialization==2.16.0  # via python-keystoneclient, python-neutronclient, python-novaclient
-oslo.utils==3.22.0        # via osc-lib, oslo.serialization, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient
-pandas==0.19.2
-paramiko==2.1.1           # via ansible, fabric
 pathlib2==2.2.1           # via ipython, pickleshare
-pbr==1.10.0               # via cliff, debtcollector, keystoneauth1, openstacksdk, osc-lib, oslo.i18n, oslo.serialization, oslo.utils, positional, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, requestsexceptions, stevedore
 pep8==1.7.0
 pexpect==4.2.1            # via ipython
 pickleshare==0.7.4        # via ipython
-Pillow==2.5.3
 pip-tools==1.8.0
-positional==1.1.1         # via keystoneauth1, python-keystoneclient
-prettytable==0.7.2        # via cliff, python-cinderclient, python-glanceclient, python-irodsclient, python-novaclient
 prompt-toolkit==1.0.9     # via ipython
-psycopg2==2.5.4
 ptyprocess==0.5.1         # via pexpect
-pyasn1-modules==0.0.8     # via oauth2client
-pyasn1==0.1.9             # via cryptography, oauth2client, paramiko, pyasn1-modules, requests, rsa
 pycodestyle==2.2.0        # via flake8
-pycparser==2.14
-pycrypto==2.6.1           # via ansible, jwt.py
 pyflakes==1.3.0           # via flake8
 pygments==2.1.3           # via ipython
-PyJWT==1.4.0
-pyopenssl==16.2.0         # via ndg-httpsclient, requests
-pyparsing==2.1.10         # via cliff, cmd2, oslo.utils
-python-cinderclient==1.9.0  # via python-openstackclient
-python-dateutil==1.4.1
-python-glanceclient==2.5.0  # via python-openstackclient
-python-irodsclient==0.4.0
-python-keystoneclient==3.6.0  # via python-glanceclient, python-openstackclient
-python-ldap==2.4.19
-python-logstash==0.4.5
-python-neutronclient==6.0.0
-python-novaclient==6.0.0  # via python-openstackclient
-python-openstackclient==3.3.0
-python-swiftclient==3.1.0
-pytz==2016.2
-pyyaml==3.12              # via ansible, cliff, djangorestframework-yaml, os-client-config, vcrpy
-redis==2.10.3
-requests[security]==2.11.1
-requestsexceptions==1.1.3  # via os-client-config
-rfc3986==0.4.1            # via oslo.config
-rfive==0.2.0
-rsa==3.4.2                # via oauth2client
-rtwo==0.4.15
+pyyaml==3.12              # via vcrpy
 scandir==1.4              # via pathlib2
 simplegeneric==0.8.1      # via ipython
-simplejson==3.10.0        # via osc-lib, python-cinderclient, python-neutronclient, python-novaclient
-six==1.10.0               # via cliff, cryptography, debtcollector, djangorestframework-csv, keystoneauth1, oauth2client, openstacksdk, osc-lib, oslo.config, oslo.i18n, oslo.serialization, oslo.utils, pathlib2, pip-tools, prompt-toolkit, pyopenssl, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-swiftclient, stevedore, traitlets, vcrpy, warlock
+six==1.10.0               # via pathlib2, pip-tools, prompt-toolkit, traitlets, vcrpy
 smmap==0.9.0              # via gitdb
 sqlparse==0.2.2           # via django-debug-toolbar
-stevedore==1.20.0         # via cliff, keystoneauth1, openstacksdk, osc-lib, oslo.config, python-keystoneclient
-subspace==0.2.5
-threepio==0.2.0
-tornado==4.2.0            # via flower
 traitlets==4.3.1          # via ipython
-unicodecsv==0.14.1        # via cliff, djangorestframework-csv
-uWSGI==2.0.13
 vcrpy==1.10.5
-warlock==1.2.0            # via python-glanceclient
 wcwidth==0.1.7            # via prompt-toolkit
 wheel==0.29.0
-wrapt==1.10.8             # via debtcollector, positional, vcrpy
-xlsxwriter==0.9.6
+wrapt==1.10.8             # via vcrpy
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools                # via ansible, cryptography, django-sslserver, ipdb, ipython, python-ldap
+# setuptools                # via django-sslserver, ipdb, ipython
