@@ -2,6 +2,7 @@ pycparser==2.14 # TEMPORARY
 
 Django==1.9.8
 django-cors-headers==0.12.0
+django-sslserver #NOTE: Debugs requests real-time.
 djangorestframework==3.4.1
 djangorestframework-jsonp==1.0.0
 djangorestframework-xml==1.0.1
