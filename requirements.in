@@ -37,8 +37,8 @@ python-ldap==2.4.19
 uWSGI==2.0.13
 
 ## ours
-chromogenic==0.3.1
-django-cyverse-auth==1.0.1
-threepio==0.2.0
-rtwo==0.4.15
-subspace==0.2.5
+chromogenic
+django-cyverse-auth<=1.0.3  # Change this once Steve's Atmosphere auth refactor is merged in
+threepio
+rtwo
+subspace
