@@ -17,7 +17,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
     queryset = AllocationSource.objects.all()
     serializer_class = AllocationSourceSerializer
     search_fields = ('^title',)
-    lookup_fields = ('source_id',)
+    lookup_fields = ('id','source_id',)
     http_method_names = ['options', 'head', 'get', 'post', 'put', 'patch']
 
     def create(self, request):
@@ -79,7 +79,6 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
         # validate patched fields and update allocation source model
         try:
-
             self._validate_params(request_data)
 
             # create payload
@@ -105,6 +104,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
             if 'compute_allowed' in request_data:
                 payload_compute_allowed = payload.copy()
+
                 payload_compute_allowed['compute_allowed'] = request_data['compute_allowed']
                 events.append((
                     'allocation_source_compute_allowed_changed',
@@ -168,23 +168,27 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
             self._for_validate_renewal_strategy(data['renewal_strategy'])
 
         if 'compute_allowed' in data:
-            self._for_validate_compute_allowed(data['compute_allowed'])
+            self._for_validate_compute_allowed(int(data['compute_allowed']), data.get('source_id'))
 
-    # Common Validations
+    # Common Validation
 
     def _validate_user(self, request_user):
         # user permission checking
         if not request_user.is_staff and not request_user.is_superuser:
             raise Exception('User not allowed to run commands')
 
-    def _for_validate_compute_allowed(self, compute_allowed):
+    def _for_validate_compute_allowed(self, compute_allowed, source_id):
         # raise Exception('Error with Compute Allowed')
-        if int(compute_allowed) < 0:
-            raise Exception('Compute allowed cannot be less than 0')
-        return True
 
-    def _for_validate_compute_allowed_delta(self, compute_allowed):
-        # raise Exception('Error with Compute Allowed')
+        # Compute Allowed always >= 1
+        if compute_allowed < 0:
+            raise Exception('Compute allowed cannot be less than 0')
+
+        #Compute Allowed is less than compute used
+        if source_id:
+            if compute_allowed < AllocationSource.objects.filter(source_id = source_id).last().compute_used:
+                raise Exception('Compute allowed cannot be less than compute used')
+
         return True
 
     def _for_validate_renewal_strategy(self, renewal_strategy):
@@ -195,7 +199,8 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         return True
 
     def _for_validate_allocation_source(self, source_id):
-        # raise Exception('Error with Source ID')
+        if not AllocationSource.objects.filter(source_id=source_id):
+                raise Exception('Source ID is incorrect')
         return True
 
     def _for_validate_name(self, name):

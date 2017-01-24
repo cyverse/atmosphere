@@ -376,6 +376,7 @@ def listen_for_user_allocation_source_assigned(sender, instance, created, **kwar
     allocation_source = UserAllocationSource(allocation_source=allocation_source,
                                              user=user)
     allocation_source.save()
+    return
 
 
 def listen_for_allocation_source_renewed(sender, instance, created, **kwargs):
@@ -420,6 +421,7 @@ def listen_for_allocation_source_renewed(sender, instance, created, **kwargs):
         allocation_source_snapshot.save()
     except Exception as e:
         raise Exception('Allocation Source Snapshot %s could not be renewed because of the following error %s '%(allocation_source.name, e))
+    return
 
 
 def listen_for_allocation_source_renewal_strategy_changed(sender, instance, created, **kwargs):
@@ -450,6 +452,7 @@ def listen_for_allocation_source_renewal_strategy_changed(sender, instance, crea
 
     except Exception as e:
         raise Exception('Allocation Source %s renewal strategy could not be changed because of the following error %s'%(allocation_source.name, e))
+    return
 
 def listen_for_allocation_source_name_changed(sender, instance, created, **kwargs):
     """
@@ -479,6 +482,7 @@ def listen_for_allocation_source_name_changed(sender, instance, created, **kwarg
 
     except Exception as e:
         raise Exception('Allocation Source %s name could not be changed because of the following error %s'%(allocation_source.name, e))
+    return
 
 def listen_for_allocation_source_compute_allowed_changed(sender, instance, created, **kwargs):
     """
@@ -501,6 +505,7 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
     new_compute_allowed= payload['compute_allowed']
     allocation_source = AllocationSource.objects.filter(
         source_id=allocation_source_id)
+
     try:
         allocation_source = allocation_source.last()
         allocation_source.compute_allowed = new_compute_allowed
@@ -508,3 +513,4 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
 
     except Exception as e:
         raise Exception('Allocation Source %s compute_allowed could not be changed because of the following error %s'%(allocation_source.name, e))
+    return

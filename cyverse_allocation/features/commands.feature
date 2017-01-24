@@ -65,7 +65,7 @@ Feature: Commands Testing
 
   Examples: Compute Allowed Values
       |  old_compute_allowed    |  new_compute_allowed  | compute_allowed_is_changed |
-      |  128                    |  240                  | True                      |
-      |  240                    |  72                   | True                      |
+      |  128                    |  240                  | True                       |
+      |  240                    |  72                   | True                       |
 
 #  ######################################################################################################
