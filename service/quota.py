@@ -52,7 +52,7 @@ def check_over_instance_quota(
         has_mem_quota(driver, quota, new_ram)
         has_instance_count_quota(driver, quota, new_instance)
         has_floating_ip_count_quota(driver, quota, new_floating_ip)
-        has_port_count_quota(driver, quota, new_port)
+        has_port_count_quota(identity, driver, quota, new_port)
         return True
     except ValidationError:
         if raise_exc:

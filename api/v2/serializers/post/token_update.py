@@ -45,11 +45,10 @@ class TokenUpdateSerializer(serializers.Serializer):
             # Can't validate driver if identity can't be created.
             return
 
-        try:
-            driver = get_esh_driver(ident, identity_kwargs={'ex_force_auth_token': new_token_key})
-            driver.list_sizes()
-        except:
-            raise serializers.ValidationError("Token returned from keystone could not create an rtwo driver")
+        driver = get_esh_driver(ident, identity_kwargs={'ex_force_auth_token': new_token_key})
+        if not driver.is_valid():
+            raise serializers.ValidationError(
+                "Token returned from keystone could not create an rtwo driver")
 
     def _create_identity(self, provider_uuid, username, project_name, token):
         try:

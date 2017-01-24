@@ -38,9 +38,8 @@ class Authentication(APIView):
             return invalid_auth("Username missing")
 
         auth_kwargs = {"username":username, "password":password, "request":request}
-        if project_name:
+        if project_name and auth_url:
             auth_kwargs['project_name'] = project_name
-        if auth_url:
             auth_kwargs['auth_url'] = auth_url
         user = authenticate(**auth_kwargs)
         if not user:
