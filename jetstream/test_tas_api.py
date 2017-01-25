@@ -73,3 +73,20 @@ class TestJetstream(TestCase):
         self.assertEquals(projects[-1], result[-1])
 
         assert_cassette_playback_length(cassette, 1)
+
+    @my_vcr.use_cassette()
+    def test_get_tacc_username_api_problem(self, cassette):
+        """Make sure we don't return the Atmosphere username when we have trouble connecting to the TAS API.
+        It should fail.
+
+        TODO: Figure out how to handle it gracefully.
+        """
+        from jetstream.allocation import TASAPIDriver
+        tas_driver = TASAPIDriver()
+        tas_driver.clear_cache()
+        self.assertDictEqual(tas_driver.username_map, {})
+        user = UserFactory.create(username='jfischer')
+        with self.assertRaises(Exception):
+            tacc_username = tas_driver.get_tacc_username(user)
+        self.assertDictEqual(tas_driver.username_map, {})
+        assert_cassette_playback_length(cassette, 1)
