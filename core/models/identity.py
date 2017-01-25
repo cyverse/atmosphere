@@ -187,7 +187,7 @@ class Identity(models.Model):
         # upon creation. If the value is not passed in, we can ask the provider to select
         # the router with the least 'usage' to ensure an "eventually consistent" distribution
         # of users->routers.
-        topologyClsName = provider.get_config('network','topology')
+        topologyClsName = provider.get_config('network', 'topology', raise_exc=False)
         if topologyClsName == 'External Router Topology' and 'router_name' not in credentials:
             credentials['router_name'] = provider.select_router()
 

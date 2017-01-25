@@ -10,10 +10,10 @@ from threepio import logger
 
 from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
-    OSProvider
+    OSProvider, MockProvider
 from rtwo.models.identity import AWSIdentity, EucaIdentity,\
-    OSIdentity
-from rtwo.driver import AWSDriver, EucaDriver, OSDriver
+    OSIdentity, MockIdentity
+from rtwo.driver import AWSDriver, EucaDriver, OSDriver, MockDriver
 
 
 #TODO: Remove these ASAP -- Once we determine it will not be a problem.
@@ -122,6 +122,11 @@ def get_account_driver(provider, raise_exception=False):
 
 
 ESH_MAP = {
+    'mock': {
+        'provider': MockProvider,
+        'identity': MockIdentity,
+        'driver': MockDriver
+    },
     'openstack': {
         'provider': OSProvider,
         'identity': OSIdentity,

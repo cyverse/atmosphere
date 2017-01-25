@@ -3,18 +3,20 @@ from core.models import (
 )
 from core.query import contains_credential
 from service.driver import get_esh_driver
+from api.v2.serializers.summaries import IdentitySummarySerializer
 
 from rest_framework import serializers
 
 
-class TokenUpdateSerializer(serializers.Serializer):
+class TokenUpdateSerializer(serializers.ModelSerializer):
     """
     """
     # Flags
     username = serializers.CharField(write_only=True)
     token = serializers.CharField(write_only=True)
     project_name = serializers.CharField(write_only=True)
-    provider = serializers.UUIDField(format='hex_verbose')
+    provider = serializers.UUIDField(format='hex_verbose', write_only=True)
+    identity_uuid = serializers.CharField(source='uuid', read_only=True)
 
     def validate(self, data):
         """
@@ -45,10 +47,14 @@ class TokenUpdateSerializer(serializers.Serializer):
             # Can't validate driver if identity can't be created.
             return
 
-        driver = get_esh_driver(ident, identity_kwargs={'ex_force_auth_token': new_token_key})
-        if not driver.is_valid():
-            raise serializers.ValidationError(
-                "Token returned from keystone could not create an rtwo driver")
+        try:
+            driver = get_esh_driver(ident, identity_kwargs={'ex_force_auth_token': new_token_key})
+            if not driver.is_valid():
+                raise serializers.ValidationError(
+                    "Token returned from keystone could not create an rtwo driver")
+        except Exception as exc:
+                raise serializers.ValidationError(
+                        "Driver could not be created: %s" % exc)
 
     def _create_identity(self, provider_uuid, username, project_name, token):
         try:
@@ -58,7 +64,7 @@ class TokenUpdateSerializer(serializers.Serializer):
         identity = Identity.create_identity(
             username, provider.location,
             cred_key=username, cred_ex_project_name=project_name, cred_ex_force_auth_token=token)
-        # FIXME: In a different PR re-work quota to sync with the values in OpenStack.
+        # FIXME: In a different PR re-work quota to sync with the values in OpenStack. otherwise the value assigned (default) will differ from the users _actual_ quota in openstack.
         self.validate_token_with_driver(provider_uuid, username, project_name, token)
         return identity
 
@@ -87,8 +93,10 @@ class TokenUpdateSerializer(serializers.Serializer):
             raise ValueError("Expected 'request/user' to be passed in via context for this serializer")
 
     class Meta:
+        model = Identity
         fields = (
             'provider',
+            'identity_uuid',
             'username',
             'project_name',
             'token'

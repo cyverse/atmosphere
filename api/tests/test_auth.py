@@ -1,82 +1,82 @@
-from django.core.urlresolvers import reverse
-from django.test import TestCase
+from rest_framework.test import APITestCase
+from api.tests.factories import UserFactory, AnonymousUserFactory
 
-import json
+class AuthTests(APITestCase):
+    def setUp(self):
+        self.anonymous_user = AnonymousUserFactory()
+        self.username = "test-user"
+        self.password = "test-password"
+        self.user = UserFactory.create(username=self.username)
+        self.user.set_password(self.password)
+        self.auth_url = "/auth"
 
-from rest_framework import status
-from rest_framework.test import APIClient
-from urlparse import urljoin
+    def test_invalid_openstack_auth(self):
+        data = {
+            'username': self.username,
+            'password': self.password,
+            'project_name': self.username,
+            'auth_url': "https://fake.cloud.atmosphere"
+        }
+        response = self.client.post(self.auth_url, data)
+        resp_data = response.data
+        self.assertEquals(response.status_code, 400)
+        self.assertTrue('errors' in resp_data)
+        self.assertTrue('message' in resp_data['errors'][0])
+        err_message = resp_data['errors'][0]['message']
+        self.assertTrue("Username/Password combination was invalid" in err_message)
 
-from atmosphere import settings
-from api.tests import verify_expected_output
-from service.accounts.openstack_manager import AccountDriver as OSAccounts
+    #TODO: This will *ONLY* work if OpenstackLoginBackend is in settings.AUTHENTICATION_BACKENDS *AND* the credentials are valid
+    # def test_valid_openstack_auth(self):
+    #     data = {
+    #         'username': self.username,
+    #         'password': self.password,
+    #         'project_name': self.username,
+    #         'auth_url': "https://real.cloud.atmosphere"
+    #     }
+    #     response = self.client.post(self.auth_url, data)
+    #     resp_data = response.data
+    #     self.assertEquals(response.status_code, 201)
+    #     self.assertTrue(resp_data['username'] == test_username)
+    #     self.assertTrue(resp_data['token'] != None)
 
-# These tests do not apply when not using LDAP based auth.
-# TODO: Rewrite this to ensure that token api is available *WITHOUT* the need to test LDAP explicitly.
+    #TODO: This will *ONLY* work if ModelLoginBackend is in settings.AUTHENTICATION_BACKENDS
+    # def test_valid_model_auth(self):
+    #     data = {
+    #         'username': self.username,
+    #         'password': self.password,
+    #     }
+    #     response = self.client.post(self.auth_url, data)
+    #     self.assertEquals(response.status_code, 201)
+    #     data = response.data
 
-# class TokenAPIClient(APIClient):
-#     token = None
-# 
-#     def ldap_new_token(self, api_client, **credentials):
-#         """
-#         Authenticate **credentials, create a token and return the tokens uuid
-#         """
-#         reverse_url = reverse('token-auth')
-#         data = {
-#             "username": credentials.get('username'),
-#             "password": credentials.get('password'),
-#         }
-#         full_url = urljoin(settings.SERVER_URL, reverse_url)
-#         response = api_client.post(full_url, data, format='multipart')
-#         content = response.content
-#         if content:
-#             json_data = json.loads(response.content)
-#         else:
-#             json_data = None
-#         return json_data
-# 
-#     def login(self, **credentials):
-#         logged_in = super(TokenAPIClient, self).login(**credentials)
-#         if not logged_in:
-#             return False
-#         self.token = self.ldap_new_token(self, **credentials)
-#         if not self.token:
-#             return False
-#         self.credentials(HTTP_AUTHORIZATION='Token %s' % self.token['token'])
-#         return True
-# 
-# 
-# class AuthTests(TestCase):
-#     api_client = None
-# 
-#     expected_output = {
-#         "username": "",
-#         "token": "",
-#         "expires": "",
-#     }
-# 
-#     def setUp(self):
-#         # Initialize API
-#         pass
-# 
-#     def tearDown(self):
-#         pass
-# 
-#     # TODO: Remove comments if testing of 'Groupy' OAuth is required.
-#     #    """
-#     #    Explicitly call auth and test that tokens can be created.
-#     #    """
-# 
-#     def test_api_token(self):
-#         """
-#         Explicitly call auth and test that tokens can be created.
-#         """
-#         self.api_client = TokenAPIClient()
-#         self.api_client.login(
-#             username=settings.TEST_RUNNER_USER,
-#             password=settings.TEST_RUNNER_PASS)
-#         verify_expected_output(
-#             self,
-#             self.api_client.token,
-#             self.expected_output)
-#         self.api_client.logout()
+    #TODO: This will *ONLY* work if LDAPLoginBackend is properly setup *AND* you use a valid set of credentials
+    # def test_valid_ldap_auth(self):
+    #     test_username = "sgregory-test"
+    #     test_password = "fake_password"
+    #     data = {
+    #         'username': test_username,
+    #         'password': test_password
+    #     }
+    #     response = self.client.post(self.auth_url, data)
+    #     resp_data = response.data
+    #     self.assertEquals(response.status_code, 201)
+    #     self.assertTrue(resp_data['username'] == test_username)
+    #     self.assertTrue(resp_data['token'] != None)
+
+    def test_invalid_ldap_auth(self):
+        test_username = "sgregory-test"
+        test_password = "fake_password"
+        data = {
+            'username': test_username,
+            'password': test_password
+        }
+        response = self.client.post(self.auth_url, data)
+        resp_data = response.data
+        self.assertEquals(response.status_code, 400)
+        self.assertTrue('errors' in resp_data)
+        self.assertTrue('message' in resp_data['errors'][0])
+        err_message = resp_data['errors'][0]['message']
+        self.assertTrue("Username/Password combination was invalid" in err_message)
+
+
+
