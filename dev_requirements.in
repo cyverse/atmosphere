@@ -1,0 +1,18 @@
+coverage==3.7.1
+colorama==0.3.3 # used by ./configure
+django-debug-toolbar  #NOTE: Profiles SQL/CPU time of requests real-time.
+django-jenkins==0.19.0
+django-nose
+emoji==0.3.6
+factory-boy==2.4.1
+flake8
+GitPython==1.0.1
+ipdb
+ipython
+mock==1.0.1
+newrelic==2.64.0.48 # newrelic investigation.
+pep8
+pip-tools
+wheel
+vcrpy
+json_delta
