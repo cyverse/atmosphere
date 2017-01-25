@@ -23,7 +23,7 @@ except ImportError:
         try:
 
 virtualenv env && source env/bin/activate && \\
-pip install -r dev_requirements.txt
+pip install -r requirements.txt
     ''')
 
 try:
@@ -34,7 +34,7 @@ except ImportError:
 Note: you are missing out on color highlighted output.
 Consider re-running the following to get `colorama` installed:
 
-pip install -r dev_requirements.txt
+pip install -r requirements.txt
 '''
     # Mock out ANSI color flags to empty values
     class ForeMock:

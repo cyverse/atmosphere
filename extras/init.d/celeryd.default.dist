@@ -53,12 +53,12 @@ export C_FORCE_ROOT
 
 # Where to chdir at start.
 # the module that defines your Celery app instance also
-# set a default value for DJANGO_SETTINGS_MODULE 
+# set a default value for DJANGO_SETTINGS_MODULE
 CELERYD_CHDIR="/opt/dev/atmosphere"
 
-# SSH Key files
-SSH_CERT_FILE="/etc/ssl/certs/iplantc.org.crt"
-SSH_KEY_FILE="/etc/ssl/private/iplantc.key"
+# TLS certificate files
+TLS_CERT_FILE="/etc/ssl/certs/mydomain.org.crt"
+TLS_KEY_FILE="/etc/ssl/private/mydomain.org.key"
 
 # Safe list of serializers used by celery
 CELERY_ACCEPT_CONTENT="['pickle', 'json', 'msgpack']"
@@ -102,7 +102,7 @@ FLOWER_AUTH_OPT="--basic_auth=$ADMIN_USER:$ADMIN_PASS"
 OAUTH2_ACCESS_LIST=""
 
 FLOWER_LOG_FILE="/var/log/celery/flower.log"
-CELERY_FLOWER_OPTS="--certfile=$SSH_CERT_FILE --keyfile=$SSH_KEY_FILE --port=8443 --log_file_prefix=$FLOWER_LOG_FILE --logging=warn --url_prefix=flower $FLOWER_BROKER_OPT $FLOWER_AUTH_OPT"
+CELERY_FLOWER_OPTS="--certfile=$TLS_CERT_FILE --keyfile=$TLS_KEY_FILE --port=8443 --log_file_prefix=$FLOWER_LOG_FILE --logging=warn --url_prefix=flower $FLOWER_BROKER_OPT $FLOWER_AUTH_OPT"
 
 ###
 #

@@ -10,8 +10,8 @@ server {
     charset utf-8;
 
     ssl    on;
-    ssl_certificate {{ COMBINED_CERT_PATH }};
-    ssl_certificate_key {{ KEY_PATH }}/{{ KEY_FILE }};
+    ssl_certificate {{ NGINX_TLS_FULLCHAIN_DEST }};
+    ssl_certificate_key {{ NGINX_TLS_PRIVKEY_DEST }};
 
     ssl_ciphers 'AES128+EECDH:AES128+EDH';
 

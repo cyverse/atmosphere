@@ -1,0 +1,45 @@
+pycparser==2.14 # TEMPORARY
+
+Django==1.9.8
+django-cors-headers==0.12.0
+django-sslserver #NOTE: Debugs requests real-time.
+djangorestframework==3.4.1
+djangorestframework-jsonp==1.0.0
+djangorestframework-xml==1.0.1
+djangorestframework-yaml==1.0.2
+djangorestframework-csv
+numpy
+pandas
+xlsxwriter
+django-filter==0.13.0
+django-redis-cache==0.13.0
+redis==2.10.3
+eventlet==0.18.4
+
+Jinja2==2.8
+celery==3.1.23
+flower==0.9.0
+django-celery==3.1.16
+
+gevent==1.0.1
+
+apache-libcloud==0.20.1
+requests[security]==2.11.1
+python-dateutil==1.4.1
+pytz==2016.2
+Pillow==2.5.3
+PyJWT==1.4.0
+
+python-logstash==0.4.5
+
+#Theirs
+psycopg2==2.5.4
+python-ldap==2.4.19
+uWSGI==2.0.13
+
+## ours
+chromogenic
+django-cyverse-auth
+threepio
+rtwo
+subspace

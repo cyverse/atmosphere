@@ -1,10 +1,7 @@
 ATMOSPHERE_PATH={{ ATMOSPHERE_PATH }}
-BUNDLE_PATH={{ CERT_DIR }}/{{ BUNDLE_FILE }}
-CERT_PATH={{ CERT_DIR }}/{{ CERT_FILE }}
 DHPARAM={{ DHPARAM }}
+DHPARAM_KEY_SIZE={{ DHPARAM_KEY_SIZE }}
 LOCATIONS_DIR={{ LOCATIONS_DIR }}
-KEY_PATH={{ KEY_PATH }}/{{ KEY_FILE }}
-KEY_SIZE={{ KEY_SIZE }}
 SERVER_URL={{ SERVER_URL }}
 SITES_AVAILABLE_DIR={{ SITES_AVAILABLE_DIR }}
 SITES_ENABLED_DIR={{ SITES_ENABLED_DIR }}
@@ -23,14 +20,14 @@ JENKINS_CONF_FILE=jenkins.conf
 JENKINS_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(JENKINS_CONF_FILE)
 
 
-.PHONY: all clean restart test setup setup-site setup-atmo deploy deploy-atmo deploy-flower deploy-jenkins unlink unlink-site unlink-atmo unlink-flower unlink-jenkins $(COMBINED_CERT_PATH)
+.PHONY: all clean restart test setup setup-site setup-atmo deploy deploy-atmo deploy-flower deploy-jenkins unlink unlink-site unlink-atmo unlink-flower unlink-jenkins
 
 all: deploy
 
 $(DHPARAM):
-	openssl dhparam -out $(DHPARAM) $(KEY_SIZE)
+	openssl dhparam -out $(DHPARAM) $(DHPARAM_KEY_SIZE)
 
-setup: setup-site setup-atmo 
+setup: setup-site setup-atmo
 
 setup-site:
 	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/configure -c nginx:nginx-site
