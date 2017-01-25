@@ -1,6 +1,7 @@
 from behave import *
 from django.test.client import Client
 from core.models import AtmosphereUser
+from core.models import AllocationSourceSnapshot
 import json
 
 @given('a user')
@@ -35,11 +36,11 @@ def step_impl(context,allocation_source_is_created):
 @given('An Allocation Source with renewal strategy')
 def step_impl(context):
     for row in context.table:
-        allocation_source = context.client.post('/api/v2/allocation_sources',
+        response = context.client.post('/api/v2/allocation_sources',
                                                {"renewal_strategy": row['renewal strategy'],
                                                 "name": "TestAllocationSource",
                                                 "compute_allowed": 5000})
-        context.source_id = allocation_source.data['source_id']
+        context.source_id = response.data['source_id']
 
 @when('change_renewal_strategy command is fired with {new_renewal_strategy}')
 def step_impl(context, new_renewal_strategy):
@@ -64,12 +65,12 @@ def step_impl(context, renewal_strategy_is_changed):
 @given('An Allocation Source with name')
 def step_impl(context):
     for row in context.table:
-        allocation_source = context.client.post('/api/v2/allocation_sources',
+        response = context.client.post('/api/v2/allocation_sources',
                                                 {"renewal_strategy": 'default',
                                                  "name": row['name'],
                                                  "compute_allowed": 5000})
 
-        context.source_id = allocation_source.data['source_id']
+        context.source_id = response.data['source_id']
 
 @when('change_allocation_source_name command is fired with {new_name}')
 def step_impl(context, new_name):
@@ -87,16 +88,22 @@ def step_impl(context, name_is_changed):
 
 # Change Compute Allowed
 
-@given('Allocation Source with compute_allowed')
+@given('Allocation Source with compute allowed and compute used')
 def step_impl(context):
     for row in context.table:
-        allocation_source = context.client.post('/api/v2/allocation_sources',
+        response = context.client.post('/api/v2/allocation_sources',
                                                 { "renewal_strategy": 'default',
                                                  "name": "TestAllocationSource",
                                                  "compute_allowed": int(row["compute_allowed"])})
 
         context.old_compute_allowed = row['compute_allowed']
-        context.source_id = allocation_source.data['source_id']
+        context.source_id = response.data['source_id']
+
+        # set compute used for AllocationSourceSnapshot if compute_used > 0
+        if int(row['compute_used'])>0 and response.status_code==201:
+            snapshot = AllocationSourceSnapshot.objects.get(allocation_source__source_id=context.source_id)
+            snapshot.compute_used = int(row['compute_used'])
+            snapshot.save()
 
 @when('change_compute_allowed command is fired with {new_compute_allowed}')
 def step_impl(context, new_compute_allowed):

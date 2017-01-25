@@ -56,16 +56,17 @@ Feature: Commands Testing
 #  ######################################################################################################
 
   Scenario Outline: Change Compute Allowed
-      Given Allocation Source with compute_allowed
-      | compute_allowed       |
-      | <old_compute_allowed> |
+      Given Allocation Source with compute allowed and compute used
+      | compute_allowed       | compute_used   |
+      | <old_compute_allowed> | <compute_used> |
 
       When  change_compute_allowed command is fired with <new_compute_allowed>
       Then  compute allowed is changed = <compute_allowed_is_changed>
 
   Examples: Compute Allowed Values
-      |  old_compute_allowed    |  new_compute_allowed  | compute_allowed_is_changed |
-      |  128                    |  240                  | True                       |
-      |  240                    |  72                   | True                       |
+      |  old_compute_allowed    |  new_compute_allowed  | compute_used  | compute_allowed_is_changed |
+      |  128                    |  240                  |  0            | True                       |
+      |  240                    |  72                   |  150          | False                      |
+      |  240                    |  72                   |   50          | True                       |
 
 #  ######################################################################################################
