@@ -1,21 +1,69 @@
+import mock
+from core.models import AtmosphereUser
+from django.test import modify_settings
+from django.conf import settings
 from rest_framework.test import APITestCase
 from api.tests.factories import UserFactory, AnonymousUserFactory
 
+
+class OverrideLoginBackend():
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def authenticate(self, username=None, password=None, *args, **kwargs):       # Authenticate username/password if the user exists, otherwise create it
+        user = None
+        try:
+            user = AtmosphereUser.objects.get(username=username)
+            if user.check_password(password):
+                return user
+        except:
+            user = AtmosphereUser.objects.create(username=username)
+            user.set_password(password)
+            user.save()
+        return user
+
+
 class AuthTests(APITestCase):
+
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.username = "test-user"
         self.password = "test-password"
         self.user = UserFactory.create(username=self.username)
         self.user.set_password(self.password)
+        self.user.save()
         self.auth_url = "/auth"
 
-    def test_invalid_openstack_auth(self):
+    @modify_settings(AUTHENTICATION_BACKENDS={
+        'append': 'django_cyverse_auth.authBackends.OpenstackLoginBackend',
+    })
+    @mock.patch('django_cyverse_auth.authBackends.OpenstackLoginBackend', side_effect=OverrideLoginBackend)
+    def test_valid_openstack_auth(self, patch_func):
+        if 'django_cyverse_auth.authBackends.OpenstackLoginBackend' not in settings.AUTHENTICATION_BACKENDS:
+            self.skipTest('django_cyverse_auth.authBackends.OpenstackLoginBackend not in settings.AUTHENTICATION_BACKENDS')
         data = {
             'username': self.username,
             'password': self.password,
             'project_name': self.username,
-            'auth_url': "https://fake.cloud.atmosphere"
+            'auth_url': "localhost"
+        }
+        response = self.client.post(self.auth_url, data)
+        resp_data = response.data
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(resp_data['username'] == self.username)
+        self.assertTrue(resp_data['token'] is not None)
+
+    @modify_settings(AUTHENTICATION_BACKENDS={
+        'append': 'django_cyverse_auth.authBackends.OpenstackLoginBackend',
+    })
+    def test_invalid_openstack_auth(self):
+        if 'django_cyverse_auth.authBackends.OpenstackLoginBackend' not in settings.AUTHENTICATION_BACKENDS:
+            self.skipTest('django_cyverse_auth.authBackends.OpenstackLoginBackend not in settings.AUTHENTICATION_BACKENDS')
+        data = {
+            'username': self.username,
+            'password': self.password,
+            'project_name': self.username,
+            'auth_url': "localhost"
         }
         response = self.client.post(self.auth_url, data)
         resp_data = response.data
@@ -25,50 +73,29 @@ class AuthTests(APITestCase):
         err_message = resp_data['errors'][0]['message']
         self.assertTrue("Username/Password combination was invalid" in err_message)
 
-    #TODO: This will *ONLY* work if OpenstackLoginBackend is in settings.AUTHENTICATION_BACKENDS *AND* the credentials are valid
-    # def test_valid_openstack_auth(self):
-    #     data = {
-    #         'username': self.username,
-    #         'password': self.password,
-    #         'project_name': self.username,
-    #         'auth_url': "https://real.cloud.atmosphere"
-    #     }
-    #     response = self.client.post(self.auth_url, data)
-    #     resp_data = response.data
-    #     self.assertEquals(response.status_code, 201)
-    #     self.assertTrue(resp_data['username'] == test_username)
-    #     self.assertTrue(resp_data['token'] != None)
-
-    #TODO: This will *ONLY* work if ModelLoginBackend is in settings.AUTHENTICATION_BACKENDS
-    # def test_valid_model_auth(self):
-    #     data = {
-    #         'username': self.username,
-    #         'password': self.password,
-    #     }
-    #     response = self.client.post(self.auth_url, data)
-    #     self.assertEquals(response.status_code, 201)
-    #     data = response.data
-
-    #TODO: This will *ONLY* work if LDAPLoginBackend is properly setup *AND* you use a valid set of credentials
-    # def test_valid_ldap_auth(self):
-    #     test_username = "sgregory-test"
-    #     test_password = "fake_password"
-    #     data = {
-    #         'username': test_username,
-    #         'password': test_password
-    #     }
-    #     response = self.client.post(self.auth_url, data)
-    #     resp_data = response.data
-    #     self.assertEquals(response.status_code, 201)
-    #     self.assertTrue(resp_data['username'] == test_username)
-    #     self.assertTrue(resp_data['token'] != None)
+    @modify_settings(AUTHENTICATION_BACKENDS={
+        'append': 'django_cyverse_auth.authBackends.LDAPLoginBackend',
+    })
+    @mock.patch('django_cyverse_auth.authBackends.LDAPLoginBackend', side_effect=OverrideLoginBackend)
+    def test_valid_ldap_auth(self, patch_func):
+        if 'django_cyverse_auth.authBackends.LDAPLoginBackend' not in settings.AUTHENTICATION_BACKENDS:
+            self.skipTest('django_cyverse_auth.authBackends.LDAPLoginBackend not in settings.AUTHENTICATION_BACKENDS')
+        data = {
+            'username': self.username,
+            'password': self.password
+        }
+        response = self.client.post(self.auth_url, data)
+        resp_data = response.data
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(resp_data['username'] == self.username)
+        self.assertTrue(resp_data['token'] is not None)
 
     def test_invalid_ldap_auth(self):
-        test_username = "sgregory-test"
-        test_password = "fake_password"
+        if 'django_cyverse_auth.authBackends.LDAPLoginBackend' not in settings.AUTHENTICATION_BACKENDS:
+            self.skipTest('django_cyverse_auth.authBackends.LDAPLoginBackend not in settings.AUTHENTICATION_BACKENDS')
         data = {
-            'username': test_username,
-            'password': test_password
+            'username': self.username,
+            'password': self.password
         }
         response = self.client.post(self.auth_url, data)
         resp_data = response.data
@@ -78,5 +105,16 @@ class AuthTests(APITestCase):
         err_message = resp_data['errors'][0]['message']
         self.assertTrue("Username/Password combination was invalid" in err_message)
 
-
-
+    @modify_settings(AUTHENTICATION_BACKENDS={
+        'append': 'django.contrib.auth.backends.ModelBackend',
+        })
+    def test_valid_model_auth(self):
+        if 'django.contrib.auth.backends.ModelBackend' not in settings.AUTHENTICATION_BACKENDS:
+            self.skipTest('django.contrib.auth.backends.ModelBackend not in settings.AUTHENTICATION_BACKENDS')
+        data = {
+            'username': self.username,
+            'password': self.password,
+        }
+        response = self.client.post(self.auth_url, data)
+        self.assertEquals(response.status_code, 201)
+        data = response.data
