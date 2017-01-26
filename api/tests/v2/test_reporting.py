@@ -1,5 +1,5 @@
 import json
-from unittest import skip, skipIf
+from unittest import skip, skipUnless
 
 from django.core.urlresolvers import reverse
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
@@ -27,9 +27,11 @@ class ReportingTests(APITestCase):
         self.user = UserFactory.create()
         self.view = ReportingViewSet.as_view({'get': 'list'})
 
-    @skipIf(contains_user('test-julianp'), 'The database does not contain the user test-julianp')
+    @skipUnless(contains_user('test-julianp'), 'The database does not contain the user test-julianp')
     def test_a_sanity_check(self):
-        """Will only work with a correct database."""
+        """Will only work with a correct database.
+        TODO: Create providers and fixtures necessary to get working.
+        """
         factory = APIRequestFactory()
         url = '/api/v2/reporting?start_date=2016-01-01&end_date=2016-10-25&provider_id=1&provider_id=2&provider_id=3&' \
               'provider_id=4&provider_id=5&provider_id=6'
