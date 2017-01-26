@@ -1,9 +1,10 @@
 import mock
-from core.models import AtmosphereUser
-from django.test import modify_settings
 from django.conf import settings
+from django.test import override_settings
 from rest_framework.test import APITestCase
+
 from api.tests.factories import UserFactory, AnonymousUserFactory
+from core.models import AtmosphereUser
 
 
 class OverrideLoginBackend():
@@ -34,9 +35,7 @@ class AuthTests(APITestCase):
         self.user.save()
         self.auth_url = "/auth"
 
-    @modify_settings(AUTHENTICATION_BACKENDS={
-        'append': 'django_cyverse_auth.authBackends.OpenstackLoginBackend',
-    })
+    @override_settings(AUTHENTICATION_BACKENDS=('django_cyverse_auth.authBackends.OpenstackLoginBackend',))
     @mock.patch('django_cyverse_auth.authBackends.OpenstackLoginBackend', side_effect=OverrideLoginBackend)
     def test_valid_openstack_auth(self, patch_func):
         if 'django_cyverse_auth.authBackends.OpenstackLoginBackend' not in settings.AUTHENTICATION_BACKENDS:
@@ -53,9 +52,7 @@ class AuthTests(APITestCase):
         self.assertTrue(resp_data['username'] == self.username)
         self.assertTrue(resp_data['token'] is not None)
 
-    @modify_settings(AUTHENTICATION_BACKENDS={
-        'append': 'django_cyverse_auth.authBackends.OpenstackLoginBackend',
-    })
+    @override_settings(AUTHENTICATION_BACKENDS=('django_cyverse_auth.authBackends.OpenstackLoginBackend',))
     def test_invalid_openstack_auth(self):
         if 'django_cyverse_auth.authBackends.OpenstackLoginBackend' not in settings.AUTHENTICATION_BACKENDS:
             self.skipTest('django_cyverse_auth.authBackends.OpenstackLoginBackend not in settings.AUTHENTICATION_BACKENDS')
@@ -73,9 +70,7 @@ class AuthTests(APITestCase):
         err_message = resp_data['errors'][0]['message']
         self.assertTrue("Username/Password combination was invalid" in err_message)
 
-    @modify_settings(AUTHENTICATION_BACKENDS={
-        'append': 'django_cyverse_auth.authBackends.LDAPLoginBackend',
-    })
+    @override_settings(AUTHENTICATION_BACKENDS=('django_cyverse_auth.authBackends.LDAPLoginBackend',))
     @mock.patch('django_cyverse_auth.authBackends.LDAPLoginBackend', side_effect=OverrideLoginBackend)
     def test_valid_ldap_auth(self, patch_func):
         if 'django_cyverse_auth.authBackends.LDAPLoginBackend' not in settings.AUTHENTICATION_BACKENDS:
@@ -90,9 +85,7 @@ class AuthTests(APITestCase):
         self.assertTrue(resp_data['username'] == self.username, "Response returned unexpected username <%s>, expected %s" % (resp_data['username'], self.username))
         self.assertTrue(resp_data['token'] is not None)
 
-    @modify_settings(AUTHENTICATION_BACKENDS={
-        'append': 'django_cyverse_auth.authBackends.LDAPLoginBackend',
-    })
+    @override_settings(AUTHENTICATION_BACKENDS=('django_cyverse_auth.authBackends.LDAPLoginBackend',))
     def test_invalid_ldap_auth(self):
         if 'django_cyverse_auth.authBackends.LDAPLoginBackend' not in settings.AUTHENTICATION_BACKENDS:
             self.skipTest('django_cyverse_auth.authBackends.LDAPLoginBackend not in settings.AUTHENTICATION_BACKENDS')
@@ -108,9 +101,7 @@ class AuthTests(APITestCase):
         err_message = resp_data['errors'][0]['message']
         self.assertTrue("Username/Password combination was invalid" in err_message)
 
-    @modify_settings(AUTHENTICATION_BACKENDS={
-        'append': 'django.contrib.auth.backends.ModelBackend',
-        })
+    @override_settings(AUTHENTICATION_BACKENDS=('django.contrib.auth.backends.ModelBackend',))
     def test_valid_model_auth(self):
         if 'django.contrib.auth.backends.ModelBackend' not in settings.AUTHENTICATION_BACKENDS:
             self.skipTest('django.contrib.auth.backends.ModelBackend not in settings.AUTHENTICATION_BACKENDS')
