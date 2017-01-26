@@ -105,19 +105,18 @@ def set_provider_quota(identity_uuid, limit_dict=None):
     if not identity.credential_set.all():
         # Can't update quota if credentials arent set
         return
-    username = identity.created_by.username
-    membership = IdentityMembership.objects.get(
-        identity__uuid=identity_uuid,
-        member__name=username)
     user_quota = identity.quota
 
     if not user_quota:
         # Can't update quota if it doesn't exist
-        return True
+        return
     # Don't go above the hard-set limits per provider.
     #_limit_user_quota(user_quota, identity, limit_dict=limit_dict)
-
-    return _set_openstack_quota(user_quota, identity)
+    if identity.provider.type.name.lower() == 'openstack':
+        return _set_openstack_quota(user_quota, identity)
+    else:
+        # Only attempt to set quota for known provider types
+        return
 
 
 def _get_hard_limits(identity):
