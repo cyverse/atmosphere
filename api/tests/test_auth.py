@@ -87,9 +87,12 @@ class AuthTests(APITestCase):
         response = self.client.post(self.auth_url, data)
         resp_data = response.data
         self.assertEquals(response.status_code, 201)
-        self.assertTrue(resp_data['username'] == self.username)
+        self.assertTrue(resp_data['username'] == self.username, "Response returned unexpected username <%s>, expected %s" % (resp_data['username'], self.username))
         self.assertTrue(resp_data['token'] is not None)
 
+    @modify_settings(AUTHENTICATION_BACKENDS={
+        'append': 'django_cyverse_auth.authBackends.LDAPLoginBackend',
+    })
     def test_invalid_ldap_auth(self):
         if 'django_cyverse_auth.authBackends.LDAPLoginBackend' not in settings.AUTHENTICATION_BACKENDS:
             self.skipTest('django_cyverse_auth.authBackends.LDAPLoginBackend not in settings.AUTHENTICATION_BACKENDS')

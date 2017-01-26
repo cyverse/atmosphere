@@ -1,4 +1,5 @@
 from django.core.urlresolvers import reverse
+from django.test import modify_settings
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from api.tests.factories import UserFactory, AnonymousUserFactory, ProviderFactory
 from api.v2.views import TokenUpdateViewSet, IdentityViewSet, CredentialViewSet
@@ -13,6 +14,9 @@ class TokenUpdateTests(APITestCase):
         self.credentials_view = CredentialViewSet.as_view({'get': 'list'})
         self.token_uuid = "test-token-1234-debug"
 
+    @modify_settings(AUTHENTICATION_BACKENDS={
+        'append': 'django_cyverse_auth.authBackends.OpenstackLoginBackend',
+    })
     def test_invalid_provider_token_update(self):
         factory = APIRequestFactory()
         url = reverse('api:v2:token_update-list')
@@ -27,7 +31,7 @@ class TokenUpdateTests(APITestCase):
         response = self.view(request)
         self.assertTrue(response.status_code == 400)
         self.assertTrue('provider' in response.data)
-        self.assertTrue("not a valid UUID" in response.data['provider'])
+        self.assertTrue("not a valid UUID" in response.data['provider'][0], "API returned unexpected error message %s" % response.data['provider'][0])
 
     def test_valid_data_token_update(self):
         factory = APIRequestFactory()
