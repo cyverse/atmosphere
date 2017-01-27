@@ -19,8 +19,8 @@ class PandasExcelRenderer(CSVRenderer):
         filename = renderer_context.get('filename', 'workbook.xlsx')
         # Hard-coded headers_ordering required to force an explicit ordering, otherwise headers are sorted by key-name
         headers_ordering = renderer_context.get('headers_ordering', None)
-        table = self.tablize(data, header=headers_ordering)
-
+        table_gen = self.tablize(data, header=headers_ordering)
+        table = [r for r in table_gen]
         headers = table.pop(0)
         raw_dataframe = pd.DataFrame(table, columns=headers)
         #Save to StringIO
