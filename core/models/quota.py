@@ -7,6 +7,8 @@ from django.conf import settings
 from django.db import models
 from django.core.exceptions import ValidationError
 
+from threepio import logger
+
 # Default functions to be allow for dynamic-defaults
 # Values to the right will be used IF the configuration
 # does not provide a value
@@ -224,7 +226,7 @@ def has_instance_count_quota(driver, quota, new_size=0, raise_exc=True):
     return False
 
 
-def has_port_count_quota(driver, quota, new_size=0, raise_exc=True):
+def has_port_count_quota(identity, driver, quota, new_size=0, raise_exc=True):
     """
     True if the total number of ports found on driver are
     less than or equal to Quota.port_count, otherwise False.
@@ -235,7 +237,16 @@ def has_port_count_quota(driver, quota, new_size=0, raise_exc=True):
     # Always True if port_count is null
     if not quota.port_count or quota.port_count < 0:
         return True
-    fixed_ips = [port for port in driver._connection.neutron_list_ports() if port['device_owner'] == 'compute:None']
+    # Consider it true if we fail to connect here
+    try:
+        from service.instance import _to_network_driver
+        network_driver = _to_network_driver(identity)
+        port_list = network_driver.list_ports()
+    except Exception as exc:
+        logger.warn("Could not verify quota due to failed call to network_driver.list_ports() - %s" % exc)
+        return True
+
+    fixed_ips = [port for port in port_list if 'compute:' in port['device_owner']]
     total_size = new_size
     total_size += len(fixed_ips)
     if total_size <= quota.port_count:

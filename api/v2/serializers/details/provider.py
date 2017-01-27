@@ -32,6 +32,10 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
     virtualization = PlatformTypeSerializer()
     sizes = SizeSummarySerializer(source='size_set', many=True)
     is_admin = serializers.SerializerMethodField()
+    auth_url = serializers.SerializerMethodField()
+
+    def get_auth_url(self, provider):
+        return provider.get_credential('auth_url')
 
     def get_is_admin(self, provider):
         user = self.context['request'].user
@@ -56,4 +60,5 @@ class ProviderSerializer(serializers.HyperlinkedModelSerializer):
             'start_date',
             'end_date',
             'is_admin',
+            'auth_url',
         )

@@ -239,6 +239,10 @@ AUTHENTICATION = {
     "SELF_SIGNED_CERT": {{ SELF_SIGNED_CERT }},
     "LOGOUT_REDIRECT_URL": '{{ LOGOUT_REDIRECT_URL }}',
 
+    #KEYSTONE -- Required for OpenstackLoginBackend
+    "KEYSTONE_SERVER": '{{ KEYSTONE_SERVER }}',
+    "KEYSTONE_DOMAIN_NAME": '{{ KEYSTONE_DOMAIN_NAME}}',
+
     #CAS
     "CAS_SERVER": '{{ CAS_SERVER }}',
     "CAS_AUTH_PREFIX": '{{ CAS_AUTH_PREFIX }}',
@@ -303,6 +307,9 @@ AUTHENTICATION_BACKENDS = (
     # For Service-Access
     'django_cyverse_auth.authBackends.LDAPLoginBackend',
     {% endif %}
+    {% if AUTH_ENABLE_OPENSTACK -%}
+    'django_cyverse_auth.authBackends.OpenstackLoginBackend',
+    {% endif -%}
 )
 # UPDATE REST_FRAMEWORK
 REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (

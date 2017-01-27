@@ -137,8 +137,12 @@ class GenericNetworkTopology(object):
 
     def get_or_create_network(self):
         network_name = "%s-net" % self.prefix
-        return self.network_driver.create_network(
-                self.user_neutron, network_name)
+        if self.network_driver:
+            return self.network_driver.create_network(
+                    self.user_neutron, network_name)
+        else:
+            return self.user_neutron.create_network(
+                {'network': {'name': network_name}})
 
     def get_or_create_user_subnet(
             self, network_id, username,
