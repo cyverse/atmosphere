@@ -144,7 +144,7 @@ def update_application_versions(
             ProviderMachineMembership)
         create_count += created
     # NOTE: comma at the end to intentionally leave all text on one line.
-    print "Converted %s ProviderMachines into %s ApplicationVersions on %s applications" % (ProviderMachine.objects.count(), ApplicationVersion.objects.count(), Application.objects.count()),
+    # print "Converted %s ProviderMachines into %s ApplicationVersions on %s applications" % (ProviderMachine.objects.count(), ApplicationVersion.objects.count(), Application.objects.count()),
 
 
 def update_application_version(
