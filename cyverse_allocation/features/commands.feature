@@ -70,3 +70,31 @@ Feature: Commands Testing
       |  240                    |  72                   |   50          | True                       |
 
 #  ######################################################################################################
+
+  Scenario Outline: Assign User to Allocation Source
+       Given Allocation Source
+        |  name   |  compute allowed   |  renewal strategy    |
+        |  <name> |  <compute_allowed> |  <renewal_strategy>  |
+
+       When User is assigned to the allocation source
+       Then User assignment = <user_is_assigned>
+
+  Examples: User Allocation Source
+        |  name                      |  compute_allowed   |  renewal_strategy   |  user_is_assigned  |
+        |  DefaultAllocationSource   |  250               |  default            |  True              |
+        |  NewAllocationSource       |  100               |  default            |  True              |
+
+#  ######################################################################################################
+
+  Scenario Outline: Remove User from Allocation Source
+     Given User assigned to Allocation Source
+      |  name   |  compute allowed   |  renewal strategy    |
+      |  <name> |  <compute_allowed> |  <renewal_strategy>  |
+
+     When User is removed from Allocation Source
+     Then User removal = <user_is_removed>
+
+  Examples: User Allocation Source
+        |  name                      |  compute_allowed   |  renewal_strategy   |  user_is_removed  |
+        |  DefaultAllocationSource   |  250               |  default            |  True              |
+        |  NewAllocationSource       |  100               |  default            |  True              |

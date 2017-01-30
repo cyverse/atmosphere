@@ -120,7 +120,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 allocation_source, context={'request': self.request})
             return Response(
                 serialized_allocation_source.data,
-                status=status.HTTP_201_CREATED)
+                status=status.HTTP_200_OK)
 
         except Exception as exc:
             logger.exception(

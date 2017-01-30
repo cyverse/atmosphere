@@ -47,6 +47,7 @@ from .tag import TagViewSet
 from .token import TokenViewSet
 from .token_update import TokenUpdateViewSet
 from .user import UserViewSet
+from .user_allocation_source import UserAllocationSourceViewSet
 from .volume import VolumeViewSet
 from .metric import MetricViewSet
 from .ssh_key import SSHKeyViewSet

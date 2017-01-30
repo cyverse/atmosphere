@@ -13,6 +13,7 @@ def step_impl(context):
         user.is_staff = True
         user.is_superuser = True
         user.save()
+    context.user = user
     context.client.login()
 
 # Allocation Source Creation
@@ -53,7 +54,7 @@ def step_impl(context, new_renewal_strategy):
 
 @then('renewal strategy is changed = {renewal_strategy_is_changed}')
 def step_impl(context, renewal_strategy_is_changed):
-    result = True if context.response.status_code == 201 else False
+    result = True if context.response.status_code == 200 else False
     if not result:
         assert result == _str2bool(renewal_strategy_is_changed.lower())
     else:
@@ -80,7 +81,7 @@ def step_impl(context, new_name):
 
 @then('name is changed = {name_is_changed}')
 def step_impl(context, name_is_changed):
-    result = True if context.response.status_code == 201 else False
+    result = True if context.response.status_code == 200 else False
     if not result:
         assert result == _str2bool(name_is_changed.lower())
     else:
@@ -114,12 +115,59 @@ def step_impl(context, new_compute_allowed):
 
 @then('compute allowed is changed = {compute_allowed_is_changed}')
 def step_impl(context, compute_allowed_is_changed):
-    result = True if context.response.status_code == 201 else False
+    result = True if context.response.status_code == 200 else False
     if not result:
         assert result == _str2bool(compute_allowed_is_changed.lower())
     else:
         assert result == _str2bool(compute_allowed_is_changed.lower()) and context.response.data['compute_allowed'] == context.new_compute_allowed
 
+
+@given('Allocation Source')
+def step_impl(context):
+    for row in context.table:
+        response = context.client.post('/api/v2/allocation_sources',
+                                               {"renewal_strategy": row['renewal strategy'],
+                                                "name": row['name'],
+                                                "compute_allowed": row['compute allowed']})
+        context.source_id = response.data['source_id']
+
+@when('User is assigned to the allocation source')
+def step_impl(context):
+    context.response = context.client.post('/api/v2/user_allocation_sources',
+                        {"username": context.user.username,
+                         "source_id": context.source_id})
+
+@then('User assignment = {user_is_assigned}')
+def step_impl(context,user_is_assigned):
+    result = True if context.response.status_code == 201 else False
+    assert result == _str2bool(user_is_assigned.lower())
+
+@given('User assigned to Allocation Source')
+def step_impl(context):
+    for row in context.table:
+        response = context.client.post('/api/v2/allocation_sources',
+                                                   {"renewal_strategy": row['renewal strategy'],
+                                                    "name": row['name'],
+                                                    "compute_allowed": row['compute allowed']})
+
+        context.source_id = response.data['source_id']
+
+        response_main = context.client.post('/api/v2/user_allocation_sources',
+                        {"username": context.user.username,
+                         "source_id": context.source_id})
+
+
+@when('User is removed from Allocation Source')
+def step_impl(context):
+    context.response = context.client.delete('/api/v2/user_allocation_sources',
+                                             json.dumps({"username":context.user.username,
+                                                         "source_id":context.source_id}),
+                                             content_type='application/json')
+
+@then('User removal = {user_is_removed}')
+def step_impl(context,user_is_removed):
+    result = True if context.response.status_code == 200 else False
+    assert result == _str2bool(user_is_removed.lower())
 # helper methods
 
 def _str2bool(val):

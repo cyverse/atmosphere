@@ -368,10 +368,10 @@ def listen_for_user_allocation_source_assigned(sender, instance, created, **kwar
     user = AtmosphereUser.objects.filter(username=username).first()
     allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
 
-    if not user:
-        raise Exception('User does not exist')
-    if not allocation_source:
-        raise Exception('Allocation Source does not exist')
+    # if not user:
+    #     raise Exception('User does not exist')
+    # if not allocation_source:
+    #     raise Exception('Allocation Source does not exist')
 
     allocation_source = UserAllocationSource(allocation_source=allocation_source,
                                              user=user)
