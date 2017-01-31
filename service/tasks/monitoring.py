@@ -197,6 +197,17 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         _exit_stdout_logging(console_handler)
     return
 
+def _get_owner(accounts, cloud_machine):
+    """
+    For a given cloud machine, attempt to find the owners username
+    """
+    owner = cloud_machine.get('application_owner')
+    if owner:
+        owner_project = accounts.get_project(owner)
+    else:
+        owner = cloud_machine.get('owner')
+        owner_project = accounts.get_project_by_id(owner)
+    return owner_project
 
 def machine_is_valid(cloud_machine, accounts):
     """
@@ -219,7 +230,7 @@ def machine_is_valid(cloud_machine, accounts):
     if cloud_machine.get('image_type', 'image') == 'snapshot':
         celery_logger.info("Skipping cloud machine %s - Image type indicates a snapshot" % cloud_machine)
         return False
-    owner_project = accounts.get_project_by_id(cloud_machine.owner)
+    owner_project = _get_owner(accounts, cloud_machine)
     # If the image is private, ensure that an owner can be found inside the system.
     if cloud_machine.get('visibility', '') == 'private':
         shared_with_projects = accounts.shared_images_for(cloud_machine.id)
