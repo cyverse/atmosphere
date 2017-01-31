@@ -473,6 +473,7 @@ def create_application(
             provider_uuid,
             created_by.username)
     if not created_by_identity:
+        logger.error("ERROR: No identity was found for image <%s> -- the 'author' will be admin" % identifier)
         created_by_identity = _get_admin_owner(provider_uuid)
     if not tags:
         tags = []

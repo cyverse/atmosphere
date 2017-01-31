@@ -179,8 +179,9 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     for cloud_machine in cloud_machines:
         if not machine_is_valid(cloud_machine, account_driver):
             continue
+        owner_project = _get_owner(account_driver, cloud_machine)
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
-        (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid)
+        (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid, owner_project)
         #STEP 2: For any private cloud_machine, convert the 'shared users' as known by cloud
         update_image_membership(account_driver, cloud_machine, db_machine)
 
@@ -197,6 +198,17 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         _exit_stdout_logging(console_handler)
     return
 
+def _get_owner(accounts, cloud_machine):
+    """
+    For a given cloud machine, attempt to find the owners username
+    """
+    owner = cloud_machine.get('owner')
+    if owner:
+        owner_project = accounts.get_project_by_id(owner)
+    else:
+        owner = cloud_machine.get('application_owner')
+        owner_project = accounts.get_project(owner)
+    return owner_project
 
 def machine_is_valid(cloud_machine, accounts):
     """
@@ -206,6 +218,9 @@ def machine_is_valid(cloud_machine, accounts):
         - Private images not shared with atmosphere accounts
         - Domain-specific image catalog(?)
     """
+    if cloud_machine.id != "b5bfb513-1d79-49ff-aed0-b55c8fe0114b":
+    #if cloud_machine.id != "b837ffee-9c86-4b74-9193-b6bc694ed6a7":
+        return False
     provider = accounts.core_provider
     # If the name of the machine indicates that it is a Ramdisk, Kernel, or Chromogenic Snapshot, skip it.
     if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
@@ -238,7 +253,7 @@ def machine_is_valid(cloud_machine, accounts):
     config_domain = accounts.get_config('user', 'domain', 'default')
     owner_domain = accounts.openstack_sdk.identity.get_domain(domain_id)
     account_domain = accounts.openstack_sdk.identity.get_domain(config_domain)
-    if owner_domain != account_domain: # and if FLAG FOR DOMAIN-SPECIFIC ATMOSPHERE
+    if owner_domain.id != account_domain.id: # and if FLAG FOR DOMAIN-SPECIFIC ATMOSPHERE
         celery_logger.info("Skipping private machine %s - The owner belongs to a different domain (%s)" % (cloud_machine, owner_domain))
         return False
     return True
