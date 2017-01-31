@@ -647,7 +647,7 @@ def get_chain_from_active_no_ip(
         driverCls, provider, identity, instance.id,
         {'tmp_status': 'networking'})
     floating_task = add_floating_ip.si(
-        driverCls, provider, identity, instance.id, str(core_identity.uuid), delete_status=False)
+        driverCls, provider, identity, str(core_identity.uuid), instance.id, delete_status=False)
     floating_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance.id))
 
