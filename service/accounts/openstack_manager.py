@@ -404,9 +404,15 @@ class AccountDriver(BaseAccountDriver):
 
     def shared_images_for(self, image_id):
         projects = []
+        acct_driver = self
+
+	if hasattr(settings, "REPLICATION_PROVIDER_LOCATION"):
+                from service.driver import get_account_driver
+                from core.models import Provider
+        	acct_driver = get_account_driver(Provider.objects.get(location=settings.REPLICATION_PROVIDER_LOCATION))
         shared_with = self.image_manager.shared_images_for(
             image_id=image_id)
-        projects = [self.get_project_by_id(member.member_id)
+        projects = [acct_driver.get_project_by_id(member.member_id)
                     for member in shared_with]
         return projects
 

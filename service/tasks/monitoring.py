@@ -218,9 +218,9 @@ def machine_is_valid(cloud_machine, accounts):
         - Private images not shared with atmosphere accounts
         - Domain-specific image catalog(?)
     """
-    if cloud_machine.id != "b5bfb513-1d79-49ff-aed0-b55c8fe0114b":
-    #if cloud_machine.id != "b837ffee-9c86-4b74-9193-b6bc694ed6a7":
-        return False
+    # if cloud_machine.id != "b5bfb513-1d79-49ff-aed0-b55c8fe0114b":
+    # #if cloud_machine.id != "b837ffee-9c86-4b74-9193-b6bc694ed6a7":
+    #     return False
     provider = accounts.core_provider
     # If the name of the machine indicates that it is a Ramdisk, Kernel, or Chromogenic Snapshot, skip it.
     if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
@@ -234,12 +234,13 @@ def machine_is_valid(cloud_machine, accounts):
     if cloud_machine.get('image_type', 'image') == 'snapshot':
         celery_logger.info("Skipping cloud machine %s - Image type indicates a snapshot" % cloud_machine)
         return False
-    owner_project = accounts.get_project_by_id(cloud_machine.owner)
+    owner_project =  _get_owner(accounts, cloud_machine)
+   
     # If the image is private, ensure that an owner can be found inside the system.
     if cloud_machine.get('visibility', '') == 'private':
         shared_with_projects = accounts.shared_images_for(cloud_machine.id)
         shared_with_projects.append(owner_project)
-        project_names = [p.name for p in shared_with_projects]
+        project_names = [p.name for p in shared_with_projects if p]  # TODO: better error handling here
         identity_matches = provider.identity_set.filter(
             credential__key='ex_project_name', credential__value__in=project_names).count() > 0
         if not identity_matches:
