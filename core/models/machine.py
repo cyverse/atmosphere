@@ -198,16 +198,16 @@ def collect_image_metadata(glance_image):
     app_kwargs = {}
     try:
         app_kwargs['private'] = glance_image.visibility.lower() != 'public'
-        if verify_app_uuid(glance_image.application_uuid, glance_image.id):
-            app_kwargs['uuid'] = glance_image.application_uuid
-            app_kwargs['description'] = glance_image.application_description
-            app_kwargs['tags'] = glance_image.application_tags
+        if verify_app_uuid(glance_image.get('application_uuid'), glance_image.id):
+            app_kwargs['uuid'] = glance_image.get('application_uuid')
+            app_kwargs['description'] = glance_image.get('application_description')#TODO: Verify that _LINE_BREAK_ is fixed
+            app_kwargs['tags'] = glance_image.get('application_tags')
     except AttributeError as exc:
         logger.exception("Glance image %s was not initialized with atmosphere metadata - %s" % (glance_image.id, exc.message))
     return app_kwargs
 
 
-def convert_glance_image(glance_image, provider_uuid):
+def convert_glance_image(glance_image, provider_uuid, owner=None):
     """
     Guaranteed Return of ProviderMachine.
     1. Load provider machine from DB and return
@@ -225,8 +225,10 @@ def convert_glance_image(glance_image, provider_uuid):
     if provider_machine:
         return (provider_machine, False)
     app_kwargs = collect_image_metadata(glance_image)
-    owner_name = glance_image.get('application_owner')
-#NOThis operates under the assumption the owner is the 'user' who created it, rather than the 'original openstack tenant name'. Update these lines if the assumption is invalid.
+    if owner and hasattr(owner,'name'):
+        owner_name = owner.name
+    else:
+        owner_name = glance_image.get('application_owner')
     user = AtmosphereUser.objects.filter(username=owner_name).first()
     if user:
         identity = Identity.objects.filter(
