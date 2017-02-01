@@ -408,7 +408,7 @@ class AccountDriver(BaseAccountDriver):
         shared_with = self.image_manager.shared_images_for(
             image_id=image_id)
 
-	if hasattr(settings, "REPLICATION_PROVIDER_LOCATION"):
+	if getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
             from core.models import Provider
             from service.driver import get_account_driver
             provider = Provider.objects.get(location=settings.REPLICATION_PROVIDER_LOCATION)
