@@ -218,9 +218,6 @@ def machine_is_valid(cloud_machine, accounts):
         - Private images not shared with atmosphere accounts
         - Domain-specific image catalog(?)
     """
-    # if cloud_machine.id != "b5bfb513-1d79-49ff-aed0-b55c8fe0114b":
-    # #if cloud_machine.id != "b837ffee-9c86-4b74-9193-b6bc694ed6a7":
-    #     return False
     provider = accounts.core_provider
     # If the name of the machine indicates that it is a Ramdisk, Kernel, or Chromogenic Snapshot, skip it.
     if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
