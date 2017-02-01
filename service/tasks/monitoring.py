@@ -179,8 +179,9 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     for cloud_machine in cloud_machines:
         if not machine_is_valid(cloud_machine, account_driver):
             continue
+        owner_project = _get_owner(account_driver, cloud_machine)
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
-        (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid)
+        (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid, owner_project)
         #STEP 2: For any private cloud_machine, convert the 'shared users' as known by cloud
         update_image_membership(account_driver, cloud_machine, db_machine)
 
@@ -197,6 +198,19 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         _exit_stdout_logging(console_handler)
     return
 
+def _get_owner(accounts, cloud_machine):
+    """
+    For a given cloud machine, attempt to find the owners username
+    Priority is given to 'owner' which will point to the projectId/tenantId that created the image
+    Otherwise, accept the 'application_owner' (Older openstack+glance may not have 'owner' attribute)
+    """
+    owner = cloud_machine.get('owner')
+    if owner:
+        owner_project = accounts.get_project_by_id(owner)
+    else:
+        owner = cloud_machine.get('application_owner')
+        owner_project = accounts.get_project(owner)
+    return owner_project
 
 def machine_is_valid(cloud_machine, accounts):
     """
@@ -219,12 +233,12 @@ def machine_is_valid(cloud_machine, accounts):
     if cloud_machine.get('image_type', 'image') == 'snapshot':
         celery_logger.info("Skipping cloud machine %s - Image type indicates a snapshot" % cloud_machine)
         return False
-    owner_project = accounts.get_project_by_id(cloud_machine.owner)
+    owner_project = _get_owner(accounts, cloud_machine)
     # If the image is private, ensure that an owner can be found inside the system.
     if cloud_machine.get('visibility', '') == 'private':
         shared_with_projects = accounts.shared_images_for(cloud_machine.id)
         shared_with_projects.append(owner_project)
-        project_names = [p.name for p in shared_with_projects]
+        project_names = [p.name for p in shared_with_projects if p]  # TODO: better error handling here
         identity_matches = provider.identity_set.filter(
             credential__key='ex_project_name', credential__value__in=project_names).count() > 0
         if not identity_matches:
@@ -238,7 +252,7 @@ def machine_is_valid(cloud_machine, accounts):
     config_domain = accounts.get_config('user', 'domain', 'default')
     owner_domain = accounts.openstack_sdk.identity.get_domain(domain_id)
     account_domain = accounts.openstack_sdk.identity.get_domain(config_domain)
-    if owner_domain != account_domain: # and if FLAG FOR DOMAIN-SPECIFIC ATMOSPHERE
+    if owner_domain.id != account_domain.id: # and if FLAG FOR DOMAIN-SPECIFIC ATMOSPHERE
         celery_logger.info("Skipping private machine %s - The owner belongs to a different domain (%s)" % (cloud_machine, owner_domain))
         return False
     return True
