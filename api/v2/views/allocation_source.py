@@ -1,3 +1,4 @@
+import uuid
 from rest_framework import status
 from rest_framework.response import Response
 from threepio import logger
@@ -133,15 +134,18 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
     def _create_allocation_source(self, request_data):
 
         payload = {}
+        payload['source_id'] = str(uuid.uuid4())
         payload['name'] = request_data.get('name')
         payload['compute_allowed'] = request_data.get('compute_allowed')
         payload['renewal_strategy'] = request_data.get('renewal_strategy')
 
         creation_event = EventTable(
             name='allocation_source_created',
+            entity_id=payload['source_id'],
             payload=payload)
 
         creation_event.save()
+
         return AllocationSource.objects.filter(
             source_id=creation_event.entity_id).last()
 
@@ -154,7 +158,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 payload['source_id']
             )
 
-        return AllocationSource.objects.filter(source_id=source_id).last()
+        return AllocationSource.objects.filter(source_id=payload['source_id']).last()
 
     def _validate_params(self, data):
 

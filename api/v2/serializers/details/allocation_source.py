@@ -17,7 +17,6 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
     updated = serializers.SerializerMethodField()
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:allocationsource-detail',
-        uuid_field='source_id'
     )
 
     def _get_allocation_source_snapshot(self, allocation_source, attr_name):
@@ -66,7 +65,7 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = AllocationSource
         fields = (
-            'id', 'url', 'name', 'source_id', 'compute_allowed',
+            'id', 'uuid','url', 'name', 'source_id', 'compute_allowed',
             'compute_used', 'global_burn_rate', 'updated', 'renewal_strategy',
             'user_compute_used', 'user_burn_rate', 'user_snapshot_updated')
 

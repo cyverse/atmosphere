@@ -9,8 +9,9 @@ from uuid import uuid4
 #     name = models.CharField(max_length=255)
 
 class AllocationSource(models.Model):
-    source_id = models.UUIDField(default=uuid4, unique=True, editable=False)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     name = models.CharField(max_length=255)
+    source_id = models.CharField(max_length=255)
     compute_allowed = models.IntegerField()
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)

@@ -37,6 +37,7 @@ from .provider import ProviderViewSet
 from .provider_machine import ProviderMachineViewSet
 from .provider_type import ProviderTypeViewSet
 from .quota import QuotaViewSet
+from .renewal_strategy import RenewalStrategyViewSet
 from .resource_request import ResourceRequestViewSet
 from .reporting import ReportingViewSet
 from .size import SizeViewSet

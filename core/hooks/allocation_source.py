@@ -1,3 +1,4 @@
+import uuid
 from django.conf import settings
 
 from threepio import logger
@@ -329,8 +330,9 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
     allocation_compute_allowed = payload['compute_allowed']
 
     # validation to check if renewal strategy is a string or not ?
-
     allocation_source = AllocationSource(
+                                         source_id = payload['source_id'],
+                                         uuid = uuid.UUID(payload['source_id']),
                                          name=allocation_source_name,
                                          compute_allowed=allocation_compute_allowed,
                                          renewal_strategy=payload['renewal_strategy'],
@@ -514,3 +516,30 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
     except Exception as e:
         raise Exception('Allocation Source %s compute_allowed could not be changed because of the following error %s'%(allocation_source.name, e))
     return
+
+def listen_for_user_allocation_source_removed(sender, instance, created, **kwargs):
+    """
+
+     This listener expects:
+               EventType -'user_allocation_source_removed'
+               EventPayload - {
+                   "source_id": "32712",
+                   "username": "amitj",
+               }
+
+               The method should result in storing the user removed from allocation source event
+    """
+    event = instance
+    if event.name != 'user_allocation_source_removed':
+        return None
+    logger.info('User removed from Allocation Source event: %s', event.__dict__)
+    payload = event.payload
+
+    user_allocation_source_object = UserAllocationSource.objects.filter(
+        user__username=payload['username'],
+        allocation_source__source_id=payload['source_id']).last()
+
+    user_allocation_source_object.delete()
+
+    return
+
