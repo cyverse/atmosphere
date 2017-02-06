@@ -1,7 +1,7 @@
 from behave import *
 from django.test.client import Client
 from core.models import AtmosphereUser
-from core.models import AllocationSourceSnapshot
+from core.models import AllocationSourceSnapshot, AllocationSource
 import json
 
 @given('a user')
@@ -172,3 +172,17 @@ def step_impl(context,user_is_removed):
 
 def _str2bool(val):
     return True if val=='true' else False
+
+
+@when('Allocation Source is removed')
+def step_impl(context):
+    context.response = context.client.delete('/api/v2/allocation_sources/%s'%(context.source_id),
+                                             content_type='application/json')
+
+@then('Allocation Source Removal = {allocation_source_is_removed}')
+def step_impl(context, allocation_source_is_removed):
+    result = True if context.response.status_code == 200 else False
+    allocation_source_end_date = AllocationSource.objects.filter(
+        source_id=context.source_id).last().end_date
+    assert result == _str2bool(allocation_source_is_removed.lower()) and \
+           allocation_source_end_date is not None

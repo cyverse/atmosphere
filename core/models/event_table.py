@@ -17,7 +17,8 @@ from core.hooks.allocation_source import (
     listen_for_allocation_source_renewed,
     listen_for_allocation_source_renewal_strategy_changed,
     listen_for_allocation_source_name_changed,
-    listen_for_allocation_source_compute_allowed_changed
+    listen_for_allocation_source_compute_allowed_changed,
+    listen_for_allocation_source_removed
 )
 
 
@@ -75,3 +76,4 @@ post_save.connect(listen_for_allocation_source_renewal_strategy_changed, sender=
 post_save.connect(listen_for_allocation_source_created, sender=EventTable)
 post_save.connect(listen_for_allocation_source_name_changed, sender=EventTable)
 post_save.connect(listen_for_allocation_source_compute_allowed_changed, sender=EventTable)
+post_save.connect(listen_for_allocation_source_removed,sender=EventTable)

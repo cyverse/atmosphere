@@ -65,7 +65,7 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         except Exception as exc:
             logger.exception(
                 "Encountered exception while assigning Allocation source %s to User %s"
-                %(request_data['allocation_source_source_id'], request_data['username']))
+                %(request_data['source_id'], request_data['username']))
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
 
@@ -92,7 +92,7 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         except Exception as exc:
             logger.exception(
                 "Encountered exception while removing User %s from Allocation source %s "
-                % (request_data['username']),request_data['allocation_source_source_id'])
+                % (request_data['username']),request_data['source_id'])
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
 

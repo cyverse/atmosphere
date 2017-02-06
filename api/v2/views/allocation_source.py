@@ -2,6 +2,7 @@ import uuid
 from rest_framework import status
 from rest_framework.response import Response
 from threepio import logger
+from django.utils import timezone
 
 from api.v2.exceptions import failure_response
 from api.v2.serializers.details import AllocationSourceSerializer
@@ -19,7 +20,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
     serializer_class = AllocationSourceSerializer
     search_fields = ('^title',)
     lookup_fields = ('id','source_id',)
-    http_method_names = ['options', 'head', 'get', 'post', 'put', 'patch']
+    http_method_names = ['options', 'head', 'get', 'post', 'put', 'patch', 'delete']
 
     def create(self, request):
         """
@@ -126,6 +127,53 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         except Exception as exc:
             logger.exception(
                 "Encountered exception while updating Allocation Source")
+            return failure_response(status.HTTP_409_CONFLICT,
+                                    str(exc.message))
+
+
+    def delete(self, request, pk, *args, **fields):
+        request_user = request.user
+        request_data = request.data
+        request_data['source_id'] = pk
+
+        # validate user
+        try:
+            self._validate_user(request_user)
+        except Exception as exc:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                exc.message)
+
+        # validate patched fields and update allocation source model
+        try:
+            self._validate_params(request_data)
+            # create payload
+            payload = {}
+            payload['source_id'] = request_data['source_id']
+            payload['delete_date'] = timezone.now()
+
+            EventTable.create_event(
+                'allocation_source_removed',
+                payload,
+                payload['source_id'])
+
+        except Exception as exc:
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                exc.message)
+
+        try:
+            allocation_source = AllocationSource.objects.filter(
+                source_id=request_data['source_id']).last()
+            serialized_allocation_source = AllocationSourceSerializer(
+                allocation_source, context={'request': self.request})
+            return Response(
+                serialized_allocation_source.data,
+                status=status.HTTP_200_OK)
+
+        except Exception as exc:
+            logger.exception(
+                "Encountered exception while removing Allocation Source")
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
 

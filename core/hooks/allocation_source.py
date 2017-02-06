@@ -543,3 +543,30 @@ def listen_for_user_allocation_source_removed(sender, instance, created, **kwarg
 
     return
 
+def listen_for_allocation_source_removed(sender, instance, created, **kwargs):
+    """
+
+         This listener expects:
+                   EventType -'allocation_source_removed'
+                   EventPayload - {
+                       "source_id": "32712",
+                   }
+
+                   The method should result in removal of allocation source
+    """
+    event = instance
+    if event.name != 'allocation_source_removed':
+        return None
+    logger.info('Allocation Source deleted event: %s', event.__dict__)
+    payload = event.payload
+
+    allocation_source = AllocationSource.objects.filter(
+        source_id=payload['source_id']).last()
+
+    allocation_source.compute_allowed = 0
+    allocation_source.end_date = payload['delete_date']
+    allocation_source.save()
+
+    return
+
+

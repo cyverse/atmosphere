@@ -65,8 +65,8 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = AllocationSource
         fields = (
-            'id', 'uuid','url', 'name', 'source_id', 'compute_allowed',
-            'compute_used', 'global_burn_rate', 'updated', 'renewal_strategy',
+            'id', 'uuid','url', 'name', 'source_id', 'compute_allowed', 'start_date',
+            'end_date','compute_used', 'global_burn_rate', 'updated', 'renewal_strategy',
             'user_compute_used', 'user_burn_rate', 'user_snapshot_updated')
 
 
