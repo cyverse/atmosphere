@@ -87,7 +87,7 @@ class ProviderMachine(BaseSource):
         return "%s %s%s" % (
             application.name,
             settings.APPLICATION_VERSION_SEPARATOR,
-            version.name),
+            version.name)
 
     def is_owner(self, atmo_user):
         return (self.application_version.created_by == atmo_user or

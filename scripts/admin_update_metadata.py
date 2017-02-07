@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 import argparse
 
-from service.openstack import glance_write_machine
-from core.models import ProviderMachine
-
 import django
 django.setup()
+
+from service.openstack import glance_write_machine
+from core.models import ProviderMachine
 
 
 def main():
@@ -13,7 +13,7 @@ def main():
     parser.add_argument("--provider", type=int,
                         help="Atmosphere provider ID"
                         " to use.")
-    parser.add_argument("image_ids",
+    parser.add_argument("image_ids", nargs="?",
                         help="Image ID(s) to be renamed. (Comma-Separated)")
     args = parser.parse_args()
 
@@ -22,7 +22,6 @@ def main():
 
     all_images = ProviderMachine.objects.filter(
         instance_source__provider_id=args.provider)
-
     if args.image_ids:
         all_images = all_images.filter(
             instance_source__identifier__in=args.image_ids.split(','))
