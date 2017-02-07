@@ -58,7 +58,6 @@ class InstanceSerializer(serializers.ModelSerializer):
         size_queryset = self.fields['size_alias'].queryset
         allocation_source_queryset = UserAllocationSource.objects.filter(user=request_user)
         source_queryset = self.fields['source_alias'].queryset
-        import ipdb;ipdb.set_trace()
         if settings.USE_ALLOCATION_SOURCE:
             allocation_source_id = data.get('allocation_source_id')
             if not allocation_source_id:
