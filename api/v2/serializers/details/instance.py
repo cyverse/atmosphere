@@ -38,6 +38,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(source='provider_alias')
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:instance-detail',
+        lookup_field='uuid',
         uuid_field='provider_alias'
     )
 

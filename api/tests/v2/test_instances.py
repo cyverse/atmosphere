@@ -1,4 +1,4 @@
-import json
+import uuid
 from unittest import skip, skipIf
 
 from django.core.urlresolvers import reverse
@@ -29,30 +29,105 @@ class InstanceTests(APITestCase):
             created_by=self.admin_user)
 
         self.machine = ProviderMachineFactory.create_provider_machine(self.user, self.user_identity)
-        self.instance_1 = InstanceFactory.create(
-            name="Instance 1",
+        self.active_instance = InstanceFactory.create(
+            name="Instance in active",
+            provider_alias=uuid.uuid4(),
             source=self.machine.instance_source,
             created_by=self.user,
             created_by_identity=self.user_identity,
             start_date=timezone.now())
+        self.networking_instance = InstanceFactory.create(
+            name="Instance in networking",
+            provider_alias=uuid.uuid4(),
+            source=self.machine.instance_source,
+            created_by=self.user,
+            created_by_identity=self.user_identity,
+            start_date=timezone.now())
+        self.deploying_instance = InstanceFactory.create(
+            name="Instance in deploying",
+            provider_alias=uuid.uuid4(),
+            source=self.machine.instance_source,
+            created_by=self.user,
+            created_by_identity=self.user_identity,
+            start_date=timezone.now())
+        self.deploy_error_instance = InstanceFactory.create(
+            name="Instance in deploy_error",
+            provider_alias=uuid.uuid4(),
+            source=self.machine.instance_source,
+            created_by=self.user,
+            created_by_identity=self.user_identity,
+            start_date=timezone.now())
+
         active = InstanceStatusFactory.create(name='active')
         networking = InstanceStatusFactory.create(name='networking')
         deploying = InstanceStatusFactory.create(name='deploying')
         deploy_error = InstanceStatusFactory.create(name='deploy_error')
-        history_1 = InstanceHistoryFactory.create(
+        InstanceHistoryFactory.create(
+                status=deploy_error,
+                activity="",
+                instance=self.deploy_error_instance
+            )
+        InstanceHistoryFactory.create(
+                status=deploying,
+                activity="",
+                instance=self.deploying_instance
+            )
+        InstanceHistoryFactory.create(
                 status=active,
                 activity="",
-                instance=self.instance_1
+                instance=self.active_instance
+            )
+        InstanceHistoryFactory.create(
+                status=networking,
+                activity="",
+                instance=self.networking_instance
             )
 
-    @skip('skip until URL error is resolved')
-    def test_a_sanity_check(self):
+    def test_networking_status_and_activity(self):
         """Will only work with a correct database."""
         client = APIClient()
         client.force_authenticate(user=self.user)
 
-        url = '/api/v2/instances'
+        url = reverse('api:v2:instance-detail', args=(self.networking_instance.provider_alias,))
         response = client.get(url)
-        #FIXME: This fails here with: `ImproperlyConfigured: Could not resolve URL for hyperlinked relationship using view name "api:v2:instance-detail".`
         self.assertEquals(response.status_code, 200)
+        data = response.data
+        self.assertEquals(data['status'], 'active')
+        self.assertEquals(data['activity'], 'networking')
+
+    def test_deploying_status_and_activity(self):
+        """Will only work with a correct database."""
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        url = reverse('api:v2:instance-detail', args=(self.deploying_instance.provider_alias,))
+        response = client.get(url)
+        self.assertEquals(response.status_code, 200)
+        data = response.data
+        self.assertEquals(data['status'], 'active')
+        self.assertEquals(data['activity'], 'deploying')
+
+    def test_deploy_error_status_and_activity(self):
+        """Will only work with a correct database."""
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        url = reverse('api:v2:instance-detail', args=(self.deploy_error_instance.provider_alias,))
+        response = client.get(url)
+        self.assertEquals(response.status_code, 200)
+        data = response.data
+        self.assertEquals(data['status'], 'active')
+        self.assertEquals(data['activity'], 'deploy_error')
+
+    def test_active_status_and_activity(self):
+        """Will only work with a correct database."""
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        url = reverse('api:v2:instance-detail', args=(self.active_instance.provider_alias,))
+        response = client.get(url)
+        self.assertEquals(response.status_code, 200)
+        data = response.data
+        self.assertEquals(data['status'], 'active')
+        self.assertEquals(data['activity'], '')
 
