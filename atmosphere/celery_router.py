@@ -51,6 +51,7 @@ PERIODIC_TASKS = [
     "prune_machines", "prune_machines_for",
     "check_image_membership", "update_membership_for",
     "clear_empty_ips", "clear_empty_ips_for",
+    "remove_empty_network",
     "remove_empty_networks",
     "remove_empty_networks_for",
     "reset_provider_allocation",

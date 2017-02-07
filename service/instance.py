@@ -710,8 +710,8 @@ def os_cleanup_networking(core_identity_uuid):
         clean_task = clean_empty_ips.si(driverCls, provider, identity,
                                         immutable=True, countdown=5)
         remove_task = remove_empty_network.si(
-            driverCls, provider, identity, core_identity_uuid, {"skip_network":False},
-            immutable=True, countdown=60)
+            driverCls, provider, identity, core_identity_uuid, {"skip_network":False}
+        )
         clean_task.link(remove_task)
         clean_task.apply_async()
     else:
