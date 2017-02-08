@@ -563,7 +563,6 @@ def listen_for_allocation_source_removed(sender, instance, created, **kwargs):
     allocation_source = AllocationSource.objects.filter(
         source_id=payload['source_id']).last()
 
-    allocation_source.compute_allowed = 0
     allocation_source.end_date = payload['delete_date']
     allocation_source.save()
 

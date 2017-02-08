@@ -131,10 +131,10 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
                                     str(exc.message))
 
 
-    def delete(self, request, pk, *args, **fields):
-        request_user = request.user
-        request_data = request.data
-        request_data['source_id'] = pk
+    def perform_destroy(self, allocation_source):
+        request_user = self.request.user
+        request_data = {}
+        request_data['source_id'] = allocation_source.source_id
 
         # validate user
         try:
@@ -150,7 +150,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
             # create payload
             payload = {}
             payload['source_id'] = request_data['source_id']
-            payload['delete_date'] = timezone.now()
+            payload['delete_date'] = str(timezone.now().strftime("%Y-%m-%dT%H:%M:%S+00:00"))
 
             EventTable.create_event(
                 'allocation_source_removed',

@@ -6,24 +6,6 @@ from pprint import pprint
 from uuid import uuid4
 from django.db.models.query import QuerySet
 
-# class RenewalStrategy(models.Model):
-#     name = models.CharField(max_length=255)
-
-class AllocationSourceQuerySet(QuerySet):
-    def delete(self):
-        self.update(end_date=timezone.now())
-
-
-class EndDateManager(models.Manager):
-    def end_date(self):
-        # if end_date not null, allocation source is active
-        return self.model.objects.filter(end_date__isnull=True)
-
-    def get_queryset(self):
-        return AllocationSourceQuerySet(self.model, using=self._db)
-
-
-
 class AllocationSource(models.Model):
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     name = models.CharField(max_length=255)
@@ -32,12 +14,6 @@ class AllocationSource(models.Model):
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     renewal_strategy = models.CharField(max_length=255, default="default")
-
-    objects = EndDateManager()
-
-    def delete(self):
-        self.end_date = timezone.now()
-        self.save()
 
     @classmethod
     def for_user(cls, user):
