@@ -16,6 +16,20 @@ class InstanceStatus(models.Model):
     """
     Used to enumerate the types of actions
     (I.e. Stopped, Suspended, Active, Deleted)
+
+    FIXME: (Idea) -- adding a new field, is_final_state
+    Example of 'is_final_state' status for Openstack:
+        - active
+          suspended
+          shutoff
+          error
+          deleted
+          unknown
+    Example of 'is_final_state = False' status for Openstack:
+        - networking
+          deploying
+          deploy_error
+
     """
     name = models.CharField(max_length=128)
 
@@ -32,6 +46,8 @@ class InstanceStatusHistory(models.Model):
     """
     Used to keep track of each change in instance status
     (Useful for time management)
+
+    #FIXME: we might want to handle `InstanceStatus` + `activity` in a different way.
     """
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     instance = models.ForeignKey("Instance")

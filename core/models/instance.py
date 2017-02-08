@@ -362,6 +362,29 @@ class Instance(models.Model):
             return self.esh.extra.get('fault', {})
         return {}
 
+    def api_status(self):
+        # Used by the v2 serializer - db only. no 'esh'
+        last_history = self.get_last_history()
+        if not last_history:
+            return "Unknown"
+        status_name = last_history.status.name
+        #NOTE: This handles the two 'atmosphere created' special-case status types, networking/deploying.
+        # If the last history is one of these states, return active
+        if status_name in ["networking","deploy_error","deploying"]:
+            return "active"
+        return status_name
+
+    def api_activity(self):
+        # Used by the v2 serializer - db only. no 'esh'
+        last_history = self.get_last_history()
+        if not last_history:
+            return ""
+        status_name = last_history.status.name
+        #FIXME: Using this, for now, in place of a better solution.descripted in core/models/instance_history.py:InstanceStatus
+        if status_name not in ["networking","deploy_error","deploying"]:
+            return ""
+        return status_name
+
     def esh_status(self):
         if self.esh:
             return self.esh.get_status()
