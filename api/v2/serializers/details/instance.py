@@ -21,8 +21,8 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     identity = IdentitySummarySerializer(source='created_by_identity')
     user = UserSummarySerializer(source='created_by')
     provider = ProviderSummarySerializer(source='created_by_identity.provider')
-    status = serializers.CharField(source='esh_status', read_only=True)
-    activity = serializers.CharField(source='esh_activity', read_only=True)
+    status = serializers.CharField(source='api_status', read_only=True)
+    activity = serializers.CharField(source='api_activity', read_only=True)
     projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     scripts = ModelRelatedField(
         many=True, required=False,
@@ -38,6 +38,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(source='provider_alias')
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:instance-detail',
+        lookup_field='uuid',
         uuid_field='provider_alias'
     )
 
