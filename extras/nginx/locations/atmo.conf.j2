@@ -10,14 +10,6 @@ location ~ "^/shell/(?<ipaddress>(\d{1,3}\.){3}\d{1,3})$" {
         rewrite "^/shell/(?<ipaddress>(\d{1,3}\.){3}\d{1,3})$" https://atmo-proxy.iplantcollaborative.org/?ssh=ssh://$ipaddress:22 permanent;
 }
 
-location /init_files {
-   alias {{ ATMOSPHERE_PATH }}/init_files;
-}
-
-location /resources {
-   alias {{ ATMOSPHERE_PATH }}/resources;
-}
-
 location / {
    # Redirect to home page
    if ($request_uri ~ "^/$") {

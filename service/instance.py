@@ -13,13 +13,17 @@ from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
 from rtwo.driver import OSDriver
+from rtwo.drivers.common import _connect_to_keystone_v3, _token_to_keystone_scoped_project
+from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
-
+from rtwo.exceptions import LibcloudHTTPError  # Move into rtwo.exceptions later...
+from libcloud.common.exceptions import BaseHTTPError  # Move into rtwo.exceptions later...
 
 from core.query import only_current
 from core.models.instance_source import InstanceSource
+from core.models.ssh_key import get_user_ssh_keys
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance, find_instance
@@ -33,13 +37,15 @@ from atmosphere import settings
 from atmosphere.settings import secrets
 
 from service.cache import get_cached_driver, invalidate_cached_instances
-from service.driver import _retrieve_source
+from service.driver import _retrieve_source, get_account_driver
 from service.licensing import _test_license
+from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
 from service.exceptions import (
     OverAllocationError, OverQuotaError, SizeNotAvailable,
     HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
-    socket_error, ConnectionFailure, InstanceDoesNotExist, LibcloudInvalidCredsError)
+    socket_error, ConnectionFailure, InstanceDoesNotExist, LibcloudInvalidCredsError,
+    Unauthorized)
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
@@ -143,7 +149,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
     """
     _permission_to_act(identity_uuid, "Stop")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
+        remove_ips(esh_driver, esh_instance, identity_uuid)
     stopped = esh_driver.stop_instance(esh_instance)
     if reclaim_ip:
         remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
@@ -207,7 +213,7 @@ def suspend_instance(esh_driver, esh_instance,
     """
     _permission_to_act(identity_uuid, "Suspend")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
+        remove_ips(esh_driver, esh_instance, identity_uuid)
     suspended = esh_driver.suspend_instance(esh_instance)
     if reclaim_ip:
         remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
@@ -224,14 +230,14 @@ def suspend_instance(esh_driver, esh_instance,
 
 
 # Networking specific
-def remove_ips(esh_driver, esh_instance, update_meta=True):
+def remove_ips(esh_driver, esh_instance, identity_uuid, update_meta=True):
     """
     Returns: (floating_removed, fixed_removed)
     """
     from service.tasks.driver import update_metadata
-    network_manager = esh_driver._connection.get_network_manager()
-    # Delete the Floating IP
-    result = network_manager.disassociate_floating_ip(esh_instance.id)
+    core_identity = Identity.objects.get(uuid=core_identity_uuid)
+    network_driver = _to_network_driver(core_identity)
+    result = network_driver.disassociate_floating_ip(esh_instance.id)
     logger.info("Removed Floating IP for Instance %s - Result:%s"
                 % (esh_instance.id, result))
     if update_meta:
@@ -243,7 +249,7 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
         update_metadata.s(driver_class, provider, identity, esh_instance.id,
                           metadata, replace_metadata=False).apply()
     # Fixed
-    instance_ports = network_manager.list_ports(device_id=esh_instance.id)
+    instance_ports = network_driver.list_ports(device_id=esh_instance.id)
     if instance_ports:
         fixed_ip_port = instance_ports[0]
         fixed_ips = fixed_ip_port.get('fixed_ips', [])
@@ -256,15 +262,15 @@ def remove_ips(esh_driver, esh_instance, update_meta=True):
         return (True, True)
     return (True, False)
 
-
-def detach_port(esh_driver, esh_instance):
-    instance_ports = network_manager.list_ports(device_id=esh_instance.id)
-    if instance_ports:
-        fixed_ip_port = instance_ports[0]
-        result = esh_driver._connection.ex_detach_interface(
-            esh_instance.id, fixed_ip_port['id'])
-        logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
-    return result
+# Not in use -- marked for deletion
+# def detach_port(esh_driver, esh_instance):
+#     instance_ports = network_manager.list_ports(device_id=esh_instance.id)
+#     if instance_ports:
+#         fixed_ip_port = instance_ports[0]
+#         result = esh_driver._connection.ex_detach_interface(
+#             esh_instance.id, fixed_ip_port['id'])
+#         logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
+#     return result
 
 
 def remove_empty_network(esh_driver, identity_uuid, network_options={}):
@@ -461,6 +467,7 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
             esh_driver.__class__,
             esh_driver.provider,
             esh_driver.identity,
+            str(core_identity.uuid),
             esh_instance.id)
         fixed_ip_task.link(floating_ip_task)
     return init_task
@@ -574,7 +581,7 @@ def shelve_instance(esh_driver, esh_instance,
     _permission_to_act(identity_uuid, "Shelve")
     _update_status_log(esh_instance, "Shelving Instance")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
+        remove_ips(esh_driver, esh_instance, identity_uuid)
     shelved = esh_driver._connection.ex_shelve_instance(esh_instance)
     if reclaim_ip:
         remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
@@ -626,7 +633,7 @@ def offload_instance(esh_driver, esh_instance,
     _permission_to_act(identity_uuid, "Shelve Offload")
     _update_status_log(esh_instance, "Shelve-Offloading Instance")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance)
+        remove_ips(esh_driver, esh_instance, identity_uuid)
     offloaded = esh_driver._connection.ex_shelve_offload_instance(esh_instance)
     if reclaim_ip:
         remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
@@ -861,7 +868,7 @@ def launch_instance(user, identity_uuid,
 
     esh_driver = get_cached_driver(identity=identity)
 
-    # May raise Exception("Size not available")
+    # May raise Unauthorized/ConnectionFailure/SizeNotAvailable
     size = check_size(esh_driver, size_alias, provider_uuid)
     # May raise Exception("Volume/Machine not available")
     boot_source = get_boot_source(user.username, identity_uuid, source_alias)
@@ -1182,6 +1189,10 @@ def check_size(esh_driver, size_alias, provider_uuid):
         if not convert_esh_size(esh_size, provider_uuid).active():
             raise SizeNotAvailable()
         return esh_size
+    except LibcloudHTTPError as http_err:
+        if http_err.code == 401:
+            raise Unauthorized(http_err.message)
+        raise ConnectionFailure(http_err.message)
     except:
         raise SizeNotAvailable()
 
@@ -1280,7 +1291,87 @@ def check_quota(username, identity_uuid, esh_size,
         raise OverAllocationError(time_diff)
 
 
+def delete_security_group(core_identity):
+    has_secret = core_identity.get_credential('secret') is not None
+    if has_secret:
+        return admin_delete_security_group(core_identity)
+    return user_delete_security_group(core_identity)
+
+def admin_delete_security_group(core_identity):
+    os_acct_driver = get_account_driver(core_identity.provider)
+    os_acct_driver.delete_security_group(core_identity)
+
+def user_delete_security_group(core_identity):
+    network_driver = _to_network_driver(core_identity)
+    driver = get_cached_driver(identity=core_identity)
+    security_groups = driver._connection.ex_list_security_groups()
+    for security_group in security_groups:
+        try:
+            driver._connection.ex_delete_security_group(security_group)
+        except:
+            # Try as neutron
+            network_driver.neutron.delete_security_group(security_group.id)
+    return
+
+
 def security_group_init(core_identity, max_attempts=3):
+    has_secret = core_identity.get_credential('secret') is not None
+    if has_secret:
+        return admin_security_group_init(core_identity)
+    return user_security_group_init(core_identity)
+
+
+def user_security_group_init(core_identity, security_group_name='default'):
+    # Rules can come from the provider _or_ from settings _otherwise_ empty-list
+    rules = core_identity.provider.get_config('network', 'default_security_rules',getattr(settings,'DEFAULT_RULES',[]))
+    driver = get_cached_driver(identity=core_identity)
+    lc_driver = driver._connection
+    security_group = get_or_create_security_group(lc_driver, security_group_name)
+    set_security_group_rules(lc_driver, security_group, rules)
+    return security_group
+
+
+def set_security_group_rules(lc_driver, security_group, rules):
+    for rule_tuple in rules:
+        if len(rule_tuple) == 3:
+            (ip_protocol, from_port, to_port) = rule_tuple
+            cidr = None
+        elif len(rule_tuple) == 4:
+            (ip_protocol, from_port, to_port, cidr) = rule_tuple
+        else:
+            raise Exception("Invalid DEFAULT_RULES contain a rule, %s, which does not match the expected format" % rule_tuple)
+
+        try:
+            # attempt to find 
+            rule_found = any(
+                sg_rule for sg_rule in security_group.rules
+                if sg_rule.ip_protocol == ip_protocol.lower() and
+                sg_rule.from_port == from_port and
+                sg_rule.to_port == to_port and
+                (not cidr or sg_rule.ip_range == cidr))
+            if rule_found:
+                continue
+            # Attempt to create
+            lc_driver.ex_create_security_group_rule(security_group, ip_protocol, from_port, to_port, cidr)
+        except BaseHTTPError as exc:
+            if "Security group rule already exists" in exc.message:
+                continue
+            raise
+    return security_group
+
+def get_or_create_security_group(lc_driver, security_group_name):
+    sgroup_list = lc_driver.ex_list_security_groups()
+    security_group = [sgroup for sgroup in sgroup_list if sgroup.name == security_group_name]
+    if len(security_group) > 0:
+        security_group = security_group[0]
+    else:
+        security_group = lc_driver.ex_create_security_group(security_group_name,'Security Group created by Atmosphere')
+
+    if security_group is None:
+       raise Exception("Could not find or create security group")
+    return security_group
+
+def admin_security_group_init(core_identity, max_attempts=3):
     os_driver = OSAccountDriver(core_identity.provider)
     # TODO: Remove kludge when openstack connections can be
     # Deemed reliable. Otherwise generalize this pattern so it
@@ -1297,6 +1388,28 @@ def security_group_init(core_identity, max_attempts=3):
 
 
 def keypair_init(core_identity):
+    return user_keypair_init(core_identity)
+
+
+def user_keypair_init(core_identity):
+    user = core_identity.created_by
+    esh_driver = get_cached_driver(identity=core_identity)
+    lc_driver = esh_driver._connection
+    USERNAME = str(user.username)
+    user_keys = get_user_ssh_keys(USERNAME)
+    keys = []
+    for user_key in user_keys:
+        try:
+            key = lc_driver.ex_import_keypair_from_string(user_key.name, user_key.pub_key)
+            keys.append(key)
+        except BaseHTTPError as exc:
+            if "already exists" in exc.message:
+                continue
+            raise
+    return user_keys
+
+
+def admin_keypair_init(core_identity):
     os_driver = OSAccountDriver(core_identity.provider)
     creds = core_identity.get_credentials()
     with open(settings.ATMOSPHERE_KEYPAIR_FILE, 'r') as pub_key_file:
@@ -1310,6 +1423,109 @@ def keypair_init(core_identity):
 
 
 def network_init(core_identity):
+    return user_network_init(core_identity)
+
+
+def _to_network_driver(core_identity):
+    all_creds = core_identity.get_all_credentials()
+    project_name = core_identity.project_name()
+    domain_name = all_creds.get('domain_name', 'default')
+    auth_url = all_creds.get('auth_url')
+    if '/v' not in auth_url:  # Add /v3 if no version specified in auth_url
+        auth_url += '/v3'
+    if 'ex_force_auth_token' in all_creds:
+        auth_token = all_creds['ex_force_auth_token']
+        (auth, sess, token) = _token_to_keystone_scoped_project(
+            auth_url, auth_token,
+            project_name, domain_name)
+    else:
+        username = all_creds['key']
+        password = all_creds['secret']
+        (auth, sess, token) = _connect_to_keystone_v3(
+            auth_url, username, password,
+            project_name, domain_name)
+    network_driver = NetworkManager(session=sess)
+    return network_driver
+
+
+def user_network_init(core_identity):
+    """
+    WIP -- need to figure out how to do this within the scope of libcloud // OR using existing authtoken to connect with neutron.
+    """
+    username = core_identity.get_credential('key')
+    if not username:
+        username = core_identity.created_by.username
+    esh_driver = get_cached_driver(identity=core_identity)
+    dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
+    topology_name = core_identity.provider.get_config('network', 'topology', None)
+    if not topology_name:
+        logger.error(
+            "Network topology not selected -- "
+            "Will attempt to use the last known default: ExternalRouter.")
+        topology_name = "External Router Topology"
+    network_driver = _to_network_driver(core_identity)
+    user_neutron = network_driver.neutron
+    network_strategy = initialize_user_network_strategy(
+        topology_name, core_identity, network_driver, user_neutron)
+    network_resources = network_strategy.create(
+        username=username, dns_nameservers=dns_nameservers)
+    network_strategy.post_create_hook(network_resources)
+    logger.info("Created user network - %s" % network_resources)
+    network, subnet = network_resources['network'], network_resources['subnet']
+    lc_network = _to_lc_network(esh_driver, network, subnet)
+    return lc_network
+
+
+def initialize_user_network_strategy(topology_name, identity, network_driver, neutron):
+    """
+    Select a network topology and initialize it with the identity/provider specific information required.
+    """
+    try:
+        NetworkTopologyStrategyCls = get_topology_cls(topology_name)
+        network_strategy = NetworkTopologyStrategyCls(identity, network_driver, neutron)
+        # validate should raise exception if mis-configured.
+        network_strategy.validate(identity)
+    except:
+        logger.exception(
+            "Error initializing Network Topology - %s + %s " %
+            (NetworkTopologyStrategyCls, identity))
+        raise
+    return network_strategy
+
+
+def destroy_network(core_identity, options):
+    has_secret = core_identity.get_credential('secret') is not None
+    if has_secret:
+        return admin_destroy_network(core_identity, options)
+    return user_destroy_network(core_identity, options)
+
+
+def admin_destroy_network(core_identity, options):
+    topology_name = core_identity.provider.get_config('network', 'topology', None)
+    if not topology_name:
+        logger.error(
+            "Network topology not selected -- "
+            "Will attempt to use the last known default: ExternalRouter.")
+        topology_name = "External Router Topology"
+    os_acct_driver = get_account_driver(core_identity.provider)
+    return os_acct_driver.delete_user_network(
+        core_identity, options)
+
+def user_destroy_network(core_identity, options):
+    topology_name = core_identity.provider.get_config('network', 'topology', None)
+    if not topology_name:
+        logger.error(
+            "Network topology not selected -- "
+            "Will attempt to use the last known default: ExternalRouter.")
+        topology_name = "External Router Topology"
+    network_driver = _to_network_driver(core_identity)
+    network_strategy = initialize_user_network_strategy(
+        topology_name, core_identity, network_driver, network_driver.neutron)
+    skip_network = options.get("skip_network", False)
+    return network_strategy.delete(skip_network=skip_network)
+
+
+def admin_network_init(core_identity):
     os_driver = OSAccountDriver(core_identity.provider)
     network_resources = os_driver.create_user_network(core_identity)
     logger.info("Created user network - %s" % network_resources)
@@ -1347,10 +1563,20 @@ def _extra_openstack_args(core_identity, ex_metadata={}):
     credentials = core_identity.get_credentials()
     username = core_identity.created_by.username
     tenant_name = credentials.get('ex_tenant_name')
+    has_secret = credentials.get('secret') is not None
     ex_metadata.update({'tmp_status': 'initializing',
                         'tenant_name': tenant_name,
                         'creator': '%s' % username})
-    ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
+    if has_secret and getattr(settings, 'ATMOSPHERE_KEYPAIR_NAME'):
+        ex_keyname = settings.ATMOSPHERE_KEYPAIR_NAME
+    else:
+        user = core_identity.created_by
+        user_keys = get_user_ssh_keys(user.username)
+        if not user_keys:
+            raise Exception("User has not yet created a key -- instance cannot be launched")
+        # FIXME: In a new PR, allow user to select the keypair for launching
+        user_key = user_keys[0]
+        ex_keyname = user_key.name
     return {"ex_metadata": ex_metadata, "ex_keyname": ex_keyname}
 
 
@@ -1492,7 +1718,7 @@ def _repair_instance_networking(
     logger.info("Adding floating IP manually, Instance %s" %
                 esh_instance.id)
     add_floating_ip(esh_driver.__class__, esh_driver.provider,
-                    esh_driver.identity, esh_instance.id)
+                    esh_driver.identity, str(core_identity.uuid), esh_instance.id)
     logger.info("Instance %s needs to hard reboot instead of resume" %
                 esh_instance.id)
     esh_driver.reboot_instance(esh_instance, 'HARD')
