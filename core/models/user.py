@@ -85,6 +85,13 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
             return True
         return False
 
+    def all_projects(self):
+        from core.models.project import Project
+        p_qs = Project.objects.none()
+        for group in self.group_set.all():
+            p_qs |= group.projects.all()
+        return p_qs
+
     def group_ids(self):
         return self.group_set.values_list('id', flat=True)
 
