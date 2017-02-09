@@ -516,7 +516,7 @@ class AccountDriver(BaseAccountDriver):
     def delete_security_group(self, identity):
         identity_creds = self.parse_identity(identity)
         project_name = identity_creds["tenant_name"]
-        project = self.user_manager.keystone.projects.find(name=project_name)
+        project = self.user_manager.keystone_projects().find(name=project_name)
         sec_group_r = self.network_manager.neutron.list_security_groups(
             tenant_id=project.id)
         sec_groups = sec_group_r["security_groups"]

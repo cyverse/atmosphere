@@ -14,7 +14,7 @@ from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
 
-from rtwo.exceptions import LibcloudDeploymentError
+from rtwo.exceptions import LibcloudDeploymentError, LibcloudInvalidCredsError
 
 #TODO: Internalize exception into RTwo
 from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
@@ -264,7 +264,11 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
     # Attempt to clean floating IPs
     num_ips_removed = _remove_extra_floating_ips(driver, tenant_name)
     # Test for active/inactive_instances instances
-    instances = driver.list_instances()
+    try:
+        instances = driver.list_instances()
+    except LibcloudInvalidCredsError:
+        logger.exception("Identity %s does not have a valid username/password/tenantName combination" % core_identity)
+        return (0, False)
     # Active True IFF ANY instance is 'active'
     active_instances = any(driver._is_active_instance(inst)
                            for inst in instances)
