@@ -45,15 +45,16 @@ def main():
 
 
     # Print csv
-    print "UUID, PROVIDER, START_DATE, LAST_STATUS, USERNAME"
+    print "UUID, PROVIDER, START_DATE, LAST_STATUS, USERNAME, EVER_HIT_ACTIVE?"
     for inst in instances:
         uuid = inst.provider_alias
         provider = inst.provider.location
         start_date = str(inst.start_date)
         last_status = inst.instancestatushistory_set.last().status.name
+        ever_hit_active = inst.instancestatushistory_set.filter(status__name='active').count() > 0
         username = inst.created_by.username
 
-        print ",".join([uuid, provider, start_date, last_status, username])
+        print ",".join([uuid, provider, start_date, last_status, username, str(ever_hit_active)])
 
 if __name__ == "__main__":
     main()
