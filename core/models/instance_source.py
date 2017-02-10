@@ -88,6 +88,15 @@ class InstanceSource(models.Model):
         return source
 
     @property
+    def get_source_class(self):
+        if self.is_machine():
+            return self.machine
+        elif self.is_volume():
+            return self.volume
+        elif self.is_snapshot():
+            return self.volume
+
+    @property
     def source_type(self):
         if self.is_machine():
             return "machine"
