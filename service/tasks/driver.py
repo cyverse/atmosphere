@@ -14,7 +14,7 @@ from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
 
-from rtwo.exceptions import LibcloudDeploymentError, LibcloudInvalidCredsError
+from rtwo.exceptions import LibcloudDeploymentError, LibcloudInvalidCredsError, LibcloudBadResponseError
 
 #TODO: Internalize exception into RTwo
 from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
@@ -244,9 +244,13 @@ def _remove_network(
 
 
 @task(name="clear_empty_ips_for")
-def clear_empty_ips_for(core_identity_uuid, username=None):
+def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
     """
     RETURN: (number_ips_removed, delete_network_called)
+    on Failure:
+    -404, driver creation failure (Verify credentials are accurate)
+    -401, authorization failure (Change the password of the driver)
+    -500, cloud failure (Operational support required)
     """
     from service.driver import get_esh_driver
     from rtwo.driver import OSDriver
@@ -254,7 +258,7 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
     core_identity = Identity.objects.get(uuid=core_identity_uuid)
     driver = get_esh_driver(core_identity)
     if not isinstance(driver, OSDriver):
-        return (0, False)
+        return (-404, False)
     os_acct_driver = get_account_driver(core_identity.provider)
     celery_logger.info("Initialized account driver")
     # Get useful info
@@ -267,8 +271,11 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
     try:
         instances = driver.list_instances()
     except LibcloudInvalidCredsError:
-        logger.exception("Identity %s does not have a valid username/password/tenantName combination" % core_identity)
-        return (0, False)
+        logger.exception("InvalidCredentials provided for Identity %s" % core_identity)
+        return (-401, False)
+    except LibcloudBadResponseError:
+        logger.exception("Driver returned unexpected response for Identity %s" % core_identity)
+        return (-500, False)
     # Active True IFF ANY instance is 'active'
     active_instances = any(driver._is_active_instance(inst)
                            for inst in instances)
@@ -309,8 +316,7 @@ def clear_empty_ips():
     for core_identity in identities:
         try:
             # TODO: Add some
-            clear_empty_ips_for.apply_async(args=[core_identity.uuid,
-                                                  core_identity.created_by])
+            clear_empty_ips_for.apply_async(args=[core_identity.created_by.username,core_identity.provider.id, str(core_identity.uuid)])
         except Exception as exc:
             celery_logger.exception(exc)
     celery_logger.debug("clear_empty_ips task finished at %s." % datetime.now())
