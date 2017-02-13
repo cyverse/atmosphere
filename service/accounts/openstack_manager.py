@@ -783,12 +783,8 @@ class AccountDriver(BaseAccountDriver):
     def list_all_instances(self, **kwargs):
         return self.admin_driver.list_all_instances(**kwargs)
 
-    def list_all_images(self, limit_ids=[], **kwargs):
+    def list_all_images(self, **kwargs):
         all_images = self.image_manager.list_images(**kwargs)
-        if limit_ids:
-            all_images = [
-                img for img in all_images
-                if img.id in limit_ids]
         return all_images
 
     def list_all_snapshots(self, **kwargs):
