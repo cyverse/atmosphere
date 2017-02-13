@@ -10,10 +10,10 @@ from threepio import logger
 
 from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
-    OSProvider
+    OSProvider, MockProvider
 from rtwo.models.identity import AWSIdentity, EucaIdentity,\
-    OSIdentity
-from rtwo.driver import AWSDriver, EucaDriver, OSDriver
+    OSIdentity, MockIdentity
+from rtwo.driver import AWSDriver, EucaDriver, OSDriver, MockDriver
 
 
 #TODO: Remove these ASAP -- Once we determine it will not be a problem.
@@ -122,6 +122,11 @@ def get_account_driver(provider, raise_exception=False):
 
 
 ESH_MAP = {
+    'mock': {
+        'provider': MockProvider,
+        'identity': MockIdentity,
+        'driver': MockDriver
+    },
     'openstack': {
         'provider': OSProvider,
         'identity': OSIdentity,
@@ -172,7 +177,7 @@ def get_esh_provider(core_provider, username=None):
         raise
 
 
-def get_esh_driver(core_identity, username=None, **kwargs):
+def get_esh_driver(core_identity, username=None, identity_kwargs={}, **kwargs):
     try:
         core_provider = core_identity.provider
         if not core_provider.is_active():
@@ -186,6 +191,7 @@ def get_esh_driver(core_identity, username=None, **kwargs):
         provider_creds = core_identity.provider.get_esh_credentials(provider)
         provider_creds.update(kwargs)
         identity_creds = core_identity.get_credentials()
+        identity_creds.update(identity_kwargs)
         identity = esh_map['identity'](provider, user=user, **identity_creds)
         driver = esh_map['driver'](provider, identity, **provider_creds)
         return driver

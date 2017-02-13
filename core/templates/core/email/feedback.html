@@ -2,7 +2,7 @@ Username : {{ username }} ({{ name|safe }})
 
 Feedback : {{ feedback|safe }}
 
-Provider : {{ provider }}
+Provider : {{ provider.location }}
 
 User-interface : {{ ui }}
 
@@ -13,6 +13,7 @@ Instances :
     Name : {{ i.name|safe }}
     UUID : {{ i.provider_alias }}
     Image : {{ i.provider_machine.identifier }}
+    Provider : {{ i.provider.location }}
     IP : {{ i.ip_address }}
 {% endfor %}
 

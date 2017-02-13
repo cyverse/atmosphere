@@ -33,8 +33,13 @@ ENFORCING = False
 #Cloud-Operator specific information
 {%- if SITE_NAME %}
 SITE_NAME = '{{ SITE_NAME }}'
+SITE_TITLE = '{{ SITE_NAME }}'
 {%- else %}
 SITE_NAME = 'Atmosphere'
+SITE_TITLE = 'Atmosphere'
+{%- endif %}
+{%- if ORG_NAME %}
+ORG_NAME = '{{ ORG_NAME }}'
 {%- endif %}
 
 {%- if TIME_ZONE %}
@@ -53,6 +58,11 @@ ADMINS = [
 ]
 {% endif %}
 
+
+{%- if SERVER_EMAIL %}
+# This email will be used as the FROM: address for emails to the ADMINS
+SERVER_EMAIL="{{ SERVER_EMAIL }}"
+{%- endif %}
 # Required to send RequestTracker emails
 {% if ATMO_SUPPORT_EMAIL_TUPLE %}
 ATMO_SUPPORT = [
@@ -64,6 +74,12 @@ ATMO_SUPPORT = [
 ]
 {%- else %}
 ATMO_SUPPORT = ADMINS
+{% endif %}
+
+{% if MAINTENANCE_EXEMPT_USERNAMES %}
+MAINTENANCE_EXEMPT_USERNAMES = {{ MAINTENANCE_EXEMPT_USERNAMES }}
+{% else %}
+MAINTENANCE_EXEMPT_USERNAMES = []
 {% endif %}
 
 ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
@@ -179,7 +195,10 @@ DATABASES = {
         'CONN_MAX_AGE': {{ DATABASE_CONN_MAX_AGE }},
         'PASSWORD': '{{ DATABASE_PASSWORD }}',
         'HOST': '{{ DATABASE_HOST }}',
-        'PORT': {{ DATABASE_PORT }}
+        'PORT': {{ DATABASE_PORT }},
+        'TEST': {
+            'SERIALIZE': False
+        }
     },
 }
 
@@ -213,10 +232,17 @@ USE_ALLOCATION_SOURCE = True
 # Configure authentication plugin
 AUTHENTICATION = {
     #GLOBAL
+    "APP_NAME": SITE_TITLE,
+    "SITE_NAME": ORG_NAME,
     "SERVER_URL": SERVER_URL,
     "TOKEN_EXPIRY_TIME": timedelta(days={{ TOKEN_EXPIRY_TIME_DAYS }}),
     "SELF_SIGNED_CERT": {{ SELF_SIGNED_CERT }},
     "LOGOUT_REDIRECT_URL": '{{ LOGOUT_REDIRECT_URL }}',
+
+    #KEYSTONE -- Required for OpenstackLoginBackend
+    "KEYSTONE_SERVER": '{{ KEYSTONE_SERVER }}',
+    "KEYSTONE_DOMAIN_NAME": '{{ KEYSTONE_DOMAIN_NAME}}',
+
     #CAS
     "CAS_SERVER": '{{ CAS_SERVER }}',
     "CAS_AUTH_PREFIX": '{{ CAS_AUTH_PREFIX }}',
@@ -258,42 +284,45 @@ ALWAYS_AUTH_USER = "{{ AUTH_MOCK_USER }}"
 AUTHENTICATION_BACKENDS = (
     {% if AUTH_ENABLE_MOCK %}
     # Use MockLoginBackend first!
-    'iplantauth.authBackends.MockLoginBackend',
+    'django_cyverse_auth.authBackends.MockLoginBackend',
     {% else %}
     # MOCK - Uncomment these lines to allow one-user-only access. Useful for debug/development
-    # 'iplantauth.authBackends.MockLoginBackend',
+    # 'django_cyverse_auth.authBackends.MockLoginBackend',
     # MOCK - Required to login to 'admin' if the *ONLY* backend is MockLoginBackend.
     # 'django.contrib.auth.backends.ModelBackend',
     {% endif %}
     # Use existing AuthTokens as a login backend (Emulation via API)
-    'iplantauth.authBackends.AuthTokenLoginBackend',
+    'django_cyverse_auth.authBackends.AuthTokenLoginBackend',
     {% if AUTH_ENABLE_GLOBUS %}
     # For Web-Access
-    'iplantauth.authBackends.GlobusOAuthLoginBackend',
+    'django_cyverse_auth.authBackends.GlobusOAuthLoginBackend',
     # Required to login to 'admin' if the *ONLY* backend is GlobusLoginBackend
     'django.contrib.auth.backends.ModelBackend',
     {% endif %}
     {% if AUTH_ENABLE_CAS %}
     # For Web-Access
-    'iplantauth.authBackends.CASLoginBackend',
+    'django_cyverse_auth.authBackends.CASLoginBackend',
     {% endif %}
     {% if AUTH_ENABLE_LDAP %}
     # For Service-Access
-    'iplantauth.authBackends.LDAPLoginBackend',
+    'django_cyverse_auth.authBackends.LDAPLoginBackend',
     {% endif %}
+    {% if AUTH_ENABLE_OPENSTACK -%}
+    'django_cyverse_auth.authBackends.OpenstackLoginBackend',
+    {% endif -%}
 )
 # UPDATE REST_FRAMEWORK
 REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
-    'iplantauth.token.TokenAuthentication',  # Generic Tokens
+    'django_cyverse_auth.token.TokenAuthentication',  # Generic Tokens
     'rest_framework.authentication.SessionAuthentication',  # Session
     {% if AUTH_ENABLE_GLOBUS %}
-    'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
+    'django_cyverse_auth.token.GlobusOAuthTokenAuthentication',  # Globus
     {% endif %}
     {% if AUTH_ENABLE_JWT %}
-    'iplantauth.token.JWTTokenAuthentication',  # JWT
+    'django_cyverse_auth.token.JWTTokenAuthentication',  # JWT
     {% endif %}
     {% if AUTH_ENABLE_CAS %}
-    'iplantauth.token.OAuthTokenAuthentication',  # CAS
+    'django_cyverse_auth.token.OAuthTokenAuthentication',  # CAS
     {% endif %}
 )
 {% endif %}

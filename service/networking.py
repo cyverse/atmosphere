@@ -28,9 +28,9 @@ def _generate_ssh_kwargs(timeout=120):
     return kwargs
 
 def _get_unique_id(userid):
-    if 'iplantauth.authBackends.LDAPLoginBackend' in \
+    if 'django_cyverse_auth.authBackends.LDAPLoginBackend' in \
             settings.AUTHENTICATION_BACKENDS:
-        from iplantauth.protocol.ldap import _get_uid_number
+        from django_cyverse_auth.protocol.ldap import _get_uid_number
         return _get_uid_number(userid)
     else:
         return _get_random_uid(userid)
@@ -137,8 +137,12 @@ class GenericNetworkTopology(object):
 
     def get_or_create_network(self):
         network_name = "%s-net" % self.prefix
-        return self.network_driver.create_network(
-                self.user_neutron, network_name)
+        if self.network_driver:
+            return self.network_driver.create_network(
+                    self.user_neutron, network_name)
+        else:
+            return self.user_neutron.create_network(
+                {'network': {'name': network_name}})
 
     def get_or_create_user_subnet(
             self, network_id, username,
@@ -157,18 +161,23 @@ class GenericNetworkTopology(object):
         success = False
         inc = 0
         MAX_SUBNET = 4064
-        cidr = None
+        new_cidr = None
         while not success and inc < MAX_SUBNET:
             try:
-                cidr = get_cidr(username, inc, get_unique_number)
-                if cidr:
+                new_cidr = get_cidr(username, inc, get_unique_number)
+                cidr_match = any(sn for sn in self.network_driver.list_subnets() if sn['cidr'] == new_cidr)
+                if new_cidr and not cidr_match:
                     return self.network_driver.create_subnet(
                             self.user_neutron, subnet_name,
                             network_id, ip_version,
-                            cidr, dns_nameservers)
+                            new_cidr, dns_nameservers)
+                elif cidr_match:
+                    logger.warn("Unable to create new_cidr for subnet "
+                                "for user: %s (CIDR already used)" % username)
+                    inc += 1
                 else:
-                    logger.warn("Unable to create cidr for subnet "
-                                "for user: %s" % username)
+                    logger.warn("Unable to create new_cidr for subnet "
+                                "for user: %s (create_subnet failed)" % username)
                     inc += 1
             except NeutronClientException as nce:
                 if "overlap" in nce.message:
@@ -188,7 +197,7 @@ class GenericNetworkTopology(object):
                     logger.warn("No get_unique_number method "
                                 "provided for user: %s" % username)
                 inc += 1
-        if not success or not cidr:
+        if not success or not new_cidr:
             raise Exception("Unable to create subnet for user: %s" % username)
 
     def get_or_create_router(self):
@@ -277,15 +286,17 @@ class ExternalNetwork(GenericNetworkTopology):
         self.delete_subnet()
 
     def create(self, username=None, dns_nameservers=None):
-        network = self.get_or_create_network()
+        network = self.get_or_create_network()  #NOTE: This also might be wrong.
         subnet = self.get_or_create_user_subnet(
             network['id'], username,
             dns_nameservers=dns_nameservers)
         router = self.get_or_create_router()
+        gateway = self.get_or_create_router_gateway(router, network)
         interface = self.get_or_create_router_interface(
             router, subnet)
         network_resources = {
             'network': network,
+            'gateway': gateway,
             'subnet': subnet,
             'router': router,
             'interface': interface,

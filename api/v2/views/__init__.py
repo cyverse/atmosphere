@@ -1,4 +1,5 @@
 # flake8: noqa
+from .account import AccountViewSet
 from .allocation import AllocationViewSet
 from .allocation_source import AllocationSourceViewSet
 from .boot_script import BootScriptViewSet
@@ -36,12 +37,14 @@ from .provider_machine import ProviderMachineViewSet
 from .provider_type import ProviderTypeViewSet
 from .quota import QuotaViewSet
 from .resource_request import ResourceRequestViewSet
+from .reporting import ReportingViewSet
 from .size import SizeViewSet
 from .status_type import StatusTypeViewSet
 from .email import  InstanceSupportEmailViewSet, VolumeSupportEmailViewSet, FeedbackEmailViewSet, ResourceEmailViewSet
 from .emulate import TokenEmulateViewSet, SessionEmulateViewSet
 from .tag import TagViewSet
 from .token import TokenViewSet
+from .token_update import TokenUpdateViewSet
 from .user import UserViewSet
 from .volume import VolumeViewSet
 from .metric import MetricViewSet

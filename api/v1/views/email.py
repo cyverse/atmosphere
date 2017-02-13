@@ -8,7 +8,7 @@ from django.template import Context
 
 from threepio import logger
 
-from iplantauth.protocol.ldap import lookupEmail
+from django_cyverse_auth.protocol.ldap import lookupEmail
 
 from core.models import AtmosphereUser as User
 from core.email import email_admin, resource_request_email

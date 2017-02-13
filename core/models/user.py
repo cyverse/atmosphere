@@ -1,5 +1,4 @@
 import uuid
-import inspect
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager
 from django.core import validators
@@ -9,7 +8,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
-from core.plugins import load_validation_plugins
+from core.plugins import ValidationPluginManager, ExpirationPluginManager
 from core.exceptions import InvalidUser
 from threepio import logger
 from django.utils.translation import ugettext_lazy as _
@@ -81,6 +80,11 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         send_mail(subject, message, from_email, [self.email], **kwargs)
     # END-rip.
 
+    def is_admin(self):
+        if self.is_superuser or self.is_staff:
+            return True
+        return False
+
     def group_ids(self):
         return self.group_set.values_list('id', flat=True)
 
@@ -89,31 +93,21 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
 
     def user_quota(self):
         identity = self.select_identity()
-        identity_member = identity.identity_memberships.all()[0]
-        return identity_member.quota
+        return identity.quota
+
+    def is_expired(self):
+        """
+        Call expiration plugin to determine if user is expired
+        """
+        _is_expired = ExpirationPluginManager.is_expired(self)
+        return _is_expired
 
     def is_valid(self):
         """
         Call validation plugin to determine user validity
         """
-        _is_valid = False
-        #FIXME: Improvement for later: This pattern is probably better served in a Manager, to be called by this function..
-        for ValidationPlugin in load_validation_plugins():
-            plugin = ValidationPlugin()
-            try:
-                inspect.getcallargs(
-                    getattr(plugin,'validate_user'),
-                    user=self)
-            except AttributeError:
-                logger.info("Validation plugin %s does not have a 'validate_user' method"
-                            % ValidationPlugin)
-            except TypeError:
-                logger.info("Validation plugin %s does not accept (self, user)"
-                            % ValidationPlugin)
-            _is_valid = plugin.validate_user(user=self)
-            if _is_valid:
-                return True
-        return False
+        _is_valid = ValidationPluginManager.is_valid(self)
+        return _is_valid
 
     @property
     def is_enabled(self):
@@ -243,7 +237,7 @@ def get_default_identity(username, provider=None):
         group = get_user_group(username)
         if not group or not group.current_identities.all().count():
             if settings.AUTO_CREATE_NEW_ACCOUNTS:
-                new_identities = create_new_accounts(username, provider=provider)
+                new_identities = create_new_accounts(username, selected_provider=provider)
                 if not new_identities:
                     logger.error("%s has no identities. Functionality will be severely limited." % username)
                     return None

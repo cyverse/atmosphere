@@ -8,6 +8,7 @@ from api.v2 import views
 from api.base import views as base_views
 
 router = routers.DefaultRouter(trailing_slash=False)
+router.register(r'accounts', views.AccountViewSet, base_name='account')
 router.register(
     r'allocations',
     views.AllocationViewSet,
@@ -72,9 +73,11 @@ router.register(
 router.register(r'provider_types', views.ProviderTypeViewSet, base_name='providertype')
 router.register(r'quotas', views.QuotaViewSet)
 router.register(r'resource_requests', views.ResourceRequestViewSet)
+router.register(r'reporting', views.ReportingViewSet, base_name='reporting')
 router.register(r'sizes', views.SizeViewSet)
 router.register(r'status_types', views.StatusTypeViewSet)
 router.register(r'tags', views.TagViewSet)
+router.register(r'token_update', views.TokenUpdateViewSet, base_name='token_update')
 router.register(r'tokens', views.TokenViewSet, base_name='token')
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet, base_name='group')

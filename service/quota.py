@@ -35,8 +35,8 @@ def check_over_instance_quota(
     membership = IdentityMembership.objects.get(
         identity__uuid=identity_uuid,
         member__name=username)
-    quota = membership.quota
     identity = membership.identity
+    quota = identity.quota
     driver = get_cached_driver(identity=identity)
     new_port = new_floating_ip = new_instance = new_cpu = new_ram = 0
     if esh_size:
@@ -52,7 +52,7 @@ def check_over_instance_quota(
         has_mem_quota(driver, quota, new_ram)
         has_instance_count_quota(driver, quota, new_instance)
         has_floating_ip_count_quota(driver, quota, new_floating_ip)
-        has_port_count_quota(driver, quota, new_port)
+        has_port_count_quota(identity, driver, quota, new_port)
         return True
     except ValidationError:
         if raise_exc:
@@ -75,8 +75,8 @@ def check_over_storage_quota(
     """
     membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
                                                 member__name=username)
-    quota = membership.quota
     identity = membership.identity
+    quota = identity.quota
     driver = get_cached_driver(identity=identity)
 
     # FIXME: I don't believe that 'snapshot' size and 'volume' size share
@@ -105,19 +105,18 @@ def set_provider_quota(identity_uuid, limit_dict=None):
     if not identity.credential_set.all():
         # Can't update quota if credentials arent set
         return
-    username = identity.created_by.username
-    membership = IdentityMembership.objects.get(
-        identity__uuid=identity_uuid,
-        member__name=username)
-    user_quota = membership.quota
+    user_quota = identity.quota
 
     if not user_quota:
         # Can't update quota if it doesn't exist
-        return True
+        return
     # Don't go above the hard-set limits per provider.
-    _limit_user_quota(user_quota, identity, limit_dict=limit_dict)
-
-    return _set_openstack_quota(user_quota, identity)
+    #_limit_user_quota(user_quota, identity, limit_dict=limit_dict)
+    if identity.provider.type.name.lower() == 'openstack':
+        return _set_openstack_quota(user_quota, identity)
+    else:
+        # Only attempt to set quota for known provider types
+        return
 
 
 def _get_hard_limits(identity):
@@ -206,17 +205,28 @@ def _set_compute_quota(user_quota, identity):
     # Use THESE values...
     compute_values = {
         'cores': user_quota.cpu,
-        'ram': user_quota.memory,  # NOTE: Test that this works on havana
+        'ram': user_quota.memory*1024,  # NOTE: Value is stored in GB, Openstack (Liberty) expects MB
         'floating_ips': user_quota.floating_ip_count,
         'fixed_ips': user_quota.port_count,
         'instances': user_quota.instance_count,
     }
+    creds = identity.get_all_credentials()
+    if creds.get('ex_force_auth_version','2.0_password') == "2.0_password":
+        compute_values.pop('instances')
     username = identity.created_by.username
     logger.info("Updating quota for %s to %s" % (username, compute_values))
     driver = get_cached_driver(identity=identity)
-    user_id = driver._connection.key
+    username = driver._connection.key
     tenant_id = driver._connection._get_tenant_id()
+    tenant_name = identity.project_name()
     ad = get_account_driver(identity.provider)
+    ks_user = ad.get_user(username)
     admin_driver = ad.admin_driver
-    return admin_driver._connection.ex_update_quota_for_user(
-        tenant_id, user_id, compute_values)
+    try:
+        result = admin_driver._connection.ex_update_quota_for_user(
+            tenant_id, ks_user.id, compute_values)
+    except Exception:
+        logger.exception("Could not set a user-quota, trying to set tenant-quota")
+        result = admin_driver._connection.ex_update_quota(tenant_id, compute_values)
+    logger.info("Updated quota for %s to %s" % (username, result))
+    return result

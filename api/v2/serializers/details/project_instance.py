@@ -1,5 +1,6 @@
 from core.models import ProjectInstance, Project, Instance
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 from api.v2.serializers.summaries import ProjectSummarySerializer
 from .instance import InstanceSerializer
 
@@ -32,8 +33,15 @@ class ProjectInstanceSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:projectinstance-detail',
     )
+
     class Meta:
         model = ProjectInstance
+        validators = [
+            UniqueTogetherValidator(
+                queryset=ProjectInstance.objects.all(),
+                fields=('project', 'instance')
+                ),
+        ]
         fields = (
             'id',
             'url',

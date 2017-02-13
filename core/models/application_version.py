@@ -36,7 +36,7 @@ class ApplicationVersion(models.Model):
     # NOTE: Parent is 'null' when this version was created by a STAFF user
     # (For Ex: imported an image, etc.)
     parent = models.ForeignKey("ApplicationVersion", blank=True, null=True)
-    name = models.CharField(max_length=256)  # Potentially goes unused..
+    name = models.CharField(max_length=256)
     # Optional/default available
     change_log = models.TextField(null=True, blank=True)
     allow_imaging = models.BooleanField(default=True)
@@ -205,6 +205,15 @@ class ApplicationVersion(models.Model):
     def is_owner(self, atmo_user):
         return (self.created_by == atmo_user |
                 self.application.created_by == atmo_user)
+
+    def change_owner(self, identity, user=None, propagate=True):
+        if not user:
+            user = identity.created_by
+        self.created_by = user
+        self.created_by_identity = identity
+        self.save()
+        if propagate:
+           [m.instance_source.change_owner(identity, user) for m in self.machines.all()]
 
 
 class ApplicationVersionMembership(models.Model):

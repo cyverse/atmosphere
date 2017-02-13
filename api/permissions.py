@@ -11,6 +11,7 @@ from core.models.cloud_admin import CloudAdministrator, cloud_admin_list, get_cl
 from core.models import Group, MaintenanceRecord, AtmosphereUser
 
 from api import ServiceUnavailable
+from django.conf import settings
 
 
 class ImageOwnerUpdateAllowed(permissions.BasePermission):
@@ -23,8 +24,8 @@ class ImageOwnerUpdateAllowed(permissions.BasePermission):
         if not image_id:
             logger.warn("Could not find kwarg:'image_id'")
             return False
-        if user.is_superuser() or \
-                user.is_staff() or \
+        if user.is_superuser or \
+                user.is_staff or \
                 any(app for app in
                     user.application_set.filter(id=image_id)):
             return True
@@ -170,11 +171,13 @@ class InMaintenance(permissions.BasePermission):
         records = MaintenanceRecord.active()\
                                    .filter(provider__isnull=True)
         if records:
-            staff_username = request.session.get('username','')
-            staff_user = AtmosphereUser.objects.filter(username=staff_username).first()
-            if staff_user and staff_user.is_staff:
+            session_username = request.session.get('username','')
+            request_username = request.user.username
+            #TODO: Optional logic related to session_username -- the one who is 'Authenticated'..
+            atmo_user = AtmosphereUser.objects.filter(username=request_username).first()
+            if atmo_user and request_username in settings.MAINTENANCE_EXEMPT_USERNAMES:
                 return True
-            if not request.user.is_staff:
+            else:
                 raise ServiceUnavailable(
                     detail=get_maintenance_messages(records))
         return True

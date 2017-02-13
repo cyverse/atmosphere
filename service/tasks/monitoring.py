@@ -20,7 +20,7 @@ from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
 from core.models.event_table import EventTable
 from core.models.application_version import ApplicationVersion
-from core.models import Allocation, Credential
+from core.models import Allocation, Credential, IdentityMembership
 
 from service.machine import (
     update_db_membership_for_group,
@@ -177,18 +177,18 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
     # ASSERT: All non-end-dated machines in the DB can be found in the cloud
     # if you do not believe this is the case, you should call 'prune_machines_for'
     for cloud_machine in cloud_machines:
-        #Filter out: ChromoSnapShot, eri-, eki-, ... (Or dont..)
-        if not machine_is_valid(cloud_machine):
+        if not machine_is_valid(cloud_machine, account_driver):
             continue
+        owner_project = _get_owner(account_driver, cloud_machine)
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
-        (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid)
+        (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid, owner_project)
         #STEP 2: For any private cloud_machine, convert the 'shared users' as known by cloud
         update_image_membership(account_driver, cloud_machine, db_machine)
 
         # into DB relationships: ApplicationVersionMembership, ProviderMachineMembership
         #STEP 3: if ENFORCING -- occasionally 're-distribute' any ACLs that are *listed on DB but not on cloud* -- removals should be done explicitly, outside of this function
         if settings.ENFORCING:
-            distribute_image_membership(account_driver, cloud_machine)
+            distribute_image_membership(account_driver, cloud_machine, provider)
         # ASSERTIONS about this method: 
         # 1) We will never 'remove' membership,
         # 2) We will never 'remove' a public or private flag as listed in application.
@@ -198,26 +198,73 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         _exit_stdout_logging(console_handler)
     return
 
+def _get_owner(accounts, cloud_machine):
+    """
+    For a given cloud machine, attempt to find the owners username
+    Priority is given to 'owner' which will point to the projectId/tenantId that created the image
+    Otherwise, accept the 'application_owner' (Older openstack+glance may not have 'owner' attribute)
+    """
+    owner = cloud_machine.get('owner')
+    if owner:
+        owner_project = accounts.get_project_by_id(owner)
+    else:
+        owner = cloud_machine.get('application_owner')
+        owner_project = accounts.get_project(owner)
+    return owner_project
 
-def machine_is_valid(cloud_machine):
+def machine_is_valid(cloud_machine, accounts):
     """
     As the criteria for "what makes a glance image an atmosphere ProviderMachine" changes, we can use this function to hook out to external plugins, etc.
+    Filters out:
+        - ChromoSnapShot, eri-, eki-
+        - Private images not shared with atmosphere accounts
+        - Domain-specific image catalog(?)
     """
+    provider = accounts.core_provider
     # If the name of the machine indicates that it is a Ramdisk, Kernel, or Chromogenic Snapshot, skip it.
     if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
-        celery_logger.debug("Skipping cloud machine %s" % cloud_machine)
+        celery_logger.info("Skipping cloud machine %s" % cloud_machine)
         return False
     # If the metadata 'skip_atmosphere' is found, do not add the machine.
     if cloud_machine.get('skip_atmosphere', False):
+        celery_logger.info("Skipping cloud machine %s - Includes 'skip_atmosphere' metadata" % cloud_machine)
+        return False
+    # If the metadata indicates that the image-type is snapshot -- skip it.
+    if cloud_machine.get('image_type', 'image') == 'snapshot':
+        celery_logger.info("Skipping cloud machine %s - Image type indicates a snapshot" % cloud_machine)
+        return False
+    owner_project = _get_owner(accounts, cloud_machine)
+    # If the image is private, ensure that an owner can be found inside the system.
+    if cloud_machine.get('visibility', '') == 'private':
+        shared_with_projects = accounts.shared_images_for(cloud_machine.id)
+        shared_with_projects.append(owner_project)
+        project_names = [p.name for p in shared_with_projects if p]  # TODO: better error handling here
+        identity_matches = provider.identity_set.filter(
+            credential__key='ex_project_name', credential__value__in=project_names).count() > 0
+        if not identity_matches:
+            celery_logger.info("Skipping private machine %s - The owner does not exist in Atmosphere" % cloud_machine)
+            return False
+    if accounts.provider_creds.get('ex_force_auth_version', '2.0_password') != '3.x_password':
+        return True
+    # NOTE: Potentially if we wanted to do 'domain-restrictions' *inside* of atmosphere,
+    # we could do that (based on the domain of the image owner) here.
+    domain_id = owner_project.domain_id
+    config_domain = accounts.get_config('user', 'domain', 'default')
+    owner_domain = accounts.openstack_sdk.identity.get_domain(domain_id)
+    account_domain = accounts.openstack_sdk.identity.get_domain(config_domain)
+    if owner_domain.id != account_domain.id: # and if FLAG FOR DOMAIN-SPECIFIC ATMOSPHERE
+        celery_logger.info("Skipping private machine %s - The owner belongs to a different domain (%s)" % (cloud_machine, owner_domain))
         return False
     return True
 
 
-def distribute_image_membership(account_driver, cloud_machine):
+def distribute_image_membership(account_driver, cloud_machine, provider):
     """
     Based on what we know about the DB, at a minimum, ensure that their projects are added to the image_members list for this cloud_machine.
     """
-    pm = ProviderMachine.objects.get(instance_source__identifier=cloud_machine.id)
+    pm = ProviderMachine.objects.get(
+        instance_source__provider=provider,
+        instance_source__identifier=cloud_machine.id)
     group_ids = ProviderMachineMembership.objects.filter(provider_machine=pm).values_list('group', flat=True)
     groups = Group.objects.filter(id__in=group_ids)
     for group in groups:
@@ -235,7 +282,7 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
     shared_group_names = [image_owner]
     shared_projects = account_driver.shared_images_for(cloud_machine.id)
-    shared_group_names.extend(p.name for p in shared_projects)
+    shared_group_names.extend(p.name for p in shared_projects if p)
     groups = Group.objects.filter(name__in=shared_group_names)
     if not groups:
         return
@@ -512,6 +559,9 @@ def monitor_instance_allocations():
     """
     Update instances for each active provider.
     """
+    if settings.USE_ALLOCATION_SOURCE:
+        celery_logger.info("Skipping the old method of monitoring instance allocations")
+        return False
     for p in Provider.get_active():
         monitor_instances_for.apply_async(args=[p.id], kwargs={'check_allocations':True})
 
@@ -704,26 +754,17 @@ def monthly_allocation_reset():
 
 @task(name="reset_provider_allocation")
 def reset_provider_allocation(provider_id, default_allocation_id):
-    provider = Provider.objects.get(id=provider_id)
     default_allocation = Allocation.objects.get(id=default_allocation_id)
-    exempt_allocation_list = Allocation.objects.filter(delta=-1)
-    users_reset = 0
-    memberships_reset = []
-    for ident in provider.identity_set.all():
-        if ident.created_by.is_staff or ident.created_by.is_superuser:
-            continue
-        for membership in ident.identity_memberships.all():
-            if membership.allocation_id == default_allocation.id:
-                continue
-            if membership.allocation_id in exempt_allocation_list:
-                continue
-            print "Resetting Allocation for %s \t\tOld Allocation:%s" % (membership.member.name, membership.allocation)
-            membership.allocation = default_allocation
-            membership.save()
-            memberships_reset.append(membership)
-            users_reset += 1
-    return (users_reset, memberships_reset)
-
+    this_provider = Q(identity__provider_id=provider_id)
+    no_privilege = (Q(identity__created_by__is_staff=False) &
+                   Q(identity__created_by__is_superuser=False))
+    expiring_allocation = ~Q(allocation__delta=-1)
+    members = IdentityMembership.objects.filter(
+        this_provider,
+        no_privilege,
+        expiring_allocation)
+    num_reset = members.update(allocation=default_allocation)
+    return num_reset
 
 def _end_date_missing_database_machines(db_machines, cloud_machines, now=None, dry_run=False):
     if not now:

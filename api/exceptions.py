@@ -32,6 +32,12 @@ def failure_response(status, message):
                     status=status)
 
 
+def invalid_auth(message):
+    return failure_response(
+        status.HTTP_400_BAD_REQUEST,
+        "Authentication request refused -- %s" % message)
+
+
 def malformed_response(provider_id, identity_id):
     logger.warn('Server provided bad response. Provider-id:%s Identity-id:%s'
                 % (provider_id, identity_id))

@@ -79,8 +79,8 @@ INSTALLED_APPS = (
     #'django_jenkins',
     #'sslserver',
 
-    # iPlant apps
-    'iplantauth',
+    # Cyverse libraries
+    'django_cyverse_auth',
     'rtwo',
 
     # atmosphere apps
@@ -98,6 +98,9 @@ TIME_ZONE = 'America/Phoenix'
 LANGUAGE_CODE = 'en-us'
 
 SITE_ID = 1
+
+SITE_TITLE = "Atmosphere"
+ORG_NAME = "CyVerse"
 
 USE_I18N = True
 
@@ -175,13 +178,13 @@ AUTH_USER_MODEL = 'core.AtmosphereUser'
 
 AUTHENTICATION_BACKENDS = (
     # For Token-Access
-    #'iplantauth.authBackends.GlobusOAuthLoginBackend',
-    'iplantauth.authBackends.AuthTokenLoginBackend',
+    #'django_cyverse_auth.authBackends.GlobusOAuthLoginBackend',
+    'django_cyverse_auth.authBackends.AuthTokenLoginBackend',
     # For Web-Access
-    'iplantauth.authBackends.CASLoginBackend',
-    #'iplantauth.authBackends.SAMLLoginBackend',
+    'django_cyverse_auth.authBackends.CASLoginBackend',
+    #'django_cyverse_auth.authBackends.SAMLLoginBackend',
     ## For Service-Access
-    'iplantauth.authBackends.LDAPLoginBackend',
+    'django_cyverse_auth.authBackends.LDAPLoginBackend',
 )
 
 # django-cors-headers
@@ -192,7 +195,6 @@ CORS_ORIGIN_WHITELIST = None
 INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + '/api/notification/'
 API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
 AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
-INIT_SCRIPT_PREFIX = '/init_files/'
 DEPLOY_SERVER_URL = SERVER_URL.replace("https", "http")
 
 # These DEFAULT variables can be overridden per provider..
@@ -378,17 +380,24 @@ REST_FRAMEWORK = {
         'rest_framework_jsonp.renderers.JSONPRenderer',
         'api.renderers.PNGRenderer',
         'api.renderers.JPEGRenderer',
+        'api.renderers.PandasExcelRenderer',
         # Easily enabled if/when support is desired
         #'rest_framework.renderers.AdminRenderer',
         #'rest_framework_yaml.renderers.YAMLRenderer',
         #'rest_framework_xml.renderers.XMLRenderer',
     ),
+    'TEST_REQUEST_RENDERER_CLASSES': (
+        'rest_framework.renderers.MultiPartRenderer',
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.TemplateHTMLRenderer',
+        'api.renderers.PandasExcelRenderer',
+    ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'iplantauth.token.TokenAuthentication', # Generic Tokens
-        # 'iplantauth.token.JWTTokenAuthentication',  # WSO2+JWT
-        'iplantauth.token.OAuthTokenAuthentication',  # CAS
-        #'iplantauth.token.GlobusOAuthTokenAuthentication',  # Globus
-        # 'iplantauth.token.TokenAuthentication',  # Generic Tokens
+        'django_cyverse_auth.token.TokenAuthentication', # Generic Tokens
+        # 'django_cyverse_auth.token.JWTTokenAuthentication',  # WSO2+JWT
+        'django_cyverse_auth.token.OAuthTokenAuthentication',  # CAS
+        #'django_cyverse_auth.token.GlobusOAuthTokenAuthentication',  # Globus
+        # 'django_cyverse_auth.token.TokenAuthentication',  # Generic Tokens
         'rest_framework.authentication.SessionAuthentication',  # Session
     ),
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',
@@ -491,15 +500,15 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=30),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
-    # "monitor_instance_allocations": {
-    #     "task": "monitor_instance_allocations",
-    #     "schedule": timedelta(minutes=15),
-    #     "options": {"expires": 25 * 60, "time_limit": 25 * 60}
-    # },
     "monitor_instances": {
         "task": "monitor_instances",
         "schedule": timedelta(minutes=15),
         "options": {"expires": 10 * 60, "time_limit": 10 * 60}
+    },
+    "monitor_instance_allocations": {
+        "task": "monitor_instance_allocations",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 25 * 60, "time_limit": 25 * 60}
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",

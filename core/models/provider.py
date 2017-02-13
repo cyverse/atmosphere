@@ -61,7 +61,6 @@ class ProviderType(models.Model):
 
 
 class Provider(models.Model):
-
     """
     Detailed information about a provider
     Providers have a specific location
@@ -94,6 +93,7 @@ class Provider(models.Model):
     over_allocation_action = models.ForeignKey(
         "InstanceAction", blank=True, null=True)
     cloud_config = JSONField(blank=True, null=True)  # Structure will be tightened up in the future
+    cloud_admin = models.ForeignKey("AtmosphereUser", related_name="admin_providers", blank=True, null=True)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
 
@@ -102,7 +102,9 @@ class Provider(models.Model):
         Don't allow 'non-terminal' InstanceAction
         to be set as over_allocation_action
         """
-        if self.over_allocation_action.name not in Provider.ALLOWED_STATES:
+        over_alloc_action = self.over_allocation_action
+
+        if over_alloc_action and over_alloc_action.name not in Provider.ALLOWED_STATES:
             raise ValidationError(
                 "Instance action %s is not in ALLOWED_STATES for "
                 "Over allocation action. ALLOWED_STATES=%s" %
@@ -125,13 +127,23 @@ class Provider(models.Model):
             active_providers = active_providers.get(uuid=provider_uuid)
         return active_providers
 
+    def get_config(self, section, config_key, default_value=None, raise_exc=True):
+        try:
+            value = self.cloud_config[section][config_key]
+        except (KeyError, TypeError):
+            logger.error("Cloud config ['%s']['%s'] is missing -- using default value (%s)" % (section, config_key, default_value))
+            if not default_value and raise_exc:
+                raise Exception("Cloud config ['%s']['%s'] is missing -- no default value provided" % (section, config_key))
+            value = default_value
+        return value
+
     def get_esh_credentials(self, esh_provider):
         cred_map = self.get_credentials()
         if isinstance(esh_provider, OSProvider):
-            cred_map['ex_force_auth_url'] = cred_map.pop('auth_url')
-        if cred_map.get('ex_force_auth_version','2.0_password') == '2.0_password'\
-                and '/v2.0/tokens' not in cred_map['ex_force_auth_url']:
-            cred_map['ex_force_auth_url'] += '/v2.0/tokens'
+            cred_map['ex_force_auth_url'] = cred_map.pop('auth_url','')
+            if cred_map.get('ex_force_auth_version','2.0_password') == '2.0_password'\
+                    and cred_map['ex_force_auth_url'] and '/v2.0/tokens' not in cred_map['ex_force_auth_url']:
+                cred_map['ex_force_auth_url'] += '/v2.0/tokens'
 
         elif isinstance(esh_provider, EucaProvider):
             ec2_url = cred_map.pop('ec2_url')
@@ -166,9 +178,18 @@ class Provider(models.Model):
         cred = self.providercredential_set.filter(key=key)
         return cred[0].value if cred else None
 
+    def credentials(self):
+        return self.providercredential_set.all()
+
     def get_credentials(self):
+        """
+        Returns a dict of
+        { 'key': 'abc', 'secret': 'xyz' }
+        instead of
+        [ <Credential: Key=key, Value=abc>, <Credential: Key=secret Value=xyz> ]
+        """
         cred_map = {}
-        for cred in self.providercredential_set.all():
+        for cred in self.credentials():
             cred_map[cred.key] = cred.value
         return cred_map
 

@@ -118,7 +118,7 @@ class MachineRequestList(AuthAPIView):
             pending_status = StatusType.objects.get(name='pending')
             machine_request = serializer.save(status=pending_status)
             instance = machine_request.instance
-            if hasattr(settings, 'REPLICATION_PROVIDER_LOCATION'):
+            if getattr(settings, 'REPLICATION_PROVIDER_LOCATION'):
                 try:
                     replication_provider = Provider.objects.get(
                         location=settings.REPLICATION_PROVIDER_LOCATION)

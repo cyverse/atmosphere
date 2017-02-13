@@ -94,11 +94,13 @@ class Group(DjangoGroup):
             return False
 
     @classmethod
-    def create_usergroup(cls, username):
+    def create_usergroup(cls, username, group_name=None):
         # TODO: ENFORCEMENT of lowercase-only usernames until cleared by mgmt.
         username = username.lower()
+        if not group_name:
+            group_name = username
         user = AtmosphereUser.objects.get_or_create(username=username)[0]
-        group = Group.objects.get_or_create(name=username)[0]
+        group = Group.objects.get_or_create(name=group_name)[0]
         if group not in user.groups.all():
             user.groups.add(group)
             user.save()
@@ -142,7 +144,6 @@ class IdentityMembership(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     identity = models.ForeignKey(Identity, related_name='identity_memberships')
     member = models.ForeignKey(Group, related_name='identity_memberships')
-    quota = models.ForeignKey(Quota)
     allocation = models.ForeignKey(Allocation, null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
 
@@ -156,6 +157,10 @@ class IdentityMembership(models.Model):
             return group.current_identity_memberships.first()
         except IdentityMembership.DoesNotExist:
             logger.warn("%s is not a member of any identities" % groupname)
+
+    @property
+    def quota(self):
+        return self.identity.quota
 
     def is_active(self):
         if not self.active:
@@ -196,7 +201,7 @@ class IdentityMembership(models.Model):
         """
         NOTE: Remove when airport has been disabled.
         """
-        quota = self.quota
+        quota = self.identity.quota
         quota_dict = {
             "mem": quota.memory,
             "cpu": quota.cpu,

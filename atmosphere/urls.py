@@ -15,7 +15,7 @@ urlpatterns = [
     url(r'', include("core.urls", namespace="core")),
 
     # Authentication endpoints
-    url(r'', include("iplantauth.urls", namespace="iplantauth")),
+    url(r'', include("django_cyverse_auth.urls", namespace="django_cyverse_auth")),
 
     # API Layer endpoints
     url(r'^api/', include("api.urls", namespace="api")),

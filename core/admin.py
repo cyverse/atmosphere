@@ -331,6 +331,12 @@ class IdentityAdmin(admin.ModelAdmin):
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Credentials'
 
+    def save_model(self, request, obj, form, changed):
+        obj.save()
+        identity = obj
+        admin_task.set_provider_quota.apply_async(
+            args=[str(identity.uuid)])
+
 
 class UserProfileInline(admin.StackedInline):
     model = models.UserProfile
@@ -535,10 +541,12 @@ class ResourceRequestAdmin(admin.ModelAdmin):
 
         if obj.is_approved():
             membership = obj.membership
-            membership.allocation = obj.allocation or membership.allocation
-            membership.quota = obj.quota or membership.quota
-            membership.save()
             identity = membership.identity
+            identity.quota = obj.quota or identity.quota
+            identity.save()
+            # Marked for deletion
+            membership.allocation = obj.allocation or membership.allocation
+            membership.save()
 
             email_task = email.send_approved_resource_email(
                 user=obj.created_by,

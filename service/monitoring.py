@@ -154,6 +154,11 @@ def user_over_allocation_enforcement(
     * Calculate allocation from START of month to END of month
     * If user is deemed OverAllocation, apply enforce_allocation_policy
     """
+    if settings.USE_ALLOCATION_SOURCE:
+        logger.info("Settings dictate that USE_ALLOCATION_SOURCE = True."
+                    " To manually enforce 'over-allocation', "
+                    "call allocation_source_overage_enforcement(allocation_source)")
+        return None
     identity = _get_identity_from_tenant_name(provider, username)
     allocation_result = get_allocation_result_for(
         provider, username,
@@ -258,6 +263,9 @@ def provider_over_allocation_enforcement(identity, user):
     action = provider.over_allocation_action
     if not action:
         logger.debug("No 'over_allocation_action' provided for %s" % provider)
+        return False
+    if not settings.ENFORCING:
+        logger.debug("Do not enforce over allocation action (%s) for provider %s, ENFORCING is disabled" % (action, provider))
         return False
     driver = get_cached_driver(identity=identity)
     esh_instances = driver.list_instances()
@@ -430,7 +438,10 @@ def check_over_allocation(username, identity_uuid,
 
 def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
-    group = user.group_set.get(name=user.username)
+    group = user.group_set.filter(name=user.username).first()
+    if not group:
+        logger.warn("WARNING: User %s does not have a group named %s" % (user, user.username))
+        return None
     try:
         membership = IdentityMembership.objects.get(
             identity__uuid=identity_uuid, member=group)

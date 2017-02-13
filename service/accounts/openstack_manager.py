@@ -10,7 +10,7 @@ from django.db.models import Max
 
 from django.db.models import ObjectDoesNotExist
 from rtwo.exceptions import NovaOverLimit
-from rtwo.exceptions import NeutronClientException
+from rtwo.exceptions import NeutronClientException, GlanceClientException
 from requests.exceptions import ConnectionError
 from hashlib import sha256
 
@@ -68,7 +68,7 @@ class AccountDriver(BaseAccountDriver):
         is_v3 = '3' in keystone_auth_version
         version_prefix = "/v2.0" if is_v2 else '/v3'
         #auth_url = all_creds.get('auth_url', '<AUTH URL MISSING>') + version_prefix
-        admin_url = all_creds.get('admin_url', '<ADMIN URL MISSING>') + version_prefix
+        admin_url = all_creds.get('admin_url', '<ADMIN URL MISSING>').replace('/v2.0/tokens', '') + version_prefix
         export_data = {
             "OS_REGION_NAME": region_name,
             "OS_AUTH_URL": admin_url,
@@ -98,6 +98,8 @@ class AccountDriver(BaseAccountDriver):
         provider_creds = provider.get_credentials()
         self.cloud_config = provider.cloud_config
         self.provider_creds = provider_creds
+        if not provider.admin:
+            raise Exception("Cannot create an account driver yet - A provider admin account has not been created")
         admin_identity = provider.admin
         admin_creds = admin_identity.get_credentials()
         self.admin_driver = get_esh_driver(admin_identity)
@@ -147,6 +149,14 @@ class AccountDriver(BaseAccountDriver):
         self.network_manager = NetworkManager(**net_creds)
         self.openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
 
+    def get_config(self, section, config_key, default_value):
+        try:
+            value = self.cloud_config[section][config_key]
+        except (KeyError, TypeError):
+            logger.error("Cloud config ['%s']['%s'] is missing -- using default value (%s)" % (section, config_key, default_value))
+            value = default_value
+        return value
+
     def create_account(self, username, password=None, project_name=None,
                        role_name=None, quota=None, max_quota=False):
         """
@@ -187,7 +197,6 @@ class AccountDriver(BaseAccountDriver):
                     if self.identity_version > 2:
                         project_kwargs = {'domain': domain_name}
                     project = self.user_manager.create_project(project_name, **project_kwargs)
-
                 # 2. Create User (And add them to the project)
                 user = self.get_user(username)
                 if not user:
@@ -205,13 +214,13 @@ class AccountDriver(BaseAccountDriver):
 
                 # 3.2 Check the user has been given an appropriate role
                 if not role_name:
-                    try:
-                        role_name = self.cloud_config['user']['user_role_name']
-                    except (KeyError, TypeError):
-                        logger.error("Cloud config ['user']['user_role_name'] is missing -- using deprecated settings.DEFAULT_KEYSTONE_ROLE")
-                        role_name = settings.DEFAULT_KEYSTONE_ROLE
-                self.user_manager.add_project_membership(
-                    project_name, username, role_name, domain_name)
+                    role_name = self.get_config('user', 'user_role_name', settings.DEFAULT_KEYSTONE_ROLE)
+                try:
+                    self.user_manager.add_project_membership(
+                        project_name, username, role_name, domain_name)
+                except:
+                    raise Exception("Could not add role %s to user %s for project %s -- Check 'user_role_name'"
+                                    % (role_name, username, project_name))
 
                 # 4. Create a keypair to use when launching with atmosphere
                 self.init_keypair(user.name, password, project.name)
@@ -291,11 +300,7 @@ class AccountDriver(BaseAccountDriver):
         # roles than what is necessary
         # user = user_matches[0]
         # -- User:Keystone rev.
-        try:
-            rules_list = core_identity.provider.cloud_config['network']['default_security_rules']
-        except (KeyError, TypeError):
-            logger.error("Cloud config ['user']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
-            rules_list = DEFAULT_RULES
+        rules_list = self.get_config('network', 'default_security_rules', DEFAULT_RULES)
         identity_creds = self.parse_identity(core_identity)
         username = identity_creds["username"]
         password = identity_creds["password"]
@@ -335,7 +340,6 @@ class AccountDriver(BaseAccountDriver):
                 logger.exception("Encountered unknown exception while renaming"
                                  " the security group")
             return None
-
         # Start creating security group
         return self.user_manager.build_security_group(
             user.name, password, project.name,
@@ -399,18 +403,36 @@ class AccountDriver(BaseAccountDriver):
         return keypair
 
     def shared_images_for(self, image_id):
-        projects = []
+        acct_driver = None
+
         shared_with = self.image_manager.shared_images_for(
             image_id=image_id)
-        projects = [self.get_project_by_id(member.member_id)
+
+	if getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
+            from core.models import Provider
+            from service.driver import get_account_driver
+            provider = Provider.objects.get(location=settings.REPLICATION_PROVIDER_LOCATION)
+            acct_driver = get_account_driver(provider)
+            if not acct_driver:
+                raise Exception("Cannot create account_driver for %s" % provider)
+        else:
+            acct_driver = self
+
+        projects = [acct_driver.get_project_by_id(member.member_id)
                     for member in shared_with]
         return projects
 
     def share_image_with_project(self, glance_image, project_name):
-        self.image_manager.share_image(glance_image, project_name)
-        self.accept_shared_image(glance_image, project_name)
-        logger.info("Added Cloud Access: %s-%s"
-                    % (glance_image, project_name))
+        try:
+            self.image_manager.share_image(glance_image, project_name)
+            self.accept_shared_image(glance_image, project_name)
+            logger.info("Added Cloud Access: %s-%s"
+                        % (glance_image, project_name))
+        except GlanceClientException as gce:
+            message = gce.details
+            if 'is duplicated for image' not in message\
+                    and 'is already associated with image' not in message:
+                raise
 
     def accept_shared_image(self, glance_image, project_name):
         """
@@ -430,11 +452,7 @@ class AccountDriver(BaseAccountDriver):
     def rebuild_security_groups(self, core_identity, rules_list=None):
         creds = self.parse_identity(core_identity)
         if not rules_list:
-            try:
-                rules_list = self.cloud_config['network']['default_security_rules']
-            except (KeyError, TypeError):
-                logger.error("Cloud config ['network']['default_security_rules'] is missing -- using deprecated settings.DEFAULT_RULES")
-                rules_list = DEFAULT_RULES
+            rules_list = self.get_config('network', 'default_security_rules', DEFAULT_RULES)
         return self.user_manager.build_security_group(
             creds["username"], creds["password"], creds["tenant_name"],
             creds["tenant_name"], rules_list, rebuild=True)
@@ -545,13 +563,11 @@ class AccountDriver(BaseAccountDriver):
         identity_creds = self.parse_identity(identity)
         project_name = identity_creds["tenant_name"]
         neutron = self.get_openstack_client(identity, 'neutron')
-        try:
-            topology_name = self.cloud_config['network']['topology']
-        except (KeyError, TypeError):
+        topology_name = self.get_config('network', 'topology', None)
+        if not topology_name:
             logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
-            topology_name = None
         network_strategy = self.initialize_network_strategy(
             topology_name, identity, self.network_manager, neutron)
         skip_network = options.get("skip_network", False)
@@ -610,13 +626,11 @@ class AccountDriver(BaseAccountDriver):
         prefix_name = "%s" % (identity_creds["tenant_name"],)
         neutron = self.get_openstack_client(identity, 'neutron')
         dns_nameservers = self.dns_nameservers_for(identity)
-        try:
-            topology_name = self.cloud_config['network']['topology']
-        except (KeyError, TypeError):
+        topology_name = self.get_config('network', 'topology', None)
+        if not topology_name:
             logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
-            topology_name = None
         network_strategy = self.initialize_network_strategy(
             topology_name, identity, self.network_manager, neutron)
         network_resources = network_strategy.create(
@@ -652,13 +666,8 @@ class AccountDriver(BaseAccountDriver):
         Create a unique password using 'username'
         """
         #FIXME: Remove these lines when crypt_hashpass is no longer used.
-        strategy = None
-        cloud_pass = None
-        try:
-            strategy = self.cloud_config.get('user', {}).get('strategy','')
-            cloud_pass = self.cloud_config.get('user',{}).get("secret")
-        except (KeyError, TypeError):
-            pass
+        strategy = self.get_config('user', 'strategy', '')
+        cloud_pass = self.get_config('user', 'secret', '')
 
         if strategy == 'crypt':
             return self.crypt_hashpass(username)
@@ -689,10 +698,7 @@ class AccountDriver(BaseAccountDriver):
         Create a unique password using 'username'
         """
         import crypt
-        try:
-            cloud_pass = self.cloud_config.get('user',{}).get("secret")
-        except (KeyError, TypeError):
-            cloud_pass = None
+        cloud_pass = self.get_config('user', 'secret', None)
         secret_salt = str(cloud_pass).translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         return password
@@ -1094,10 +1100,20 @@ class AccountDriver(BaseAccountDriver):
         return osdk_creds
 
     # Credential manipulaters
+    def get_tenant_name(self, credentials):
+        tenant_name = credentials.get('ex_tenant_name')
+        if not tenant_name:
+            tenant_name = credentials.get('tenant_name')
+        if not tenant_name:
+            tenant_name = credentials.get('ex_project_name')
+        if not tenant_name:
+            tenant_name = credentials.get('project_name')
+        return tenant_name
+
     def _libcloud_to_openstack(self, credentials):
         credentials["username"] = credentials.pop("key")
         credentials["password"] = credentials.pop("secret")
-        credentials["tenant_name"] = credentials.pop("ex_tenant_name")
+        credentials["tenant_name"] = self.get_tenant_name(credentials)
         return credentials
 
     def _base_network_creds(self):
@@ -1108,6 +1124,7 @@ class AccountDriver(BaseAccountDriver):
         """
         net_args = self.provider_creds.copy()
         # NOTE: The neutron 'auth_url' is the ADMIN_URL
+        net_args['tenant_name'] = self.get_tenant_name(self.credentials)
         net_args["auth_url"] = net_args.pop("admin_url")\
             .replace("/tokens", "").replace('/v2.0', '').replace('/v3', '')
         if self.identity_version == 3:
@@ -1160,6 +1177,7 @@ class AccountDriver(BaseAccountDriver):
         NOTE: JETSTREAM auth_url to be '/v3'
         """
         img_args = credentials.copy()
+        img_args['tenant_name'] = self.get_tenant_name(credentials)
         # Required:
         for required_arg in [
                 "username",
@@ -1197,7 +1215,7 @@ class AccountDriver(BaseAccountDriver):
         # Required args:
         user_args.get("username")
         user_args.get("password")
-        user_args.get("tenant_name")
+        user_args["tenant_name"] = self.get_tenant_name(credentials)
         ex_auth_version = user_args.pop("ex_force_auth_version", '2.0_password')
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):
@@ -1232,8 +1250,7 @@ class AccountDriver(BaseAccountDriver):
         # Required args:
         os_args.get("username")
         os_args.get("password")
-        if 'tenant_name' in os_args and 'project_name' not in os_args:
-            os_args['project_name'] = os_args.get("tenant_name")
+        os_args['project_name'] = self.get_tenant_name(os_args)
         os_args.get("region_name")
 
         ex_auth_version = os_args.pop("ex_force_auth_version", '2.0_password')

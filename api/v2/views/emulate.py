@@ -11,7 +11,7 @@ from rest_framework import status
 from uuid import uuid4
 from api import permissions
 from api.v2.serializers.details import TokenSerializer
-from iplantauth.models import create_token
+from django_cyverse_auth.models import create_token
 from atmosphere.settings import secrets
 from core.models import AtmosphereUser
 from threepio import logger
@@ -30,7 +30,7 @@ class TokenEmulateViewSet(ViewSet):
         new_token = create_token(
                 username,
                 token_key='EMULATED-'+str(uuid4()),
-                remote_ip=request.META['REMOTE_ADDR'],
+                remote_ip=self.request.META['REMOTE_ADDR'],
                 token_expire=expireDate,
                 issuer="DRF-EmulatedToken-%s" % user.username)
         serialized_data = TokenSerializer(new_token, context={'request':self.request}).data

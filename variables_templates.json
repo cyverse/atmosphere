@@ -9,9 +9,7 @@
         "nginx": [
             "nginx",
             "nginx-site",
-            "nginx-atmo",
-            "nginx-flower",
-            "nginx-jenkins"
+            "nginx-atmo"
         ],
         "uwsgi.ini": ["atmo.uwsgi"],
         "secrets.py": [
@@ -38,14 +36,6 @@
         "nginx-atmo": [
             "extras/nginx/locations/atmo.conf.j2",
             "extras/nginx/locations/atmo.conf"
-        ],
-        "nginx-flower": [
-            "extras/nginx/locations/flower.conf.j2",
-            "extras/nginx/locations/flower.conf"
-        ],
-        "nginx-jenkins": [
-            "extras/nginx/locations/jenkins.conf.j2",
-            "extras/nginx/locations/jenkins.conf"
         ],
         "atmo.uwsgi": [
             "extras/uwsgi/atmo.uwsgi.ini.j2",

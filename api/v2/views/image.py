@@ -9,6 +9,39 @@ from api.v2.views.mixins import MultipleFieldLookup
 from core.models import Application as Image
 
 
+#
+# The following imports and method and monkey patch are a quick fix for a big
+# problem.  The patch should be removed when the equivalent drf method does
+# not chain filter methods. Chaining filter methods with m2m relations,
+# can result in /very/ bad performance. For more information see:
+#
+#   https://code.djangoproject.com/ticket/27303#comment:26
+#
+from django.utils import six; from django.db import models; import operator
+def filter_queryset(self, request, queryset, view):
+    search_fields = getattr(view, 'search_fields', None)
+    search_terms = self.get_search_terms(request)
+
+    if not search_fields or not search_terms:
+        return queryset
+
+    orm_lookups = [
+        self.construct_search(six.text_type(search_field))
+        for search_field in search_fields
+    ]
+
+    conditions = []
+    for search_term in search_terms:
+        queries = [
+            models.Q(**{orm_lookup: search_term})
+            for orm_lookup in orm_lookups
+        ]
+        conditions.append(reduce(operator.or_, queries))
+
+    return queryset.filter(reduce(operator.and_, conditions)).distinct()
+
+filters.SearchFilter.filter_queryset = filter_queryset
+
 class ImageFilter(filters.FilterSet):
     created_by = django_filters.CharFilter('created_by__username')
     project_id = django_filters.CharFilter('projects__uuid')
@@ -60,4 +93,4 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        return Image.current_apps(request_user)
+        return Image.images_for_user(request_user)
