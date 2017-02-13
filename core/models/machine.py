@@ -352,8 +352,8 @@ def get_or_create_provider_machine(image_id, machine_name,
 
     if not version:
         version = get_version_for_machine(provider_uuid, image_id, fuzzy=True)
-    if not version:
-        version = create_app_version(app, version_name, provider_machine_id=image_id)
+        if not version:
+            version = create_app_version(app, version_name, provider_machine_id=image_id)
     if type(version) in [models.QuerySet, list]:
         version = version[0]
 
