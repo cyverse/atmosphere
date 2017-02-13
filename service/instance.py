@@ -1,5 +1,6 @@
 import os.path
 import time
+import json
 import uuid
 
 from django.core.exceptions import ValidationError
@@ -12,6 +13,7 @@ from threepio import logger, status_logger
 from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     AWSUSWestProvider, EucaProvider,\
     OSProvider, OSValhallaProvider
+from rtwo.exceptions import LibcloudBadResponseError
 from rtwo.driver import OSDriver
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
@@ -39,7 +41,7 @@ from service.exceptions import (
     OverAllocationError, OverQuotaError, SizeNotAvailable,
     HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
-    socket_error, ConnectionFailure, InstanceDoesNotExist, LibcloudInvalidCredsError)
+    socket_error, ConnectionFailure, InstanceDoesNotExist, LibcloudInvalidCredsError, InstanceLaunchConflict)
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
@@ -857,12 +859,12 @@ def launch_instance(user, identity_uuid,
          size_alias,
          "Request Received"))
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
-    provider_uuid = identity.provider.uuid
+    provider = identity.provider
 
     esh_driver = get_cached_driver(identity=identity)
 
     # May raise Exception("Size not available")
-    size = check_size(esh_driver, size_alias, provider_uuid)
+    size = check_size(esh_driver, size_alias, provider)
     # May raise Exception("Volume/Machine not available")
     boot_source = get_boot_source(user.username, identity_uuid, source_alias)
 
@@ -1176,14 +1178,36 @@ def generate_uuid4():
 ################################
 
 
-def check_size(esh_driver, size_alias, provider_uuid):
+def check_size(esh_driver, size_alias, provider):
     try:
         esh_size = esh_driver.get_size(size_alias)
-        if not convert_esh_size(esh_size, provider_uuid).active():
+        if not convert_esh_size(esh_size, provider.uuid).active():
             raise SizeNotAvailable()
         return esh_size
-    except:
-        raise SizeNotAvailable()
+    except LibcloudBadResponseError as bad_response:
+        return _parse_libcloud_error(provider, bad_response)
+    except Exception as exc:
+        raise
+
+
+def _parse_libcloud_error(provider, bad_response):
+    """
+    Parse a libcloud error to determine why calls failed (In this case, provider-specific errors).
+    """
+    msg = bad_response.body
+    human_error = "Invalid response received from Provider: %s" % provider.location
+    if "body: " in msg:
+        raw_json = msg.split("body: ")[1]
+        json_data = json.loads(raw_json)
+        if "error" in json_data:
+            json_data = json_data["error"]
+        if "title" in json_data:
+            human_error = json_data["title"]
+        elif "message" in json_data:
+            human_error = json_data["message"]
+        else:
+            human_error = json_data
+    raise InstanceLaunchConflict("Provider %s returned unexpected error: %s" % (provider.location, human_error))
 
 
 def get_boot_source(username, identity_uuid, source_identifier):
