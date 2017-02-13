@@ -36,7 +36,6 @@ def glance_write_machine(provider_machine):
             " Ask a programmer to fix this!")
     # Do any updating that makes sense... Name. Metadata..
     overrides = {
-        "application_version": str(version.name),
         "application_uuid": str(base_app.uuid),
         "application_name": _make_safe(base_app.name),
         "application_owner": base_app.created_by.username,
@@ -88,7 +87,6 @@ def glance_update_machine_metadata(provider_machine, metadata={}):
             "The method for 'introspecting an image' has changed!"
             " Ask a programmer to fix this!")
     overrides = {
-        "application_version": str(version.name),
         "application_uuid": base_app.uuid,
         "application_name": _make_safe(base_app.name),
         "application_owner": base_app.created_by.username,
