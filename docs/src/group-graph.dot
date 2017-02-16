@@ -1,0 +1,6 @@
+digraph graphname {
+    Group->AtmosphereUser [label="Leadership"]
+    Group->Identity [label="IdentityMembership"]
+    Group->ProviderMachine [label="ProviderMachineMembership"]
+    Group->Application [label="ApplicationMembership"]
+}
