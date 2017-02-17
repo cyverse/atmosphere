@@ -94,6 +94,7 @@ def wait_for_instance(
         identity,
         status_query,
         tasks_allowed=False,
+        test_tmp_status=False,
         return_id=False,
         **task_kwargs):
     """
@@ -105,16 +106,13 @@ def wait_for_instance(
     """
     try:
         celery_logger.debug("wait_for task started at %s." % datetime.now())
-        if app.conf.CELERY_ALWAYS_EAGER:
-            celery_logger.debug("Eager task - DO NOT return until its ready!")
-            return _eager_override(wait_for_instance, _is_instance_ready,
-                                   (driverCls, provider, identity,
-                                    instance_alias, status_query,
-                                    tasks_allowed, return_id), {})
-
-        result = _is_instance_ready(driverCls, provider, identity,
-                                    instance_alias, status_query,
-                                    tasks_allowed, return_id)
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_alias)
+        if not instance:
+            celery_logger.debug("Instance has been terminated: %s." % instance_alias)
+            return False
+        result = _is_instance_ready(instance, status_query,
+                                    tasks_allowed, test_tmp_status, return_id)
         return result
     except Exception as exc:
         if "Not Ready" not in str(exc):
@@ -139,26 +137,31 @@ def _eager_override(task_class, run_method, args, kwargs):
     return None
 
 
-def _is_instance_ready(driverCls, provider, identity,
-                       instance_alias, status_query,
-                       tasks_allowed=False, return_id=False):
+def _is_instance_ready(instance, status_query,
+                       tasks_allowed=False, test_tmp_status=False, return_id=False):
     # TODO: Refactor so that terminal states can be found. IE if waiting for
     # 'active' and in status: Suspended - none - GIVE up!!
-    driver = get_driver(driverCls, provider, identity)
-    instance = driver.get_instance(instance_alias)
-    if not instance:
-        celery_logger.debug("Instance has been terminated: %s." % instance_alias)
-        if return_id:
-            return None
-        return False
     i_status = instance._node.extra['status'].lower()
-    i_task = instance._node.extra['task']
-    if (i_status not in status_query) or (i_task and not tasks_allowed):
+    i_task = instance._node.extra.get('task',None)
+    i_tmp_status = instance._node.extra.get('metadata', {}).get('tmp_status', '')
+    celery_logger.debug(
+        "Instance %s: Status: (%s - %s) Tmp status: %s "
+        % (instance.id, i_status, i_task, i_tmp_status))
+    status_not_ready = (i_status not in status_query)  # Ex: status 'build' is not in 'active'
+    tasks_not_ready = (not tasks_allowed and i_task is not None)  # Ex: Task name: 'scheudling', tasks_allowed=False
+    tmp_status_not_ready = (test_tmp_status and i_tmp_status != "")  # Ex: tmp_status: 'initializing'
+    celery_logger.debug(
+            "Status not ready: %s tasks not ready: %s Tmp status_not_ready: %s"
+            % (status_not_ready, tasks_not_ready, tmp_status_not_ready))
+    if status_not_ready or tasks_not_ready or tmp_status_not_ready:
         raise Exception(
-            "Instance: %s: Status: (%s - %s) - Not Ready"
-            % (instance.id, i_status, i_task))
-    celery_logger.debug("Instance %s: Status: (%s - %s) - Ready"
-                 % (instance.id, i_status, i_task))
+            "Instance: %s: Status: (%s - %s - %s) Produced:"
+            "Status not ready: %s tasks not ready: %s Tmp status_not_ready: %s"
+            % (instance.id, i_status, i_task, i_tmp_status,
+               status_not_ready, tasks_not_ready, tmp_status_not_ready))
+    celery_logger.debug(
+            "Instance %s: Status: (%s - %s - %s) - Ready"
+            % (instance.id, i_status, i_task, i_tmp_status))
     if return_id:
         return instance.id
     return True
@@ -1136,7 +1139,7 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
         _deploy_instance.retry(exc=exc)
     try:
         username = identity.user.username
-        instance_deploy(instance.ip, username, instance_id)
+        #instance_deploy(instance.ip, username, instance_id)
         _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
         celery_logger.debug("_deploy_instance task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:

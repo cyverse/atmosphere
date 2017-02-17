@@ -146,7 +146,7 @@ def start_machine_imaging(machine_request, delay=False):
     else:
         validate_task = validate_new_image.s(machine_request.id)
         process_task.link(validate_task)
-
+    #Validate task returns an instance_id
     # Task 4 = Wait for new instance to be 'active'
     wait_for_task = wait_for_instance.s(
         # NOTE: 1st arg, instance_id, passed from last task.
@@ -154,6 +154,7 @@ def start_machine_imaging(machine_request, delay=False):
         admin_driver.provider,
         admin_driver.identity,
         "active",
+        test_tmp_status=True,
         return_id=True)
     validate_task.link(wait_for_task)
     validate_task.link_error(imaging_error_task)
@@ -322,13 +323,16 @@ def validate_new_image(image_id, machine_request_id):
                 'Automated Image Verification - %s' % image_id,
                 username='atmoadmin',
                 using_admin=True)
-            return instance.id
+            return instance.provider_alias
         except BaseHTTPError as http_error:
             if "Flavor's disk is too small for requested image" in http_error.message:
                 continue
+            logger.exception(http_error)
+            raise
         except Exception as exc:
             logger.exception(exc)
             raise
+    # End of while loop
     raise Exception("Validation of new Image %s has *FAILED*" % image_id)
 
 
