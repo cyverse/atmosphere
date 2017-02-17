@@ -1447,6 +1447,9 @@ def admin_keypair_init(core_identity):
 
 
 def network_init(core_identity):
+    topology_name = core_identity.provider.get_config('network', 'topology', None)
+    if not topology_name or topology_name == "External Router Topology":
+        return admin_network_init(core_identity)  # NOTE: This flow *ONLY* works with external router.
     return user_network_init(core_identity)
 
 
@@ -1501,13 +1504,13 @@ def user_network_init(core_identity):
     username = core_identity.get_credential('key')
     if not username:
         username = core_identity.created_by.username
-    dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
     topology_name = core_identity.provider.get_config('network', 'topology', None)
     if not topology_name:
         logger.error(
             "Network topology not selected -- "
             "Will attempt to use the last known default: ExternalRouter.")
         topology_name = "External Router Topology"
+    dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
     network_driver = _to_network_driver(core_identity)
     user_neutron = network_driver.neutron
     network_strategy = initialize_user_network_strategy(
