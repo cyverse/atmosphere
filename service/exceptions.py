@@ -30,6 +30,16 @@ class ActionNotAllowed(ServiceException):
 
 
 
+class InstanceLaunchConflict(ServiceException):
+
+    def __init__(self, message):
+        self.message = message
+        super(InstanceLaunchConflict, self).__init__()
+
+    def __str__(self):
+        return "%s" % (self.message, )
+
+
 class InstanceDoesNotExist(ServiceException):
 
     def __init__(self, instance_id):

@@ -293,6 +293,11 @@ class MachineRequest(BaseRequest):
 
         return (old_creds, new_creds)
 
+    def on_update_status(self, latest_update):
+        self.old_status = "(imaging) %s" % latest_update
+        logger.info("Status update: %s" % self.old_status)
+        self.save()
+
     def prepare_manager(self):
         """
         Prepares, but does not initialize, manager(s)
@@ -367,6 +372,7 @@ class MachineRequest(BaseRequest):
             # ASSUMPTION: the Creator's username == the LINUX username that was also created for them!
             #FIXME if the ASSUMPTION above changes!
             "created_by": self.instance.created_by.username,
+            "machine_request": self,
             "remove_image": True,
             "remove_local_image": True,
             "upload_image": True,

@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from api.v2.serializers.details import InstanceSerializer, InstanceActionSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
 from api.v2.views.base import AuthViewSet
@@ -5,7 +7,7 @@ from api.v2.views.mixins import MultipleFieldLookup
 from api.v2.views.instance_action import InstanceActionViewSet
 
 from core.exceptions import ProviderNotActive
-from core.models import Instance, Identity, AllocationSource, EventTable
+from core.models import Instance, Identity, AllocationSource, EventTable, Project
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
 from core.models.instance_action import InstanceAction
@@ -202,16 +204,24 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         source_alias = data.get('source_alias')
         size_alias = data.get('size_alias')
         allocation_source_id = data.get('allocation_source_id')
+        project_uuid = data.get('project')
         if not name:
             error_map['name'] = "This field is required."
+        if not project_uuid:
+            error_map['project'] = "This field is required."
+            try:
+                user.all_projects().filter(uuid=project_uuid)
+            except ValueError:
+                error_map['project'] = "Properly formed hexadecimal UUID string required."
         if not identity_uuid:
             error_map['identity'] = "This field is required."
         if not source_alias:
             error_map['source_alias'] = "This field is required."
         if not size_alias:
             error_map['size_alias'] = "This field is required."
-        if not allocation_source_id:
-            error_map['allocation_source_id'] = "This field is required."
+        if settings.USE_ALLOCATION_SOURCE:
+            if not allocation_source_id:
+                error_map['allocation_source_id'] = "This field is required."
 
         if error_map:
             raise Exception(error_map)
@@ -246,10 +256,12 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         allocation_source_id = data.get('allocation_source_id')
         boot_scripts = data.pop("scripts", [])
         deploy = data.get('deploy')
-        extra = data.get('extra')
+        project_uuid = data.get('project')
+        extra = data.get('extra', {})
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
-            allocation_source = AllocationSource.objects.get(source_id=allocation_source_id)
+            if settings.USE_ALLOCATION_SOURCE:
+                allocation_source = AllocationSource.objects.get(source_id=allocation_source_id)
             core_instance = launch_instance(
                 user, identity_uuid, size_alias, source_alias, name, deploy,
                 **extra)
@@ -261,9 +273,12 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
                 return Response(serialized_instance.errors,
                                 status=status.HTTP_400_BAD_REQUEST)
             instance = serialized_instance.save()
+            project = Project.objects.get(uuid=project_uuid)
+            instance.projects.add(project)
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
-            instance.change_allocation_source(allocation_source)
+            if settings.USE_ALLOCATION_SOURCE:
+                instance.change_allocation_source(allocation_source)
             return Response(
                 serialized_instance.data, status=status.HTTP_201_CREATED)
         except UnderThresholdError as ute:
