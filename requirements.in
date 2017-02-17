@@ -39,7 +39,7 @@ uWSGI==2.0.13
 
 ## ours
 chromogenic
-django-cyverse-auth<=1.0.3  # Change this once Steve's Atmosphere auth refactor is merged in
+django-cyverse-auth
 threepio
 rtwo
 subspace

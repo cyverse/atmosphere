@@ -230,7 +230,6 @@ def _remove_ips_from_inactive_instances(driver, instances):
 
 
 def _remove_network(
-        os_acct_driver,
         core_identity,
         tenant_name):
     """
@@ -238,8 +237,11 @@ def _remove_network(
     celery_logger.info("Removing project network for %s" % tenant_name)
     # Sec. group can't be deleted if instances are suspended
     # when instances are suspended we pass remove_network=False
-    os_acct_driver.delete_security_group(core_identity)
-    os_acct_driver.delete_user_network(core_identity)
+    from service import instance as instance_service
+
+    instance_service.delete_security_group(core_identity)
+    instance_service.destroy_network(
+        core_identity)
     return True
 
 
@@ -253,14 +255,13 @@ def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
     -500, cloud failure (Operational support required)
     """
     from service.driver import get_esh_driver
+    from service import instance as instance_service
     from rtwo.driver import OSDriver
     # Initialize the drivers
     core_identity = Identity.objects.get(uuid=core_identity_uuid)
     driver = get_esh_driver(core_identity)
     if not isinstance(driver, OSDriver):
         return (-404, False)
-    os_acct_driver = get_account_driver(core_identity.provider)
-    celery_logger.info("Initialized account driver")
     # Get useful info
     creds = core_identity.get_credentials()
     tenant_name = creds['ex_tenant_name']
@@ -286,17 +287,17 @@ def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
     if active_instances and not inactive_instances:
         # User has >1 active instances AND not all instances inactive_instances
         return (num_ips_removed, False)
-    network_id = os_acct_driver.network_manager.get_network_id(
-        os_acct_driver.network_manager.neutron,
-        '%s-net' % tenant_name)
-    if network_id:
+    network_driver = instance_service._to_network_driver(core_identity)
+    network = network_driver.find_network('%s-net' % tenant_name)
+    if network:
+        network = network[0]
+        network_id = network['id']
         # User has 0 active instances OR all instances are inactive_instances
         # Network exists, attempt to dismantle as much as possible
         # Remove network=False IFF inactive_instances=True..
         remove_network = not inactive_instances
         if remove_network:
             _remove_network(
-                os_acct_driver,
                 core_identity,
                 tenant_name)
             return (num_ips_removed, True)
@@ -656,7 +657,7 @@ def get_chain_from_active_no_ip(
         driverCls, provider, identity, instance.id,
         {'tmp_status': 'networking'})
     floating_task = add_floating_ip.si(
-        driverCls, provider, identity, instance.id, delete_status=False)
+        driverCls, provider, identity, str(core_identity.uuid), instance.id, delete_status=False)
     floating_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance.id))
 
@@ -1278,10 +1279,11 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata,
       # Defaults will not be used, see countdown call below
       default_retry_delay=15,
       max_retries=30)
-def add_floating_ip(driverCls, provider, identity,
+def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
                     instance_alias, delete_status=True,
                     *args, **kwargs):
     # For testing ONLY.. Test cases ignore countdown..
+    from service import instance as instance_service
     if app.conf.CELERY_ALWAYS_EAGER:
         celery_logger.debug("Eager task waiting 15 seconds")
         time.sleep(15)
@@ -1296,15 +1298,16 @@ def add_floating_ip(driverCls, provider, identity,
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_alias)
             return None
-        floating_ips = driver._connection.neutron_list_ips(instance)
-        if floating_ips:
+        core_identity = Identity.objects.get(uuid=core_identity_uuid)
+        network_driver = instance_service._to_network_driver(core_identity)
+        floating_ips = network_driver.list_floating_ips()
+        if floating_ips and floating_ips[0]["instance_id"] == instance_alias:
             floating_ip = floating_ips[0]["floating_ip_address"]
             celery_logger.debug(
                 "Reusing existing floating_ip_address - %s" %
                 floating_ip)
         else:
-            floating_ip = driver._connection.neutron_associate_ip(
-                instance, *args, **kwargs)["floating_ip_address"]
+            floating_ip = network_driver.associate_floating_ip(instance_alias)["floating_ip_address"]
             celery_logger.debug("Created new floating_ip_address - %s" % floating_ip)
         _update_status_log(instance, "Networking Complete")
         # TODO: Implement this as its own task, with the result from
@@ -1316,9 +1319,11 @@ def add_floating_ip(driverCls, provider, identity,
         }
         # NOTE: This is part of the temp change, should be removed when moving
         # to vxlan
-        instance_ports = driver._connection.neutron_list_ports(
+        instance_ports = network_driver.list_ports(
             device_id=instance.id)
-        network = driver._connection.neutron_get_tenant_network()
+        network = network_driver.tenant_networks()
+        if type(network) is list:
+            network = [net for net in network if net['subnets'] != []][0]
         if instance_ports:
             for idx, fixed_ip_port in enumerate(instance_ports):
                 fixed_ips = fixed_ip_port.get('fixed_ips', [])
@@ -1407,6 +1412,7 @@ def remove_empty_network(
         driverCls, provider, identity,
         core_identity_uuid,
         network_options):
+    from service import instance as instance_service
     try:
         # For testing ONLY.. Test cases ignore countdown..
         if app.conf.CELERY_ALWAYS_EAGER:
@@ -1435,13 +1441,12 @@ def remove_empty_network(
                 "from %s" % core_identity)
             delete_network_options = {}
             delete_network_options['skip_network'] = inactive_instances_present
-            os_acct_driver = get_account_driver(core_identity.provider)
-            os_acct_driver.delete_user_network(
+            instance_service.destroy_network(
                 core_identity, delete_network_options)
             if not inactive_instances_present:
                 # Sec. group can't be deleted if instances are suspended
                 # when instances are suspended we should leave this intact.
-                os_acct_driver.delete_security_group(core_identity)
+                instance_service.delete_security_group(core_identity)
             return True
         celery_logger.debug("remove_empty_network task finished at %s." %
                      datetime.now())

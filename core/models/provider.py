@@ -61,7 +61,6 @@ class ProviderType(models.Model):
 
 
 class Provider(models.Model):
-
     """
     Detailed information about a provider
     Providers have a specific location
@@ -128,13 +127,23 @@ class Provider(models.Model):
             active_providers = active_providers.get(uuid=provider_uuid)
         return active_providers
 
+    def get_config(self, section, config_key, default_value=None, raise_exc=True):
+        try:
+            value = self.cloud_config[section][config_key]
+        except (KeyError, TypeError):
+            logger.error("Cloud config ['%s']['%s'] is missing -- using default value (%s)" % (section, config_key, default_value))
+            if not default_value and raise_exc:
+                raise Exception("Cloud config ['%s']['%s'] is missing -- no default value provided" % (section, config_key))
+            value = default_value
+        return value
+
     def get_esh_credentials(self, esh_provider):
         cred_map = self.get_credentials()
         if isinstance(esh_provider, OSProvider):
-            cred_map['ex_force_auth_url'] = cred_map.pop('auth_url')
-        if cred_map.get('ex_force_auth_version','2.0_password') == '2.0_password'\
-                and '/v2.0/tokens' not in cred_map['ex_force_auth_url']:
-            cred_map['ex_force_auth_url'] += '/v2.0/tokens'
+            cred_map['ex_force_auth_url'] = cred_map.pop('auth_url','')
+            if cred_map.get('ex_force_auth_version','2.0_password') == '2.0_password'\
+                    and cred_map['ex_force_auth_url'] and '/v2.0/tokens' not in cred_map['ex_force_auth_url']:
+                cred_map['ex_force_auth_url'] += '/v2.0/tokens'
 
         elif isinstance(esh_provider, EucaProvider):
             ec2_url = cred_map.pop('ec2_url')

@@ -44,6 +44,7 @@ from .email import  InstanceSupportEmailViewSet, VolumeSupportEmailViewSet, Feed
 from .emulate import TokenEmulateViewSet, SessionEmulateViewSet
 from .tag import TagViewSet
 from .token import TokenViewSet
+from .token_update import TokenUpdateViewSet
 from .user import UserViewSet
 from .volume import VolumeViewSet
 from .metric import MetricViewSet

@@ -10,7 +10,7 @@ from django.db import models
 
 from threepio import logger
 from uuid import uuid5, uuid4
-from core.query import only_active_memberships
+from core.query import only_active_memberships, contains_credential
 from core.models.quota import Quota
 
 class Identity(models.Model):
@@ -187,7 +187,8 @@ class Identity(models.Model):
         # upon creation. If the value is not passed in, we can ask the provider to select
         # the router with the least 'usage' to ensure an "eventually consistent" distribution
         # of users->routers.
-        if 'router_name' not in credentials:
+        topologyClsName = provider.get_config('network', 'topology', raise_exc=False)
+        if topologyClsName == 'External Router Topology' and 'router_name' not in credentials:
             credentials['router_name'] = provider.select_router()
 
         (user, group) = Group.create_usergroup(username)
@@ -215,29 +216,38 @@ class Identity(models.Model):
 
     @classmethod
     def _get_identity(cls, user, group, provider, quota, credentials):
-        try:
-            # 1. Make sure that an Identity exists for the user/group+provider
-            #FIXME: To make this *more* iron-clad, we should probably
-            # create a method that looks at the provider, and selects
-            # the username/project_name `key/value` pair, and looks *explicitly* for that pairing in an identity they have created..
-            # Otherwise we are limiting the accounts a user can have to one/provider.
-            identity = Identity.objects.get(
-                    created_by=user, provider=provider)
-            # 2. Make sure that all kwargs exist as credentials
-            # NOTE: Because we assume only one identity per provider
-            #       We can add new credentials to
-            #       existing identities if missing..
+        """
+        # 1. Make sure that an Identity exists for the user/group+provider
+        # 2. Make sure that all kwargs exist as credentials for the identity
+        """
+        identity_qs = Identity.objects.filter(
+                created_by=user, provider=provider)
+
+        if 'ex_project_name' in credentials:
+            project_name = credentials['ex_project_name']
+        elif 'ex_tenant_name' in credentials:
+            project_name = credentials['ex_tenant_name']
+
+        if project_name:
+            identity_qs = identity_qs.filter(
+                    contains_credential('ex_project_name', project_name) | contains_credential('ex_tenant_name', project_name))
+        #FIXME: To make this *more* iron-clad, we should probably
+        # include the username `key/value` pair, and looks *explicitly* for that pairing in an identity they have created..
+        if identity_qs.count() > 1:
+            raise Exception("Could not uniquely identify the identity")
+        identity = identity_qs.first()
+        if identity:
             # In the future, we will only update the credentials *once*
             # during self._create_identity().
             for (c_key, c_value) in credentials.items():
                 Identity.update_credential(identity, c_key, c_value)
-        except Identity.DoesNotExist:
-            # FIXME: we shouldn't have to create the uuid.. default does this.
+        else:
             identity = cls._create_identity(user, group, provider, quota, credentials)
         return identity
 
     @classmethod
     def _create_identity(cls, user, group, provider, quota, credentials):
+        # FIXME: we shouldn't have to create the uuid.. default should do this?
         new_uuid = uuid4()
         if not quota:
             quota = Quota.default_quota()

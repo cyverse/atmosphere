@@ -195,7 +195,6 @@ CORS_ORIGIN_WHITELIST = None
 INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + '/api/notification/'
 API_SERVER_URL = SERVER_URL + REDIRECT_URL + '/resources/v1'
 AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
-INIT_SCRIPT_PREFIX = '/init_files/'
 DEPLOY_SERVER_URL = SERVER_URL.replace("https", "http")
 
 # These DEFAULT variables can be overridden per provider..
@@ -376,10 +375,17 @@ REST_FRAMEWORK = {
         'rest_framework_jsonp.renderers.JSONPRenderer',
         'api.renderers.PNGRenderer',
         'api.renderers.JPEGRenderer',
+        'api.renderers.PandasExcelRenderer',
         # Easily enabled if/when support is desired
         #'rest_framework.renderers.AdminRenderer',
         #'rest_framework_yaml.renderers.YAMLRenderer',
         #'rest_framework_xml.renderers.XMLRenderer',
+    ),
+    'TEST_REQUEST_RENDERER_CLASSES': (
+        'rest_framework.renderers.MultiPartRenderer',
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.TemplateHTMLRenderer',
+        'api.renderers.PandasExcelRenderer',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'django_cyverse_auth.token.TokenAuthentication', # Generic Tokens
