@@ -15,7 +15,7 @@ from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     OSProvider, OSValhallaProvider
 from rtwo.exceptions import LibcloudBadResponseError
 from rtwo.driver import OSDriver
-from rtwo.drivers.common import _connect_to_keystone_v3, _token_to_keystone_scoped_project
+from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_keystone_v3, _token_to_keystone_scoped_project
 from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
@@ -1447,7 +1447,7 @@ def admin_keypair_init(core_identity):
 
 
 def network_init(core_identity):
-    topology_name = core_identity.provider.get_config('network', 'topology', None)
+    topology_name = core_identity.provider.get_config('network', 'topology', 'External Router Topology')
     if not topology_name or topology_name == "External Router Topology":
         return admin_network_init(core_identity)  # NOTE: This flow *ONLY* works with external router.
     return user_network_init(core_identity)
@@ -1460,7 +1460,14 @@ def _to_network_driver(core_identity):
     auth_url = all_creds.get('auth_url')
     if '/v' not in auth_url:  # Add /v3 if no version specified in auth_url
         auth_url += '/v3'
-    if 'ex_force_auth_token' in all_creds:
+    if '/v2' in auth_url:  # Remove this when "Legacy cloud" support is removed
+        username = all_creds['key']
+        password = all_creds['secret']
+        auth_url = auth_url.replace("/tokens","")
+        (auth, sess, token) = _connect_to_keystone_v2(
+            auth_url, username, password,
+            project_name)
+    elif 'ex_force_auth_token' in all_creds:
         auth_token = all_creds['ex_force_auth_token']
         (auth, sess, token) = _token_to_keystone_scoped_project(
             auth_url, auth_token,
