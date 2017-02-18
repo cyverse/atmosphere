@@ -96,6 +96,8 @@ def instance_deploy(instance_ip, username, instance_id,
 def user_deploy(instance_ip, username, instance_id):
     """
     Use service.ansible to deploy to an instance.
+    #NOTE: This method will _NOT_ work if you do not run instance deployment *FIRST*!
+    # In order to add user-ssh keys to root, you will need root access to the VM that is *not* configured in this playbook.
     """
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
     playbooks_dir = os.path.join(playbooks_dir, 'user_deploy')
