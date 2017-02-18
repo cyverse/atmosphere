@@ -1139,7 +1139,7 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
         _deploy_instance.retry(exc=exc)
     try:
         username = identity.user.username
-        #instance_deploy(instance.ip, username, instance_id)
+        instance_deploy(instance.ip, username, instance_id)
         _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
         celery_logger.debug("_deploy_instance task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
