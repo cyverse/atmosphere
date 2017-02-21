@@ -322,7 +322,11 @@ def fill_user_allocation_sources():
     driver = TASAPIDriver()
     allocation_resources = {}
     for user in AtmosphereUser.objects.order_by('username'):
-        resources = fill_user_allocation_source_for(driver, user)
+        try:
+            resources = fill_user_allocation_source_for(driver, user)
+        except Exception as exc:
+            logger.exception("Error filling user allocation source for %s" % user)
+            resources = []
         allocation_resources[user.username] = resources
     return allocation_resources
 
