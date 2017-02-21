@@ -228,7 +228,7 @@ class TASAPIDriver(object):
 
     
 
-    def get_user_allocations(self, username, raise_exception=True):
+    def get_user_allocations(self, username, include_expired=False, raise_exception=True):
         path = '/v1/projects/username/%s' % username
         url_match = self.tacc_api + path
         resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
@@ -237,8 +237,8 @@ class TASAPIDriver(object):
             _validate_tas_data(data)
             projects = data['result']
             for project in projects:
-                allocations = project['allocations']
-                for allocation in allocations:
+                api_allocations = project['allocations'] if include_expired else select_valid_allocations(project['allocations'])
+                for allocation in api_allocations:
                     if allocation['resource'] == self.resource_name:
                         user_allocations.append( (project, allocation) )
             return user_allocations
@@ -284,7 +284,9 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
 
 def find_user_allocation_source_for(driver, user):
     tacc_user = driver.get_tacc_username(user)
-    allocations = driver.find_allocations_for(tacc_user)
+    # allocations = driver.find_allocations_for(tacc_user)
+    project_allocations = driver.get_user_allocations(tacc_user)
+    allocations = [pa[1] for pa in project_allocations]  # 2-tuples: (project, allocation)
     return allocations
 
 
@@ -324,6 +326,7 @@ def fill_user_allocation_sources():
         allocation_resources[user.username] = resources
     return allocation_resources
 
+
 def fill_user_allocation_source_for(driver, user, force_update=True):
     allocation_list = find_user_allocation_source_for(driver, user)
     allocation_resources = []
@@ -335,6 +338,26 @@ def fill_user_allocation_source_for(driver, user, force_update=True):
             user=user)
         allocation_resources.append(allocation_source)
     return allocation_resources
+
+
+def select_valid_allocations(allocation_list):
+    now = timezone.now()
+    allocations = []
+    for allocation in allocation_list:
+        start_timestamp = allocation['start']
+        end_timestamp = allocation['end']
+        status = allocation['status']
+        start_date = parse(start_timestamp)
+        end_date = parse(end_timestamp)
+        if start_date >= now or end_date <= now:
+           logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
+           continue
+        if status.lower() != 'active':
+           logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+           continue
+        allocations.append(allocation)
+    return allocations
+
 
 def select_valid_allocation(allocation_list):
     now = timezone.now()
