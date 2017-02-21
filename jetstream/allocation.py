@@ -6,7 +6,7 @@ from dateutil.parser import parse
 
 from .exceptions import TASAPIException
 #FIXME: Next iteration, move this into the driver.
-from .api import tacc_api_post, tacc_api_get
+from .tas_api import tacc_api_post, tacc_api_get
 from core.models.allocation_source import AllocationSource, UserAllocationSource
 
 logger = logging.getLogger(__name__)
@@ -59,8 +59,9 @@ class TASAPIDriver(object):
                 user.username)
         except:
             logger.info("User: %s has no tacc username" % user.username)
-            tacc_user = user.username
-        self.username_map[user.username] = tacc_user
+            tacc_user = None
+        else:
+            self.username_map[user.username] = tacc_user
         return tacc_user
 
     def find_projects_for(self, tacc_username):
@@ -285,6 +286,9 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
 def find_user_allocation_source_for(driver, user):
     tacc_user = driver.get_tacc_username(user)
     # allocations = driver.find_allocations_for(tacc_user)
+    if not tacc_user:
+        return []
+
     project_allocations = driver.get_user_allocations(tacc_user)
     allocations = [pa[1] for pa in project_allocations]  # 2-tuples: (project, allocation)
     return allocations
@@ -310,6 +314,9 @@ def collect_users_without_allocation(driver):
     missing = []
     for user in AtmosphereUser.objects.order_by('username'):
         tacc_user = driver.get_tacc_username(user)
+        if not tacc_user:
+            missing.append(user)
+            continue
         user_allocations = driver.get_user_allocations(
             tacc_user, raise_exception=False)
         if not user_allocations:
