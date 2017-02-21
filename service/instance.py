@@ -1412,6 +1412,9 @@ def admin_security_group_init(core_identity, max_attempts=3):
 
 
 def keypair_init(core_identity):
+    has_secret = core_identity.get_credential('secret') is not None
+    if has_secret:
+        return admin_keypair_init(core_identity)
     return user_keypair_init(core_identity)
 
 
