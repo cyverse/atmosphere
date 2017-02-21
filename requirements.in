@@ -25,7 +25,7 @@ gevent==1.0.1
 
 apache-libcloud==0.20.1
 requests[security]==2.11.1
-python-dateutil==1.4.1
+python-dateutil
 pytz==2016.2
 Pillow==2.5.3
 PyJWT==1.4.0

@@ -16,3 +16,5 @@ pip-tools
 wheel
 vcrpy
 json_delta
+freezegun
+pathlib
