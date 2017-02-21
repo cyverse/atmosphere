@@ -305,6 +305,8 @@ class AccountDriver(BaseAccountDriver):
         username = identity_creds["username"]
         password = identity_creds["password"]
         project_name = identity_creds["tenant_name"]
+        if not security_group_name:
+            security_group_name = str(project_name)
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain': 'default'})
