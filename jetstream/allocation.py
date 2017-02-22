@@ -357,32 +357,35 @@ def select_valid_allocations(allocation_list):
     for allocation in allocation_list:
         allocation_status = allocation['status']
         if allocation_status.lower() != 'active':
-           logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+           #logger.debug("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
            continue
         start_timestamp = allocation['start']
         end_timestamp = allocation['end']
         start_date = parse(start_timestamp)
         end_date = parse(end_timestamp)
         if start_date >= now or end_date <= now:
-           logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
+           #logger.debug("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
            continue
         allocations.append(allocation)
     return allocations
 
 
 def select_valid_allocation(allocation_list):
+    """
+    #FIXME: In a future commit, merge select_valid_allocations.
+    """
     now = timezone.now()
     for allocation in allocation_list:
         status = allocation['status']
         if status.lower() != 'active':
-           logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+           #logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
            continue
         start_timestamp = allocation['start']
         end_timestamp = allocation['end']
         start_date = parse(start_timestamp)
         end_date = parse(end_timestamp)
         if start_date >= now or end_date <= now:
-           logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
+           #logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
            continue
         return allocation
     return None

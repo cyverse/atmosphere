@@ -12,12 +12,12 @@ def tacc_api_post(url, post_data, username=None, password=None):
         username = settings.TACC_API_USER
     if not password:
         password = settings.TACC_API_PASS
-    logger.info("REQ: %s" % url)
-    logger.info("REQ BODY: %s" % post_data)
+    #logger.info("REQ: %s" % url)
+    #logger.info("REQ BODY: %s" % post_data)
     resp = requests.post(
         url, post_data,
         auth=(username, password))
-    logger.info("RESP: %s" % resp.__dict__)
+    #logger.info("RESP: %s" % resp.__dict__)
     return resp
 
 
@@ -26,11 +26,11 @@ def tacc_api_get(url, username=None, password=None):
         username = settings.TACC_API_USER
     if not password:
         password = settings.TACC_API_PASS
-    logger.info("REQ: %s" % url)
+    #logger.info("REQ: %s" % url)
     resp = requests.get(
         url,
         auth=(username, password))
-    logger.info("RESP: %s" % resp.__dict__)
+    #logger.info("RESP: %s" % resp.__dict__)
     if resp.status_code != 200:
         raise TASAPIException(
             "Invalid Response - "
