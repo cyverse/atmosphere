@@ -51,6 +51,7 @@ from service.exceptions import (
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
+from neutronclient.common.exceptions import Conflict
 
 def _get_size(esh_driver, esh_instance):
     if isinstance(esh_instance.size, MockSize):
@@ -1345,16 +1346,76 @@ def security_group_init(core_identity, max_attempts=3):
     return user_security_group_init(core_identity)
 
 
-def user_security_group_init(core_identity, security_group_name='default'):
-    # Rules can come from the provider _or_ from settings _otherwise_ empty-list
-    rules = core_identity.provider.get_config('network', 'default_security_rules',getattr(settings,'DEFAULT_RULES',[]))
-    driver = get_cached_driver(identity=core_identity)
-    lc_driver = driver._connection
-    security_group = get_or_create_security_group(lc_driver, security_group_name)
-    set_security_group_rules(lc_driver, security_group, rules)
+def user_security_group_init(core_identity, security_group_name='atmosphere'):
+    network_driver = _to_network_driver(core_identity)
+    user_neutron = network_driver.neutron
+    security_group = get_or_create_security_group(security_group_name, user_neutron)
+    set_security_group_rules(security_group_name, user_neutron)
     return security_group
 
 
+def set_security_group_rules(security_group_name, user_neutron):
+    security_group = find_security_group(security_group_name, user_neutron)
+    security_group_id = security_group[u'id']
+    first_rule = {"security_group_rule": {
+        "direction": "ingress",
+        "port_range_min": None,
+        "ethertype": "IPv4",
+        "port_range_max": None,
+        "protocol": None,
+        "remote_group_id": security_group_id,
+        "security_group_id": security_group_id
+        }
+    }
+    try:
+    user_neutron.create_security_group_rule(body=first_rule)
+    except Conflict:
+    # The rule has already in the sec_group
+        pass
+    else:
+        second_rule = {"security_group_rule": {
+            "direction": "ingress",
+            "port_range_min": None,
+            "ethertype": "IPv6",
+            "port_range_max": None,
+            "protocol": None,
+            "remote_group_id": security_group_id,
+            "security_group_id": security_group_id
+             }
+        }
+        try:
+        user_neutron.create_security_group_rule(body=second_rule)
+        except Conflict:
+            pass
+        else:
+            third_rule = {"security_group_rule": {
+                "direction": "ingress",
+                "port_range_min": 22,
+                "ethertype": "IPv4",
+                "port_range_max": 22,
+                "protocol": "tcp",
+                "remote_ip_prefix": "0.0.0.0/0",
+                "security_group_id": security_group_id
+                }
+            }
+            try:
+                user_neutron.create_security_group_rule(body=third_rule)
+            except Conflict:
+                pass
+            else:
+                return True
+
+def find_security_group(security_group_name, user_neutron):
+    security_groups = user_neutron.list_security_groups()[u'security_groups']
+    security_group = ''
+    for sg in security_groups:
+        if sg[u'name'] == security_group_name:
+            security_group = sg
+    if security_group != '':
+        return security_group
+    else:
+        raise Exception('Could not find any existing security group')
+'''
 def set_security_group_rules(lc_driver, security_group, rules):
     for rule_tuple in rules:
         if len(rule_tuple) == 3:
@@ -1382,14 +1443,23 @@ def set_security_group_rules(lc_driver, security_group, rules):
                 continue
             raise
     return security_group
+'''
 
-def get_or_create_security_group(lc_driver, security_group_name):
-    sgroup_list = lc_driver.ex_list_security_groups()
-    security_group = [sgroup for sgroup in sgroup_list if sgroup.name == security_group_name]
+def get_or_create_security_group(security_group_name, user_neutron):
+    security_group_list = user_neutron.list_security_groups()[u'security_groups']
+    security_group = [sgroup for sgroup in security_group_list if sgroup[u'name'] == security_group_name]
+
+    #sgroup_list = lc_driver.ex_list_security_groups()
+    #security_group = [sgroup for sgroup in sgroup_list if sgroup.name == security_group_name]
     if len(security_group) > 0:
         security_group = security_group[0]
     else:
-        security_group = lc_driver.ex_create_security_group(security_group_name,'Security Group created by Atmosphere')
+        body = {"security_group": {
+            "name": security_group_name,
+            "description": "Security Group created by Atmosphere"
+             }
+        }
+        security_group = user_neutron.create_security_group(body=body)
 
     if security_group is None:
        raise Exception("Could not find or create security group")
@@ -1939,3 +2009,4 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
         raise ActionNotAllowed(
             'Unable to to perform action %s.' % (action_type))
     return result_obj
+
