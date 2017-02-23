@@ -1368,7 +1368,7 @@ def set_security_group_rules(security_group_name, user_neutron):
         }
     }
     try:
-    user_neutron.create_security_group_rule(body=first_rule)
+        user_neutron.create_security_group_rule(body=first_rule)
     except Conflict:
     # The rule has already in the sec_group
         pass
