@@ -237,7 +237,7 @@ def remove_ips(esh_driver, esh_instance, identity_uuid, update_meta=True):
     Returns: (floating_removed, fixed_removed)
     """
     from service.tasks.driver import update_metadata
-    core_identity = Identity.objects.get(uuid=core_identity_uuid)
+    core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     network_driver = _to_network_driver(core_identity)
     result = network_driver.disassociate_floating_ip(esh_instance.id)
     logger.info("Removed Floating IP for Instance %s - Result:%s"
