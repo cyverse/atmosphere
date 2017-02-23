@@ -127,12 +127,12 @@ class TASAPIDriver(object):
         }
         path = '/v1/jobs'
         url_match = self.tacc_api + path
-        logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
+        #logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
         resp = tacc_api_post(url_match, post_data, self.tacc_username, self.tacc_password)
-        logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
+        #logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
         try:
             data = resp.json()
-            logger.debug("TAS_RESP - Data: %s" % data)
+            #logger.debug("TAS_RESP - Data: %s" % data)
             resp_status = data['status']
         except ValueError:
             exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (report_id, resp.text,))
@@ -220,11 +220,11 @@ class TASAPIDriver(object):
         except ValueError as exc:
             if raise_exception:
                 raise TASAPIException("JSON Decode error -- %s" % exc)
-            logger.info( exc)
+            logger.info(exc)
         except Exception as exc:
             if raise_exception:
                 raise
-            logger.info( exc)
+            logger.info(exc)
         return user_names
 
     
