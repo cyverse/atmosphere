@@ -280,6 +280,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         "end_date"]
     list_filter = [
         "end_date",
+        "tags__name",
         "versions__machines__instance_source__provider",
     ]
     filter_vertical = ["tags", ]

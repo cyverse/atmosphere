@@ -45,6 +45,10 @@ def create_reports():
     for item in user_allocation_list:
         allocation_id = item.allocation_source.source_id
         tacc_username = driver.get_tacc_username(item.user)
+        if not tacc_username:
+            logger.error("No TACC username for user: '{}' which came from allocation id: {}".format(item.user,
+                                                                                                    allocation_id))
+            continue
         project_name = driver.get_allocation_project_name(allocation_id)
         try:
             project_report = _create_tas_report_for(

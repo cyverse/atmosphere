@@ -470,8 +470,6 @@ def deploy_init_to(driverCls, provider, identity, instance_id, core_identity,
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_id)
             return
-        image_metadata = driver._connection\
-                               .ex_get_image_metadata(instance.source)
         deploy_chain = get_deploy_chain(
             driverCls, provider, identity, instance, core_identity,
             username=username, password=password,

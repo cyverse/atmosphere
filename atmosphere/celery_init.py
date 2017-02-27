@@ -12,7 +12,7 @@ os.environ.setdefault('PYTHONOPTIMIZE', '1')  #NOTE: Required to run ansible2 + 
 app = Celery('atmosphere')
 app.config_from_object('django.conf:settings')
 app.autodiscover_tasks(settings.INSTALLED_APPS, related_name='tasks')
-
+#app.log.setup()
 
 @app.task(bind=True)
 def debug_task(self):

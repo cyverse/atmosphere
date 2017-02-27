@@ -305,6 +305,8 @@ class AccountDriver(BaseAccountDriver):
         username = identity_creds["username"]
         password = identity_creds["password"]
         project_name = identity_creds["tenant_name"]
+        if not security_group_name:
+            security_group_name = str(project_name)
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain': 'default'})
@@ -1081,10 +1083,13 @@ class AccountDriver(BaseAccountDriver):
             ex_version = '2.0_password'
         elif version == 3:
             ex_version = '3.x_password'
-
+        keystone_auth_url = self.user_manager.keystone.session.get_endpoint(
+            service_type='identity', interface='publicURL')
+        keystone_admin_url = self.user_manager.keystone.session.get_endpoint(
+            service_type='identity', interface='admin')
         osdk_creds = {
-            "auth_url": self.user_manager.nova.client.auth_url.replace('/v3','').replace('/v2.0',''),
-            "admin_url": self.user_manager.keystone._management_url.replace('/v2.0','').replace('/v3',''),
+            "auth_url": keystone_auth_url.replace('/v2.0','').replace('/v3',''),
+            "admin_url": keystone_admin_url.replace('/v2.0','').replace('/v3',''),
             "ex_force_auth_version": ex_version,
             "region_name": self.user_manager.nova.client.region_name,
             "username": username,
@@ -1141,7 +1146,10 @@ class AccountDriver(BaseAccountDriver):
         # Required:
         net_args.get("username")
         net_args.get("password")
-        net_args.get("tenant_name")
+        net_args['project_name'] = self.get_tenant_name(credentials)
+        if 'domain_name' not in net_args:
+            domain_name = self.get_config('user', 'domain', 'default')
+            net_args['domain_name'] = domain_name
 
         net_args.get("router_name")
         net_args.get("region_name")
@@ -1171,12 +1179,17 @@ class AccountDriver(BaseAccountDriver):
         NOTE: JETSTREAM auth_url to be '/v3'
         """
         img_args = credentials.copy()
-        img_args['tenant_name'] = self.get_tenant_name(credentials)
+        img_args['project_name'] = self.get_tenant_name(credentials)
+        if 'domain_name' not in img_args:
+            domain_name = self.get_config('user', 'domain', 'default')
+            img_args['domain_name'] = domain_name
+
         # Required:
         for required_arg in [
                 "username",
                 "password",
-                "tenant_name",
+                "project_name",
+                "domain_name",
                 "auth_url",
                 "region_name"]:
             if required_arg not in img_args or not img_args[required_arg]:
@@ -1187,15 +1200,13 @@ class AccountDriver(BaseAccountDriver):
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):
             auth_url_prefix = "/v2.0/tokens"
+            img_args["auth_url"] = img_args.get('auth_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','') + auth_url_prefix
             auth_version = 'v2.0'
         elif ex_auth_version.startswith('3'):
-            auth_url_prefix = "/v3/tokens"
+            img_args["auth_url"] = img_args.get('auth_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')  # hostname:port (no routes!)
             auth_version = 'v3'
         img_args['version'] = auth_version
 
-        img_args["auth_url"] = img_args.get('auth_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')
-        if auth_url_prefix not in img_args['auth_url']:
-            img_args["auth_url"] += auth_url_prefix
         return img_args
 
     def _build_user_creds(self, credentials):
@@ -1209,7 +1220,10 @@ class AccountDriver(BaseAccountDriver):
         # Required args:
         user_args.get("username")
         user_args.get("password")
-        user_args["tenant_name"] = self.get_tenant_name(credentials)
+        user_args["project_name"] = self.get_tenant_name(credentials)
+        if 'domain_name' not in user_args:
+            domain_name = self.get_config('user', 'domain', 'default')
+            user_args['domain_name'] = domain_name
         ex_auth_version = user_args.pop("ex_force_auth_version", '2.0_password')
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):

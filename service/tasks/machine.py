@@ -238,7 +238,12 @@ def machine_request_error(task_uuid, machine_request_id):
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
         exc = result.get(propagate=False)
-    err_str = "(%s) ERROR - %r Exception:%r" % (machine_request.old_status,
+    # Don't prefix if request is already within the ()s
+    if all(char in machine_request.old_status for char in "()"):
+        err_prefix = machine_request.old_status
+    else:
+        err_prefix = "(%s)" % machine_request.old_status
+    err_str = "(%s) ERROR - %r Exception:%r" % (err_prefix,
                                                 result.result,
                                                 result.traceback,
                                                 )
