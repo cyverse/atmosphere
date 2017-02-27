@@ -143,11 +143,28 @@ class AccountDriver(BaseAccountDriver):
         net_creds = self._build_network_creds(all_creds)
         sdk_creds = self._build_sdk_creds(all_creds)
 
+        # Initialize logging
+        self._initialize_loggers()
         # Initialize managers with respective credentials
         self.user_manager = UserManager(**user_creds)
         self.image_manager = ImageManager(**image_creds)
         self.network_manager = NetworkManager(**net_creds)
         self.openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
+
+    def _initialize_loggers(self):
+        from keystoneauth1 import _utils
+        session_logger = _utils.get_logger('keystoneauth1.session')
+        session_logger.setLevel(settings.DEP_LOGGING_LEVEL)
+        auth1_logger = _utils.get_logger('keystoneauth1')
+        auth1_logger.setLevel(settings.DEP_LOGGING_LEVEL)
+        ksauth_logger = _utils.get_logger('keystoneauth')
+        ksauth_logger.setLevel(settings.DEP_LOGGING_LEVEL)
+        ks_identity_logger = _utils.get_logger('keystoneauth.identity.v3.base')
+        ks_identity_logger.setLevel(settings.DEP_LOGGING_LEVEL)
+        ostack_logger = _utils.get_logger('openstack')
+        ostack_logger.setLevel(settings.DEP_LOGGING_LEVEL)
+        ostack_session_logger = _utils.get_logger('openstack.session')
+        ostack_session_logger.setLevel(settings.DEP_LOGGING_LEVEL)
 
     def get_config(self, section, config_key, default_value):
         try:
