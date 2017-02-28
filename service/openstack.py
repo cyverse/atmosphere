@@ -68,6 +68,7 @@ def _make_unsafe(safe_str):
 def glance_update_machine_metadata(provider_machine, metadata={}):
     update_method = ""
     base_source = provider_machine.instance_source
+    provider = base_source.provider
     base_app = provider_machine.application
     identifier = base_source.identifier
     accounts = get_account_driver(provider)
@@ -86,7 +87,7 @@ def glance_update_machine_metadata(provider_machine, metadata={}):
             " Ask a programmer to fix this!")
     overrides = {
         "application_version": str(provider_machine.application_version.name),
-        "application_uuid": base_app.uuid,
+        "application_uuid": str(base_app.uuid),
         "application_name": _make_safe(base_app.name),
         "application_owner": base_app.created_by.username,
         "application_tags": json.dumps(
