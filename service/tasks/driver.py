@@ -1302,8 +1302,13 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
         core_identity = Identity.objects.get(uuid=core_identity_uuid)
         network_driver = instance_service._to_network_driver(core_identity)
         floating_ips = network_driver.list_floating_ips()
-        if floating_ips and floating_ips[0]["instance_id"] == instance_alias:
-            floating_ip = floating_ips[0]["floating_ip_address"]
+        selected_floating_ip = None
+        if floating_ips:
+            for fip in floating_ips:
+                if fip["instance_id"] == instance_alias:
+                    selected_floating_ip = fip["floating_ip_address"]
+        if selected_floating_ip:
+            floating_ip = selected_floating_ip
             celery_logger.debug(
                 "Reusing existing floating_ip_address - %s" %
                 floating_ip)
