@@ -39,15 +39,6 @@ def _get_imaging_task(orig_managerCls, orig_creds,
         return image_task
 
 
-def _recover_from_error(status):
-    if not status:
-        return False, status
-    if 'exception' in status.lower():
-        return True, status[
-            status.find("(") + 1:status.find(")")]
-    return False, status
-
-
 @task(name='export_request_task', queue="imaging", ignore_result=False)
 def export_request_task(export_request_id):
     celery_logger.info("export_request_task task started at %s." % timezone.now())
@@ -100,7 +91,7 @@ def start_machine_imaging(machine_request, delay=False):
     machine_request.save()
     
     original_status = machine_request.old_status
-    last_run_error, original_status = _recover_from_error(original_status)
+    last_run_error, original_status = machine_request._recover_from_error(original_status)
 
     if last_run_error:
         machine_request.old_status = original_status

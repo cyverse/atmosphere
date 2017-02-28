@@ -238,7 +238,7 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
                                     allow_null=True,
                                     required=False)
-    old_status = serializers.CharField(required = False)
+    old_status = serializers.CharField(source='clean_old_status', required=False)
 
     new_application_visibility = serializers.CharField()
     new_application_version = ImageVersionSummarySerializer(read_only=True)
