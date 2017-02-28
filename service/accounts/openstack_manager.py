@@ -147,6 +147,7 @@ class AccountDriver(BaseAccountDriver):
         self._initialize_loggers()
         # Initialize managers with respective credentials
         self.user_manager = UserManager(**user_creds)
+        self.user_manager.keystone.username = user_creds.get('username')
         self.image_manager = ImageManager(**image_creds)
         self.network_manager = NetworkManager(**net_creds)
         self.openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
