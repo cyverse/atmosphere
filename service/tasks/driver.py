@@ -1305,7 +1305,7 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
         selected_floating_ip = None
         if floating_ips:
             for fip in floating_ips:
-                if fip["instance_id"] == instance_alias:
+                if fip.get("instance_id",'') == instance_alias:
                     selected_floating_ip = fip["floating_ip_address"]
         if selected_floating_ip:
             floating_ip = selected_floating_ip
