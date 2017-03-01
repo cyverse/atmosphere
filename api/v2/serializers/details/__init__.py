@@ -19,6 +19,7 @@ from .instance_action import InstanceActionSerializer
 from .instance_tag import InstanceTagSerializer
 from .instance_history import InstanceStatusHistorySerializer
 from .instance import InstanceSerializer
+from .instance_allocation_source import InstanceAllocationSourceSerializer
 from .license import LicenseSerializer
 from .link import ExternalLinkSerializer
 from .maintenance_record import MaintenanceRecordSerializer

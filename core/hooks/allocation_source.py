@@ -285,7 +285,6 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
     payload = event.payload
     allocation_source_id = payload['allocation_source_id']
     instance_id = payload['instance_id']
-
     allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
     if not allocation_source:
         return None
@@ -304,6 +303,30 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
             instance=instance)
     return snapshot
 
+def listen_for_instance_allocation_removed(sender, instance, created, **kwargs):
+    """
+    This listener expects:
+    EventType - 'instance_allocation_source_removed'
+    EventPayload - {
+        "allocation_source_id": "37623",
+        "instance_id":"2439b15a-293a-4c11-b447-bf349f16ed2e"
+    """
+    event = instance
+    if event.name != 'instance_allocation_source_removed':
+        return None
+    logger.info("Instance allocation removed event: %s" % event.__dict__)
+    payload = event.payload
+    allocation_source_id = payload['allocation_source_id']
+    instance_id = payload['instance_id']
+    allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    if not allocation_source:
+        return None
+    instance = Instance.objects.filter(provider_alias=instance_id).first()
+    if not instance:
+        return None
+    snapshot = InstanceAllocationSourceSnapshot.objects.get(
+            instance=instance,allocation_source=allocation_source)
+    snapshot.delete()
 
 def listen_for_allocation_source_created(sender, instance, created, **kwargs):
     """

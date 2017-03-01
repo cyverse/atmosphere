@@ -50,6 +50,9 @@ router.register(r'instances', views.InstanceViewSet, base_name='instance')
 router.register(r'instance_actions',
     views.InstanceActionViewSet,
     base_name='instanceaction')
+router.register(r'instance_allocation_source',
+                views.InstanceAllocationSourceViewSet,
+                base_name='instance-allocation-source')
 router.register(r'instance_histories',
     views.InstanceStatusHistoryViewSet,
     base_name='instancestatushistory')

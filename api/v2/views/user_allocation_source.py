@@ -100,7 +100,6 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
     def _create_user_allocation_source(self, request_data):
 
         payload = {}
-        payload['name'] = request_data.get('name')
         payload['username'] = request_data.get('username')
         payload['source_id'] = request_data.get('source_id')
 
@@ -120,17 +119,12 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         payload['source_id'] = request_data.get('source_id')
         payload['username'] = request_data.get('username')
 
-        try:
-            delete_event = EventTable(
-                name='user_allocation_source_removed',
-                entity_id=payload['source_id'],
-                payload=payload)
+        delete_event = EventTable(
+            name='user_allocation_source_removed',
+            entity_id=payload['source_id'],
+            payload=payload)
 
-            delete_event.save()
-
-        except Exception as e:
-            raise Exception('The following error occured while removing User %s from Allocation Source %s'
-                            %(payload['source_id'],payload['username']))
+        delete_event.save()
 
 
     # validations

@@ -1,8 +1,15 @@
-from behave import *
-from django.test.client import Client
-from core.models import AtmosphereUser
-from core.models import AllocationSourceSnapshot, AllocationSource
 import json
+import uuid
+from behave import *
+from django.utils import timezone
+from django.test.client import Client
+from django.core.urlresolvers import reverse
+from rest_framework.test import APIClient
+from core.models import AtmosphereUser
+from core.models import AllocationSourceSnapshot, AllocationSource, Instance
+from api.tests.factories import (
+     InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
+    ProviderMachineFactory, IdentityFactory, ProviderFactory)
 
 @given('a user')
 def step_impl(context):
@@ -170,9 +177,6 @@ def step_impl(context,user_is_removed):
     assert result == _str2bool(user_is_removed.lower())
 # helper methods
 
-def _str2bool(val):
-    return True if val=='true' else False
-
 
 @when('Allocation Source is removed')
 def step_impl(context):
@@ -186,3 +190,88 @@ def step_impl(context, allocation_source_is_removed):
         source_id=context.source_id).last().end_date
     assert result == _str2bool(allocation_source_is_removed.lower()) and \
            allocation_source_end_date is not None
+
+
+
+@given("Pre-initalizations")
+def step_impl(context):
+    #context.user is admin and regular user
+    provider = ProviderFactory.create()
+    from core.models import IdentityMembership,Identity,ProviderMachine
+    user_group = IdentityMembership.objects.all()
+    if not user_group:
+        user_identity = IdentityFactory.create_identity(
+            created_by=context.user,
+            provider=provider)
+    else:
+        user_identity=Identity.objects.all().last()
+    admin_identity = user_identity
+
+    provider_machine = ProviderMachine.objects.all()
+    if not provider_machine:
+        machine = ProviderMachineFactory.create_provider_machine(context.user, user_identity)
+    else:
+        machine = ProviderMachine.objects.all().last()
+    context.active_instance = InstanceFactory.create(
+        name="Instance in active",
+        provider_alias=uuid.uuid4(),
+        source=machine.instance_source,
+        created_by=context.user,
+        created_by_identity=user_identity,
+        start_date=timezone.now())
+
+    active = InstanceStatusFactory.create(name='active')
+    InstanceHistoryFactory.create(
+            status=active,
+            activity="",
+            instance=context.active_instance
+        )
+
+@when("User launches instance")
+def step_impl(context):
+    client = APIClient()
+    client.force_authenticate(user=context.user)
+
+    url = reverse('api:v2:instance-detail', args=(context.active_instance.provider_alias,))
+    context.response = client.get(url)
+    context.provider_alias = context.response.data["version"]["id"]
+
+@then("Instance is launched")
+def step_impl(context):
+    assert context.response.status_code==200
+    data = context.response.data
+    assert data['status']=='active'
+    assert data['activity']==''
+
+@given('User assigned to Allocation Source and User with an Instance')
+def step_impl(context):
+    for row in context.table:
+        context.execute_steps(u"""
+                    given Pre-initalizations
+                    when User launches instance
+                """)
+        response = context.client.post('/api/v2/allocation_sources',
+                                       {"renewal_strategy": row['renewal strategy'],
+                                        "name": row['name'],
+                                        "compute_allowed": row['compute allowed']})
+
+        context.source_id = response.data['source_id']
+        response_main = context.client.post('/api/v2/user_allocation_sources',
+                                            {"username": context.user.username,
+                                             "source_id": context.source_id})
+
+
+@when('User assigns allocation source to instance')
+def step_impl(context):
+    context.response = context.client.post('/api/v2/instance_allocation_source',
+                                   {"instance_id": Instance.objects.all().last().provider_alias,
+                                    "source_id": context.source_id
+                                    })
+
+@then('Instance is assigned = {instance_is_assigned}')
+def step_impl(context,instance_is_assigned):
+    result = True if context.response.status_code == 201 else False
+    assert result == _str2bool(instance_is_assigned.lower())
+
+def _str2bool(val):
+    return True if val=='true' else False

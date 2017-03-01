@@ -113,3 +113,26 @@ Feature: Commands Testing
         |  name                      |  compute_allowed   |  renewal_strategy   |  user_is_removed  |
         |  DefaultAllocationSource   |  250               |  default            |  True              |
         |  NewAllocationSource       |  100               |  default            |  True              |
+
+#  ######################################################################################################
+
+  Scenario: Test Instance launch and instance creation
+    Given Pre-initalizations
+    When User launches instance
+    Then Instance is launched
+
+
+#  ######################################################################################################
+
+  Scenario Outline: Assign Allocation Source to Instance
+    Given User assigned to Allocation Source and User with an Instance
+    |  name   |  compute allowed   |  renewal strategy    |
+    |  <name> |  <compute_allowed> |  <renewal_strategy>  |
+
+    When User assigns allocation source to instance
+    Then Instance is assigned = <instance_is_assigned>
+
+  Examples: Instance Allocation Source
+      |  name                      |  compute_allowed   |  renewal_strategy   |  instance_is_assigned |
+      |  DefaultAllocationSource   |  250               |  default            |  True                 |
+      |  NewAllocationSource       |  100               |  default            |  True                 |
