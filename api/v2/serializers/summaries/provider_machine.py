@@ -16,7 +16,18 @@ class ProviderMachineSummarySerializer(serializers.HyperlinkedModelSerializer):
         view_name='api:v2:providermachine-detail',
         uuid_field='identifier',
     )
+    launch_success = serializers.SerializerMethodField()
+    launch_failure = serializers.SerializerMethodField()
+
+    def get_launch_failure(self, prov_machine):
+        inactive_instance_num = prov_machine.failed_instances().count()
+        return inactive_instance_num
+
+    def get_launch_success(self, prov_machine):
+        active_instance_num = prov_machine.active_instances().count()
+        return active_instance_num
+
     class Meta:
         model = ProviderMachine
         fields = ('id', 'uuid', 'url', 'provider', 'version', 'owner',
-                  'start_date', 'end_date')
+                  'start_date', 'end_date', 'launch_success', 'launch_failure')
