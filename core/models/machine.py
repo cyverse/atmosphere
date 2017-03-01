@@ -5,6 +5,7 @@ from hashlib import md5
 import json
 
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist as DoesNotExist
 from django.conf import settings
@@ -55,6 +56,26 @@ class ProviderMachine(BaseSource):
         return ProviderMachine.objects.filter(
             instance_source__identifier=identifier,
             instance_source__provider=provider).count()
+
+    def failed_instances(self):
+        """
+        For now, failed instances are those that _have never made it to active_.
+        """
+        inactive_instances = self.instance_source.instances.filter(
+            ~Q(instancestatushistory__status__name='active')
+        )
+        return inactive_instances
+
+    def active_instances(self):
+        """
+        For now, active instances are those that _have made it to active at least once_.
+        NOTE: With the current caluclation, we will  count 'active' if the instances history looks like this:
+            << active -> shutoff -> initializing -> networking -> deploy_error >>
+        """
+        active_instances = self.instance_source.instances.filter(
+            instancestatushistory__status__name='active'
+        )
+        return active_instances
 
     def is_owner(self, atmo_user):
         return (self.application_version.created_by == atmo_user or

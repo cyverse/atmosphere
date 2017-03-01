@@ -126,6 +126,26 @@ class Instance(models.Model):
         else:
             return None
 
+    def show_history(self):
+        """
+        Starting from first known history, create a chain of known changes to the instance. Helpful for debugging/triage.
+        """
+        str_builder = ""
+        next_history = self.get_first_history()
+        while True:
+            if not next_history:
+                break
+            if str_builder != "":
+                str_builder += " -> "
+            str_builder += "%s on %s" % (next_history.status.name, next_history.start_date.strftime("%m/%d/%Y %H:%M:%S"))
+            try:
+                next_history = next_history.next()
+            except (LookupError, ValueError) as exc:
+                next_history = None
+        if self.end_date:
+            str_builder += " -> destroyed on %s" % (self.end_date.strftime("%m/%d/%Y %H:%M:%S"))
+        return str_builder
+
     def get_last_history(self):
         """
         Returns the newest InstanceStatusHistory
@@ -134,7 +154,7 @@ class Instance(models.Model):
         # TODO: Profile Option
         # except InstanceStatusHistory.DoesNotExist:
         # TODO: Profile current choice
-	#FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
+        # FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
         last_history = self.instancestatushistory_set.order_by(
             '-start_date').first()
         if last_history:
