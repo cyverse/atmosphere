@@ -1,5 +1,8 @@
 import numpy
-from django.db.models import F, ExpressionWrapper, fields
+from django.db.models import (
+        Avg, Case, Count, ExpressionWrapper,
+        Func, F, Q, Sum, When,
+        fields, DurationField, IntegerField)
 from django.utils import timezone
 
 from core.models import InstanceStatusHistory, Instance, AtmosphereUser
@@ -9,7 +12,49 @@ def _split_mail(email, unknown_str='unknown'):
     return email.split('@')[1].split('.')[-1:][0] if email else unknown_str
 
 
-def get_metrics(application, now_time=None):
+def get_image_metrics(application):
+    """
+    """
+    all_instance_ids = application.versions.values_list('machines__instance_source__instances', flat=True).distinct()
+    all_instances = Instance.objects.filter(id__in=all_instance_ids)
+    all_history_ids = all_instances.values_list('instancestatushistory', flat=True).distinct()
+    all_histories = InstanceStatusHistory.objects.filter(id__in=all_history_ids).order_by('-start_date')  # Latest == first
+    # Method 1 Conditional Aggregation - Faster!
+    annotated_qs = all_instances.annotate(num_active=Sum(
+        Case(
+            When(instancestatushistory__status__name='active', then=1),
+            default=0,
+            output_field=IntegerField()
+        )
+    ))
+    active_count = annotated_qs.filter(num_active__gt=0).distinct().count()
+    never_active_count = annotated_qs.filter(num_active=0).distinct().count()
+    # Method 2 - easier to read!
+    # active_count = all_instances.filter( Q(instancestatushistory__status__name='active')).distinct().count()
+    # never_active_count = all_instances.filter( ~Q(instancestatushistory__status__name='active')).distinct().count()
+    # avg_networking_time = get_historical_average(all_histories, 'networking')
+    # avg_deploying_time = get_historical_average(all_histories, 'deploying')
+    recent_networking_time = get_historical_average(all_histories, 'networking', limit=100)
+    recent_deploying_time = get_historical_average(all_histories, 'deploying', limit=100)
+
+    return {
+        'hit_active': active_count,
+        'never_active': never_active_count,
+        # 'average_networking': avg_networking_time,
+        # 'average_deploying': avg_deploying_time,
+        'recent_networking': recent_networking_time,
+        'recent_deploying': recent_deploying_time,
+    }
+
+
+def get_historical_average(instance_history_list, status_name, limit=None):
+    filtered_history_list = instance_history_list.filter(end_date__isnull=False, status__name=status_name).distinct()
+    if limit:
+        filtered_history_list = filtered_history_list[:limit]
+    average_time = filtered_history_list.aggregate(Avg('duration'))['duration__avg']
+    return average_time
+
+def get_detailed_metrics(application, now_time=None):
     """
     Aggregate 'all-version' metrics
     More specific metrics can be found at the version level
