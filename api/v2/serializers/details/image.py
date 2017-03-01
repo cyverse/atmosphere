@@ -25,9 +25,26 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
     versions = ImageVersionRelatedField(many=True)
     icon = serializers.CharField(source="get_icon_url", read_only=True)
     is_public = SwapBooleanField(source='private')
+    launch_success = serializers.SerializerMethodField()
+    launch_failure = serializers.SerializerMethodField()
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:application-detail',
     )
+
+    def get_launch_failure(self, application):
+        inactive_instance_num = 0
+        # TOO SLOW!
+        # for prov_machine in application._current_machines():
+        #     inactive_instance_num += prov_machine.failed_instances().count()
+        return inactive_instance_num
+
+    def get_launch_success(self, application):
+        active_instance_num = 0
+        # TOO SLOW!
+        # for prov_machine in application._current_machines():
+        #     active_instance_num += prov_machine.active_instances().count()
+        return active_instance_num
+
     class Meta:
         model = Image
         fields = (
@@ -36,6 +53,8 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
             'uuid',
             'name',
             # Adtl. Fields
+            'launch_success',
+            'launch_failure',
             'created_by',
             'description',
             'end_date',

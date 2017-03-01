@@ -22,15 +22,26 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
         slug_field='name',
         read_only=True,
         many=True)  # NEW
+    launch_success = serializers.SerializerMethodField()
+    launch_failure = serializers.SerializerMethodField()
     # NOTE: this is still using ID instead of UUID -- due to abstract classes and use of getattr in L271 of rest_framework/relations.py, this is a 'kink' that has not been worked out yet.
     url = InstanceSourceHyperlinkedIdentityField(
         view_name='api:v2:providermachine-detail',
     )
 
+    def get_launch_failure(self, prov_machine):
+        inactive_instance_num = prov_machine.failed_instances().count()
+        return inactive_instance_num
+
+    def get_launch_success(self, prov_machine):
+        active_instance_num = prov_machine.active_instances().count()
+        return active_instance_num
+
     class Meta:
         model = ProviderMachine
         fields = ('id', 'uuid', 'url', 'provider', 'image',
                   'licenses', 'members', 'version',
+                  'launch_success', 'launch_failure',
                   'created_by', 'start_date', 'end_date')
 
     def update(self, instance, validated_data):
