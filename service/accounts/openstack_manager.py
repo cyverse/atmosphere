@@ -143,11 +143,29 @@ class AccountDriver(BaseAccountDriver):
         net_creds = self._build_network_creds(all_creds)
         sdk_creds = self._build_sdk_creds(all_creds)
 
+        # Initialize logging
+        self._initialize_loggers()
         # Initialize managers with respective credentials
         self.user_manager = UserManager(**user_creds)
+        self.user_manager.keystone.username = user_creds.get('username')
         self.image_manager = ImageManager(**image_creds)
         self.network_manager = NetworkManager(**net_creds)
         self.openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
+
+    def _initialize_loggers(self):
+        from keystoneauth1 import _utils
+        session_logger = _utils.get_logger('keystoneauth1.session')
+        session_logger.setLevel(settings.DEP_LOGGING_LEVEL)
+        auth1_logger = _utils.get_logger('keystoneauth1')
+        auth1_logger.setLevel(settings.DEP_LOGGING_LEVEL)
+        ksauth_logger = _utils.get_logger('keystoneauth')
+        ksauth_logger.setLevel(settings.DEP_LOGGING_LEVEL)
+        ks_identity_logger = _utils.get_logger('keystoneauth.identity.v3.base')
+        ks_identity_logger.setLevel(settings.DEP_LOGGING_LEVEL)
+        ostack_logger = _utils.get_logger('openstack')
+        ostack_logger.setLevel(settings.DEP_LOGGING_LEVEL)
+        ostack_session_logger = _utils.get_logger('openstack.session')
+        ostack_session_logger.setLevel(settings.DEP_LOGGING_LEVEL)
 
     def get_config(self, section, config_key, default_value):
         try:
@@ -310,10 +328,10 @@ class AccountDriver(BaseAccountDriver):
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain': 'default'})
-        user_matches = [u for u in self.user_manager.keystone.users.list(**kwargs) if u.name == username]
-        if not user_matches or len(user_matches) > 1:
-            raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
-        user = user_matches[0]
+            user_matches = [u for u in self.user_manager.keystone.users.list(**kwargs) if u.name == username]
+            if not user_matches or len(user_matches) > 1:
+                raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
+            user = user_matches[0]  # Not used
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain_id': 'default'})
@@ -344,7 +362,7 @@ class AccountDriver(BaseAccountDriver):
             return None
         # Start creating security group
         return self.user_manager.build_security_group(
-            user.name, password, project.name,
+            username, password, project.name,
             security_group_name, rules_list)
 
     def add_rules_to_security_groups(self, core_identity_list,

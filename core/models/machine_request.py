@@ -107,6 +107,24 @@ class MachineRequest(BaseRequest):
         return cls.objects.filter(instance=instance,
                 status__name__in=UNRESOLVED_STATES).count() > 0
 
+    def _recover_from_error(self, status=None):
+        if not status:
+            status = self.old_status
+        # If old_status is empty and no value passed-in...
+        if not status:
+            return False, status
+        # Hide the 'error' message from view
+        if 'exception' in status.lower():
+            return True, status[
+                status.find("(") + 1:status.find(")")]
+        return False, status
+
+
+    @property
+    def clean_old_status(self):
+        return self._recover_from_error()[1]
+
+
     def clean(self):
         """
         Clean up machine requests before saving initial objects to allow

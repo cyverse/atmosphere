@@ -39,15 +39,6 @@ def _get_imaging_task(orig_managerCls, orig_creds,
         return image_task
 
 
-def _recover_from_error(status):
-    if not status:
-        return False, status
-    if 'exception' in status.lower():
-        return True, status[
-            status.find("(") + 1:status.find(")")]
-    return False, status
-
-
 @task(name='export_request_task', queue="imaging", ignore_result=False)
 def export_request_task(export_request_id):
     celery_logger.info("export_request_task task started at %s." % timezone.now())
@@ -100,7 +91,7 @@ def start_machine_imaging(machine_request, delay=False):
     machine_request.save()
     
     original_status = machine_request.old_status
-    last_run_error, original_status = _recover_from_error(original_status)
+    last_run_error, original_status = machine_request._recover_from_error(original_status)
 
     if last_run_error:
         machine_request.old_status = original_status
@@ -227,7 +218,17 @@ def export_request_error(task_uuid, export_request_id):
     export_request = ExportRequest.objects.get(id=export_request_id)
     export_request.status = err_str
     export_request.save()
-
+def _status_to_error(old_status, error_title, error_traceback):
+    # Don't prefix if request is already within the ()s
+    if all(char in old_status for char in "()"):
+        err_prefix = old_status
+    else:
+        err_prefix = "(%s)" % old_status
+    err_str = "%s - ERROR - %r Exception:%r" % (err_prefix,
+                                                error_title,
+                                                error_traceback
+                                                )
+    return err_str
 
 @task(name='machine_request_error')
 def machine_request_error(task_uuid, machine_request_id):
@@ -238,15 +239,7 @@ def machine_request_error(task_uuid, machine_request_id):
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
         exc = result.get(propagate=False)
-    # Don't prefix if request is already within the ()s
-    if all(char in machine_request.old_status for char in "()"):
-        err_prefix = machine_request.old_status
-    else:
-        err_prefix = "(%s)" % machine_request.old_status
-    err_str = "(%s) ERROR - %r Exception:%r" % (err_prefix,
-                                                result.result,
-                                                result.traceback,
-                                                )
+    err_str = _status_to_error(machine_request.old_status, result.result, result.traceback)
     celery_logger.error(err_str)
     send_image_request_failed_email(machine_request, err_str)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
