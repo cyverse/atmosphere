@@ -1,5 +1,5 @@
 from core.models import Application as Image, BootScript
-from core.metrics import get_image_metrics
+from core.metrics import get_application_metrics
 from rest_framework import serializers
 
 from api.v2.serializers.summaries import UserSummarySerializer
@@ -27,7 +27,7 @@ class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
     metrics = serializers.SerializerMethodField()
 
     def get_metrics(self, application):
-        return get_image_metrics(application)
+        return get_application_metrics(application, read_only=True)
 
     class Meta:
         model = Image

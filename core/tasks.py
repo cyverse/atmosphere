@@ -13,7 +13,7 @@ from threepio import celery_logger, email_logger
 from core.models.status_type import get_status_type
 from core.models.application import Application
 from core.query import only_current_apps
-from core.metrics import _average_interval_metrics, _image_interval_metrics
+from core.metrics import get_provider_metrics, get_application_metrics
 
 
 @task(name="send_email")
@@ -66,16 +66,21 @@ def set_request_as_failed(request):
 
 @task(name='generate_metrics')
 def generate_metrics():
-    global_metrics = _average_interval_metrics()
+    generate_provider_metrics.apply_async()
     all_apps = Application.objects.filter(only_current_apps()).distinct().order_by('id')
-    print len(all_apps)
     for app in all_apps:
         generate_metrics_for.apply_async(args=[app.id, app.name])
-    return global_metrics
+    return True
+
+
+@task(name='generate_provider_metrics')
+def generate_provider_metrics():
+    provider_metrics = get_provider_metrics(force=True)
+    return provider_metrics
 
 
 @task(name='generate_metrics_for')
 def generate_metrics_for(application_id, application_name):
     app = Application.objects.get(id=application_id)
-    app_metrics = _image_interval_metrics(app)
+    app_metrics = get_application_metrics(app)
     return app_metrics
