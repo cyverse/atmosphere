@@ -51,8 +51,14 @@ def get_historical_average(instance_history_list, status_name, limit=None):
     filtered_history_list = instance_history_list.filter(end_date__isnull=False, status__name=status_name).distinct()
     if limit:
         filtered_history_list = filtered_history_list[:limit]
-    average_time = filtered_history_list.aggregate(Avg('duration'))['duration__avg']
-    return average_time
+    # METHOD 1: using the 'tmp_duration' annotation
+    tmp_duration = ExpressionWrapper(F('end_date') - F('start_date'), output_field=fields.DurationField())
+    tmp_average_time = filtered_history_list.annotate(
+            tmp_duration=tmp_duration).aggregate(Avg('tmp_duration'))['tmp_duration__avg']
+    return tmp_average_time
+    # METHOD 2: using the 'duration' column
+    # average_time = filtered_history_list.aggregate(Avg('duration'))['duration__avg']
+    # return average_time
 
 def get_detailed_metrics(application, now_time=None):
     """

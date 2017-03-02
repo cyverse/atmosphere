@@ -56,7 +56,6 @@ class InstanceStatusHistory(models.Model):
     activity = models.CharField(max_length=36, null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
-    duration = models.DurationField(null=True, blank=True)
 
     def get_total_hours(self):
         from service.monitoring import _get_allocation_result
