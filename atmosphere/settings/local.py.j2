@@ -418,3 +418,16 @@ VALIDATION_PLUGINS = [
     'atmosphere.plugins.auth.validation.AlwaysAllow',
 ]
 {%- endif %}
+
+{%- if EXPIRATION_PLUGINS %}
+EXPIRATION_PLUGINS = [
+{%- for plugin in EXPIRATION_PLUGINS %}
+  "{{ plugin }}",
+{%- endfor %}
+]
+{%- else %}
+EXPIRATION_PLUGINS = [
+    # 'atmosphere.plugins.auth.expiration.LDAPPasswordExpired',
+    'atmosphere.plugins.auth.expiration.NeverExpire',
+]
+{%- endif %}
