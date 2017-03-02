@@ -1,4 +1,5 @@
 from core.models import Application as Image, BootScript
+from core.metrics import get_image_metrics
 from rest_framework import serializers
 
 from api.v2.serializers.summaries import UserSummarySerializer
@@ -19,18 +20,14 @@ class SwapBooleanField(serializers.BooleanField):
         return swap_value
 
 
-class ImageSerializer(serializers.HyperlinkedModelSerializer):
-    created_by = UserSummarySerializer(read_only=True)
-    tags = TagRelatedField(many=True)
-    versions = ImageVersionRelatedField(many=True)
-    icon = serializers.CharField(source="get_icon_url", read_only=True)
-    is_public = SwapBooleanField(source='private')
+class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:application-detail',
-    )
-    metrics_url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:applicationmetric-detail',
     )
+    metrics = serializers.SerializerMethodField()
+
+    def get_metrics(self, application):
+        return get_image_metrics(application)
 
     class Meta:
         model = Image
@@ -40,13 +37,5 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
             'uuid',
             'name',
             # Adtl. Fields
-            'metrics_url',
-            'created_by',
-            'description',
-            'end_date',
-            'is_public',
-            'icon',
-            'start_date',
-            'tags',
-            'versions'
+            'metrics',
         )

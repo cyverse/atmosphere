@@ -11,6 +11,10 @@ from atmosphere import settings
 from threepio import celery_logger, email_logger
 
 from core.models.status_type import get_status_type
+from core.models.application import Application
+from core.query import only_current_apps
+from core.metrics import _average_interval_metrics, _image_interval_metrics
+
 
 @task(name="send_email")
 def send_email(subject, body, from_email, to, cc=None,
@@ -58,3 +62,20 @@ def set_request_as_failed(request):
     """
     request.status = get_status_type(status="failed")
     request.save()
+
+
+@task(name='generate_metrics')
+def generate_metrics():
+    global_metrics = _average_interval_metrics()
+    all_apps = Application.objects.filter(only_current_apps()).distinct().order_by('id')
+    print len(all_apps)
+    for app in all_apps:
+        generate_metrics_for.apply_async(args=[app.id, app.name])
+    return global_metrics
+
+
+@task(name='generate_metrics_for')
+def generate_metrics_for(application_id, application_name):
+    app = Application.objects.get(id=application_id)
+    app_metrics = _image_interval_metrics(app)
+    return app_metrics

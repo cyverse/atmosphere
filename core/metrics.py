@@ -1,24 +1,145 @@
+import pickle
+import collections
 import numpy
-from django.db.models import (
-        Avg, Case, Count, ExpressionWrapper,
-        Func, F, Q, Sum, When,
-        fields, DurationField, IntegerField)
-from django.utils import timezone
+import redis
 
-from core.models import InstanceStatusHistory, Instance, AtmosphereUser
+from django.db.models import (
+        Avg, Case, ExpressionWrapper,
+        F, Q, Sum, When,
+        fields, IntegerField)
+from django.utils import timezone
+from dateutil import rrule
+from core.models import Application, Provider, InstanceStatusHistory, Instance, AtmosphereUser
+from core.query import only_current
+
+
+METRICS_CACHE_DURATION = 60*60  # One hour
 
 
 def _split_mail(email, unknown_str='unknown'):
     return email.split('@')[1].split('.')[-1:][0] if email else unknown_str
 
 
-def get_image_metrics(application):
+def get_image_metrics(application, interval=rrule.MONTHLY):
     """
+    Skip image metrics on end-dated applications
+    Otherwise look through the cache to find application metrics
     """
-    all_instance_ids = application.versions.values_list('machines__instance_source__instances', flat=True).distinct()
-    all_instances = Instance.objects.filter(id__in=all_instance_ids)
-    all_history_ids = all_instances.values_list('instancestatushistory', flat=True).distinct()
-    all_histories = InstanceStatusHistory.objects.filter(id__in=all_history_ids).order_by('-start_date')  # Latest == first
+    metrics = {}
+    if application.end_date:
+        return metrics
+    metrics = _image_interval_metrics(application, interval),
+    return metrics
+
+
+def _image_interval_metrics(application, interval=rrule.MONTHLY):
+    if not interval:
+        interval = rrule.MONTHLY
+    redis_cache = redis.StrictRedis()
+    key = "metrics-application-%s-interval-%s" % (application.id, rrule.FREQNAMES[interval])
+    if redis_cache.exists(key):
+        pickled_object = redis_cache.get(key)
+        return pickle.loads(pickled_object)
+    else:
+        metrics = _calculate_image_interval_metrics(application, interval)
+        pickled_object = pickle.dumps(metrics)
+        redis_cache.set(key, pickled_object)
+        redis_cache.expire(key, METRICS_CACHE_DURATION)
+    return metrics
+
+
+def _calculate_image_interval_metrics(application, interval=rrule.MONTHLY):
+    """
+    From start_date of Application to now/End-date of application
+      - Create a timeseries by splitting by 'interval'
+      - Query for metrics datapoints
+      - Return the timeseries + datapoints
+    """
+    now_time = timezone.now()
+    the_beginning = application.start_date
+    the_end = application.end_date or now_time
+    timeseries = list(rrule.rrule(interval, dtstart=the_beginning, until=the_end))
+    application_metrics = {}
+    for version in application.versions.all():
+        version_metrics = collections.OrderedDict()
+        for idx, ts in enumerate(timeseries):
+            interval_start = ts
+            if idx == len(timeseries)-1:
+                interval_end = the_end
+            else:
+                interval_end = timeseries[idx+1]
+            interval_key = interval_start.strftime("%X %x")
+            interval_metrics = _get_interval_metrics_by_version(version, interval_start, interval_end)
+            version_metrics[interval_key] = interval_metrics
+        application_metrics[version.name] = version_metrics
+    return application_metrics
+
+
+def _average_interval_metrics(interval=rrule.MONTHLY):
+    if not interval:
+        interval = rrule.MONTHLY
+    redis_cache = redis.StrictRedis()
+    key = "metrics-global-interval-%s" % (rrule.FREQNAMES[interval])
+    if redis_cache.exists(key):
+        pickled_object = redis_cache.get(key)
+        return pickle.loads(pickled_object)
+    else:
+        metrics = _calculate_average_interval_metrics(interval)
+        pickled_object = pickle.dumps(metrics)
+        redis_cache.set(key, pickled_object)
+        redis_cache.expire(key, METRICS_CACHE_DURATION)
+    return metrics
+
+
+def _calculate_average_interval_metrics(interval=rrule.MONTHLY):
+    now_time = timezone.now()
+    the_beginning = Application.objects.order_by('start_date').values_list('start_date', flat=True).first()
+    if not the_beginning:
+        the_beginning = now_time - timezone.timedelta(days=365)
+    the_end = now_time
+    timeseries = list(rrule.rrule(interval, dtstart=the_beginning, until=the_end))
+    global_interval_metrics = collections.OrderedDict()
+    for idx, ts in enumerate(timeseries):
+        interval_start = ts
+        interval_key = interval_start.strftime("%X %x")
+        if idx == len(timeseries)-1:
+            interval_end = the_end
+        else:
+            interval_end = timeseries[idx+1]
+        provider_metrics = {}
+        for prov in Provider.objects.filter(only_current(), active=True):
+            all_instance_ids = prov.instancesource_set.filter(
+                instances__start_date__gt=interval_start,
+                instances__start_date__lt=interval_end)\
+                        .values_list('instances', flat=True)
+            all_instances = Instance.objects.filter(id__in=all_instance_ids)
+            provider_interval_metrics = _get_instance_metrics(all_instances, interval_start, interval_end)
+            provider_metrics[prov.location] = provider_interval_metrics
+        global_interval_metrics[interval_key] = provider_metrics
+    return global_interval_metrics
+
+## OLD below this line:
+def _get_interval_metrics_by_version(application_version, interval_start, interval_end):
+    provider_metrics = {}
+    for pm in application_version.machines.all():
+        all_instances = pm.instance_source.instances.all()
+        all_instances = all_instances.filter(start_date__gt=interval_start, start_date__lt=interval_end)
+        interval_metrics = _get_instance_metrics(all_instances, interval_start, interval_end)
+        provider_metrics[pm.instance_source.provider.location] = interval_metrics
+    return provider_metrics
+
+
+def _get_instance_metrics(all_instances, start_date, end_date):
+    total_count = all_instances.count()
+    active_count = all_instances.filter(Q(instancestatushistory__status__name='active')).distinct().count()
+    time_specific_metrics = {
+            "active": active_count,
+            "total": total_count
+        }
+    return time_specific_metrics
+
+
+def _image_count_metrics(all_instances):
     # Method 1 Conditional Aggregation - Faster!
     annotated_qs = all_instances.annotate(num_active=Sum(
         Case(
@@ -32,14 +153,17 @@ def get_image_metrics(application):
     # Method 2 - easier to read!
     # active_count = all_instances.filter( Q(instancestatushistory__status__name='active')).distinct().count()
     # never_active_count = all_instances.filter( ~Q(instancestatushistory__status__name='active')).distinct().count()
+    metrics = {'active_count': active_count, 'never_active_count': never_active_count}
+    return metrics
+
+
+def _image_average_metrics(all_histories):
     # avg_networking_time = get_historical_average(all_histories, 'networking')
     # avg_deploying_time = get_historical_average(all_histories, 'deploying')
     recent_networking_time = get_historical_average(all_histories, 'networking', limit=100)
     recent_deploying_time = get_historical_average(all_histories, 'deploying', limit=100)
 
     return {
-        'hit_active': active_count,
-        'never_active': never_active_count,
         # 'average_networking': avg_networking_time,
         # 'average_deploying': avg_deploying_time,
         'recent_networking': recent_networking_time,
@@ -60,11 +184,13 @@ def get_historical_average(instance_history_list, status_name, limit=None):
     # average_time = filtered_history_list.aggregate(Avg('duration'))['duration__avg']
     # return average_time
 
+
 def get_detailed_metrics(application, now_time=None):
     """
     Aggregate 'all-version' metrics
     More specific metrics can be found at the version level
-    #FIXME: This call is *SLOW*. Once we have all the metrics we want per application, we need a way to store this (EventTable)
+    #FIXME: This call is *SLOW*. Once we have all the metrics we want per application,
+    we need a way to store this (EventTable)
     """
     if not now_time:
         now_time = timezone.now()
@@ -78,7 +204,7 @@ def get_detailed_metrics(application, now_time=None):
 
 def get_version_metrics(version, now_time=None):
     """
-    # TODO: Consider how this question could be answered 
+    # TODO: Consider how this question could be answered
     # with 'allocation' and the engine/routines used inside it..
     """
     if not now_time:
@@ -108,7 +234,7 @@ def get_version_metrics(version, now_time=None):
         'median': median_deploying,
     }
     count = instances_qs.count()
-    unique_users = instances_qs.values_list('created_by__username',flat=True).distinct()
+    unique_users = instances_qs.values_list('created_by__username', flat=True).distinct()
     for username in unique_users:
         user = AtmosphereUser.objects.get(username=username)
         email_str = _split_mail(user.email)
@@ -162,4 +288,3 @@ def get_version_metrics(version, now_time=None):
         'users': user_stats,
     }
     return metrics
-
