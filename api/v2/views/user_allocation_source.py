@@ -152,6 +152,9 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         if not allocation_source:
             raise Exception('Allocation Source %s does not exist'%(request_data['source_id']))
 
+        user = user.last()
+        allocation_source = allocation_source.last()
+
         if UserAllocationSource.objects.filter(user=user,allocation_source=allocation_source) and not delete:
             raise Exception('User %s is already assigned to Allocation Source %s'%(request_data['username'],request_data['source_id']))
 

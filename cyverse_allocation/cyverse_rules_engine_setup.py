@@ -88,12 +88,12 @@ cyverse_rules = [
          },
         {"name": "days_since_renewed",
          "operator": "greater_than_or_equal_to",
-         "value": 30,
+         "value": 3,
          },
     ]},
         "actions": [
             {"name": "renew_allocation_source",
-             "params": {"compute_allowed": 228}
+             "params": {"compute_allowed": 250}
              },
         ],
     },
