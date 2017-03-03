@@ -49,7 +49,7 @@ def _get_application_metrics(application, interval=rrule.MONTHLY, force=False, r
     return metrics
 
 
-def calculate_application_metrics(application, interval=rrule.MONTHLY):
+def calculate_application_metrics(application, interval=rrule.MONTHLY, sum_datapoints=True):
     """
     From start_date of Application to now/End-date of application
       - Create a timeseries by splitting by 'interval'
@@ -65,6 +65,8 @@ def calculate_application_metrics(application, interval=rrule.MONTHLY):
     for idx, ts in enumerate(timeseries):
         interval_start = ts
         interval_key = interval_start.strftime("%X %x")
+        if sum_datapoints:
+            interval_start = start_date
         if idx == len(timeseries)-1:
             interval_end = end_date
         else:
