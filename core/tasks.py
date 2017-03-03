@@ -66,7 +66,7 @@ def set_request_as_failed(request):
 
 @task(name='generate_metrics')
 def generate_metrics():
-    generate_provider_metrics.apply_async()
+    #generate_provider_metrics.apply_async()
     all_apps = Application.objects.filter(only_current_apps()).distinct().order_by('id')
     for app in all_apps:
         generate_metrics_for.apply_async(args=[app.id, app.name])
