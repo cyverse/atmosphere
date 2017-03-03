@@ -12,7 +12,7 @@ from core.models import Application, Provider, InstanceStatusHistory, Instance, 
 from core.query import only_current
 
 
-METRICS_CACHE_DURATION = 12*60*60  # 12 hours
+METRICS_CACHE_DURATION = 4*24*60*60  # 4 days (persist over the weekend)
 
 
 def _split_mail(email, unknown_str='unknown'):
