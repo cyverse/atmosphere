@@ -31,11 +31,11 @@ class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
         interval = rrule.MONTHLY
         limit = 3
         if request and 'interval' in request.query_params:
-            interval_str = request.query_params.get('interval')
+            interval_str = request.query_params.get('interval', '').lower()
             if 'week' in interval_str:
                 interval = rrule.WEEKLY
                 limit = 12
-            elif 'day' in interval_str:
+            elif 'day' in interval_str or 'daily' in interval_str:
                 interval = rrule.DAILY
                 limit = 90
         return _get_application_metrics(application, interval=interval, limit=limit, read_only=True)
