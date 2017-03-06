@@ -10,9 +10,8 @@ import service.driver
 
 description = """
 This script makes an Application (a.k.a. image) available on a specified new
-provider by doing the following:
+provider by doing any/all of the following as needed:
 
- - Creates models (ProviderMachine, InstanceSource) in Atmosphere database
  - Transfers image data one of two ways
    - Using Glance API
    - Future coming soon: using iRODS for Atmosphere(0)
@@ -20,6 +19,7 @@ provider by doing the following:
  - (Future coming soon) if Application uses an AMI-style image, ensures the
    kernel (AKI) and ramdisk (ARI) images are also present on destination
    provider, and sets appropriate properties
+ - Creates models (ProviderMachine, InstanceSource) in Atmosphere database
 
 Gracefully handles the case where destination provider is already partially
 populated with image data/metadata (missing information will be added).
@@ -62,9 +62,6 @@ def main():
                             "--ignore-missing-owner to suppress this error (owner will "
                             "default to Atmosphere administrator")
 
-    # Get application tags
-    tags = [tag.name for tag in core.models.Tag.objects.filter(application=application)]
-
     # Get application members
     app_member_names = []
     if application.private is True:
@@ -80,6 +77,9 @@ def main():
                 raise Exception("Application member missing from destination provider, run with "
                                 "--ignore-missing-members to suppress this error")
 
+    # Get application tags
+    tags = [tag.name for tag in core.models.Tag.objects.filter(application=application)]
+
     # Iterate over each application version
     for app_version in application.all_versions:
         provider_machines = core.models.ProviderMachine.objects.filter(application_version=app_version)
@@ -87,6 +87,7 @@ def main():
             provider_machine = [pm for pm in provider_machines if pm.provider == source_provider][0]
             app_version_source_provider = source_provider
         else:
+            # Todo ensure that source provider is not destination provider
             provider_machine = provider_machines[0]
             app_version_source_provider = provider_machine.provider
         src_img_uuid = provider_machine.identifier
@@ -104,7 +105,7 @@ def main():
             # Todo log "this ApplicationVersion already exists on destination provider, skipping"
             continue
 
-        # Todo create new ProviderMachine and InstanceSource
+        # Todo if ProviderMachine and InstanceSource do not exist, create them
 
 
         # Download image and upload to new provider
@@ -113,14 +114,15 @@ def main():
         else:
             dl_path = os.path.join('/tmp', src_img_uuid)
             src_prov_img_mgr.download_image(src_img_uuid, dl_path)
-            # Todo make this idempotent (only uploads metadata if image already exists and vice versa), perhaps using this https://github.com/cyverse/atmosphere/blob/4348830fc7827fa64a08036b82e207c2e52986bd/service/openstack.py#L54
-            dest_prov_img_mgr.upload_image(src_img.name, dl_path,
+            # Todo make this idempotent (only uploads metadata if image already exists & vice versa) perhaps using this
+            # Todo https://github.com/cyverse/atmosphere/blob/4348830fc7827fa64a08036b82e207c2e52986bd/service/openstack.py#L54
+            dest_prov_img_mgr.upload_image(app_version.name, dl_path,
                                            # Glance default fields
                                            container_format=src_img.get('container_format'),
                                            disk_format=src_img.get('disk_format'),
                                            is_public=not application.private,
-                                           private_user_list=app_member_names,
                                            owner=dest_prov_app_owner_uuid,
+                                           private_user_list=app_member_names,
                                            tags=tags,
                                            # Atmosphere(2)-specific properties
                                            application_description=application.description,
