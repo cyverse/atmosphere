@@ -8,8 +8,7 @@ from django.db.models import (
         F, Q, fields)
 from django.utils import timezone
 from dateutil import rrule
-from core.models import Application, Provider, InstanceStatusHistory, Instance, AtmosphereUser
-from core.query import only_current
+from core.models import InstanceStatusHistory, Instance, AtmosphereUser
 
 
 METRICS_CACHE_DURATION = 4*24*60*60  # 4 days (persist over the weekend)
@@ -19,7 +18,7 @@ def _split_mail(email, unknown_str='unknown'):
     return email.split('@')[1].split('.')[-1:][0] if email else unknown_str
 
 
-def get_application_metrics(application, interval=rrule.MONTHLY, read_only=False):
+def get_application_metrics(application, read_only=False):
     """
     Skip image metrics on end-dated applications
     Otherwise look through the cache to find application metrics
@@ -27,29 +26,36 @@ def get_application_metrics(application, interval=rrule.MONTHLY, read_only=False
     metrics = {}
     if application.end_date:
         return metrics
-    metrics = _get_application_metrics(application, interval=interval, read_only=read_only)
+    metrics = _get_application_metrics(application, interval=rrule.DAILY, limit=90, read_only=read_only)
+    metrics = _get_application_metrics(application, interval=rrule.WEEKLY, limit=12, read_only=read_only)
+    metrics = _get_application_metrics(application, interval=rrule.MONTHLY, limit=3, read_only=read_only)
     return metrics
 
 
-def _get_application_metrics(application, interval=rrule.MONTHLY, force=False, read_only=False):
+def get_summary_application_metrics(application, read_only=False):
+    metrics = _get_application_metrics(application, interval=rrule.MONTHLY, limit=3, read_only=read_only)
+    return metrics
+
+
+def _get_application_metrics(application, interval=rrule.MONTHLY, limit=None, force=False, read_only=False):
     if not interval:
         interval = rrule.MONTHLY
     redis_cache = redis.StrictRedis()
-    key = "metrics-application-%s-interval-%s" % (application.id, rrule.FREQNAMES[interval])
+    key = "metrics-application-%s-interval-%s-limited-to-%s" % (application.id, rrule.FREQNAMES[interval], limit)
     if redis_cache.exists(key) and not force:
         pickled_object = redis_cache.get(key)
         return pickle.loads(pickled_object)
     else:
         if read_only:
             return {}
-        metrics = calculate_application_metrics(application, interval)
+        metrics = calculate_application_metrics(application, interval, limit)
         pickled_object = pickle.dumps(metrics)
         redis_cache.set(key, pickled_object)
         redis_cache.expire(key, METRICS_CACHE_DURATION)
     return metrics
 
 
-def calculate_application_metrics(application, interval=rrule.MONTHLY, sum_datapoints=True):
+def calculate_application_metrics(application, interval=rrule.MONTHLY, limit=None, sum_datapoints=True):
     """
     From start_date of Application to now/End-date of application
       - Create a timeseries by splitting by 'interval'
@@ -59,7 +65,7 @@ def calculate_application_metrics(application, interval=rrule.MONTHLY, sum_datap
     now_time = timezone.now()
     start_date = application.start_date
     end_date = application.end_date or now_time
-    timeseries = _generate_time_series(start_date, end_date, interval)
+    timeseries = _generate_time_series(start_date, end_date, interval, limit)
     all_instance_ids = application.versions.values_list('machines__instance_source__instances', flat=True)
     application_metrics = collections.OrderedDict()
     for idx, ts in enumerate(timeseries):
@@ -82,6 +88,7 @@ def calculate_application_metrics(application, interval=rrule.MONTHLY, sum_datap
     return application_metrics
 
 
+# Alternative calculation method, drilling down per-version rather than per-application.
 def calculate_detailed_application_metrics(application, interval=rrule.MONTHLY):
     """
     From start_date of Application to now/End-date of application
@@ -115,62 +122,65 @@ def calculate_application_version_metrics(version, start_date, end_date, interva
     return per_version_metrics
 
 
-def get_provider_metrics(interval=rrule.MONTHLY, force=False):
-    if not interval:
-        interval = rrule.MONTHLY
-    redis_cache = redis.StrictRedis()
-    key = "metrics-global-interval-%s" % (rrule.FREQNAMES[interval])
-    if redis_cache.exists(key) and not force:
-        pickled_object = redis_cache.get(key)
-        return pickle.loads(pickled_object)
-    else:
-        metrics = calculate_provider_metrics(interval)
-        pickled_object = pickle.dumps(metrics)
-        redis_cache.set(key, pickled_object)
-        redis_cache.expire(key, METRICS_CACHE_DURATION)
-    return metrics
+# FIXME: Make useful per-provider-calculations, then make them fast, then include API/GUI scaffolding.
+# def get_provider_metrics(interval=rrule.MONTHLY, force=False):
+#     if not interval:
+#         interval = rrule.MONTHLY
+#     redis_cache = redis.StrictRedis()
+#     key = "metrics-global-interval-%s" % (rrule.FREQNAMES[interval])
+#     if redis_cache.exists(key) and not force:
+#         pickled_object = redis_cache.get(key)
+#         return pickle.loads(pickled_object)
+#     else:
+#         metrics = calculate_provider_metrics(interval)
+#         pickled_object = pickle.dumps(metrics)
+#         redis_cache.set(key, pickled_object)
+#         redis_cache.expire(key, METRICS_CACHE_DURATION)
+#     return metrics
+#
+# def calculate_provider_metrics(interval=rrule.MONTHLY):
+#     now_time = timezone.now()
+#     the_beginning = Application.objects.order_by('start_date').values_list('start_date', flat=True).first()
+#     if not the_beginning:
+#         the_beginning = now_time - timezone.timedelta(days=365)
+#     the_end = now_time
+#     timeseries = _generate_time_series(the_beginning, the_end, interval)
+#     global_interval_metrics = collections.OrderedDict()
+#     for idx, ts in enumerate(timeseries):
+#         interval_start = ts
+#         interval_key = interval_start.strftime("%X %x")
+#         if idx == len(timeseries)-1:
+#             interval_end = the_end
+#         else:
+#             interval_end = timeseries[idx+1]
+#         provider_metrics = {}
+#         for prov in Provider.objects.filter(only_current(), active=True):
+#             provider_metrics[prov.location] = calculate_metrics_per_provider(prov, interval_start, interval_end)
+#         global_interval_metrics[interval_key] = provider_metrics
+#     return global_interval_metrics
+#
+#
+# def calculate_metrics_per_provider(provider, interval_start, interval_end):
+#     all_instance_ids = provider.instancesource_set.filter(
+#         instances__start_date__gt=interval_start,
+#         instances__start_date__lt=interval_end)\
+#                 .values_list('instances', flat=True)
+#     all_histories = InstanceStatusHistory.objects.filter(
+#         instance__id__in=all_instance_ids)
+#     all_instances = Instance.objects.filter(
+#         id__in=all_instance_ids)
+#     provider_interval_metrics = calculate_instance_metrics_for_interval(
+#         all_instances, all_histories, interval_start, interval_end)
+#     provider_user_metrics = calculate_provider_user_metrics(all_instances)
+#     provider_metrics = provider_interval_metrics.update(provider_user_metrics)
+#     return provider_metrics
 
 
-def calculate_provider_metrics(interval=rrule.MONTHLY):
-    now_time = timezone.now()
-    the_beginning = Application.objects.order_by('start_date').values_list('start_date', flat=True).first()
-    if not the_beginning:
-        the_beginning = now_time - timezone.timedelta(days=365)
-    the_end = now_time
-    timeseries = _generate_time_series(the_beginning, the_end, interval)
-    global_interval_metrics = collections.OrderedDict()
-    for idx, ts in enumerate(timeseries):
-        interval_start = ts
-        interval_key = interval_start.strftime("%X %x")
-        if idx == len(timeseries)-1:
-            interval_end = the_end
-        else:
-            interval_end = timeseries[idx+1]
-        provider_metrics = {}
-        for prov in Provider.objects.filter(only_current(), active=True):
-            provider_metrics[prov.location] = calculate_metrics_per_provider(prov, interval_start, interval_end)
-        global_interval_metrics[interval_key] = provider_metrics
-    return global_interval_metrics
-
-
-def calculate_metrics_per_provider(provider, interval_start, interval_end):
-    all_instance_ids = provider.instancesource_set.filter(
-        instances__start_date__gt=interval_start,
-        instances__start_date__lt=interval_end)\
-                .values_list('instances', flat=True)
-    all_histories = InstanceStatusHistory.objects.filter(
-        instance__id__in=all_instance_ids)
-    all_instances = Instance.objects.filter(
-        id__in=all_instance_ids)
-    provider_interval_metrics = calculate_instance_metrics_for_interval(
-        all_instances, all_histories, interval_start, interval_end)
-    provider_user_metrics = calculate_provider_user_metrics(all_instances)
-    provider_metrics = provider_interval_metrics.update(provider_user_metrics)
-    return provider_metrics
-
-
-def _generate_time_series(start_date, end_date, interval):
-    return list(rrule.rrule(interval, dtstart=start_date, until=end_date))
+def _generate_time_series(start_date, end_date, interval, limit=None):
+    time_series = list(rrule.rrule(interval, dtstart=start_date, until=end_date))
+    if not limit:
+        return time_series
+    return time_series[-1*limit:]
 
 
 def calculate_instance_metrics_for_interval(all_instances, all_histories, start_date, end_date):
