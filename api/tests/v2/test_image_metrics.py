@@ -1,4 +1,5 @@
 import uuid
+from unittest import skip
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -56,90 +57,91 @@ class InstanceTests(APITestCase):
             start_date=start_date)
 
         build = InstanceStatusFactory.create(name='build')
-        active = InstanceStatusFactory.create(name='active')
-        networking = InstanceStatusFactory.create(name='networking')
-        deploying = InstanceStatusFactory.create(name='deploying')
-        deploy_error = InstanceStatusFactory.create(name='deploy_error')
+        self.status_suspended = InstanceStatusFactory.create(name='suspended')
+        self.status_active = InstanceStatusFactory.create(name='active')
+        self.status_networking = InstanceStatusFactory.create(name='networking')
+        self.status_deploying = InstanceStatusFactory.create(name='deploying')
+        self.status_deploy_error = InstanceStatusFactory.create(name='deploy_error')
         # Adding two minutes to simulate the passage of time.
         delta_time = timezone.timedelta(minutes=2)
         # Simulate 'Deploy error'
         InstanceHistoryFactory.create(
-                status=build,
+                status=self.status_build,
                 activity="",
                 instance=self.deploy_error_instance,
                 start_date=start_date,
             )
         InstanceHistoryFactory.create(
-                status=networking,
+                status=self.status_networking,
                 activity="",
                 instance=self.deploy_error_instance,
                 start_date=start_date + delta_time,
             )
         InstanceHistoryFactory.create(
-                status=deploying,
+                status=self.status_deploying,
                 activity="",
                 instance=self.deploy_error_instance,
                 start_date=start_date + delta_time*2,
             )
         InstanceHistoryFactory.create(
-                status=deploy_error,
+                status=self.status_deploy_error,
                 activity="",
                 instance=self.deploy_error_instance,
                 start_date=start_date + delta_time*3,
             )
         # Simulate 'stuck in networking'
         InstanceHistoryFactory.create(
-                status=build,
+                status=self.status_build,
                 activity="",
                 instance=self.networking_instance,
                 start_date=start_date,
             )
         InstanceHistoryFactory.create(
-                status=networking,
+                status=self.status_networking,
                 activity="",
                 instance=self.networking_instance,
                 start_date=start_date + delta_time,
             )
         # Simulate 'stuck in deploying'
         InstanceHistoryFactory.create(
-                status=build,
+                status=self.status_build,
                 activity="",
                 instance=self.deploying_instance,
                 start_date=start_date + delta_time,
             )
         InstanceHistoryFactory.create(
-                status=networking,
+                status=self.status_networking,
                 activity="",
                 instance=self.deploying_instance,
                 start_date=start_date + delta_time,
             )
         InstanceHistoryFactory.create(
-                status=deploying,
+                status=self.status_deploying,
                 activity="",
                 instance=self.deploying_instance,
                 start_date=start_date + delta_time,
             )
         # Simulate going to active
         InstanceHistoryFactory.create(
-                status=build,
+                status=self.status_build,
                 activity="",
                 instance=self.active_instance,
                 start_date=start_date,
             )
         InstanceHistoryFactory.create(
-                status=networking,
+                status=self.status_networking,
                 activity="",
                 instance=self.active_instance,
                 start_date=start_date + delta_time,
             )
         InstanceHistoryFactory.create(
-                status=deploying,
+                status=self.status_deploying,
                 activity="",
                 instance=self.active_instance,
                 start_date=start_date + delta_time*2,
             )
         InstanceHistoryFactory.create(
-                status=active,
+                status=self.status_active,
                 activity="",
                 instance=self.active_instance,
                 start_date=start_date + delta_time*3,
@@ -160,3 +162,63 @@ class InstanceTests(APITestCase):
         metrics = api_metrics.values()[0]
 
         self.assertEquals(metrics, expected_metrics)
+
+    @skip("Skipping until we know how we want to measure statistics like these.")
+    def test_complex_instance_affect_on_metrics(self):
+        """
+        If an instance *was* active, then *suspended*, then *never makes it back to active*,
+        how should we measure the statistics?
+        """
+        start_date = timezone.now()
+        # Adding two minutes to simulate the passage of time.
+        delta_time = timezone.timedelta(minutes=2)
+        self.complex_instance = InstanceFactory.create(
+            name="Instance went active",
+            provider_alias=uuid.uuid4(),
+            source=self.machine.instance_source,
+            created_by=self.user,
+            created_by_identity=self.user_identity,
+            start_date=start_date)
+        # Simulate going to active
+        InstanceHistoryFactory.create(
+                status=self.status_build,
+                activity="",
+                instance=self.complex_instance,
+                start_date=start_date,
+            )
+        InstanceHistoryFactory.create(
+                status=self.status_networking,
+                activity="",
+                instance=self.complex_instance,
+                start_date=start_date + delta_time,
+            )
+        InstanceHistoryFactory.create(
+                status=self.status_deploying,
+                activity="",
+                instance=self.complex_instance,
+                start_date=start_date + delta_time*2,
+            )
+        InstanceHistoryFactory.create(
+                status=self.status_active,
+                activity="",
+                instance=self.complex_instance,
+                start_date=start_date + delta_time*3,
+            )
+        InstanceHistoryFactory.create(
+                status=self.status_suspended,
+                activity="",
+                instance=self.complex_instance,
+                start_date=start_date + delta_time*4,
+            )
+        InstanceHistoryFactory.create(
+                status=self.status_networking,
+                activity="",
+                instance=self.complex_instance,
+                start_date=start_date + delta_time*5,
+            )
+        InstanceHistoryFactory.create(
+                status=self.status_deploy_error,
+                activity="",
+                instance=self.complex_instance,
+                start_date=start_date + delta_time*6,
+            )
