@@ -1,7 +1,7 @@
 from core.models import Application as Image, BootScript
-from core.metrics import get_summary_application_metrics
+from core.metrics import _get_application_metrics
 from rest_framework import serializers
-
+from dateutil import rrule
 from api.v2.serializers.summaries import UserSummarySerializer
 from api.v2.serializers.fields import (
         ImageVersionRelatedField, TagRelatedField)
@@ -27,7 +27,18 @@ class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
     metrics = serializers.SerializerMethodField()
 
     def get_metrics(self, application):
-        return get_summary_application_metrics(application, read_only=True)
+        request = self.context.get('request', None)
+        interval = rrule.MONTHLY
+        limit = 3
+        if request and 'interval' in request.query_params:
+            interval_str = request.query_params.get('interval')
+            if 'week' in interval_str:
+                interval = rrule.WEEKLY
+                limit = 12
+            elif 'day' in interval_str:
+                interval = rrule.DAILY
+                limit = 90
+        return _get_application_metrics(application, interval=interval, limit=limit, read_only=True)
 
     class Meta:
         model = Image

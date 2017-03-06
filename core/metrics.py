@@ -32,11 +32,6 @@ def get_application_metrics(application, read_only=False):
     return metrics
 
 
-def get_summary_application_metrics(application, read_only=False):
-    metrics = _get_application_metrics(application, interval=rrule.MONTHLY, limit=3, read_only=read_only)
-    return metrics
-
-
 def _get_application_metrics(application, interval=rrule.MONTHLY, limit=None, force=False, read_only=False):
     if not interval:
         interval = rrule.MONTHLY
