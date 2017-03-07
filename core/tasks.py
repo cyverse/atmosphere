@@ -6,6 +6,7 @@ Core application tasks
 from celery.decorators import task
 
 from django.core.mail import EmailMessage
+from django.utils import timezone
 
 from atmosphere import settings
 from threepio import celery_logger, email_logger
@@ -66,14 +67,15 @@ def set_request_as_failed(request):
 
 @task(name='generate_metrics')
 def generate_metrics():
+    nowtime = timezone.now()
     all_apps = Application.objects.filter(only_current_apps()).distinct().order_by('id')
     for app in all_apps:
-        generate_metrics_for.apply_async(args=[app.id, app.name])
+        generate_metrics_for.apply_async(args=[app.id, app.name, nowtime])
     return True
 
 
 @task(name='generate_metrics_for')
-def generate_metrics_for(application_id, application_name):
+def generate_metrics_for(application_id, application_name, nowtime):
     app = Application.objects.get(id=application_id)
-    app_metrics = get_application_metrics(app)
+    app_metrics = get_application_metrics(app, nowtime)
     return app_metrics

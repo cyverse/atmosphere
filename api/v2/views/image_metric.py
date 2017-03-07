@@ -18,9 +18,9 @@ class ImageMetricViewSet(MultipleFieldLookup, AuthViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        if type(request_user) == AnonymousUser:
+        if type(request_user) == AnonymousUser or not request_user.is_staff:
             return Application.objects.none()
-        return Application.objects.filter(only_current())
+        return Application.images_for_user(request_user)
 
     def list(self, request):
         response = super(ImageMetricViewSet, self).list(request)

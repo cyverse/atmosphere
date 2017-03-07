@@ -38,16 +38,14 @@ class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
         if not user.is_staff:
             return {}
         interval = rrule.MONTHLY
-        limit = 3
+        limit = 120
         if request and 'interval' in request.query_params:
             interval_str = request.query_params.get('interval', '').lower()
             if 'week' in interval_str:
                 interval = rrule.WEEKLY
-                limit = 12
             elif 'day' in interval_str or 'daily' in interval_str:
                 interval = rrule.DAILY
-                limit = 90
-        return _get_application_metrics(application, interval=interval, limit=limit, read_only=True)
+        return _get_application_metrics(application, interval=interval, day_limit=limit, read_only=True)
 
     class Meta:
         model = Image
