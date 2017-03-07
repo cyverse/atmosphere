@@ -299,3 +299,34 @@ def _get_instance_percentages(instances_qs):
         'instances_total_hours': total_hours,
         'instances_total_hours_avg': avg_time_used,
     }
+
+
+def monthly_metrics(filename, start_date, end_date):
+    monthly_breakdown = list(rrule.rrule(dtstart=start_date, freq=rrule.MONTHLY, until=timezone.now()))
+    with open(filename, 'w') as the_file:
+        the_file.write("Start Date,End Date,Instances launched,Users Joined,Applications Created,Machines Added\n")
+        for idx, month in enumerate(monthly_breakdown):
+            if idx == len(monthly_breakdown) - 1:
+                continue
+            start_date = month
+            end_date = monthly_breakdown[idx+1]
+            the_file.write(_print_csv_row_between_dates(start_date, end_date))
+            the_file.write("\n")
+    return the_file
+
+
+def _print_csv_row_between_dates(start_date, end_date, pretty_print=False):
+    instances = Instance.objects.filter(start_date__gt=start_date, start_date__lt=end_date)
+    users = AtmosphereUser.objects.filter(date_joined__gt=start_date, date_joined__lt=end_date)
+    apps = Application.objects.filter(start_date__gt=start_date, start_date__lt=end_date).filter(created_by_identity__provider__id__in=[4,5,6]).distinct()
+    machines = ProviderMachine.objects.filter(instance_source__start_date__gt=start_date, instance_source__start_date__lt=end_date).filter(instance_source__provider__id__in=[4,5,6]).distinct()
+    if pretty_print:
+        return """Between %s and %s:
+            %s Instances launched
+            %s Users joined
+            %s Applications (%s Machines) created""" % (
+                start_date, end_date,
+                instances.count(), users.count(), apps.count(), machines.count())
+    return "%s,%s,%s,%s,%s,%s" % (
+            start_date.strftime("%x %X"), end_date.strftime("%x %X"),
+            instances.count(), users.count(), apps.count(), machines.count())
