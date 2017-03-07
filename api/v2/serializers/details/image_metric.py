@@ -24,10 +24,19 @@ class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:applicationmetric-detail',
     )
+    is_featured = serializers.SerializerMethodField()
     metrics = serializers.SerializerMethodField()
+
+    def get_is_featured(self, application):
+        return application.featured()
 
     def get_metrics(self, application):
         request = self.context.get('request', None)
+        user = self.context.get('user', request.user)
+        if not user:
+            raise Exception("This serializer expects 'user' or an authenticated 'request' including 'user' to be passed in via serializer context! context={'user':user}")
+        if not user.is_staff:
+            return {}
         interval = rrule.MONTHLY
         limit = 3
         if request and 'interval' in request.query_params:
@@ -49,4 +58,5 @@ class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
             'name',
             # Adtl. Fields
             'metrics',
+            'is_featured',
         )
