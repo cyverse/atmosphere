@@ -1678,7 +1678,8 @@ def _extra_openstack_args(core_identity, ex_metadata={}):
         # FIXME: In a new PR, allow user to select the keypair for launching
         user_key = user_keys[0]
         ex_keyname = user_key.name
-    return {"ex_metadata": ex_metadata, "ex_keyname": ex_keyname}
+    ex_security_groups = ["atmosphere"]
+    return {"ex_metadata": ex_metadata, "ex_keyname": ex_keyname, "ex_security_groups": ex_security_groups}
 
 
 def _get_init_script(instance_service_url, instance_token, instance_password,
