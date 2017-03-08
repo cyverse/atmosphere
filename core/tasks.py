@@ -14,7 +14,7 @@ from threepio import celery_logger, email_logger
 from core.models.status_type import get_status_type
 from core.models.application import Application
 from core.query import only_current_apps
-from core.metrics import get_application_metrics
+from core.metrics.application import get_application_metrics
 
 
 @task(name="send_email")

@@ -1,5 +1,5 @@
 from core.models import Application as Image, BootScript
-from core.metrics import _get_application_metrics
+from core.metrics.application import _get_application_metrics
 from rest_framework import serializers
 from dateutil import rrule
 from api.v2.serializers.summaries import UserSummarySerializer

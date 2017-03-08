@@ -12,7 +12,7 @@ from api.tests.factories import (
     ProviderMachineFactory, IdentityFactory, ProviderFactory
 )
 
-from core.metrics import get_application_metrics
+from core.metrics.application import get_application_metrics
 
 
 class InstanceTests(APITestCase):
