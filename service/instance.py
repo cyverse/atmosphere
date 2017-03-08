@@ -2010,4 +2010,3 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
         raise ActionNotAllowed(
             'Unable to to perform action %s.' % (action_type))
     return result_obj
-
