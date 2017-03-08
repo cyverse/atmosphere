@@ -109,8 +109,7 @@ def _to_instance_key(instance, fields):
 
 
 def get_instance_metrics(instance, params=None):
-    if not params:
-        fields = params_to_fields(params)
+    fields = params_to_fields(params)
     key = _to_instance_key(instance, fields)
     redis_cache = redis.StrictRedis()
     instance_metrics = {}
