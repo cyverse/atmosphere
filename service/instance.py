@@ -1341,9 +1341,10 @@ def user_delete_security_group(core_identity):
 
 def security_group_init(core_identity, max_attempts=3):
     has_secret = core_identity.get_credential('secret') is not None
+    security_group_name = core_identityprovider.get_config("network", "security_group_name", "atmosphere")
     if has_secret:
         return admin_security_group_init(core_identity)
-    return user_security_group_init(core_identity)
+    return user_security_group_init(core_identity, security_group_name = security_group_name)
 
 
 def user_security_group_init(core_identity, security_group_name='atmosphere'):
@@ -1678,7 +1679,8 @@ def _extra_openstack_args(core_identity, ex_metadata={}):
         # FIXME: In a new PR, allow user to select the keypair for launching
         user_key = user_keys[0]
         ex_keyname = user_key.name
-    ex_security_groups = ["atmosphere"]
+    security_group_name = core_identity.provider.get_config("network", "security_group_name", "atmosphere")
+    ex_security_groups = [security_group_name]
     return {"ex_metadata": ex_metadata, "ex_keyname": ex_keyname, "ex_security_groups": ex_security_groups}
 
 
