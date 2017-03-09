@@ -152,16 +152,16 @@ def main():
                                           application_uuid=str(app.uuid),
                                           # Todo min_disk? min_ram? Do we care?
                                           )
-        
-        # Turning generator into list so we can search it
-        dprov_img_prior_members = [m.member_id for m in dprov_glance_client.image_members.list(dprov_glance_image.id)]
-        for add_member_uuid in dprov_app_members_uuids:
-            if add_member_uuid not in dprov_img_prior_members:
-                dprov_glance_client.image_members.create(dprov_glance_image.id, add_member_uuid)
-            else:
-                dprov_img_prior_members.remove(add_member_uuid)
-        for del_member_uuid in dprov_img_prior_members:
-            dprov_glance_client.image_members.delete(dprov_glance_image.id, del_member_uuid)
+        if app.private:
+            # Turning generator into list so we can search it
+            dprov_img_prior_members = [m.member_id for m in dprov_glance_client.image_members.list(dprov_glance_image.id)]
+            for add_member_uuid in dprov_app_members_uuids:
+                if add_member_uuid not in dprov_img_prior_members:
+                    dprov_glance_client.image_members.create(dprov_glance_image.id, add_member_uuid)
+                else:
+                    dprov_img_prior_members.remove(add_member_uuid)
+            for del_member_uuid in dprov_img_prior_members:
+                dprov_glance_client.image_members.delete(dprov_glance_image.id, del_member_uuid)
 
         # Populate image data in destination provider if needed
         if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
@@ -190,11 +190,11 @@ def main():
                 if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
                     break
 
+            if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
+                raise Exception("Could not upload image data, maybe you have an unreliable network connection")
+
             if not args.keep_local_cache:
                 os.remove(local_path)
-
-        if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
-            raise Exception("Could not upload image data, maybe you have an unreliable network connection")
 
         # Create models in database
         if not (dprov_machine or dprov_instance_source):
