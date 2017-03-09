@@ -1394,7 +1394,8 @@ def _get_default_rules():
             "port_range_min": 22,
             "port_range_max": 22,
             "protocol": "tcp",
-        }
+            "remote_ip_prefix": "0.0.0.0/0",
+         }
     ]
     return extended_default_rules
 
