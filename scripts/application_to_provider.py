@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import argparse
+import hashlib
 import os
-import pprint
 
 import django; django.setup()
 import core.models
@@ -12,10 +12,9 @@ description = """
 This script makes an Application (a.k.a. image) available on a specified new
 provider by doing any/all of the following as needed:
 
- - Transfers image data one of two ways
-   - Using Glance API
-   - Future coming soon: using iRODS for Atmosphere(0)
- - Populates image metadata
+ - Populates Glance image metadata
+ - Transfers image data from existing provider
+   - Image data migrated using Glance API or iRODS for Atmosphere(0)
  - (Future coming soon) if Application uses an AMI-style image, ensures the
    kernel (AKI) and ramdisk (ARI) images are also present on destination
    provider, and sets appropriate properties
@@ -32,113 +31,188 @@ destination provider, script will exit with error unless
 --ignore_missing_members is set.
 """
 
+# Todo make this bigger
+max_tries = 1  # Maximum number of times to attempt downloading and uploading image data
+
 
 def main():
-    args = parse_args()
-
-    application = core.models.Application.objects.get(id=args.application_id)
-    dest_provider = core.models.Provider.objects.get(id=args.provider_id)
+    args = _parse_args()
     if args.irods_xfer:
         raise NotImplementedError("iRODS transfer not built yet")
+    if args.source_provider_id == args.destination_provider_id:
+        raise Exception("Source provider cannot be the same as destination provider")
+    app = core.models.Application.objects.get(id=args.application_id)
+    dprov = core.models.Provider.objects.get(id=args.destination_provider_id)
     if args.source_provider_id:
-        source_provider = core.models.Provider.objects.get(id=args.source_provider_id)
+        sprov = core.models.Provider.objects.get(id=args.source_provider_id)
     else:
-        source_provider = None
+        sprov = None
 
-    dest_prov_acct_driver = service.driver.get_account_driver(dest_provider, raise_exception=True)
-    dest_prov_img_mgr = dest_prov_acct_driver.image_manager
+    dprov_acct_driver = service.driver.get_account_driver(dprov, raise_exception=True)
+    dprov_img_mgr = dprov_acct_driver.image_manager
+    dprov_glance_client = dprov_img_mgr.glance
 
-    # Get application owner tenant ID in destination provider
-    app_creator_username = application.created_by.username
-    app_creator_dest_prov_tenant = dest_prov_acct_driver.get_project(app_creator_username)
-    if app_creator_dest_prov_tenant is not None:
-        dest_prov_app_owner_uuid = app_creator_dest_prov_tenant.id
-    else:
+    # Get application-specific metadata from Atmosphere(2) and resolve identifiers on destination provider
+
+    # Get application owner UUID in destination provider
+    app_creator_uname = app.created_by.username
+    try:
+        dprov_app_owner_uuid = dprov_acct_driver.get_project(app_creator_uname, raise_exception=True).id
+    except AttributeError:
         if args.ignore_missing_owner:
-            atmo_admin_username = dest_provider.admin.created_by.username
-            dest_prov_app_owner_uuid = dest_prov_acct_driver.get_project(atmo_admin_username).id
+            dprov_atmo_admin_uname = dprov.admin.created_by.username
+            dprov_app_owner_uuid = dprov_acct_driver.get_project(dprov_atmo_admin_uname).id
         else:
             raise Exception("Application owner missing from destination provider, run with "
                             "--ignore-missing-owner to suppress this error (owner will "
                             "default to Atmosphere administrator")
-
-    # Get application members
-    app_member_names = []
-    if application.private is True:
-        for membership in application.get_members():
-            # Todo this nomenclature conflates users, groups, tenants, projects...
+    # If private application, get app member UUIDs in destination provider
+    dprov_app_members_uuids = []
+    if app.private is True:
+        for membership in app.get_members():
             member_name = membership.group.name
-            member_project = dest_prov_acct_driver.get_project(member_name)
-            if member_project is not None:
+            try:
+                member_proj_uuid = dprov_acct_driver.get_project(member_name).id
                 # This avoids duplicates when we have both an ApplicationMembership and a ProviderMachineMembership
-                if member_name not in app_member_names:
-                    app_member_names.append(member_name)
-            elif not args.ignore_missing_members:
-                raise Exception("Application member missing from destination provider, run with "
-                                "--ignore-missing-members to suppress this error")
-
+                if member_proj_uuid not in dprov_app_members_uuids:
+                    dprov_app_members_uuids.append(member_proj_uuid)
+            except AttributeError:
+                if not args.ignore_missing_members:
+                    raise Exception("Application member missing from destination provider, run with "
+                                    "--ignore-missing-members to suppress this error")
     # Get application tags
-    tags = [tag.name for tag in core.models.Tag.objects.filter(application=application)]
+    app_tags = [tag.name for tag in core.models.Tag.objects.filter(application=app)]
 
-    # Iterate over each application version
-    for app_version in application.all_versions:
-        provider_machines = core.models.ProviderMachine.objects.filter(application_version=app_version)
-        if source_provider is not None:
-            provider_machine = [pm for pm in provider_machines if pm.provider == source_provider][0]
-            app_version_source_provider = source_provider
+    # Loop for each ApplicationVersion of the specified Application
+    for app_version in app.all_versions:
+
+        # Choose/verify source provider
+        existing_prov_machines = core.models.ProviderMachine.objects.filter(application_version=app_version)
+        if sprov is not None:
+            # Confirm given source provider has valid ProviderMachine+InstanceSource for current ApplicationVersion
+            valid_sprov = False
+            for provider_machine in existing_prov_machines:
+                instance_source = provider_machine.instance_source
+                if instance_source.provider == sprov:
+                    valid_sprov = True
+                    break
+            if not valid_sprov:
+                raise Exception("Source provider not valid for at least one version of given application")
         else:
-            # Todo ensure that source provider is not destination provider
-            provider_machine = provider_machines[0]
-            app_version_source_provider = provider_machine.provider
-        src_img_uuid = provider_machine.identifier
+            # Find a source provider that is not the destination provider
+            for provider_machine in existing_prov_machines:
+                instance_source = provider_machine.instance_source
+                if instance_source.provider != dprov:
+                    sprov = instance_source.provider
+                    break
+            if sprov is None:
+                raise Exception("Could not find a source provider for at least one version of given application")
 
-        src_prov_acct_driver = service.driver.get_account_driver(app_version_source_provider, raise_exception=True)
-        src_prov_img_mgr = src_prov_acct_driver.image_manager
+        # Get access to source provider
+        sprov_img_uuid = instance_source.identifier
+        sprov_acct_driver = service.driver.get_account_driver(sprov, raise_exception=True)
+        sprov_img_mgr = sprov_acct_driver.image_manager
+        sprov_glance_client = sprov_img_mgr.glance
 
-        # Get source image JSON/metadata from glance
-        src_img = src_prov_img_mgr.get_image(src_img_uuid)
-        pprint.pprint(src_img)
+        # Get source image metadata from Glance
+        sprov_glance_image = sprov_glance_client.images.get(sprov_img_uuid)
 
-        # Todo make this idempotent
-        if dest_prov_img_mgr.find_images(src_img.name):
-            print("this ApplicationVersion already exists on destination provider, skipping")
-            # Todo log "this ApplicationVersion already exists on destination provider, skipping"
-            continue
+        # Check for existing ProviderMachine + InstanceSource for ApplicationVersion on destination provider
+        dprov_machine = dprov_instance_source = None
+        for provider_machine in existing_prov_machines:
+            if provider_machine.instance_source.provider == dprov:
+                dprov_machine = provider_machine
+                dprov_instance_source = dprov_machine.instance_source
 
-        # Todo if ProviderMachine and InstanceSource do not exist, create them
+        # Get Glance image, creating image if needed
+        dprov_glance_image = None
+        if dprov_instance_source is not None:
+            # Todo test me
+            # Todo look for matching properties application_name and application_version instead?
+            if dprov_glance_client.images.get(dprov_instance_source.identifier):
+                dprov_image_uuid = dprov_instance_source.identifier
+                dprov_glance_image = dprov_glance_client.images.get(dprov_image_uuid)
+        if not dprov_glance_image:
+            dprov_glance_image = dprov_glance_client.images.create()
+
+        # Populate image metadata (this is always done)
+        dprov_glance_client.images.update(dprov_glance_image.id,
+                                          name=app.name,
+                                          container_format=sprov_glance_image.container_format,
+                                          disk_format=sprov_glance_image.disk_format,
+                                          # We are using old Glance client
+                                          # https://wiki.openstack.org/wiki/Glance-v2-community-image-visibility-design
+                                          visibility="private" if app.private else "public",
+                                          owner=dprov_app_owner_uuid,
+                                          tags=app_tags,
+                                          application_name=app.name,
+                                          application_version=app_version.name,
+                                          application_description=app.description,
+                                          application_owner=app.created_by.username,  # Todo is this right?
+                                          application_tags=str(app_tags),
+                                          application_uuid=str(app.uuid),
+                                          # Todo min_disk? min_ram?
+                                          )
+        # Todo this doesn't remove Glance image members that Atmosphere(2) doesn't know about. Do we care?
+        for member_uuid in dprov_app_members_uuids:
+            dprov_glance_client.image_members.create(dprov_glance_image.id, member_uuid)
+
+        # Populate image data in destination provider if needed
+        if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
+            local_path = os.path.join("/tmp", sprov_img_uuid)
+
+            # Download image from source provider, only if we don't have a complete local copy
+            tries = 0
+            while tries < max_tries:
+                tries += 1
+                if os.path.exists(local_path) and file_md5(local_path) == sprov_glance_image.checksum:
+                    break
+                else:
+                    image_data = sprov_glance_client.images.data(sprov_img_uuid)
+                    with open(local_path, 'wb') as img_file:
+                        for chunk in image_data:
+                            img_file.write(chunk)
+            if file_md5(local_path) != sprov_glance_image.checksum:
+                raise Exception("Could not download Glance image from source provider")
+
+            # Upload image to destination provider, keep trying until checksums match
+            tries = 0
+            while tries < max_tries:
+                tries += 1
+                with open(local_path, 'rb') as img_file:
+                    dprov_glance_client.images.upload(dprov_glance_image.id, img_file)
+                if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
+                    break
+
+        if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
+            raise Exception("Could not upload image data, maybe you have an unreliable network connection")
+
+        # Create models in database
+        if not (dprov_machine or dprov_instance_source):
+            dprov_instance_source = core.models.InstanceSource(provider=dprov,
+                                                               identifier=dprov_glance_image.id,
+                                                               created_by=app.created_by,
+                                                               # Todo created_by_identity, start_date, end_date?
+                                                               )
+            dprov_instance_source.save()
+            dprov_machine = core.models.ProviderMachine(application_version=app_version,
+                                                        instance_source=dprov_instance_source)
+            dprov_machine.save()
 
 
-        # Download image and upload to new provider
-        if args.irods_xfer:
-            raise NotImplementedError()
-        else:
-            dl_path = os.path.join('/tmp', src_img_uuid)
-            src_prov_img_mgr.download_image(src_img_uuid, dl_path)
-            # Todo make this idempotent (only uploads metadata if image already exists & vice versa) perhaps using this
-            # Todo https://github.com/cyverse/atmosphere/blob/4348830fc7827fa64a08036b82e207c2e52986bd/service/openstack.py#L54
-            dest_prov_img_mgr.upload_image(app_version.name, dl_path,
-                                           # Glance default fields
-                                           container_format=src_img.get('container_format'),
-                                           disk_format=src_img.get('disk_format'),
-                                           is_public=not application.private,
-                                           owner=dest_prov_app_owner_uuid,
-                                           private_user_list=app_member_names,
-                                           tags=tags,
-                                           # Atmosphere(2)-specific properties
-                                           application_description=application.description,
-                                           application_name=application.name,
-                                           application_owner=application.created_by.username,
-                                           application_tags=str(tags),
-                                           application_uuid=str(application.uuid),
-                                           application_version=app_version.name
-                                           # Todo min_disk? min_ram?
-                                           )
+def file_md5(path):
+    # https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
+    hash_md5 = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 
-def parse_args():
+def _parse_args():
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("application_id", type=int, help="Application ID to be migrated")
-    parser.add_argument("provider_id", type=int, help="Destination provider ID")
+    parser.add_argument("destination_provider_id", type=int, help="Destination provider ID")
     parser.add_argument("--source-provider-id",
                         type=int,
                         help="Migrate image from source provider with this ID (else a source provider will be chosen "
