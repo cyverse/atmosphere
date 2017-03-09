@@ -12,13 +12,14 @@ description = """
 This script makes an Application (a.k.a. image) available on a specified new
 provider by doing any/all of the following as needed:
 
- - Populates Glance image metadata
- - Transfers image data from existing provider
-   - Image data migrated using Glance API or iRODS for Atmosphere(0)
- - (Future coming soon) if Application uses an AMI-style image, ensures the
-   kernel (AKI) and ramdisk (ARI) images are also present on destination
-   provider, and sets appropriate properties
- - Creates models (ProviderMachine, InstanceSource) in Atmosphere database
+- Creates Glance image
+- Populates Glance image metadata
+- Transfers image data from existing provider
+  - Image data migrated using Glance API or iRODS for Atmosphere(0)
+- (Future coming soon) if Application uses an AMI-style image, ensures the
+  kernel (AKI) and ramdisk (ARI) images are also present on destination
+  provider, and sets appropriate properties
+- Creates models (ProviderMachine, InstanceSource) in Atmosphere database
 
 Gracefully handles the case where destination provider is already partially
 populated with image data/metadata (missing information will be added).
@@ -151,6 +152,7 @@ def main():
                                           application_uuid=str(app.uuid),
                                           # Todo min_disk? min_ram? Do we care?
                                           )
+        
         # Turning generator into list so we can search it
         dprov_img_prior_members = [m.member_id for m in dprov_glance_client.image_members.list(dprov_glance_image.id)]
         for add_member_uuid in dprov_app_members_uuids:
@@ -187,6 +189,9 @@ def main():
                     dprov_glance_client.images.upload(dprov_glance_image.id, img_file)
                 if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
                     break
+
+            if not args.keep_local_cache:
+                os.remove(local_path)
 
         if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
             raise Exception("Could not upload image data, maybe you have an unreliable network connection")
@@ -236,6 +241,10 @@ def _parse_args():
     parser.add_argument("--ignore-all-metadata",
                         action="store_true",
                         help="Do not set any image metadata ('properties' in Glance)")
+    parser.add_argument("--keep-local-cache",
+                        action="store_true",
+                        help="Keep locally cached copies of image data - speeds up subsequent runs for same "
+                             "application but may consume a lot of storage space in /tmp")
     args = parser.parse_args()
     return args
 
