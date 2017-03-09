@@ -4,8 +4,8 @@ from django.utils import timezone
 from threepio import logger
 from pprint import pprint
 from uuid import uuid4
-if 'jetstream' in settings.INSTALLED_APPS:
-    from jetstream.models import JetstreamAllocationSource
+#if 'jetstream' in settings.INSTALLED_APPS:
+#    from jetstream.models import JetstreamAllocationSource
 from django.db.models.query import QuerySet
 
 class AllocationSource(models.Model):
