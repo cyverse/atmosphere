@@ -4,15 +4,26 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 import django.utils.timezone
+import uuid
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0065_alter_machinerequest_required_fields'),
+        ('core', '0070_provider_created_by'),
+        ('jetstream', '0002_jetstreamallocationsource'),  # Migrate source_id -- we will be removing it soon.
     ]
 
     operations = [
+        # Additions
+        migrations.CreateModel(
+            name='RenewalStrategy',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=32)),
+                ('description', models.CharField(blank=True, default=b'', max_length=256)),
+            ],
+        ),
         migrations.AddField(
             model_name='allocationsource',
             name='end_date',
@@ -21,7 +32,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='allocationsource',
             name='renewal_strategy',
-            field=models.CharField(max_length=255, null=True),
+            field=models.CharField(max_length=255, default=b'default'),
         ),
         migrations.AddField(
             model_name='allocationsource',
@@ -37,5 +48,10 @@ class Migration(migrations.Migration):
             model_name='allocationsourcesnapshot',
             name='last_renewed',
             field=models.DateTimeField(default=django.utils.timezone.now),
+        ),
+        migrations.AddField(
+            model_name='allocationsource',
+            name='uuid',
+            field=models.UUIDField(default=uuid.uuid4, null=True),
         ),
     ]
