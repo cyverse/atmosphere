@@ -126,7 +126,6 @@ def main():
         # Get Glance image, creating image if needed
         dprov_glance_image = None
         if dprov_instance_source is not None:
-            # Todo test me
             # Todo look for matching properties application_name and application_version instead?
             if dprov_glance_client.images.get(dprov_instance_source.identifier):
                 dprov_image_uuid = dprov_instance_source.identifier
@@ -150,11 +149,17 @@ def main():
                                           application_owner=app.created_by.username,  # Todo is this right?
                                           application_tags=str(app_tags),
                                           application_uuid=str(app.uuid),
-                                          # Todo min_disk? min_ram?
+                                          # Todo min_disk? min_ram? Do we care?
                                           )
-        # Todo this doesn't remove Glance image members that Atmosphere(2) doesn't know about. Do we care?
-        for member_uuid in dprov_app_members_uuids:
-            dprov_glance_client.image_members.create(dprov_glance_image.id, member_uuid)
+        # Turning generator into list so we can search it
+        dprov_img_prior_members = [m.member_id for m in dprov_glance_client.image_members.list(dprov_glance_image.id)]
+        for add_member_uuid in dprov_app_members_uuids:
+            if add_member_uuid not in dprov_img_prior_members:
+                dprov_glance_client.image_members.create(dprov_glance_image.id, add_member_uuid)
+            else:
+                dprov_img_prior_members.remove(add_member_uuid)
+        for del_member_uuid in dprov_img_prior_members:
+            dprov_glance_client.image_members.delete(dprov_glance_image.id, del_member_uuid)
 
         # Populate image data in destination provider if needed
         if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
