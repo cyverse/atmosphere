@@ -1349,61 +1349,77 @@ def security_group_init(core_identity, max_attempts=3):
 def user_security_group_init(core_identity, security_group_name='atmosphere'):
     network_driver = _to_network_driver(core_identity)
     user_neutron = network_driver.neutron
+    extended_default_rules = _get_default_rules()
+    user_security_group_rules = core_identity.provider.get_config('network', 'user_security_rules', extended_default_rules)
     security_group = get_or_create_security_group(security_group_name, user_neutron)
-    set_security_group_rules(security_group_name, user_neutron)
+    neutron_set_security_group_rules(security_group_name, user_security_group_rules, user_neutron)
     return security_group
 
 
-def set_security_group_rules(security_group_name, user_neutron):
+def _get_default_rules():
+    """
+    A basic set of rules:
+    - Allow access to Port 22 (SSH)
+    - Allow IPv4 Access
+    - Allow IPv6 Access
+    ---
+    This is an EXAMPLE of what should be in your PROVIDER's `cloud_config`:
+    cloud_config = {
+        ...
+        'network': {
+            ...
+            'user_security_rules': [
+                {... rule1 ...},
+                {... rule2 ...},
+                {... rule3 ...}
+            ],
+            ...
+        },
+        ...
+    }
+    NOTE: new rules are DICTs and not 4-tuples!
+    """
+    extended_default_rules = [
+        {
+            "direction": "ingress",
+            "ethertype": "IPv4",
+        },
+        {
+            "direction": "ingress",
+            "ethertype": "IPv6",
+         },
+        {
+            "direction": "ingress",
+            "port_range_min": 22,
+            "port_range_max": 22,
+            "protocol": "tcp",
+        }
+    ]
+    return extended_default_rules
+
+
+def neutron_set_security_group_rules(security_group_name, security_group_rules_dict, user_neutron):
     security_group = find_security_group(security_group_name, user_neutron)
     security_group_id = security_group[u'id']
-    first_rule = {"security_group_rule": {
-        "direction": "ingress",
-        "port_range_min": None,
-        "ethertype": "IPv4",
-        "port_range_max": None,
-        "protocol": None,
-        "remote_group_id": security_group_id,
-        "security_group_id": security_group_id
-        }
-    }
-    try:
-        user_neutron.create_security_group_rule(body=first_rule)
-    except Conflict:
-    # The rule has already in the sec_group
-        pass
-    else:
-        second_rule = {"security_group_rule": {
-            "direction": "ingress",
-            "port_range_min": None,
-            "ethertype": "IPv6",
-            "port_range_max": None,
-            "protocol": None,
-            "remote_group_id": security_group_id,
-            "security_group_id": security_group_id
-             }
-        }
+    for sg_rule in security_group_rules_dict:
         try:
-        user_neutron.create_security_group_rule(body=second_rule)
-        except Conflict:
-            pass
-        else:
-            third_rule = {"security_group_rule": {
-                "direction": "ingress",
-                "port_range_min": 22,
-                "ethertype": "IPv4",
-                "port_range_max": 22,
-                "protocol": "tcp",
-                "remote_ip_prefix": "0.0.0.0/0",
+            rule_body = {"security_group_rule": {
+                "direction": sg_rule['direction'],
+                "port_range_min": sg_rule.get('port_range_min', None),
+                "ethertype": sg_rule.get("ethertype", "IPv4"),
+                "port_range_max": sg_rule.get('port_range_max', None),
+                "protocol": sg_rule.get("protocol", None),
+                "remote_group_id": security_group_id,
                 "security_group_id": security_group_id
-                }
+                 }
             }
-            try:
-                user_neutron.create_security_group_rule(body=third_rule)
-            except Conflict:
-                pass
-            else:
-                return True
+            if 'remote_ip_prefix' in sg_rule:
+                rule_body['security_group_rule']['remote_ip_prefix'] = sg_rule['remote_ip_prefix']
+            user_neutron.create_security_group_rule(body=rule_body)
+        except Conflict:
+        # The rule has already in the sec_group
+            pass
+    return True
 
 def find_security_group(security_group_name, user_neutron):
     security_groups = user_neutron.list_security_groups()[u'security_groups']
@@ -1415,8 +1431,13 @@ def find_security_group(security_group_name, user_neutron):
         return security_group
     else:
         raise Exception('Could not find any existing security group')
-'''
-def set_security_group_rules(lc_driver, security_group, rules):
+
+
+def libcloud_set_security_group_rules(lc_driver, security_group, rules):
+    """
+    DEPRECATED: This legacy method was used to define security group rules as a 3/4-tuple
+    For a more up-to-date method using neutron instead of libcloud, see neutron_set_security_group_rules.
+    """
     for rule_tuple in rules:
         if len(rule_tuple) == 3:
             (ip_protocol, from_port, to_port) = rule_tuple
@@ -1443,7 +1464,7 @@ def set_security_group_rules(lc_driver, security_group, rules):
                 continue
             raise
     return security_group
-'''
+
 
 def get_or_create_security_group(security_group_name, user_neutron):
     security_group_list = user_neutron.list_security_groups()[u'security_groups']
