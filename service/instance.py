@@ -1347,7 +1347,7 @@ def security_group_init(core_identity, max_attempts=3):
     return user_security_group_init(core_identity, security_group_name = security_group_name)
 
 
-def user_security_group_init(core_identity, security_group_name='atmosphere'):
+def user_security_group_init(core_identity, security_group_name):
     network_driver = _to_network_driver(core_identity)
     user_neutron = network_driver.neutron
     extended_default_rules = _get_default_rules()
