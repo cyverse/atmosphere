@@ -1341,7 +1341,7 @@ def user_delete_security_group(core_identity):
 
 def security_group_init(core_identity, max_attempts=3):
     has_secret = core_identity.get_credential('secret') is not None
-    security_group_name = core_identityprovider.get_config("network", "security_group_name", "atmosphere")
+    security_group_name = core_identity.provider.get_config("network", "security_group_name", "atmosphere")
     if has_secret:
         return admin_security_group_init(core_identity)
     return user_security_group_init(core_identity, security_group_name = security_group_name)
