@@ -35,7 +35,8 @@ class CyverseTestRenewalVariables(BaseVariables):
              name='allocation_source_renewed',
              payload__source_id__exact=str(source_id)).order_by('timestamp')
         if not last_renewal_event:
-            return (self.current_time - self.allocation_source.start_date).days
+            #remove microseconds for an approximate difference, otherwise a difference of 0.999999 will also be counted as 0 days
+            return (self.current_time.replace(microsecond=0) - self.allocation_source.start_date.replace(microsecond=0)).days
         return (last_renewal_event.last().timestamp - self.current_time).days
 
 

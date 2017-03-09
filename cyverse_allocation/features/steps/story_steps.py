@@ -39,6 +39,7 @@ def step_impl(context):
 @when('admin creates allocation source')
 def step_impl(context):
     context.allocation_sources = {}
+    context.current_time = timezone.now()
     for row in context.table:
         response = context.client.post('/api/v2/allocation_sources',
                                                {"renewal_strategy": row['renewal strategy'],
@@ -51,6 +52,11 @@ def step_impl(context):
             date_created = parse(str(row['date_created']))
             allocation_source = AllocationSource.objects.filter(uuid=response.data['uuid']).last()
             allocation_source.start_date = date_created
+            allocation_source.save()
+        else:
+            # this is to absolutely sync everything.. a difference of milliseconds can also result in incorrect values
+            allocation_source = AllocationSource.objects.filter(uuid=response.data['uuid']).last()
+            allocation_source.start_date = context.current_time
             allocation_source.save()
 
         context.allocation_sources[row['allocation_source_id']] = response.data['uuid']
@@ -74,7 +80,7 @@ def step_impl(context):
     for row in context.table:
         user = AtmosphereUser.objects.get(username=row['username'])
         try:
-            time_created = timezone.now() if str(row['start_date'])=='current' else parse(str(row['start_date']))
+            time_created = context.current_time if str(row['start_date'])=='current' else parse(str(row['start_date']))
         except Exception as e:
             raise Exception('Parsing the start date caused an error %s'%(e))
         provider_alias = launch_instance(user, time_created, int(row["cpu"]))
@@ -112,7 +118,7 @@ def step_impl(context):
 
 @then('calculate allocations used by allocation source after certain number of days')
 def step_impl(context):
-    current_time = timezone.now()
+    current_time = context.current_time
     for row in context.table:
         allocation_source = AllocationSource.objects.filter(uuid=context.allocation_sources[row['allocation_source_id']]).last()
         start_date = current_time if str(row['report start date']) =='current' else parse(str(row['report start date']))
@@ -146,8 +152,10 @@ def step_impl(context):
             allocation_source=allocation_source).last().compute_allowed
         compute_used_from_snapshot = AllocationSourceSnapshot.objects.filter(
             allocation_source=allocation_source).last().compute_used
-        assert int(row['compute used']) == compute_used_total
-        assert (float(compute_allowed) - float(compute_used_from_snapshot)) == float(row['compute remaining'])
+        assert float(row['total compute used']) == compute_used_total
+        assert float(row['current compute used']) == float(compute_used_from_snapshot)
+        assert float(row['current compute allowed']) == float(compute_allowed)
+        #assert (float(compute_allowed) - float(compute_used_from_snapshot)) == float(row['compute remaining'])
 
 
 # @when('Users added to allocation source launch instance (at the same time)')
@@ -237,7 +245,7 @@ def launch_instance(user,time_created,cpu):
     source=machine.instance_source,
     created_by=user,
     created_by_identity=user_identity,
-    start_date=timezone.now())
+    start_date=time_created)
 
 
     size = Size(alias=uuid.uuid4(), name='small', provider=provider, cpu=cpu, disk=1, root=1, mem=1)

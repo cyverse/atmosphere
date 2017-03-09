@@ -13,27 +13,30 @@ Feature: Testing a story
   Scenario: Use cases of allocation source
 
     When admin creates allocation source
-    |  name                       |  compute allowed   |  renewal strategy   |   allocation_source_id | date_created            |
-    |  DefaultAllocationSource    |  250               |  default            |   1                    | current                 |
+    |  name                       |  compute allowed   |  renewal strategy   |   allocation_source_id | date_created |
+    |  DefaultAllocationSource    |  250               |  default            |   1                    | current      |
 
     And Users are added to allocation source
-    |  username  | allocation_source_id    |
-    |  amitj     |   1                     |
+    |  username    | allocation_source_id    |
+    |  amitj       |   1                     |
+    |  julianp     |   1                     |
 
     And User launch Instance
-    | username  | cpu | instance_id  | start_date |
-    | amitj     |  1  |     1        |   current  |
+    | username    | cpu | instance_id  | start_date |
+    | amitj       |  1  |     1        |   current  |
+    | julianp     |  2  |     2        |   current  |
 
     And User adds instance to allocation source
-    | username    | instance_id  | allocation_source_id |
-    |  amitj      | 1            | 1                    |
+    | username      | instance_id  | allocation_source_id |
+    |  amitj        | 1            | 1                    |
+    |  julianp      | 2            | 1                    |
 
     And User instance runs for some days
-    | username   | instance_id  | days  | status       |
-    | amitj      |      1       |   2   | active       |
-
+    | username     | instance_id  | days  | status       |
+    | amitj        |      1       |   2   | active       |
+    | julianp      |      2       |   4   | active       |
 
     Then calculate allocations used by allocation source after certain number of days
-    |  report start date                  | number of days   | compute used      | compute remaining    | allocation_source_id |
-    |      current                        |  4               |     48            |      452             | 1                    |
+    |  report start date                  | number of days   | total compute used   | current compute used | current compute allowed | allocation_source_id |
+    |      current                        |  4               |     240              | 48                   | 308                     | 1                    |
 
