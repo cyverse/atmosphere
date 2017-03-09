@@ -164,7 +164,8 @@ def get_allocation_source_object(source_id):
     if not source_id:
         raise Exception('No source_id provided in _get_allocation_source_object method')
 
-    if 'jetstream' in settings.INSTALLED_APPS:
-        return JetstreamAllocationSource.objects.filter(
-            source_id=source_id).last().parent_allocation_source
+    #if 'jetstream' in settings.INSTALLED_APPS:
+    #    return JetstreamAllocationSource.objects.filter(
+    #        source_id=source_id).last().parent_allocation_source
+
     return AllocationSource.objects.filter(uuid=source_id).last()

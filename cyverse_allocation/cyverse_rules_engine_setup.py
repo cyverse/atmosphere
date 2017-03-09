@@ -1,12 +1,9 @@
-from django.conf import settings
 from business_rules.variables import BaseVariables, boolean_rule_variable, numeric_rule_variable, string_rule_variable
 from business_rules.actions import BaseActions, rule_action
 from business_rules.fields import FIELD_NUMERIC
 from dateutil.parser import parse
 from core.models.allocation_source import AllocationSource,AllocationSourceSnapshot
 from core.models.event_table import EventTable
-if 'jetstream' in settings.INSTALLED_APPS:
-    from jetstream.models import JetstreamAllocationSource
 
 
 class CyverseTestRenewalVariables(BaseVariables):
@@ -32,12 +29,8 @@ class CyverseTestRenewalVariables(BaseVariables):
 
     @numeric_rule_variable
     def days_since_renewed(self):
-        if 'jetstream' in settings.INSTALLED_APPS:
-            source_id = JetstreamAllocationSource.objects.filter(
-                parent_allocation_source=self.allocation_source).last().source_id
-        else:
-            source_id = self.allocation_source.uuid
 
+        source_id = self.allocation_source.uuid
         last_renewal_event = EventTable.objects.filter(
              name='allocation_source_renewed',
              payload__source_id__exact=source_id).order_by('timestamp')
@@ -69,11 +62,7 @@ class CyverseTestRenewalActions(BaseActions):
 
         # fire renewal event
 
-        if 'jetstream' in settings.INSTALLED_APPS:
-            source_id = JetstreamAllocationSource.objects.filter(
-                parent_allocation_source=self.allocation_source).last().source_id
-        else:
-            source_id = self.allocation_source.uuid
+        source_id = self.allocation_source.uuid
 
         payload = {
             "source_id" : source_id,

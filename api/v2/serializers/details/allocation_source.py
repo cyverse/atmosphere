@@ -47,9 +47,11 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_source_id(self, allocation_source):
         if 'jetstream' in settings.INSTALLED_APPS:
-            return JetstreamAllocationSource.objects.get(
-                parent_allocation_source=allocation_source).last().source_id
-        return allocation_source.uuid
+            jetstream_as = JetstreamAllocationSource.objects.filter(
+                parent_allocation_source=allocation_source)
+            if jetstream_as:
+                return jetstream_as.last().source_id
+        return ''
 
     def get_global_burn_rate(self, allocation_source):
         return self._get_allocation_source_snapshot(allocation_source, 'global_burn_rate')

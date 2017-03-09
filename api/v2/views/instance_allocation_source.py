@@ -26,10 +26,7 @@ class InstanceAllocationSourceViewSet(AuthModelViewSet):
     queryset = InstanceAllocationSourceSnapshot.objects.all()
     serializer_class = InstanceAllocationSourceSerializer
     search_fields = ("^title")
-    if 'jetstream' in settings.INSTALLED_APPS:
-        lookup_fields = ("allocation_source__source_id","id")
-    else:
-        lookup_fields = ("allocation_source__uuid", "id")
+    lookup_fields = ("allocation_source__uuid", "id")
     http_method_names = ['options','head','get', 'post']
 
     def get_queryset(self):
