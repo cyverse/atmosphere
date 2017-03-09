@@ -1,9 +1,12 @@
+from django.conf import settings
 from business_rules.variables import BaseVariables, boolean_rule_variable, numeric_rule_variable, string_rule_variable
 from business_rules.actions import BaseActions, rule_action
 from business_rules.fields import FIELD_NUMERIC
 from dateutil.parser import parse
 from core.models.allocation_source import AllocationSource,AllocationSourceSnapshot
 from core.models.event_table import EventTable
+if 'jetstream' in settings.INSTALLED_APPS:
+    from jetstream.models import JetstreamAllocationSource
 
 
 class CyverseTestRenewalVariables(BaseVariables):
@@ -29,9 +32,15 @@ class CyverseTestRenewalVariables(BaseVariables):
 
     @numeric_rule_variable
     def days_since_renewed(self):
+        if 'jetstream' in settings.INSTALLED_APPS:
+            source_id = JetstreamAllocationSource.objects.filter(
+                parent_allocation_source=self.allocation_source).last().source_id
+        else:
+            source_id = self.allocation_source.uuid
+
         last_renewal_event = EventTable.objects.filter(
              name='allocation_source_renewed',
-             payload__source_id__exact=self.allocation_source.source_id).order_by('timestamp')
+             payload__source_id__exact=source_id).order_by('timestamp')
         if not last_renewal_event:
             return (self.current_time - self.allocation_source.start_date).days
         return (last_renewal_event.last().timestamp - self.current_time).days
@@ -60,8 +69,14 @@ class CyverseTestRenewalActions(BaseActions):
 
         # fire renewal event
 
+        if 'jetstream' in settings.INSTALLED_APPS:
+            source_id = JetstreamAllocationSource.objects.filter(
+                parent_allocation_source=self.allocation_source).last().source_id
+        else:
+            source_id = self.allocation_source.uuid
+
         payload = {
-            "source_id" : self.allocation_source.source_id,
+            "source_id" : source_id,
             "name" : self.allocation_source.name,
             "compute_allowed" : total_compute_allowed
         }
@@ -73,7 +88,7 @@ class CyverseTestRenewalActions(BaseActions):
 
     @rule_action()
     def cannot_renew_allocation_source(self):
-
+        pass
 
 cyverse_rules = [
     #if strategy_name == 'default' AND isValid(allocation_source) AND days_since_renewed >= 30 THEN renew

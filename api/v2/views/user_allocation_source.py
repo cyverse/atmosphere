@@ -1,7 +1,9 @@
 import django_filters
 
+from django.conf import settings
 from core.models import (
     AllocationSource, UserAllocationSource, AtmosphereUser, EventTable)
+from core.models.allocation_source import get_allocation_source_object
 from api.v2.serializers.details import AllocationSourceSerializer
 from api.v2.serializers.details import UserAllocationSourceSerializer
 from api.v2.views.base import AuthModelViewSet
@@ -23,7 +25,10 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
     queryset = UserAllocationSource.objects.all()
     serializer_class = UserAllocationSourceSerializer
     search_fields = ("^title")
-    lookup_fields = ("allocation_source__source_id","id")
+    if 'jetstream' in settings.INSTALLED_APPS:
+        lookup_fields = ("allocation_source__source_id", "id")
+    else:
+        lookup_fields = ("allocation_source__uuid", "id")
     http_method_names = ['options','head','get', 'post', 'delete']
 
     def get_queryset(self):
@@ -109,9 +114,11 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
             payload=payload)
 
         creation_event.save()
+
+        allocation_source = get_allocation_source_object(request_data['source_id'])
         return UserAllocationSource.objects.filter(
-            allocation_source__source_id=payload['source_id'],
-            user__username=payload['username'] ).last()
+                allocation_source=allocation_source,
+                user__username=payload['username'] ).last()
 
     def _delete_user_allocation_source(self,request_data):
 
@@ -143,17 +150,12 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
 
 
     def _for_validate_userallocationsource(self,request_data,delete=False):
-        user = AtmosphereUser.objects.filter(username=request_data['username'])
-        allocation_source = AllocationSource.objects.filter(source_id=request_data['source_id'])
-
-        if not user:
-            raise Exception('Username %s does not exist'%(request_data['username']))
-
-        if not allocation_source:
-            raise Exception('Allocation Source %s does not exist'%(request_data['source_id']))
-
-        user = user.last()
-        allocation_source = allocation_source.last()
+        user = AtmosphereUser.objects.filter(username=request_data['username']).last()
+        allocation_source = get_allocation_source_object(request_data['source_id'])
+        # if not user:
+        #     raise Exception('Username %s does not exist'%(request_data['username']))
+        #
+        # user = user.last()
 
         if UserAllocationSource.objects.filter(user=user,allocation_source=allocation_source) and not delete:
             raise Exception('User %s is already assigned to Allocation Source %s'%(request_data['username'],request_data['source_id']))

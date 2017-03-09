@@ -1,4 +1,5 @@
 import uuid
+from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 from threepio import logger
@@ -10,6 +11,7 @@ from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from core.models import AllocationSource
 from core.models.event_table import EventTable
+from core.models.allocation_source import get_allocation_source_object
 
 
 class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
@@ -19,13 +21,14 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
     queryset = AllocationSource.objects.all()
     serializer_class = AllocationSourceSerializer
     search_fields = ('^title',)
-    lookup_fields = ('id','source_id',)
+    lookup_fields = ('id','uuid',)
     http_method_names = ['options', 'head', 'get', 'post', 'put', 'patch', 'delete']
 
     def create(self, request):
         """
         Create allocation source and fire respective events
         """
+
         request_user = request.user
         request_data = request.data
 
@@ -49,6 +52,8 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
         try:
             allocation_source = self._create_allocation_source(request_data)
+            #CHANGE SERIALIZER CLASS
+
             serialized_allocation_source = AllocationSourceSerializer(
                 allocation_source, context={'request': self.request})
             return Response(
@@ -62,6 +67,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
                                     str(exc.message))
 
     def update(self, request, pk, *args, **fields):
+
         request_user = request.user
         request_data = request.data
         request_data['source_id'] = pk
@@ -117,7 +123,8 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 status.HTTP_400_BAD_REQUEST,
                 exc.message)
         try:
-            allocation_source = self._update_allocation_source(events, request_data['source_id'])
+            allocation_source = self._update_allocation_source(
+                events, request_data['source_id'])
             serialized_allocation_source = AllocationSourceSerializer(
                 allocation_source, context={'request': self.request})
             return Response(
@@ -132,9 +139,10 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
 
     def perform_destroy(self, allocation_source):
+        
         request_user = self.request.user
         request_data = {}
-        request_data['source_id'] = allocation_source.source_id
+        request_data['source_id'] = allocation_source.uuid
 
         # validate user
         try:
@@ -149,7 +157,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
             self._validate_params(request_data)
             # create payload
             payload = {}
-            payload['source_id'] = request_data['source_id']
+            payload['source_id'] = str(request_data['source_id'])
             payload['delete_date'] = str(timezone.now().strftime("%Y-%m-%dT%H:%M:%S+00:00"))
 
             EventTable.create_event(
@@ -163,8 +171,8 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 exc.message)
 
         try:
-            allocation_source = AllocationSource.objects.filter(
-                source_id=request_data['source_id']).last()
+            allocation_source = get_allocation_source_object(request_data['source_id'])
+
             serialized_allocation_source = AllocationSourceSerializer(
                 allocation_source, context={'request': self.request})
             return Response(
@@ -194,8 +202,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
         creation_event.save()
 
-        return AllocationSource.objects.filter(
-            source_id=creation_event.entity_id).last()
+        return get_allocation_source_object(creation_event.entity_id)
 
     def _update_allocation_source(self, events, source_id):
 
@@ -206,7 +213,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 payload['source_id']
             )
 
-        return AllocationSource.objects.filter(source_id=payload['source_id']).last()
+        return get_allocation_source_object(payload['source_id'])
 
     def _validate_params(self, data):
 
@@ -238,7 +245,8 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
         #Compute Allowed is less than compute used
         if source_id:
-            if compute_allowed < AllocationSource.objects.filter(source_id = source_id).last().compute_used:
+            allocation_source = get_allocation_source_object(source_id)
+            if compute_allowed < allocation_source.compute_used:
                 raise Exception('Compute allowed cannot be less than compute used')
 
         return True
@@ -251,8 +259,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         return True
 
     def _for_validate_allocation_source(self, source_id):
-        if not AllocationSource.objects.filter(source_id=source_id):
-                raise Exception('Source ID is incorrect')
+        get_allocation_source_object(source_id)
         return True
 
     def _for_validate_name(self, name):

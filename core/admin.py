@@ -72,13 +72,13 @@ class QuotaAdmin(admin.ModelAdmin):
 @admin.register(models.AllocationSource)
 class AllocationSourceAdmin(admin.ModelAdmin):
     search_fields = [
-        "name","source_id",
+        "name","uuid",
         "users__user__username"
     ]
     actions = [end_date_object, ]
     list_display = (
         "name",
-        "source_id",
+        "uuid",
         "compute_used",
         "compute_allowed",
     )

@@ -1,7 +1,10 @@
+
 import django_filters
 
+from django.conf import settings
 from core.models import (
     AllocationSource, InstanceAllocationSourceSnapshot,EventTable, Instance, UserAllocationSource)
+from core.models.allocation_source import get_allocation_source_object
 from api.v2.serializers.details import AllocationSourceSerializer
 from api.v2.serializers.details import InstanceAllocationSourceSerializer
 from api.v2.views.base import AuthModelViewSet
@@ -23,7 +26,10 @@ class InstanceAllocationSourceViewSet(AuthModelViewSet):
     queryset = InstanceAllocationSourceSnapshot.objects.all()
     serializer_class = InstanceAllocationSourceSerializer
     search_fields = ("^title")
-    lookup_fields = ("allocation_source__source_id","id")
+    if 'jetstream' in settings.INSTALLED_APPS:
+        lookup_fields = ("allocation_source__source_id","id")
+    else:
+        lookup_fields = ("allocation_source__uuid", "id")
     http_method_names = ['options','head','get', 'post']
 
     def get_queryset(self):
@@ -88,8 +94,9 @@ class InstanceAllocationSourceViewSet(AuthModelViewSet):
             payload=payload)
 
         creation_event.save()
+        allocation_source = get_allocation_source_object(request_data['source_id'])
         return InstanceAllocationSourceSnapshot.objects.filter(
-            allocation_source__source_id=payload['allocation_source_id'],
+            allocation_source=allocation_source,
             instance__provider_alias=payload['instance_id'] ).last()
 
     # validations
@@ -106,17 +113,8 @@ class InstanceAllocationSourceViewSet(AuthModelViewSet):
 
 
     def _for_validate_userallocationsource(self,request_user,request_data):
-        instance = Instance.objects.filter(provider_alias=request_data['instance_id'])
-        allocation_source = AllocationSource.objects.filter(source_id=request_data['source_id'])
-
-        if not instance:
-            raise Exception('Instance %s does not exist'%(request_data['instance_id']))
-
-        if not allocation_source:
-            raise Exception('Allocation Source %s does not exist'%(request_data['source_id']))
-
-        instance = instance.last()
-        allocation_source = allocation_source.last()
+        instance = Instance.objects.filter(provider_alias=request_data['instance_id']).last()
+        allocation_source = get_allocation_source_object(request_data['source_id'])
 
         # The two validations below wont work in dev environment where the mock_user is lenards. Uncomment them in prod
 

@@ -16,10 +16,22 @@ Feature: Testing a story
     |  name   |  compute allowed   |  renewal strategy    |
     |  <name> |  <compute_allowed> |  <renewal_strategy>  |
 
-    And Users added to allocation source launch instance (at the same time)
-    | user_id | cpu  |  days_instance_is_active  |
-    |  1      |  1   |     2                     |
-    |  2      |  1   |     1                     |
+    And Users are added to allocation source
+    |  username  | allocation source name    |
+    |  amitj     |   DefaultAllocationSource |
+    |  julianp   |   DefaultAllocationSource |
+
+    And User launch Instance
+    | username  | cpu | instance_id  | start_date               |
+    | amitj     |  1  |     1        |   current                |
+    | amitj     |  3  |     2        |  2016-10-03T00:00+00:00  |
+    | julianp   |  4  |     3        |   current                |
+
+    And User instance runs for some days
+    | username   | instance_id  | days  | status       |
+    | amitj      |      2       |   5   | active       |
+    | julianp    |      3       |   8   | deploy_error |
+    | amitj      |      1       |   2   | active       |
 
     Then after days = <no_of_days> Allocation source used = <compute_used> and remaining compute = <compute_remaining>
 

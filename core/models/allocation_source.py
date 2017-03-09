@@ -4,12 +4,13 @@ from django.utils import timezone
 from threepio import logger
 from pprint import pprint
 from uuid import uuid4
+if 'jetstream' in settings.INSTALLED_APPS:
+    from jetstream.models import JetstreamAllocationSource
 from django.db.models.query import QuerySet
 
 class AllocationSource(models.Model):
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     name = models.CharField(max_length=255)
-    source_id = models.CharField(max_length=255)
     compute_allowed = models.IntegerField()
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
@@ -50,7 +51,7 @@ class AllocationSource(models.Model):
 
     def __unicode__(self):
         return "%s (ID:%s, Compute Allowed:%s)" %\
-            (self.name, self.source_id,
+            (self.name, self.uuid,
              self.compute_allowed)
 
 
@@ -157,3 +158,13 @@ def total_usage(username, start_date, allocation_source_name=None,end_date=None,
                         % (username, allocation_source_name, burn_rate_total))
         return [compute_used_total, burn_rate_total]
     return compute_used_total
+
+
+def get_allocation_source_object(source_id):
+    if not source_id:
+        raise Exception('No source_id provided in _get_allocation_source_object method')
+
+    if 'jetstream' in settings.INSTALLED_APPS:
+        return JetstreamAllocationSource.objects.filter(
+            source_id=source_id).last().parent_allocation_source
+    return AllocationSource.objects.filter(uuid=source_id).last()
