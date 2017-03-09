@@ -1416,6 +1416,7 @@ def neutron_set_security_group_rules(security_group_name, security_group_rules_d
             }
             if 'remote_ip_prefix' in sg_rule:
                 rule_body['security_group_rule']['remote_ip_prefix'] = sg_rule['remote_ip_prefix']
+                rule_body['security_group_rule'].pop("remote_group_id")
             user_neutron.create_security_group_rule(body=rule_body)
         except Conflict:
         # The rule has already in the sec_group
