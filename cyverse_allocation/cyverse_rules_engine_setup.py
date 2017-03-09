@@ -33,7 +33,7 @@ class CyverseTestRenewalVariables(BaseVariables):
         source_id = self.allocation_source.uuid
         last_renewal_event = EventTable.objects.filter(
              name='allocation_source_renewed',
-             payload__source_id__exact=source_id).order_by('timestamp')
+             payload__source_id__exact=str(source_id)).order_by('timestamp')
         if not last_renewal_event:
             return (self.current_time - self.allocation_source.start_date).days
         return (last_renewal_event.last().timestamp - self.current_time).days
@@ -65,7 +65,7 @@ class CyverseTestRenewalActions(BaseActions):
         source_id = self.allocation_source.uuid
 
         payload = {
-            "source_id" : source_id,
+            "source_id" : str(source_id),
             "name" : self.allocation_source.name,
             "compute_allowed" : total_compute_allowed
         }

@@ -382,7 +382,8 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
 
     allocation_source_snapshot = AllocationSourceSnapshot(allocation_source=allocation_source,
                                           global_burn_rate = 0,
-                                         compute_used=0.0
+                                         compute_used=0.0,
+                                         compute_allowed=allocation_compute_allowed
                                          )
     allocation_source_snapshot.save()
 
