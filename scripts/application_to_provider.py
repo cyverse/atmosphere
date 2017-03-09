@@ -31,8 +31,7 @@ destination provider, script will exit with error unless
 --ignore_missing_members is set.
 """
 
-# Todo make this bigger
-max_tries = 1  # Maximum number of times to attempt downloading and uploading image data
+max_tries = 3  # Maximum number of times to attempt downloading and uploading image data
 
 
 def main():
@@ -234,7 +233,6 @@ def _parse_args():
                         help="Do not set any image metadata ('properties' in Glance)")
     args = parser.parse_args()
     return args
-
 
 if __name__ == "__main__":
     main()
