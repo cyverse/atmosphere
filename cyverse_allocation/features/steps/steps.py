@@ -1,6 +1,7 @@
 import json
 import uuid
 from behave import *
+from django.conf import settings
 from django.utils import timezone
 from django.test.client import Client
 from django.core.urlresolvers import reverse
@@ -19,13 +20,16 @@ def step_impl(context):
     # the only user who can access apis on dev is lenards, so set staff
     # permission for lenards on test db
     user, not_created = AtmosphereUser.objects.get_or_create(
-        username='lenards', password='lenards')
+        username='lenards')
     if not_created:
         user.is_staff = True
         user.is_superuser = True
+        user.set_password('lenards')
         user.save()
+    if 'django.contrib.auth.backends.ModelBackend' not in settings.AUTHENTICATION_BACKENDS:
+        raise Exception("Cannot test without including 'django.contrib.auth.backends.ModelBackend' in AUTHENTICATION_BACKENDS")
     context.user = user
-    context.client.login()
+    context.client.login(username='lenards', password='lenards')
 
 # Allocation Source Creation
 

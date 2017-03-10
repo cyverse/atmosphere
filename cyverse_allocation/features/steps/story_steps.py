@@ -4,6 +4,7 @@ from behave import *
 from datetime import timedelta
 from dateutil.parser import parse
 from dateutil.rrule import rrule, HOURLY
+from django.conf import settings
 from django.utils import timezone
 from django.test.client import Client
 from django.core.urlresolvers import reverse
@@ -23,17 +24,20 @@ from api.tests.factories import (
 @given('one admin user and two regular users who can launch instances')
 def step_impl(context):
     context.client = Client()
-    user, not_created = AtmosphereUser.objects.get_or_create(username='lenards', password='lenards')
+    user, not_created = AtmosphereUser.objects.get_or_create(username='lenards')
     if not_created:
         user.is_staff = True
         user.is_superuser = True
+        user.set_password('lenards')
         user.save()
+    if 'django.contrib.auth.backends.ModelBackend' not in settings.AUTHENTICATION_BACKENDS:
+        raise Exception("Cannot test without including 'django.contrib.auth.backends.ModelBackend' in AUTHENTICATION_BACKENDS")
     context.admin_user = user
-    context.client.login()
+    context.client.login(username='lenards', password='lenards')
 
-    user_1 = AtmosphereUser.objects.get_or_create(username='amitj', password='amitj')
+    user_1 = AtmosphereUser.objects.get_or_create(username='amitj')
     context.user_1 = user_1[0]
-    user_2 = AtmosphereUser.objects.get_or_create(username='julianp', password='julianp')
+    user_2 = AtmosphereUser.objects.get_or_create(username='julianp')
     context.user_2 = user_2[0]
 
 @when('admin creates allocation source')
