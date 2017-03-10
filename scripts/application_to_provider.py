@@ -6,6 +6,8 @@ import logging
 import os
 import sys
 
+import OpenSSL.SSL
+
 import django; django.setup()
 import core.models
 import service.driver
@@ -237,7 +239,10 @@ def main():
                 tries += 1
                 logging.debug("Attempting to upload image data to destination provider")
                 with open(local_path, 'rb') as img_file:
-                    dprov_glance_client.images.upload(dprov_glance_image.id, img_file)
+                    try:
+                        dprov_glance_client.images.upload(dprov_glance_image.id, img_file)
+                    except OpenSSL.SSL.SysCallError:
+                        continue
                 if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
                     logging.info("Successfully uploaded image data to destination provider")
                     break
