@@ -58,12 +58,12 @@ def main():
     # Get application-specific metadata from Atmosphere(2) and resolve identifiers on destination provider
 
     # Get application owner UUID in destination provider
-    app_creator_uname = app.created_by.username
+    app_creator_uname = app.created_by_identity.project_name()
     try:
         dprov_app_owner_uuid = dprov_acct_driver.get_project(app_creator_uname, raise_exception=True).id
     except AttributeError:
         if args.ignore_missing_owner:
-            dprov_atmo_admin_uname = dprov.admin.created_by.username
+            dprov_atmo_admin_uname = dprov.admin.project_name()
             dprov_app_owner_uuid = dprov_acct_driver.get_project(dprov_atmo_admin_uname).id
         else:
             raise Exception("Application owner missing from destination provider, run with "
@@ -164,7 +164,7 @@ def main():
                                           application_name=app.name,
                                           application_version=app_version.name,
                                           application_description=app.description,
-                                          application_owner=app.created_by.username,  # Todo is this right?
+                                          application_owner=app_creator_uname,
                                           application_tags=str(app_tags),
                                           application_uuid=str(app.uuid),
                                           # Todo min_disk? min_ram? Do we care?
