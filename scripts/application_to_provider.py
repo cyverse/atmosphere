@@ -2,7 +2,9 @@
 
 import argparse
 import hashlib
+import logging
 import os
+import sys
 
 import django; django.setup()
 import core.models
@@ -37,6 +39,7 @@ max_tries = 3  # Maximum number of times to attempt downloading and uploading im
 
 def main():
     args = _parse_args()
+    logging.info("Running application_to_provider with the following arguments:\n{0}".format(str(args)))
     if args.irods_xfer:
         raise NotImplementedError("iRODS transfer not built yet")
     if args.source_provider_id == args.destination_provider_id:
@@ -66,6 +69,8 @@ def main():
             raise Exception("Application owner missing from destination provider, run with "
                             "--ignore-missing-owner to suppress this error (owner will "
                             "default to Atmosphere administrator")
+    # TODO convert to new string formatting style
+    logging.debug("Application owner UUID in destination provider: {0}".format(dprov_app_owner_uuid))
     # If private application, get app member UUIDs in destination provider
     dprov_app_members_uuids = []
     if app.private is True:
@@ -73,18 +78,21 @@ def main():
             member_name = membership.group.name
             try:
                 member_proj_uuid = dprov_acct_driver.get_project(member_name).id
-                # This avoids duplicates when we have both an ApplicationMembership and a ProviderMachineMembership
+                # This avoids duplicates when there is both an ApplicationMembership and a ProviderMachineMembership
                 if member_proj_uuid not in dprov_app_members_uuids:
                     dprov_app_members_uuids.append(member_proj_uuid)
             except AttributeError:
                 if not args.ignore_missing_members:
                     raise Exception("Application member missing from destination provider, run with "
                                     "--ignore-missing-members to suppress this error")
+        logging.debug("Private app member UUIDs on destination provider: {0}".format(str(dprov_app_members_uuids)))
     # Get application tags
     app_tags = [tag.name for tag in core.models.Tag.objects.filter(application=app)]
+    logging.info("Application tags: {0}".format(str(app_tags)))
 
     # Loop for each ApplicationVersion of the specified Application
     for app_version in app.all_versions:
+        logging.info("Processing ApplicationVersion {0}".format(str(app_version)))
 
         # Choose/verify source provider
         existing_prov_machines = core.models.ProviderMachine.objects.filter(application_version=app_version)
@@ -107,6 +115,7 @@ def main():
                     break
             if sprov is None:
                 raise Exception("Could not find a source provider for at least one version of given application")
+        logging.debug("Using source provider: {0}".format(sprov))
 
         # Get access to source provider
         sprov_img_uuid = instance_source.identifier
@@ -116,6 +125,7 @@ def main():
 
         # Get source image metadata from Glance
         sprov_glance_image = sprov_glance_client.images.get(sprov_img_uuid)
+        logging.debug("Source image metadata: {0}".format(str(sprov_glance_image)))
 
         # Check for existing ProviderMachine + InstanceSource for ApplicationVersion on destination provider
         dprov_machine = dprov_instance_source = None
@@ -123,6 +133,10 @@ def main():
             if provider_machine.instance_source.provider == dprov:
                 dprov_machine = provider_machine
                 dprov_instance_source = dprov_machine.instance_source
+                logging.info("Found existing ProviderMachine and InstanceSource for image on destination provider")
+        if not dprov_machine:
+            logging.info("Could not find existing ProviderMachine and InstanceSource for image on destination provider"
+                         ", new objects will be created")
 
         # Get Glance image, creating image if needed
         dprov_glance_image = None
@@ -131,8 +145,11 @@ def main():
             if dprov_glance_client.images.get(dprov_instance_source.identifier):
                 dprov_image_uuid = dprov_instance_source.identifier
                 dprov_glance_image = dprov_glance_client.images.get(dprov_image_uuid)
+                logging.info("Found existing Glance image, not creating a new one")
         if not dprov_glance_image:
+            logging.info("Creating new Glance image")
             dprov_glance_image = dprov_glance_client.images.create()
+            logging.debug("Created new empty Glance image: {0}".format(str(dprov_glance_image)))
 
         # Populate image metadata (this is always done)
         dprov_glance_client.images.update(dprov_glance_image.id,
@@ -152,8 +169,12 @@ def main():
                                           application_uuid=str(app.uuid),
                                           # Todo min_disk? min_ram? Do we care?
                                           )
+        # Todo maybe not query this again, instead above, make updates to the original dprov_glance_image object
+        logging.info("Populated Glance image metadata: {0}"
+                     .format(str(dprov_glance_client.images.get(dprov_glance_image.id))))
+
         if app.private:
-            # Turning generator into list so we can search it
+            # Turning generator into list so it can be searched
             dprov_img_prior_members = [m.member_id for m in dprov_glance_client.image_members.list(dprov_glance_image.id)]
             for add_member_uuid in dprov_app_members_uuids:
                 if add_member_uuid not in dprov_img_prior_members:
@@ -162,22 +183,29 @@ def main():
                     dprov_img_prior_members.remove(add_member_uuid)
             for del_member_uuid in dprov_img_prior_members:
                 dprov_glance_client.image_members.delete(dprov_glance_image.id, del_member_uuid)
+            logging.info("Private image updated with member UUIDs")
 
         # Populate image data in destination provider if needed
         if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
+            logging.info("Uploading image data because checksums don't match between source and destination providers")
             local_path = os.path.join("/tmp", sprov_img_uuid)
 
-            # Download image from source provider, only if we don't have a complete local copy
+            # Download image from source provider, only if there is no accurate local copy
             tries = 0
             while tries < max_tries:
-                tries += 1
                 if os.path.exists(local_path) and file_md5(local_path) == sprov_glance_image.checksum:
+                    logging.debug("Verified correct local copy of the image")
                     break
                 else:
+                    if tries != 0:
+                        logging.warning("Image data download attempt failed")
+                    tries += 1
+                    logging.debug("Attempting to download image data from source provider")
                     image_data = sprov_glance_client.images.data(sprov_img_uuid)
                     with open(local_path, 'wb') as img_file:
                         for chunk in image_data:
                             img_file.write(chunk)
+
             if file_md5(local_path) != sprov_glance_image.checksum:
                 raise Exception("Could not download Glance image from source provider")
 
@@ -185,19 +213,25 @@ def main():
             tries = 0
             while tries < max_tries:
                 tries += 1
+                logging.debug("Attempting to upload image data to destination provider")
                 with open(local_path, 'rb') as img_file:
                     dprov_glance_client.images.upload(dprov_glance_image.id, img_file)
                 if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
+                    logging.info("Successfully uploaded image data to destination provider")
                     break
+                else:
+                    logging.warning("Image data upload attempt failed")
 
             if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
-                raise Exception("Could not upload image data, maybe you have an unreliable network connection")
+                raise Exception("Could not successfully upload image data")
 
             if not args.keep_local_cache:
+                logging.debug("Removing local cache of image data")
                 os.remove(local_path)
 
         # Create models in database
         if not (dprov_machine or dprov_instance_source):
+            logging.info("Creating new ProviderMachine and InstanceSource")
             dprov_instance_source = core.models.InstanceSource(provider=dprov,
                                                                identifier=dprov_glance_image.id,
                                                                created_by=app.created_by,
@@ -249,4 +283,10 @@ def _parse_args():
     return args
 
 if __name__ == "__main__":
-    main()
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
+    # Todo should we get a particular logger?
+    try:
+        main()
+    except Exception as e:
+        logging.exception(e)
+        raise
