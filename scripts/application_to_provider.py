@@ -55,6 +55,9 @@ def main():
     dprov_img_mgr = dprov_acct_driver.image_manager
     dprov_glance_client = dprov_img_mgr.glance
 
+    dprov_atmo_admin_uname = dprov.admin.project_name()
+    dprov_atmo_admin_uuid = dprov_acct_driver.get_project(dprov_atmo_admin_uname).id
+
     # Get application-specific metadata from Atmosphere(2) and resolve identifiers on destination provider
 
     # Get application owner UUID in destination provider
@@ -63,17 +66,17 @@ def main():
         dprov_app_owner_uuid = dprov_acct_driver.get_project(app_creator_uname, raise_exception=True).id
     except AttributeError:
         if args.ignore_missing_owner:
-            dprov_atmo_admin_uname = dprov.admin.project_name()
-            dprov_app_owner_uuid = dprov_acct_driver.get_project(dprov_atmo_admin_uname).id
+            dprov_app_owner_uuid = dprov_atmo_admin_uuid
         else:
             raise Exception("Application owner missing from destination provider, run with "
                             "--ignore-missing-owner to suppress this error (owner will "
                             "default to Atmosphere administrator")
-    # TODO convert to new string formatting style
     logging.debug("Application owner UUID in destination provider: {0}".format(dprov_app_owner_uuid))
+
     # If private application, get app member UUIDs in destination provider
     dprov_app_members_uuids = []
     if app.private is True:
+        dprov_app_members_uuids.append(dprov_atmo_admin_uuid)  # Atmosphere administrator is always a member
         for membership in app.get_members():
             member_name = membership.group.name
             try:
@@ -86,6 +89,7 @@ def main():
                     raise Exception("Application member missing from destination provider, run with "
                                     "--ignore-missing-members to suppress this error")
         logging.debug("Private app member UUIDs on destination provider: {0}".format(str(dprov_app_members_uuids)))
+
     # Get application tags
     app_tags = [tag.name for tag in core.models.Tag.objects.filter(application=app)]
     logging.info("Application tags: {0}".format(str(app_tags)))
