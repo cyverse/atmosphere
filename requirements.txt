@@ -10,10 +10,11 @@ anyjson==0.3.3            # via kombu
 apache-libcloud==0.20.1
 appdirs==1.4.3            # via os-client-config, setuptools
 asn1crypto==0.21.1        # via cryptography
-Babel==2.3.4              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-neutronclient, python-novaclient, python-openstackclient
+babel==2.3.4              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-neutronclient, python-novaclient, python-openstackclient
 backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud, tornado
 billiard==3.3.0.23        # via celery
 boto==2.39.0              # via chromogenic
+business-rules==1.0.1
 caslib.py==2.2.2          # via django-cyverse-auth
 celery==3.1.23
 certifi==2017.1.23        # via tornado
@@ -27,7 +28,7 @@ defusedxml==0.5.0         # via djangorestframework-xml
 deprecation==1.0          # via openstacksdk
 django-celery==3.1.16
 django-cors-headers==0.12.0
-django-cyverse-auth==1.0.10
+django-cyverse-auth==1.0.11
 django-filter==0.13.0
 django-redis-cache==0.13.0
 django-sslserver==0.19
@@ -38,7 +39,6 @@ djangorestframework-xml==1.0.1
 djangorestframework-yaml==1.0.2
 djangorestframework==3.4.1
 enum34==1.1.6             # via cryptography
-django-behave==0.1.5
 eventlet==0.18.4
 Fabric==1.10              # via rfive
 flower==0.9.0
@@ -86,7 +86,7 @@ pyasn1==0.2.3             # via oauth2client, paramiko, pyasn1-modules, requests
 pycparser==2.14
 pycrypto==2.6.1           # via ansible, jwt.py
 PyJWT==1.4.0
-PyOpenSSL==16.2.0         # via ndg-httpsclient, requests
+pyOpenSSL==16.2.0         # via ndg-httpsclient, requests
 pyparsing==2.2.0          # via cliff, cmd2, oslo.utils, packaging
 python-cinderclient==1.9.0  # via python-openstackclient, rtwo
 python-dateutil==2.6.0
