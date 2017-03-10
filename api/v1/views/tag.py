@@ -38,7 +38,7 @@ class TagList(AuthOptionalAPIView):
         data = request.data.copy()
         name = data.get('name','')
         if not name:
-            return Response(['Invalid POST - Expected data 'name' missing.'],
+            return Response(["Invalid POST - Expected data 'name' missing."],
                             status=status.HTTP_400_BAD_REQUEST)
         same_name_tags = CoreTag.objects.filter(name__iexact=name)
         if same_name_tags:
