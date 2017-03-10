@@ -242,8 +242,9 @@ def main():
                     try:
                         dprov_glance_client.images.upload(dprov_glance_image.id, img_file)
                     except OpenSSL.SSL.SysCallError:
+                        logging.warning("Image data upload attempt failed")
                         continue
-                if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
+                if sprov_glance_image.checksum == dprov_glance_client.images.get(dprov_glance_image.id).checksum:
                     logging.info("Successfully uploaded image data to destination provider")
                     break
                 else:
