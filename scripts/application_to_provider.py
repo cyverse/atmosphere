@@ -155,6 +155,19 @@ def main():
             dprov_glance_image = dprov_glance_client.images.create()
             logging.debug("Created new empty Glance image: {0}".format(str(dprov_glance_image)))
 
+        # Create models in database
+        if not (dprov_machine or dprov_instance_source):
+            logging.info("Creating new ProviderMachine and InstanceSource")
+            dprov_instance_source = core.models.InstanceSource(provider=dprov,
+                                                               identifier=dprov_glance_image.id,
+                                                               created_by=app.created_by,
+                                                               # Todo created_by_identity, start_date, end_date?
+                                                               )
+            dprov_instance_source.save()
+            dprov_machine = core.models.ProviderMachine(application_version=app_version,
+                                                        instance_source=dprov_instance_source)
+            dprov_machine.save()
+
         # Populate image metadata (this is always done)
         dprov_glance_client.images.update(dprov_glance_image.id,
                                           name=app.name,
@@ -234,19 +247,6 @@ def main():
             if not args.keep_local_cache:
                 logging.debug("Removing local cache of image data")
                 os.remove(local_path)
-
-        # Create models in database
-        if not (dprov_machine or dprov_instance_source):
-            logging.info("Creating new ProviderMachine and InstanceSource")
-            dprov_instance_source = core.models.InstanceSource(provider=dprov,
-                                                               identifier=dprov_glance_image.id,
-                                                               created_by=app.created_by,
-                                                               # Todo created_by_identity, start_date, end_date?
-                                                               )
-            dprov_instance_source.save()
-            dprov_machine = core.models.ProviderMachine(application_version=app_version,
-                                                        instance_source=dprov_instance_source)
-            dprov_machine.save()
 
 
 def file_md5(path):
