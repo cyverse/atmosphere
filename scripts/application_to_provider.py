@@ -186,8 +186,10 @@ def main():
             logging.info("Private image updated with member UUIDs")
 
         # Populate image data in destination provider if needed
-        if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
-            logging.info("Uploading image data because checksums don't match between source and destination providers")
+        if sprov_glance_image.checksum == dprov_glance_client.images.get(dprov_glance_image.id).checksum:
+            logging.info("Image data checksum matches on source and destination providers, not migrating data")
+        else:
+            logging.info("Migrating image data because checksums don't match between source and destination providers")
             local_path = os.path.join("/tmp", sprov_img_uuid)
 
             # Download image from source provider, only if there is no accurate local copy
@@ -283,8 +285,11 @@ def _parse_args():
     return args
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
-    # Todo should we get a particular logger?
+    output = logging.StreamHandler(sys.stdout)
+    output.setLevel(logging.DEBUG)
+    output.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(output)
+    # Todo should we use a particular logger?
     try:
         main()
     except Exception as e:
