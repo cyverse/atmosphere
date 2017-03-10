@@ -355,8 +355,6 @@ def _get_network_id(esh_driver, esh_instance):
 
 def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     """
-    TODO: Remove this and use the 'deploy_init' tasks already written instead!
-          -Steve 2/2015
     Use this function to kick off the async task when you ONLY want to deploy
     (No add fixed, No add floating)
     """
@@ -369,21 +367,12 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     task_one = wait_for_instance.s(
         esh_instance.id, esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, "verify_resize")
-    raise Exception("Programmer -- Fix this method based on the TODO")
-    # task_two = deploy_script.si(
-    #     esh_driver.__class__, esh_driver.provider,
-    #     esh_driver.identity, esh_instance.id, touch_script)
-    task_three = complete_resize.si(
+    task_two = complete_resize.si(
         esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, esh_instance.id,
-        core_identity.provider.id, core_identity.id, core_identity.created_by)
-    task_four = deploy_init_to.si(
-        esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, esh_instance.id, core_identity, redeploy=True)
+        core_identity.provider.uuid, core_identity.uuid, core_identity.created_by)
     # Link em all together!
     task_one.link(task_two)
-    task_two.link(task_three)
-    task_three.link(task_four)
     return task_one
 
 
@@ -1885,7 +1874,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     identity_uuid = identity.uuid
     logger.info("User %s has initiated instance action %s to be executed on Instance %s" % (user, action_type, instance_id))
     if 'resize' == action_type:
-        size_alias = action_params.get('size', '')
+        size_alias = action_params.get('resize_size', '')
         if isinstance(size_alias, int):
             size_alias = str(size_alias)
         result_obj = resize_instance(
