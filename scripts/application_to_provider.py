@@ -10,6 +10,8 @@ import django; django.setup()
 import core.models
 import service.driver
 
+from atmosphere.settings import secrets
+
 description = """
 This script makes an Application (a.k.a. image) available on a specified new
 provider by doing any/all of the following as needed:
@@ -207,7 +209,8 @@ def main():
             logging.info("Image data checksum matches on source and destination providers, not migrating data")
         else:
             logging.info("Migrating image data because checksums don't match between source and destination providers")
-            local_path = os.path.join("/tmp", sprov_img_uuid)
+            local_storage_dir = secrets.LOCAL_STORAGE if os.path.exists(secrets.LOCAL_STORAGE) else "/tmp"
+            local_path = os.path.join(local_storage_dir, sprov_img_uuid)
 
             # Download image from source provider, only if there is no accurate local copy
             tries = 0
