@@ -168,7 +168,7 @@ def main():
             dprov_instance_source = core.models.InstanceSource(provider=dprov,
                                                                identifier=dprov_glance_image.id,
                                                                created_by=app.created_by,
-                                                               # Todo created_by_identity, start_date, end_date?
+                                                               end_date=sprov_instance_source.end_date
                                                                )
             dprov_instance_source.save()
             dprov_machine = core.models.ProviderMachine(application_version=app_version,
