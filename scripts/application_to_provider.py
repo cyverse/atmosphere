@@ -108,8 +108,8 @@ def main():
             # Confirm given source provider has valid ProviderMachine+InstanceSource for current ApplicationVersion
             valid_sprov = False
             for provider_machine in existing_prov_machines:
-                instance_source = provider_machine.instance_source
-                if instance_source.provider == sprov:
+                sprov_instance_source = provider_machine.instance_source
+                if sprov_instance_source.provider == sprov:
                     valid_sprov = True
                     break
             if not valid_sprov:
@@ -117,16 +117,16 @@ def main():
         else:
             # Find a source provider that is not the destination provider
             for provider_machine in existing_prov_machines:
-                instance_source = provider_machine.instance_source
-                if instance_source.provider != dprov:
-                    sprov = instance_source.provider
+                sprov_instance_source = provider_machine.instance_source
+                if sprov_instance_source.provider != dprov:
+                    sprov = sprov_instance_source.provider
                     break
             if sprov is None:
                 raise Exception("Could not find a source provider for at least one version of given application")
         logging.debug("Using source provider: {0}".format(sprov))
 
         # Get access to source provider
-        sprov_img_uuid = instance_source.identifier
+        sprov_img_uuid = sprov_instance_source.identifier
         sprov_acct_driver = service.driver.get_account_driver(sprov, raise_exception=True)
         sprov_img_mgr = sprov_acct_driver.image_manager
         sprov_glance_client = sprov_img_mgr.glance
@@ -146,18 +146,21 @@ def main():
             logging.info("Could not find existing ProviderMachine and InstanceSource for image on destination provider"
                          ", new objects will be created")
 
-        # Get Glance image, creating image if needed
-        dprov_glance_image = None
+        # Get or create Glance image
+        # Look for image matching identifier stored in InstanceSource for dprov
         if dprov_instance_source is not None:
-            # Todo look for matching properties application_name and application_version instead?
-            if dprov_glance_client.images.get(dprov_instance_source.identifier):
-                dprov_image_uuid = dprov_instance_source.identifier
-                dprov_glance_image = dprov_glance_client.images.get(dprov_image_uuid)
-                logging.info("Found existing Glance image, not creating a new one")
-        if not dprov_glance_image:
-            logging.info("Creating new Glance image")
-            dprov_glance_image = dprov_glance_client.images.create()
-            logging.debug("Created new empty Glance image: {0}".format(str(dprov_glance_image)))
+            dprov_glance_image = dprov_glance_client.images.get(dprov_instance_source.identifier)
+        if dprov_glance_image:
+                logging.info("Found Glance image from InstanceSource for destination provider, re-using it")
+        else:
+            # Look for image in dprov matching UUID of image in sprov
+            dprov_glance_image = dprov_glance_client.images.get(sprov_img_uuid)
+            if dprov_glance_image:
+                logging.info("Found Glance image matching image UUID in source provider, re-using it")
+            else:
+                logging.info("Creating new Glance image")
+                dprov_glance_image = dprov_glance_client.images.create(id=sprov_img_uuid)
+                logging.debug("Created new empty Glance image: {0}".format(str(dprov_glance_image)))
 
         # Create models in database
         if not (dprov_machine or dprov_instance_source):
