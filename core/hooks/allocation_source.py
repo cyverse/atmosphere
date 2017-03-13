@@ -58,9 +58,9 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
     current_percentage = int(100.0*new_compute_used/source.compute_allowed) if source.compute_allowed != 0 else 0
     if new_compute_used < source.compute_allowed:
         return
-    enforce_allocation_overage.apply_async(args=(source.source_id,) )
+    enforce_allocation_overage.apply_async(args=(source.uuid,) )
     new_payload = {
-        "allocation_source_id": source.source_id,
+        "allocation_source_id": source.uuid,
         "actual_value": current_percentage
     }
     return
@@ -144,7 +144,7 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     """
     This listener expects:
     EventType - 'allocation_source_threshold_met'
-    EventEntityID - '<allocation_source.source_id>'
+    EventEntityID - '<allocation_source.uuid>'
     EventPayload - {
         "allocation_source_id": "37623",
         "threshold":20  # The '20%' threshold was hit for this allocation.
@@ -347,9 +347,9 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
     """
     This listener expects:
     EventType - 'allocation_source_created'
-    EventEntityID - '<allocation_source.source_id>'
+    EventEntityID - '<allocation_source.uuid>'
     EventPayload - {
-        "source_id": "2439b15a-293a-4c11-b447-bf349f16ed2e",
+        "uuid": "2439b15a-293a-4c11-b447-bf349f16ed2e",
         "name": "TestAllocationSource",
         "compute_allowed": 50000,
         "renewal_strategy": "default"

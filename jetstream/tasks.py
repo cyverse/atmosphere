@@ -43,7 +43,7 @@ def create_reports():
     driver = TASAPIDriver()
     end_date = timezone.now()
     for item in user_allocation_list:
-        allocation_id = item.allocation_source.source_id
+        allocation_id = item.allocation_source.uuid
         tacc_username = driver.get_tacc_username(item.user)
         if not tacc_username:
             logger.error("No TACC username for user: '{}' which came from allocation id: {}".format(item.user,
@@ -212,7 +212,7 @@ def update_snapshot_cyverse_allocation(start_date,end_date):
     allocation_source_total_burn_rate = {}
     start_date = start_date
     end_date = end_date #timezone.now() if not end_date else end_date
-    for source in AllocationSource.objects.order_by('source_id'):
+    for source in AllocationSource.objects.order_by('uuid'):
         # iterate over user + allocation_source combo
         for user_allocation_source in UserAllocationSource.objects.filter(allocation_source__exact=source.id).order_by('user__username'):
             user = user_allocation_source.user
@@ -222,14 +222,14 @@ def update_snapshot_cyverse_allocation(start_date,end_date):
             compute_used, burn_rate = total_usage(user.username,start_date,allocation_source_name=source.name,end_date=end_date,burn_rate=True)
             allocation_source_total_compute[source.name] = allocation_source_total_compute.get(source.name,0) + compute_used
             allocation_source_total_burn_rate[source.name] = allocation_source_total_burn_rate.get(source.name,0) + burn_rate
-            payload_ubr = {"allocation_source_id":source.source_id, "username":user.username, "burn_rate":burn_rate, "compute_used":compute_used}
+            payload_ubr = {"allocation_source_id":source.uuid, "username":user.username, "burn_rate":burn_rate, "compute_used":compute_used}
             EventTable.create_event("user_allocation_snapshot_changed", payload_ubr, user.username)
         compute_used_total = allocation_source_total_compute.get(source.name,0)
         global_burn_rate = allocation_source_total_burn_rate.get(source.name,0)
         if compute_used_total != 0:
             logger.info("Total usage for AllocationSource %s (%s-%s) = %s (Burn Rate: %s)" % (source.name, start_date, end_date, compute_used_total, global_burn_rate))
         payload_as = {
-            "allocation_source_id":source.source_id,
+            "allocation_source_id":source.uuid,
             "compute_used":compute_used_total,
             "global_burn_rate":global_burn_rate
         }

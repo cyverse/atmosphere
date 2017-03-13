@@ -540,6 +540,7 @@ def monitor_instances():
         monitor_instances_for.apply_async(args=[p.id])
 
 
+## THIS METHOD IS NOT IN USE ANYMORE AND WON'T WORK
 @task(name="enforce_allocation_overage")
 def enforce_allocation_overage(allocation_source_id):
     """
@@ -549,7 +550,7 @@ def enforce_allocation_overage(allocation_source_id):
     user_instances_enforced = allocation_source_overage_enforcement(allocation_source)
     EventTable.create_event(
         name="allocation_source_threshold_enforced",
-        entity_id=source.source_id,
+        entity_id=allocation_source_id,
         payload=new_payload)
     return user_instances_enforced
 
