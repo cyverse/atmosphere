@@ -12,17 +12,21 @@ def update_user_allocation_sources(sender, instance, created, **kwargs):
     driver = TASAPIDriver()
     fill_user_allocation_source_for(driver, user)
 
-#FIXME: Re-add this when you have access to the XSede API
+#FIXME: Re-add this when you have access to the XSede API **AND**
+#       ONLY RUN IF you are ENFORCING=True
 #post_save.connect(update_user_allocation_sources, sender=AUTH_USER_MODEL)
 
 # Create your models here.
-
 
 
 class JetstreamAllocationSource(models.Model):
 
     parent_allocation_source = models.ForeignKey(AllocationSource)
     source_id = models.CharField(max_length=128)
+
+    def __unicode__(self):
+        return "%s (Source ID: %s)" %\
+            (self.parent_allocation_source, self.source_id)
 
 
 class TASAllocationReport(models.Model):
