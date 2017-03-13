@@ -106,7 +106,7 @@ requestsexceptions==1.2.0  # via os-client-config
 rfc3986==0.4.1            # via oslo.config
 rfive==0.2.0              # via rtwo
 rsa==3.4.2                # via oauth2client
-rtwo==0.5.2
+rtwo==0.5.4
 simplejson==3.10.0        # via osc-lib, python-cinderclient, python-neutronclient, python-novaclient
 six==1.10.0               # via cliff, cmd2, cryptography, debtcollector, djangorestframework-csv, keystoneauth1, oauth2client, openstacksdk, osc-lib, oslo.config, oslo.i18n, oslo.serialization, oslo.utils, packaging, pyopenssl, python-cinderclient, python-dateutil, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-swiftclient, setuptools, stevedore, warlock
 stevedore==1.21.0         # via cliff, keystoneauth1, openstacksdk, osc-lib, oslo.config, python-keystoneclient
