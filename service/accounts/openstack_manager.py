@@ -1035,11 +1035,13 @@ class AccountDriver(BaseAccountDriver):
         openstack_sdk = self.get_openstack_sdk_client(all_creds)
         neutron = self.get_neutron_client(all_creds)
         glance = self.get_glance_client(all_creds)
+        tenant = self.get_project(tenant_name)
+        tenant_id = tenant.id if tenant else None
         all_clients.update({
             "glance": glance,
             "neutron": neutron,
             "openstack_sdk": openstack_sdk,
-            "horizon": self._get_horizon_url(all_clients['keystone'].tenant_id)
+            "horizon": self._get_horizon_url(tenant_id)
         })
         return all_clients
 
@@ -1105,11 +1107,14 @@ class AccountDriver(BaseAccountDriver):
             service_type='identity', interface='publicURL')
         keystone_admin_url = self.user_manager.keystone.session.get_endpoint(
             service_type='identity', interface='admin')
+        region_name = self.user_manager.nova.client.region_name
+        if not region_name:
+            region_name = self.credentials['region_name']
         osdk_creds = {
             "auth_url": keystone_auth_url.replace('/v2.0','').replace('/v3',''),
             "admin_url": keystone_admin_url.replace('/v2.0','').replace('/v3',''),
             "ex_force_auth_version": ex_version,
-            "region_name": self.user_manager.nova.client.region_name,
+            "region_name": region_name,
             "username": username,
             "password": password,
             "tenant_name": tenant_name
