@@ -4,10 +4,12 @@ from django.conf import settings
 from django.utils import timezone
 from dateutil.parser import parse
 
+from core.models.allocation_source import UserAllocationSource
+
 from .exceptions import TASAPIException
 #FIXME: Next iteration, move this into the driver.
 from .tas_api import tacc_api_post, tacc_api_get
-from core.models.allocation_source import AllocationSource, UserAllocationSource
+
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +258,7 @@ class TASAPIDriver(object):
 
 
 def get_or_create_allocation_source(api_allocation, update_source=False):
+    from jetstream.models import JetstreamAllocationSource
     try:
         source_name = "%s" % (api_allocation['project'],)
         source_id = api_allocation['id']
@@ -264,9 +267,10 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
         raise TASAPIException("Malformed API Allocation - Missing keys in dict: %s" % api_allocation)
 
     try:
-        source = AllocationSource.objects.get(
+        jetstream_allocation = JetstreamAllocationSource.objects.get(
             source_id=source_id
         )
+        source = jetstream_allocation.parent_allocation_source
         if update_source:
             if compute_allowed != source.compute_allowed:
                 #FIXME: Here would be a *great* place to create a new event to "ignore" all previous allocation_source_`threshold_met/threshold_enforced`
@@ -274,12 +278,13 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
             source.name = source_name
             source.save()
         return source, False
-    except AllocationSource.DoesNotExist:
-        source = AllocationSource.objects.create(
+    except JetstreamAllocationSource.DoesNotExist:
+        jetstream_allocation = JetstreamAllocationSource.create_source(
             name=source_name,
             compute_allowed=compute_allowed,
             source_id=source_id
         )
+        source = jetstream_allocation.parent_allocation_source
         return source, True
 
 
