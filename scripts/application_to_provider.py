@@ -8,6 +8,7 @@ import sys
 
 import OpenSSL.SSL
 
+import glanceclient.exc
 import django; django.setup()
 import core.models
 import service.driver
@@ -148,19 +149,29 @@ def main():
 
         # Get or create Glance image
         # Look for image matching identifier stored in InstanceSource for dprov
+        # todo What ends up happening when we have existing InstanceSource with wrong image UUID?
+        # todo Do we correct it later (good) or end up creating a duplicate (maybe bad)?
+        # todo this logic also needs refactor
         if dprov_instance_source is not None:
-            dprov_glance_image = dprov_glance_client.images.get(dprov_instance_source.identifier)
-        if dprov_glance_image:
-                logging.info("Found Glance image from InstanceSource for destination provider, re-using it")
+            try:
+                dprov_glance_image = dprov_glance_client.images.get(dprov_instance_source.identifier)
+            except glanceclient.exc.HTTPNotFound:
+                pass
+            else:
+                if dprov_glance_image is not None:
+                    logging.info("Found Glance image from InstanceSource for destination provider, re-using it")
         else:
             # Look for image in dprov matching UUID of image in sprov
-            dprov_glance_image = dprov_glance_client.images.get(sprov_img_uuid)
-            if dprov_glance_image:
-                logging.info("Found Glance image matching image UUID in source provider, re-using it")
-            else:
+            try:
+                dprov_glance_image = dprov_glance_client.images.get(sprov_img_uuid)
+            except glanceclient.exc.HTTPNotFound:
+                logging.debug("Could not locate glance image in dprov matching UUID of glance image in sprov")
                 logging.info("Creating new Glance image")
                 dprov_glance_image = dprov_glance_client.images.create(id=sprov_img_uuid)
                 logging.debug("Created new empty Glance image: {0}".format(str(dprov_glance_image)))
+            else:
+                if dprov_glance_image is not None:
+                    logging.info("Found Glance image matching image UUID in source provider, re-using it")
 
         # Create models in database
         if not (dprov_machine or dprov_instance_source):
