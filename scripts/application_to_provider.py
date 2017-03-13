@@ -290,9 +290,6 @@ def _parse_args():
                         action="store_true",
                         help="Transfer image if application is private and member(s) have no identity on destination "
                              "provider")
-    parser.add_argument("--ignore-all-metadata",
-                        action="store_true",
-                        help="Do not set any image metadata ('properties' in Glance)")
     parser.add_argument("--keep-local-cache",
                         action="store_true",
                         help="Keep locally cached copies of image data - speeds up subsequent runs for same "
