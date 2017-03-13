@@ -721,6 +721,8 @@ def get_chain_from_active_with_ip(
         username, None, redeploy)
     check_vnc_task = check_process_task.si(
         driverCls, provider, identity, instance.id)
+    add_security_group = add_security_group_task.si(
+        driverCls, provider, core_identity, instance.id)
     check_web_desktop = check_web_desktop_task.si(
         driverCls, provider, identity, instance.id)
     remove_status_chain = get_remove_status_chain(
@@ -752,8 +754,9 @@ def get_chain_from_active_with_ip(
     deploy_ready_task.link(deploy_meta_task)
     deploy_meta_task.link(deploy_task)
     deploy_task.link(check_web_desktop)
-    check_web_desktop.link(check_vnc_task)  # Above this line, atmo is responsible for success.
-    check_vnc_task.link(deploy_user_task)  # this line and below, user can create a failure.
+    check_web_desktop.link(check_vnc_task)
+    check_vnc_task.link(add_security_group) # Above this line, atmo is responsible for success.
+    add_security_group.link(deploy_user_task)  # this line and below, user can create a failure.
     # ready -> metadata -> deployment..
 
     if boot_chain_start and boot_chain_end:
@@ -1214,6 +1217,30 @@ def check_web_desktop_task(driverCls, provider, identity,
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
         check_web_desktop_task.retry(exc=exc)
+
+
+@task(name="add_security_group_task",
+      max_retries = 5,
+      default_retry_delay=10)
+def add_security_group_task(driverCls, provider, core_identity,
+                            instance_alias, *args, **kwargs):
+    """
+    Assign the security group to the instance using the OpenStack Nova API
+    """
+    from service.instance import _to_user_driver
+    user_driver = _to_user_driver(core_identity)
+    user_nova = user_driver.nova
+    try:
+        server_instance = user_nova.servers.get(instance_alias)
+    except:
+        raise Exception("Cannot find the instance")
+    try:
+        security_group_name = core_identity.provider.get_config("network", "security_group_name", "atmosphere")
+        server_instance.add_security_group(security_group_name)
+    except:
+        raise Exception("Cannot add the security group to the instance usng nova")
+    return True
+
 
 
 @task(name="check_process_task",

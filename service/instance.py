@@ -1576,6 +1576,28 @@ def _to_network_driver(core_identity):
     return network_driver
 
 
+def _to_user_driver(core_identity):
+    all_creds = core_identity.get_all_credentials()
+    project_name = core_identity.project_name()
+    domain_name = all_creds.get('domain_name', 'default')
+    auth_url = all_creds.get('auth_url')
+    if '/v' not in auth_url:  # Add /v3 if no version specified in auth_url
+        auth_url += '/v3'
+    if 'ex_force_auth_token' in all_creds:
+        auth_token = all_creds['ex_force_auth_token'
+        (auth, sess, token) = _token_to_keystone_scoped_project(
+            auth_url, auth_token,
+            project_name, domain_name)
+    else:
+        username = all_creds['key']
+        password = all_creds['secret']
+        (auth, sess, token) = _connect_to_keystone_v3(
+            auth_url, username, password,
+            project_name, domain_name)
+    user_driver = UserManager(session=sess)
+    return user_driver
+
+
 def user_network_init(core_identity):
     """
     WIP -- need to figure out how to do this within the scope of libcloud // OR using existing authtoken to connect with neutron.
@@ -1703,8 +1725,7 @@ def _extra_openstack_args(core_identity, ex_metadata={}):
         user_key = user_keys[0]
         ex_keyname = user_key.name
     security_group_name = core_identity.provider.get_config("network", "security_group_name", "atmosphere")
-    ex_security_groups = [security_group_name]
-    return {"ex_metadata": ex_metadata, "ex_keyname": ex_keyname, "ex_security_groups": ex_security_groups}
+    return {"ex_metadata": ex_metadata, "ex_keyname": ex_keyname}
 
 
 def _get_init_script(instance_service_url, instance_token, instance_password,
