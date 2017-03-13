@@ -23,6 +23,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     activity = serializers.CharField(read_only=True, source='esh_activity')
     fault = serializers.ReadOnlyField(source='esh_fault')
     size_alias = serializers.CharField(read_only=True, source='esh_size')
+    size = serializers.SerializerMethodField()
     machine_alias = serializers.CharField(read_only=True, source='esh_source')
     machine_name = serializers.CharField(read_only=True,
                                          source='esh_source_name')
@@ -50,6 +51,14 @@ class InstanceSerializer(serializers.ModelSerializer):
         user = get_context_user(self, kwargs)
         self.request_user = user
         super(InstanceSerializer, self).__init__(*args, **kwargs)
+
+    def get_size(self, obj):
+        from api.v2.serializers.summaries import (
+            SizeSummarySerializer
+        )
+        size = obj.get_size()
+        serializer = SizeSummarySerializer(size, context=self.context)
+        return serializer.data
 
     class Meta:
         model = Instance

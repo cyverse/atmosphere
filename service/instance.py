@@ -111,12 +111,12 @@ def resize_instance(esh_driver, esh_instance, size_alias,
                     provider_uuid, identity_uuid, user):
     _permission_to_act(identity_uuid, "Resize")
     size = esh_driver.get_size(size_alias)
-    redeploy_task = resize_and_redeploy(
+    finish_resize_task = resize_and_redeploy(
         esh_driver,
         esh_instance,
         identity_uuid)
     esh_driver.resize_instance(esh_instance, size)
-    redeploy_task.apply_async()
+    finish_resize_task.apply_async()
     # Write build state for new size
     update_status(
         esh_driver,
