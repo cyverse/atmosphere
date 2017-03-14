@@ -21,9 +21,8 @@ provider by doing any/all of the following as needed:
 
 - Creates Glance image
 - Populates Glance image metadata
-- Transfers image data from existing provider
-  - Image data migrated using Glance API or iRODS for Atmosphere(0)
-- (Future coming soon) if Application uses an AMI-style image, ensures the
+- Transfers image data from existing provider using Glance API
+- If Application uses an AMI-style image, ensures the
   kernel (AKI) and ramdisk (ARI) images are also present on destination
   provider, and sets appropriate properties
 - Creates models (ProviderMachine, InstanceSource) in Atmosphere database
@@ -375,7 +374,7 @@ def _parse_args():
     parser.add_argument("--irods-xfer",
                         action="store_true",
                         help="Transfer image data using iRODS instead of glance download/upload "
-                             "(Atmosphere(0)-specific feature)")
+                             "(Atmosphere(0)-specific feature), not yet implemented")
     parser.add_argument("--ignore-missing-owner",
                         action="store_true",
                         help="Transfer image if application owner has no identity on destination provider (owner will "
@@ -394,6 +393,7 @@ def _parse_args():
 
 
 if __name__ == "__main__":
+    # Spit log messages to stdout
     output = logging.StreamHandler(sys.stdout)
     output.setLevel(logging.DEBUG)
     output.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
