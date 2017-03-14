@@ -221,7 +221,6 @@ def main():
             dprov_glance_client.images.update(dprov_glance_image.id,
                                               kernel_id=sprov_glance_image.kernel_id,
                                               ramdisk_id=sprov_glance_image.ramdisk_id)
-        # Todo maybe not keep querying Glance, instead above, make updates to the original dprov_glance_image object
         logging.info("Populated Glance image metadata: {0}"
                      .format(str(dprov_glance_client.images.get(dprov_glance_image.id))))
 
