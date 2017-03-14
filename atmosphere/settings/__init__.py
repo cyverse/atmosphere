@@ -2,7 +2,7 @@
 Settings for atmosphere project.
 
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 from datetime import timedelta
 from uuid import UUID
 import logging
@@ -397,9 +397,9 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',
     'DEFAULT_FILTER_BACKENDS': (
-        'rest_framework.filters.DjangoFilterBackend',
+        'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
-        'rest_framework.filters.OrderingFilter'
+        'django_filters.rest_framework.OrderingFilter'
     )
 }
 LOGIN_REDIRECT_URL = "/api/v1"
@@ -421,8 +421,15 @@ ELASTICSEARCH_HOST = SERVER_URL
 ELASTICSEARCH_PORT = 9200
 
 # Django-Celery secrets
-BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERYD_SEND_EVENTS = True
+
+CELERY_ACCEPT_CONTENT = ['pickle', 'msgpack']
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
+CELERY_EVENT_SERIALIZER = "pickle"
+
 # Related to Broker and ResultBackend
 REDIS_CONNECT_RETRY = True
 # General Celery Settings
@@ -459,9 +466,6 @@ CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
 CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
 # # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
-
-import djcelery
-djcelery.setup_loader()
 
 # Related to Celerybeat
 CELERYBEAT_CHDIR = PROJECT_ROOT
@@ -570,3 +574,6 @@ def _get_method_for_string(method_str, the_globals=None):
     if not the_globals:
         the_globals = globals()
     return the_globals[method_str]
+
+# This will make sure the app is always imported when
+# Django starts so that shared_task will use this app.

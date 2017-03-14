@@ -1,6 +1,6 @@
 pycparser==2.14 # TEMPORARY
 
-Django==1.9.8
+Django==1.10.6
 django-cors-headers==0.12.0
 django-sslserver #NOTE: Debugs requests real-time.
 djangorestframework==3.4.1
@@ -11,15 +11,14 @@ djangorestframework-csv
 numpy
 pandas
 xlsxwriter
-django-filter==0.13.0
+django-filter==1.0.1
 django-redis-cache==0.13.0
 redis==2.10.3
 eventlet==0.18.4
 
 Jinja2==2.8
-celery==3.1.23
+celery>=4.0,<5.0
 flower==0.9.0
-django-celery==3.1.16
 
 gevent==1.0.1
 

@@ -13,6 +13,7 @@ middleware here, or combine a Django application with an application of another
 framework.
 
 """
+from __future__ import absolute_import, unicode_literals
 import os
 import sys
 
@@ -29,6 +30,9 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 # apache logs.
 from django.conf import settings
 from threepio import logger
+if not logger:
+    import logging
+    logger = logging.getLogger(__name__)
 
 if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
     try:

@@ -10,7 +10,7 @@ from api.v2.views.base import AuthReadOnlyViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 class InstanceStatusHistoryFilter(django_filters.FilterSet):
-    instance = django_filters.MethodFilter(action='filter_instance_id')
+    instance = django_filters.CharFilter(method='filter_instance_id')
     created_by = django_filters.CharFilter('instance__created_by__username')
 
     def filter_instance_id(self, queryset, value):
