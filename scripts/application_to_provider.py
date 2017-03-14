@@ -149,7 +149,7 @@ def main():
 
         # Get or create Glance image
         # Look for image matching identifier stored in InstanceSource for dprov
-        # todo What ends up happening when we have existing InstanceSource with wrong image UUID?
+        # todo corner case: we have existing InstanceSource with wrong image UUID?
         # todo Do we correct it later (good) or end up creating a duplicate (maybe bad)?
         # todo this logic also needs refactor
         if dprov_instance_source is not None:
@@ -221,55 +221,10 @@ def main():
             logging.info("Private image updated with member UUIDs")
 
         # Populate image data in destination provider if needed
-        if sprov_glance_image.checksum == dprov_glance_client.images.get(dprov_glance_image.id).checksum:
-            logging.info("Image data checksum matches on source and destination providers, not migrating data")
-        else:
-            logging.info("Migrating image data because checksums don't match between source and destination providers")
-            local_storage_dir = secrets.LOCAL_STORAGE if os.path.exists(secrets.LOCAL_STORAGE) else "/tmp"
-            local_path = os.path.join(local_storage_dir, sprov_img_uuid)
-
-            # Download image from source provider, only if there is no accurate local copy
-            tries = 0
-            while tries < max_tries:
-                if os.path.exists(local_path) and file_md5(local_path) == sprov_glance_image.checksum:
-                    logging.debug("Verified correct local copy of the image")
-                    break
-                else:
-                    if tries != 0:
-                        logging.warning("Image data download attempt failed")
-                    tries += 1
-                    logging.debug("Attempting to download image data from source provider")
-                    image_data = sprov_glance_client.images.data(sprov_img_uuid)
-                    with open(local_path, 'wb') as img_file:
-                        for chunk in image_data:
-                            img_file.write(chunk)
-
-            if file_md5(local_path) != sprov_glance_image.checksum:
-                raise Exception("Could not download Glance image from source provider")
-
-            # Upload image to destination provider, keep trying until checksums match
-            tries = 0
-            while tries < max_tries:
-                tries += 1
-                logging.debug("Attempting to upload image data to destination provider")
-                with open(local_path, 'rb') as img_file:
-                    try:
-                        dprov_glance_client.images.upload(dprov_glance_image.id, img_file)
-                    except OpenSSL.SSL.SysCallError:
-                        logging.warning("Image data upload attempt failed")
-                        continue
-                if sprov_glance_image.checksum == dprov_glance_client.images.get(dprov_glance_image.id).checksum:
-                    logging.info("Successfully uploaded image data to destination provider")
-                    break
-                else:
-                    logging.warning("Image data upload attempt failed")
-
-            if sprov_glance_image.checksum != dprov_glance_client.images.get(dprov_glance_image.id).checksum:
-                raise Exception("Could not successfully upload image data")
-
-            if not args.keep_local_cache:
-                logging.debug("Removing local cache of image data")
-                os.remove(local_path)
+        local_storage_dir = secrets.LOCAL_STORAGE if os.path.exists(secrets.LOCAL_STORAGE) else "/tmp"
+        local_path = os.path.join(local_storage_dir, sprov_img_uuid)
+        migrate_image_data(sprov_glance_client, dprov_glance_client, sprov_img_uuid, local_path,
+                           persist_local_cache=args.persist_local_cache)
 
 
 def file_md5(path):
@@ -279,6 +234,76 @@ def file_md5(path):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
+
+
+def migrate_image_data(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True, max_tries=3):
+    """
+    Ensures that Glance image data matches between a source and a destination OpenStack provider. Migrates image data
+    if needed. Assumes that:
+    - The Glance image object has already been created in the source provider
+    - The Glance image UUIDs match between providers
+
+    Args:
+        src_glance_client: glance client object for source provider
+        dst_glance_client: glance client object for destination provider
+        img_uuid: UUID of image to be migrated
+        local_path: Local storage path
+        persist_local_cache: If image download succeeds but upload fails, keep local cached copy for subsequent attempt
+                             (Local cache is always deleted after successful upload)
+        max_tries: number of times to attempt each of download and upload
+
+    Returns: True if success, else raises an exception
+    """
+    src_img = src_glance_client.images.get(img_uuid)
+    dst_img = dst_glance_client.images.get(img_uuid)
+    if src_img.checksum == dst_img.checksum:
+        logging.info("Image data checksum matches on source and destination providers, not migrating data")
+        return True
+    logging.info("Migrating image data because checksums don't match between source and destination providers")
+
+    # Download image from source provider, only if there is no correct local copy
+    if os.path.exists(local_path) and file_md5(local_path) == src_img.checksum:
+        logging.debug("Verified correct local copy of the image")
+    else:
+        tries = 0
+        while tries < max_tries:
+            tries += 1
+            logging.debug("Attempting to download image data from source provider")
+            image_data = src_glance_client.images.data(img_uuid)
+            with open(local_path, 'wb') as img_file:
+                for chunk in image_data:
+                    img_file.write(chunk)
+            if os.path.exists(local_path) and file_md5(local_path) == src_img.checksum:
+                logging.debug("Image data download succeeded")
+                break
+            else:
+                logging.warning("Image data download attempt failed")
+        if file_md5(local_path) != src_img.checksum:
+            if not persist_local_cache:
+                os.remove(local_path)
+            raise Exception("Could not download Glance image from source provider")
+
+    # Upload image to destination provider, keep trying until checksums match
+    tries = 0
+    while tries < max_tries:
+        tries += 1
+        logging.debug("Attempting to upload image data to destination provider")
+        with open(local_path, 'rb') as img_file:
+            try:
+                dst_glance_client.images.upload(img_uuid, img_file)
+                if src_img.checksum == dst_glance_client.images.get(img_uuid).checksum:
+                    logging.info("Successfully uploaded image data to destination provider")
+                    break
+                else:
+                    logging.warning("Image data upload attempt failed")
+            except OpenSSL.SSL.SysCallError:
+                logging.warning("Image data upload attempt failed")
+
+    if src_img.checksum != dst_glance_client.images.get(img_uuid).checksum:
+        raise Exception("Could not upload image data")
+    else:
+        os.remove(local_path)
+        return True
 
 
 def _parse_args():
@@ -301,12 +326,14 @@ def _parse_args():
                         action="store_true",
                         help="Transfer image if application is private and member(s) have no identity on destination "
                              "provider")
-    parser.add_argument("--keep-local-cache",
+    parser.add_argument("--persist-local-cache",
                         action="store_true",
-                        help="Keep locally cached copies of image data - speeds up subsequent runs for same "
-                             "application but may consume a lot of storage space in /tmp")
+                        help="If image download succeeds but upload fails, keep local cached copy for subsequent "
+                             "attempt. (Local cache is always deleted after successful upload). "
+                             "May consume a lot of disk space.")
     args = parser.parse_args()
     return args
+
 
 if __name__ == "__main__":
     output = logging.StreamHandler(sys.stdout)
