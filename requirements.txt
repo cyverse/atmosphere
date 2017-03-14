@@ -98,7 +98,7 @@ python-openstackclient==3.3.0  # via rtwo
 python-swiftclient==3.1.0  # via rtwo
 pytz==2016.2
 pyyaml==3.12              # via ansible, cliff, djangorestframework-yaml, os-client-config
-redis==2.10.3
+redis==2.10.5
 requests[security]==2.11.1
 requestsexceptions==1.2.0  # via os-client-config
 rfc3986==0.4.1            # via oslo.config

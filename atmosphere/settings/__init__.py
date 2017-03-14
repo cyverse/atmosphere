@@ -399,7 +399,7 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
-        'django_filters.rest_framework.OrderingFilter'
+        'rest_framework.filters.OrderingFilter'
     )
 }
 LOGIN_REDIRECT_URL = "/api/v1"
@@ -425,7 +425,7 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERYD_SEND_EVENTS = True
 
-CELERY_ACCEPT_CONTENT = ['pickle', 'msgpack']
+CELERY_ACCEPT_CONTENT = ['pickle',]
 CELERY_TASK_SERIALIZER = "pickle"
 CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_EVENT_SERIALIZER = "pickle"
@@ -433,6 +433,8 @@ CELERY_EVENT_SERIALIZER = "pickle"
 # Related to Broker and ResultBackend
 REDIS_CONNECT_RETRY = True
 # General Celery Settings
+#
+CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
 CELERY_ENABLE_UTC = True
 CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TIMEZONE = TIME_ZONE
@@ -446,26 +448,6 @@ CELERYD_TASK_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
     "/%(processName)s [PID:%(process)d]"\
     " [%(task_name)s(%(task_id)s)] "\
     "@ %(pathname)s on %(lineno)d] %(message)s"
-# To use Manual Routing:
-# - 1. Create an Exchange,
-# - 2. Create a Queue,
-# - 3. Bind Queue to Exchange
-CELERY_QUEUES = (
-    Queue('default', Exchange('default'), routing_key='default'),
-    Queue('email', Exchange('default'), routing_key='email.sending'),
-    Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
-    Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
-    Queue('imaging', Exchange('imaging'), routing_key='imaging'),
-    Queue('periodic', Exchange('periodic'), routing_key='periodic'),
-)
-CELERY_DEFAULT_QUEUE = 'default'
-CELERY_DEFAULT_ROUTING_KEY = "default"
-CELERY_DEFAULT_EXCHANGE = 'default'
-CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
-# NOTE: We are Using atmosphere's celery_router as an interim solution.
-CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
-# # Django-Celery Development settings
-# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
 # Related to Celerybeat
 CELERYBEAT_CHDIR = PROJECT_ROOT

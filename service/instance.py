@@ -388,6 +388,7 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
 
 
 def redeploy_instance(
+        core_identity,
         esh_driver,
         esh_instance,
         username,
@@ -406,7 +407,7 @@ def redeploy_instance(
         esh_instance.extra['metadata']['tmp_status'] = "initializing"
     deploy_chain = get_idempotent_deploy_chain(
         esh_driver.__class__, esh_driver.provider, esh_driver.identity,
-        esh_instance, username)
+        esh_instance, core_identity, username)
     return deploy_chain.apply_async()
 
 
