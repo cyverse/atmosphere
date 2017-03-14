@@ -132,8 +132,23 @@ def main():
         sprov_img_mgr = sprov_acct_driver.image_manager
         sprov_glance_client = sprov_img_mgr.glance
 
-        # Get source image metadata from Glance
+        # Get source image metadata from Glance, and determine if image is AMI-based
         sprov_glance_image = sprov_glance_client.images.get(sprov_img_uuid)
+        if sprov_glance_image.get("kernel_id") or sprov_glance_image.get("ramdisk_id"):
+            if sprov_glance_image.get("kernel_id") and sprov_glance_image.get("ramdisk_id"):
+                ami = True
+            else:
+                raise Exception("AMI-based image must have both a kernel_id and ramdisk_id defined")
+        else:
+            ami = False
+        # If AMI-based image, verify that AKI and ARI images actually exist in source provider
+        if ami:
+            try:
+                sprov_aki_glance_image = sprov_glance_client.images.get(sprov_glance_image.get("kernel_id"))
+                sprov_ari_glance_image = sprov_glance_client.images.get(sprov_glance_image.get("ramdisk_id"))
+            except glanceclient.exc.HTTPNotFound:
+                logging.critical("Could not retrieve the AKI or ARI image on source provider, for an AMI-based image")
+
         logging.debug("Source image metadata: {0}".format(str(sprov_glance_image)))
 
         # Check for existing ProviderMachine + InstanceSource for ApplicationVersion on destination provider
@@ -149,9 +164,11 @@ def main():
 
         # Get or create Glance image
         # Look for image matching identifier stored in InstanceSource for dprov
-        # todo corner case: we have existing InstanceSource with wrong image UUID?
-        # todo Do we correct it later (good) or end up creating a duplicate (maybe bad)?
-        # todo this logic also needs refactor
+        """
+        todo corner case: we have existing InstanceSource with wrong image UUID?
+        Do we correct it later (good) or end up creating a duplicate (maybe bad)?
+        this logic may also need refactor
+        """
         if dprov_instance_source is not None:
             try:
                 dprov_glance_image = dprov_glance_client.images.get(dprov_instance_source.identifier)
@@ -161,17 +178,14 @@ def main():
                 if dprov_glance_image is not None:
                     logging.info("Found Glance image from InstanceSource for destination provider, re-using it")
         else:
-            # Look for image in dprov matching UUID of image in sprov
-            try:
-                dprov_glance_image = dprov_glance_client.images.get(sprov_img_uuid)
-            except glanceclient.exc.HTTPNotFound:
-                logging.debug("Could not locate glance image in dprov matching UUID of glance image in sprov")
-                logging.info("Creating new Glance image")
-                dprov_glance_image = dprov_glance_client.images.create(id=sprov_img_uuid)
-                logging.debug("Created new empty Glance image: {0}".format(str(dprov_glance_image)))
-            else:
-                if dprov_glance_image is not None:
-                    logging.info("Found Glance image matching image UUID in source provider, re-using it")
+            dprov_glance_image = get_or_create_glance_image(dprov_glance_client, sprov_img_uuid)
+
+        # Get or create AKI+ARI Glance images for AMI-based image
+        if ami:
+            dprov_aki_glance_image = get_or_create_glance_image(dprov_glance_client,
+                                                                sprov_glance_image.get("kernel_id"))
+            dprov_ari_glance_image = get_or_create_glance_image(dprov_glance_client,
+                                                                sprov_glance_image.get("ramdisk_id"))
 
         # Create models in database
         if not (dprov_machine or dprov_instance_source):
@@ -189,8 +203,8 @@ def main():
         # Populate image metadata (this is always done)
         dprov_glance_client.images.update(dprov_glance_image.id,
                                           name=app.name,
-                                          container_format=sprov_glance_image.container_format,
-                                          disk_format=sprov_glance_image.disk_format,
+                                          container_format="ami" if ami else sprov_glance_image.container_format,
+                                          disk_format="ami" if ami else sprov_glance_image.disk_format,
                                           # We are using old Glance client
                                           # https://wiki.openstack.org/wiki/Glance-v2-community-image-visibility-design
                                           visibility="private" if app.private else "public",
@@ -204,7 +218,11 @@ def main():
                                           application_uuid=str(app.uuid),
                                           # Todo min_disk? min_ram? Do we care?
                                           )
-        # Todo maybe not query this again, instead above, make updates to the original dprov_glance_image object
+        if ami:
+            dprov_glance_client.images.update(dprov_glance_image.id,
+                                              kernel_id=sprov_glance_image.kernel_id,
+                                              ramdisk_id=sprov_glance_image.ramdisk_id)
+        # Todo maybe not keep querying Glance, instead above, make updates to the original dprov_glance_image object
         logging.info("Populated Glance image metadata: {0}"
                      .format(str(dprov_glance_client.images.get(dprov_glance_image.id))))
 
@@ -220,11 +238,34 @@ def main():
                 dprov_glance_client.image_members.delete(dprov_glance_image.id, del_member_uuid)
             logging.info("Private image updated with member UUIDs")
 
-        # Populate image data in destination provider if needed
+        # If AMI-based image, set metadata for AKI and ARI images
+        if ami:
+            dprov_glance_client.images.update(sprov_aki_glance_image.id,
+                                              container_format="aki",
+                                              disk_format="aki",
+                                              visibility="public",
+                                              name=sprov_aki_glance_image.name,
+                                              owner=dprov_atmo_admin_uuid,
+                                              )
+            dprov_glance_client.images.update(sprov_ari_glance_image.id,
+                                              container_format="ari",
+                                              disk_format="ari",
+                                              visibility="public",
+                                              name=sprov_ari_glance_image.name,
+                                              owner=dprov_atmo_admin_uuid,
+                                              )
+
         local_storage_dir = secrets.LOCAL_STORAGE if os.path.exists(secrets.LOCAL_STORAGE) else "/tmp"
         local_path = os.path.join(local_storage_dir, sprov_img_uuid)
+        # Populate image data in destination provider if needed
         migrate_image_data(sprov_glance_client, dprov_glance_client, sprov_img_uuid, local_path,
                            persist_local_cache=args.persist_local_cache)
+        # If AMI-based image, populate image data in destination provider if needed
+        if ami:
+            migrate_image_data(sprov_glance_client, dprov_glance_client, sprov_aki_glance_image.id, local_path,
+                               persist_local_cache=args.persist_local_cache)
+            migrate_image_data(sprov_glance_client, dprov_glance_client, sprov_ari_glance_image.id, local_path,
+                               persist_local_cache=args.persist_local_cache)
 
 
 def file_md5(path):
@@ -234,6 +275,23 @@ def file_md5(path):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
+
+
+def get_or_create_glance_image(glance_client, img_uuid):
+    """
+    Given a glance_client object and a desired img_uuid, either gets the existing image or creates a new one
+    Returns a glance_client image object
+    """
+    try:
+        glance_image = glance_client.images.get(img_uuid)
+    except glanceclient.exc.HTTPNotFound:
+        logging.debug("Could not locate glance image in specified provider")
+        logging.info("Creating new Glance image")
+        return glance_client.images.create(id=img_uuid)
+    else:
+        if glance_image is not None:
+            logging.info("Found Glance image matching specified UUID {0}, re-using it".format(img_uuid))
+            return glance_image
 
 
 def migrate_image_data(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True, max_tries=3):
