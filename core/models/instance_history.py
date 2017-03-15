@@ -209,6 +209,11 @@ class InstanceStatusHistory(models.Model):
             all_history = all_history.filter(end_date__lt=end_date)
         return all_history
 
+    def force_end_date(self, now_time=None):
+        if not now_time:
+            now_time = timezone.now()
+        return self.end_date if self.end_date else now_time
+
     def __unicode__(self):
         return "%s (FROM:%s TO:%s)" % (self.status,
                                        self.start_date,

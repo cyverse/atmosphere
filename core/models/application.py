@@ -148,33 +148,16 @@ class Application(models.Model):
                      (query.images_shared_with_user(user) | is_public)))
         return queryset.distinct()
 
-    def get_metrics(self):
+    def _current_versions(self):
         """
-        Aggregate 'all-version' metrics
-        More specific metrics can be found at the version level
+        Return a list of current application versions.
+        NOTE: Defined as:
+                * The ApplicationVersion has not exceeded its end_date
         """
-        versions = self.versions.all()
-        version_map = {}
-        all_count = 0
-        all_total = timezone.timedelta(0)
-        all_avg = timezone.timedelta(0)
-        all_user_domain_map = {}
-        for version in versions:
-            version_metrics = version.get_metrics()
-            provider_metrics = version_metrics['providers']
-            for key,val in version_metrics['domains'].items():
-                count = all_user_domain_map.get(key,0)
-                count += val
-                all_user_domain_map[key] = count
-            all_avg += sum([prov['avg_time'] for prov in provider_metrics.values()], timezone.timedelta(0))
-            all_total += sum([prov['total'] for prov in provider_metrics.values()], timezone.timedelta(0))
-            all_count += sum([prov['count'] for prov in provider_metrics.values()])
-            version_map[version.name] = version_metrics
-        return {'versions': {
-            'avg_time': all_avg, 'total': all_total,
-            'count': all_count,'domains':all_user_domain_map
-            }
-        }
+        version_set = self.all_versions
+        active_versions = version_set.filter(
+            query.only_current())
+        return active_versions
 
     def _current_machines(self, request_user=None):
         """

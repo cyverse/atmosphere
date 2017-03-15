@@ -1,0 +1,53 @@
+from django.utils import timezone
+from dateutil import rrule
+from core.models import (
+    Instance, AtmosphereUser, MachineRequest,
+    Application, ProviderMachine, Provider
+)
+
+
+def machine_request_report(filename, start_date=None, end_date=None):
+    query = MachineRequest.objects.filter(old_status='completed')
+    if start_date:
+        query = query.filter(start_date__gt=start_date)
+    if end_date:
+        query = query.filter(end_date__gt=end_date)
+    with open(filename, 'w') as the_file:
+        the_file.write("ID,Username,Provider,Application,Version,Start Date,Created on\n")
+        for mr in query.order_by('start_date', 'end_date'):
+            the_file.write( "%s,%s,%s,%s,%s,%s,%s\n" % (mr.id, mr.created_by.username, mr.new_machine_provider.location, mr.new_machine.application.name if mr.new_machine else "N/A", mr.new_machine.application_version.name if mr.new_machine else "N/A", mr.start_date.strftime("%x %X"), mr.end_date.strftime("%x %X") if mr.end_date else "N/A") )
+
+def monthly_metrics(filename, start_date, end_date):
+    monthly_breakdown = list(rrule.rrule(dtstart=start_date, freq=rrule.MONTHLY, until=timezone.now()))
+    with open(filename, 'w') as the_file:
+        the_file.write("Start Date,End Date,Instances launched,Users Joined,Applications Created,Machines Added\n")
+        for idx, month in enumerate(monthly_breakdown):
+            if idx == len(monthly_breakdown) - 1:
+                continue
+            start_date = month
+            end_date = monthly_breakdown[idx+1]
+            provider_ids = Provider.objects.filter(active=True, end_date__isnull=True).values_list("id", flat=True)
+            the_file.write(_print_csv_row_between_dates(provider_ids, start_date, end_date))
+            the_file.write("\n")
+    return the_file
+
+
+def _print_csv_row_between_dates(provider_ids, start_date, end_date, pretty_print=False):
+    instances = Instance.objects.filter(start_date__gt=start_date, start_date__lt=end_date)
+    users = AtmosphereUser.objects.filter(date_joined__gt=start_date, date_joined__lt=end_date)
+    apps = Application.objects\
+        .filter(start_date__gt=start_date, start_date__lt=end_date)\
+        .filter(created_by_identity__provider__id__in=provider_ids).distinct()
+    machines = ProviderMachine.objects\
+        .filter(instance_source__start_date__gt=start_date, instance_source__start_date__lt=end_date)\
+        .filter(instance_source__provider__id__in=provider_ids).distinct()
+    if pretty_print:
+        return """Between %s and %s:
+            %s Instances launched
+            %s Users joined
+            %s Applications (%s Machines) created""" % (
+                start_date, end_date,
+                instances.count(), users.count(), apps.count(), machines.count())
+    return "%s,%s,%s,%s,%s,%s" % (
+            start_date.strftime("%x %X"), end_date.strftime("%x %X"),
+            instances.count(), users.count(), apps.count(), machines.count())
