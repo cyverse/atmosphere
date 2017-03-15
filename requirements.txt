@@ -6,7 +6,7 @@
 #
 -e git+https://github.com/steve-gregory/billiard.git#egg=billiard
 amqp==2.1.4               # via kombu
-ansible==2.1.0.0
+ansible==2.2.1.0          # via subspace
 apache-libcloud==0.20.1
 appdirs==1.4.3            # via os-client-config, setuptools
 asn1crypto==0.22.0        # via cryptography
@@ -48,7 +48,7 @@ httplib2==0.10.3          # via oauth2client
 idna==2.5                 # via cryptography
 ipaddress==1.0.18         # via cryptography
 iso8601==0.1.11           # via keystoneauth1, oslo.utils, python-neutronclient, python-novaclient
-Jinja2==2.8.1             # via ansible
+jinja2==2.8.1
 jsonpatch==1.15           # via warlock
 jsonpointer==1.10         # via jsonpatch
 jsonschema==2.6.0         # via warlock
@@ -108,7 +108,7 @@ rtwo==0.5.4
 simplejson==3.10.0        # via osc-lib, python-cinderclient, python-neutronclient, python-novaclient
 six==1.10.0               # via cliff, cmd2, cryptography, debtcollector, djangorestframework-csv, keystoneauth1, oauth2client, openstacksdk, osc-lib, oslo.config, oslo.i18n, oslo.serialization, oslo.utils, packaging, pyopenssl, python-cinderclient, python-dateutil, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-swiftclient, setuptools, stevedore, warlock
 stevedore==1.21.0         # via cliff, keystoneauth1, openstacksdk, osc-lib, oslo.config, python-keystoneclient
-subspace==0.2.6
+subspace==0.3
 threepio==0.2.0
 tornado==4.2.0            # via flower
 unicodecsv==0.14.1        # via cliff, djangorestframework-csv
