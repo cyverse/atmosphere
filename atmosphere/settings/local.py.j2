@@ -418,3 +418,14 @@ VALIDATION_PLUGINS = [
     'atmosphere.plugins.auth.validation.AlwaysAllow',
 ]
 {%- endif %}
+
+{%- if SENTRY_ENABLED %}
+import raven
+
+INSTALLED_APPS += (
+    'raven.contrib.django.raven_compat',
+)
+
+SENTRY_DSN = {{ SENTRY_DSN }}
+SENTRY_RELEASE = raven.fetch_git_sha(os.path.dirname(os.pardir))
+{%- endif %}
