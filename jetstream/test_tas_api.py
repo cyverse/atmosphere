@@ -86,7 +86,7 @@ class TestJetstream(TestCase):
         tas_driver.clear_cache()
         self.assertDictEqual(tas_driver.username_map, {})
         user = UserFactory.create(username='jfischer')
-        with self.assertRaises(Exception):
-            tacc_username = tas_driver.get_tacc_username(user)
+        tacc_username = tas_driver.get_tacc_username(user)
+        self.assertIsNone(tacc_username)
         self.assertDictEqual(tas_driver.username_map, {})
         assert_cassette_playback_length(cassette, 1)
