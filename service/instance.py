@@ -1480,7 +1480,7 @@ def _to_network_driver(core_identity):
         password = all_creds['secret']
         (auth, sess, token) = _connect_to_keystone_v3(
             auth_url, username, password,
-            project_name, domain_name)
+            project_name, domain_name=domain_name)
     network_driver = NetworkManager(session=sess)
     return network_driver
 
