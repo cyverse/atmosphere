@@ -6,6 +6,7 @@ from celery import Celery
 cwd_path = os.path.dirname(os.path.dirname(__file__))
 os.environ.setdefault('PYTHONPATH', cwd_path)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'atmosphere.settings')
+os.environ.setdefault('PYTHONOPTIMIZE', '1')  #NOTE: Required to run ansible2 + celery + prefork concurrency -- removing will show `AttributeError: 'NoneType' object has no attribute 'terminate'`
 
 app = Celery('atmosphere')
 #app.conf.update(event_serializer='pickle', task_serializer='pickle', accept_content=['pickle'], result_serializer='pickle')

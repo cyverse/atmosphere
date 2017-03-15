@@ -23,6 +23,7 @@ sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
 sys.path.insert(1, root_dir)
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
+os.environ["ANSIBLE_LOCAL_TEMP"] = "/tmp/.ansible"
 
 # NOTE: DO NOT MOVE ABOVE THIS LINE! Django will fail to import settings without knowing
 # what settings module ('atmosphere.settings') to use!

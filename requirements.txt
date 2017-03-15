@@ -4,14 +4,14 @@
 #
 #    pip-compile --output-file requirements.txt requirements.in
 #
+-e git+https://github.com/steve-gregory/billiard.git#egg=billiard
 amqp==2.1.4               # via kombu
-ansible==2.1              # via subspace
+ansible==2.1.0.0
 apache-libcloud==0.20.1
 appdirs==1.4.3            # via os-client-config, setuptools
-asn1crypto==0.21.1        # via cryptography
+asn1crypto==0.22.0        # via cryptography
 babel==2.3.4              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-neutronclient, python-novaclient, python-openstackclient
 backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud, tornado
-billiard==3.5.0.2         # via celery
 boto==2.39.0              # via chromogenic
 caslib.py==2.2.2          # via django-cyverse-auth
 celery==4.0.2
@@ -29,12 +29,12 @@ django-cyverse-auth==1.0.11
 django-filter==1.0.1
 django-redis-cache==0.13.0
 django-sslserver==0.19
-Django==1.10.6            # via django-cors-headers, django-sslserver
+django==1.10.6
 djangorestframework-csv==2.0.0
-djangorestframework-jsonp==1.0.0
-djangorestframework-xml==1.0.1
-djangorestframework-yaml==1.0.2
-djangorestframework==3.4.1
+djangorestframework-jsonp==1.0.2
+djangorestframework-xml==1.3.0
+djangorestframework-yaml==1.0.3
+djangorestframework==3.6.2
 enum34==1.1.6             # via cryptography
 eventlet==0.18.4
 Fabric==1.10              # via rfive
@@ -48,7 +48,7 @@ httplib2==0.10.3          # via oauth2client
 idna==2.5                 # via cryptography
 ipaddress==1.0.18         # via cryptography
 iso8601==0.1.11           # via keystoneauth1, oslo.utils, python-neutronclient, python-novaclient
-Jinja2==2.8               # via ansible
+Jinja2==2.8.1             # via ansible
 jsonpatch==1.15           # via warlock
 jsonpointer==1.10         # via jsonpatch
 jsonschema==2.6.0         # via warlock
@@ -80,7 +80,7 @@ prettytable==0.7.2        # via cliff, python-cinderclient, python-glanceclient,
 psycopg2==2.5.4
 pyasn1-modules==0.0.8     # via oauth2client
 pyasn1==0.2.3             # via oauth2client, paramiko, pyasn1-modules, requests, rsa
-pycparser==2.14
+pycparser==2.17           # via cffi
 pycrypto==2.6.1           # via ansible, jwt.py
 PyJWT==1.4.0
 pyopenssl==16.2.0         # via ndg-httpsclient, requests
@@ -108,14 +108,14 @@ rtwo==0.5.4
 simplejson==3.10.0        # via osc-lib, python-cinderclient, python-neutronclient, python-novaclient
 six==1.10.0               # via cliff, cmd2, cryptography, debtcollector, djangorestframework-csv, keystoneauth1, oauth2client, openstacksdk, osc-lib, oslo.config, oslo.i18n, oslo.serialization, oslo.utils, packaging, pyopenssl, python-cinderclient, python-dateutil, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-swiftclient, setuptools, stevedore, warlock
 stevedore==1.21.0         # via cliff, keystoneauth1, openstacksdk, osc-lib, oslo.config, python-keystoneclient
-subspace==0.2.5
+subspace==0.2.6
 threepio==0.2.0
 tornado==4.2.0            # via flower
 unicodecsv==0.14.1        # via cliff, djangorestframework-csv
 uWSGI==2.0.13
 vine==1.1.3               # via amqp
 warlock==1.2.0            # via python-glanceclient
-wrapt==1.10.8             # via debtcollector, positional
+wrapt==1.10.10            # via debtcollector, positional
 xlsxwriter==0.9.6
 
 # The following packages are considered to be unsafe in a requirements file:
