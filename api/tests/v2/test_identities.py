@@ -92,7 +92,6 @@ class GetDetailTests(APITestCase):
         IdentityMembershipFactory.create(
             member=self.group,
             identity=self.identity,
-            quota=self.quota
         )
 
         factory = APIRequestFactory()

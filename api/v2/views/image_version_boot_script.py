@@ -7,8 +7,8 @@ from api.v2.serializers.details import ImageVersionBootScriptSerializer
 from api.v2.views.base import AuthViewSet
 
 class VersionFilter(django_filters.FilterSet):
-    version_id = django_filters.MethodFilter(action='filter_by_uuid')
-    created_by = django_filters.MethodFilter(action='filter_owner')
+    version_id = django_filters.CharFilter(method='filter_by_uuid')
+    created_by = django_filters.CharFilter(method='filter_owner')
 
     def filter_owner(self, queryset, value):
         return queryset.filter(
