@@ -2,7 +2,7 @@ from django.conf import settings
 
 from api.v2.serializers.details import InstanceSerializer, InstanceActionSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.v2.views.instance_action import InstanceActionViewSet
 
@@ -38,7 +38,7 @@ from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 
 
-class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
+class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.

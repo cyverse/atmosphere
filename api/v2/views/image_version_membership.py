@@ -4,7 +4,7 @@ import django_filters
 from core.models import ApplicationVersionMembership as ImageVersionMembership
 from service.machine import add_membership, remove_membership
 from api.v2.serializers.details import ImageVersionMembershipSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 class VersionFilter(django_filters.FilterSet):
@@ -25,7 +25,7 @@ class VersionFilter(django_filters.FilterSet):
         fields = ['version_id', 'created_by']
 
 
-class ImageVersionMembershipViewSet(AuthViewSet):
+class ImageVersionMembershipViewSet(AuthModelViewSet):
 
     """
     API endpoint that allows version tags to be viewed

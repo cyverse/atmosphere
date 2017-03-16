@@ -4,7 +4,7 @@ import django_filters
 from core.models import ApplicationVersionLicense as ImageVersionLicense
 
 from api.v2.serializers.details import ImageVersionLicenseSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 
 class VersionFilter(django_filters.FilterSet):
     version_id = django_filters.MethodFilter(action='filter_by_uuid')
@@ -24,7 +24,7 @@ class VersionFilter(django_filters.FilterSet):
         fields = ['version_id', 'created_by']
 
 
-class ImageVersionLicenseViewSet(AuthViewSet):
+class ImageVersionLicenseViewSet(AuthModelViewSet):
 
     """
     API endpoint that allows version tags to be viewed
