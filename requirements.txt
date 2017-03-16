@@ -20,6 +20,7 @@ cffi==1.9.1               # via cryptography
 chromogenic==0.4.1
 cliff==2.4.0              # via osc-lib, python-neutronclient, python-openstackclient
 cmd2==0.7.0               # via cliff
+contextlib2==0.5.4        # via raven
 cryptography==1.8.1       # via paramiko, pyopenssl
 debtcollector==1.12.0     # via oslo.config, oslo.utils, python-keystoneclient, python-neutronclient
 defusedxml==0.5.0         # via djangorestframework-xml
@@ -99,6 +100,7 @@ python-openstackclient==3.3.0  # via rtwo
 python-swiftclient==3.1.0  # via rtwo
 pytz==2016.2
 pyyaml==3.12              # via ansible, cliff, djangorestframework-yaml, os-client-config
+raven==6.0.0
 redis==2.10.5
 requests[security]==2.11.1
 requestsexceptions==1.2.0  # via os-client-config

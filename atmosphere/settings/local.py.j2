@@ -419,6 +419,17 @@ VALIDATION_PLUGINS = [
 ]
 {%- endif %}
 
+{%- if SENTRY_ENABLED %}
+import raven
+
+INSTALLED_APPS += (
+    'raven.contrib.django.raven_compat',
+)
+
+SENTRY_DSN = '{{ SENTRY_DSN }}'
+SENTRY_RELEASE = raven.fetch_git_sha(os.path.dirname(os.pardir))
+{%- endif %}
+
 {%- if EXPIRATION_PLUGINS %}
 EXPIRATION_PLUGINS = [
 {%- for plugin in EXPIRATION_PLUGINS %}
