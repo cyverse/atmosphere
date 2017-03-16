@@ -1,25 +1,25 @@
-pycparser==2.14 # TEMPORARY
+-e git+https://github.com/steve-gregory/billiard.git#egg=billiard # TEMPORARY
 
 Django==1.10.6
 django-cors-headers==0.12.0
 django-sslserver #NOTE: Debugs requests real-time.
-djangorestframework==3.4.1
-djangorestframework-jsonp==1.0.0
-djangorestframework-xml==1.0.1
-djangorestframework-yaml==1.0.2
+djangorestframework==3.6.2
+djangorestframework-jsonp==1.0.2
+djangorestframework-xml==1.3.0
+djangorestframework-yaml==1.0.3
 djangorestframework-csv
 numpy
 pandas
 xlsxwriter
-django-filter==0.13.0
+django-filter==1.0.1
 django-redis-cache==0.13.0
-redis==2.10.3
+redis==2.10.5
 eventlet==0.18.4
 
-Jinja2==2.8
-celery==3.1.23
+Jinja2==2.8.1
+celery>=4.0,<5.0
+django-celery-beat
 flower==0.9.0
-django-celery==3.1.16
 
 gevent==1.0.1
 
@@ -43,3 +43,5 @@ django-cyverse-auth
 threepio
 rtwo
 subspace
+
+raven

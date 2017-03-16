@@ -9,8 +9,8 @@ from core.models import InstanceAction, Instance
 
 
 class InstanceActionFilter(filters.FilterSet):
-    provider_id = django_filters.MethodFilter(action='filter_by_provider')
-    instance_id = django_filters.MethodFilter(action='filter_by_instance')
+    provider_id = django_filters.CharFilter(method='filter_by_provider')
+    instance_id = django_filters.CharFilter(method='filter_by_instance')
 
     def filter_by_instance(self, queryset, value):
         """

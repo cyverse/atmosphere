@@ -224,7 +224,8 @@ class InstanceStatusHistory(models.Model):
         Use this function to determine whether or not a specific instance
         status history should be considered 'active'
         """
-        if self.status.name == 'active':
+        # Running is legacy
+        if self.status.name == 'active' or self.status.name == 'running':
             return True
         else:
             return False
