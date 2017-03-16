@@ -1,4 +1,5 @@
 from threepio import logger
+from atmosphere.celery_init import app as current_app
 
 # Ripped from asksol answer --See
 # http://stackoverflow.com/questions/10707287/django-celery-routing-problems
@@ -11,7 +12,6 @@ class PredeclareRouter(object):
         if self.setup:
             return
         self.setup = True
-        from celery import app as current_app
         # will not connect anywhere when using the Django transport
         # because declarations happen in memory.
         # Create queues on initialization
@@ -21,6 +21,9 @@ class PredeclareRouter(object):
             for queue in queues.itervalues():
                 queue(channel).declare()
 DEPLOY_TASKS = [
+    "_deploy_instance",
+    "_deploy_instance_for_user",
+    "check_web_desktop_task",
     "_deploy_init_to", "service.tasks.driver._deploy_init_to",
     "deploy_ready_test", "service.tasks.driver.deploy_ready_test", 
     "check_process_task", "service.tasks.driver.check_process_task", 
@@ -75,6 +78,10 @@ class CloudRouter(PredeclareRouter):
 
     def route(self, options, task, args=(), kwargs={}):
         print "ROUTE() called: %s - %s - %s" % (task, args, kwargs)
+        return
+
+    def route_task(name, args, kwargs, options, task=None, **kw):
+        print "ROUTE_TASK() called: %s - %s - %s" % (task, args, kwargs)
         return
 
     def route_for_task(self, task, *args, **kwargs):
