@@ -13,9 +13,9 @@ def machine_request_report(filename, start_date=None, end_date=None):
     if end_date:
         query = query.filter(end_date__gt=end_date)
     with open(filename, 'w') as the_file:
-        the_file.write("ID,Username,Provider,Application,Version,Start Date,Created on\n")
+        the_file.write("ID,Username,Provider,Application,Version,Start Date,Created on,Visibility\n")
         for mr in query.order_by('start_date', 'end_date'):
-            the_file.write( "%s,%s,%s,%s,%s,%s,%s\n" % (mr.id, mr.created_by.username, mr.new_machine_provider.location, mr.new_machine.application.name if mr.new_machine else "N/A", mr.new_machine.application_version.name if mr.new_machine else "N/A", mr.start_date.strftime("%x %X"), mr.end_date.strftime("%x %X") if mr.end_date else "N/A") )
+            the_file.write( "%s,%s,%s,%s,%s,%s,%s,%s\n" % (mr.id, mr.created_by.username, mr.new_machine_provider.location, mr.new_machine.application.name if mr.new_machine else "N/A", mr.new_machine.application_version.name if mr.new_machine else "N/A", mr.start_date.strftime("%x %X"), mr.end_date.strftime("%x %X") if mr.end_date else "N/A", "public" if mr.new_application_visibility == "public" else "private") )
 
 def monthly_metrics(filename, start_date, end_date):
     monthly_breakdown = list(rrule.rrule(dtstart=start_date, freq=rrule.MONTHLY, until=timezone.now()))
