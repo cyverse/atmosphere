@@ -12,6 +12,7 @@ from .help_link import HelpLinkViewSet
 from .identity import IdentityViewSet
 from .identity_membership import IdentityMembershipViewSet
 from .image import ImageViewSet
+from .image_metric import ImageMetricViewSet
 from .image_bookmark import ImageBookmarkViewSet
 from .image_tag import ImageTagViewSet
 from .image_version import ImageVersionViewSet
