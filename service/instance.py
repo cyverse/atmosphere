@@ -6,7 +6,7 @@ import uuid
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from django.utils.timezone import datetime
-from djcelery.app import app
+from atmosphere.celery_init import app
 
 from threepio import logger, status_logger
 
@@ -388,6 +388,7 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
 
 
 def redeploy_instance(
+        core_identity,
         esh_driver,
         esh_instance,
         username,
@@ -406,7 +407,7 @@ def redeploy_instance(
         esh_instance.extra['metadata']['tmp_status'] = "initializing"
     deploy_chain = get_idempotent_deploy_chain(
         esh_driver.__class__, esh_driver.provider, esh_driver.identity,
-        esh_instance, username)
+        esh_instance, core_identity, username)
     return deploy_chain.apply_async()
 
 
@@ -1288,10 +1289,10 @@ def _test_for_licensing(esh_machine, identity):
         passed_test = _test_license(license, identity)
         if passed_test:
             return True
-    app = app_version.application
+    application = app_version.application
     raise Exception(
         "Identity %s did not meet the requirements of the associated license on Application %s + Version %s" %
-        (app.name, app_version.name))
+        (application.name, app_version.name))
 
 
 def check_quota(username, identity_uuid, esh_size,

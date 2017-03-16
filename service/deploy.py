@@ -330,7 +330,7 @@ def execution_has_unreachable(pbs, hostname):
 def execution_has_failures(pbs, hostname):
     if type(pbs) != list:
         pbs = [pbs]
-    return any(pb.stats.failures for pb in pbs)
+    return any(pb.stats.failed for pb in pbs)
 
 
 def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
@@ -347,13 +347,13 @@ def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
             elif instance_ip in pb.stats.dark:
                 error_message += playbook_error_message(
                     pb.stats.dark[instance_ip], "Unreachable")
-        if not allow_failures and pb.stats.failures:
-            if hostname in pb.stats.failures:
+        if not allow_failures and pb.stats.failed:
+            if hostname in pb.stats.failed:
                 error_message += playbook_error_message(
-                    pb.stats.failures[hostname], "Failures")
-            elif instance_ip in pb.stats.failures:
+                    pb.stats.failed[hostname], "failed")
+            elif instance_ip in pb.stats.failed:
                 error_message += playbook_error_message(
-                    pb.stats.failures[instance_ip], "Failures")
+                    pb.stats.failed[instance_ip], "failed")
     if error_message:
         msg = error_message[:-2] + str(pb.stats.processed_playbooks.get(hostname,{}))
         raise AnsibleDeployException(msg)

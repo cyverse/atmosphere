@@ -125,7 +125,7 @@ CELERY_FLOWER_OPTS="--certfile=$TLS_CERT_FILE --keyfile=$TLS_KEY_FILE --port=844
 
 CELERYBEAT_CHDIR="{{ ATMOSPHERE_LOCATION }}"
 # Extra arguments to celerybeat
-CELERYBEAT_OPTS="--schedule=djcelery.schedulers.DatabaseScheduler"
+CELERYBEAT_OPTS="--schedule=django_celery_beat.schedulers.DatabaseScheduler"
 
 #Where to log and store process id
 CELERYBEAT_LOG_FILE="/var/log/celery/celerybeat.log"
