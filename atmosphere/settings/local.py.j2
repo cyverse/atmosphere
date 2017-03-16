@@ -427,7 +427,10 @@ INSTALLED_APPS += (
 )
 
 SENTRY_DSN = '{{ SENTRY_DSN }}'
-SENTRY_RELEASE = raven.fetch_git_sha(os.path.dirname(os.pardir))
+try:
+    SENTRY_RELEASE = raven.fetch_git_sha(os.path.dirname(os.pardir))
+except raven.exceptions.InvalidGitRepository:
+    SENTRY_RELEASE = "59f830c9ee5b58d549ea597b9e6dfd098fb2c5e6"
 {%- endif %}
 
 {%- if EXPIRATION_PLUGINS %}
