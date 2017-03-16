@@ -28,6 +28,10 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:application-detail',
     )
+    metrics_url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:applicationmetric-detail',
+    )
+
     class Meta:
         model = Image
         fields = (
@@ -36,6 +40,7 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
             'uuid',
             'name',
             # Adtl. Fields
+            'metrics_url',
             'created_by',
             'description',
             'end_date',

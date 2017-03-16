@@ -110,6 +110,8 @@ DEPLOYMENT_KEYPAIR_NAME = ; keypair name inject by atmo-ansible during instance 
 VALIDATION_PLUGINS = ; ["atmosphere.plugins.auth.validation.AlwaysAllow"]
 SENTRY_ENABLED = ; True or False
 SENTRY_DSN = ; https://...@sentry.io/....
+EXPIRATION_PLUGINS = ; ["atmosphere.plugins.auth.validation.NeverExpire"]
+
 #NOTE: Jetstream Specific
 TACC_API_USER = ; "tas-username"
 TACC_API_PASS = ; "tas-password"
