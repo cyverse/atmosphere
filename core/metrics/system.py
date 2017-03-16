@@ -6,6 +6,32 @@ from core.models import (
 )
 
 
+def instance_usage_report(filename, start_date=None, end_date=None):
+    query = Instance.objects.all()
+    if start_date:
+        query = query.filter(start_date__gt=start_date)
+    if end_date:
+        query = query.filter(end_date__gt=end_date)
+    now_time = timezone.now()
+    with open(filename, 'w') as the_file:
+        the_file.write("ID,Provider Alias,Username,Provider,Application,Version,Machine UUID,Start Date,End Date,Active Time(Hours),CPU,RAM,DISK\n")
+        for instance in query.order_by('start_date', 'end_date'):
+            size = instance.get_size()
+            cpu = size.cpu if size.cpu > 0 else 1
+            mem = size.mem if size.mem > 1 else ""
+            disk = size.disk if size.disk > 1 else ""
+            machine = instance.source.providermachine
+            active_time = instance.get_active_time()[0]
+
+            the_file.write( "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" % (
+                instance.id, instance.provider_alias, instance.created_by.username,
+                instance.created_by_identity.provider.location, machine.application.name.replace(",",""), machine.application_version.name.replace(",",""),
+                instance.source.identifier, instance.start_date.strftime("%x %X"), instance.end_date.strftime("%x %X") if instance.end_date else now_time.strftime("%x %X"),
+                active_time.total_seconds()/3600.0,
+                cpu, mem, disk
+                ) )
+
+
 def machine_request_report(filename, start_date=None, end_date=None):
     query = MachineRequest.objects.filter(old_status='completed')
     if start_date:
