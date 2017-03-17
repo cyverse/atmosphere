@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.db.models import Q
 from dateutil import rrule
 from core.models import (
     InstanceStatusHistory, Instance, AtmosphereUser, MachineRequest,
@@ -6,8 +7,10 @@ from core.models import (
 )
 
 
-def instance_history_usage_report(filename, start_date=None, end_date=None):
+def instance_history_usage_report(filename, start_date=None, end_date=None, only_active=False):
     query = InstanceStatusHistory.objects.all()
+    if only_active:
+        query = query.filter(Q(status__name='active') | Q(status__name='running'))
     if start_date:
         query = query.filter(start_date__gt=start_date)
     if end_date:
