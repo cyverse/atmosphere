@@ -40,7 +40,7 @@ djangorestframework==3.6.2
 enum34==1.1.6             # via cryptography
 eventlet==0.18.4
 Fabric==1.10              # via rfive
-flower==0.9.0
+flower==0.9.1
 funcsigs==1.0.2           # via debtcollector, oslo.utils
 functools32==3.2.3.post2  # via jsonschema
 futures==3.0.5            # via flower, python-swiftclient
