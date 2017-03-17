@@ -231,9 +231,15 @@ def _status_to_error(old_status, error_title, error_traceback):
     return err_str
 
 @task(name='machine_request_error')
-def machine_request_error(task_uuid, machine_request_id):
+def machine_request_error(task_request, *args, **kwargs):
+    #Args format: (exception, ?, subtask_args...)
+    exception = args[0]
+    machine_request_id = args[2]
+    task_uuid = task_request.id
     celery_logger.info("machine_request_id=%s" % machine_request_id)
-    celery_logger.info("task_uuid=%s" % task_uuid)
+    celery_logger.info("task_uuid=%s" % (task_uuid,) )
+    celery_logger.info("exception=%s" % (exception,) )
+    celery_logger.info("task_kwargs=%s" % kwargs)
     machine_request = MachineRequest.objects.get(id=machine_request_id)
 
     result = app.AsyncResult(task_uuid)
