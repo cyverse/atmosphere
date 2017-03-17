@@ -1467,10 +1467,14 @@ def _to_network_driver(core_identity):
     if '/v2' in auth_url:  # Remove this when "Legacy cloud" support is removed
         username = all_creds['key']
         password = all_creds['secret']
-        auth_url = auth_url.replace("/tokens","")
-        (auth, sess, token) = _connect_to_keystone_v2(
-            auth_url, username, password,
-            project_name)
+        auth_url = all_creds.pop('auth_url').replace("/tokens","")
+        network_driver = NetworkManager(
+            auth_url=auth_url,
+            username=username,
+            password=password,
+            tenant_name=project_name,
+            **all_creds)
+        return network_driver
     elif 'ex_force_auth_token' in all_creds:
         auth_token = all_creds['ex_force_auth_token']
         (auth, sess, token) = _token_to_keystone_scoped_project(
