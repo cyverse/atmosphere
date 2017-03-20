@@ -10,12 +10,12 @@ class VersionFilter(django_filters.FilterSet):
     version_id = django_filters.CharFilter(method='filter_by_uuid')
     created_by = django_filters.CharFilter(method='filter_owner')
 
-    def filter_owner(self, queryset, value):
+    def filter_owner(self, queryset, name, value):
         return queryset.filter(
             Q(image_version__created_by__username=value) |
             Q(image_version__application__created_by__username=value)
         )
-    def filter_by_uuid(self, queryset, value):
+    def filter_by_uuid(self, queryset, name, value):
         # NOTE: Remove this *HACK* once django_filters supports UUID as PK fields
         return queryset.filter(image_version__id=value)
 
