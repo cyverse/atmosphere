@@ -385,11 +385,12 @@ class AccountDriver(BaseAccountDriver):
         keyname - Name of the keypair
         public_key - Contents of public key in OpenSSH format
         """
-        clients = self.get_openstack_clients(username, password, project_name)
         if self.identity_version == 2:
-            nova = clients["nova"]
+            nova = self.user_manager.build_nova(username, password,
+                                                project_name)
             keypairs = nova.keypairs.list()
         else:
+            clients = self.get_openstack_clients(username, password, project_name)
             osdk = clients["openstack_sdk"]
             keypairs = [kp for kp in osdk.compute.keypairs()]
         for kp in keypairs:
@@ -409,13 +410,14 @@ class AccountDriver(BaseAccountDriver):
         keyname - Name of the keypair
         public_key - Contents of public key in OpenSSH format
         """
-        clients = self.get_openstack_clients(username, password, project_name)
         if self.identity_version == 2:
-            nova = clients["nova"]
+            nova = self.user_manager.build_nova(username, password,
+                                                project_name)
             keypair = nova.keypairs.create(
                     keyname,
                     public_key=public_key)
         else:
+            clients = self.get_openstack_clients(username, password, project_name)
             osdk = clients["openstack_sdk"]
             keypair = osdk.compute.create_keypair(
                 name=keyname,
