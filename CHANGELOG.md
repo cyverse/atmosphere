@@ -1,12 +1,15 @@
 ## [Whimsical-Wyvern](https://github.com/cyverse/atmosphere/milestone/10?closed=1) (as of 3/21/2017)
 Features:
     - Include sentry.io error reporting for production environments
+Improvements:
+    - Improved support for Instance Actions in v2 APIs
 Bugfixes:
     - Set provider quota returns more information to allow easier triage by support staff
     - Enable LDAP Expiration information in Profile, if included in configuration
 Internal:
     - A new image metrics API endpoint has been created (Staff-users only, for now)
     - Upgrade to latest requirements.txt
+    - Included redeploy as an InstanceAction
 
 ## [Voracious-Velociraptor](https://github.com/cyverse/atmosphere/milestone/9?closed=1) (as of 2/14/2017)
 Features:
