@@ -4,7 +4,6 @@
 import uuid
 from django.db import models
 
-from core.models.managers import InstanceActionsManager
 from core.models import Instance
 
 from threepio import logger
@@ -20,10 +19,6 @@ class InstanceAction(models.Model):
     key = models.CharField(max_length=256, unique=True, editable=False)
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
-
-    # Model Managers
-    objects = models.Manager()  # The default manager.
-    valid_actions = InstanceActionsManager()
 
     @classmethod
     def _retrieve_instance(cls, instance_id):
@@ -74,6 +69,22 @@ class InstanceAction(models.Model):
         return queryset.filter(**kwargs)
 
     @classmethod
+    def verify_actions_exist(cls, all_actions):
+        from core.models import Provider, ProviderInstanceAction
+        for action in all_actions:
+            action_exists = InstanceAction.objects.filter(name=action).count() > 0
+            if not action_exists:
+                instance_action = InstanceAction.objects.create(
+                    name=action, key=action,
+                    description="%s an instance" % action)
+                for provider in Provider.objects.all():
+                    ProviderInstanceAction.objects.create(
+                        provider=provider,
+                        instance_action=instance_action,
+                        enabled=True)
+        return
+
+    @classmethod
     def valid_instance_actions(cls, instance, queryset=None):
         """
         Giiven an instance, determine the appropriate actions available via API
@@ -81,6 +92,8 @@ class InstanceAction(models.Model):
         last_history = instance.get_last_history()
         last_status = last_history.status.name
         last_activity = last_history.activity
+        if last_status in ['initializing', 'networking', 'deploying']:
+            last_status = 'active'
         all_actions = []
         # Basic Actions: Reboot and terminate will work in (almost) every case.
         all_actions.append('Terminate')
@@ -113,6 +126,7 @@ class InstanceAction(models.Model):
             logger.debug(
                 "Edge case Warning: Status/activity=(%s/%s) returns "
                 "no updates to actions" % (last_status, last_activity))
+        cls.verify_actions_exist(all_actions)
 
         if not queryset:
             queryset = cls.objects.all()
