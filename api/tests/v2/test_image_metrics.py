@@ -19,7 +19,11 @@ class InstanceTests(APITestCase):
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create(username='test-username')
+        self.staff_user = UserFactory.create(username='test-staff', is_staff=True, is_superuser=True)
         self.provider = ProviderFactory.create()
+        self.staff_user_identity = IdentityFactory.create_identity(
+            created_by=self.staff_user,
+            provider=self.provider)
         self.user_identity = IdentityFactory.create_identity(
             created_by=self.user,
             provider=self.provider)
@@ -148,10 +152,31 @@ class InstanceTests(APITestCase):
             )
         get_application_metrics(self.application)
 
+    def test_no_output_for_non_staff_users(self):
+        """
+        Given the setUp above,
+         non-staff users should see no results in list
+         and receive a 404 when attempting to access individual
+         application metrics.
+        """
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        url = reverse('api:v2:applicationmetric-list')
+        response = client.get(url)
+        self.assertEquals(response.status_code, 200)
+        data = response.data
+        expected_data = []
+        self.assertEquals(data['results'], expected_data)
+        url = reverse('api:v2:applicationmetric-detail', args=(self.application.uuid,))
+        response = client.get(url)
+        self.assertEquals(response.status_code, 404)
+
+
     def test_accurate_application_statistics(self):
         """Given the setUp above, 1/4 instances are active."""
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        client.force_authenticate(user=self.staff_user)
         expected_metrics = {'active': 1, 'total': 4}
 
         url = reverse('api:v2:applicationmetric-detail', args=(self.application.uuid,))
@@ -159,8 +184,7 @@ class InstanceTests(APITestCase):
         self.assertEquals(response.status_code, 200)
         data = response.data
         api_metrics = data['metrics']
-        metrics = api_metrics.values()[0]
-
+        metrics = api_metrics.values()[-1]
         self.assertEquals(metrics, expected_metrics)
 
     @skip("Skipping until we know how we want to measure statistics like these.")

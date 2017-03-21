@@ -57,6 +57,21 @@ class AuthViewSet(ModelViewSet):
                           ApiAuthRequired,)
 
 
+class DebugViewSet(ModelViewSet):
+    http_method_names = ['get', 'put', 'patch', 'post',
+                         'delete', 'head', 'options', 'trace']
+    permission_classes = (InMaintenance,
+                          EnabledUserRequired,
+                          ApiAuthRequired,)
+    def list(self, request):
+        import ipdb;ipdb.set_trace()
+        return super(DebugViewSet, self).list(request)
+
+    def retrieve(self, request, pk=None):
+        import ipdb;ipdb.set_trace()
+        return super(DebugViewSet, self).retrieve(request, pk=pk)
+
+
 class AdminAuthViewSet(AuthViewSet):
     permission_classes = (InMaintenance,
                           CloudAdminRequired,
