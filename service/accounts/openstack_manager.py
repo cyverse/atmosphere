@@ -9,8 +9,10 @@ from urlparse import urlparse
 from django.db.models import Max
 
 from django.db.models import ObjectDoesNotExist
-from rtwo.exceptions import NovaOverLimit
+from rtwo.exceptions import NovaOverLimit, KeystoneUnauthorized
 from rtwo.exceptions import NeutronClientException, GlanceClientException
+from service.exceptions import AccountCreationConflict
+from keystoneauth1.exceptions.http import Unauthorized as KeystoneauthUnauthorized
 from requests.exceptions import ConnectionError
 from hashlib import sha256
 
@@ -188,8 +190,16 @@ class AccountDriver(BaseAccountDriver):
 
         if username in self.core_provider.list_admin_names():
             return
-        (username, password, project) = self.build_account(
-            username, password, project_name, role_name, max_quota)
+        try:
+            (username, password, project) = self.build_account(
+                username, password, project_name, role_name, max_quota)
+        except (KeystoneUnauthorized, KeystoneauthUnauthorized) as exc:
+            logger.exception("Encountered error creating account - %s" % exc)
+            raise AccountCreationConflict(
+                "AccountDriver is trying to create an account, (%s)"
+                "but the password does not match. "
+                "This conflict should be addressed by hand."
+                % (username, ))
         ident = self.create_identity(username, password,
                                      project.name,
                                      quota=quota,
