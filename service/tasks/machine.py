@@ -309,6 +309,7 @@ def validate_new_image(image_id, machine_request_id):
     new_status, _ = StatusType.objects.get_or_create(name="validating")
     machine_request.status = new_status
     machine_request.old_status = 'validating'
+    local_username = machine_request.created_by.username  #NOTE: Change local_username accordingly when this assumption is no longer true.
     machine_request.save()
     accounts = get_account_driver(machine_request.new_machine.provider)
     accounts.clear_cache()
@@ -336,7 +337,7 @@ def validate_new_image(image_id, machine_request_id):
                 admin_driver, admin_ident,
                 machine, selected_size,
                 'Automated Image Verification - %s' % image_id,
-                username='atmoadmin',
+                username=local_username,
                 using_admin=True)
             return instance.provider_alias
         except BaseHTTPError as http_error:
