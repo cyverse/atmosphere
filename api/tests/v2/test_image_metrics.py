@@ -56,7 +56,7 @@ class InstanceTests(APITestCase):
             created_by_identity=self.user_identity,
             start_date=start_date)
 
-        build = InstanceStatusFactory.create(name='build')
+        self.status_build = InstanceStatusFactory.create(name='build')
         self.status_suspended = InstanceStatusFactory.create(name='suspended')
         self.status_active = InstanceStatusFactory.create(name='active')
         self.status_networking = InstanceStatusFactory.create(name='networking')
