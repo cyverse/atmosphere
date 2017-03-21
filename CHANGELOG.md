@@ -1,3 +1,26 @@
+## [Whimsical-Wyvern](https://github.com/cyverse/atmosphere/milestone/10?closed=1) (as of 3/21/2017)
+Features:
+    - Include sentry.io error reporting for production environments
+Bugfixes:
+    - Set provider quota returns more information to allow easier triage by support staff
+    - Enable LDAP Expiration information in Profile, if included in configuration
+Internal:
+    - A new image metrics API endpoint has been created (Staff-users only, for now)
+    - Upgrade to latest requirements.txt
+
+## [Voracious-Velociraptor](https://github.com/cyverse/atmosphere/milestone/9?closed=1) (as of 2/14/2017)
+Features:
+    - Image validation works as intended (and deletes instance on cleanup)
+    - New command `manage.py find_uuid` can help understand what object you are looking at when given a UUID without context
+    - Improved sorting for image catalog
+    - Include 'project' in instance launch (v2 API)
+Bugfixes:
+    - Instance status/activity show up as expected when in 'Networking' and 'Deploying'
+    - Errors that bubble up from API are now more verbose and help users understand the problem
+Internal:
+    - Remove iPlant-isms from template pages
+    - Fix logfile growing pains
+
 ## Undulating-Umbrellabird (as of 1/4/17)
 
 Features:
