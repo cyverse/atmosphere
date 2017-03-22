@@ -13,7 +13,7 @@ class InstanceStatusHistoryFilter(django_filters.FilterSet):
     instance = django_filters.CharFilter(method='filter_instance_id')
     created_by = django_filters.CharFilter('instance__created_by__username')
 
-    def filter_instance_id(self, queryset, value):
+    def filter_instance_id(self, queryset, name, value):
         try:
             int_val = int(value)
             return queryset.filter(

@@ -118,7 +118,8 @@ class MachineRequestViewSet(BaseRequestViewSet):
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
         parent_machine = serializer.validated_data['instance'].provider_machine
-        access_list = serializer.initial_data.get("access_list") or []
+        access_list_usernames = serializer.initial_data.get("access_list") or ""
+        access_list = access_list_usernames.split(",")
         visibility = serializer.initial_data.get("new_application_visibility") 
         new_provider = self._get_new_provider()
         if  visibility in ["select", "private"]:
