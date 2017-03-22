@@ -441,30 +441,33 @@ class AccountDriver(BaseAccountDriver):
                     for member in shared_with]
         return projects
 
-    def share_image_with_project(self, glance_image, project_name):
+    def share_image_with_identity(self, glance_image, identity):
         try:
+            project_name = identity.project_name()
             self.image_manager.share_image(glance_image, project_name)
-            self.accept_shared_image(glance_image, project_name)
-            logger.info("Added Cloud Access: %s-%s"
-                        % (glance_image, project_name))
         except GlanceClientException as gce:
             message = gce.details
             if 'is duplicated for image' not in message\
                     and 'is already associated with image' not in message:
                 raise
+        self.accept_shared_image(glance_image, identity)
 
-    def accept_shared_image(self, glance_image, project_name):
+    def accept_shared_image(self, glance_image, identity):
         """
         This is only required when sharing using 'the v2 api' on glance.
         """
-        # FIXME: Abusing the 'project_name' == 'username' mapping
-        clients = self.get_openstack_clients(project_name)
+        username = identity.get_credential('key')
+        password = identity.get_credential('secret')
+        project_name = identity.project_name()
+        clients = self.get_openstack_clients(username, password, project_name)
         project = self.user_manager.get_project(project_name)
         glance = clients["glance"]
         glance.image_members.update(
             glance_image.id,
             project.id,
             'accepted')
+        logger.info("Added Cloud Access: %s-%s"
+                    % (glance_image, project_name))
 
         
 
