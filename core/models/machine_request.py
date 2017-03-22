@@ -297,6 +297,8 @@ class MachineRequest(BaseRequest):
         old_admin = old_provider.get_admin_identity().get_credentials()
         if 'ex_force_auth_version' not in old_creds:
             old_creds['ex_force_auth_version'] = '2.0_password'
+        if old_creds['ex_force_auth_version'] != '2.0_password' and 'domain_name' not in old_creds:
+            old_creds['domain_name'] = 'default'
         old_creds.update(old_admin)
 
         new_provider = self.new_machine_provider
@@ -308,6 +310,8 @@ class MachineRequest(BaseRequest):
                 new_creds['ex_force_auth_version'] = '2.0_password'
             new_admin = new_provider.get_admin_identity().get_credentials()
             new_creds.update(new_admin)
+        if new_creds.get('ex_force_auth_version','') != '2.0_password' and 'domain_name' not in new_creds:
+            new_creds['domain_name'] = 'default'
 
         return (old_creds, new_creds)
 
