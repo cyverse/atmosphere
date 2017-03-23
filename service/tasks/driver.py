@@ -623,6 +623,8 @@ def get_chain_from_build(
     """
     wait_active_task = wait_for_instance.s(
         instance.id, driverCls, provider, identity, "active")
+    add_security_group = add_security_group_task.si(driverCls, provider, core_identity, instance.id)
+    wait_active_task.link(add_security_group)
     start_chain = wait_active_task
     network_start = get_chain_from_active_no_ip(
         driverCls, provider, identity, instance, core_identity, username=username,
@@ -721,8 +723,6 @@ def get_chain_from_active_with_ip(
         username, None, redeploy)
     check_vnc_task = check_process_task.si(
         driverCls, provider, identity, instance.id)
-    add_security_group = add_security_group_task.si(
-        driverCls, provider, core_identity, instance.id)
     check_web_desktop = check_web_desktop_task.si(
         driverCls, provider, identity, instance.id)
     remove_status_chain = get_remove_status_chain(
@@ -754,9 +754,8 @@ def get_chain_from_active_with_ip(
     deploy_ready_task.link(deploy_meta_task)
     deploy_meta_task.link(deploy_task)
     deploy_task.link(check_web_desktop)
-    check_web_desktop.link(check_vnc_task)
-    check_vnc_task.link(add_security_group) # Above this line, atmo is responsible for success.
-    add_security_group.link(deploy_user_task)  # this line and below, user can create a failure.
+    check_web_desktop.link(check_vnc_task) # Above this line, atmo is responsible for success.
+    check_vnc_task.link(deploy_user_task)  # this line and below, user can create a failure.
     # ready -> metadata -> deployment..
 
     if boot_chain_start and boot_chain_end:
