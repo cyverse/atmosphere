@@ -1,6 +1,7 @@
 import time
 
 from django.utils import timezone
+from django.conf import settings
 from threepio import celery_logger, logger
 
 from celery.decorators import task
@@ -102,8 +103,6 @@ def start_machine_imaging(machine_request, delay=False):
      dest_managerCls, dest_creds) = machine_request.prepare_manager()
     imaging_args = machine_request.get_imaging_args()
 
-    admin_driver = get_admin_driver(machine_request.new_machine_provider)
-    admin_ident = machine_request.new_admin_identity()
 
     imaging_error_task = machine_request_error.s(machine_request.id)
 
@@ -127,46 +126,17 @@ def start_machine_imaging(machine_request, delay=False):
         imaging_task.link(process_task)
     process_task.link_error(imaging_error_task)
 
-    #TODO: Uncomment below this line when validation works again
-    # # Task 3 = Validate the new image by launching an instance
-    # if 'validating' in original_status:
-    #     image_id = machine_request.new_machine.identifier
-    #     celery_logger.info("Start with validating:%s" % image_id)
-    #     # If validating, seed the image_id and start here..
-    #     validate_task = validate_new_image.s(image_id, machine_request.id)
-    #     init_task = validate_task
-    # else:
-    #     validate_task = validate_new_image.s(machine_request.id)
-    #     process_task.link(validate_task)
-    # #Validate task returns an instance_id
-    # # Task 4 = Wait for new instance to be 'active'
-    # wait_for_task = wait_for_instance.s(
-    #     # NOTE: 1st arg, instance_id, passed from last task.
-    #     admin_driver.__class__,
-    #     admin_driver.provider,
-    #     admin_driver.identity,
-    #     "active",
-    #     test_tmp_status=True,
-    #     return_id=True)
-    # validate_task.link(wait_for_task)
-    # validate_task.link_error(imaging_error_task)
 
-    # # Task 5 = Terminate the new instance on completion
-    # destroy_task = destroy_instance.s(
-    #     admin_ident.created_by, admin_ident.uuid)
-    # wait_for_task.link(destroy_task)
-    # wait_for_task.link_error(imaging_error_task)
-    #ENDTODO: Uncomment above this line when validation works again
-    # Task 6 - Finally, email the user that their image is ready!
+    # Final Task - email the user that their image is ready
     # NOTE: si == Ignore the result of the last task.
     email_task = imaging_complete.si(machine_request.id)
-
-    # TODO: Uncomment below this line when validation works again
-    # destroy_task.link_error(imaging_error_task)
-    # destroy_task.link(email_task)
-    process_task.link(email_task)
-
     email_task.link_error(imaging_error_task)
+
+    if getattr(settings, 'ENABLE_IMAGE_VALIDATION', True):
+        init_task = enable_image_validation(machine_request, process_task, email_task, original_status, imaging_error_task)
+    else:
+        process_task.link(email_task)
+
     # Set status to imaging ONLY if our initial task is the imaging task.
     if init_task == imaging_task:
         machine_request.old_status = 'imaging'
@@ -178,6 +148,42 @@ def start_machine_imaging(machine_request, delay=False):
         async.get()
     return async
 
+
+def enable_image_validation(machine_request, init_task, final_task, original_status="", error_handler_task=None):
+    if not error_handler_task:
+        error_handler_task = machine_request_error.s(machine_request.id)
+    # Task 3 = Validate the new image by launching an instance
+    admin_ident = machine_request.new_admin_identity()
+    admin_driver = get_admin_driver(machine_request.new_machine_provider)
+    if 'validating' in original_status:
+        image_id = machine_request.new_machine.identifier
+        celery_logger.info("Start with validating:%s" % image_id)
+        # If validating, seed the image_id and start here..
+        validate_task = validate_new_image.s(image_id, machine_request.id)
+        init_task = validate_task
+    else:
+        validate_task = validate_new_image.s(machine_request.id)
+        init_task.link(validate_task)
+    #Validate task returns an instance_id
+    # Task 4 = Wait for new instance to be 'active'
+    wait_for_task = wait_for_instance.s(
+        # NOTE: 1st arg, instance_id, passed from last task.
+        admin_driver.__class__,
+        admin_driver.provider,
+        admin_driver.identity,
+        "active",
+        test_tmp_status=True,
+        return_id=True)
+    validate_task.link(wait_for_task)
+    validate_task.link_error(error_handler_task)
+    # Task 5 = Terminate the new instance on completion
+    destroy_task = destroy_instance.s(
+        admin_ident.created_by, admin_ident.uuid)
+    wait_for_task.link(destroy_task)
+    wait_for_task.link_error(error_handler_task)
+    destroy_task.link_error(error_handler_task)
+    destroy_task.link(final_task)
+    return init_task
 
 def set_machine_request_metadata(machine_request, image_id):
     admin_driver = get_admin_driver(machine_request.new_machine_provider)
@@ -303,6 +309,7 @@ def validate_new_image(image_id, machine_request_id):
     new_status, _ = StatusType.objects.get_or_create(name="validating")
     machine_request.status = new_status
     machine_request.old_status = 'validating'
+    local_username = machine_request.created_by.username  #NOTE: Change local_username accordingly when this assumption is no longer true.
     machine_request.save()
     accounts = get_account_driver(machine_request.new_machine.provider)
     accounts.clear_cache()
@@ -330,7 +337,7 @@ def validate_new_image(image_id, machine_request_id):
                 admin_driver, admin_ident,
                 machine, selected_size,
                 'Automated Image Verification - %s' % image_id,
-                username='atmoadmin',
+                username=local_username,
                 using_admin=True)
             return instance.provider_alias
         except BaseHTTPError as http_error:
