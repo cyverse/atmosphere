@@ -751,6 +751,9 @@ def get_chain_from_active_with_ip(
     deploy_meta_task.link(deploy_task)
     deploy_task.link(check_web_desktop)
     check_web_desktop.link(check_vnc_task)  # Above this line, atmo is responsible for success.
+
+    check_web_desktop.link_error(
+        deploy_failed.s(driverCls, provider, identity, instance.id))
     check_vnc_task.link(deploy_user_task)  # this line and below, user can create a failure.
     # ready -> metadata -> deployment..
 
@@ -1180,7 +1183,7 @@ def _parse_script_output(script, idx=1, length=1):
 
 
 @task(name="check_web_desktop_task",
-      max_retries=2,
+      max_retries=4,
       default_retry_delay=15)
 def check_web_desktop_task(driverCls, provider, identity,
                        instance_alias, *args, **kwargs):
@@ -1195,7 +1198,11 @@ def check_web_desktop_task(driverCls, provider, identity,
         # USE ANSIBLE
         username = identity.user.username
         hostname = build_host_name(instance.id, instance.ip)
-        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_novnc.yml"], raise_exception=False)
+        should_raise = True
+        retry_count = current.request.retries
+        if retry_count > 2:
+            should_raise = False
+        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_novnc.yml"], raise_exception=should_raise)
         result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
 
         # NOTE: Throws Instance.DoesNotExist
