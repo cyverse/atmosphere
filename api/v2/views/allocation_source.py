@@ -9,7 +9,7 @@ from api.v2.exceptions import failure_response
 from api.v2.serializers.details import AllocationSourceSerializer
 from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
-from core.models import AllocationSource
+from core.models import AllocationSource, UserAllocationSource
 from core.models.event_table import EventTable
 from core.models.allocation_source import get_allocation_source_object
 
@@ -23,6 +23,14 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
     search_fields = ('^name',)
     lookup_fields = ('id', 'uuid',)
     http_method_names = ['options', 'head', 'get', 'post', 'put', 'patch', 'delete']
+
+    def get_queryset(self):
+        """
+        Get allocation sources for user
+        """
+        user = self.request.user
+        sources = UserAllocationSource.objects.filter(user=user).values_list('allocation_source')
+        return AllocationSource.objects.filter(id__in=sources)
 
     def create(self, request):
         """
