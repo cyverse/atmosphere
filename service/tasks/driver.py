@@ -384,7 +384,9 @@ def _send_instance_email_with_failure(driverCls, provider, identity, instance_id
 # Deploy and Destroy tasks
 @task(name="user_deploy_failed")
 def user_deploy_failed(
-        task_uuid,
+        context,
+        exception_msg,
+        traceback,
         driverCls,
         provider,
         identity,
@@ -394,22 +396,14 @@ def user_deploy_failed(
         **celery_task_args):
     try:
         celery_logger.debug("user_deploy_failed task started at %s." % datetime.now())
-        if task_uuid:
-            celery_logger.info("task_uuid=%s" % task_uuid)
-            result = app.AsyncResult(task_uuid)
-            with allow_join_result():
-                exc = result.get(propagate=False)
-            err_str = "Error Traceback:%s" % (result.traceback,)
-            err_str = _cleanup_traceback(err_str)
-        elif message:
-            err_str = message
-        else:
-            err_str = "Deploy failed called externally. No matching AsyncResult"
+        celery_logger.info("failed task context=%s" % (context,))
+        celery_logger.info("exception_msg=%s" % (exception_msg,))
+        err_str = "Error Traceback:%s" % (traceback,)
         celery_logger.error(err_str)
         # Send deploy email
         _send_instance_email_with_failure(driverCls, provider, identity, instance_id, user.username, err_str)
-	# Update metadata on the instance
-        metadata={'tmp_status': 'user_deploy_error'}
+        # Update metadata on the instance
+        metadata = {'tmp_status': 'user_deploy_error'}
         update_metadata.s(driverCls, provider, identity, instance_id,
                           metadata, replace_metadata=False).apply_async()
         celery_logger.debug("user_deploy_failed task finished at %s." % datetime.now())
@@ -421,30 +415,24 @@ def user_deploy_failed(
 
 @task(name="deploy_failed")
 def deploy_failed(
-        task_uuid,
+        context,
+        exception_msg,
+        traceback,
         driverCls,
         provider,
         identity,
         instance_id,
-        message=None,
         **celery_task_args):
     try:
         celery_logger.debug("deploy_failed task started at %s." % datetime.now())
-        if task_uuid:
-            celery_logger.info("task_uuid=%s" % task_uuid)
-            result = app.AsyncResult(task_uuid)
-            with allow_join_result():
-                exc = result.get(propagate=False)
-            err_str = "DEPLOYERROR::%s" % (result.traceback,)
-        elif message:
-            err_str = message
-        else:
-            err_str = "Deploy failed called externally. No matching AsyncResult"
+        celery_logger.info("failed task context=%s" % (context,))
+        celery_logger.info("exception_msg=%s" % (exception_msg,))
+        err_str = "DEPLOYERROR::%s" % (traceback,)
         celery_logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
 
-        metadata={'tmp_status': 'deploy_error'}
+        metadata = {'tmp_status': 'deploy_error'}
         update_metadata.s(driverCls, provider, identity, instance.id,
                           metadata, replace_metadata=False).apply_async()
         # Send deploy email
@@ -748,6 +736,8 @@ def get_chain_from_active_with_ip(
     user_deploy_failed_task.link(remove_status_on_failure_task)
 
     deploy_ready_task.link(deploy_meta_task)
+    deploy_ready_task.link_error(
+        deploy_failed.s(driverCls, provider, identity, instance.id))
     deploy_meta_task.link(deploy_task)
     deploy_task.link(check_web_desktop)
     check_web_desktop.link(check_vnc_task)  # Above this line, atmo is responsible for success.
@@ -974,13 +964,15 @@ def _deploy_ready_failed_email_test(
         send_preemptive_deploy_failed_email(core_instance, message)
     elif num_retries == task_class.max_retries - 1:
         # Final attempt logic
-        failure_task = deploy_failed.s(
-            None,
+        failure_task = deploy_failed.si(
+            {},
+            "Test Error Message",
+            "Longer Error Traceback\nMultiline\noutput.",
             driver.__class__,
             driver.provider,
             driver.identity,
             instance_id,
-            message=message)
+        )
         failure_task.apply_async()
 
 
@@ -1009,6 +1001,9 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         # Sanity checks -- get your ducks in a row.
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
+        # TODO: Improvement -- keep 'count' of # times instance doesn't appear.
+        # After n consecutive attempts, force a 'bail-out'
+        # rather than wait for all retries to complete.
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_id)
             raise Exception("Instance maybe terminated? "
