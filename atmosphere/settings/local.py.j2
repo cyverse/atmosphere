@@ -12,8 +12,8 @@ SECRETS_MODULE = secrets
 globals().update(vars(sys.modules['atmosphere.settings']))
 
 # Debug Mode
-DEBUG = {{ DJANGO_DEBUG }}
-SEND_EMAILS = {{ not DJANGO_DEBUG }}
+DEBUG = {{ DJANGO_DEBUG | default(True) }}
+SEND_EMAILS = {{ not DJANGO_DEBUG | default(False) }}
 
 {% if DJANGO_TEMPLATE_DEBUG -%}
 template_backends = filter(lambda t:
@@ -175,9 +175,9 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
 CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
 {% endif %}
 # Logging
-LOGGING_LEVEL = {{ LOGGING_LEVEL }}
+LOGGING_LEVEL = {{ LOGGING_LEVEL | default("logging.INFO") }}
 # Logging level for dependencies.
-DEP_LOGGING_LEVEL = {{ LOGGING_DEP_LEVEL }}
+DEP_LOGGING_LEVEL = {{ LOGGING_DEP_LEVEL | default("logging.WARN") }}
 
 
 PROJECT_ROOT = os.path.abspath(
@@ -252,7 +252,6 @@ AUTHENTICATION = {
     "OAUTH_CLIENT_KEY": '{{ OAUTH_CLIENT_KEY }}',
     "OAUTH_CLIENT_SECRET": '{{ OAUTH_CLIENT_SECRET }}',
     "OAUTH_CLIENT_CALLBACK":  SERVER_URL + '/oauth2.0/callbackAuthorize',
-    "OAUTH_ISSUE_USER": '{{ OAUTH_ISSUE_USER}}',
 
     #LDAP
     "LDAP_SERVER": '{{ LDAP_SERVER }}',
