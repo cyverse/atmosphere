@@ -1,30 +1,35 @@
-#   A basic travis.yml boilerplate for Django projects
-#
-#   The set-up assumes a postgreSQL database.
-#
-#   Replace the following variables in the code:
-# * your_project_settings
-# * your_github_username
-# * your_repo
+---
+  # travis.yml for Django
+  sudo: required
+  dist: trusty
 
-language: python
+  language: python
+  python:
+    - 2.7
 
-python:
-  - 2.7
+  services:
+    - postgresql
+    - redis-server
 
-services: postgresql
+  addons:
+    postgresql: "9.6"
 
-env:
+  before_install:
+    - export DJANGO_SETTINGS_MODULE=atmosphere.settings
+    - sudo pg_dropcluster --stop 9.2 main
+    - sudo pg_dropcluster --stop 9.3 main
+    - sudo pg_dropcluster --stop 9.4 main
+    - sudo pg_dropcluster --stop 9.5 main
+    - sudo pg_lsclusters # For testing purposes
 
-before_install:
-  - export DJANGO_SETTINGS_MODULE=your_project.settings
+  install:
+    - pip install -r requirements.txt -r dev_requirements.txt
 
-install:
-  - pip install -r requirements.txt
+  before_script:
+    - psql -c "CREATE USER atmosphere_db_user WITH PASSWORD 'atmosphere_db_pass' CREATEDB;" -U postgres
+    - psql -c "CREATE DATABASE atmosphere WITH OWNER atmosphere_db_user;" -U postgres
 
-before_script:
-  - psql -c "CREATE DATABASE atmosphere;" -U postgres
-
-script:
-  - python manage.py migrate --noinput
-  - python manage.py test
+  script:
+    - cp ./variables.ini.dist ./variables.ini
+    - ./configure
+    - python manage.py test
