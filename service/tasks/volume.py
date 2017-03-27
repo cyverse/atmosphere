@@ -106,8 +106,9 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
                                % (volume,))
         if not device:
             raise Exception("No device found or inferred by volume %s" % volume)
+        last_char = device[-1]
         if not mount_location:
-            mount_location = "/vol-" + device[-1]
+            mount_location = "/vol_" + last_char
         playbooks = deploy_mount_volume(
             instance.ip, username, instance.id,
             device, mount_location=mount_location, device_type=device_type)
