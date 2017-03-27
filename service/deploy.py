@@ -98,7 +98,7 @@ def deploy_mount_volume(instance_ip, username, instance_id,
 def deploy_check_volume(instance_ip, username, instance_id,
         device, device_type='ext4'):
     """
-    Use service.ansible to deploy to an instance.
+    Use ansible to check if an attached volume has run mkfs.
     """
     extra_vars = {
         "VOLUME_DEVICE": device,
