@@ -1,0 +1,30 @@
+#   A basic travis.yml boilerplate for Django projects
+#
+#   The set-up assumes a postgreSQL database.
+#
+#   Replace the following variables in the code:
+# * your_project_settings
+# * your_github_username
+# * your_repo
+
+language: python
+
+python:
+  - 2.7
+
+services: postgresql
+
+env:
+
+before_install:
+  - export DJANGO_SETTINGS_MODULE=your_project.settings
+
+install:
+  - pip install -r requirements.txt
+
+before_script:
+  - psql -c "CREATE DATABASE atmosphere;" -U postgres
+
+script:
+  - python manage.py migrate --noinput
+  - python manage.py test
