@@ -1830,11 +1830,11 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
                 'Retry request when instance is active.'
                 % (instance_id, instance_status))
         result = task.attach_volume_task(
-                esh_driver, esh_instance.alias,
+                identity, esh_driver, esh_instance.alias,
                 volume_id, device, mount_location)
     elif 'mount_volume' == action_type:
         result = task.mount_volume_task(
-                esh_driver, esh_instance.alias,
+                identity, esh_driver, esh_instance.alias,
                 volume_id, device, mount_location)
     elif 'unmount_volume' == action_type:
         (result, error_msg) =\

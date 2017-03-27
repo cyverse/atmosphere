@@ -105,7 +105,7 @@ def unmount_volume_task(driver, instance_id, volume_id, *args, **kwargs):
         return (False, exc.message)
 
 
-def mount_volume_task(driver, instance_id, volume_id, device=None,
+def mount_volume_task(core_identity, driver, instance_id, volume_id, device=None,
                       mount_location=None, *args, **kwargs):
     """
     Mount, if possible, the volume to instance
@@ -133,7 +133,7 @@ def mount_volume_task(driver, instance_id, volume_id, device=None,
                 instance_id, volume_id, "Cannot mount volume %s "
                 "-- Not attached to instance %s" %
                 (volume_id, instance_id))
-        mount_chain = _get_mount_chain(driver, instance_id, volume_id,
+        mount_chain = _get_mount_chain(core_identity, driver, instance_id, volume_id,
                                        device, mount_location)
         mount_chain.apply_async()
     except VolumeMountConflict:
@@ -144,7 +144,7 @@ def mount_volume_task(driver, instance_id, volume_id, device=None,
     return mount_location
 
 
-def attach_volume_task(driver, instance_id, volume_id, device=None,
+def attach_volume_task(core_identity, driver, instance_id, volume_id, device=None,
                        mount_location=None, *args, **kwargs):
     """
     Attach (And mount, if possible) volume to instance
@@ -162,7 +162,7 @@ def attach_volume_task(driver, instance_id, volume_id, device=None,
             attach_volume.apply_async()
             # No mount location, return None
             return None
-        mount_chain = _get_mount_chain(driver, instance_id, volume_id,
+        mount_chain = _get_mount_chain(core_identity, driver, instance_id, volume_id,
                                        device, mount_location)
         attach_volume.link(mount_chain)
         attach_volume.apply_async()
@@ -202,17 +202,18 @@ def _get_umount_chain(driver, instance_id, volume_id, detach_task=None):
     return pre_umount_status
 
 
-def _get_mount_chain(driver, instance_id, volume_id, device, mount_location):
+def _get_mount_chain(core_identity, driver, instance_id, volume_id, device, mount_location):
     driverCls = driver.__class__
     provider = driver.provider
     identity = driver.identity
-
+    core_provider = core_identity.provider
+    fs_type = core_provider.get_config("deploy", "volume_fs_type", "ext4")
     pre_mount_status = update_volume_metadata.si(
         driverCls, provider, identity,
         volume_id, {'tmp_status': 'mounting'})
     pre_mount = check_volume_task.si(
         driverCls, provider, identity,
-        instance_id, volume_id)
+        instance_id, volume_id, fs_type)
     mount = mount_task.si(
         driverCls, provider, identity,
         instance_id, volume_id, device, mount_location)
