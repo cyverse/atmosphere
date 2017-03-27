@@ -405,16 +405,17 @@ def update_volume_metadata(driverCls, provider,
 
 
 @task(name="mount_failed")
-def mount_failed(task_uuid, driverCls, provider, identity, volume_id,
-                 unmount=False, **celery_task_args):
+def mount_failed(
+        context,
+        exception_msg,
+        traceback,
+        driverCls, provider, identity, volume_id,
+        unmount=False, **celery_task_args):
     from service import volume as volume_service
     try:
         celery_logger.debug("mount_failed task started at %s." % datetime.now())
-        celery_logger.info("task_uuid=%s" % task_uuid)
-        result = app.AsyncResult(task_uuid)
-        with allow_join_result():
-            exc = result.get(propagate=False)
-        err_str = "Mount Error Traceback:%s" % (result.traceback,)
+        celery_logger.info("task context=%s" % context)
+        err_str = "%s\nMount Error Traceback:%s" % (exception_msg, traceback)
         celery_logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         volume = driver.get_volume(volume_id)
