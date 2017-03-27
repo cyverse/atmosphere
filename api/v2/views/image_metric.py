@@ -21,7 +21,3 @@ class ImageMetricViewSet(MultipleFieldLookup, AuthOptionalViewSet):
         if type(request_user) == AnonymousUser or not request_user.is_staff:
             return Application.objects.none()
         return Application.images_for_user(request_user)
-
-    def list(self, request):
-        response = super(ImageMetricViewSet, self).list(request)
-        return response

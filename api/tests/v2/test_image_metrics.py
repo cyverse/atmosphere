@@ -19,44 +19,48 @@ class InstanceTests(APITestCase):
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create(username='test-username')
+        self.staff_user = UserFactory.create(username='test-staffuser', is_staff=True, is_superuser=True)
         self.provider = ProviderFactory.create()
         self.user_identity = IdentityFactory.create_identity(
             created_by=self.user,
             provider=self.provider)
+        self.staff_user_identity = IdentityFactory.create_identity(
+            created_by=self.staff_user,
+            provider=self.provider)
 
-        self.machine = ProviderMachineFactory.create_provider_machine(self.user, self.user_identity)
+        self.machine = ProviderMachineFactory.create_provider_machine(self.staff_user, self.staff_user_identity)
         self.application = self.machine.application_version.application
         start_date = timezone.now()
         self.active_instance = InstanceFactory.create(
             name="Instance went active",
             provider_alias=uuid.uuid4(),
             source=self.machine.instance_source,
-            created_by=self.user,
-            created_by_identity=self.user_identity,
+            created_by=self.staff_user,
+            created_by_identity=self.staff_user_identity,
             start_date=start_date)
         self.networking_instance = InstanceFactory.create(
             name="Instance stuck in networking",
             provider_alias=uuid.uuid4(),
             source=self.machine.instance_source,
-            created_by=self.user,
-            created_by_identity=self.user_identity,
+            created_by=self.staff_user,
+            created_by_identity=self.staff_user_identity,
             start_date=start_date)
         self.deploying_instance = InstanceFactory.create(
             name="Instance stuck in deploying",
             provider_alias=uuid.uuid4(),
             source=self.machine.instance_source,
-            created_by=self.user,
-            created_by_identity=self.user_identity,
+            created_by=self.staff_user,
+            created_by_identity=self.staff_user_identity,
             start_date=start_date)
         self.deploy_error_instance = InstanceFactory.create(
             name="Instance stuck in deploy_error",
             provider_alias=uuid.uuid4(),
             source=self.machine.instance_source,
-            created_by=self.user,
-            created_by_identity=self.user_identity,
+            created_by=self.staff_user,
+            created_by_identity=self.staff_user_identity,
             start_date=start_date)
 
-        build = InstanceStatusFactory.create(name='build')
+        self.status_build = InstanceStatusFactory.create(name='build')
         self.status_suspended = InstanceStatusFactory.create(name='suspended')
         self.status_active = InstanceStatusFactory.create(name='active')
         self.status_networking = InstanceStatusFactory.create(name='networking')
@@ -148,10 +152,25 @@ class InstanceTests(APITestCase):
             )
         get_application_metrics(self.application)
 
-    def test_accurate_application_statistics(self):
-        """Given the setUp above, 1/4 instances are active."""
+    def test_user_sees_no_statistics(self):
+        """Non-staff users should see an empty set of data."""
         client = APIClient()
         client.force_authenticate(user=self.user)
+
+        list_url = reverse('api:v2:applicationmetric-list')
+        list_response = client.get(list_url)
+        self.assertEquals(list_response.status_code, 200)
+        list_data = list_response.data['results']
+        self.assertEquals(list_data, [])
+
+        url = reverse('api:v2:applicationmetric-detail', args=(self.application.uuid,))
+        response = client.get(url)
+        self.assertEquals(response.status_code, 404)
+
+    def test_staff_sees_accurate_application_statistics(self):
+        """Given the setUp above, 1/4 instances are active."""
+        client = APIClient()
+        client.force_authenticate(user=self.staff_user)
         expected_metrics = {'active': 1, 'total': 4}
 
         url = reverse('api:v2:applicationmetric-detail', args=(self.application.uuid,))
@@ -159,7 +178,7 @@ class InstanceTests(APITestCase):
         self.assertEquals(response.status_code, 200)
         data = response.data
         api_metrics = data['metrics']
-        metrics = api_metrics.values()[0]
+        metrics = api_metrics.values()[-1]
 
         self.assertEquals(metrics, expected_metrics)
 
@@ -176,7 +195,7 @@ class InstanceTests(APITestCase):
             name="Instance went active",
             provider_alias=uuid.uuid4(),
             source=self.machine.instance_source,
-            created_by=self.user,
+            created_by=self.staff_user,
             created_by_identity=self.user_identity,
             start_date=start_date)
         # Simulate going to active
