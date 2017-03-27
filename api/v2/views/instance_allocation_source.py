@@ -79,11 +79,7 @@ class InstanceAllocationSourceViewSet(AuthModelViewSet):
         payload = {}
         payload['instance_id'] = request_data.get('instance_id')
         payload['allocation_source_id'] = request_data.get('source_id')
-
-        # we can just user request_user.username in prod, but in dev use this to fetch the correct username
-
-        username = Instance.objects.filter(provider_alias=payload['instance_id']).last().created_by.username
-        #username=request_user.username
+        username=request_user.username
 
         creation_event = EventTable(
             name='instance_allocation_source_changed',
