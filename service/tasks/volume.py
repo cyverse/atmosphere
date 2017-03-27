@@ -21,7 +21,7 @@ from service.driver import get_driver
 from service.deploy import (
     mount_volume,
     check_mount, umount_volume, lsof_location,
-    deploy_check_volume,
+    deploy_check_volume, deploy_mount_volume,
     build_host_name, execution_has_failures, execution_has_unreachable)
 from service.exceptions import DeviceBusyException
 
@@ -40,19 +40,19 @@ def check_volume_task(driverCls, provider, identity,
         username = identity.get_username()
         attach_data = volume.extra['attachments'][0]
         device = attach_data['device']
-
-        private_key = ATMOSPHERE_PRIVATE_KEYFILE
-        kwargs.update({'ssh_key': private_key})
-        kwargs.update({'timeout': 120})
         celery_logger.info("Device: %s" % device)
-        # One script to make two checks:
-        # 1. Voume exists 2. Volume has a filesystem
+
+        # One playbook to make two checks:
+        # 1. Voume exists
+        # 2. Volume has a filesystem
+        #    (If not, create one of type 'device_type')
         playbooks = deploy_check_volume(
             instance.ip, username, instance.id,
             device, device_type=device_type)
         celery_logger.info(playbooks.__dict__)
         hostname = build_host_name(instance.id, instance.ip)
-        result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname) else True
+        result = False if execution_has_failures(playbooks, hostname)\
+            or execution_has_unreachable(playbooks, hostname) else True
         if not result:
             raise Exception(
                 "Error encountered while checking volume for filesystem: %s"
@@ -88,72 +88,37 @@ def _parse_mount_location(mount_output, device_location):
       default_retry_delay=20,
       ignore_result=False)
 def mount_task(driverCls, provider, identity, instance_id, volume_id,
-               device=None, mount_location=None, *args, **kwargs):
+               device=None, mount_location=None, device_type=None, *args, **kwargs):
     try:
         celery_logger.debug("mount task started at %s." % datetime.now())
         celery_logger.debug("mount_location: %s" % (mount_location, ))
         driver = get_driver(driverCls, provider, identity)
+        username = identity.get_username()
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
 
-        username = identity.get_username()
-        # DEV NOTE: Set as 'users' because this is a GUARANTEED group
-        # and we know our 'user' will exist (if atmo_init_full was executed)
-        # in case the VM does NOT rely on iPlant LDAP
-        groupname = "users"
-
-        celery_logger.debug(volume)
         try:
             attach_data = volume.extra['attachments'][0]
             if not device:
                 device = attach_data['device']
-        except KeyError as IndexError:
+        except (KeyError, IndexError):
             celery_logger.warn("Volume %s missing attachments in Extra"
-                        % (volume,))
-            device = None
+                               % (volume,))
         if not device:
-            celery_logger.warn("Device never attached. Nothing to mount")
-            return None
-
-        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
-        kwargs.update({'ssh_key': private_key})
-        kwargs.update({'timeout': 120})
-
-        # Step 2. Check the volume is not already mounted
-        cm_script = check_mount()
-        kwargs.update({'deploy': cm_script})
-        driver.deploy_to(instance, **kwargs)
-
-        if device in cm_script.stdout:
-            mount_location = _parse_mount_location(cm_script.stdout, device)
-            if not mount_location:
-                raise Exception("Device already mounted, "
-                                "but mount location could not be determined!"
-                                "Check _parse_mount_location()!")
-            celery_logger.warn(
-                "Device already mounted. Mount output:%s" %
-                cm_script.stdout)
-            # Device has already been mounted. Move along..
-            return mount_location
-
-        # Step 3. Find a suitable location to mount the volume
-        celery_logger.info("Original mount location - %s" % mount_location)
+            raise Exception("No device found or inferred by volume %s" % volume)
         if not mount_location:
-            inc = 1
-            while True:
-                if '/vol%s' % inc in cm_script.stdout:
-                    inc += 1
-                else:
-                    break
-            mount_location = '/vol%s' % inc
-
-        celery_logger.info("Device location - %s" % device)
-        celery_logger.info("New mount location - %s" % mount_location)
-
-        mv_script = mount_volume(device, mount_location, username, groupname)
-        kwargs.update({'deploy': mv_script})
-        driver.deploy_to(instance, **kwargs)
-        celery_logger.debug("mount task finished at %s." % datetime.now())
+            mount_location = "/vol-" + device[-1]
+        playbooks = deploy_mount_volume(
+            instance.ip, username, instance.id,
+            device, mount_location=mount_location, device_type=device_type)
+        celery_logger.info(playbooks.__dict__)
+        hostname = build_host_name(instance.id, instance.ip)
+        result = False if execution_has_failures(playbooks, hostname)\
+            or execution_has_unreachable(playbooks, hostname) else True
+        if not result:
+            raise Exception(
+                "Error encountered while mounting volume: %s"
+                % playbooks.stats.summarize(host=hostname))
         return mount_location
     except Exception as exc:
         celery_logger.warn(exc)
@@ -355,7 +320,7 @@ def update_mount_location(new_mount_location,
             return
         if not new_mount_location:
             return
-        volume_metadata = volume.extra['metadata']
+        #volume_metadata = volume.extra['metadata']
         return volume_service._update_volume_metadata(
             driver, volume,
             metadata={'mount_location': new_mount_location})
