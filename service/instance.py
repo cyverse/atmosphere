@@ -1836,16 +1836,16 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
                 % (instance_id, instance_status))
         result = task.attach_volume_task(
                 identity, esh_driver, esh_instance.alias,
-                volume_id, device, mount_location)
+                volume_id, device_location, mount_location)
     elif 'mount_volume' == action_type:
         result = task.mount_volume_task(
                 identity, esh_driver, esh_instance.alias,
-                volume_id, device, mount_location)
+                volume_id, device_location, mount_location)
     elif 'unmount_volume' == action_type:
         (result, error_msg) =\
             task.unmount_volume_task(esh_driver,
                                      esh_instance.alias,
-                                     volume_id, device,
+                                     volume_id, device_location,
                                      mount_location)
     elif 'detach_volume' == action_type:
         instance_status = esh_instance.extra['status']
