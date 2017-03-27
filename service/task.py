@@ -144,26 +144,26 @@ def mount_volume_task(core_identity, driver, instance_id, volume_id, device=None
     return mount_location
 
 
-def attach_volume_task(core_identity, driver, instance_id, volume_id, device=None,
+def attach_volume_task(core_identity, driver, instance_id, volume_id, device_location=None,
                        mount_location=None, *args, **kwargs):
     """
     Attach (And mount, if possible) volume to instance
-    Device and mount_location assumed if empty
+    device_location and mount_location assumed if empty
     """
     logger.info("Attach: %s --> %s" % (volume_id, instance_id))
     logger.info("device_location:%s, mount_location: %s"
-                % (device, mount_location))
+                % (device_location, mount_location))
     try:
         attach_volume = attach_task.si(
             driver.__class__, driver.provider, driver.identity,
-            instance_id, volume_id, device)
+            instance_id, volume_id, device_location)
         if not hasattr(driver, 'deploy_to'):
             # Do not attempt to mount if we don't have sh access
             attach_volume.apply_async()
             # No mount location, return None
             return None
         mount_chain = _get_mount_chain(core_identity, driver, instance_id, volume_id,
-                                       device, mount_location)
+                                       device_location, mount_location)
         attach_volume.link(mount_chain)
         attach_volume.apply_async()
     except Exception as e:
@@ -202,12 +202,13 @@ def _get_umount_chain(driver, instance_id, volume_id, detach_task=None):
     return pre_umount_status
 
 
-def _get_mount_chain(core_identity, driver, instance_id, volume_id, device, mount_location):
+def _get_mount_chain(core_identity, driver, instance_id, volume_id, device_location, mount_location):
     driverCls = driver.__class__
     provider = driver.provider
     identity = driver.identity
     core_provider = core_identity.provider
     fs_type = core_provider.get_config("deploy", "volume_fs_type", "ext4")
+    mount_prefix = core_provider.get_config("deploy", "volume_mount_prefix", "/vol_")
     pre_mount_status = update_volume_metadata.si(
         driverCls, provider, identity,
         volume_id, {'tmp_status': 'mounting'})
@@ -216,7 +217,8 @@ def _get_mount_chain(core_identity, driver, instance_id, volume_id, device, moun
         instance_id, volume_id, fs_type)
     mount = mount_task.si(
         driverCls, provider, identity,
-        instance_id, volume_id, device, mount_location)
+        instance_id, volume_id, device_location, mount_location, fs_type,
+        mount_prefix=mount_prefix)
     post_mount = update_mount_location.s(
         driverCls, provider, identity, volume_id)
     post_mount_status = update_volume_metadata.si(

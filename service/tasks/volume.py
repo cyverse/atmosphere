@@ -39,8 +39,8 @@ def check_volume_task(driverCls, provider, identity,
         volume = driver.get_volume(volume_id)
         username = identity.get_username()
         attach_data = volume.extra['attachments'][0]
-        device = attach_data['device']
-        celery_logger.info("Device: %s" % device)
+        device_location = attach_data['device']
+        celery_logger.info("device_location: %s" % device_location)
 
         # One playbook to make two checks:
         # 1. Voume exists
@@ -48,7 +48,7 @@ def check_volume_task(driverCls, provider, identity,
         #    (If not, create one of type 'device_type')
         playbooks = deploy_check_volume(
             instance.ip, username, instance.id,
-            device, device_type=device_type)
+            device_location, device_type=device_type)
         celery_logger.info(playbooks.__dict__)
         hostname = build_host_name(instance.id, instance.ip)
         result = False if execution_has_failures(playbooks, hostname)\
@@ -88,7 +88,8 @@ def _parse_mount_location(mount_output, device_location):
       default_retry_delay=20,
       ignore_result=False)
 def mount_task(driverCls, provider, identity, instance_id, volume_id,
-               device=None, mount_location=None, device_type=None, *args, **kwargs):
+               device_location, mount_location, device_type,
+               mount_prefix=None, *args, **kwargs):
     try:
         celery_logger.debug("mount task started at %s." % datetime.now())
         celery_logger.debug("mount_location: %s" % (mount_location, ))
@@ -99,19 +100,23 @@ def mount_task(driverCls, provider, identity, instance_id, volume_id,
 
         try:
             attach_data = volume.extra['attachments'][0]
-            if not device:
-                device = attach_data['device']
+            if not device_location:
+                device_location = attach_data['device']
         except (KeyError, IndexError):
             celery_logger.warn("Volume %s missing attachments in Extra"
                                % (volume,))
-        if not device:
-            raise Exception("No device found or inferred by volume %s" % volume)
-        last_char = device[-1]
+        if not device_location:
+            raise Exception("No device_location found or inferred by volume %s" % volume)
+        if not mount_prefix:
+            mount_prefix = "/vol_"
+
+        last_char = device_location[-1]  # /dev/sdb --> b
         if not mount_location:
-            mount_location = "/vol_" + last_char
+            mount_location = mount_prefix + last_char
+
         playbooks = deploy_mount_volume(
             instance.ip, username, instance.id,
-            device, mount_location=mount_location, device_type=device_type)
+            device_location, mount_location=mount_location, device_type=device_type)
         celery_logger.info(playbooks.__dict__)
         hostname = build_host_name(instance.id, instance.ip)
         result = False if execution_has_failures(playbooks, hostname)\
