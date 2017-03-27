@@ -32,7 +32,7 @@ class Profile(AuthAPIView):
                 "Please contact your Cloud Administrator for more information."
                 % (user.username,), status=403)  # Forbidden
 
-        profile = user.get_profile()
+        profile = user.userprofile
         try:
             serialized_data = ProfileSerializer(profile).data
         except InvalidUser as exc:
@@ -49,7 +49,7 @@ class Profile(AuthAPIView):
         400 - Bad key/value on update, errors in body.
         """
         user = request.user
-        profile = user.get_profile()
+        profile = user.userprofile
         mutable_data = request.data.copy()
         if "selected_identity" in mutable_data:
             user_data = {"selected_identity":
@@ -76,7 +76,7 @@ class Profile(AuthAPIView):
         400 - Bad key/value on update, errors in body.
         """
         user = request.user
-        profile = user.get_profile()
+        profile = user.userprofile
         serializer = ProfileSerializer(profile, data=request.data)
         if serializer.is_valid():
             serializer.save()

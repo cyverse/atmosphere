@@ -14,3 +14,4 @@ class InstanceStatusHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InstanceStatusHistory
+        fields = "__all__"

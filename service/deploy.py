@@ -76,6 +76,24 @@ def ready_to_deploy(instance_ip, username, instance_id):
         limit_playbooks=['check_networking.yml'])
 
 
+def deploy_check_volume(instance_ip, username, instance_id,
+        device, device_type='ext4'):
+    """
+    Use service.ansible to deploy to an instance.
+    """
+    extra_vars = {
+        "VOLUME_DEVICE": device,
+        "VOLUME_DEVICE_TYPE": device_type,
+    }
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'utils')
+    limit_playbooks = ['check_volume.yml']
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=limit_playbooks,
+        extra_vars=extra_vars)
+
+
 def instance_deploy(instance_ip, username, instance_id,
 		    limit_playbooks=[]):
     """

@@ -17,11 +17,12 @@ from rtwo.exceptions import LibcloudDeploymentError
 
 from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 
-from core.email import send_instance_email
-
 from service.driver import get_driver
-from service.deploy import mount_volume, check_volume, mkfs_volume,\
-    check_mount, umount_volume, lsof_location
+from service.deploy import (
+    mount_volume,
+    check_mount, umount_volume, lsof_location,
+    deploy_check_volume,
+    build_host_name, execution_has_failures, execution_has_unreachable)
 from service.exceptions import DeviceBusyException
 
 
@@ -30,45 +31,33 @@ from service.exceptions import DeviceBusyException
       default_retry_delay=20,
       ignore_result=False)
 def check_volume_task(driverCls, provider, identity,
-                      instance_id, volume_id, *args, **kwargs):
+                      instance_id, volume_id, device_type='ext4', *args, **kwargs):
     try:
         celery_logger.debug("check_volume task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
+        username = identity.get_username()
         attach_data = volume.extra['attachments'][0]
         device = attach_data['device']
 
         private_key = ATMOSPHERE_PRIVATE_KEYFILE
         kwargs.update({'ssh_key': private_key})
         kwargs.update({'timeout': 120})
-
+        celery_logger.info("Device: %s" % device)
         # One script to make two checks:
         # 1. Voume exists 2. Volume has a filesystem
-        cv_script = check_volume(device)
-        # NOTE: non_zero_deploy needed to stop LibcloudDeploymentError from being
-        # raised
-        kwargs.update({'deploy': cv_script,
-                       'non_zero_deploy': True})
-        driver.deploy_to(instance, **kwargs)
-        kwargs.pop('non_zero_deploy', None)
-        # Script execute
-
-        if cv_script.exit_status != 0:
-            if 'No such file' in cv_script.stdout:
-                raise Exception('Volume check failed: %s. '
-                                'Device %s does not exist on instance %s'
-                                % (volume, device, instance))
-            elif 'Bad magic number' in cv_script.stdout:
-                # Filesystem needs to be created for this device
-                celery_logger.info("Mkfs needed")
-                mkfs_script = mkfs_volume(device)
-                kwargs.update({'deploy': mkfs_script})
-                driver.deploy_to(instance, **kwargs)
-            else:
-                raise Exception('Volume check failed: Something weird')
-
-        celery_logger.debug("check_volume task finished at %s." % datetime.now())
+        playbooks = deploy_check_volume(
+            instance.ip, username, instance.id,
+            device, device_type=device_type)
+        celery_logger.info(playbooks.__dict__)
+        hostname = build_host_name(instance.id, instance.ip)
+        result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname) else True
+        if not result:
+            raise Exception(
+                "Error encountered while checking volume for filesystem: %s"
+                % playbooks.stats.summarize(host=hostname))
+        return result
     except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
     except Exception as exc:
@@ -405,16 +394,17 @@ def update_volume_metadata(driverCls, provider,
 
 
 @task(name="mount_failed")
-def mount_failed(task_uuid, driverCls, provider, identity, volume_id,
-                 unmount=False, **celery_task_args):
+def mount_failed(
+        context,
+        exception_msg,
+        traceback,
+        driverCls, provider, identity, volume_id,
+        unmount=False, **celery_task_args):
     from service import volume as volume_service
     try:
         celery_logger.debug("mount_failed task started at %s." % datetime.now())
-        celery_logger.info("task_uuid=%s" % task_uuid)
-        result = app.AsyncResult(task_uuid)
-        with allow_join_result():
-            exc = result.get(propagate=False)
-        err_str = "Mount Error Traceback:%s" % (result.traceback,)
+        celery_logger.info("task context=%s" % context)
+        err_str = "%s\nMount Error Traceback:%s" % (exception_msg, traceback)
         celery_logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         volume = driver.get_volume(volume_id)

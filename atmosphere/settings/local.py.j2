@@ -167,9 +167,9 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
     },
   "monitor_jetstream_allocation_sources":{
 	"task":"monitor_jetstream_allocation_sources",
-        # Every 15 minutes
-        "schedule": crontab(minute="*/15"),
-        "options" : {"expires": 10 * 60,"time_limit": 10 * 60}
+        # Every 60 minutes, no longer than 45 minutes
+        "schedule": crontab(minute="*/60"),
+        "options" : {"expires": 45 * 60,"time_limit": 45 * 60}
   }
 }
 CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
@@ -228,6 +228,7 @@ DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 USE_ALLOCATION_SOURCE = True
 {% endif %}
 
+ENABLE_IMAGE_VALIDATION = True
 
 # Configure authentication plugin
 AUTHENTICATION = {

@@ -132,7 +132,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',
     #For profile/debugging
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -458,6 +458,12 @@ CELERYBEAT_SCHEDULE = {
         "task": "check_image_membership",
         "schedule": timedelta(minutes=60),
         "options": {"expires": 10 * 60, "time_limit": 2 * 60}
+    },
+    "generate_metrics": {
+        "task": "generate_metrics",
+        # Every day of the week @ 12am (Midnight)
+        "schedule": crontab(hour="0", minute="0", day_of_week="*"),
+        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
     "prune_machines": {
         "task": "prune_machines",

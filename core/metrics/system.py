@@ -1,9 +1,39 @@
 from django.utils import timezone
+from django.db.models import Q
 from dateutil import rrule
 from core.models import (
-    Instance, AtmosphereUser, MachineRequest,
+    InstanceStatusHistory, Instance, AtmosphereUser, MachineRequest,
     Application, ProviderMachine, Provider
 )
+
+
+def instance_history_usage_report(filename, start_date=None, end_date=None, only_active=False):
+    query = InstanceStatusHistory.objects.all()
+    if only_active:
+        query = query.filter(Q(status__name='active') | Q(status__name='running'))
+    if start_date:
+        query = query.filter(start_date__gt=start_date)
+    if end_date:
+        query = query.filter(end_date__gt=end_date)
+    now_time = timezone.now()
+    with open(filename, 'w') as the_file:
+        the_file.write("ID,Provider Alias,Username,Provider,Application,Version,Machine UUID,Status,Start Date,End Date,Active Time(Hours),CPU,RAM,DISK\n")
+        for instance_history in query.order_by('instance__id', 'start_date', 'end_date'):
+            instance = instance_history.instance
+            size = instance_history.size
+            cpu = size.cpu if size.cpu > 0 else 1
+            mem = size.mem if size.mem > 1 else ""
+            disk = size.disk if size.disk > 1 else ""
+            machine = instance.source.providermachine
+            active_time = instance_history.get_active_time()[0]
+
+            the_file.write( "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" % (
+                instance.id, instance.provider_alias, instance.created_by.username,
+                instance.created_by_identity.provider.location, machine.application.name.replace(",",""), machine.application_version.name.replace(",",""),
+                instance.source.identifier, instance_history.status.name, instance_history.start_date.strftime("%x %X"), instance_history.end_date.strftime("%x %X") if instance_history.end_date else "N/A",
+                active_time.total_seconds()/3600.0,
+                cpu, mem, disk
+                ) )
 
 
 def instance_usage_report(filename, start_date=None, end_date=None):

@@ -307,6 +307,7 @@ def create_new_accounts(username, selected_provider=None):
     return identities
 
 def create_new_account_for(provider, user):
+    from service.exceptions import AccountCreationConflict
     from service.driver import get_account_driver
     existing_user_list = provider.identity_set.values_list('created_by__username', flat=True)
     if user.username in existing_user_list:
@@ -317,6 +318,8 @@ def create_new_account_for(provider, user):
         logger.info("Create NEW account for %s" % user.username)
         new_identity = accounts.create_account(user.username)
         return new_identity
+    except AccountCreationConflict:
+        raise  # TODO: Ideally, have sentry handle these events, rather than force an Unhandled 500 to bubble up.
     except:
         logger.exception("Could *NOT* Create NEW account for %s" % user.username)
         return None

@@ -99,7 +99,7 @@ class InstanceSupportEmailViewSet(EmailViewSet):
             "ui": data.get("user-interface", ""),
             "server": settings.SERVER_URL,
             "message": data["message"],
-            "provider": user.selected_identity.provider,
+            "provider": instance.provider,
             "instance": instance,
             "status": last_status
         }
