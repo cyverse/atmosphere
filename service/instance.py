@@ -1584,7 +1584,7 @@ def _to_user_driver(core_identity):
     if '/v' not in auth_url:  # Add /v3 if no version specified in auth_url
         auth_url += '/v3'
     if 'ex_force_auth_token' in all_creds:
-        auth_token = all_creds['ex_force_auth_token'
+        auth_token = all_creds['ex_force_auth_token']
         (auth, sess, token) = _token_to_keystone_scoped_project(
             auth_url, auth_token,
             project_name, domain_name)
