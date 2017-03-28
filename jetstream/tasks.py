@@ -3,6 +3,8 @@ import collections
 
 from django.conf import settings
 from django.utils import timezone
+from dateutil.parser import parse
+
 
 from celery.decorators import task
 from core.models.allocation_source import total_usage
@@ -10,6 +12,8 @@ from core.models.allocation_source import (
     UserAllocationSource, AllocationSourceSnapshot,
     AllocationSource, UserAllocationSnapshot
 )
+
+from core.models import EventTableUpdated
 from service.allocation_logic import create_report, get_instance_burn_rate_from_row
 from core.models.user import AtmosphereUser
 
@@ -136,7 +140,6 @@ def send_reports():
     if failed_reports != 0:
         raise Exception("%s/%s reports failed to send to TAS" % (failed_reports, count))
 
-
 @task(name="update_snapshot")
 def update_snapshot(start_date=None, end_date=None):
     if not settings.USE_ALLOCATION_SOURCE:
@@ -144,61 +147,49 @@ def update_snapshot(start_date=None, end_date=None):
     end_date = end_date or timezone.now()
     # TODO: Read this start_date from last 'reset event' for each allocation source
     start_date = start_date or '2016-09-01 00:00:00.0-05'
-    all_data = create_report(start_date, end_date)
 
-    user_allocation_snapshots = {}
-    unique_usernames = set()
-
-    for row in all_data:
-        key = (row['allocation_source'], row['username'])
-        compute_used, instance_burn_rates = user_allocation_snapshots.get(key, (0.0, {}))
-        new_compute_used = compute_used + float(row['applicable_duration'])
-        new_instance_burn_rate = int(get_instance_burn_rate_from_row(row))
-        instance_burn_rates['instance_id'] = new_instance_burn_rate
-        user_allocation_snapshots[key] = (new_compute_used, instance_burn_rates)
-
-        unique_usernames.add(row['username'])
-
-    allocation_source_ids = {obj['name']: obj['id'] for obj in AllocationSource.objects.all().values('name', 'id')}
-    relevant_users = {obj['username']: obj['id'] for obj in
-                      AtmosphereUser.objects.filter(username__in=unique_usernames).values(
-                          'username', 'id')}
-
-    allocation_source_burn_rates = collections.Counter()
-    for key, snapshot_numbers in user_allocation_snapshots.iteritems():
-        allocation_source_name, username = key
-        compute_used, instance_burn_rates = snapshot_numbers
-        try:
-            allocation_source_id = allocation_source_ids[allocation_source_name]
-        except KeyError:
-            # This allocation source does not exist in our database yet. Create it? Skip for now. Could be 'N/A' as well
-            continue
-        user_allocation_burn_rate = sum(instance_burn_rates.values())
-        snapshot, created = UserAllocationSnapshot.objects.update_or_create(
-            allocation_source_id=allocation_source_id,
-            user_id=relevant_users[username],
-            defaults={
-                'compute_used': round(compute_used / 3600, 2),
-                'burn_rate': user_allocation_burn_rate
-            }
-        )
-        allocation_source_burn_rates[allocation_source_name] += user_allocation_burn_rate
+    allocation_sources_renewed_dict = {e.payload['allocation_source_name']: e.payload['start_date'] for e in
+                                       EventTableUpdated.objects.filter(name='allocation_source_renewed').order_by(
+                                           'timestamp')}
 
     tas_api_obj = TASAPIDriver()
     allocation_source_usage_from_tas = tas_api_obj.get_all_projects()
+
+
     for project in allocation_source_usage_from_tas:
+        total_burn_rate = 0
         allocation_source_name = project['chargeCode']
         try:
-            allocation_source_id = allocation_source_ids[allocation_source_name]
+            allocation_source = AllocationSource.objects.filter(name=allocation_source_name).order_by('id').last()
+
+            if allocation_source.name in allocation_sources_renewed_dict:
+                #if renewed, change ignore old allocation usage
+                start_date = allocation_sources_renewed_dict[allocation_source.name]
+
+            for user in allocation_source.all_users:
+                compute_used, burn_rate = total_usage(user.username, start_date, allocation_source_name=allocation_source.name ,end_date=end_date,burn_rate=True)
+
+                total_burn_rate +=burn_rate
+                snapshot, created = UserAllocationSnapshot.objects.update_or_create(
+                    allocation_source_id=allocation_source.id,
+                    user_id=user.id,
+                    defaults={
+                        'compute_used': compute_used,
+                        'burn_rate': burn_rate
+                    }
+                )
+
         except KeyError:
             # This allocation source does not exist in our database yet. Create it? Skip for now.
             continue
+        # MAKE SURE THAT WE ARE ONLY LOOKING AT MOST RECENT ACTIVE ALLOCATION SOURCES
         compute_used = project['allocations'][-1]['computeUsed']
         snapshot, created = AllocationSourceSnapshot.objects.update_or_create(
-            allocation_source_id=allocation_source_id,
+            allocation_source_id=allocation_source.id,
             defaults={
                 'compute_used': compute_used,
-                'global_burn_rate': allocation_source_burn_rates.get(allocation_source_name, 0)
+                'global_burn_rate': total_burn_rate
             }
         )
     return True
+
