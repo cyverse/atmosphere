@@ -144,12 +144,12 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     if event.name != 'allocation_source_threshold_met':
         return None
     payload = event.payload
-    allocation_source_id = payload['allocation_source_id']
+    allocation_source_name = payload['allocation_source_name']
     threshold = payload['threshold']
     actual_value = payload['actual_value']
     if not settings.ENFORCING:
         return None
-    source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    source = AllocationSource.objects.filter(name=allocation_source_name).first()
     if not source:
         return None
     users = AtmosphereUser.for_allocation_source(source.source_id)
@@ -278,10 +278,10 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
         return None
     logger.info("Instance allocation changed event: %s" % event.__dict__)
     payload = event.payload
-    allocation_source_id = payload['allocation_source_id']
+    allocation_source_name = payload['allocation_source_name']
     instance_id = payload['instance_id']
 
-    allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).first()
     if not allocation_source:
         return None
     instance = Instance.objects.filter(provider_alias=instance_id).first()
