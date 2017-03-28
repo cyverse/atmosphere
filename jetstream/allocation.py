@@ -6,7 +6,7 @@ from dateutil.parser import parse
 
 from .exceptions import TASAPIException
 #FIXME: Next iteration, move this into the driver.
-from .api import tacc_api_post, tacc_api_get
+from .tas_api import tacc_api_post, tacc_api_get
 from core.models.allocation_source import AllocationSource, UserAllocationSource
 
 logger = logging.getLogger(__name__)
@@ -59,8 +59,9 @@ class TASAPIDriver(object):
                 user.username)
         except:
             logger.info("User: %s has no tacc username" % user.username)
-            tacc_user = user.username
-        self.username_map[user.username] = tacc_user
+            tacc_user = None
+        else:
+            self.username_map[user.username] = tacc_user
         return tacc_user
 
     def find_projects_for(self, tacc_username):
@@ -126,12 +127,12 @@ class TASAPIDriver(object):
         }
         path = '/v1/jobs'
         url_match = self.tacc_api + path
-        logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
+        #logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
         resp = tacc_api_post(url_match, post_data, self.tacc_username, self.tacc_password)
-        logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
+        #logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
         try:
             data = resp.json()
-            logger.debug("TAS_RESP - Data: %s" % data)
+            #logger.debug("TAS_RESP - Data: %s" % data)
             resp_status = data['status']
         except ValueError:
             exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (report_id, resp.text,))
@@ -219,16 +220,16 @@ class TASAPIDriver(object):
         except ValueError as exc:
             if raise_exception:
                 raise TASAPIException("JSON Decode error -- %s" % exc)
-            logger.info( exc)
+            logger.info(exc)
         except Exception as exc:
             if raise_exception:
                 raise
-            logger.info( exc)
+            logger.info(exc)
         return user_names
 
     
 
-    def get_user_allocations(self, username, raise_exception=True):
+    def get_user_allocations(self, username, include_expired=False, raise_exception=True):
         path = '/v1/projects/username/%s' % username
         url_match = self.tacc_api + path
         resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
@@ -237,8 +238,8 @@ class TASAPIDriver(object):
             _validate_tas_data(data)
             projects = data['result']
             for project in projects:
-                allocations = project['allocations']
-                for allocation in allocations:
+                api_allocations = project['allocations'] if include_expired else select_valid_allocations(project['allocations'])
+                for allocation in api_allocations:
                     if allocation['resource'] == self.resource_name:
                         user_allocations.append( (project, allocation) )
             return user_allocations
@@ -284,7 +285,12 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
 
 def find_user_allocation_source_for(driver, user):
     tacc_user = driver.get_tacc_username(user)
-    allocations = driver.find_allocations_for(tacc_user)
+    # allocations = driver.find_allocations_for(tacc_user)
+    if not tacc_user:
+        return []
+
+    project_allocations = driver.get_user_allocations(tacc_user)
+    allocations = [pa[1] for pa in project_allocations]  # 2-tuples: (project, allocation)
     return allocations
 
 
@@ -308,6 +314,9 @@ def collect_users_without_allocation(driver):
     missing = []
     for user in AtmosphereUser.objects.order_by('username'):
         tacc_user = driver.get_tacc_username(user)
+        if not tacc_user:
+            missing.append(user)
+            continue
         user_allocations = driver.get_user_allocations(
             tacc_user, raise_exception=False)
         if not user_allocations:
@@ -320,9 +329,14 @@ def fill_user_allocation_sources():
     driver = TASAPIDriver()
     allocation_resources = {}
     for user in AtmosphereUser.objects.order_by('username'):
-        resources = fill_user_allocation_source_for(driver, user)
+        try:
+            resources = fill_user_allocation_source_for(driver, user)
+        except Exception as exc:
+            logger.exception("Error filling user allocation source for %s" % user)
+            resources = []
         allocation_resources[user.username] = resources
     return allocation_resources
+
 
 def fill_user_allocation_source_for(driver, user, force_update=True):
     allocation_list = find_user_allocation_source_for(driver, user)
@@ -336,19 +350,42 @@ def fill_user_allocation_source_for(driver, user, force_update=True):
         allocation_resources.append(allocation_source)
     return allocation_resources
 
-def select_valid_allocation(allocation_list):
+
+def select_valid_allocations(allocation_list):
     now = timezone.now()
+    allocations = []
     for allocation in allocation_list:
+        allocation_status = allocation['status']
+        if allocation_status.lower() != 'active':
+           #logger.debug("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+           continue
         start_timestamp = allocation['start']
         end_timestamp = allocation['end']
-        status = allocation['status']
         start_date = parse(start_timestamp)
         end_date = parse(end_timestamp)
         if start_date >= now or end_date <= now:
-           logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
+           #logger.debug("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
            continue
+        allocations.append(allocation)
+    return allocations
+
+
+def select_valid_allocation(allocation_list):
+    """
+    #FIXME: In a future commit, merge select_valid_allocations.
+    """
+    now = timezone.now()
+    for allocation in allocation_list:
+        status = allocation['status']
         if status.lower() != 'active':
-           logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+           #logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+           continue
+        start_timestamp = allocation['start']
+        end_timestamp = allocation['end']
+        start_date = parse(start_timestamp)
+        end_date = parse(end_timestamp)
+        if start_date >= now or end_date <= now:
+           #logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
            continue
         return allocation
     return None

@@ -13,6 +13,7 @@ middleware here, or combine a Django application with an application of another
 framework.
 
 """
+from __future__ import absolute_import, unicode_literals
 import os
 import sys
 
@@ -22,6 +23,7 @@ sys.path.insert(0, '/opt/env/atmo/lib/python2.7/site-packages/')
 sys.path.insert(1, root_dir)
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
+os.environ["ANSIBLE_LOCAL_TEMP"] = "/tmp/.ansible"
 
 # NOTE: DO NOT MOVE ABOVE THIS LINE! Django will fail to import settings without knowing
 # what settings module ('atmosphere.settings') to use!
@@ -29,6 +31,9 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 # apache logs.
 from django.conf import settings
 from threepio import logger
+if not logger:
+    import logging
+    logger = logging.getLogger(__name__)
 
 if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
     try:

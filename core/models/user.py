@@ -62,6 +62,12 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         db_table = 'atmosphere_user'
         app_label = 'core'
 
+    def get_profile(self):
+        """
+        """
+        from core.models.profile import UserProfile
+        return UserProfile.objects.filter(user__username=self.username).distinct().get()
+
     def get_full_name(self):
         """
         Returns the first_name plus the last_name, with a space in between.
@@ -196,9 +202,13 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
 
 def get_or_create_user_profile(sender, instance, created, **kwargs):
     from core.models.profile import UserProfile
-    prof = UserProfile.objects.get_or_create(user=instance)
-    if prof[1] is True:
-        logger.debug("Creating User Profile for %s" % instance)
+    try:
+        prof = UserProfile.objects.filter(user=instance).distinct().get()
+    except UserProfile.DoesNotExist:
+        prof = UserProfile.objects.get_or_create(user=instance)
+        if prof[1] is True:
+            logger.debug("Creating User Profile for %s" % instance)
+    return prof
 
 # Instantiate the hooks:
 post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)
@@ -297,6 +307,7 @@ def create_new_accounts(username, selected_provider=None):
     return identities
 
 def create_new_account_for(provider, user):
+    from service.exceptions import AccountCreationConflict
     from service.driver import get_account_driver
     existing_user_list = provider.identity_set.values_list('created_by__username', flat=True)
     if user.username in existing_user_list:
@@ -307,6 +318,8 @@ def create_new_account_for(provider, user):
         logger.info("Create NEW account for %s" % user.username)
         new_identity = accounts.create_account(user.username)
         return new_identity
+    except AccountCreationConflict:
+        raise  # TODO: Ideally, have sentry handle these events, rather than force an Unhandled 500 to bubble up.
     except:
         logger.exception("Could *NOT* Create NEW account for %s" % user.username)
         return None

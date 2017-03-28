@@ -851,9 +851,13 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
     return
 
 def _exit_stdout_logging(consolehandler):
+    if settings.DEBUG:
+        return
     celery_logger.removeHandler(consolehandler)
 
 def _init_stdout_logging(logger=None):
+    if settings.DEBUG:
+        return
     if not logger:
         logger = celery_logger
     import logging

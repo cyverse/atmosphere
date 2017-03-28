@@ -107,6 +107,24 @@ class MachineRequest(BaseRequest):
         return cls.objects.filter(instance=instance,
                 status__name__in=UNRESOLVED_STATES).count() > 0
 
+    def _recover_from_error(self, status=None):
+        if not status:
+            status = self.old_status
+        # If old_status is empty and no value passed-in...
+        if not status:
+            return False, status
+        # Hide the 'error' message from view
+        if 'exception' in status.lower():
+            return True, status[
+                status.find("(") + 1:status.find(")")]
+        return False, status
+
+
+    @property
+    def clean_old_status(self):
+        return self._recover_from_error()[1]
+
+
     def clean(self):
         """
         Clean up machine requests before saving initial objects to allow
@@ -279,6 +297,8 @@ class MachineRequest(BaseRequest):
         old_admin = old_provider.get_admin_identity().get_credentials()
         if 'ex_force_auth_version' not in old_creds:
             old_creds['ex_force_auth_version'] = '2.0_password'
+        if old_creds['ex_force_auth_version'] != '2.0_password' and 'domain_name' not in old_creds:
+            old_creds['domain_name'] = 'default'
         old_creds.update(old_admin)
 
         new_provider = self.new_machine_provider
@@ -290,6 +310,8 @@ class MachineRequest(BaseRequest):
                 new_creds['ex_force_auth_version'] = '2.0_password'
             new_admin = new_provider.get_admin_identity().get_credentials()
             new_creds.update(new_admin)
+        if new_creds.get('ex_force_auth_version','') != '2.0_password' and 'domain_name' not in new_creds:
+            new_creds['domain_name'] = 'default'
 
         return (old_creds, new_creds)
 

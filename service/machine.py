@@ -265,12 +265,13 @@ def update_cloud_membership_for_machine(provider_machine, group):
             logger.debug("Skipped %s -- Wrong provider" % identity_membership.identity)
             continue
         # Get project name from the identity's credential-list
-        project_name = identity_membership.identity.get_credential('ex_project_name')
+        identity = identity_membership.identity
+        project_name = identity.get_credential('ex_project_name')
         project = accounts.get_project(project_name)
         if project and project not in projects:
             logger.debug("Skipped Project: %s -- Already shared" % project)
             continue
-        accounts.share_image_with_project(img, project_name)
+        accounts.share_image_with_identity(img, identity)
 
 
 def update_db_membership_for_group(provider_machine, group):

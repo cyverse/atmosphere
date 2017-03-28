@@ -1,4 +1,4 @@
-from jetstream.allocation import TASAPIDriver
+from jetstream.allocation import TASAPIDriver, fill_user_allocation_source_for
 from jetstream.exceptions import TASAPIException
 
 from atmosphere.plugins.auth.validation import ValidationPlugin
@@ -12,10 +12,9 @@ class XsedeProjectRequired(ValidationPlugin):
         * Accounts are *ONLY* valid if they have 1+ 'jetstream' allocations.
         * All other allocations are ignored.
         """
-        tas_driver = TASAPIDriver()
+        driver = TASAPIDriver()
         try:
-            tacc_username = tas_driver.get_tacc_username(user)
-            project_allocations = tas_driver.get_user_allocations(tacc_username)
+            project_allocations = fill_user_allocation_source_for(driver, user)
             if not project_allocations:
                 return False
             return True

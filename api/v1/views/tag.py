@@ -36,13 +36,17 @@ class TagList(AuthOptionalAPIView):
         """
         user = request.user
         data = request.data.copy()
-        same_name_tags = CoreTag.objects.filter(name__iexact=data['name'])
+        name = data.get('name','')
+        if not name:
+            return Response(["Invalid POST - Expected data 'name' missing."],
+                            status=status.HTTP_400_BAD_REQUEST)
+        same_name_tags = CoreTag.objects.filter(name__iexact=name)
         if same_name_tags:
             return Response(['A tag with this name already exists: %s'
                              % same_name_tags],
                             status=status.HTTP_400_BAD_REQUEST)
         data['user'] = user.username
-        data['name'] = data['name'].lower()
+        data['name'] = name.lower()
         serializer = TagSerializer_POST(data=data)
         if serializer.is_valid():
             serializer.save()
