@@ -21,6 +21,10 @@ for event in all_events:
     else:
         entity_id = event.entity_id
         new_payload = {"allocation_source_name": source_name, "instance_id": event.payload["instance_id"]}
+        # take care of very old events with incorrect payloads..otherwise calculations will be incorrect
+        if len(event.payload.keys()) > 2:
+            new_payload['username'] = event.payload["username"]
+
 
     e = EventTableUpdated(
         name=event.name, payload=new_payload, entity_id=entity_id, timestamp=event.timestamp, uuid=event.uuid)
