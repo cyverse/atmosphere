@@ -1,5 +1,8 @@
-from behave import *
+import copy
+
 import mock
+from behave import *
+from behave import when
 
 import jetstream.allocation as jetstream_allocation
 import jetstream.exceptions as jetstream_exceptions
@@ -85,8 +88,10 @@ def we_get_all_projects(context):
                              ) as mock_methods:
         mock_methods['_get_all_projects'].side_effect = _make_mock_get_all_projects(context.tas_projects)
         all_projects = context.driver.get_all_projects()
-    new_driver = jetstream_allocation.TASAPIDriver()
-    context.test.assertListEqual(new_driver.project_list, context.tas_projects)
+    context.test.assertListEqual(all_projects, context.tas_projects)
+    context.test.assertListEqual(context.driver.project_list, context.tas_projects)
+    # Have to this below otherwise it loses the project_list between steps.
+    context.driver.project_list = all_projects
 
 
 @when(u'we fill user allocation sources from TAS')
@@ -114,5 +119,10 @@ def we_should_have_the_following_local_username_mappings(context):
 @then(u'we should have the following local projects')
 def we_should_have_the_following_local_projects(context):
     expected_local_projects = [dict(zip(row.headings, row.cells)) for row in context.table]
-    new_driver = jetstream_allocation.TASAPIDriver()
-    context.test.assertListEqual(new_driver.project_list, expected_local_projects)
+    context.test.maxDiff = None
+    projects_without_allocations = []
+    for project in context.driver.project_list:
+        project_without_allocations = copy.copy(project)
+        del project_without_allocations['allocations']
+        projects_without_allocations.append(project_without_allocations)
+    context.test.assertListEqual(projects_without_allocations, expected_local_projects)
