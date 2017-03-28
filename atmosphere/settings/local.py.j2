@@ -12,8 +12,8 @@ SECRETS_MODULE = secrets
 globals().update(vars(sys.modules['atmosphere.settings']))
 
 # Debug Mode
-DEBUG = {{ DJANGO_DEBUG }}
-SEND_EMAILS = {{ not DJANGO_DEBUG }}
+DEBUG = {{ DJANGO_DEBUG | default(True) }}
+SEND_EMAILS = {{ not DJANGO_DEBUG | default(False) }}
 
 {% if DJANGO_TEMPLATE_DEBUG -%}
 template_backends = filter(lambda t:
@@ -167,17 +167,17 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
     },
   "monitor_jetstream_allocation_sources":{
 	"task":"monitor_jetstream_allocation_sources",
-        # Every 15 minutes
-        "schedule": crontab(minute="*/15"),
-        "options" : {"expires": 10 * 60,"time_limit": 10 * 60}
+        # Every 60 minutes, no longer than 45 minutes
+        "schedule": crontab(minute="*/60"),
+        "options" : {"expires": 45 * 60,"time_limit": 45 * 60}
   }
 }
 CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
 {% endif %}
 # Logging
-LOGGING_LEVEL = {{ LOGGING_LEVEL }}
+LOGGING_LEVEL = {{ LOGGING_LEVEL | default("logging.INFO") }}
 # Logging level for dependencies.
-DEP_LOGGING_LEVEL = {{ LOGGING_DEP_LEVEL }}
+DEP_LOGGING_LEVEL = {{ LOGGING_DEP_LEVEL | default("logging.WARN") }}
 
 
 PROJECT_ROOT = os.path.abspath(
@@ -228,6 +228,7 @@ DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 USE_ALLOCATION_SOURCE = True
 {% endif %}
 
+ENABLE_IMAGE_VALIDATION = True
 
 # Configure authentication plugin
 AUTHENTICATION = {
@@ -251,7 +252,6 @@ AUTHENTICATION = {
     "OAUTH_CLIENT_KEY": '{{ OAUTH_CLIENT_KEY }}',
     "OAUTH_CLIENT_SECRET": '{{ OAUTH_CLIENT_SECRET }}',
     "OAUTH_CLIENT_CALLBACK":  SERVER_URL + '/oauth2.0/callbackAuthorize',
-    "OAUTH_ISSUE_USER": '{{ OAUTH_ISSUE_USER}}',
 
     #LDAP
     "LDAP_SERVER": '{{ LDAP_SERVER }}',
@@ -416,5 +416,32 @@ VALIDATION_PLUGINS = [
     #'jetstream.plugins.auth.validation.XsedeProjectRequired',
     #'atmosphere.plugins.auth.validation.LDAPGroupRequired',
     'atmosphere.plugins.auth.validation.AlwaysAllow',
+]
+{%- endif %}
+
+{%- if SENTRY_ENABLED %}
+import raven
+
+INSTALLED_APPS += (
+    'raven.contrib.django.raven_compat',
+)
+
+SENTRY_DSN = '{{ SENTRY_DSN }}'
+try:
+    SENTRY_RELEASE = raven.fetch_git_sha(os.path.dirname(os.pardir))
+except raven.exceptions.InvalidGitRepository:
+    SENTRY_RELEASE = "59f830c9ee5b58d549ea597b9e6dfd098fb2c5e6"
+{%- endif %}
+
+{%- if EXPIRATION_PLUGINS %}
+EXPIRATION_PLUGINS = [
+{%- for plugin in EXPIRATION_PLUGINS %}
+  "{{ plugin }}",
+{%- endfor %}
+]
+{%- else %}
+EXPIRATION_PLUGINS = [
+    # 'atmosphere.plugins.auth.expiration.LDAPPasswordExpired',
+    'atmosphere.plugins.auth.expiration.NeverExpire',
 ]
 {%- endif %}

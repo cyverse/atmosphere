@@ -10,3 +10,4 @@ class InstanceActionSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = InstanceAction
+        fields = "__all__"

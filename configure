@@ -214,6 +214,10 @@ def _load_template_mapping():
     return (len(messages) == 0, messages)
 
 
+def _clean(val):
+    return val.split("#")[0].strip()
+
+
 def _coerce(val):
     """
     Performs type coerce on valid booleans or returns the argument.
@@ -245,6 +249,7 @@ def _get_variables(variables_file=VARIABLES_PATH):
         for section in parser.sections():
             variables[section] = {}
             for option, value in parser.items(section):
+                value = _clean(value)
                 # Ensure the variable names are upper case
                 variables[section][option.upper()] = _coerce(value)
                 if option.upper() == 'SECRET_KEY' and not value:

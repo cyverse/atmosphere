@@ -6,7 +6,7 @@ import uuid
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from django.utils.timezone import datetime
-from djcelery.app import app
+from atmosphere.celery_init import app
 
 from threepio import logger, status_logger
 
@@ -238,7 +238,7 @@ def remove_ips(esh_driver, esh_instance, identity_uuid, update_meta=True):
     Returns: (floating_removed, fixed_removed)
     """
     from service.tasks.driver import update_metadata
-    core_identity = Identity.objects.get(uuid=core_identity_uuid)
+    core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     network_driver = _to_network_driver(core_identity)
     result = network_driver.disassociate_floating_ip(esh_instance.id)
     logger.info("Removed Floating IP for Instance %s - Result:%s"
@@ -389,6 +389,7 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
 
 
 def redeploy_instance(
+        core_identity,
         esh_driver,
         esh_instance,
         username,
@@ -407,7 +408,7 @@ def redeploy_instance(
         esh_instance.extra['metadata']['tmp_status'] = "initializing"
     deploy_chain = get_idempotent_deploy_chain(
         esh_driver.__class__, esh_driver.provider, esh_driver.identity,
-        esh_instance, username)
+        esh_instance, core_identity, username)
     return deploy_chain.apply_async()
 
 
@@ -1289,10 +1290,10 @@ def _test_for_licensing(esh_machine, identity):
         passed_test = _test_license(license, identity)
         if passed_test:
             return True
-    app = app_version.application
+    application = app_version.application
     raise Exception(
         "Identity %s did not meet the requirements of the associated license on Application %s + Version %s" %
-        (app.name, app_version.name))
+        (application.name, app_version.name))
 
 
 def check_quota(username, identity_uuid, esh_size,
@@ -1506,6 +1507,9 @@ def admin_security_group_init(core_identity, max_attempts=3):
 
 
 def keypair_init(core_identity):
+    has_secret = core_identity.get_credential('secret') is not None
+    if has_secret:
+        return admin_keypair_init(core_identity)
     return user_keypair_init(core_identity)
 
 
@@ -1557,10 +1561,14 @@ def _to_network_driver(core_identity):
     if '/v2' in auth_url:  # Remove this when "Legacy cloud" support is removed
         username = all_creds['key']
         password = all_creds['secret']
-        auth_url = auth_url.replace("/tokens","")
-        (auth, sess, token) = _connect_to_keystone_v2(
-            auth_url, username, password,
-            project_name)
+        auth_url = all_creds.pop('auth_url').replace("/tokens","")
+        network_driver = NetworkManager(
+            auth_url=auth_url,
+            username=username,
+            password=password,
+            tenant_name=project_name,
+            **all_creds)
+        return network_driver
     elif 'ex_force_auth_token' in all_creds:
         auth_token = all_creds['ex_force_auth_token']
         (auth, sess, token) = _token_to_keystone_scoped_project(
@@ -1571,7 +1579,7 @@ def _to_network_driver(core_identity):
         password = all_creds['secret']
         (auth, sess, token) = _connect_to_keystone_v3(
             auth_url, username, password,
-            project_name, domain_name)
+            project_name, domain_name=domain_name)
     network_driver = NetworkManager(session=sess)
     return network_driver
 
@@ -1925,11 +1933,16 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
     instance_id = esh_instance.alias
     volume_id = action_params.get('volume_id')
     mount_location = action_params.get('mount_location')
-    device = action_params.get('device')
+
+    # TODO: We are taking 'device' as a param
+    # but we don't *need* to. volume_id will provide this for us.
+    # Remove this param (and comment) in the future...
+    device_location= action_params.get('device')
+    if device_location == 'null' or device_location == 'None':
+        device_location = None
+
     if mount_location == 'null' or mount_location == 'None':
         mount_location = None
-    if device == 'null' or device == 'None':
-        device = None
     if 'attach_volume' == action_type:
         instance_status = esh_instance.extra.get('status', "N/A")
         if instance_status != 'active':
@@ -1939,17 +1952,17 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
                 'Retry request when instance is active.'
                 % (instance_id, instance_status))
         result = task.attach_volume_task(
-                esh_driver, esh_instance.alias,
-                volume_id, device, mount_location)
+                identity, esh_driver, esh_instance.alias,
+                volume_id, device_location, mount_location)
     elif 'mount_volume' == action_type:
         result = task.mount_volume_task(
-                esh_driver, esh_instance.alias,
-                volume_id, device, mount_location)
+                identity, esh_driver, esh_instance.alias,
+                volume_id, device_location, mount_location)
     elif 'unmount_volume' == action_type:
         (result, error_msg) =\
             task.unmount_volume_task(esh_driver,
                                      esh_instance.alias,
-                                     volume_id, device,
+                                     volume_id, device_location,
                                      mount_location)
     elif 'detach_volume' == action_type:
         instance_status = esh_instance.extra['status']

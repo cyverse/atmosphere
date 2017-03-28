@@ -1,9 +1,10 @@
 import json
 
+import freezegun
 import vcr
 from django.test import TestCase
 from django.conf import settings
-from mock import Mock
+from api.tests.factories import UserFactory
 
 from test_utils.cassette_utils import assert_cassette_playback_length, scrub_host_name
 
@@ -28,9 +29,9 @@ class TestJetstream(TestCase):
         """Test for a valid account based on the business logic assigned by Jetstream"""
         from jetstream.plugins.auth.validation import XsedeProjectRequired
         jetstream_auth_plugin = XsedeProjectRequired()
-        mock_user = Mock()
-        mock_user.username = 'sgregory'
-        is_jetstream_valid = jetstream_auth_plugin.validate_user(mock_user)
+        user = UserFactory.create(username='sgregory')
+        with freezegun.freeze_time('2016-09-15T05:00:00Z'):
+            is_jetstream_valid = jetstream_auth_plugin.validate_user(user)
         self.assertTrue(is_jetstream_valid)
         assert_cassette_playback_length(cassette, 2)
 

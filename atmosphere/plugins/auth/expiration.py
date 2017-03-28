@@ -12,10 +12,15 @@ class ExpirationPlugin(object):
             "takes a single argument: 'user'")
 
 
-class AlwaysAllow(ExpirationPlugin):
+class NeverExpire(ExpirationPlugin):
     def is_expired(self, user):
         return False
 
+# This plugin reports all accounts as expired. This is useful for testing the
+# UI, without having to make any changes to models.
+class AlwaysExpire(ExpirationPlugin):
+    def is_expired(self, user):
+        return True
 
 class LDAPPasswordExpired(ExpirationPlugin):
     """

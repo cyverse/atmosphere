@@ -28,6 +28,7 @@ router.register(r'help_links', views.HelpLinkViewSet)
 router.register(r'identities', views.IdentityViewSet)
 router.register(r'identity_memberships', views.IdentityMembershipViewSet, base_name='identitymembership')
 router.register(r'images', views.ImageViewSet, base_name='application')
+router.register(r'image_metrics', views.ImageMetricViewSet, base_name='applicationmetric')
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
 router.register(r'image_tags', views.ImageTagViewSet)
 router.register(

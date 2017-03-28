@@ -227,10 +227,9 @@ class Identity(models.Model):
             project_name = credentials['ex_project_name']
         elif 'ex_tenant_name' in credentials:
             project_name = credentials['ex_tenant_name']
-
         if project_name:
             identity_qs = identity_qs.filter(
-                    contains_credential('ex_project_name', project_name) | contains_credential('ex_tenant_name', project_name))
+                    contains_credential('ex_project_name', project_name) | contains_credential('ex_tenant_name', project_name)).distinct()
         #FIXME: To make this *more* iron-clad, we should probably
         # include the username `key/value` pair, and looks *explicitly* for that pairing in an identity they have created..
         if identity_qs.count() > 1:

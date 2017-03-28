@@ -76,6 +76,43 @@ def ready_to_deploy(instance_ip, username, instance_id):
         limit_playbooks=['check_networking.yml'])
 
 
+def deploy_mount_volume(instance_ip, username, instance_id,
+        device, mount_location=None, device_type='ext4'):
+    """
+    Use service.ansible to mount volume to an instance.
+    """
+    extra_vars = {
+        "VOLUME_DEVICE": device,
+        "VOLUME_MOUNT_LOCATION": mount_location,
+        "VOLUME_DEVICE_TYPE": device_type,
+    }
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'utils')
+    limit_playbooks = ['mount_volume.yml']
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=limit_playbooks,
+        extra_vars=extra_vars)
+
+
+def deploy_check_volume(instance_ip, username, instance_id,
+        device, device_type='ext4'):
+    """
+    Use ansible to check if an attached volume has run mkfs.
+    """
+    extra_vars = {
+        "VOLUME_DEVICE": device,
+        "VOLUME_DEVICE_TYPE": device_type,
+    }
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'utils')
+    limit_playbooks = ['check_volume.yml']
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=limit_playbooks,
+        extra_vars=extra_vars)
+
+
 def instance_deploy(instance_ip, username, instance_id,
 		    limit_playbooks=[]):
     """
@@ -330,7 +367,7 @@ def execution_has_unreachable(pbs, hostname):
 def execution_has_failures(pbs, hostname):
     if type(pbs) != list:
         pbs = [pbs]
-    return any(pb.stats.failures for pb in pbs)
+    return any(pb.stats.failed for pb in pbs)
 
 
 def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
@@ -347,13 +384,13 @@ def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
             elif instance_ip in pb.stats.dark:
                 error_message += playbook_error_message(
                     pb.stats.dark[instance_ip], "Unreachable")
-        if not allow_failures and pb.stats.failures:
-            if hostname in pb.stats.failures:
+        if not allow_failures and pb.stats.failed:
+            if hostname in pb.stats.failed:
                 error_message += playbook_error_message(
-                    pb.stats.failures[hostname], "Failures")
-            elif instance_ip in pb.stats.failures:
+                    pb.stats.failed[hostname], "failed")
+            elif instance_ip in pb.stats.failed:
                 error_message += playbook_error_message(
-                    pb.stats.failures[instance_ip], "Failures")
+                    pb.stats.failed[instance_ip], "failed")
     if error_message:
         msg = error_message[:-2] + str(pb.stats.processed_playbooks.get(hostname,{}))
         raise AnsibleDeployException(msg)
@@ -399,16 +436,6 @@ def check_process(proc_name):
         % (proc_name, proc_name, proc_name),
         name="./deploy_check_process_%s.sh"
         % (proc_name,))
-
-
-def check_volume(device):
-    return ScriptDeployment("tune2fs -l %s" % (device),
-                            name="./deploy_check_volume.sh")
-
-
-def mkfs_volume(device):
-    return ScriptDeployment("mkfs.ext3 -F %s" % (device),
-                            name="./deploy_mkfs_volume.sh")
 
 
 def umount_volume(mount_location):
