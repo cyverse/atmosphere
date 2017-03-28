@@ -2,7 +2,6 @@ import copy
 
 import mock
 from behave import *
-from behave import when
 
 import jetstream.allocation as jetstream_allocation
 import jetstream.exceptions as jetstream_exceptions
@@ -119,10 +118,20 @@ def we_should_have_the_following_local_username_mappings(context):
 @then(u'we should have the following local projects')
 def we_should_have_the_following_local_projects(context):
     expected_local_projects = [dict(zip(row.headings, row.cells)) for row in context.table]
-    context.test.maxDiff = None
     projects_without_allocations = []
     for project in context.driver.project_list:
         project_without_allocations = copy.copy(project)
         del project_without_allocations['allocations']
         projects_without_allocations.append(project_without_allocations)
     context.test.assertListEqual(projects_without_allocations, expected_local_projects)
+
+
+@then(u'we should have the following local allocations')
+def we_should_have_the_following_local_allocations(context):
+    expected_local_allocations = [dict(zip(row.headings, row.cells)) for row in context.table]
+    context.test.maxDiff = None
+    local_allocations = []
+    for local_project in context.driver.project_list:
+        for local_allocation in local_project['allocations']:
+            local_allocations.append(local_allocation)
+    context.test.assertListEqual(local_allocations, expected_local_allocations)
