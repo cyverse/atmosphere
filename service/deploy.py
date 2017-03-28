@@ -76,10 +76,29 @@ def ready_to_deploy(instance_ip, username, instance_id):
         limit_playbooks=['check_networking.yml'])
 
 
+def deploy_mount_volume(instance_ip, username, instance_id,
+        device, mount_location=None, device_type='ext4'):
+    """
+    Use service.ansible to mount volume to an instance.
+    """
+    extra_vars = {
+        "VOLUME_DEVICE": device,
+        "VOLUME_MOUNT_LOCATION": mount_location,
+        "VOLUME_DEVICE_TYPE": device_type,
+    }
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'utils')
+    limit_playbooks = ['mount_volume.yml']
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=limit_playbooks,
+        extra_vars=extra_vars)
+
+
 def deploy_check_volume(instance_ip, username, instance_id,
         device, device_type='ext4'):
     """
-    Use service.ansible to deploy to an instance.
+    Use ansible to check if an attached volume has run mkfs.
     """
     extra_vars = {
         "VOLUME_DEVICE": device,
@@ -417,16 +436,6 @@ def check_process(proc_name):
         % (proc_name, proc_name, proc_name),
         name="./deploy_check_process_%s.sh"
         % (proc_name,))
-
-
-def check_volume(device):
-    return ScriptDeployment("tune2fs -l %s" % (device),
-                            name="./deploy_check_volume.sh")
-
-
-def mkfs_volume(device):
-    return ScriptDeployment("mkfs.ext3 -F %s" % (device),
-                            name="./deploy_mkfs_volume.sh")
 
 
 def umount_volume(mount_location):

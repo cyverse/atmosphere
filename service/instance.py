@@ -1816,11 +1816,16 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
     instance_id = esh_instance.alias
     volume_id = action_params.get('volume_id')
     mount_location = action_params.get('mount_location')
-    device = action_params.get('device')
+
+    # TODO: We are taking 'device' as a param
+    # but we don't *need* to. volume_id will provide this for us.
+    # Remove this param (and comment) in the future...
+    device_location= action_params.get('device')
+    if device_location == 'null' or device_location == 'None':
+        device_location = None
+
     if mount_location == 'null' or mount_location == 'None':
         mount_location = None
-    if device == 'null' or device == 'None':
-        device = None
     if 'attach_volume' == action_type:
         instance_status = esh_instance.extra.get('status', "N/A")
         if instance_status != 'active':
@@ -1831,16 +1836,16 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
                 % (instance_id, instance_status))
         result = task.attach_volume_task(
                 identity, esh_driver, esh_instance.alias,
-                volume_id, device, mount_location)
+                volume_id, device_location, mount_location)
     elif 'mount_volume' == action_type:
         result = task.mount_volume_task(
                 identity, esh_driver, esh_instance.alias,
-                volume_id, device, mount_location)
+                volume_id, device_location, mount_location)
     elif 'unmount_volume' == action_type:
         (result, error_msg) =\
             task.unmount_volume_task(esh_driver,
                                      esh_instance.alias,
-                                     volume_id, device,
+                                     volume_id, device_location,
                                      mount_location)
     elif 'detach_volume' == action_type:
         instance_status = esh_instance.extra['status']
