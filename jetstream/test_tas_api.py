@@ -24,7 +24,7 @@ class TestJetstream(TestCase):
     """Tests for Jetstream allocation source API"""
 
     @my_vcr.use_cassette()
-    def test_validate_account(cassette, self):
+    def test_validate_account(self, cassette):
         """Test for a valid account based on the business logic assigned by Jetstream"""
         from jetstream.plugins.auth.validation import XsedeProjectRequired
         jetstream_auth_plugin = XsedeProjectRequired()
@@ -35,7 +35,7 @@ class TestJetstream(TestCase):
         assert_cassette_playback_length(cassette, 2)
 
     @my_vcr.use_cassette()
-    def test_get_all_allocations(cassette, self):
+    def test_get_all_allocations(self, cassette):
         """Test retrieving allocations for a Jetstream user"""
         from jetstream.allocation import TASAPIDriver
         tas_driver = TASAPIDriver()
@@ -55,7 +55,7 @@ class TestJetstream(TestCase):
         assert_cassette_playback_length(cassette, 1)
 
     @my_vcr.use_cassette()
-    def test_get_all_projects(cassette, self):
+    def test_get_all_projects(self, cassette):
         """Test retrieving projects for a Jetstream user"""
         from jetstream.allocation import TASAPIDriver
         tas_driver = TASAPIDriver()
