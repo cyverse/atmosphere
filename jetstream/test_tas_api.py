@@ -19,10 +19,10 @@ my_vcr = vcr.VCR(
 @modify_settings(INSTALLED_APPS={
     'append': 'jetstream',
 })
+@override_settings(TACC_API_URL='https://localhost/api-test')
 class TestJetstream(TestCase):
     """Tests for Jetstream allocation source API"""
 
-    @override_settings(TACC_API_URL='https://localhost/api-test')
     @my_vcr.use_cassette()
     def test_validate_account(cassette, self):
         """Test for a valid account based on the business logic assigned by Jetstream"""
@@ -34,7 +34,6 @@ class TestJetstream(TestCase):
         self.assertTrue(is_jetstream_valid)
         assert_cassette_playback_length(cassette, 2)
 
-    @override_settings(TACC_API_URL='https://localhost/api-test')
     @my_vcr.use_cassette()
     def test_get_all_allocations(cassette, self):
         """Test retrieving allocations for a Jetstream user"""
@@ -55,7 +54,6 @@ class TestJetstream(TestCase):
 
         assert_cassette_playback_length(cassette, 1)
 
-    @override_settings(TACC_API_URL='https://localhost/api-test')
     @my_vcr.use_cassette()
     def test_get_all_projects(cassette, self):
         """Test retrieving projects for a Jetstream user"""
