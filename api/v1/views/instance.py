@@ -158,7 +158,7 @@ class InstanceList(AuthAPIView):
             return keys_not_found(missing_keys)
         # Pass these as args
         size_alias = data.pop("size_alias")
-        allocation_source_id = data.pop("allocation_source_id",None)
+        allocation_source_uuid = data.pop("allocation_source_uuid",None)
         machine_alias = data.pop("machine_alias")
         hypervisor_name = data.pop("hypervisor", None)
         if hypervisor_name:
@@ -177,7 +177,7 @@ class InstanceList(AuthAPIView):
                 allocation_source = None
             else:
                 allocation_source = AllocationSource.objects.get(
-                    source_id=allocation_source_id)
+                    uuid=allocation_source_uuid)
             core_instance = launch_instance(
                 user, identity_uuid,
                 size_alias, machine_alias,
