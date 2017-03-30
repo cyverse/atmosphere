@@ -19,6 +19,7 @@ class ProjectFilter(filters.FilterSet):
 
     class Meta:
         model = Project
+        fields = ["identity_id", "identity_uuid"]
 
 
 class ProjectViewSet(MultipleFieldLookup, AuthViewSet):

@@ -53,10 +53,11 @@ class GroupFilter(filters.FilterSet):
         Later, we might have to remove the property and include a 'context user'
         so that we can determine the ownership (of the group, or that the name is a perfect match, etc.)
         """
-        return group.leaders.count() == 1
+        return self.leaders.count() == 1
 
     class Meta:
         model = Group
+        fields = ["identity_id", "identity_uuid"]
 
 
 class GroupViewSet(MultipleFieldLookup, AuthViewSet):
