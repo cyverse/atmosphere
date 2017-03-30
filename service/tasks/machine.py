@@ -133,7 +133,7 @@ def start_machine_imaging(machine_request, delay=False):
     email_task.link_error(imaging_error_task)
 
     if getattr(settings, 'ENABLE_IMAGE_VALIDATION', True):
-        init_task = enable_image_validation(machine_request, process_task, email_task, original_status, imaging_error_task)
+        init_task = enable_image_validation(machine_request, init_task, email_task, original_status, imaging_error_task)
     else:
         process_task.link(email_task)
 
