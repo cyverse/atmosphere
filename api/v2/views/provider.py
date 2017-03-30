@@ -8,11 +8,11 @@ from core.query import only_current_provider, only_current
 from api.v2.serializers.details import ProviderSerializer
 from api.v2.serializers.post import ProviderSerializer as POST_ProviderSerializer
 from api.v2.serializers.summaries import SizeSummarySerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthOptionalViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 
-class ProviderViewSet(MultipleFieldLookup, AuthViewSet):
+class ProviderViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """

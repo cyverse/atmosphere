@@ -30,8 +30,6 @@ urlpatterns = format_suffix_patterns([
     url(r'^instancequery/', views.ip_request),
 
     # File Retrieval:
-    # static files
-    url(r'^init_files/(?P<file_location>.*)$', views.get_resource),
     # boot_script Related APIs
     url(r'^boot_script$',
         views.BootScriptList.as_view(),

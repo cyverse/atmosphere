@@ -14,6 +14,12 @@ class ServiceException(Exception):
     """
 
 
+class Unauthorized(ServiceException):
+    def __init__(self, message):
+        self.message = message
+        self.status_code = 401
+        super(Unauthorized, self).__init__()
+
 class ActionNotAllowed(ServiceException):
 
     def __init__(self, message):
@@ -22,6 +28,27 @@ class ActionNotAllowed(ServiceException):
         super(ActionNotAllowed, self).__init__()
 
 
+
+
+class AccountCreationConflict(ServiceException):
+
+    def __init__(self, message):
+        self.message = message
+        super(AccountCreationConflict, self).__init__()
+
+    def __str__(self):
+        return "%s" % (self.message, )
+
+
+
+class InstanceLaunchConflict(ServiceException):
+
+    def __init__(self, message):
+        self.message = message
+        super(InstanceLaunchConflict, self).__init__()
+
+    def __str__(self):
+        return "%s" % (self.message, )
 
 
 class InstanceDoesNotExist(ServiceException):

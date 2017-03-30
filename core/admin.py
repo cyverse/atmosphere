@@ -280,6 +280,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         "end_date"]
     list_filter = [
         "end_date",
+        "tags__name",
         "versions__machines__instance_source__provider",
     ]
     filter_vertical = ["tags", ]
@@ -330,6 +331,12 @@ class IdentityAdmin(admin.ModelAdmin):
         return return_text
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Credentials'
+
+    def save_model(self, request, obj, form, changed):
+        obj.save()
+        identity = obj
+        admin_task.set_provider_quota.apply_async(
+            args=[str(identity.uuid)])
 
 
 class UserProfileInline(admin.StackedInline):

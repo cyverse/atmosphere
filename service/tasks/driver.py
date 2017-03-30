@@ -14,7 +14,7 @@ from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
 
-from rtwo.exceptions import LibcloudDeploymentError
+from rtwo.exceptions import LibcloudDeploymentError, LibcloudInvalidCredsError, LibcloudBadResponseError
 
 #TODO: Internalize exception into RTwo
 from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
@@ -94,6 +94,7 @@ def wait_for_instance(
         identity,
         status_query,
         tasks_allowed=False,
+        test_tmp_status=False,
         return_id=False,
         **task_kwargs):
     """
@@ -105,16 +106,13 @@ def wait_for_instance(
     """
     try:
         celery_logger.debug("wait_for task started at %s." % datetime.now())
-        if app.conf.CELERY_ALWAYS_EAGER:
-            celery_logger.debug("Eager task - DO NOT return until its ready!")
-            return _eager_override(wait_for_instance, _is_instance_ready,
-                                   (driverCls, provider, identity,
-                                    instance_alias, status_query,
-                                    tasks_allowed, return_id), {})
-
-        result = _is_instance_ready(driverCls, provider, identity,
-                                    instance_alias, status_query,
-                                    tasks_allowed, return_id)
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_alias)
+        if not instance:
+            celery_logger.debug("Instance has been terminated: %s." % instance_alias)
+            return False
+        result = _is_instance_ready(instance, status_query,
+                                    tasks_allowed, test_tmp_status, return_id)
         return result
     except Exception as exc:
         if "Not Ready" not in str(exc):
@@ -139,26 +137,31 @@ def _eager_override(task_class, run_method, args, kwargs):
     return None
 
 
-def _is_instance_ready(driverCls, provider, identity,
-                       instance_alias, status_query,
-                       tasks_allowed=False, return_id=False):
+def _is_instance_ready(instance, status_query,
+                       tasks_allowed=False, test_tmp_status=False, return_id=False):
     # TODO: Refactor so that terminal states can be found. IE if waiting for
     # 'active' and in status: Suspended - none - GIVE up!!
-    driver = get_driver(driverCls, provider, identity)
-    instance = driver.get_instance(instance_alias)
-    if not instance:
-        celery_logger.debug("Instance has been terminated: %s." % instance_alias)
-        if return_id:
-            return None
-        return False
     i_status = instance._node.extra['status'].lower()
-    i_task = instance._node.extra['task']
-    if (i_status not in status_query) or (i_task and not tasks_allowed):
+    i_task = instance._node.extra.get('task',None)
+    i_tmp_status = instance._node.extra.get('metadata', {}).get('tmp_status', '')
+    celery_logger.debug(
+        "Instance %s: Status: (%s - %s) Tmp status: %s "
+        % (instance.id, i_status, i_task, i_tmp_status))
+    status_not_ready = (i_status not in status_query)  # Ex: status 'build' is not in 'active'
+    tasks_not_ready = (not tasks_allowed and i_task is not None)  # Ex: Task name: 'scheudling', tasks_allowed=False
+    tmp_status_not_ready = (test_tmp_status and i_tmp_status != "")  # Ex: tmp_status: 'initializing'
+    celery_logger.debug(
+            "Status not ready: %s tasks not ready: %s Tmp status_not_ready: %s"
+            % (status_not_ready, tasks_not_ready, tmp_status_not_ready))
+    if status_not_ready or tasks_not_ready or tmp_status_not_ready:
         raise Exception(
-            "Instance: %s: Status: (%s - %s) - Not Ready"
-            % (instance.id, i_status, i_task))
-    celery_logger.debug("Instance %s: Status: (%s - %s) - Ready"
-                 % (instance.id, i_status, i_task))
+            "Instance: %s: Status: (%s - %s - %s) Produced:"
+            "Status not ready: %s tasks not ready: %s Tmp status_not_ready: %s"
+            % (instance.id, i_status, i_task, i_tmp_status,
+               status_not_ready, tasks_not_ready, tmp_status_not_ready))
+    celery_logger.debug(
+            "Instance %s: Status: (%s - %s - %s) - Ready"
+            % (instance.id, i_status, i_task, i_tmp_status))
     if return_id:
         return instance.id
     return True
@@ -230,7 +233,6 @@ def _remove_ips_from_inactive_instances(driver, instances):
 
 
 def _remove_network(
-        os_acct_driver,
         core_identity,
         tenant_name):
     """
@@ -238,25 +240,31 @@ def _remove_network(
     celery_logger.info("Removing project network for %s" % tenant_name)
     # Sec. group can't be deleted if instances are suspended
     # when instances are suspended we pass remove_network=False
-    os_acct_driver.delete_security_group(core_identity)
-    os_acct_driver.delete_user_network(core_identity)
+    from service import instance as instance_service
+
+    instance_service.delete_security_group(core_identity)
+    instance_service.destroy_network(
+        core_identity)
     return True
 
 
 @task(name="clear_empty_ips_for")
-def clear_empty_ips_for(core_identity_uuid, username=None):
+def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
     """
     RETURN: (number_ips_removed, delete_network_called)
+    on Failure:
+    -404, driver creation failure (Verify credentials are accurate)
+    -401, authorization failure (Change the password of the driver)
+    -500, cloud failure (Operational support required)
     """
     from service.driver import get_esh_driver
+    from service import instance as instance_service
     from rtwo.driver import OSDriver
     # Initialize the drivers
     core_identity = Identity.objects.get(uuid=core_identity_uuid)
     driver = get_esh_driver(core_identity)
     if not isinstance(driver, OSDriver):
-        return (0, False)
-    os_acct_driver = get_account_driver(core_identity.provider)
-    celery_logger.info("Initialized account driver")
+        return (-404, False)
     # Get useful info
     creds = core_identity.get_credentials()
     tenant_name = creds['ex_tenant_name']
@@ -264,7 +272,14 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
     # Attempt to clean floating IPs
     num_ips_removed = _remove_extra_floating_ips(driver, tenant_name)
     # Test for active/inactive_instances instances
-    instances = driver.list_instances()
+    try:
+        instances = driver.list_instances()
+    except LibcloudInvalidCredsError:
+        logger.exception("InvalidCredentials provided for Identity %s" % core_identity)
+        return (-401, False)
+    except LibcloudBadResponseError:
+        logger.exception("Driver returned unexpected response for Identity %s" % core_identity)
+        return (-500, False)
     # Active True IFF ANY instance is 'active'
     active_instances = any(driver._is_active_instance(inst)
                            for inst in instances)
@@ -275,17 +290,17 @@ def clear_empty_ips_for(core_identity_uuid, username=None):
     if active_instances and not inactive_instances:
         # User has >1 active instances AND not all instances inactive_instances
         return (num_ips_removed, False)
-    network_id = os_acct_driver.network_manager.get_network_id(
-        os_acct_driver.network_manager.neutron,
-        '%s-net' % tenant_name)
-    if network_id:
+    network_driver = instance_service._to_network_driver(core_identity)
+    network = network_driver.find_network('%s-net' % tenant_name)
+    if network:
+        network = network[0]
+        network_id = network['id']
         # User has 0 active instances OR all instances are inactive_instances
         # Network exists, attempt to dismantle as much as possible
         # Remove network=False IFF inactive_instances=True..
         remove_network = not inactive_instances
         if remove_network:
             _remove_network(
-                os_acct_driver,
                 core_identity,
                 tenant_name)
             return (num_ips_removed, True)
@@ -305,8 +320,7 @@ def clear_empty_ips():
     for core_identity in identities:
         try:
             # TODO: Add some
-            clear_empty_ips_for.apply_async(args=[core_identity.uuid,
-                                                  core_identity.created_by])
+            clear_empty_ips_for.apply_async(args=[core_identity.created_by.username,core_identity.provider.id, str(core_identity.uuid)])
         except Exception as exc:
             celery_logger.exception(exc)
     celery_logger.debug("clear_empty_ips task finished at %s." % datetime.now())
@@ -370,7 +384,9 @@ def _send_instance_email_with_failure(driverCls, provider, identity, instance_id
 # Deploy and Destroy tasks
 @task(name="user_deploy_failed")
 def user_deploy_failed(
-        task_uuid,
+        context,
+        exception_msg,
+        traceback,
         driverCls,
         provider,
         identity,
@@ -380,22 +396,14 @@ def user_deploy_failed(
         **celery_task_args):
     try:
         celery_logger.debug("user_deploy_failed task started at %s." % datetime.now())
-        if task_uuid:
-            celery_logger.info("task_uuid=%s" % task_uuid)
-            result = app.AsyncResult(task_uuid)
-            with allow_join_result():
-                exc = result.get(propagate=False)
-            err_str = "Error Traceback:%s" % (result.traceback,)
-            err_str = _cleanup_traceback(err_str)
-        elif message:
-            err_str = message
-        else:
-            err_str = "Deploy failed called externally. No matching AsyncResult"
+        celery_logger.info("failed task context=%s" % (context,))
+        celery_logger.info("exception_msg=%s" % (exception_msg,))
+        err_str = "Error Traceback:%s" % (traceback,)
         celery_logger.error(err_str)
         # Send deploy email
         _send_instance_email_with_failure(driverCls, provider, identity, instance_id, user.username, err_str)
-	# Update metadata on the instance
-        metadata={'tmp_status': 'user_deploy_error'}
+        # Update metadata on the instance
+        metadata = {'tmp_status': 'user_deploy_error'}
         update_metadata.s(driverCls, provider, identity, instance_id,
                           metadata, replace_metadata=False).apply_async()
         celery_logger.debug("user_deploy_failed task finished at %s." % datetime.now())
@@ -407,30 +415,24 @@ def user_deploy_failed(
 
 @task(name="deploy_failed")
 def deploy_failed(
-        task_uuid,
+        context,
+        exception_msg,
+        traceback,
         driverCls,
         provider,
         identity,
         instance_id,
-        message=None,
         **celery_task_args):
     try:
         celery_logger.debug("deploy_failed task started at %s." % datetime.now())
-        if task_uuid:
-            celery_logger.info("task_uuid=%s" % task_uuid)
-            result = app.AsyncResult(task_uuid)
-            with allow_join_result():
-                exc = result.get(propagate=False)
-            err_str = "DEPLOYERROR::%s" % (result.traceback,)
-        elif message:
-            err_str = message
-        else:
-            err_str = "Deploy failed called externally. No matching AsyncResult"
+        celery_logger.info("failed task context=%s" % (context,))
+        celery_logger.info("exception_msg=%s" % (exception_msg,))
+        err_str = "DEPLOYERROR::%s" % (traceback,)
         celery_logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
 
-        metadata={'tmp_status': 'deploy_error'}
+        metadata = {'tmp_status': 'deploy_error'}
         update_metadata.s(driverCls, provider, identity, instance.id,
                           metadata, replace_metadata=False).apply_async()
         # Send deploy email
@@ -456,8 +458,6 @@ def deploy_init_to(driverCls, provider, identity, instance_id, core_identity,
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_id)
             return
-        image_metadata = driver._connection\
-                               .ex_get_image_metadata(instance.source)
         deploy_chain = get_deploy_chain(
             driverCls, provider, identity, instance, core_identity,
             username=username, password=password,
@@ -646,7 +646,7 @@ def get_chain_from_active_no_ip(
         driverCls, provider, identity, instance.id,
         {'tmp_status': 'networking'})
     floating_task = add_floating_ip.si(
-        driverCls, provider, identity, instance.id, delete_status=False)
+        driverCls, provider, identity, str(core_identity.uuid), instance.id, delete_status=False)
     floating_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance.id))
 
@@ -736,9 +736,14 @@ def get_chain_from_active_with_ip(
     user_deploy_failed_task.link(remove_status_on_failure_task)
 
     deploy_ready_task.link(deploy_meta_task)
+    deploy_ready_task.link_error(
+        deploy_failed.s(driverCls, provider, identity, instance.id))
     deploy_meta_task.link(deploy_task)
     deploy_task.link(check_web_desktop)
     check_web_desktop.link(check_vnc_task)  # Above this line, atmo is responsible for success.
+
+    check_web_desktop.link_error(
+        deploy_failed.s(driverCls, provider, identity, instance.id))
     check_vnc_task.link(deploy_user_task)  # this line and below, user can create a failure.
     # ready -> metadata -> deployment..
 
@@ -959,13 +964,15 @@ def _deploy_ready_failed_email_test(
         send_preemptive_deploy_failed_email(core_instance, message)
     elif num_retries == task_class.max_retries - 1:
         # Final attempt logic
-        failure_task = deploy_failed.s(
-            None,
+        failure_task = deploy_failed.si(
+            {},
+            "Test Error Message",
+            "Longer Error Traceback\nMultiline\noutput.",
             driver.__class__,
             driver.provider,
             driver.identity,
             instance_id,
-            message=message)
+        )
         failure_task.apply_async()
 
 
@@ -994,6 +1001,9 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         # Sanity checks -- get your ducks in a row.
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
+        # TODO: Improvement -- keep 'count' of # times instance doesn't appear.
+        # After n consecutive attempts, force a 'bail-out'
+        # rather than wait for all retries to complete.
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_id)
             raise Exception("Instance maybe terminated? "
@@ -1168,7 +1178,7 @@ def _parse_script_output(script, idx=1, length=1):
 
 
 @task(name="check_web_desktop_task",
-      max_retries=2,
+      max_retries=4,
       default_retry_delay=15)
 def check_web_desktop_task(driverCls, provider, identity,
                        instance_alias, *args, **kwargs):
@@ -1183,7 +1193,11 @@ def check_web_desktop_task(driverCls, provider, identity,
         # USE ANSIBLE
         username = identity.user.username
         hostname = build_host_name(instance.id, instance.ip)
-        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_novnc.yml"], raise_exception=False)
+        should_raise = True
+        retry_count = current.request.retries
+        if retry_count > 2:
+            should_raise = False
+        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_novnc.yml"], raise_exception=should_raise)
         result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
 
         # NOTE: Throws Instance.DoesNotExist
@@ -1268,10 +1282,11 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata,
       # Defaults will not be used, see countdown call below
       default_retry_delay=15,
       max_retries=30)
-def add_floating_ip(driverCls, provider, identity,
+def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
                     instance_alias, delete_status=True,
                     *args, **kwargs):
     # For testing ONLY.. Test cases ignore countdown..
+    from service import instance as instance_service
     if app.conf.CELERY_ALWAYS_EAGER:
         celery_logger.debug("Eager task waiting 15 seconds")
         time.sleep(15)
@@ -1286,15 +1301,21 @@ def add_floating_ip(driverCls, provider, identity,
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_alias)
             return None
-        floating_ips = driver._connection.neutron_list_ips(instance)
+        core_identity = Identity.objects.get(uuid=core_identity_uuid)
+        network_driver = instance_service._to_network_driver(core_identity)
+        floating_ips = network_driver.list_floating_ips()
+        selected_floating_ip = None
         if floating_ips:
-            floating_ip = floating_ips[0]["floating_ip_address"]
+            for fip in floating_ips:
+                if fip.get("instance_id",'') == instance_alias:
+                    selected_floating_ip = fip["floating_ip_address"]
+        if selected_floating_ip:
+            floating_ip = selected_floating_ip
             celery_logger.debug(
                 "Reusing existing floating_ip_address - %s" %
                 floating_ip)
         else:
-            floating_ip = driver._connection.neutron_associate_ip(
-                instance, *args, **kwargs)["floating_ip_address"]
+            floating_ip = network_driver.associate_floating_ip(instance_alias)["floating_ip_address"]
             celery_logger.debug("Created new floating_ip_address - %s" % floating_ip)
         _update_status_log(instance, "Networking Complete")
         # TODO: Implement this as its own task, with the result from
@@ -1306,9 +1327,11 @@ def add_floating_ip(driverCls, provider, identity,
         }
         # NOTE: This is part of the temp change, should be removed when moving
         # to vxlan
-        instance_ports = driver._connection.neutron_list_ports(
+        instance_ports = network_driver.list_ports(
             device_id=instance.id)
-        network = driver._connection.neutron_get_tenant_network()
+        network = network_driver.tenant_networks()
+        if type(network) is list:
+            network = [net for net in network if net['subnets'] != []][0]
         if instance_ports:
             for idx, fixed_ip_port in enumerate(instance_ports):
                 fixed_ips = fixed_ip_port.get('fixed_ips', [])
@@ -1397,6 +1420,7 @@ def remove_empty_network(
         driverCls, provider, identity,
         core_identity_uuid,
         network_options):
+    from service import instance as instance_service
     try:
         # For testing ONLY.. Test cases ignore countdown..
         if app.conf.CELERY_ALWAYS_EAGER:
@@ -1425,13 +1449,12 @@ def remove_empty_network(
                 "from %s" % core_identity)
             delete_network_options = {}
             delete_network_options['skip_network'] = inactive_instances_present
-            os_acct_driver = get_account_driver(core_identity.provider)
-            os_acct_driver.delete_user_network(
+            instance_service.destroy_network(
                 core_identity, delete_network_options)
             if not inactive_instances_present:
                 # Sec. group can't be deleted if instances are suspended
                 # when instances are suspended we should leave this intact.
-                os_acct_driver.delete_security_group(core_identity)
+                instance_service.delete_security_group(core_identity)
             return True
         celery_logger.debug("remove_empty_network task finished at %s." %
                      datetime.now())

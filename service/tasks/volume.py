@@ -17,11 +17,12 @@ from rtwo.exceptions import LibcloudDeploymentError
 
 from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 
-from core.email import send_instance_email
-
 from service.driver import get_driver
-from service.deploy import mount_volume, check_volume, mkfs_volume,\
-    check_mount, umount_volume, lsof_location
+from service.deploy import (
+    mount_volume,
+    check_mount, umount_volume, lsof_location,
+    deploy_check_volume, deploy_mount_volume,
+    build_host_name, execution_has_failures, execution_has_unreachable)
 from service.exceptions import DeviceBusyException
 
 
@@ -30,45 +31,33 @@ from service.exceptions import DeviceBusyException
       default_retry_delay=20,
       ignore_result=False)
 def check_volume_task(driverCls, provider, identity,
-                      instance_id, volume_id, *args, **kwargs):
+                      instance_id, volume_id, device_type='ext4', *args, **kwargs):
     try:
         celery_logger.debug("check_volume task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
+        username = identity.get_username()
         attach_data = volume.extra['attachments'][0]
-        device = attach_data['device']
+        device_location = attach_data['device']
+        celery_logger.info("device_location: %s" % device_location)
 
-        private_key = ATMOSPHERE_PRIVATE_KEYFILE
-        kwargs.update({'ssh_key': private_key})
-        kwargs.update({'timeout': 120})
-
-        # One script to make two checks:
-        # 1. Voume exists 2. Volume has a filesystem
-        cv_script = check_volume(device)
-        # NOTE: non_zero_deploy needed to stop LibcloudDeploymentError from being
-        # raised
-        kwargs.update({'deploy': cv_script,
-                       'non_zero_deploy': True})
-        driver.deploy_to(instance, **kwargs)
-        kwargs.pop('non_zero_deploy', None)
-        # Script execute
-
-        if cv_script.exit_status != 0:
-            if 'No such file' in cv_script.stdout:
-                raise Exception('Volume check failed: %s. '
-                                'Device %s does not exist on instance %s'
-                                % (volume, device, instance))
-            elif 'Bad magic number' in cv_script.stdout:
-                # Filesystem needs to be created for this device
-                celery_logger.info("Mkfs needed")
-                mkfs_script = mkfs_volume(device)
-                kwargs.update({'deploy': mkfs_script})
-                driver.deploy_to(instance, **kwargs)
-            else:
-                raise Exception('Volume check failed: Something weird')
-
-        celery_logger.debug("check_volume task finished at %s." % datetime.now())
+        # One playbook to make two checks:
+        # 1. Voume exists
+        # 2. Volume has a filesystem
+        #    (If not, create one of type 'device_type')
+        playbooks = deploy_check_volume(
+            instance.ip, username, instance.id,
+            device_location, device_type=device_type)
+        celery_logger.info(playbooks.__dict__)
+        hostname = build_host_name(instance.id, instance.ip)
+        result = False if execution_has_failures(playbooks, hostname)\
+            or execution_has_unreachable(playbooks, hostname) else True
+        if not result:
+            raise Exception(
+                "Error encountered while checking volume for filesystem: %s"
+                % playbooks.stats.summarize(host=hostname))
+        return result
     except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
     except Exception as exc:
@@ -99,72 +88,43 @@ def _parse_mount_location(mount_output, device_location):
       default_retry_delay=20,
       ignore_result=False)
 def mount_task(driverCls, provider, identity, instance_id, volume_id,
-               device=None, mount_location=None, *args, **kwargs):
+               device_location, mount_location, device_type,
+               mount_prefix=None, *args, **kwargs):
     try:
         celery_logger.debug("mount task started at %s." % datetime.now())
         celery_logger.debug("mount_location: %s" % (mount_location, ))
         driver = get_driver(driverCls, provider, identity)
+        username = identity.get_username()
         instance = driver.get_instance(instance_id)
         volume = driver.get_volume(volume_id)
 
-        username = identity.get_username()
-        # DEV NOTE: Set as 'users' because this is a GUARANTEED group
-        # and we know our 'user' will exist (if atmo_init_full was executed)
-        # in case the VM does NOT rely on iPlant LDAP
-        groupname = "users"
-
-        celery_logger.debug(volume)
         try:
             attach_data = volume.extra['attachments'][0]
-            if not device:
-                device = attach_data['device']
-        except KeyError as IndexError:
+            if not device_location:
+                device_location = attach_data['device']
+        except (KeyError, IndexError):
             celery_logger.warn("Volume %s missing attachments in Extra"
-                        % (volume,))
-            device = None
-        if not device:
-            celery_logger.warn("Device never attached. Nothing to mount")
-            return None
+                               % (volume,))
+        if not device_location:
+            raise Exception("No device_location found or inferred by volume %s" % volume)
+        if not mount_prefix:
+            mount_prefix = "/vol_"
 
-        private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
-        kwargs.update({'ssh_key': private_key})
-        kwargs.update({'timeout': 120})
-
-        # Step 2. Check the volume is not already mounted
-        cm_script = check_mount()
-        kwargs.update({'deploy': cm_script})
-        driver.deploy_to(instance, **kwargs)
-
-        if device in cm_script.stdout:
-            mount_location = _parse_mount_location(cm_script.stdout, device)
-            if not mount_location:
-                raise Exception("Device already mounted, "
-                                "but mount location could not be determined!"
-                                "Check _parse_mount_location()!")
-            celery_logger.warn(
-                "Device already mounted. Mount output:%s" %
-                cm_script.stdout)
-            # Device has already been mounted. Move along..
-            return mount_location
-
-        # Step 3. Find a suitable location to mount the volume
-        celery_logger.info("Original mount location - %s" % mount_location)
+        last_char = device_location[-1]  # /dev/sdb --> b
         if not mount_location:
-            inc = 1
-            while True:
-                if '/vol%s' % inc in cm_script.stdout:
-                    inc += 1
-                else:
-                    break
-            mount_location = '/vol%s' % inc
+            mount_location = mount_prefix + last_char
 
-        celery_logger.info("Device location - %s" % device)
-        celery_logger.info("New mount location - %s" % mount_location)
-
-        mv_script = mount_volume(device, mount_location, username, groupname)
-        kwargs.update({'deploy': mv_script})
-        driver.deploy_to(instance, **kwargs)
-        celery_logger.debug("mount task finished at %s." % datetime.now())
+        playbooks = deploy_mount_volume(
+            instance.ip, username, instance.id,
+            device_location, mount_location=mount_location, device_type=device_type)
+        celery_logger.info(playbooks.__dict__)
+        hostname = build_host_name(instance.id, instance.ip)
+        result = False if execution_has_failures(playbooks, hostname)\
+            or execution_has_unreachable(playbooks, hostname) else True
+        if not result:
+            raise Exception(
+                "Error encountered while mounting volume: %s"
+                % playbooks.stats.summarize(host=hostname))
         return mount_location
     except Exception as exc:
         celery_logger.warn(exc)
@@ -278,7 +238,7 @@ def attach_task(driverCls, provider, identity, instance_id, volume_id,
 
         if 'available' in volume.extra.get('status', ''):
             raise Exception("Volume %s failed to attach to instance %s"
-                            % (volume.id, instance.id))
+                            % (volume.id, instance_id))
 
         # Device path for euca == openstack
         try:
@@ -366,7 +326,7 @@ def update_mount_location(new_mount_location,
             return
         if not new_mount_location:
             return
-        volume_metadata = volume.extra['metadata']
+        #volume_metadata = volume.extra['metadata']
         return volume_service._update_volume_metadata(
             driver, volume,
             metadata={'mount_location': new_mount_location})
@@ -405,16 +365,17 @@ def update_volume_metadata(driverCls, provider,
 
 
 @task(name="mount_failed")
-def mount_failed(task_uuid, driverCls, provider, identity, volume_id,
-                 unmount=False, **celery_task_args):
+def mount_failed(
+        context,
+        exception_msg,
+        traceback,
+        driverCls, provider, identity, volume_id,
+        unmount=False, **celery_task_args):
     from service import volume as volume_service
     try:
         celery_logger.debug("mount_failed task started at %s." % datetime.now())
-        celery_logger.info("task_uuid=%s" % task_uuid)
-        result = app.AsyncResult(task_uuid)
-        with allow_join_result():
-            exc = result.get(propagate=False)
-        err_str = "Mount Error Traceback:%s" % (result.traceback,)
+        celery_logger.info("task context=%s" % context)
+        err_str = "%s\nMount Error Traceback:%s" % (exception_msg, traceback)
         celery_logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         volume = driver.get_volume(volume_id)

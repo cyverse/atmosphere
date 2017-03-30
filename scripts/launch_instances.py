@@ -122,7 +122,7 @@ def handle_provider(args):
 
 def sort_most_used_machines(provider, limit=0, offset=0):
     results = ProviderMachine.objects.none()
-    query = InstanceSource.objects.filter(provider__id=4)\
+    query = InstanceSource.objects.filter(provider__id=provider.id)\
            .filter(providermachine__isnull=False)\
            .filter(instances__instancestatushistory__status__name='active').distinct()\
            .annotate(instance_count=Count('instances'))\

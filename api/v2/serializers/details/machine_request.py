@@ -235,10 +235,12 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         queryset=Instance.objects.all(),
         serializer_class=InstanceSummarySerializer,
         style={'base_template': 'input.html'})
+    start_date = serializers.DateTimeField(read_only=True)
+    end_date = serializers.DateTimeField(read_only=True)
     status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
                                     allow_null=True,
                                     required=False)
-    old_status = serializers.CharField(required = False)
+    old_status = serializers.CharField(source='clean_old_status', required=False)
 
     new_application_visibility = serializers.CharField()
     new_application_version = ImageVersionSummarySerializer(read_only=True)
@@ -278,6 +280,11 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         serializer_class=ProviderSummarySerializer,
         style={'base_template':'input.html'},
         required=False)
+    new_machine = ModelRelatedField(
+        required = False,
+        queryset = ProviderMachine.objects.all(),
+        serializer_class = ProviderMachineSummarySerializer,
+        style = {'base_template':'input.html'})
     # Absent: new_machine_owner -- determined by User submission
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:machinerequest-detail',
@@ -291,12 +298,13 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'id',
             'uuid',
             'url',
+            'start_date',
+            'end_date',
             'admin_message',
             'instance',
             'status',
             'old_status',
             'new_application_visibility',
-            'new_application_version',
             'new_application_name',
             'new_application_description',
             'access_list',
@@ -314,4 +322,6 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'new_version_scripts',
             'new_version_membership',
             'new_machine_provider',
+            'new_application_version',
+            'new_machine',
         )

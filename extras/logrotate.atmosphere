@@ -8,6 +8,7 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }
 /opt/dev/atmosphere/logs/libcloud.log {
     su www-data www-data
@@ -18,6 +19,7 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }
 /opt/dev/atmosphere/logs/atmosphere_api.log {
     su www-data www-data
@@ -28,6 +30,7 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }
 /opt/dev/atmosphere/logs/atmosphere_auth.log {
     su www-data www-data
@@ -38,6 +41,7 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }
 /opt/dev/atmosphere/logs/atmosphere_deploy.log {
     su www-data www-data
@@ -48,6 +52,7 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }
 /opt/dev/atmosphere/logs/atmosphere_email.log {
     su www-data www-data
@@ -58,6 +63,7 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }
 /opt/dev/atmosphere/logs/atmosphere_status.log {
     su www-data www-data
@@ -68,4 +74,5 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }

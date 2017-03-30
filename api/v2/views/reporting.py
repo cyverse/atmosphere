@@ -34,12 +34,17 @@ class ReportingViewSet(AuthViewSet):
         """
         # Note: Additionally 'response' will also be added to the context,
         #       by the Response object.
+        request = getattr(self, 'request', None)
+        if request and 'filename' in request.query_params:
+            filename = request.query_params['filename']
+        else:
+            filename = 'instance_reporting.xlsx'
         return {
             'view': self,
             'args': getattr(self, 'args', ()),
             'kwargs': getattr(self, 'kwargs', {}),
-            'request': getattr(self, 'request', None),
-            'filename': 'reporting.xlsx',
+            'request': request,
+            'filename': filename,
             'excel_writer_hook': self.create_excel_file,
             'headers_ordering': ["id", "instance_id", "username", "staff_user", "provider", "start_date", "end_date",
                                  "image_name", "version_name", "size.active", "size.start_date", "size.end_date",

@@ -219,7 +219,8 @@ class Identity(models.Model):
         # upon creation. If the value is not passed in, we can ask the provider to select
         # the router with the least 'usage' to ensure an "eventually consistent" distribution
         # of users->routers.
-        if 'router_name' not in credentials:
+        topologyClsName = provider.get_config('network', 'topology', raise_exc=False)
+        if topologyClsName == 'External Router Topology' and 'router_name' not in credentials:
             credentials['router_name'] = provider.select_router()
 
         (user, group) = Group.create_usergroup(
@@ -248,15 +249,25 @@ class Identity(models.Model):
 
     @classmethod
     def _get_identity(cls, user, group, provider, quota, credentials):
+        """
+        # 1. Make sure that an Identity exists for the user/group+provider
+        # 2. Make sure that all kwargs exist as credentials for the identity
+        """
         credentials_match_query = (
             contains_credential('key', credentials['key']) &
             contains_credential('ex_project_name', credentials['ex_project_name'])
         )
-        identity = Identity.objects\
+        identity_qs = Identity.objects\
             .filter(created_by=user, provider=provider)\
             .filter(credentials_match_query).first()
+        # This shouldn't happen..
+        if identity_qs.count() > 1:
+            raise Exception("Could not uniquely identify the identity")
+
+        identity = identity_qs.first()
         if not identity:
             identity = cls._create_identity(user, group, provider, quota, credentials)
+
         # 2. Make sure that all kwargs exist as credentials
         # NOTE: Because we assume a matching username and
         #       project name, we can update the remaining
@@ -267,6 +278,7 @@ class Identity(models.Model):
 
     @classmethod
     def _create_identity(cls, user, group, provider, quota, credentials):
+        # FIXME: we shouldn't have to create the uuid.. default should do this?
         new_uuid = uuid4()
         if not quota:
             quota = Quota.default_quota()

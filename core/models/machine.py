@@ -2,10 +2,13 @@
   Machine models for atmosphere.
 """
 from hashlib import md5
+import json
 
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist as DoesNotExist
+from django.conf import settings
 from threepio import logger
 
 from core.models.abstract import BaseSource
@@ -198,16 +201,43 @@ def collect_image_metadata(glance_image):
     app_kwargs = {}
     try:
         app_kwargs['private'] = glance_image.visibility.lower() != 'public'
-        if verify_app_uuid(glance_image.application_uuid, glance_image.id):
-            app_kwargs['uuid'] = glance_image.application_uuid
-            app_kwargs['description'] = glance_image.application_description
-            app_kwargs['tags'] = glance_image.application_tags
+        if verify_app_uuid(glance_image.get('application_uuid'), glance_image.id):
+            app_kwargs['uuid'] = glance_image.get('application_uuid')
+            app_kwargs['description'] = glance_image.get('application_description')#TODO: Verify that _LINE_BREAK_ is fixed
+            app_kwargs['tags'] = glance_image.get('application_tags')
+        elif is_replicated_version(glance_image.id):
+            app_kwargs = replicate_app_kwargs(glance_image.id)
     except AttributeError as exc:
         logger.exception("Glance image %s was not initialized with atmosphere metadata - %s" % (glance_image.id, exc.message))
     return app_kwargs
 
 
-def convert_glance_image(glance_image, provider_uuid):
+def is_replicated_version(image_id):
+    if not getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
+        return False
+    if ProviderMachine.objects.filter(instance_source__identifier=image_id).count() > 0:
+        return True
+
+
+def replicate_app_kwargs(image_id):
+    """
+    Copy the latest kwargs from the current app
+    """
+    try:
+        app = Application.objects.get(versions__machines__instance_source__identifier=image_id)
+        tag_list = list(app.tags.values_list('name',flat=True))
+        json_tags = json.dumps(tag_list)
+        return {
+            'uuid': app.uuid,
+            'description': app.description,
+            'tags': json_tags
+        }
+    except Exception as exc:
+        logger.exception("Could not replicate application kwargs: %s" % exc)
+        return {}
+
+
+def convert_glance_image(glance_image, provider_uuid, owner=None):
     """
     Guaranteed Return of ProviderMachine.
     1. Load provider machine from DB and return
@@ -225,8 +255,10 @@ def convert_glance_image(glance_image, provider_uuid):
     if provider_machine:
         return (provider_machine, False)
     app_kwargs = collect_image_metadata(glance_image)
-    owner_name = glance_image.get('application_owner')
-#NOThis operates under the assumption the owner is the 'user' who created it, rather than the 'original openstack tenant name'. Update these lines if the assumption is invalid.
+    if owner and hasattr(owner,'name'):
+        owner_name = owner.name
+    else:
+        owner_name = glance_image.get('application_owner')
     user = AtmosphereUser.objects.filter(username=owner_name).first()
     if user:
         identity = Identity.objects.filter(
