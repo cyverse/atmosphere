@@ -434,7 +434,7 @@ class AccountDriver(BaseAccountDriver):
                 public_key=public_key)
         return keypair
 
-    def shared_images_for(self, image_id):
+    def shared_images_for(self, image_id, status="approved"):
         shared_with = self.image_manager.shared_images_for(
             image_id=image_id)
 
@@ -449,7 +449,7 @@ class AccountDriver(BaseAccountDriver):
             acct_driver = self
 
         projects = [acct_driver.get_project_by_id(member.member_id)
-                    for member in shared_with]
+                    for member in shared_with if not status or status == member.status]
         return projects
 
     def share_image_with_identity(self, glance_image, identity):
@@ -461,17 +461,19 @@ class AccountDriver(BaseAccountDriver):
             if 'is duplicated for image' not in message\
                     and 'is already associated with image' not in message:
                 raise
-        self.accept_shared_image(glance_image, identity)
+        return self.accept_shared_image(glance_image, identity)
 
     def accept_shared_image(self, glance_image, identity):
         """
         This is only required when sharing using 'the v2 api' on glance.
         """
-        username = identity.get_credential('key')
-        password = identity.get_credential('secret')
+        all_creds = identity.get_all_credentials()
+        username = all_creds.get('key')
+        password = all_creds.get('secret')
+        domain_id = all_creds.get('domain_name', 'default')
         project_name = identity.project_name()
         clients = self.get_openstack_clients(username, password, project_name)
-        project = self.user_manager.get_project(project_name)
+        project = self.user_manager.get_project(project_name, domain_id=domain_id)
         glance = clients["glance"]
         glance.image_members.update(
             glance_image.id,
@@ -479,6 +481,7 @@ class AccountDriver(BaseAccountDriver):
             'accepted')
         logger.info("Added Cloud Access: %s-%s"
                     % (glance_image, project_name))
+        return project
 
         
 
