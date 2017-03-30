@@ -86,9 +86,6 @@ class TASAPIDriver(object):
     def get_all_project_users(self):
         if not self.user_project_list:
             self.project_list = self._get_all_projects()
-            with open('/tmp/project_list.json', 'w') as f:  # TODO: DON'T COMMIT
-                import json
-                json.dump(self.project_list, fp=f, indent=2)
             for project in sorted(self.project_list, key=lambda p: p['id']):
                 project_users = self.get_project_users(project['id'])
                 project['users'] = project_users
