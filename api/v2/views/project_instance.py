@@ -28,7 +28,7 @@ class ProjectInstanceViewSet(AuthViewSet):
             Q(instance__end_date__gt=now) |
             Q(instance__end_date__isnull=True),
             instance__start_date__lt=now,
-            project__owner=group)
+            project__owner__user=user)
         active_provider_uuids = [ap.uuid for ap in Provider.get_active()]
         return p_instances.filter(
             pk__in=[i.id for i in p_instances
