@@ -1,7 +1,7 @@
 from django.db.models import Q
 from django.utils import timezone
 
-from core.models import ProjectInstance, Provider
+from core.models import Group, ProjectInstance, Provider
 
 from api.v2.serializers.details import ProjectInstanceSerializer
 from api.v2.views.base import AuthViewSet
@@ -23,11 +23,12 @@ class ProjectInstanceViewSet(AuthViewSet):
         """
         user = self.request.user
         now = timezone.now()
+        group = Group.objects.get(name=user.username)
         p_instances = ProjectInstance.objects.filter(
             Q(instance__end_date__gt=now) |
             Q(instance__end_date__isnull=True),
             instance__start_date__lt=now,
-            project__owner__user=user)
+            project__owner=group)
         active_provider_uuids = [ap.uuid for ap in Provider.get_active()]
         return p_instances.filter(
             pk__in=[i.id for i in p_instances
