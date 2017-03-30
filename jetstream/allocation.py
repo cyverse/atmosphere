@@ -146,14 +146,14 @@ class TASAPIDriver(object):
     
         return data
 
-    def get_allocation_project_id(self, allocation_id):
-        allocation = self.get_allocation(allocation_id)
+    def get_allocation_project_id(self, allocation_name):
+        allocation = self.get_allocation(allocation_name)
         if not allocation:
             return
         return allocation['projectId']
 
-    def get_allocation_project_name(self, allocation_id):
-        allocation = self.get_allocation(allocation_id)
+    def get_allocation_project_name(self, allocation_name):
+        allocation = self.get_allocation(allocation_name)
         if not allocation:
             return
         return allocation['project']
@@ -168,12 +168,12 @@ class TASAPIDriver(object):
             return filtered_list[0]
         return None
 
-    def get_allocation(self, allocation_id):
+    def get_allocation(self, allocation_name):
         filtered_list = [
             a for a in self.get_all_allocations()
-            if str(a['id']) == str(allocation_id)]
+            if str(a['chargeCode']) == str(allocation_name)]
         if len(filtered_list) > 1:
-            logger.error(">1 value found for allocation %s" % allocation_id)
+            logger.error(">1 value found for allocation %s" % allocation_name)
         if filtered_list:
             return filtered_list[0]
         return None
@@ -265,20 +265,18 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
 
     try:
         source = AllocationSource.objects.get(
-            source_id=source_id
+            name=source_name
         )
         if update_source:
             if compute_allowed != source.compute_allowed:
                 #FIXME: Here would be a *great* place to create a new event to "ignore" all previous allocation_source_`threshold_met/threshold_enforced`
                 source.compute_allowed = compute_allowed
-            source.name = source_name
             source.save()
         return source, False
     except AllocationSource.DoesNotExist:
         source = AllocationSource.objects.create(
             name=source_name,
-            compute_allowed=compute_allowed,
-            source_id=source_id
+            compute_allowed=compute_allowed
         )
         return source, True
 

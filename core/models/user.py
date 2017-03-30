@@ -151,9 +151,9 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         return all_identities
 
     @classmethod
-    def for_allocation_source(cls, allocation_source_id):
+    def for_allocation_source(cls, allocation_source_name):
         from core.models import UserAllocationSource
-        user_ids = UserAllocationSource.objects.filter(allocation_source__source_id=allocation_source_id).values_list('user',flat=True)
+        user_ids = UserAllocationSource.objects.filter(allocation_source__name=allocation_source_name).values_list('user',flat=True)
         return AtmosphereUser.objects.filter(id__in=user_ids)
 
     def can_use_identity(self, identity_id):

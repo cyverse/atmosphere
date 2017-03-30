@@ -8,7 +8,6 @@ from uuid import uuid4
 class AllocationSource(models.Model):
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     name = models.CharField(max_length=255)
-    source_id = models.CharField(max_length=255)
     compute_allowed = models.IntegerField()
 
     @classmethod
@@ -46,7 +45,7 @@ class AllocationSource(models.Model):
 
     def __unicode__(self):
         return "%s (ID:%s, Compute Allowed:%s)" %\
-            (self.name, self.source_id,
+            (self.name, self.uuid,
              self.compute_allowed)
 
 

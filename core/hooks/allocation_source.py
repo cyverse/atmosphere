@@ -16,7 +16,7 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
     This listener expects:
     EventType - 'allocation_source_snapshot'
     EventPayload - {
-        "allocation_source_id": "37623",
+        "allocation_source_name": "37623",
         "compute_used":100.00,  # 100 hours used ( a number, not a string, IN HOURS!)
         "global_burn_rate":2.00,  # 2 hours used each hour
     }
@@ -30,12 +30,12 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
     from core.models import EventTable
     from service.tasks.monitoring import enforce_allocation_overage
     payload = event.payload
-    allocation_source_id = payload['allocation_source_id']
+    allocation_source_name = payload['allocation_source_name']
     new_compute_used = payload['compute_used']
-    source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    source = AllocationSource.objects.filter(name=allocation_source_name).last()
     prev_enforcement_event = EventTable.objects\
         .filter(name="allocation_source_threshold_enforced")\
-        .filter(entity_id=allocation_source_id).last()
+        .filter(entity_id=allocation_source_name).last()
     # test for previous event of 'allocation_source_threshold_enforced'
     if prev_enforcement_event:
         return
@@ -50,9 +50,9 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
     current_percentage = int(100.0*new_compute_used/source.compute_allowed) if source.compute_allowed != 0 else 0
     if new_compute_used < source.compute_allowed:
         return
-    enforce_allocation_overage.apply_async(args=(source.source_id,) )
+    enforce_allocation_overage.apply_async(args=(source.name,) )
     new_payload = {
-        "allocation_source_id": source.source_id,
+        "allocation_source_name": source.name,
         "actual_value": current_percentage
     }
     return
@@ -65,7 +65,7 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     This listener expects:
     EventType - 'allocation_source_snapshot'
     EventPayload - {
-        "allocation_source_id": "37623",
+        "allocation_source_name": "37623",
         "compute_used":100.00,  # 100 hours used ( a number, not a string!)
         "global_burn_rate":2.00,  # 2 hours used each hour
     }
@@ -79,24 +79,24 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     from core.models import EventTable
 
     payload = event.payload
-    allocation_source_id = payload['allocation_source_id']
+    allocation_source_name = payload['allocation_source_name']
     new_compute_used = payload['compute_used']
     threshold_values = getattr(settings, "ALLOCATION_SOURCE_WARNINGS", [])
-    source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if new_compute_used == 0:
         return
     if not source:
         return
     if source.compute_allowed in [None, 0]:
         return
-    prev_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source__source_id=allocation_source_id).first()
+    prev_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source__name=allocation_source_name).last()
     if not prev_snapshot:
         prev_compute_used = 0
     else:
         prev_compute_used = float(prev_snapshot.compute_used)
     prev_percentage = int(100.0*prev_compute_used/source.compute_allowed)
     current_percentage = int(100.0*new_compute_used/source.compute_allowed)
-    print "Souce: %s (%s) Previous:%s - New:%s" % (source.name, allocation_source_id, prev_percentage, current_percentage)
+    print "Souce: %s (%s) Previous:%s - New:%s" % (source.name, allocation_source_name, prev_percentage, current_percentage)
     percent_event_triggered = None
     # Compare 'Now snapshot' with Previous snapshot. Have we "crossed a threshold?"
     # If yes:
@@ -112,18 +112,18 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     print "Email Event triggered for %s users: %s" % (source.all_users.count(), percent_event_triggered)
     prev_email_event = EventTable.objects\
         .filter(name="allocation_source_threshold_met")\
-        .filter(entity_id=allocation_source_id,
+        .filter(entity_id=allocation_source_name,
                 payload__threshold=percent_event_triggered)
     if prev_email_event:
         return
     new_payload = {
         "threshold": percent_event_triggered,
-        "allocation_source_id": allocation_source_id,
+        "allocation_source_name": allocation_source_name,
         "actual_value": current_percentage
     }
     EventTable.create_event(
         name="allocation_source_threshold_met",
-        entity_id=allocation_source_id,
+        entity_id=allocation_source_name,
         payload=new_payload)
     return
 
@@ -132,14 +132,14 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     """
     This listener expects:
     EventType - 'allocation_source_threshold_met'
-    EventEntityID - '<allocation_source.source_id>'
+    EventEntityID - '<allocation_source.name>'
     EventPayload - {
-        "allocation_source_id": "37623",
+        "allocation_source_name": "37623",
         "threshold":20  # The '20%' threshold was hit for this allocation.
     }
     The method should fire off emails to the users who should be informed of the new threshold value.
     """
-    #FIXME+TODO: next version: Fire and respond to the `clear_allocation_threshold_met` for a given allocation_source_id (This event should be generated any time you `.save()` and update the `compute_allowed` for an AllocationSource
+    #FIXME+TODO: next version: Fire and respond to the `clear_allocation_threshold_met` for a given allocation_source_name (This event should be generated any time you `.save()` and update the `compute_allowed` for an AllocationSource
     event = instance
     if event.name != 'allocation_source_threshold_met':
         return None
@@ -149,10 +149,10 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     actual_value = payload['actual_value']
     if not settings.ENFORCING:
         return None
-    source = AllocationSource.objects.filter(name=allocation_source_name).first()
+    source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not source:
         return None
-    users = AtmosphereUser.for_allocation_source(source.source_id)
+    users = AtmosphereUser.for_allocation_source(source.name)
     
     for user in users:
         send_usage_email_to(user, source, threshold, actual_value)
@@ -180,7 +180,7 @@ def listen_for_allocation_snapshot_changes(sender, instance, created, **kwargs):
     This listener expects:
     EventType - 'allocation_source_snapshot'
     EventPayload - {
-        "allocation_source_id": "37623",
+        "allocation_source_name": "37623",
         "compute_used":100.00,  # 100 hours used ( a number, not a string!)
         "global_burn_rate":2.00,  # 2 hours used each hour
     }
@@ -191,11 +191,11 @@ def listen_for_allocation_snapshot_changes(sender, instance, created, **kwargs):
         return None
 
     payload = event.payload
-    allocation_source_id = payload['allocation_source_id']
+    allocation_source_name = payload['allocation_source_name']
     compute_used = payload['compute_used']
     global_burn_rate = payload['global_burn_rate']
 
-    allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not allocation_source:
         return None
     try:
@@ -219,7 +219,7 @@ def listen_for_user_snapshot_changes(sender, instance, created, **kwargs):
     This listener expects:
     EventType - 'user_allocation_snapshot_changed'
     EventPayload - {
-        "allocation_source_id": "37623",
+        "allocation_source_name": "37623",
         "username":"sgregory",
         "compute_used":100.00,  # 100 hours used total ( a number, not a string!)
         "burn_rate": 3.00 # 3 hours used every hour
@@ -232,12 +232,12 @@ def listen_for_user_snapshot_changes(sender, instance, created, **kwargs):
         return None
 
     payload = event.payload
-    allocation_source_id = payload['allocation_source_id']
+    allocation_source_name = payload['allocation_source_name']
     burn_rate = payload['burn_rate']
     compute_used = payload['compute_used']
     username = payload['username']
 
-    allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
+    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not allocation_source:
         return None
     user = AtmosphereUser.objects.filter(username=username).first()
@@ -267,7 +267,7 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
     This listener expects:
     EventType - 'instance_allocation_source_changed'
     EventPayload - {
-        "allocation_source_id": "37623",
+        "allocation_source_name": "37623",
         "instance_id":"2439b15a-293a-4c11-b447-bf349f16ed2e"
     }
 
@@ -281,7 +281,7 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
     allocation_source_name = payload['allocation_source_name']
     instance_id = payload['instance_id']
 
-    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).first()
+    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not allocation_source:
         return None
     instance = Instance.objects.filter(provider_alias=instance_id).first()
