@@ -10,7 +10,6 @@ from core.models import Size
 
 
 class GetSizeListTests(APITestCase):
-
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
