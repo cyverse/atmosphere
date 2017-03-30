@@ -47,13 +47,13 @@ def create_reports():
     driver = TASAPIDriver()
     end_date = timezone.now()
     for item in user_allocation_list:
-        allocation_id = item.allocation_source.source_id
+        allocation_name = item.allocation_source.name
         tacc_username = driver.get_tacc_username(item.user)
         if not tacc_username:
             logger.error("No TACC username for user: '{}' which came from allocation id: {}".format(item.user,
-                                                                                                    allocation_id))
+                                                                                                    allocation_name))
             continue
-        project_name = driver.get_allocation_project_name(allocation_id)
+        project_name = driver.get_allocation_project_name(allocation_name)
         try:
             project_report = _create_tas_report_for(
                 item.user,

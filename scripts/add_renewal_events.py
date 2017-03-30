@@ -26,7 +26,6 @@ for source in allocations:
             "start_date" : details['start'],
             "compute_allocated" : details['computeAllocated'],
             "allocation_source_name" : source['chargeCode'],
-            "allocation_source_id" : details['id']
         }
 
         e = EventTableUpdated(
