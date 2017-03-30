@@ -59,6 +59,8 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     NOTE: Current process accepts instance with source of 'Image' ONLY!
           VOLUMES CANNOT BE IMAGED until this function is updated!
     """
+    if not new_image_id:
+        raise Exception("Cannot process a request if new_image_id is None")
     # Based on original instance -- You'll need this:
     parent_mach = machine_request.instance.provider_machine
     parent_version = parent_mach.application_version
@@ -348,9 +350,9 @@ def sync_machine_membership(accounts, glance_image, new_machine, tenant_list):
     This function will check that *all* tenants in 'tenant_list'
      have been added to OpenStack and DB-level access controls
     """
-    tenant_list = sync_cloud_access(accounts, glance_image, names=tenant_list)
+    tenant_list = sync_cloud_access(accounts, glance_image, project_names=tenant_list)
     # Make private on the DB level
-    make_private(accounts.image_manager,
+    return make_private(accounts.image_manager,
                  glance_image, new_machine, tenant_list)
 
 
@@ -368,22 +370,28 @@ def share_with_self(private_userlist, username):
     private_userlist.append(str(username))
     return private_userlist
 
-def sync_cloud_access(accounts, img, names=None):
-    shared_with = accounts.image_manager.shared_images_for(
-        image_id=img.id)
-    # Find tenants who are marked as 'sharing' on openstack but not on DB
-    # Or just in One-line..
-    projects = accounts.shared_images_for(img.id)
+def sync_cloud_access(accounts, img, project_names=None):
+    domain_id = accounts.credentials.get('domain_name', 'default')
+    approved_projects = accounts.shared_images_for(img.id)
     # Any names who aren't already on the image should be added
     # Find names who are marked as 'sharing' on DB but not on OpenStack
-    for name in names:
-        project = accounts.get_project(name)
-        if project and project not in projects:
-            print "Sharing image %s with project named %s" \
-                % (img.id, name)
-            accounts.image_manager.share_image(img, name)
-            projects.append(project)
-    return projects
+    for project_name in project_names:
+        group_name = project_name  # FIXME: This code should be changed when user-group-project associations change.
+        group = models.Group.objects.get(name=group_name)
+        for identity_membership in group.identitymembership_set.all():
+            if identity_membership.identity.provider != accounts.core_provider:
+                logger.debug("Skipped %s -- Wrong provider" % identity_membership.identity)
+                continue
+            # Get project name from the identity's credential-list
+            identity = identity_membership.identity
+            project_name = identity.get_credential('ex_project_name')
+            project = accounts.get_project(project_name, domain_id=domain_id)
+            if not project or project in approved_projects:
+                logger.debug("Skipped Project: %s -- Already shared" % project)
+                continue
+            project = accounts.share_image_with_identity(img, identity)
+            approved_projects.append(project)
+    return approved_projects
 
 
 def make_private(image_manager, image, provider_machine, tenant_list=[]):
