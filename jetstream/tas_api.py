@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 def tacc_api_post(url, post_data, username=None, password=None):
-    raise NotImplementedError  # TODO: DON'T COMMIT
     if not username:
         username = settings.TACC_API_USER
     if not password:
@@ -23,7 +22,6 @@ def tacc_api_post(url, post_data, username=None, password=None):
 
 
 def tacc_api_get(url, username=None, password=None):
-    raise NotImplementedError  # TODO: DON'T COMMIT
     if not username:
         username = settings.TACC_API_USER
     if not password:
