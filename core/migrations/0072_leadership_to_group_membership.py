@@ -10,7 +10,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0070_provider_created_by'),
+        ('core', '0071_provider_more_instance_actions'),
     ]
 
     operations = [
