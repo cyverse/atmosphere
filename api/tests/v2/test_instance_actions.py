@@ -13,12 +13,14 @@ from api.tests.factories import (
     IdentityMembershipFactory, QuotaFactory)
 from api.v2.views import InstanceViewSet
 from core.models import AtmosphereUser
+from rtwo.driver import MockDriver
+from service.driver import get_esh_driver
 
 class InstanceActionTests(APITestCase):
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create(username='test-username')
-        self.provider = ProviderFactory.create()
+        self.provider = ProviderFactory.create(type__name='mock')
         self.user_identity = IdentityFactory.create_identity(
             created_by=self.user,
             provider=self.provider)
@@ -47,10 +49,14 @@ class InstanceActionTests(APITestCase):
             'action': 'stop'
         }
         self.request = factory.post(self.url, data)
+        self.mock_driver = get_esh_driver(self.user_identity)
+        self.mock_driver.add_core_instance(self.active_instance)
 
     # For resize, I will add a size in InstanceStatusHistory. for stop, we don't have to have
     def test_stop_instance_action(self):
         force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, self.active_instance.id)
-        data = response.data.get('results')[0]
+        response = self.view(self.request, str(self.active_instance.provider_alias))
+        data = response.data.get('results')
+        if data:
+            result = data[0]
         self.assertEquals(response.status_code, 200)

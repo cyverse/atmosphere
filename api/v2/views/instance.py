@@ -110,6 +110,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         identity = instance.created_by_identity
         action_params = request.data
         action = action_params.pop('action')
+        if type(action) == list:
+            action = action[0]
         try:
             result_obj = run_instance_action(user, identity, instance_id, action, action_params)
             api_response = {
@@ -145,12 +147,12 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return failure_response(
                 status.HTTP_409_CONFLICT,
                 "The requested action %s is not available on this provider."
-                % action_params['action'])
+                % action)
         except ActionNotAllowed:
             return failure_response(
                 status.HTTP_409_CONFLICT,
                 "The requested action %s has been explicitly "
-                "disabled on this provider." % action_params['action'])
+                "disabled on this provider." % action)
         except Exception as exc:
             logger.exception("Exception occurred processing InstanceAction")
             message = exc.message
@@ -162,7 +164,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
                 status.HTTP_403_FORBIDDEN,
                 "The requested action %s encountered "
                 "an irrecoverable exception: %s"
-                % (action_params['action'], message))
+                % (action, message))
 
     def perform_destroy(self, instance):
         user = self.request.user
