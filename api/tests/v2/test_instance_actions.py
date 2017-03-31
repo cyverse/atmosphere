@@ -56,7 +56,7 @@ class InstanceActionTests(APITestCase):
     def test_stop_instance_action(self):
         force_authenticate(self.request, user=self.user)
         response = self.view(self.request, str(self.active_instance.provider_alias))
-        data = response.data.get('results')
+        data = response.data.get('result')
         if data:
             result = data[0]
         self.assertEquals(response.status_code, 200)
