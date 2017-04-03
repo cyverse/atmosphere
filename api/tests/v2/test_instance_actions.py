@@ -60,3 +60,77 @@ class InstanceActionTests(APITestCase):
         if data:
             result = data[0]
         self.assertEquals(response.status_code, 200)
+
+    def test_start_instance_action(self):
+        factory = APIRequestFactory()
+        data = {
+            'action': 'start'
+        }
+        request = factory.post(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
+        data = response.data.get('result')
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals('success', data)
+
+    def test_reboot_soft_instance_action(self):
+        factory = APIRequestFactory()
+        data = {
+            'action': 'reboot',
+            'reboot_type': 'SOFT'
+        }
+        request = factory.post(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
+        self.assertEquals(response.status_code, 200)
+        data = response.data.get('result')
+        self.assertEquals('success', data)
+
+    def test_reboot_hard_instance_action(self):
+        factory = APIRequestFactory()
+        data = {
+            'action': 'reboot',
+            'reboot_type': 'HARD'
+        }
+        request = factory.post(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
+        self.assertEquals(response.status_code, 200)
+        data = response.data.get('result')
+        self.assertEquals('success', data)
+
+    def test_suspend_instance_action(self):
+        factory = APIRequestFactory()
+        data = {
+            'action': 'suspend'
+        }
+        request = factory.post(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
+        self.assertEquals(response.status_code, 200)
+        data = response.data.get('result')
+        self.assertEquals('success', data)
+
+    def test_resume_instance_action(self):
+        factory = APIRequestFactory()
+        data = {
+            'action': 'resume'
+        }
+        request = factory.post(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
+        self.assertEquals(response.status_code, 200)
+        data = response.data.get('result')
+        self.assertEquals('success', data)
+
+    def test_redeploy_instance_action(self):
+        factory = APIRequestFactory()
+        data = {
+            'action': 'redeploy'
+        }
+        request = factory.post(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
+        self.assertEquals(response.status_code, 200)
+        data = response.data.get('result')
+        self.assertEquals('success', data)
