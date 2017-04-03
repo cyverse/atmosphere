@@ -8,9 +8,9 @@ from rest_framework.test import APIClient
 
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from api.tests.factories import (
-    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
-    ImageFactory, ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
-    IdentityMembershipFactory, QuotaFactory)
+    UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
+    ApplicationVersionFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
+    SizeFactory)
 from api.v2.views import InstanceViewSet
 from core.models import AtmosphereUser
 from rtwo.driver import MockDriver
@@ -42,24 +42,44 @@ class InstanceActionTests(APITestCase):
                 start_date=start_date + delta_time*3)
 
         self.view = InstanceViewSet.as_view({'post': 'actions'})
-        factory = APIRequestFactory()
         self.url = reverse('api:v2:instance-list')
         self.url += "/" + str(self.active_instance.provider_alias) + "/actions"
-        data = {
-            'action': 'stop'
-        }
-        self.request = factory.post(self.url, data)
         self.mock_driver = get_esh_driver(self.user_identity)
         self.mock_driver.add_core_instance(self.active_instance)
 
+        start_date_second = timezone.now()
+        self.active_instance_second = InstanceFactory.create(
+            name="Instance in active",
+            provider_alias=uuid.uuid4(),
+            source=self.machine.instance_source,
+            created_by=self.user,
+            created_by_identity=self.user_identity,
+            start_date=start_date_second)
+        self.status_active_second = InstanceStatusFactory.create(name='active')
+        delta_time = timezone.timedelta(minutes=2)
+        self.size_small = SizeFactory.create(provider=self.provider, cpu=2, disk=20, root=0, mem=128)
+        self.size_large = SizeFactory.create(provider=self.provider, cpu=4, disk=40, root=0, mem=256)
+        InstanceHistoryFactory.create(
+                status=self.status_active_second,
+                size=self.size_small,
+                activity="",
+                instance=self.active_instance_second,
+                start_date=start_date_second + delta_time*3)
+        self.mock_driver_second = get_esh_driver(self.user_identity)
+        self.mock_driver.add_core_instance(self.active_instance_second)
+
     # For resize, I will add a size in InstanceStatusHistory. for stop, we don't have to have
     def test_stop_instance_action(self):
-        force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, str(self.active_instance.provider_alias))
+        factory = APIRequestFactory()
+        data = {
+            'action': 'stop'
+        }
+        request = factory.post(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
         data = response.data.get('result')
-        if data:
-            result = data[0]
         self.assertEquals(response.status_code, 200)
+        self.assertEquals('success', data)
 
     def test_start_instance_action(self):
         factory = APIRequestFactory()
@@ -127,6 +147,19 @@ class InstanceActionTests(APITestCase):
         factory = APIRequestFactory()
         data = {
             'action': 'redeploy'
+        }
+        request = factory.post(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
+        self.assertEquals(response.status_code, 200)
+        data = response.data.get('result')
+        self.assertEquals('success', data)
+
+    def test_resize_instance_action(self):
+        factory = APIRequestFactory()
+        data = {
+            "action":"resize",
+            "resize_size":self.size_large.alias
         }
         request = factory.post(self.url, data)
         force_authenticate(request, user=self.user)
