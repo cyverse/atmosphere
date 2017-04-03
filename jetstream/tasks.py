@@ -1,26 +1,18 @@
 import logging
-import collections
-
-from django.conf import settings
-from django.utils import timezone
-from dateutil.parser import parse
-
 
 from celery.decorators import task
-from core.models.allocation_source import total_usage
+from django.conf import settings
+from django.utils import timezone
+
+from core.models import EventTableUpdated
 from core.models.allocation_source import (
     UserAllocationSource, AllocationSourceSnapshot,
     AllocationSource, UserAllocationSnapshot
 )
-
-from core.models import EventTableUpdated
-from service.allocation_logic import create_report, get_instance_burn_rate_from_row
-from core.models.user import AtmosphereUser
-
-from .models import TASAllocationReport
+from core.models.allocation_source import total_usage
 from .allocation import (TASAPIDriver, fill_user_allocation_sources)
-
 from .exceptions import TASPluginException
+from .models import TASAllocationReport
 
 
 logger = logging.getLogger(__name__)
@@ -148,10 +140,6 @@ def update_snapshot(start_date=None, end_date=None):
     # TODO: Read this start_date from last 'reset event' for each allocation source
     start_date = start_date or '2016-09-01 00:00:00.0-05'
 
-    allocation_sources_renewed_dict = {e.payload['allocation_source_name']: e.payload['start_date'] for e in
-                                       EventTableUpdated.objects.filter(name='allocation_source_renewed').order_by(
-                                           'timestamp')}
-
     tas_api_obj = TASAPIDriver()
     allocation_source_usage_from_tas = tas_api_obj.get_all_projects()
 
@@ -162,9 +150,12 @@ def update_snapshot(start_date=None, end_date=None):
         try:
             allocation_source = AllocationSource.objects.filter(name=allocation_source_name).order_by('id').last()
 
-            if allocation_source.name in allocation_sources_renewed_dict:
+            created_or_updated_event = EventTableUpdated.objects.filter(name='allocation_source_created_or_renewed',
+                                                                        payload__allocation_source_name=allocation_source.name).order_by(
+                'timestamp').last()
+            if created_or_updated_event:
                 #if renewed, change ignore old allocation usage
-                start_date = allocation_sources_renewed_dict[allocation_source.name]
+                start_date = created_or_updated_event.payload['start_date']
 
             for user in allocation_source.all_users:
                 compute_used, burn_rate = total_usage(user.username, start_date, allocation_source_name=allocation_source.name ,end_date=end_date,burn_rate=True)
