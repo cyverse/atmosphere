@@ -298,3 +298,63 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
             allocation_source=allocation_source,
             instance=instance)
     return snapshot
+
+def listen_for_allocation_source_created_or_renewed(sender,instance,created,**kwargs):
+    """
+       This listener expects:
+       EventType - 'instance_allocation_source_renewed'
+       EventPayload - {
+           "allocation_source_name": "TG-AG100345",
+           "compute_allowed":1000,
+           "start_date":"2016-02-02T00:00+00:00"
+       }
+
+       The method should result in renewal of allocation source
+    """
+    event = instance
+    if event.name != 'allocation_source_renewed':
+        return None
+    logger.info("Allocation Source created or renewed event: %s" % event.__dict__)
+    payload = event.payload
+    allocation_source_name = payload['allocation_source_name']
+    compute_allowed = payload['compute_allowed']
+    start_date = payload['start_date']
+
+    source = AllocationSource.objects.filter(name=allocation_source_name).last()
+    if not source:
+        AllocationSource.objects.create(
+            name=allocation_source_name,
+            compute_allowed=compute_allowed,
+            start_date=start_date
+        )
+    else:
+        source.compute_allowed = compute_allowed
+        source.start_date = start_date
+
+        source.save()
+
+
+def listen_for_allocation_source_compute_allowed_changed(sender,instance,created,**kwargs):
+    """
+       This listener expects:
+       EventType - 'instance_allocation_source_supplemented'
+       EventPayload - {
+           "allocation_source_name": "TG-AG100345",
+           "compute_allowed":1000,
+           "start_date":"2016-02-02T00:00+00:00"
+       }
+
+       The method should result in supplement of allocation source
+       """
+    event = instance
+    if event.name != 'allocation_source_supplemented':
+        return None
+    logger.info("Allocation Source supplemented event: %s" % event.__dict__)
+    payload = event.payload
+    allocation_source_name = payload['allocation_source_name']
+    compute_allowed = payload['compute_allowed']
+
+    source = AllocationSource.objects.filter(name=allocation_source_name).last()
+    source.compute_allowed = compute_allowed
+
+    source.save()
