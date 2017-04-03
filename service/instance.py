@@ -1471,6 +1471,9 @@ def user_network_init(core_identity):
     """
     WIP -- need to figure out how to do this within the scope of libcloud // OR using existing authtoken to connect with neutron.
     """
+    provider_type = core_identity.provider.type.name
+    if provider_type == 'mock':
+        return _to_network_driver(core_identity)
     username = core_identity.get_credential('key')
     if not username:
         username = core_identity.created_by.username
