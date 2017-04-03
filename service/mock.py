@@ -250,7 +250,7 @@ class AtmosphereMockDriver(MockDriver):
         return instance[0]
 
     def add_core_instance(self, core_instance):
-        extra = ['metadata'] = {'iplant_suspend_fix': False}
+        extra['metadata'] = {'iplant_suspend_fix': False}
         return self.create_instance(
             id=str(core_instance.provider_alias),
             ip=core_instance.ip_address,
