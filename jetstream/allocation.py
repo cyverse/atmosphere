@@ -1,5 +1,5 @@
 import logging
-
+import uuid
 from django.conf import settings
 from django.utils import timezone
 from dateutil.parser import parse
@@ -7,6 +7,7 @@ from dateutil.parser import parse
 from .exceptions import TASAPIException
 #FIXME: Next iteration, move this into the driver.
 from .tas_api import tacc_api_post, tacc_api_get
+from core.models import EventTableUpdated
 from core.models.allocation_source import AllocationSource, UserAllocationSource
 
 logger = logging.getLogger(__name__)
@@ -263,22 +264,46 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
     except (TypeError, KeyError, ValueError):
         raise TASAPIException("Malformed API Allocation - Missing keys in dict: %s" % api_allocation)
 
+    payload = {
+        'allocation_source_name': source_name,
+        'compute_allowed': compute_allowed,
+        'start_date':api_allocation['start'],
+        'end_date':api_allocation['end']
+    }
+
+    # hash name and source_id to check for renewed Allocation Source
     try:
-        source = AllocationSource.objects.get(
+        hashstring = '%s_%s'%(source_name,source_id)
+        hashed_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(hashstring))
+        e = EventTableUpdated.objects.create(
+            name='allocation_source_created_or_renewed',uuid=hashed_uuid,payload=payload)
+
+    except:
+        # NOTIMPLEMENTED
+        pass
+
+    # hash name, source_id and compute_allocated to check for supplemented Allocation Source
+    try:
+        hashstring = '%s_%s_%s' % (source_name, source_id,compute_allowed)
+        hashed_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(hashstring))
+        e = EventTableUpdated.objects.create(
+            name='allocation_source_compute_allowed_changed', uuid=hashed_uuid,payload=payload)
+
+    except:
+        # NOTIMPLEMENTED
+        pass
+
+
+    try:
+        source = AllocationSource.objects.filter(
             name=source_name
-        )
-        if update_source:
-            if compute_allowed != source.compute_allowed:
-                #FIXME: Here would be a *great* place to create a new event to "ignore" all previous allocation_source_`threshold_met/threshold_enforced`
-                source.compute_allowed = compute_allowed
-            source.save()
-        return source, False
+        ).last()
+
+        return source
+
     except AllocationSource.DoesNotExist:
-        source = AllocationSource.objects.create(
-            name=source_name,
-            compute_allowed=compute_allowed
-        )
-        return source, True
+
+        logger.info("Allocation Source %s failed to update/create "% source_name )
 
 
 def find_user_allocation_source_for(driver, user):
@@ -340,7 +365,7 @@ def fill_user_allocation_source_for(driver, user, force_update=True):
     allocation_list = find_user_allocation_source_for(driver, user)
     allocation_resources = []
     for api_allocation in allocation_list:
-        allocation_source, _ = get_or_create_allocation_source(
+        allocation_source = get_or_create_allocation_source(
             api_allocation, update_source=force_update)
         resource, _ = UserAllocationSource.objects.get_or_create(
             allocation_source=allocation_source,
