@@ -147,9 +147,6 @@ def update_snapshot(start_date=None, end_date=None):
     for project in allocation_source_usage_from_tas:
         total_burn_rate = 0
         allocation_source_name = project['chargeCode']
-        if allocation_source_name != 'TG-TRA160003':
-            continue
-        import ipdb;ipdb.set_trace()
         try:
             allocation_source = AllocationSource.objects.filter(name=allocation_source_name).order_by('id').last()
 
