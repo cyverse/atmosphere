@@ -42,8 +42,11 @@ from service.exceptions import AnsibleDeployException
 from service.instance import _update_instance_metadata
 from service.networking import _generate_ssh_kwargs
 
+from service.mock import MockInstance
 
 def _update_status_log(instance, status_update):
+    if type(instance) == MockInstance:
+        return
     now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         user = instance._node.extra['metadata']['creator']
