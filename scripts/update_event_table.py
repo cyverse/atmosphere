@@ -5,7 +5,7 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "atmosphere.settings"
 
 import django; django.setup()
 from django.db.models.query import Q
-from core.models import EventTable, EventTableUpdated, AllocationSource
+from core.models import EventTable, AllocationSource
 from django.db.models.signals import post_save
 from core.hooks.allocation_source import (
     listen_for_allocation_threshold_met,
@@ -34,7 +34,6 @@ if __name__=='__main__':
     all_events = EventTable.objects.filter(
         Q(name="instance_allocation_source_changed") | Q(name="allocation_source_threshold_met"))
 
-    #Fill EventTableUpdated with these events
     toggle_signals(on=False)
     for event in all_events:
         source_name = AllocationSource.objects.get(source_id=event.payload['allocation_source_id']).name

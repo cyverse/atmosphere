@@ -18,7 +18,7 @@ def uuid_for_allocationsource(apps,schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0073_allocationsource_uuid'),
+        ('core', '0072_allocationsource_uuid'),
     ]
 
     operations = [

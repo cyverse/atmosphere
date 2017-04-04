@@ -54,4 +54,3 @@ from core.models.volume import Volume
 from core.models.ssh_key import SSHKey
 
 from core.models.event_table import EventTable
-from core.models.event_table_updated import EventTableUpdated
