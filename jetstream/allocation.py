@@ -257,7 +257,7 @@ class TASAPIDriver(object):
 
 
 
-def get_or_create_allocation_source(api_allocation, update_source=False):
+def get_or_create_allocation_source(api_allocation):
     try:
         source_name = "%s" % (api_allocation['project'],)
         source_id = api_allocation['id']
@@ -282,7 +282,7 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
                                                   payload=payload)
         assert isinstance(created_event, EventTable)
     except IntegrityError as e:
-        # This is totally fine. No really. This should fail it already exists and we should ignore it.
+        # This is totally fine. No really. This should fail if it already exists and we should ignore it.
         pass
 
     # Hash name, source_id and compute_allocated to check for supplemented Allocation Source
@@ -294,7 +294,7 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
             name='allocation_source_compute_allowed_changed', uuid=compute_event_uuid, payload=payload)
         assert isinstance(compute_allowed_event, EventTable)
     except IntegrityError as e:
-        # This is totally fine. No really. This should fail it already exists and we should ignore it.
+        # This is totally fine. No really. This should fail if it already exists and we should ignore it.
         pass
 
     source = AllocationSource.objects.get(name__iexact=source_name)
@@ -373,7 +373,8 @@ def fill_user_allocation_source_for(driver, user):
     for user_allocation_source in old_user_allocation_sources:
         if user_allocation_source.allocation_source.name not in source_names:
             # TODO: Create an event
-            user_allocation_source.delete()
+            # user_allocation_source.delete()
+            pass
     return allocation_resources
 
 
