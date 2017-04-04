@@ -377,11 +377,17 @@ def fill_user_allocation_source_for(driver, user):
 
 
 def delete_user_allocation_source(user, allocation_source):
-    # TODO: Replace with delete event
-    old_user_allocation_source = UserAllocationSource.objects.filter(user=user,
-                                                                     allocation_source=allocation_source).first()
-    if old_user_allocation_source:
-        old_user_allocation_source.delete()
+    from core.models import AtmosphereUser
+    assert isinstance(user, AtmosphereUser)
+    assert isinstance(allocation_source, AllocationSource)
+    payload = {
+        'allocation_source_name': allocation_source.name
+    }
+
+    created_event = EventTable.objects.create(name='user_allocation_source_deleted',
+                                              entity_id=user.username,
+                                              payload=payload)
+    assert isinstance(created_event, EventTable)
 
 
 def get_or_create_user_allocation_source(user, allocation_source):

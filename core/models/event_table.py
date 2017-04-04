@@ -12,8 +12,8 @@ from core.hooks.allocation_source import (
     listen_for_allocation_overage,
     listen_for_instance_allocation_changes,
     listen_for_allocation_source_created_or_renewed,
-    listen_for_allocation_source_compute_allowed_changed
-)
+    listen_for_allocation_source_compute_allowed_changed,
+    listen_for_user_allocation_source_deleted)
 
 
 class EventTable(models.Model):
@@ -61,5 +61,6 @@ def listen_for_changes(sender, instance, created, **kwargs):
 #post_save.connect(listen_for_user_snapshot_changes, sender=EventTable)
 post_save.connect(listen_for_allocation_threshold_met, sender=EventTable)
 post_save.connect(listen_for_instance_allocation_changes, sender=EventTable)
-post_save.connect(listen_for_allocation_source_created_or_renewed,sender=EventTable)
-post_save.connect(listen_for_allocation_source_compute_allowed_changed,sender=EventTable)
+post_save.connect(listen_for_allocation_source_created_or_renewed, sender=EventTable)
+post_save.connect(listen_for_allocation_source_compute_allowed_changed, sender=EventTable)
+post_save.connect(listen_for_user_allocation_source_deleted, sender=EventTable)

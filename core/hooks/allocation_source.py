@@ -5,7 +5,7 @@ from core.models import (
     AllocationSource, Instance, AtmosphereUser,
     UserAllocationSnapshot,
     InstanceAllocationSourceSnapshot,
-    AllocationSourceSnapshot)
+    AllocationSourceSnapshot, UserAllocationSource)
 
 
 # Pre-Save hooks
@@ -349,3 +349,30 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
     source.compute_allowed = compute_allowed
 
     source.save()
+
+
+def listen_for_user_allocation_source_deleted(sender, instance, created, **kwargs):
+    """
+       This listener expects:
+       EventType - 'user_allocation_source_deleted'
+       entity_id - 'sgregory'  # An AtmosphereUser.username
+       EventPayload - {
+           "allocation_source_name": "TG-AG100345"
+       }
+
+       The method should result in removing a user from an allocation source
+    """
+    event = instance
+    from core.models import EventTable
+    assert isinstance(event, EventTable)
+    if event.name != 'user_allocation_source_deleted':
+        return None
+    logger.info('user_allocation_source_deleted: %s' % event.__dict__)
+    payload = event.payload
+    allocation_source_name = payload['allocation_source_name']
+    user_name = event.entity_id
+
+    deleted_info = UserAllocationSource.objects.filter(
+        user__username__exact=user_name,
+        allocation_source__name__exact=allocation_source_name).delete()
+    logger.info('deleted_info: %s' % deleted_info)
