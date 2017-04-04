@@ -272,26 +272,29 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
         'end_date':api_allocation['end']
     }
 
-    # hash name and source_id to check for renewed Allocation Source
+    # Hash name and source_id to check for renewed Allocation Source
     try:
-        hashstring = '%s_%s' % (source_name, source_id)
-        hashed_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(hashstring))
-        created_event = EventTable.objects.create(name='allocation_source_created_or_renewed', uuid=hashed_uuid,
+        created_event_key = 'sn=%s,si=%s,ev=%s,dc=jetstream,dc=atmosphere' % (
+            source_name, source_id, 'allocation_source_created_or_renewed')
+        created_event_uuid = uuid.uuid5(uuid.NAMESPACE_X500, str(created_event_key))
+        created_event = EventTable.objects.create(name='allocation_source_created_or_renewed',
+                                                  uuid=created_event_uuid,
                                                   payload=payload)
         assert isinstance(created_event, EventTable)
     except IntegrityError as e:
-        # This is totally fine. No really. This should fail. See the hashing logic.
+        # This is totally fine. No really. This should fail it already exists and we should ignore it.
         pass
 
-    # hash name, source_id and compute_allocated to check for supplemented Allocation Source
+    # Hash name, source_id and compute_allocated to check for supplemented Allocation Source
     try:
-        hashstring = '%s_%s_%s' % (source_name, source_id, compute_allowed)
-        hashed_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(hashstring))
+        compute_event_key = 'ca=%s,sn=%s,si=%s,ev=%s,dc=jetstream,dc=atmosphere' % (
+            compute_allowed, source_name, source_id, 'allocation_source_compute_allowed_changed')
+        compute_event_uuid = uuid.uuid5(uuid.NAMESPACE_X500, str(compute_event_key))
         compute_allowed_event = EventTable.objects.create(
-            name='allocation_source_compute_allowed_changed', uuid=hashed_uuid,payload=payload)
+            name='allocation_source_compute_allowed_changed', uuid=compute_event_uuid, payload=payload)
         assert isinstance(compute_allowed_event, EventTable)
     except IntegrityError as e:
-        # This is totally fine. No really. This should fail. See the hashing logic.
+        # This is totally fine. No really. This should fail it already exists and we should ignore it.
         pass
 
     source = AllocationSource.objects.get(name__iexact=source_name)
