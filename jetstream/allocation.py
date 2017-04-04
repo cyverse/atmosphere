@@ -312,15 +312,13 @@ def find_user_allocation_source_for(driver, user):
     return allocations
 
 
-def fill_allocation_sources(force_update=False):
+def fill_allocation_sources():
     driver = TASAPIDriver()
     allocations = driver.get_all_allocations()
     create_list = []
     for api_allocation in allocations:
-        obj, created = get_or_create_allocation_source(
-            api_allocation, update_source=force_update)
-        if created:
-            create_list.append(obj)
+        obj = get_or_create_allocation_source(api_allocation)
+        create_list.append(obj)
     return len(create_list)
 
 
@@ -356,12 +354,11 @@ def fill_user_allocation_sources():
     return allocation_resources
 
 
-def fill_user_allocation_source_for(driver, user, force_update=True):
+def fill_user_allocation_source_for(driver, user):
     allocation_list = find_user_allocation_source_for(driver, user)
     allocation_resources = []
     for api_allocation in allocation_list:
-        allocation_source = get_or_create_allocation_source(
-            api_allocation, update_source=force_update)
+        allocation_source = get_or_create_allocation_source(api_allocation)
         resource, _ = UserAllocationSource.objects.get_or_create(
             allocation_source=allocation_source,
             user=user)
