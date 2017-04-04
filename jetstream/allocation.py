@@ -391,11 +391,19 @@ def delete_user_allocation_source(user, allocation_source):
 
 
 def get_or_create_user_allocation_source(user, allocation_source):
-    # TODO: Replace with create event
-    resource, _ = UserAllocationSource.objects.get_or_create(
-        allocation_source=allocation_source,
-        user=user)
-    return resource
+    from core.models import AtmosphereUser
+    assert isinstance(user, AtmosphereUser)
+    assert isinstance(allocation_source, AllocationSource)
+    payload = {
+        'allocation_source_name': allocation_source.name
+    }
+
+    created_event = EventTable.objects.create(name='user_allocation_source_created',
+                                              entity_id=user.username,
+                                              payload=payload)
+    assert isinstance(created_event, EventTable)
+    user_allocation_source = UserAllocationSource.objects.get(user=user, allocation_source=allocation_source)
+    return user_allocation_source
 
 
 def select_valid_allocations(allocation_list):

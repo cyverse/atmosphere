@@ -319,10 +319,11 @@ def listen_for_allocation_source_created_or_renewed(sender, instance, created, *
     allocation_source_name = payload['allocation_source_name']
     compute_allowed = payload['compute_allowed']
 
-    AllocationSource.objects.update_or_create(
+    object_updated, created = AllocationSource.objects.update_or_create(
         name=allocation_source_name,
         defaults={'compute_allowed': compute_allowed}
     )
+    logger.info('object_updated: %s, created: %s' % (object_updated, created,))
 
 
 def listen_for_allocation_source_compute_allowed_changed(sender, instance, created, **kwargs):
@@ -349,6 +350,34 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
     source.compute_allowed = compute_allowed
 
     source.save()
+
+
+def listen_for_user_allocation_source_created(sender, instance, created, **kwargs):
+    """
+       This listener expects:
+       EventType - 'user_allocation_source_created'
+       entity_id - 'sgregory'  # An AtmosphereUser.username
+       EventPayload - {
+           "allocation_source_name": "TG-AG100345"
+       }
+
+       The method should result in adding a user to an allocation source
+    """
+    event = instance
+    from core.models import EventTable, AtmosphereUser, AllocationSource
+    assert isinstance(event, EventTable)
+    if event.name != 'user_allocation_source_created':
+        return None
+    logger.info('user_allocation_source_created: %s' % event.__dict__)
+    payload = event.payload
+    allocation_source_name = payload['allocation_source_name']
+    user_name = event.entity_id
+
+    object_updated, created = UserAllocationSource.objects.update_or_create(
+        user=AtmosphereUser.objects.get_by_natural_key(user_name),
+        allocation_source=AllocationSource.objects.get(name=allocation_source_name)
+    )
+    logger.info('object_updated: %s, created: %s' % (object_updated, created,))
 
 
 def listen_for_user_allocation_source_deleted(sender, instance, created, **kwargs):
