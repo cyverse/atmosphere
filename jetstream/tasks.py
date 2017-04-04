@@ -4,7 +4,7 @@ from celery.decorators import task
 from django.conf import settings
 from django.utils import timezone
 
-from core.models import EventTableUpdated
+from core.models import EventTable
 from core.models.allocation_source import (
     UserAllocationSource, AllocationSourceSnapshot,
     AllocationSource, UserAllocationSnapshot
@@ -150,7 +150,7 @@ def update_snapshot(start_date=None, end_date=None):
         try:
             allocation_source = AllocationSource.objects.filter(name=allocation_source_name).order_by('id').last()
 
-            created_or_updated_event = EventTableUpdated.objects.filter(name='allocation_source_created_or_renewed',
+            created_or_updated_event = EventTable.objects.filter(name='allocation_source_created_or_renewed',
                                                                         payload__allocation_source_name=allocation_source.name).order_by(
                 'timestamp').last()
             if created_or_updated_event:
