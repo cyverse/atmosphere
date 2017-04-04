@@ -33,8 +33,8 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
     allocation_source_name = payload['allocation_source_name']
     new_compute_used = payload['compute_used']
     source = AllocationSource.objects.filter(name=allocation_source_name).last()
-    prev_enforcement_event = EventTable.objects\
-        .filter(name="allocation_source_threshold_enforced")\
+    prev_enforcement_event = EventTable.objects \
+        .filter(name="allocation_source_threshold_enforced") \
         .filter(entity_id=allocation_source_name).last()
     # test for previous event of 'allocation_source_threshold_enforced'
     if prev_enforcement_event:
@@ -45,12 +45,12 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
         return
     if source.compute_allowed in [None, 0]:
         return
-    #FIXME: Remove this line when you are ready to start enforcing 100% allocation:
+    # FIXME: Remove this line when you are ready to start enforcing 100% allocation:
     return
-    current_percentage = int(100.0*new_compute_used/source.compute_allowed) if source.compute_allowed != 0 else 0
+    current_percentage = int(100.0 * new_compute_used / source.compute_allowed) if source.compute_allowed != 0 else 0
     if new_compute_used < source.compute_allowed:
         return
-    enforce_allocation_overage.apply_async(args=(source.name,) )
+    enforce_allocation_overage.apply_async(args=(source.name,))
     new_payload = {
         "allocation_source_name": source.name,
         "actual_value": current_percentage
@@ -94,8 +94,8 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
         prev_compute_used = 0
     else:
         prev_compute_used = float(prev_snapshot.compute_used)
-    prev_percentage = int(100.0*prev_compute_used/source.compute_allowed)
-    current_percentage = int(100.0*new_compute_used/source.compute_allowed)
+    prev_percentage = int(100.0 * prev_compute_used / source.compute_allowed)
+    current_percentage = int(100.0 * new_compute_used / source.compute_allowed)
     print "Souce: %s (%s) Previous:%s - New:%s" % (source.name, allocation_source_name, prev_percentage, current_percentage)
     percent_event_triggered = None
     # Compare 'Now snapshot' with Previous snapshot. Have we "crossed a threshold?"
@@ -110,8 +110,8 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     if not percent_event_triggered:
         return
     print "Email Event triggered for %s users: %s" % (source.all_users.count(), percent_event_triggered)
-    prev_email_event = EventTable.objects\
-        .filter(name="allocation_source_threshold_met")\
+    prev_email_event = EventTable.objects \
+        .filter(name="allocation_source_threshold_met") \
         .filter(entity_id=allocation_source_name,
                 payload__threshold=percent_event_triggered)
     if prev_email_event:
@@ -139,7 +139,7 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     }
     The method should fire off emails to the users who should be informed of the new threshold value.
     """
-    #FIXME+TODO: next version: Fire and respond to the `clear_allocation_threshold_met` for a given allocation_source_name (This event should be generated any time you `.save()` and update the `compute_allowed` for an AllocationSource
+    # FIXME+TODO: next version: Fire and respond to the `clear_allocation_threshold_met` for a given allocation_source_name (This event should be generated any time you `.save()` and update the `compute_allowed` for an AllocationSource
     event = instance
     if event.name != 'allocation_source_threshold_met':
         return None
@@ -153,7 +153,7 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     if not source:
         return None
     users = AtmosphereUser.for_allocation_source(source.name)
-    
+
     for user in users:
         send_usage_email_to(user, source, threshold, actual_value)
 
@@ -162,7 +162,7 @@ def send_usage_email_to(user, source, threshold, actual_value=None):
     user_snapshot = UserAllocationSnapshot.objects.filter(
         allocation_source=source, user=user).last()
     if not actual_value:
-        actual_value = int(source.snapshot.compute_used / source.compute_allowed*100)
+        actual_value = int(source.snapshot.compute_used / source.compute_allowed * 100)
     if not user_snapshot:
         compute_used = None
     else:
@@ -246,19 +246,19 @@ def listen_for_user_snapshot_changes(sender, instance, created, **kwargs):
 
     try:
         snapshot = UserAllocationSnapshot.objects.get(
-                allocation_source=allocation_source,
-                user=user,
-            )
+            allocation_source=allocation_source,
+            user=user,
+        )
         snapshot.burn_rate = burn_rate
         snapshot.compute_used = compute_used
         snapshot.save()
     except UserAllocationSnapshot.DoesNotExist:
         snapshot = UserAllocationSnapshot.objects.create(
-                allocation_source=allocation_source,
-                user=user,
-                burn_rate=burn_rate,
-                compute_used=compute_used
-            )
+            allocation_source=allocation_source,
+            user=user,
+            burn_rate=burn_rate,
+            compute_used=compute_used
+        )
     return snapshot
 
 
@@ -299,10 +299,10 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
             instance=instance)
     return snapshot
 
-def listen_for_allocation_source_created_or_renewed(sender,instance,created,**kwargs):
+def listen_for_allocation_source_created_or_renewed(sender, instance, created, **kwargs):
     """
        This listener expects:
-       EventType - 'instance_allocation_source_renewed'
+       EventType - 'allocation_source_created_or_renewed'
        EventPayload - {
            "allocation_source_name": "TG-AG100345",
            "compute_allowed":1000,
@@ -318,23 +318,14 @@ def listen_for_allocation_source_created_or_renewed(sender,instance,created,**kw
     payload = event.payload
     allocation_source_name = payload['allocation_source_name']
     compute_allowed = payload['compute_allowed']
-    start_date = payload['start_date']
 
-    source = AllocationSource.objects.filter(name=allocation_source_name).last()
-    if not source:
-        AllocationSource.objects.create(
-            name=allocation_source_name,
-            compute_allowed=compute_allowed,
-            start_date=start_date
-        )
-    else:
-        source.compute_allowed = compute_allowed
-        source.start_date = start_date
-
-        source.save()
+    AllocationSource.objects.update_or_create(
+        name=allocation_source_name,
+        defaults={'compute_allowed': compute_allowed}
+    )
 
 
-def listen_for_allocation_source_compute_allowed_changed(sender,instance,created,**kwargs):
+def listen_for_allocation_source_compute_allowed_changed(sender, instance, created, **kwargs):
     """
        This listener expects:
        EventType - 'instance_allocation_source_supplemented'

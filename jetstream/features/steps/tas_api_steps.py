@@ -1,4 +1,5 @@
 import copy
+from decimal import Decimal
 
 import mock
 from behave import *
@@ -14,26 +15,51 @@ def _make_mock_tacc_api_post(context):
     return _mock_tacc_api_post
 
 
+def _get_tas_projects(context):
+    data = {}
+    data['status'] = 'success'
+    data['result'] = context.tas_projects
+    return data
+
+
+def _get_xsede_to_tacc_username(context, url):
+    data = {}
+    xsede_username = url.split('/api/v1/users/xsede/')[-1]
+    if xsede_username not in context.xsede_to_tacc_username_mapping:
+        data['status'] = 'error'
+        data['message'] = 'No user found for XSEDE username {}'.format(xsede_username)
+        data['result'] = None
+    else:
+        data['status'] = 'success'
+        data['message'] = None
+        data['result'] = context.xsede_to_tacc_username_mapping[xsede_username]
+    return data
+
+
+def _get_user_projects(context, url):
+    tacc_username = url.split('/api/v1/projects/username/')[-1]
+    data = {}
+    data['status'] = 'success'
+    data['message'] = None
+    data['result'] = []
+    project_ids = list(context.tacc_username_to_tas_project_mapping.get(tacc_username, []))
+    projects = [project for project in context.tas_projects if project['id'] in project_ids]
+    data['result'] = projects
+    return data
+
 def _make_mock_tacc_api_get(context):
     def _mock_tacc_api_get(*args, **kwargs):
         url = args[0]
         assert isinstance(url, basestring)
         data = {}
-        if url.endswith('/projects/resource/Jetstream'):
-            data['status'] = 'success'
-            data['result'] = context.tas_projects
-        elif '/users/xsede/' in url:
-            xsede_username = url.split('/users/xsede/')[-1]
-            if xsede_username not in context.xsede_to_tacc_username_mapping:
-                data['status'] = 'error'
-                data['message'] = 'No user found for XSEDE username {}'.format(xsede_username)
-                data['result'] = None
-            else:
-                data['status'] = 'success'
-                data['message'] = None
-                data['result'] = context.xsede_to_tacc_username_mapping[xsede_username]
+        if url.endswith('/api/v1/projects/resource/Jetstream'):
+            data = _get_tas_projects(context)
+        elif '/api/v1/users/xsede/' in url:
+            data = _get_xsede_to_tacc_username(context, url)
+        elif '/api/v1/projects/username/' in url:  # This can return 'Inactive', 'Active', and 'Approved' allocations. Maybe more.
+            data = _get_user_projects(context, url)
         else:
-            raise ValueError(url)
+            raise ValueError('Unknown URL: {}'.format(url))
         if not data:
             raise jetstream_exceptions.TASAPIException('Invalid Response')
         return None, data
@@ -87,6 +113,13 @@ def these_tas_allocations(context):
 def these_tacc_usernames_for_tas_projects(context):
     context.tas_project_to_tacc_username_mapping = dict(
         (row.cells[0], row.cells[1].split(','),) for row in context.table)
+
+    context.tacc_username_to_tas_project_mapping = {}
+    for tas_project, tacc_usernames in context.tas_project_to_tacc_username_mapping.iteritems():
+        for tacc_username in tacc_usernames:
+            user_tas_projects = context.tacc_username_to_tas_project_mapping.get(tacc_username, set())
+            user_tas_projects.add(tas_project)
+            context.tacc_username_to_tas_project_mapping[tacc_username] = user_tas_projects
 
 
 @when(u'we get all projects')
@@ -142,3 +175,51 @@ def we_should_have_the_following_local_allocations(context):
         for local_allocation in local_project['allocations']:
             local_allocations.append(local_allocation)
     context.test.assertListEqual(local_allocations, expected_local_allocations)
+
+
+@given(u'a current time of \'{frozen_current_time}\'')
+def current_time(context, frozen_current_time):
+    context.frozen_current_time = frozen_current_time
+
+
+@when(u'we update snapshots')
+def update_snapshots(context):
+    from jetstream.tasks import update_snapshot
+    with mock.patch.multiple('jetstream.allocation',
+                             tacc_api_post=mock.DEFAULT,
+                             tacc_api_get=mock.DEFAULT,
+                             ) as mock_methods:
+        mock_methods['tacc_api_post'].side_effect = _make_mock_tacc_api_post(context)
+        mock_methods['tacc_api_get'].side_effect = _make_mock_tacc_api_get(context)
+        update_snapshot()
+
+
+@then(u'we should have the following allocation sources')
+def should_have_allocation_sources(context):
+    expected_allocation_sources = dict((row.cells[0], Decimal(row.cells[1]),) for row in context.table)
+    from core.models import AllocationSource
+    allocation_sources = {item['name']: item['compute_allowed'] for item in
+                          AllocationSource.objects.all().order_by('name').values('name', 'compute_allowed')}
+    context.test.assertDictEqual(allocation_sources, expected_allocation_sources)
+
+
+@then(u'we should have the following allocation source snapshots')
+def should_have_allocation_source_snapshots(context):
+    expected_allocation_source_snapshots = dict((row.cells[0], Decimal(row.cells[1]),) for row in context.table)
+    from core.models import AllocationSourceSnapshot
+    allocation_source_snapshots = {item['allocation_source__name']: item['compute_used'] for item in
+                                   AllocationSourceSnapshot.objects.all().values('allocation_source__name',
+                                                                                 'compute_used')}
+    context.test.assertDictEqual(allocation_source_snapshots, expected_allocation_source_snapshots)
+
+
+@then(u'we should have the following user allocation sources')
+def should_have_user_allocation_sources(context):
+    expected_user_allocation_sources = [(row.cells[0], row.cells[1] or None,) for row in context.table]
+    from core.models import UserAllocationSource
+    user_allocation_sources = [(item['user__username'], item['allocation_source__name'],) for item in
+                               UserAllocationSource.objects.all().order_by('user__username').values(
+                                   'user__username',
+                                   'allocation_source__name'
+                               )]
+    context.test.assertListEqual(user_allocation_sources, expected_user_allocation_sources)

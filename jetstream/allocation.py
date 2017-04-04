@@ -1,6 +1,7 @@
 import logging
 import uuid
 from django.conf import settings
+from django.db import IntegrityError
 from django.utils import timezone
 from dateutil.parser import parse
 
@@ -273,37 +274,28 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
 
     # hash name and source_id to check for renewed Allocation Source
     try:
-        hashstring = '%s_%s'%(source_name,source_id)
+        hashstring = '%s_%s' % (source_name, source_id)
         hashed_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(hashstring))
-        e = EventTable.objects.create(
-            name='allocation_source_created_or_renewed',uuid=hashed_uuid,payload=payload)
-
-    except:
-        # NOTIMPLEMENTED
+        created_event = EventTable.objects.create(name='allocation_source_created_or_renewed', uuid=hashed_uuid,
+                                                  payload=payload)
+        assert isinstance(created_event, EventTable)
+    except IntegrityError as e:
+        # This is totally fine. No really. This should fail. See the hashing logic.
         pass
 
     # hash name, source_id and compute_allocated to check for supplemented Allocation Source
     try:
-        hashstring = '%s_%s_%s' % (source_name, source_id,compute_allowed)
+        hashstring = '%s_%s_%s' % (source_name, source_id, compute_allowed)
         hashed_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(hashstring))
-        e = EventTable.objects.create(
+        compute_allowed_event = EventTable.objects.create(
             name='allocation_source_compute_allowed_changed', uuid=hashed_uuid,payload=payload)
-
-    except:
-        # NOTIMPLEMENTED
+        assert isinstance(compute_allowed_event, EventTable)
+    except IntegrityError as e:
+        # This is totally fine. No really. This should fail. See the hashing logic.
         pass
 
-
-    try:
-        source = AllocationSource.objects.filter(
-            name=source_name
-        ).last()
-
-        return source
-
-    except AllocationSource.DoesNotExist:
-
-        logger.info("Allocation Source %s failed to update/create "% source_name )
+    source = AllocationSource.objects.get(name__iexact=source_name)
+    return source
 
 
 def find_user_allocation_source_for(driver, user):

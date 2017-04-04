@@ -10,7 +10,7 @@ from core.models.allocation_source import (
     AllocationSource, UserAllocationSnapshot
 )
 from core.models.allocation_source import total_usage
-from .allocation import (TASAPIDriver, fill_user_allocation_sources)
+from .allocation import (TASAPIDriver, fill_user_allocation_sources, select_valid_allocation)
 from .exceptions import TASPluginException
 from .models import TASAllocationReport
 
@@ -176,8 +176,8 @@ def update_snapshot(start_date=None, end_date=None):
         except KeyError:
             # This allocation source does not exist in our database yet. Create it? Skip for now.
             continue
-        # MAKE SURE THAT WE ARE ONLY LOOKING AT MOST RECENT ACTIVE ALLOCATION SOURCES
-        compute_used = project['allocations'][-1]['computeUsed']
+        valid_allocation = select_valid_allocation(project['allocations'])
+        compute_used = valid_allocation['computeUsed'] if valid_allocation else 0
         snapshot, created = AllocationSourceSnapshot.objects.update_or_create(
             allocation_source_id=allocation_source.id,
             defaults={
