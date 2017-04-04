@@ -1545,6 +1545,9 @@ def user_destroy_network(core_identity, options):
 
 
 def admin_network_init(core_identity):
+    provider_type = core_identity.provider.type.name
+    if provider_type == 'mock':
+        return _to_network_driver(core_identity)
     os_driver = OSAccountDriver(core_identity.provider)
     network_resources = os_driver.create_user_network(core_identity)
     logger.info("Created user network - %s" % network_resources)
