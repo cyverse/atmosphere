@@ -312,7 +312,7 @@ def listen_for_allocation_source_created_or_renewed(sender,instance,created,**kw
        The method should result in renewal of allocation source
     """
     event = instance
-    if event.name != 'allocation_source_renewed':
+    if event.name != 'allocation_source_created_or_renewed':
         return None
     logger.info("Allocation Source created or renewed event: %s" % event.__dict__)
     payload = event.payload
@@ -347,7 +347,7 @@ def listen_for_allocation_source_compute_allowed_changed(sender,instance,created
        The method should result in supplement of allocation source
        """
     event = instance
-    if event.name != 'allocation_source_supplemented':
+    if event.name != 'allocation_source_compute_allowed_changed':
         return None
     logger.info("Allocation Source supplemented event: %s" % event.__dict__)
     payload = event.payload
