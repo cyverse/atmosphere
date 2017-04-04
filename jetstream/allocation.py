@@ -359,23 +359,37 @@ def fill_user_allocation_source_for(driver, user):
     assert isinstance(user, AtmosphereUser)
     allocation_list = find_user_allocation_source_for(driver, user)
     allocation_resources = []
+    user_allocation_sources = []
+    old_user_allocation_sources = list(UserAllocationSource.objects.filter(user=user).order_by(
+        'allocation_source__name').all())
 
     for api_allocation in allocation_list:
         allocation_source = get_or_create_allocation_source(api_allocation)
-        resource, _ = UserAllocationSource.objects.get_or_create(
-            allocation_source=allocation_source,
-            user=user)
         allocation_resources.append(allocation_source)
+        user_allocation_source = get_or_create_user_allocation_source(user, allocation_source)
+        user_allocation_sources.append(user_allocation_source)
 
-    source_names = [source.name for source in allocation_resources]
-    old_user_allocation_sources = UserAllocationSource.objects.filter(user=user).order_by(
-        'allocation_source__name').all()
+    canonical_source_names = [source.name for source in allocation_resources]
     for user_allocation_source in old_user_allocation_sources:
-        if user_allocation_source.allocation_source.name not in source_names:
-            # TODO: Create an event
-            # user_allocation_source.delete()
-            pass
+        if user_allocation_source.allocation_source.name not in canonical_source_names:
+            delete_user_allocation_source(user, user_allocation_source.allocation_source)
     return allocation_resources
+
+
+def delete_user_allocation_source(user, allocation_source):
+    # TODO: Replace with delete event
+    old_user_allocation_source = UserAllocationSource.objects.filter(user=user,
+                                                                     allocation_source=allocation_source).first()
+    if old_user_allocation_source:
+        old_user_allocation_source.delete()
+
+
+def get_or_create_user_allocation_source(user, allocation_source):
+    # TODO: Replace with create event
+    resource, _ = UserAllocationSource.objects.get_or_create(
+        allocation_source=allocation_source,
+        user=user)
+    return resource
 
 
 def select_valid_allocations(allocation_list):

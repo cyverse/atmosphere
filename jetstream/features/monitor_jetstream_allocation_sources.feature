@@ -30,9 +30,9 @@ Feature: Monitor Jetstream Allocation Sources
       | 45184 | 29456     | TG-TRA160003 | 600000           | 87914.06    | 2017-01-22T06:00:00Z | 2018-01-21T06:00:00Z | Active   | Jetstream |
       | 55184 | 29456     | TG-TRA160003 | 700000           | 0           | 2018-01-22T06:00:00Z | 2019-01-21T06:00:00Z | Approved | Jetstream |
     And the following TACC usernames for TAS projects
-      | project_id | tacc_usernames            |
-      | 29444      | tacc_user108,tacc_user109 |
-      | 29456      | tacc_user109,tacc_user111 |
+      | project      | tacc_usernames            |
+      | TG-BIO150062 | tacc_user108,tacc_user109 |
+      | TG-TRA160003 | tacc_user109,tacc_user111 |
 
 
   Scenario: Get all projects
@@ -85,9 +85,9 @@ Feature: Monitor Jetstream Allocation Sources
       | user111             | TG-TRA160003      |
     Given a current time of '2017-02-17T05:00:00Z'
     And the following TACC usernames for TAS projects
-      | project_id | tacc_usernames            |
-      | 29444      | tacc_user108              |
-      | 29456      | tacc_user109,tacc_user111 |
+      | project      | tacc_usernames            |
+      | TG-BIO150062 | tacc_user108              |
+      | TG-TRA160003 | tacc_user109,tacc_user111 |
     When we fill user allocation sources from TAS
     Then we should have the following user allocation sources
       | atmosphere_username | allocation_source |
@@ -96,9 +96,9 @@ Feature: Monitor Jetstream Allocation Sources
       | user111             | TG-TRA160003      |
     Given a current time of '2017-02-19T05:00:00Z'
     And the following TACC usernames for TAS projects
-      | project_id | tacc_usernames |
-      | 29444      | tacc_user108   |
-      | 29456      | tacc_user111   |
+      | project      | tacc_usernames |
+      | TG-BIO150062 | tacc_user108   |
+      | TG-TRA160003 | tacc_user111   |
     When we fill user allocation sources from TAS
     Then we should have the following user allocation sources
       | atmosphere_username | allocation_source |

@@ -23,35 +23,26 @@ def _get_tas_projects(context):
 
 
 def _get_xsede_to_tacc_username(context, url):
-    data = {}
     xsede_username = url.split('/api/v1/users/xsede/')[-1]
     if xsede_username not in context.xsede_to_tacc_username_mapping:
-        data['status'] = 'error'
-        data['message'] = 'No user found for XSEDE username {}'.format(xsede_username)
-        data['result'] = None
+        data = {'status': 'error', 'message': 'No user found for XSEDE username {}'.format(xsede_username),
+                'result': None}
     else:
-        data['status'] = 'success'
-        data['message'] = None
-        data['result'] = context.xsede_to_tacc_username_mapping[xsede_username]
+        data = {'status': 'success', 'message': None, 'result': context.xsede_to_tacc_username_mapping[xsede_username]}
     return data
 
 
 def _get_user_projects(context, url):
     tacc_username = url.split('/api/v1/projects/username/')[-1]
-    data = {}
-    data['status'] = 'success'
-    data['message'] = None
-    data['result'] = []
-    project_ids = list(context.tacc_username_to_tas_project_mapping.get(tacc_username, []))
-    projects = [project for project in context.tas_projects if project['id'] in project_ids]
-    data['result'] = projects
+    project_names = list(context.tacc_username_to_tas_project_mapping.get(tacc_username, []))
+    user_projects = [project for project in context.tas_projects if project['chargeCode'] in project_names]
+    data = {'status': 'success', 'message': None, 'result': user_projects}
     return data
 
 def _make_mock_tacc_api_get(context):
     def _mock_tacc_api_get(*args, **kwargs):
         url = args[0]
         assert isinstance(url, basestring)
-        data = {}
         if url.endswith('/api/v1/projects/resource/Jetstream'):
             data = _get_tas_projects(context)
         elif '/api/v1/users/xsede/' in url:
@@ -65,6 +56,7 @@ def _make_mock_tacc_api_get(context):
         return None, data
 
     return _mock_tacc_api_get
+
 
 @given(u'the following Atmosphere users')
 def these_atmosphere_users(context):
