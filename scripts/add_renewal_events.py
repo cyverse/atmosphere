@@ -11,7 +11,7 @@ import django
 
 django.setup()
 from jetstream.models import TASAPIDriver
-from core.models import EventTable
+from core.models import EventTable, AllocationSource
 
 # fetch values from TACC
 api = TASAPIDriver()
@@ -31,6 +31,9 @@ for source in allocations:
         }
 
         try:
+            aso = AllocationSource.objects.filter(name=payload["allocation_source_name"])
+            if not aso:
+                continue
 
             e = EventTable(
                 uuid=hashed_uuid,
