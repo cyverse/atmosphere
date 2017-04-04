@@ -7,7 +7,7 @@ from uuid import uuid4
 
 class AllocationSource(models.Model):
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True, editable=False)
     compute_allowed = models.IntegerField()
 
     @classmethod
