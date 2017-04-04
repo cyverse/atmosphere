@@ -7,7 +7,7 @@ from dateutil.parser import parse
 from .exceptions import TASAPIException
 #FIXME: Next iteration, move this into the driver.
 from .tas_api import tacc_api_post, tacc_api_get
-from core.models import EventTableUpdated
+from core.models import EventTable
 from core.models.allocation_source import AllocationSource, UserAllocationSource
 
 logger = logging.getLogger(__name__)
@@ -275,7 +275,7 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
     try:
         hashstring = '%s_%s'%(source_name,source_id)
         hashed_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(hashstring))
-        e = EventTableUpdated.objects.create(
+        e = EventTable.objects.create(
             name='allocation_source_created_or_renewed',uuid=hashed_uuid,payload=payload)
 
     except:
@@ -286,7 +286,7 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
     try:
         hashstring = '%s_%s_%s' % (source_name, source_id,compute_allowed)
         hashed_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(hashstring))
-        e = EventTableUpdated.objects.create(
+        e = EventTable.objects.create(
             name='allocation_source_compute_allowed_changed', uuid=hashed_uuid,payload=payload)
 
     except:

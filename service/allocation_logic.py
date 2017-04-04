@@ -2,7 +2,7 @@ from dateutil.parser import parse
 import pytz
 import datetime
 from django.db.models.query import Q
-from core.models import EventTableUpdated
+from core.models import EventTable
 from core.models.instance import Instance
 from core.models.allocation_source import UserAllocationSource, AllocationSource
 
@@ -41,7 +41,7 @@ def generate_data(report_start_date, report_end_date, username=None):
 
 
 def filter_events_and_instances(report_start_date, report_end_date, username=None):
-    events = EventTableUpdated.objects.filter(Q(timestamp__gte=report_start_date) & Q(timestamp__lte=report_end_date) & Q(name__exact="instance_allocation_source_changed")).order_by('timestamp')
+    events = EventTable.objects.filter(Q(timestamp__gte=report_start_date) & Q(timestamp__lte=report_end_date) & Q(name__exact="instance_allocation_source_changed")).order_by('timestamp')
     instances = Instance.objects.filter(
         Q(
             Q(start_date__gte=report_start_date) & Q(start_date__lte=report_end_date)
@@ -99,7 +99,7 @@ def map_events_to_histories(filtered_instance_histories, event_instance_dict):
 
 def get_allocation_source_name_from_event(username, report_start_date, instance_id):
 
-    events = EventTableUpdated.objects.filter(Q(timestamp__lt=report_start_date) & Q(name__exact="instance_allocation_source_changed") & Q(Q(payload__username__exact=username) | Q(entity_id=username)) & Q(payload__instance_id__exact=instance_id)).order_by('timestamp')
+    events = EventTable.objects.filter(Q(timestamp__lt=report_start_date) & Q(name__exact="instance_allocation_source_changed") & Q(Q(payload__username__exact=username) | Q(entity_id=username)) & Q(payload__instance_id__exact=instance_id)).order_by('timestamp')
     if not events:
         return False
     else:
