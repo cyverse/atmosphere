@@ -7,29 +7,38 @@ import jetstream.allocation as jetstream_allocation
 import jetstream.exceptions as jetstream_exceptions
 
 
-def _make_mock_xsede_to_tacc_username(xsede_to_tacc_username_mapping):
-    def _mock_xsede_to_tacc_username(xsede_username):
-        if xsede_username not in xsede_to_tacc_username_mapping:
-            raise jetstream_exceptions.TASAPINoValidUsernameFound(xsede_username)
+def _make_mock_tacc_api_post(context):
+    def _mock_tacc_api_post(*args, **kwargs):
+        raise NotImplementedError
 
-        return xsede_to_tacc_username_mapping[xsede_username]
-
-    return _mock_xsede_to_tacc_username
+    return _mock_tacc_api_post
 
 
-def _make_mock_get_all_projects(tas_projects):
-    def _mock_get_all_projects():
-        return tas_projects
+def _make_mock_tacc_api_get(context):
+    def _mock_tacc_api_get(*args, **kwargs):
+        url = args[0]
+        assert isinstance(url, basestring)
+        data = {}
+        if url.endswith('/projects/resource/Jetstream'):
+            data['status'] = 'success'
+            data['result'] = context.tas_projects
+        elif '/users/xsede/' in url:
+            xsede_username = url.split('/users/xsede/')[-1]
+            if xsede_username not in context.xsede_to_tacc_username_mapping:
+                data['status'] = 'error'
+                data['message'] = 'No user found for XSEDE username {}'.format(xsede_username)
+                data['result'] = None
+            else:
+                data['status'] = 'success'
+                data['message'] = None
+                data['result'] = context.xsede_to_tacc_username_mapping[xsede_username]
+        else:
+            raise ValueError(url)
+        if not data:
+            raise jetstream_exceptions.TASAPIException('Invalid Response')
+        return None, data
 
-    return _mock_get_all_projects
-
-
-def _make_mock_project_users(tas_project_to_tacc_username_mapping):
-    def _mock_get_project_users(project_id):
-        return tas_project_to_tacc_username_mapping[project_id]
-
-    return _mock_get_project_users
-
+    return _mock_tacc_api_get
 
 @given(u'the following Atmosphere users')
 def these_atmosphere_users(context):
@@ -82,10 +91,12 @@ def these_tacc_usernames_for_tas_projects(context):
 
 @when(u'we get all projects')
 def we_get_all_projects(context):
-    with mock.patch.multiple('jetstream.allocation.TASAPIDriver',
-                             _get_all_projects=mock.DEFAULT
+    with mock.patch.multiple('jetstream.allocation',
+                             tacc_api_post=mock.DEFAULT,
+                             tacc_api_get=mock.DEFAULT,
                              ) as mock_methods:
-        mock_methods['_get_all_projects'].side_effect = _make_mock_get_all_projects(context.tas_projects)
+        mock_methods['tacc_api_post'].side_effect = _make_mock_tacc_api_post(context)
+        mock_methods['tacc_api_get'].side_effect = _make_mock_tacc_api_get(context)
         all_projects = context.driver.get_all_projects()
     context.test.assertListEqual(all_projects, context.tas_projects)
     context.test.assertListEqual(context.driver.project_list, context.tas_projects)
@@ -95,16 +106,12 @@ def we_get_all_projects(context):
 
 @when(u'we fill user allocation sources from TAS')
 def we_fill_user_allocation_sources_from_tas(context):
-    with mock.patch.multiple('jetstream.allocation.TASAPIDriver',
-                             _xsede_to_tacc_username=mock.DEFAULT,
-                             _get_all_projects=mock.DEFAULT,
-                             get_project_users=mock.DEFAULT
+    with mock.patch.multiple('jetstream.allocation',
+                             tacc_api_post=mock.DEFAULT,
+                             tacc_api_get=mock.DEFAULT,
                              ) as mock_methods:
-        mock_methods['_xsede_to_tacc_username'].side_effect = _make_mock_xsede_to_tacc_username(
-            context.xsede_to_tacc_username_mapping)
-        mock_methods['_get_all_projects'].side_effect = _make_mock_get_all_projects(context.tas_projects)
-        mock_methods['get_project_users'].side_effect = _make_mock_project_users(
-            context.tas_project_to_tacc_username_mapping)
+        mock_methods['tacc_api_post'].side_effect = _make_mock_tacc_api_post(context)
+        mock_methods['tacc_api_get'].side_effect = _make_mock_tacc_api_get(context)
         jetstream_allocation.fill_user_allocation_sources()
     pass
 
