@@ -152,7 +152,7 @@ def we_fill_user_allocation_sources_from_tas(context):
 @then(u'we should have the following local username mappings')
 def we_should_have_the_following_local_username_mappings(context):
     expected_username_map = dict(row.cells for row in context.table)
-    context.test.assertDictEqual(jetstream_allocation.TASAPIDriver.username_map, expected_username_map)
+    context.test.assertDictEqual(expected_username_map, jetstream_allocation.TASAPIDriver.username_map)
 
 
 @then(u'we should have the following local projects')
@@ -163,7 +163,7 @@ def we_should_have_the_following_local_projects(context):
         project_without_allocations = copy.copy(project)
         del project_without_allocations['allocations']
         projects_without_allocations.append(project_without_allocations)
-    context.test.assertListEqual(projects_without_allocations, expected_local_projects)
+    context.test.assertListEqual(expected_local_projects, projects_without_allocations)
 
 
 @then(u'we should have the following local allocations')
@@ -174,7 +174,7 @@ def we_should_have_the_following_local_allocations(context):
     for local_project in context.driver.project_list:
         for local_allocation in local_project['allocations']:
             local_allocations.append(local_allocation)
-    context.test.assertListEqual(local_allocations, expected_local_allocations)
+    context.test.assertListEqual(expected_local_allocations, local_allocations)
 
 
 @given(u'a current time of \'{frozen_current_time}\'')
@@ -200,7 +200,7 @@ def should_have_allocation_sources(context):
     from core.models import AllocationSource
     allocation_sources = {item['name']: item['compute_allowed'] for item in
                           AllocationSource.objects.all().order_by('name').values('name', 'compute_allowed')}
-    context.test.assertDictEqual(allocation_sources, expected_allocation_sources)
+    context.test.assertDictEqual(expected_allocation_sources, allocation_sources)
 
 
 @then(u'we should have the following allocation source snapshots')
@@ -210,7 +210,7 @@ def should_have_allocation_source_snapshots(context):
     allocation_source_snapshots = {item['allocation_source__name']: item['compute_used'] for item in
                                    AllocationSourceSnapshot.objects.all().values('allocation_source__name',
                                                                                  'compute_used')}
-    context.test.assertDictEqual(allocation_source_snapshots, expected_allocation_source_snapshots)
+    context.test.assertDictEqual(expected_allocation_source_snapshots, allocation_source_snapshots)
 
 
 @then(u'we should have the following user allocation sources')
@@ -218,8 +218,11 @@ def should_have_user_allocation_sources(context):
     expected_user_allocation_sources = [(row.cells[0], row.cells[1] or None,) for row in context.table]
     from core.models import UserAllocationSource
     user_allocation_sources = [(item['user__username'], item['allocation_source__name'],) for item in
-                               UserAllocationSource.objects.all().order_by('user__username').values(
+                               UserAllocationSource.objects.all().order_by(
+                                   'user__username',
+                                   'allocation_source__name'
+                               ).values(
                                    'user__username',
                                    'allocation_source__name'
                                )]
-    context.test.assertListEqual(user_allocation_sources, expected_user_allocation_sources)
+    context.test.assertListEqual(expected_user_allocation_sources, user_allocation_sources)

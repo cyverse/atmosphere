@@ -355,14 +355,25 @@ def fill_user_allocation_sources():
 
 
 def fill_user_allocation_source_for(driver, user):
+    from core.models import AtmosphereUser
+    assert isinstance(user, AtmosphereUser)
     allocation_list = find_user_allocation_source_for(driver, user)
     allocation_resources = []
+
     for api_allocation in allocation_list:
         allocation_source = get_or_create_allocation_source(api_allocation)
         resource, _ = UserAllocationSource.objects.get_or_create(
             allocation_source=allocation_source,
             user=user)
         allocation_resources.append(allocation_source)
+
+    source_names = [source.name for source in allocation_resources]
+    old_user_allocation_sources = UserAllocationSource.objects.filter(user=user).order_by(
+        'allocation_source__name').all()
+    for user_allocation_source in old_user_allocation_sources:
+        if user_allocation_source.allocation_source.name not in source_names:
+            # TODO: Create an event
+            user_allocation_source.delete()
     return allocation_resources
 
 

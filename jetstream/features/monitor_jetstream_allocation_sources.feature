@@ -66,19 +66,55 @@ Feature: Monitor Jetstream Allocation Sources
       | name         | compute_allowed |
       | TG-BIO150062 | 1000000         |
       | TG-TRA160003 | 600000          |
-    When we update snapshots
-    Then we should have the following allocation source snapshots
-      | name         | compute_used |
-      | TG-BIO150062 | 781768.010   |
-      | TG-TRA160003 | 87914.060    |
     And we should have the following user allocation sources
       | atmosphere_username | allocation_source |
-#      | user107             |                   |
       | user108             | TG-BIO150062      |
       | user109             | TG-BIO150062      |
       | user109             | TG-TRA160003      |
       | user111             | TG-TRA160003      |
 
 
-#  Scenario: From having existing allocation sources in the database
-#    # Enter steps here
+  Scenario: Remove user from allocation source
+    When we get all projects
+    And we fill user allocation sources from TAS
+    Then we should have the following user allocation sources
+      | atmosphere_username | allocation_source |
+      | user108             | TG-BIO150062      |
+      | user109             | TG-BIO150062      |
+      | user109             | TG-TRA160003      |
+      | user111             | TG-TRA160003      |
+    Given a current time of '2017-02-17T05:00:00Z'
+    And the following TACC usernames for TAS projects
+      | project_id | tacc_usernames            |
+      | 29444      | tacc_user108              |
+      | 29456      | tacc_user109,tacc_user111 |
+    When we fill user allocation sources from TAS
+    Then we should have the following user allocation sources
+      | atmosphere_username | allocation_source |
+      | user108             | TG-BIO150062      |
+      | user109             | TG-TRA160003      |
+      | user111             | TG-TRA160003      |
+    Given a current time of '2017-02-19T05:00:00Z'
+    And the following TACC usernames for TAS projects
+      | project_id | tacc_usernames |
+      | 29444      | tacc_user108   |
+      | 29456      | tacc_user111   |
+    When we fill user allocation sources from TAS
+    Then we should have the following user allocation sources
+      | atmosphere_username | allocation_source |
+      | user108             | TG-BIO150062      |
+      | user111             | TG-TRA160003      |
+
+
+  Scenario: Calculate allocation source snapshots
+    When we get all projects
+    And we fill user allocation sources from TAS
+    And we update snapshots
+    Then we should have the following allocation source snapshots
+      | name         | compute_used |
+      | TG-BIO150062 | 781768.010   |
+      | TG-TRA160003 | 87914.060    |
+
+
+  @skip
+  Scenario: Generate reports
