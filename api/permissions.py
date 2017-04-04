@@ -64,10 +64,10 @@ class ProjectLeaderRequired(permissions.BasePermission):
         project_kwargs = {}
         if not project_id and request_method == 'POST':
             return True
-        elif type(project_id) == int:
+        elif type(project_id) == int or len(project_id) != 32:
             project_kwargs = {'id': project_id}
         else:
-            project_kwargs = {'uuid': project_id}
+            project_kwargs = {'uuid': str(project_id)}
         return Project.shared_with_user(user, is_leader=True).filter(**project_kwargs).exists()
 
     def test_project_resource_permissions(self, SerializerCls, user, data):

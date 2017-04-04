@@ -5,6 +5,7 @@ from rest_framework import filters
 import django_filters
 
 from core.models import Identity, Group
+from core.query import only_current_provider
 
 from api.v2.serializers.details import IdentitySerializer
 from api.v2.views.base import AuthViewSet
@@ -55,5 +56,5 @@ class IdentityViewSet(MultipleFieldLookup, AuthViewSet):
         Filter identities by current user
         """
         user = self.request.user
-        identity_list = Identity.shared_with_user(user)
+        identity_list = Identity.shared_with_user(user).filter(only_current_provider())
         return identity_list
