@@ -150,9 +150,12 @@ def update_snapshot(start_date=None, end_date=None):
         try:
             allocation_source = AllocationSource.objects.filter(name=allocation_source_name).order_by('id').last()
 
+            if not allocation_source:
+                continue
+
             created_or_updated_event = EventTable.objects.filter(name='allocation_source_created_or_renewed',
-                                                                        payload__allocation_source_name=allocation_source.name).order_by(
-                'timestamp').last()
+                                                                        payload__allocation_source_name=allocation_source.name).order_by('timestamp').last()
+
             if created_or_updated_event:
                 #if renewed, change ignore old allocation usage
                 start_date = created_or_updated_event.payload['start_date']
