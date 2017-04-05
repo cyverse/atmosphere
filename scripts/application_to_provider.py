@@ -9,6 +9,7 @@ import urlparse
 
 import OpenSSL.SSL
 
+from irods.session import iRODSSession
 import glanceclient.exc
 import django; django.setup()
 import core.models
@@ -44,7 +45,7 @@ The iRODS transfer feature was developed for CyVerse Atmosphere(0); may be of
 limited use elsewhere. In order to use it:
 - Source and destination providers must use the iRODS storage backend for
   OpenStack Glance (https://github.com/cyverse/glance-irods)
-- Src. and dst. providers must store images in the same iRODS deployment
+- Src. and dst. providers must store images in the same iRODS zone
 - --source-provider-id, --irods-conn, --irods-src-coll, and --irods-dst-coll
   must all be defined
 - Credentials passed in --irods-conn must have write access to both source and
@@ -289,9 +290,25 @@ def main():
         local_path = os.path.join(local_storage_dir, sprov_img_uuid)
 
         def migrate_image_data(img_uuid):
-            # Todo this function is in an awkward place, unsure of best way to refactor
+            # Todo this function is in an awkward place and relies on 'global' state, unsure of best way to refactor
+            """
+            Ensures that Glance image data matches between a source and a destination OpenStack provider.
+            Migrates image data if needed, using either Glance API download/upload or iRODS data object copy.
+            Args:
+                img_uuid: UUID of image to be migrated
+
+            Returns: True if successful, else raises exception
+            """
+
+            src_img = sprov_glance_client.images.get(img_uuid)
+            dst_img = dprov_glance_client.images.get(img_uuid)
+            if src_img.checksum == dst_img.checksum:
+                logging.info("Image data checksum matches on source and destination providers, not migrating data")
+                return True
+            logging.info("Migrating image data because checksums don't match between source and destination providers")
+
             if irods:
-                migrate_image_data_irods(dprov_glance_client, irods_conn)
+                migrate_image_data_irods(dprov_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
             else:
                 migrate_image_data_glance(sprov_glance_client, dprov_glance_client, img_uuid, local_path,
                                           persist_local_cache)
@@ -332,8 +349,7 @@ def get_or_create_glance_image(glance_client, img_uuid):
 
 def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True, max_tries=3):
     """
-    Ensures that Glance image data matches between a source and a destination OpenStack provider. Migrates image data
-    if needed. Assumes that:
+    Migrates image data using Glance API. Assumes that:
     - The Glance image object has already been created in the source provider
     - The Glance image UUIDs match between providers
 
@@ -349,11 +365,6 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
     Returns: True if success, else raises an exception
     """
     src_img = src_glance_client.images.get(img_uuid)
-    dst_img = dst_glance_client.images.get(img_uuid)
-    if src_img.checksum == dst_img.checksum:
-        logging.info("Image data checksum matches on source and destination providers, not migrating data")
-        return True
-    logging.info("Migrating image data because checksums don't match between source and destination providers")
 
     # Download image from source provider, only if there is no correct local copy
     if os.path.exists(local_path) and file_md5(local_path) == src_img.checksum:
@@ -400,13 +411,33 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
         return True
 
 
-def migrate_image_data_irods(*kwargs):
-    pass
+def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid):
+
+    # TODO test me and add exception handling! Test me in sad cases (e.g. bad creds, could not make connection)
+
+    sess = iRODSSession(host=irods_conn.host,
+                        port=irods_conn.port,
+                        zone=irods_conn.zone,
+                        user=irods_conn.username,
+                        password=irods_conn.password)
+    src_data_obj_path = os.path.join(irods_src_coll, img_uuid)
+    dst_data_obj_path = os.path.join(irods_dst_coll, img_uuid)
+    sess.data_objects.copy(src_data_obj_path, dst_data_obj_path)
+    logging.info("Copied image data to destination collection in iRODS")
+    dst_img_location = "irods://{0}:{1}@{2}:{3}{4}".format(
+        irods_conn.username,
+        irods_conn.password,
+        irods_conn.host,
+        irods_conn.port,
+        dst_data_obj_path
+    )
+    dst_glance_client.images.add_location(img_uuid, dst_img_location)
+    logging.info("Set image location in Glance")
 
 
 def _parse_irods_conn(irods_conn_str):
     u = urlparse.urlparse(irods_conn_str)
-    return {"username": u.username, "password": u.password, "host": u.hostname, "port": u.port}
+    return {"username": u.username, "password": u.password, "host": u.hostname, "port": u.port, "zone": u.path[1:]}
 
 
 def _parse_args():
@@ -432,7 +463,7 @@ def _parse_args():
                              "May consume a lot of disk space.")
     parser.add_argument("--irods-conn",
                         type=str,
-                        help="iRODS connection string in the form of irods://user:password@host:port")
+                        help="iRODS connection string in the form of irods://user:password@host:port/zone")
     parser.add_argument("--irods-src-coll",
                         type=str,
                         help="Collection for iRODS images on source provider")
