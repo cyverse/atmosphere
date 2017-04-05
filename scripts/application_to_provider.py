@@ -5,6 +5,7 @@ import hashlib
 import logging
 import os
 import sys
+import urlparse
 
 import OpenSSL.SSL
 
@@ -21,7 +22,9 @@ provider by doing any/all of the following as needed:
 
 - Creates Glance image
 - Populates Glance image metadata
-- Transfers image data from existing provider using Glance API
+- Transfers image data from existing provider
+  - Using Glance API (default)
+  - Optionally, using iRODS (Atmosphere(0)-specific feature)
 - If Application uses an AMI-style image, ensures the
   kernel (AKI) and ramdisk (ARI) images are also present on destination
   provider, and sets appropriate properties
@@ -36,6 +39,21 @@ will exit with error unless --ignore_missing_owner is set.
 If a non-public application has or more members without identities on the
 destination provider, script will exit with error unless
 --ignore_missing_members is set.
+
+The iRODS transfer feature was developed for CyVerse Atmosphere(0); may be of
+limited use elsewhere. In order to use it:
+- Source and destination providers must use the iRODS storage backend for
+  OpenStack Glance (https://github.com/cyverse/glance-irods)
+- Src. and dst. providers must store images in the same iRODS deployment
+- --source-provider-id, --irods-conn, --irods-src-coll, and --irods-dst-coll
+  must all be defined
+- Credentials passed in --irods-conn must have write access to both source and
+  destination collections
+
+When using iRODS transfer, this script does not set data object permissions in
+iRODS. This means that for the destination provider, the iRODS account used by
+Glance server should have write (or own) access to the destination collection
+(where new data objects are created), and *inheritance should be enabled*.
 """
 
 max_tries = 3  # Maximum number of times to attempt downloading and uploading image data
@@ -44,8 +62,18 @@ max_tries = 3  # Maximum number of times to attempt downloading and uploading im
 def main():
     args = _parse_args()
     logging.info("Running application_to_provider with the following arguments:\n{0}".format(str(args)))
-    if args.irods_xfer:
-        raise NotImplementedError("iRODS transfer not built yet")
+
+    irods_args = (args.irods_conn, args.irods_src_coll, args.irods_dst_coll)
+    if any(irods_args):
+        if not all(irods_args) and args.source_provider_id:
+            raise Exception("If using iRODS transfer then --source-provider-id, --irods-conn, --irods-src-coll, and "
+                            "--irods-dst-coll must all be defined")
+        else:
+            irods = True
+            irods_uname, irods_pw, irods_host, irods_port = _parse_irods_conn(args.irods_conn)
+    else:
+        irods = False
+
     if args.source_provider_id == args.destination_provider_id:
         raise Exception("Source provider cannot be the same as destination provider")
     app = core.models.Application.objects.get(id=args.application_id)
@@ -362,6 +390,11 @@ def migrate_image_data(src_glance_client, dst_glance_client, img_uuid, local_pat
         return True
 
 
+def _parse_irods_conn(irods_conn):
+    u = urlparse.urlparse(irods_conn)
+    return u.username, u.password, u.hostname, u.port
+
+
 def _parse_args():
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("application_id", type=int, help="Application ID to be migrated")
@@ -370,10 +403,6 @@ def _parse_args():
                         type=int,
                         help="Migrate image from source provider with this ID (else a source provider will be chosen "
                              "automatically")
-    parser.add_argument("--irods-xfer",
-                        action="store_true",
-                        help="Transfer image data using iRODS instead of glance download/upload "
-                             "(Atmosphere(0)-specific feature), not yet implemented")
     parser.add_argument("--ignore-missing-owner",
                         action="store_true",
                         help="Transfer image if application owner has no identity on destination provider (owner will "
@@ -387,6 +416,15 @@ def _parse_args():
                         help="If image download succeeds but upload fails, keep local cached copy for subsequent "
                              "attempt. (Local cache is always deleted after successful upload). "
                              "May consume a lot of disk space.")
+    parser.add_argument("--irods-conn",
+                        type=str,
+                        help="iRODS connection string in the form of irods://user:password@host:port")
+    parser.add_argument("--irods-src-coll",
+                        type=str,
+                        help="Collection for iRODS images on source provider")
+    parser.add_argument("--irods-dst-coll",
+                        type=str,
+                        help="Collection for iRODS images on destination provider")
     args = parser.parse_args()
     return args
 
