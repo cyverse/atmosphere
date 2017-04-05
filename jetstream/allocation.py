@@ -173,7 +173,7 @@ class TASAPIDriver(object):
     def get_allocation(self, allocation_name):
         filtered_list = [
             a for a in self.get_all_allocations()
-            if str(a['chargeCode']) == str(allocation_name)]
+            if str(a['project']) == str(allocation_name)]
         if len(filtered_list) > 1:
             logger.error(">1 value found for allocation %s" % allocation_name)
         if filtered_list:
