@@ -404,4 +404,4 @@ def listen_for_user_allocation_source_deleted(sender, instance, created, **kwarg
     deleted_info = UserAllocationSource.objects.filter(
         user__username__exact=user_name,
         allocation_source__name__exact=allocation_source_name).delete()
-    logger.info('deleted_info: %s' % deleted_info)
+    logger.info('deleted_info: {}'.format(deleted_info))
