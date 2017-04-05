@@ -132,6 +132,7 @@ def send_reports():
     if failed_reports != 0:
         raise Exception("%s/%s reports failed to send to TAS" % (failed_reports, count))
 
+
 @task(name="update_snapshot")
 def update_snapshot(start_date=None, end_date=None):
     if not settings.USE_ALLOCATION_SOURCE:
@@ -143,7 +144,6 @@ def update_snapshot(start_date=None, end_date=None):
     tas_api_obj = TASAPIDriver()
     allocation_source_usage_from_tas = tas_api_obj.get_all_projects()
 
-
     for project in allocation_source_usage_from_tas:
         total_burn_rate = 0
         allocation_source_name = project['chargeCode']
@@ -153,18 +153,22 @@ def update_snapshot(start_date=None, end_date=None):
             if not allocation_source:
                 continue
 
-            created_or_updated_event = EventTable.objects.filter(name='allocation_source_created_or_renewed',
-                                                                        payload__allocation_source_name=allocation_source.name).order_by('timestamp').last()
+            created_or_updated_event = EventTable.objects.filter(
+                name='allocation_source_created_or_renewed',
+                payload__allocation_source_name=allocation_source.name
+            ).order_by('timestamp').last()
 
             if created_or_updated_event:
-                #if renewed, change ignore old allocation usage
+                # if renewed, change ignore old allocation usage
                 start_date = created_or_updated_event.payload['start_date']
 
             for user in allocation_source.all_users:
-                compute_used, burn_rate = total_usage(user.username, start_date, allocation_source_name=allocation_source.name ,end_date=end_date,burn_rate=True)
-
-                total_burn_rate +=burn_rate
-                snapshot, created = UserAllocationSnapshot.objects.update_or_create(
+                compute_used, burn_rate = total_usage(user.username, start_date,
+                                                      allocation_source_name=allocation_source.name,
+                                                      end_date=end_date,
+                                                      burn_rate=True)
+                total_burn_rate += burn_rate
+                UserAllocationSnapshot.objects.update_or_create(
                     allocation_source_id=allocation_source.id,
                     user_id=user.id,
                     defaults={
@@ -178,7 +182,7 @@ def update_snapshot(start_date=None, end_date=None):
             continue
         valid_allocation = select_valid_allocation(project['allocations'])
         compute_used = valid_allocation['computeUsed'] if valid_allocation else 0
-        snapshot, created = AllocationSourceSnapshot.objects.update_or_create(
+        AllocationSourceSnapshot.objects.update_or_create(
             allocation_source_id=allocation_source.id,
             defaults={
                 'compute_used': compute_used,
@@ -186,4 +190,3 @@ def update_snapshot(start_date=None, end_date=None):
             }
         )
     return True
-
