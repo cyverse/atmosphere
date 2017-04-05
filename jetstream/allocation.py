@@ -272,7 +272,6 @@ def get_or_create_allocation_source(api_allocation):
         'end_date':api_allocation['end']
     }
 
-    # Hash name and source_id to check for renewed Allocation Source
     try:
         created_event_key = 'sn=%s,si=%s,ev=%s,dc=jetstream,dc=atmosphere' % (
             source_name, source_id, 'allocation_source_created_or_renewed')
@@ -285,7 +284,6 @@ def get_or_create_allocation_source(api_allocation):
         # This is totally fine. No really. This should fail if it already exists and we should ignore it.
         pass
 
-    # Hash name, source_id and compute_allocated to check for supplemented Allocation Source
     try:
         compute_event_key = 'ca=%s,sn=%s,si=%s,ev=%s,dc=jetstream,dc=atmosphere' % (
             compute_allowed, source_name, source_id, 'allocation_source_compute_allowed_changed')
