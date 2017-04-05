@@ -534,7 +534,7 @@ class Instance(models.Model):
         if not allocation_source:
             raise Exception("Allocation source must not be null")
         payload = {
-                'allocation_source_id': allocation_source.source_id,
+                'allocation_source_name': allocation_source.name,
                 'instance_id': self.provider_alias
         }
         return EventTable.create_event(

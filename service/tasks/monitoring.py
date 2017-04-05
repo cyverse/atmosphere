@@ -541,16 +541,19 @@ def monitor_instances():
 
 
 @task(name="enforce_allocation_overage")
-def enforce_allocation_overage(allocation_source_id):
+def enforce_allocation_overage(allocation_source_name):
     """
     Update instances for each active provider.
     """
-    allocation_source = AllocationSource.objects.get(source_id=allocation_source_id)
+    allocation_source = AllocationSource.objects.get(name=allocation_source_name)
     user_instances_enforced = allocation_source_overage_enforcement(allocation_source)
-    EventTable.create_event(
-        name="allocation_source_threshold_enforced",
-        entity_id=source.source_id,
-        payload=new_payload)
+
+    #NOT IN USE
+
+    # EventTable.create_event(
+    #     name="allocation_source_threshold_enforced",
+    #     entity_id=allocation_source.name,
+    #     payload=new_payload)
     return user_instances_enforced
 
 @task(name="monitor_instance_allocations")
