@@ -39,7 +39,7 @@ def replace_sourceid_from_payload(apps, schema_editor):
     # Count events & allocations before & after this to make sure we don't accidentally create more records somehow
 
     event_count_before_delete = EventTable.objects.count()
-    print('event_count_before_delete: {}'.format(event_count_before_delete))
+    # print('event_count_before_delete: {}'.format(event_count_before_delete))
 
     # switch off signals
     toggle_signals(EventTable, on=False)
@@ -49,12 +49,12 @@ def replace_sourceid_from_payload(apps, schema_editor):
     #   - allocation_source_snapshot
     deleted = EventTable.objects.filter(
         Q(name="user_allocation_snapshot_changed") | Q(name="allocation_source_snapshot")).delete()
-    print('deleted: {}'.format(deleted))
+    # print('deleted: {}'.format(deleted))
 
     all_source_names = {}
 
     event_count_before = EventTable.objects.count()
-    print('event_count_before: {}'.format(event_count_before))
+    # print('event_count_before: {}'.format(event_count_before))
 
     for row in EventTable.objects.filter(
                     Q(name="instance_allocation_source_changed") | Q(name="allocation_source_threshold_met")):
@@ -88,7 +88,7 @@ def replace_sourceid_from_payload(apps, schema_editor):
     # switch signals back on
     toggle_signals(EventTable)
     event_count_after = EventTable.objects.count()
-    print('event_count_after: {}'.format(event_count_after))
+    # print('event_count_after: {}'.format(event_count_after))
 
 
 class Migration(migrations.Migration):

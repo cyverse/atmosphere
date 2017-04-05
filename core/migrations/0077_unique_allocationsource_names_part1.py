@@ -18,7 +18,7 @@ def remove_duplicate_allocation_sources(apps, schema_editor):
             last_seen_source_name = allocation_source.name
             continue
         allocation_source_ids_to_delete.append(allocation_source.id)
-    print('allocation_source_ids_to_delete: {}'.format(allocation_source_ids_to_delete))
+    # print('allocation_source_ids_to_delete: {}'.format(allocation_source_ids_to_delete))
     with connection.cursor() as cursor:
         for allocation_source_id in allocation_source_ids_to_delete:
             cursor.execute('DELETE FROM allocation_source_snapshot WHERE allocation_source_id = %s',
