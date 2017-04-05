@@ -8,7 +8,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0074_unique_allocationsource_uuid'),
+        ('core', '0075_unique_allocationsource_uuid'),
     ]
 
     operations = [

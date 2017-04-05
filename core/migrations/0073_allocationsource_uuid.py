@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0071_provider_more_instance_actions'),
+        ('core', '0072_replace_source_id_in_event_table'),
     ]
 
     operations = [

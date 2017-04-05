@@ -34,7 +34,7 @@ def remove_duplicate_allocation_sources(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('core', '0075_remove_allocationsource_source_id'),
+        ('core', '0076_remove_allocationsource_source_id'),
     ]
 
     operations = [
