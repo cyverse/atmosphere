@@ -65,14 +65,18 @@ def main():
 
     irods_args = (args.irods_conn, args.irods_src_coll, args.irods_dst_coll)
     if any(irods_args):
-        if not all(irods_args) and args.source_provider_id:
+        irods = True
+        if all(irods_args) and args.source_provider_id:
+            irods_conn = _parse_irods_conn(args.irods_conn)
+            irods_src_coll = args.irods_src_coll
+            irods_dst_coll = args.irods_dst_coll
+        else:
             raise Exception("If using iRODS transfer then --source-provider-id, --irods-conn, --irods-src-coll, and "
                             "--irods-dst-coll must all be defined")
-        else:
-            irods = True
-            irods_uname, irods_pw, irods_host, irods_port = _parse_irods_conn(args.irods_conn)
     else:
         irods = False
+
+    persist_local_cache = True if args.persist_local_cache else False
 
     if args.source_provider_id == args.destination_provider_id:
         raise Exception("Source provider cannot be the same as destination provider")
@@ -283,15 +287,21 @@ def main():
 
         local_storage_dir = secrets.LOCAL_STORAGE if os.path.exists(secrets.LOCAL_STORAGE) else "/tmp"
         local_path = os.path.join(local_storage_dir, sprov_img_uuid)
+
+        def migrate_image_data(img_uuid):
+            # Todo this function is in an awkward place, unsure of best way to refactor
+            if irods:
+                migrate_image_data_irods(dprov_glance_client, irods_conn)
+            else:
+                migrate_image_data_glance(sprov_glance_client, dprov_glance_client, img_uuid, local_path,
+                                          persist_local_cache)
+
         # Populate image data in destination provider if needed
-        migrate_image_data(sprov_glance_client, dprov_glance_client, sprov_img_uuid, local_path,
-                           persist_local_cache=args.persist_local_cache)
+        migrate_image_data(sprov_img_uuid)
         # If AMI-based image, populate image data in destination provider if needed
         if ami:
-            migrate_image_data(sprov_glance_client, dprov_glance_client, sprov_aki_glance_image.id, local_path,
-                               persist_local_cache=args.persist_local_cache)
-            migrate_image_data(sprov_glance_client, dprov_glance_client, sprov_ari_glance_image.id, local_path,
-                               persist_local_cache=args.persist_local_cache)
+            migrate_image_data(sprov_aki_glance_image.id)
+            migrate_image_data(sprov_ari_glance_image.id)
 
 
 def file_md5(path):
@@ -320,7 +330,7 @@ def get_or_create_glance_image(glance_client, img_uuid):
             return glance_image
 
 
-def migrate_image_data(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True, max_tries=3):
+def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True, max_tries=3):
     """
     Ensures that Glance image data matches between a source and a destination OpenStack provider. Migrates image data
     if needed. Assumes that:
@@ -390,9 +400,13 @@ def migrate_image_data(src_glance_client, dst_glance_client, img_uuid, local_pat
         return True
 
 
-def _parse_irods_conn(irods_conn):
-    u = urlparse.urlparse(irods_conn)
-    return u.username, u.password, u.hostname, u.port
+def migrate_image_data_irods(*kwargs):
+    pass
+
+
+def _parse_irods_conn(irods_conn_str):
+    u = urlparse.urlparse(irods_conn_str)
+    return {"username": u.username, "password": u.password, "host": u.hostname, "port": u.port}
 
 
 def _parse_args():
