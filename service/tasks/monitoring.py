@@ -723,6 +723,15 @@ def monitor_sizes_for(provider_id, print_logs=False):
         size.end_date = now_time
         size.save()
 
+    # Find home for 'Unknown Size'
+    unknown_sizes = Size.objects.filter(provider=provider, name__contains='Unknown Size')
+    for size in unknown_sizes:
+        # Lookup sizes may not show up in 'list_sizes'
+        cloud_size = admin_driver.get_size(size.alias, forced_lookup=True)
+        if not cloud_size:
+            continue
+        core_size = convert_esh_size(cloud_size, provider.uuid)
+
     if print_logs:
         _exit_stdout_logging(console_handler)
 
