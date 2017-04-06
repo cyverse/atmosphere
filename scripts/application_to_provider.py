@@ -51,10 +51,15 @@ limited use elsewhere. In order to use it:
 - Credentials passed in --irods-conn must have write access to both source and
   destination collections
 
-When using iRODS transfer, this script does not set data object permissions in
-iRODS. This means that for the destination provider, the iRODS account used by
-Glance server should have write (or own) access to the destination collection
-(where new data objects are created), and *inheritance should be enabled*.
+Considerations when using iRODS transfer:
+- The credentials passed in --irods-conn will be used to populate the image
+  location in the Glance database on the destination provider. Consider passing
+  the iRODS credentials already in use for the Glance iRODS back-end on that
+  provider, and making the source collection readable to same.
+- This script does not set data object permissions in iRODS. This means that
+  for the destination provider, the iRODS account used by Glance server should
+  have write (or own) access to the destination collection (where new data
+  objects are created), and *inheritance should be enabled*.
 """
 
 max_tries = 3  # Maximum number of times to attempt downloading and uploading image data
