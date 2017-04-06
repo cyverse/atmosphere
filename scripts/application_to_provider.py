@@ -422,9 +422,6 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
 
 
 def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid):
-
-    # TODO test me and add exception handling! Test me in sad cases (e.g. bad creds, could not make connection)
-
     sess = iRODSSession(host=irods_conn.get('host'),
                         port=irods_conn.get('port'),
                         zone=irods_conn.get('zone'),
