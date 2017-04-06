@@ -91,15 +91,15 @@ def convert_esh_size(esh_size, provider_uuid):
     return core_size
 
 
-def _update_from_cloud_size(core_size, esh_size):
+def _update_from_cloud_size(core_size, rtwo_size):
     """
     Full scope replacement based on cloud(rtwo) size
     """
-    core_size.name = esh_size.name
-    core_size.disk = esh_size.disk
-    core_size.root = esh_size.ephemeral_disk
-    core_size.cpu = esh_size.vcpus
-    core_size.mem = esh_size.ram
+    core_size.name = rtwo_size.name
+    core_size.disk = rtwo_size.disk
+    core_size.root = rtwo_size.ephemeral
+    core_size.cpu = rtwo_size.cpu
+    core_size.mem = rtwo_size.ram
     core_size.save()
     return core_size
 
