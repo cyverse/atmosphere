@@ -302,16 +302,21 @@ def main():
 
             src_img = sprov_glance_client.images.get(img_uuid)
             dst_img = dprov_glance_client.images.get(img_uuid)
-            if src_img.checksum == dst_img.checksum:
-                logging.info("Image data checksum matches on source and destination providers, not migrating data")
-                return True
-            logging.info("Migrating image data because checksums don't match between source and destination providers")
-
             if irods:
-                migrate_image_data_irods(dprov_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
+                # Unable to use checksum for irods transfer, because checksum is not set in Glance when a location
+                # is added to an image (instead of uploading image data via Glance API) :(
+                if src_img.size == dst_img.size:
+                    logging.info("Image data size matches on source and destination providers, not migrating data")
+                    return True
+                else:
+                    migrate_image_data_irods(dprov_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
             else:
-                migrate_image_data_glance(sprov_glance_client, dprov_glance_client, img_uuid, local_path,
-                                          persist_local_cache)
+                if src_img.checksum == dst_img.checksum:
+                    logging.info("Image data checksum matches on source and destination providers, not migrating data")
+                    return True
+                else:
+                    migrate_image_data_glance(sprov_glance_client, dprov_glance_client, img_uuid, local_path,
+                                              persist_local_cache)
 
         # Populate image data in destination provider if needed
         migrate_image_data(sprov_img_uuid)
@@ -415,29 +420,32 @@ def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irod
 
     # TODO test me and add exception handling! Test me in sad cases (e.g. bad creds, could not make connection)
 
-    sess = iRODSSession(host=irods_conn.host,
-                        port=irods_conn.port,
-                        zone=irods_conn.zone,
-                        user=irods_conn.username,
-                        password=irods_conn.password)
+    sess = iRODSSession(host=irods_conn.get('host'),
+                        port=irods_conn.get('port'),
+                        zone=irods_conn.get('zone'),
+                        user=irods_conn.get('username'),
+                        password=irods_conn.get('password'))
     src_data_obj_path = os.path.join(irods_src_coll, img_uuid)
     dst_data_obj_path = os.path.join(irods_dst_coll, img_uuid)
+    print(src_data_obj_path, dst_data_obj_path)
     sess.data_objects.copy(src_data_obj_path, dst_data_obj_path)
     logging.info("Copied image data to destination collection in iRODS")
     dst_img_location = "irods://{0}:{1}@{2}:{3}{4}".format(
-        irods_conn.username,
-        irods_conn.password,
-        irods_conn.host,
-        irods_conn.port,
+        irods_conn.get('username'),
+        irods_conn.get('password'),
+        irods_conn.get('host'),
+        irods_conn.get('port'),
         dst_data_obj_path
     )
-    dst_glance_client.images.add_location(img_uuid, dst_img_location)
+    # Assumption that iRODS copy will always be correct+complete, not inspecting checksums afterward?
+    dst_glance_client.images.add_location(img_uuid, dst_img_location, dict())
     logging.info("Set image location in Glance")
 
 
 def _parse_irods_conn(irods_conn_str):
     u = urlparse.urlparse(irods_conn_str)
-    return {"username": u.username, "password": u.password, "host": u.hostname, "port": u.port, "zone": u.path[1:]}
+    irods_conn = {"username": u.username, "password": u.password, "host": u.hostname, "port": u.port, "zone": u.path[1:]}
+    return irods_conn
 
 
 def _parse_args():

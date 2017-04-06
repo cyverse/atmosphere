@@ -90,7 +90,7 @@ pyparsing==2.2.0          # via cliff, cmd2, oslo.utils, packaging
 python-cinderclient==1.9.0  # via python-openstackclient, rtwo
 python-dateutil==2.6.0
 python-glanceclient==2.5.0  # via python-openstackclient, rtwo
-python-irodsclient==0.4.0  # via rtwo
+-e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient
 python-keystoneclient==3.6.0  # via django-cyverse-auth, python-glanceclient, python-openstackclient, rtwo
 python-ldap==2.4.19
 python-logstash==0.4.5
