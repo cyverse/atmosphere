@@ -96,6 +96,9 @@ def _update_from_cloud_size(core_size, rtwo_size):
     Full scope replacement based on cloud(rtwo) size
     """
     core_size.name = rtwo_size.name
+    # Don't update to -1,-1 or 0,0
+    if rtwo_size.cpu < 1 or rtwo_size.ram < 1:
+        return core_size
     core_size.disk = rtwo_size.disk
     core_size.root = rtwo_size.ephemeral
     core_size.cpu = rtwo_size.cpu

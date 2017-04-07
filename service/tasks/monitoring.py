@@ -729,10 +729,13 @@ def monitor_sizes_for(provider_id, print_logs=False):
     unknown_sizes = Size.objects.filter(provider=provider, name__contains='Unknown Size')
     for size in unknown_sizes:
         # Lookup sizes may not show up in 'list_sizes'
+        if size.alias == 'N/A':
+            continue  # This is a sentinal value added for a separate purpose.
         try:
             libcloud_size = admin_driver.get_size(size.alias, forced_lookup=True)
         except BaseHTTPError as error:
             if error.code == 404:
+                # The size may have been truly deleted
                 continue
         if not libcloud_size:
             continue
