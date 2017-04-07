@@ -13,8 +13,7 @@ from core.hooks.allocation_source import (
     listen_for_allocation_source_created_or_renewed,
     listen_for_allocation_source_compute_allowed_changed
 )
-from jetstream.models import TASAPIDriver
-
+from django.apps import apps
 
 def toggle_signals(event_model, on=True):
     if on:
@@ -33,8 +32,16 @@ def toggle_signals(event_model, on=True):
 def add_events_for_old_allocationsource(apps, schema_editor):
     EventTable = apps.get_model('core', 'EventTable')
     AllocationSourceTable = apps.get_model('core', 'AllocationSource')
+    JETSTREAM_INSTALLED = apps.is_installed('jetstream')
+    if not JETSTREAM_INSTALLED:
+        print "Jetstream not installed -- Skipping migration 0079...",
+        return
+    from jetstream.models import TASAPIDriver
 
     api = TASAPIDriver()
+    if not api:
+        print "TASAPIDriver Invalid -- Skipping migration 0079...",
+        return
     projects = api.get_all_projects()
 
     # switch off signals

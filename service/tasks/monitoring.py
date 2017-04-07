@@ -35,7 +35,9 @@ from service.monitoring import (
 from service.monitoring import user_over_allocation_enforcement
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
+from rtwo.models.size import OSSize
 from rtwo.exceptions import GlanceConflict, GlanceForbidden
+from libcloud.common.exceptions import BaseHTTPError
 
 from threepio import celery_logger
 
@@ -722,6 +724,20 @@ def monitor_sizes_for(provider_id, print_logs=False):
         celery_logger.debug("End dating inactive size: %s" % size)
         size.end_date = now_time
         size.save()
+
+    # Find home for 'Unknown Size'
+    unknown_sizes = Size.objects.filter(provider=provider, name__contains='Unknown Size')
+    for size in unknown_sizes:
+        # Lookup sizes may not show up in 'list_sizes'
+        try:
+            libcloud_size = admin_driver.get_size(size.alias, forced_lookup=True)
+        except BaseHTTPError as error:
+            if error.code == 404:
+                continue
+        if not libcloud_size:
+            continue
+        cloud_size = OSSize(libcloud_size)
+        core_size = convert_esh_size(cloud_size, provider.uuid)
 
     if print_logs:
         _exit_stdout_logging(console_handler)
