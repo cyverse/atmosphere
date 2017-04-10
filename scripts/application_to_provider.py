@@ -60,6 +60,9 @@ Considerations when using iRODS transfer:
   for the destination provider, the iRODS account used by Glance server should
   have write (or own) access to the destination collection (where new data
   objects are created), and *inheritance should be enabled*.
+- When using iRODS transfer, the Glance image object in the destination provider
+  will not have a checksum (will be "None"). This is a known issue in Glance:
+  https://bugs.launchpad.net/glance/+bug/1551498
 """
 
 max_tries = 3  # Maximum number of times to attempt downloading and uploading image data
