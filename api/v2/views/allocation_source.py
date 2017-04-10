@@ -14,8 +14,8 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthViewSet):
 
     queryset = AllocationSource.objects.none()
     serializer_class = AllocationSourceSerializer
-    search_fields = ('^title',)
-    lookup_fields = ('id', 'uuid')
+    search_fields = ('^name',)
+    lookup_fields = ('id',)
     http_method_names = ['options','head','get']
 
     def get_queryset(self):

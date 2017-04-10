@@ -15,3 +15,4 @@ from .allocation_factory import AllocationFactory
 from .provider_type_factory import ProviderTypeFactory
 from .provider_machine_factory import ProviderMachineFactory, InstanceSourceFactory
 from .platform_type_factory import PlatformTypeFactory
+from .allocation_source_factory import AllocationSourceFactory, UserAllocationSourceFactory
