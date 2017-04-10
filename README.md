@@ -78,7 +78,7 @@ The following individuals who have help/helped make :cloud: great appear in alph
 + **Christopher James LaRose <cloud-alum@iplantcollaborative.org>**
 + **Andrew Lenards <lenards@iplantcollaborative.org>**
 + **Monica Lent <cloud-alum@iplantcollaborative.org>**
-+ **Andre Mercer <amercer@iplantcollaborative.org>**
++ **Andre Mercer <cloud-alum@iplantcollaborative.org>**
 + **J. Matt Peterson <cloud-alum@iplantcollaborative.org>**
 + **Julian Pistorius <julianp@iplantcollaborative.org>**
 
