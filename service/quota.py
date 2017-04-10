@@ -103,20 +103,17 @@ def set_provider_quota(identity_uuid, limit_dict=None):
     """
     identity = Identity.objects.get(uuid=identity_uuid)
     if not identity.credential_set.all():
-        # Can't update quota if credentials arent set
+        # NOTE: This special-case is here to prevent 'new identities'
+        # that have not included a set of credentials from
+        # causing task failures
         return
-    user_quota = identity.quota
 
-    if not user_quota:
-        # Can't update quota if it doesn't exist
-        return
-    # Don't go above the hard-set limits per provider.
-    #_limit_user_quota(user_quota, identity, limit_dict=limit_dict)
-    if identity.provider.type.name.lower() == 'openstack':
-        return _set_openstack_quota(user_quota, identity)
-    else:
-        # Only attempt to set quota for known provider types
-        return
+    # NOTE: You can use the 'limit_dict' to avoid
+    # going above the hard-set limits per provider.
+    # see _get_hard_limits or pass in {'ram': ### (GB), 'cpu': ### (Cores)}
+    # _limit_user_quota(user_quota, identity, limit_dict=limit_dict)
+
+    return set_openstack_quota(identity)
 
 
 def _get_hard_limits(identity):
@@ -135,11 +132,16 @@ def _get_hard_limits(identity):
     return limits
 
 
-def _set_openstack_quota(
-        user_quota, identity, compute=True, volume=True, network=True):
+def set_openstack_quota(
+        identity, user_quota=None, compute=True, volume=True, network=True):
     if not identity.provider.get_type_name().lower() == 'openstack':
         raise Exception("Cannot set provider quota on type: %s"
                         % identity.provider.get_type_name())
+    if not user_quota:
+        user_quota = identity.quota
+    if not user_quota:
+        # Can't update quota if it doesn't exist
+        raise Exception("No quota set for identity - %s" % identity)
 
     if compute:
         compute_quota = _set_compute_quota(user_quota, identity)
@@ -149,6 +151,10 @@ def _set_openstack_quota(
         volume_quota = _set_volume_quota(user_quota, identity)
 
     return {
+        'account': {
+            'identity': identity.project_name(),
+            'quota': str(user_quota),
+        },
         'compute': compute_quota,
         'network': network_quota,
         'volume': volume_quota,
@@ -181,8 +187,9 @@ def _set_network_quota(user_quota, identity):
 
     ad = get_account_driver(identity.provider)
     admin_driver = ad.admin_driver
-    admin_driver._connection._neutron_update_quota(tenant_id, network_values)
-    return
+    result = admin_driver._connection._neutron_update_quota(tenant_id, network_values)
+    logger.info("Updated quota for %s to %s" % (username, result))
+    return result
 
 
 def _set_volume_quota(user_quota, identity):
@@ -197,8 +204,9 @@ def _set_volume_quota(user_quota, identity):
     username = driver._connection._get_username()
     ad = get_account_driver(identity.provider)
     admin_driver = ad.admin_driver
-    admin_driver._connection._cinder_update_quota(username, volume_values)
-    return
+    result = admin_driver._connection._cinder_update_quota(username, volume_values)
+    logger.info("Updated quota for %s to %s" % (username, result))
+    return result
 
 
 def _set_compute_quota(user_quota, identity):
@@ -211,8 +219,11 @@ def _set_compute_quota(user_quota, identity):
         'instances': user_quota.instance_count,
     }
     creds = identity.get_all_credentials()
+    use_tenant_id = False
     if creds.get('ex_force_auth_version','2.0_password') == "2.0_password":
         compute_values.pop('instances')
+        use_tenant_id = True
+
     username = identity.created_by.username
     logger.info("Updating quota for %s to %s" % (username, compute_values))
     driver = get_cached_driver(identity=identity)
@@ -222,11 +233,12 @@ def _set_compute_quota(user_quota, identity):
     ad = get_account_driver(identity.provider)
     ks_user = ad.get_user(username)
     admin_driver = ad.admin_driver
+    #FIXME: Remove 'use_tenant_id' when legacy clouds are no-longer in use.
     try:
         result = admin_driver._connection.ex_update_quota_for_user(
-            tenant_id, ks_user.id, compute_values)
+            tenant_id, ks_user.id, compute_values, use_tenant_id=use_tenant_id)
     except Exception:
         logger.exception("Could not set a user-quota, trying to set tenant-quota")
-        result = admin_driver._connection.ex_update_quota(tenant_id, compute_values)
+        result = admin_driver._connection.ex_update_quota(tenant_id, compute_values, use_tenant_id=use_tenant_id)
     logger.info("Updated quota for %s to %s" % (username, result))
     return result

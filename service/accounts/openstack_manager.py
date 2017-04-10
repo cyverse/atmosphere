@@ -9,8 +9,10 @@ from urlparse import urlparse
 from django.db.models import Max
 
 from django.db.models import ObjectDoesNotExist
-from rtwo.exceptions import NovaOverLimit
+from rtwo.exceptions import NovaOverLimit, KeystoneUnauthorized
 from rtwo.exceptions import NeutronClientException, GlanceClientException
+from service.exceptions import AccountCreationConflict
+from keystoneauth1.exceptions.http import Unauthorized as KeystoneauthUnauthorized
 from requests.exceptions import ConnectionError
 from hashlib import sha256
 
@@ -188,8 +190,16 @@ class AccountDriver(BaseAccountDriver):
 
         if username in self.core_provider.list_admin_names():
             return
-        (username, password, project) = self.build_account(
-            username, password, project_name, role_name, max_quota)
+        try:
+            (username, password, project) = self.build_account(
+                username, password, project_name, role_name, max_quota)
+        except (KeystoneUnauthorized, KeystoneauthUnauthorized) as exc:
+            logger.exception("Encountered error creating account - %s" % exc)
+            raise AccountCreationConflict(
+                "AccountDriver is trying to create an account, (%s)"
+                "but the password does not match. "
+                "This conflict should be addressed by hand."
+                % (username, ))
         ident = self.create_identity(username, password,
                                      project.name,
                                      quota=quota,
@@ -385,11 +395,12 @@ class AccountDriver(BaseAccountDriver):
         keyname - Name of the keypair
         public_key - Contents of public key in OpenSSH format
         """
-        clients = self.get_openstack_clients(username, password, project_name)
         if self.identity_version == 2:
-            nova = clients["nova"]
+            nova = self.user_manager.build_nova(username, password,
+                                                project_name)
             keypairs = nova.keypairs.list()
         else:
+            clients = self.get_openstack_clients(username, password, project_name)
             osdk = clients["openstack_sdk"]
             keypairs = [kp for kp in osdk.compute.keypairs()]
         for kp in keypairs:
@@ -409,26 +420,25 @@ class AccountDriver(BaseAccountDriver):
         keyname - Name of the keypair
         public_key - Contents of public key in OpenSSH format
         """
-        clients = self.get_openstack_clients(username, password, project_name)
         if self.identity_version == 2:
-            nova = clients["nova"]
+            nova = self.user_manager.build_nova(username, password,
+                                                project_name)
             keypair = nova.keypairs.create(
                     keyname,
                     public_key=public_key)
         else:
+            clients = self.get_openstack_clients(username, password, project_name)
             osdk = clients["openstack_sdk"]
             keypair = osdk.compute.create_keypair(
                 name=keyname,
                 public_key=public_key)
         return keypair
 
-    def shared_images_for(self, image_id):
-        acct_driver = None
-
+    def shared_images_for(self, image_id, status="approved"):
         shared_with = self.image_manager.shared_images_for(
             image_id=image_id)
 
-	if getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
+        if getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
             from core.models import Provider
             from service.driver import get_account_driver
             provider = Provider.objects.get(location=settings.REPLICATION_PROVIDER_LOCATION)
@@ -439,33 +449,39 @@ class AccountDriver(BaseAccountDriver):
             acct_driver = self
 
         projects = [acct_driver.get_project_by_id(member.member_id)
-                    for member in shared_with]
+                    for member in shared_with if not status or status == member.status]
         return projects
 
-    def share_image_with_project(self, glance_image, project_name):
+    def share_image_with_identity(self, glance_image, identity):
         try:
+            project_name = identity.project_name()
             self.image_manager.share_image(glance_image, project_name)
-            self.accept_shared_image(glance_image, project_name)
-            logger.info("Added Cloud Access: %s-%s"
-                        % (glance_image, project_name))
         except GlanceClientException as gce:
             message = gce.details
             if 'is duplicated for image' not in message\
                     and 'is already associated with image' not in message:
                 raise
+        return self.accept_shared_image(glance_image, identity)
 
-    def accept_shared_image(self, glance_image, project_name):
+    def accept_shared_image(self, glance_image, identity):
         """
         This is only required when sharing using 'the v2 api' on glance.
         """
-        # FIXME: Abusing the 'project_name' == 'username' mapping
-        clients = self.get_openstack_clients(project_name)
-        project = self.user_manager.get_project(project_name)
+        all_creds = identity.get_all_credentials()
+        username = all_creds.get('key')
+        password = all_creds.get('secret')
+        domain_id = all_creds.get('domain_name', 'default')
+        project_name = identity.project_name()
+        clients = self.get_openstack_clients(username, password, project_name)
+        project = self.user_manager.get_project(project_name, domain_id=domain_id)
         glance = clients["glance"]
         glance.image_members.update(
             glance_image.id,
             project.id,
             'accepted')
+        logger.info("Added Cloud Access: %s-%s"
+                    % (glance_image, project_name))
+        return project
 
         
 

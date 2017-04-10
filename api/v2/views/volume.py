@@ -27,8 +27,8 @@ VOLUME_EXCEPTIONS = (OverQuotaError, ConnectionFailure, LibcloudBadResponseError
 
 
 class VolumeFilter(django_filters.FilterSet):
-    min_size = django_filters.NumberFilter(name="size", lookup_type='gte')
-    max_size = django_filters.NumberFilter(name="size", lookup_type='lte')
+    min_size = django_filters.NumberFilter(name="size__gte")
+    max_size = django_filters.NumberFilter(name="size__lte")
 
     class Meta:
         model = Volume

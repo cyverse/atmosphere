@@ -6,7 +6,7 @@ import uuid
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from django.utils.timezone import datetime
-from djcelery.app import app
+from atmosphere.celery_init import app
 
 from threepio import logger, status_logger
 
@@ -15,8 +15,9 @@ from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     OSProvider, OSValhallaProvider
 from rtwo.exceptions import LibcloudBadResponseError
 from rtwo.driver import OSDriver
-from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_keystone_v3, _token_to_keystone_scoped_project
-from rtwo.drivers.openstack_network import NetworkManager
+from service.driver import AtmosphereNetworkManager
+from service.mock import AtmosphereMockNetworkManager
+
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
@@ -377,6 +378,7 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
 
 
 def redeploy_instance(
+        core_identity,
         esh_driver,
         esh_instance,
         username,
@@ -395,7 +397,7 @@ def redeploy_instance(
         esh_instance.extra['metadata']['tmp_status'] = "initializing"
     deploy_chain = get_idempotent_deploy_chain(
         esh_driver.__class__, esh_driver.provider, esh_driver.identity,
-        esh_instance, username)
+        esh_instance, core_identity, username)
     return deploy_chain.apply_async()
 
 
@@ -781,6 +783,8 @@ def update_status(esh_driver, instance_id, provider_uuid, identity_uuid, user):
     else:
         esh_instance = esh_driver.get_instance(instance_id)
     if not esh_instance:
+        return None
+    if esh_driver.provider.location.lower() == 'mock':
         return None
     # Convert & Update based on new status change
     core_instance = convert_esh_instance(esh_driver,
@@ -1277,10 +1281,10 @@ def _test_for_licensing(esh_machine, identity):
         passed_test = _test_license(license, identity)
         if passed_test:
             return True
-    app = app_version.application
+    application = app_version.application
     raise Exception(
         "Identity %s did not meet the requirements of the associated license on Application %s + Version %s" %
-        (app.name, app_version.name))
+        (application.name, app_version.name))
 
 
 def check_quota(username, identity_uuid, esh_size,
@@ -1446,38 +1450,19 @@ def network_init(core_identity):
 
 
 def _to_network_driver(core_identity):
-    all_creds = core_identity.get_all_credentials()
-    project_name = core_identity.project_name()
-    domain_name = all_creds.get('domain_name', 'default')
-    auth_url = all_creds.get('auth_url')
-    if '/v' not in auth_url:  # Add /v3 if no version specified in auth_url
-        auth_url += '/v3'
-    if '/v2' in auth_url:  # Remove this when "Legacy cloud" support is removed
-        username = all_creds['key']
-        password = all_creds['secret']
-        auth_url = auth_url.replace("/tokens","")
-        (auth, sess, token) = _connect_to_keystone_v2(
-            auth_url, username, password,
-            project_name)
-    elif 'ex_force_auth_token' in all_creds:
-        auth_token = all_creds['ex_force_auth_token']
-        (auth, sess, token) = _token_to_keystone_scoped_project(
-            auth_url, auth_token,
-            project_name, domain_name)
-    else:
-        username = all_creds['key']
-        password = all_creds['secret']
-        (auth, sess, token) = _connect_to_keystone_v3(
-            auth_url, username, password,
-            project_name, domain_name=domain_name)
-    network_driver = NetworkManager(session=sess)
-    return network_driver
+    provider_type = core_identity.provider.type.name
+    if provider_type == 'mock':
+         return AtmosphereMockNetworkManager.create_manager(core_identity)
+    return AtmosphereNetworkManager.create_manager(core_identity)
 
 
 def user_network_init(core_identity):
     """
     WIP -- need to figure out how to do this within the scope of libcloud // OR using existing authtoken to connect with neutron.
     """
+    provider_type = core_identity.provider.type.name
+    if provider_type == 'mock':
+        return _to_network_driver(core_identity)
     username = core_identity.get_credential('key')
     if not username:
         username = core_identity.created_by.username
@@ -1549,6 +1534,9 @@ def user_destroy_network(core_identity, options):
 
 
 def admin_network_init(core_identity):
+    provider_type = core_identity.provider.type.name
+    if provider_type == 'mock':
+        return _to_network_driver(core_identity)
     os_driver = OSAccountDriver(core_identity.provider)
     network_resources = os_driver.create_user_network(core_identity)
     logger.info("Created user network - %s" % network_resources)
@@ -1800,11 +1788,16 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
     instance_id = esh_instance.alias
     volume_id = action_params.get('volume_id')
     mount_location = action_params.get('mount_location')
-    device = action_params.get('device')
+
+    # TODO: We are taking 'device' as a param
+    # but we don't *need* to. volume_id will provide this for us.
+    # Remove this param (and comment) in the future...
+    device_location= action_params.get('device')
+    if device_location == 'null' or device_location == 'None':
+        device_location = None
+
     if mount_location == 'null' or mount_location == 'None':
         mount_location = None
-    if device == 'null' or device == 'None':
-        device = None
     if 'attach_volume' == action_type:
         instance_status = esh_instance.extra.get('status', "N/A")
         if instance_status != 'active':
@@ -1814,17 +1807,17 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
                 'Retry request when instance is active.'
                 % (instance_id, instance_status))
         result = task.attach_volume_task(
-                esh_driver, esh_instance.alias,
-                volume_id, device, mount_location)
+                identity, esh_driver, esh_instance.alias,
+                volume_id, device_location, mount_location)
     elif 'mount_volume' == action_type:
         result = task.mount_volume_task(
-                esh_driver, esh_instance.alias,
-                volume_id, device, mount_location)
+                identity, esh_driver, esh_instance.alias,
+                volume_id, device_location, mount_location)
     elif 'unmount_volume' == action_type:
         (result, error_msg) =\
             task.unmount_volume_task(esh_driver,
                                      esh_instance.alias,
-                                     volume_id, device,
+                                     volume_id, device_location,
                                      mount_location)
     elif 'detach_volume' == action_type:
         instance_status = esh_instance.extra['status']

@@ -70,6 +70,7 @@ class Provider(models.Model):
     Start date and end date are recorded for logging purposes
     """
     # CONSTANTS
+    # ALLOWED STATES - The states allowed when OverAllocation is hit by Instance.
     ALLOWED_STATES = [
         "Suspend",
         "Stop",

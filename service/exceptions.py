@@ -30,6 +30,17 @@ class ActionNotAllowed(ServiceException):
 
 
 
+class AccountCreationConflict(ServiceException):
+
+    def __init__(self, message):
+        self.message = message
+        super(AccountCreationConflict, self).__init__()
+
+    def __str__(self):
+        return "%s" % (self.message, )
+
+
+
 class InstanceLaunchConflict(ServiceException):
 
     def __init__(self, message):

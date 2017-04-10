@@ -209,6 +209,11 @@ class InstanceStatusHistory(models.Model):
             all_history = all_history.filter(end_date__lt=end_date)
         return all_history
 
+    def force_end_date(self, now_time=None):
+        if not now_time:
+            now_time = timezone.now()
+        return self.end_date if self.end_date else now_time
+
     def __unicode__(self):
         return "%s (FROM:%s TO:%s)" % (self.status,
                                        self.start_date,
@@ -219,7 +224,8 @@ class InstanceStatusHistory(models.Model):
         Use this function to determine whether or not a specific instance
         status history should be considered 'active'
         """
-        if self.status.name == 'active':
+        # Running is legacy
+        if self.status.name == 'active' or self.status.name == 'running':
             return True
         else:
             return False

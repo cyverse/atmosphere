@@ -310,6 +310,8 @@ class Identity(models.Model):
             project_name = self.get_credential('project_name')
         if not project_name:
             project_name = self.get_credential('tenant_name')
+        if not project_name:
+            return ""
         return project_name
 
     def get_credential(self, key):
