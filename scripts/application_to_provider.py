@@ -439,6 +439,19 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
 
 
 def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid):
+    """
+    Migrates image data using iRODS and then sets image location using Glance API.
+
+    Args:
+        dst_glance_client: glance client object for destination provider
+        irods_conn: dict as returned by _parse_irods_conn()
+        irods_src_coll: Path to collection for iRODS images on source provider
+        irods_dst_coll: Path to collection for iRODS images on destination provider
+        img_uuid: UUID of image to be migrated
+
+    Returns:
+
+    """
     sess = iRODSSession(host=irods_conn.get('host'),
                         port=irods_conn.get('port'),
                         zone=irods_conn.get('zone'),
@@ -459,6 +472,7 @@ def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irod
     # Assumption that iRODS copy will always be correct+complete, not inspecting checksums afterward?
     dst_glance_client.images.add_location(img_uuid, dst_img_location, dict())
     logging.info("Set image location in Glance")
+    
 
 
 def _parse_irods_conn(irods_conn_str):
