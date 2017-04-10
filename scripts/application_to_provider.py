@@ -84,6 +84,7 @@ def main():
                             "--irods-dst-coll must all be defined")
     else:
         irods = False
+        irods_conn = irods_src_coll = irods_dst_coll = None
 
     persist_local_cache = True if args.persist_local_cache else False
 
@@ -297,41 +298,15 @@ def main():
         local_storage_dir = secrets.LOCAL_STORAGE if os.path.exists(secrets.LOCAL_STORAGE) else "/tmp"
         local_path = os.path.join(local_storage_dir, sprov_img_uuid)
 
-        def migrate_image_data(img_uuid):
-            # Todo this function is in an awkward place and relies on 'global' state, unsure of best way to refactor
-            """
-            Ensures that Glance image data matches between a source and a destination OpenStack provider.
-            Migrates image data if needed, using either Glance API download/upload or iRODS data object copy.
-            Args:
-                img_uuid: UUID of image to be migrated
-
-            Returns: True if successful, else raises exception
-            """
-
-            src_img = sprov_glance_client.images.get(img_uuid)
-            dst_img = dprov_glance_client.images.get(img_uuid)
-            if irods:
-                # Unable to use checksum for irods transfer, because checksum is not set in Glance when a location
-                # is added to an image (instead of uploading image data via Glance API) :(
-                if src_img.size == dst_img.size:
-                    logging.info("Image data size matches on source and destination providers, not migrating data")
-                    return True
-                else:
-                    migrate_image_data_irods(dprov_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
-            else:
-                if src_img.checksum == dst_img.checksum:
-                    logging.info("Image data checksum matches on source and destination providers, not migrating data")
-                    return True
-                else:
-                    migrate_image_data_glance(sprov_glance_client, dprov_glance_client, img_uuid, local_path,
-                                              persist_local_cache)
-
         # Populate image data in destination provider if needed
-        migrate_image_data(sprov_img_uuid)
+        migrate_image_data(sprov_img_uuid, sprov_glance_client, dprov_glance_client, local_path, persist_local_cache,
+                           irods, irods_conn, irods_src_coll, irods_dst_coll)
         # If AMI-based image, populate image data in destination provider if needed
         if ami:
-            migrate_image_data(sprov_aki_glance_image.id)
-            migrate_image_data(sprov_ari_glance_image.id)
+            migrate_image_data(sprov_aki_glance_image.id, sprov_glance_client, dprov_glance_client, local_path,
+                               persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll)
+            migrate_image_data(sprov_ari_glance_image.id, sprov_glance_client, dprov_glance_client, local_path,
+                               persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll)
 
 
 def file_md5(path):
@@ -358,6 +333,45 @@ def get_or_create_glance_image(glance_client, img_uuid):
         if glance_image is not None:
             logging.info("Found Glance image matching specified UUID {0}, re-using it".format(img_uuid))
             return glance_image
+
+
+def migrate_image_data(img_uuid, sprov_glance_client, dprov_glance_client, local_path, persist_local_cache, irods,
+                       irods_conn, irods_src_coll, irods_dst_coll):
+    """
+    Ensures that Glance image data matches between a source and a destination OpenStack provider.
+    Migrates image data if needed, using either Glance API download/upload or iRODS data object copy.
+    Args:
+        img_uuid: UUID of image to be migrated
+        sprov_glance_client: glance client object for source provider
+        dprov_glance_client: glance client object for destination provider
+        local_path: Local storage path
+        persist_local_cache: If image download succeeds but upload fails, keep local cached copy for subsequent attempt
+                             (Local cache is always deleted after successful upload)
+        irods: boolean True if using iRODS for image transfer, false if using pure Glance API
+        irods_conn: dict as returned by _parse_irods_conn()
+        irods_src_coll: Path to collection for iRODS images on source provider
+        irods_dst_coll: Path to collection for iRODS images on destination provider
+
+    Returns: True if successful, else raises exception
+    """
+
+    src_img = sprov_glance_client.images.get(img_uuid)
+    dst_img = dprov_glance_client.images.get(img_uuid)
+    if irods:
+        # Unable to use checksum for irods transfer, because checksum is not set in Glance when a location
+        # is added to an image (instead of uploading image data via Glance API) :(
+        if src_img.size == dst_img.size:
+            logging.info("Image data size matches on source and destination providers, not migrating data")
+            return True
+        else:
+            migrate_image_data_irods(dprov_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
+    else:
+        if src_img.checksum == dst_img.checksum:
+            logging.info("Image data checksum matches on source and destination providers, not migrating data")
+            return True
+        else:
+            migrate_image_data_glance(sprov_glance_client, dprov_glance_client, img_uuid, local_path,
+                                      persist_local_cache)
 
 
 def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True, max_tries=3):
@@ -479,10 +493,10 @@ def _parse_args():
                         help="iRODS connection string in the form of irods://user:password@host:port/zone")
     parser.add_argument("--irods-src-coll",
                         type=str,
-                        help="Collection for iRODS images on source provider")
+                        help="Path to collection for iRODS images on source provider")
     parser.add_argument("--irods-dst-coll",
                         type=str,
-                        help="Collection for iRODS images on destination provider")
+                        help="Path to collection for iRODS images on destination provider")
     args = parser.parse_args()
     return args
 
