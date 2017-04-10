@@ -40,7 +40,6 @@ class GetProjectInstanceListTests(APITestCase):
         url = reverse('api:v2:projectinstance-list')
         url_proj = "?project__id=" + str(self.project.id)
         url += url_proj
-        print url
         self.request = factory.get(url)
 
     def test_response_contains_expected_fields(self):
