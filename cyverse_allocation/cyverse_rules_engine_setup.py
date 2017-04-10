@@ -145,9 +145,11 @@ renewal_strategies = {
     'bi-weekly': {'compute_allowed': 150,
                   'renewed_in_days': 14},
 
-    'workshop': {'compute_allowed': 100,
-                 'renewed_in_days': 0}
+    'workshop': {'compute_allowed': 0,
+                 'renewed_in_days': 0},
 
+    'custom':   {'compute_allowed': 0,
+                 'renewed_in_days': 0},
 }
 
 # MAIN RULES JSON
