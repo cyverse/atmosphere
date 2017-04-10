@@ -42,8 +42,11 @@ from service.exceptions import AnsibleDeployException
 from service.instance import _update_instance_metadata
 from service.networking import _generate_ssh_kwargs
 
+from service.mock import MockInstance
 
 def _update_status_log(instance, status_update):
+    if type(instance) == MockInstance:
+        return
     now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         user = instance._node.extra['metadata']['creator']
@@ -1422,10 +1425,6 @@ def remove_empty_network(
         network_options):
     from service import instance as instance_service
     try:
-        # For testing ONLY.. Test cases ignore countdown..
-        if app.conf.CELERY_ALWAYS_EAGER:
-            celery_logger.debug("Eager task waiting 1 minute")
-            time.sleep(60)
         celery_logger.debug("remove_empty_network task started at %s." %
                      datetime.now())
 
@@ -1433,6 +1432,12 @@ def remove_empty_network(
         core_identity = Identity.objects.get(uuid=core_identity_uuid)
         driver = get_driver(driverCls, provider, identity)
         instances = driver.list_instances()
+        if not hasattr(driver, '_is_active_instance'):
+            celery_logger.debug("Driver %s does not have '_is_active_instance'" % driver)
+            return False
+        if not hasattr(driver, '_is_inactive_instance'):
+            celery_logger.debug("Driver %s does not have '_is_inactive_instance'" % driver)
+            return False
         active_instances = any(
             driver._is_active_instance(instance) for
             instance in instances)
