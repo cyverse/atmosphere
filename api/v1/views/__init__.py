@@ -4,10 +4,8 @@ from api.v1.views.cloud_admin import\
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
     CloudAdminAccountList, CloudAdminAccount,\
     CloudAdminInstanceActionList, CloudAdminInstanceAction
-from api.v1.views.credential import CredentialList, CredentialDetail
 from api.v1.views.email import Feedback, QuotaEmail, SupportEmail
 from api.v1.views.group import GroupList, Group
-from api.v1.views.identity_membership import IdentityMembershipList, IdentityMembership
 from api.v1.views.identity import IdentityList, Identity, IdentityDetail,\
     IdentityDetailList
 from api.v1.views.instance import InstanceList, Instance,\

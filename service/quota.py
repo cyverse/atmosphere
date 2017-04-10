@@ -34,7 +34,8 @@ def check_over_instance_quota(
     """
     membership = IdentityMembership.objects.get(
         identity__uuid=identity_uuid,
-        member__name=username)
+        member__memberships__user__username=username)
+    quota = membership.quota
     identity = membership.identity
     quota = identity.quota
     driver = get_cached_driver(identity=identity)
@@ -74,7 +75,7 @@ def check_over_storage_quota(
     By default, allow ValidationError to raise.
     """
     membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
-                                                member__name=username)
+                                                member__memberships__user__username=username)
     identity = membership.identity
     quota = identity.quota
     driver = get_cached_driver(identity=identity)

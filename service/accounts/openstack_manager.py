@@ -11,6 +11,8 @@ from django.db.models import Max
 from django.db.models import ObjectDoesNotExist
 from rtwo.exceptions import NovaOverLimit, KeystoneUnauthorized
 from rtwo.exceptions import NeutronClientException, GlanceClientException
+from keystoneclient.exceptions import NotFound as KeystoneNotFound
+
 from service.exceptions import AccountCreationConflict
 from keystoneauth1.exceptions.http import Unauthorized as KeystoneauthUnauthorized
 from requests.exceptions import ConnectionError
@@ -24,6 +26,8 @@ from chromogenic.drivers.openstack import ImageManager
 
 from atmosphere import settings
 
+from core.query import contains_credential
+from core.models import GroupMembership
 from core.models.identity import Identity
 
 from service.accounts.base import BaseAccountDriver
@@ -177,8 +181,8 @@ class AccountDriver(BaseAccountDriver):
             value = default_value
         return value
 
-    def create_account(self, username, password=None, project_name=None,
-                       role_name=None, quota=None, max_quota=False):
+    def create_account(self, account_user, group_name, username, password=None, project_name=None,
+                       role_name=None, quota=None, is_leader=False, max_quota=False):
         """
         Create (And Update "latest changes") to an account
 
@@ -203,7 +207,8 @@ class AccountDriver(BaseAccountDriver):
         ident = self.create_identity(username, password,
                                      project.name,
                                      quota=quota,
-                                     max_quota=max_quota)
+                                     max_quota=max_quota,
+                                     is_leader=is_leader)
         return ident
 
     def build_account(self, username, password,
@@ -517,17 +522,17 @@ class AccountDriver(BaseAccountDriver):
                 missing_creds.append(c)
         return missing_creds
 
-    def create_identity(self, username, password, project_name,
-                        quota=None, max_quota=False, account_admin=False):
+    def create_identity(self, account_user, group_name, username, password, project_name,
+                        quota=None, max_quota=False, account_admin=False, is_leader=False):
 
         if not self.core_provider:
             raise Exception("AccountDriver not initialized by provider, "
                             "cannot create identity")
-        identity = Identity.create_identity(
-            username, self.core_provider.location,
+        identity = Identity.build_account(
+            account_user, group_name, username, self.core_provider.location,
             quota=quota,
             # Flags..
-            max_quota=max_quota, account_admin=account_admin,
+            max_quota=max_quota, account_admin=account_admin, is_leader=is_leader,
             # Pass in credentials with cred_ namespace
             cred_key=username, cred_secret=password,
             cred_ex_tenant_name=project_name,
@@ -536,18 +541,9 @@ class AccountDriver(BaseAccountDriver):
         # Return the identity
         return identity
 
-    def rebuild_project_network(self, username, project_name,
-                                dns_nameservers=[]):
-        self.network_manager.delete_project_network(username, project_name)
-        net_args = self._base_network_creds()
-        self.network_manager.create_project_network(
-            username,
-            self.hashpass(username),
-            project_name,
-            get_unique_number=_get_unique_id,
-            dns_nameservers=dns_nameservers,
-            **net_args)
-        return True
+    def rebuild_project_network(self, identity, delete_options={}):
+        self.delete_user_network(identity, delete_options)
+        return self.create_user_network(identity)
 
     def delete_security_group(self, identity):
         identity_creds = self.parse_identity(identity)
@@ -675,20 +671,53 @@ class AccountDriver(BaseAccountDriver):
         return network_resources
 
     # Useful methods called from above..
-    def delete_account(self, username, projectname):
-        self.os_delete_account(username, projectname)
-        Identity.delete_identity(username, self.core_provider.location)
+    def find_accounts(self, account_user, group_name, username, project_name, **kwargs):
+        member = GroupMembership.objects.filter(
+            user__username=account_user,
+            group__name=group_name)
+        if not member:
+            return Identity.objects.none()
 
-    def os_delete_account(self, username, projectname):
+        group = member.first().group
+        return group.identities.filter(
+                contains_credential('ex_project_name', project_name)
+            ).filter(
+                contains_credential('key', username)
+            )
+
+    def delete_account(self, identity, account_user, group_name, **kwargs):
+        self.os_delete_account(identity)
+        #NOTE: This might be *too* destructive, may change this classmethod
+        return Identity.destroy_account(account_user, self.core_provider.location)
+
+    def delete_all_roles(self, username, project_name):
+        project = self.user_manager.get_project(project_name)
+        if hasattr(project, 'remove_user'):
+            return self.user_manager.delete_all_roles(username, project_name)
+        user = self.user_manager.get_user(username)
+        roles_assigned = self.user_manager.keystone.role_assignments.list(project=project)
+        #FIXME: This doesn't work yet.
+        for ra in roles_assigned:
+            try:
+                self.user_manager.keystone.roles.revoke(
+                    ra.role['id'], user=user.id, project=project.id)
+            except KeystoneNotFound:
+                pass
+        return roles_assigned
+
+    def os_delete_account(self, identity):
+        username = identity.get_credential('key')
+        projectname = identity.project_name()
         project = self.user_manager.get_project(projectname)
 
         # 1. Network cleanup
         if project:
-            self.network_manager.delete_project_network(username, projectname)
+            self.delete_user_network(identity)
             # 2. Role cleanup (Admin too)
-            self.user_manager.delete_all_roles(username, projectname)
-            adminuser = self.user_manager.keystone.username
-            self.user_manager.delete_all_roles(adminuser, projectname)
+
+            self.delete_all_roles(username, projectname)
+            adminuser = self.get_admin_username()
+            self.delete_all_roles(adminuser, projectname)
             # 3. Project cleanup
             self.user_manager.delete_project(projectname)
         # 4. User cleanup
@@ -738,6 +767,9 @@ class AccountDriver(BaseAccountDriver):
         secret_salt = str(cloud_pass).translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         return password
+
+    def get_admin_username(self):
+        return self.user_manager.keystone.username
 
     def get_project_name_for(self, username):
         """

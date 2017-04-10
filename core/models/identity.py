@@ -7,6 +7,7 @@ Note:
 from datetime import timedelta
 
 from django.db import models
+from django.db.models import Q
 
 from threepio import logger
 from uuid import uuid5, uuid4
@@ -32,25 +33,53 @@ class Identity(models.Model):
         """
         return Identity.objects.filter(instance__provider_alias=instance_id).first()
 
+    @staticmethod
+    def shared_with_group(group):
+        """
+        """
+        project_query = Q(identity_memberships__member=group)
+        return Identity.objects.filter(project_query)
+
+    @staticmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        ownership_query = Q(created_by=user)
+        project_query = Q(identity_memberships__member__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(identity_memberships__member__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(identity_memberships__member__memberships__is_leader=True)
+        return Identity.objects.filter(project_query | ownership_query).distinct()
+
     @classmethod
-    def delete_identity(cls, username, provider_location):
+    def destroy_account(cls, username, provider_location):
         # Do not move up. ImportError.
-        from core.models import AtmosphereUser, Group, Credential, Quota,\
-            Provider, AccountProvider,\
-            IdentityMembership
+        from core.models import AtmosphereUser, Provider
 
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
-        group = Group.objects.get(name=username)
         my_ids = Identity.objects.filter(
             created_by=user, provider=provider)
         for ident in my_ids:
-            membership_set = ident.identity_memberships.all()
-            membership_set.delete()
             ident.delete()
-        group.delete()
-        user.delete()
-        return
+        Identity._destroy_group_membership(user)
+        if not Identity.shared_with_user(user):
+            user.delete()
+        return my_ids
+
+    @classmethod
+    def _destroy_group_membership(cls, user):
+        from core.models import Group
+        memberships = user.memberships.all()
+        group_names = memberships.values_list('group__name', flat=True)
+        groups = Group.objects.filter(name__in=group_names)
+        for group in groups:
+            others_exist = group.memberships.filter(~Q(user=user)).exists()
+            if not others_exist:
+                group.delete()
+        memberships.delete()
 
     def export_to_file(self, filename=None):
         """
@@ -91,9 +120,10 @@ class Identity(models.Model):
             return True
         # Check 2
         shared = False
-        leader_groups = django_user.group_set.get(leaders__in=[django_user])
-        for group in leader_groups:
-            id_member = g.identity_memberships.get(identity=self)
+        memberships = django_user.memberships.select_related('group').get(is_leader=True, user=django_user)
+        for membership in memberships:
+            group = membership.group
+            id_member = group.identity_memberships.get(identity=self)
             if not id_member:
                 continue
             # ASSERT: You have SHARED access to the identity
@@ -169,9 +199,9 @@ class Identity(models.Model):
         return credentials
 
     @classmethod
-    def create_identity(cls, username, provider_location,
+    def build_account(cls, account_user, group_name, username, provider_location,
                         quota=None, allocation=None,
-                        max_quota=False, account_admin=False, **kwarg_creds):
+                        is_leader=False, max_quota=False, account_admin=False, **kwarg_creds):
         """
         DEPRECATED: POST to v2/identities API to create an identity.
         """
@@ -183,6 +213,8 @@ class Identity(models.Model):
         provider = Provider.objects.get(location__iexact=provider_location)
         credentials = cls._kwargs_to_credentials(kwarg_creds)
 
+        if not quota:
+            quota = Quota.default_quota()
         #DEV NOTE: 'New' identities are expected to have a router name directly assigned
         # upon creation. If the value is not passed in, we can ask the provider to select
         # the router with the least 'usage' to ensure an "eventually consistent" distribution
@@ -191,7 +223,8 @@ class Identity(models.Model):
         if topologyClsName == 'External Router Topology' and 'router_name' not in credentials:
             credentials['router_name'] = provider.select_router()
 
-        (user, group) = Group.create_usergroup(username)
+        (user, group) = Group.create_usergroup(
+            account_user, group_name, is_leader)
 
         identity = cls._get_identity(user, group, provider, quota, credentials)
         # NOTE: This specific query will need to be modified if we want
@@ -220,28 +253,27 @@ class Identity(models.Model):
         # 1. Make sure that an Identity exists for the user/group+provider
         # 2. Make sure that all kwargs exist as credentials for the identity
         """
-        identity_qs = Identity.objects.filter(
-                created_by=user, provider=provider)
-
-        if 'ex_project_name' in credentials:
-            project_name = credentials['ex_project_name']
-        elif 'ex_tenant_name' in credentials:
-            project_name = credentials['ex_tenant_name']
-        if project_name:
-            identity_qs = identity_qs.filter(
-                    contains_credential('ex_project_name', project_name) | contains_credential('ex_tenant_name', project_name)).distinct()
-        #FIXME: To make this *more* iron-clad, we should probably
-        # include the username `key/value` pair, and looks *explicitly* for that pairing in an identity they have created..
+        credentials_match_query = (
+            contains_credential('key', credentials['key']) &
+            contains_credential('ex_project_name', credentials['ex_project_name'])
+        )
+        identity_qs = Identity.objects\
+            .filter(created_by=user, provider=provider)\
+            .filter(credentials_match_query).first()
+        # This shouldn't happen..
         if identity_qs.count() > 1:
             raise Exception("Could not uniquely identify the identity")
+
         identity = identity_qs.first()
-        if identity:
-            # In the future, we will only update the credentials *once*
-            # during self._create_identity().
-            for (c_key, c_value) in credentials.items():
-                Identity.update_credential(identity, c_key, c_value)
-        else:
+        if not identity:
             identity = cls._create_identity(user, group, provider, quota, credentials)
+
+        # 2. Make sure that all kwargs exist as credentials
+        # NOTE: Because we assume a matching username and
+        #       project name, we can update the remaining
+        #       credentials (for any new or updated future-values)
+        for (c_key, c_value) in credentials.items():
+            Identity.update_credential(identity, c_key, c_value)
         return identity
 
     @classmethod
@@ -301,6 +333,11 @@ class Identity(models.Model):
 
     def creator_name(self):
         return self.created_by.username
+
+    def get_key(self):
+        return "%s/%s" % (
+            self.get_credential('key'),
+            self.project_name())
 
     def project_name(self):
         project_name = self.get_credential('ex_project_name')
@@ -412,7 +449,7 @@ class Identity(models.Model):
         }
 
     def __unicode__(self):
-        output = "%s %s" % (self.provider, self.project_name())
+        output = "%s %s" % (self.provider, self.get_key())
         return output
 
     class Meta:

@@ -10,6 +10,8 @@ django.setup()
 
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
+from core.query import contains_credential
+from core.plugins import ValidationPluginManager, ExpirationPluginManager, AccountCreation
 
 from django_cyverse_auth.protocol.ldap import get_members
 from service.driver import get_account_driver
@@ -75,41 +77,17 @@ def main():
             users = get_usernames(provider)
     else:
         users = args.users.split(",")
-    return create_accounts(acct_driver, provider, users,
+    return run_create_accounts(acct_driver, provider, users,
                            args.rebuild, args.admin)
 
 
-def create_accounts(acct_driver, provider, users, rebuild=False, admin=False):
+def run_create_accounts(acct_driver, provider, users, rebuild=False, admin=False):
     added = 0
     for user in users:
-        # Then add the Openstack Identity
-        try:
-            id_exists = Identity.objects.filter(
-                created_by__username__iexact=user,
-                provider=provider)
-            if id_exists:
-                if not rebuild:
-                    continue
-                print "%s Exists -- Attempting an account rebuild" % user
-            new_identity = acct_driver.create_account(user, max_quota=admin)
-            # After identity is created, be sure to select one of the
-            # `public_routers` in provider to be given
-            # to the identity as a `router_name`
-            selected_router = provider.select_router()
-            Identity.update_credential(
-                new_identity, 'router_name', selected_router,
-                replace=True)
-            added += 1
-            if admin:
-                make_admin(user)
-                print "%s added as admin." % (user)
-            else:
-                print "%s added." % (user)
-        except Exception as e:
-            logger.exception("Problem creating account")
-            print "Problem adding %s." % (user)
-            logger.exception(e)
-            print e.message
+        new_identities = AccountCreation.create_accounts(provider, user, force=rebuild)
+        if new_identities:
+            print "%s added." % (user)
+            added += len(new_identities)
     print "Total users added:%s" % (added)
 
 

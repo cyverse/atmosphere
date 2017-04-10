@@ -4,9 +4,11 @@ from functools import reduce
 from django.utils import six
 from django.db.models import Q
 
-from rest_framework.filters import SearchFilter
+from rest_framework.filters import SearchFilter, DjangoFilterBackend
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
+from rest_framework import filters
+import django_filters
 
 from api.v2.serializers.details import GroupSerializer
 from api.v2.views.base import AuthViewSet
@@ -40,6 +42,24 @@ class MinLengthRequiredSearchFilter(SearchFilter):
         fields = ["name", "user_set__email"]
 
 
+class GroupFilter(filters.FilterSet):
+    identity_id = django_filters.CharFilter('identity_memberships__identity__id')
+    identity_uuid = django_filters.CharFilter('identity_memberships__identity__uuid')
+    #is_private = django_filters.FilterMethod(method='is_private')
+
+    def is_private(self):
+        """
+        For now, this is how we can verify if the group is 'private'.
+        Later, we might have to remove the property and include a 'context user'
+        so that we can determine the ownership (of the group, or that the name is a perfect match, etc.)
+        """
+        return self.leaders.count() == 1
+
+    class Meta:
+        model = Group
+        fields = ["identity_id", "identity_uuid"]
+
+
 class GroupViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
@@ -51,9 +71,10 @@ class GroupViewSet(MultipleFieldLookup, AuthViewSet):
     max_page_size_query_param = 1000
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    filter_backends = (MinLengthRequiredSearchFilter,)
+    filter_backends = (DjangoFilterBackend, MinLengthRequiredSearchFilter)
+    filter_class = GroupFilter
     http_method_names = ['get', 'post', 'head', 'options', 'trace']
-    search_fields = ('^groupname',)  # NOTE: ^ == Startswith searching
+    search_fields = ('^name',)  # NOTE: ^ == Startswith searching
 
     def lookup_group(self, key):
         """
@@ -92,3 +113,10 @@ class GroupViewSet(MultipleFieldLookup, AuthViewSet):
         group.user_set.remove(user)
         serialized_data = GroupSerializer(group, context={'request': request}).data
         return Response(serialized_data)
+
+    def get_queryset(self):
+        """
+        Filter out tags for deleted instances
+        """
+        user_id = self.request.user.id
+        return Group.objects.filter(user__id=user_id)

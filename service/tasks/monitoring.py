@@ -183,7 +183,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
         (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid, owner_project)
         #STEP 2: For any private cloud_machine, convert the 'shared users' as known by cloud
-        update_image_membership(account_driver, cloud_machine, db_machine)
+        #update_image_membership(account_driver, cloud_machine, db_machine)
 
         # into DB relationships: ApplicationVersionMembership, ProviderMachineMembership
         #STEP 3: if ENFORCING -- occasionally 're-distribute' any ACLs that are *listed on DB but not on cloud* -- removals should be done explicitly, outside of this function

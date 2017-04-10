@@ -1,19 +1,31 @@
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import filters
+import django_filters
 
 from core.models import Identity, Group
+from core.query import only_current_provider
 
 from api.v2.serializers.details import IdentitySerializer
 from api.v2.views.base import AuthViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 
+class IdentityFilter(filters.FilterSet):
+    project_id = django_filters.CharFilter('identity_memberships__member__projects__id')
+    project_uuid = django_filters.CharFilter('identity_memberships__member__projects__uuid')
+
+    class Meta:
+        model = Identity
+        fields = ["project_id", "project_uuid"]
+
 class IdentityViewSet(MultipleFieldLookup, AuthViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.
     """
+    filter_class = IdentityFilter
     lookup_fields = ("id", "uuid")
     queryset = Identity.objects.all()
     http_method_names = ['get', 'head', 'options', 'trace']
@@ -44,9 +56,5 @@ class IdentityViewSet(MultipleFieldLookup, AuthViewSet):
         Filter identities by current user
         """
         user = self.request.user
-        try:
-            group = Group.objects.get(name=user.username)
-        except Group.DoesNotExist:
-            return Identity.objects.none()
-        identities = group.current_identities.all()
-        return identities
+        identity_list = Identity.shared_with_user(user).filter(only_current_provider())
+        return identity_list
