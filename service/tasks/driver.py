@@ -609,12 +609,16 @@ def get_chain_from_build(
     """
     wait_active_task = wait_for_instance.s(
         instance.id, driverCls, provider, identity, "active")
-    add_security_group = add_security_group_task.si(driverCls, provider, core_identity, instance.id)
-    wait_active_task.link(add_security_group)
+    has_secret = core_identity.get_credential('secret') is not None
+    if not has_secret:
+        add_security_group = add_security_group_task.si(driverCls, provider, core_identity, instance.id)
+        wait_active_task.link(add_security_group)
     start_chain = wait_active_task
     network_start = get_chain_from_active_no_ip(
         driverCls, provider, identity, instance, core_identity, username=username,
         password=password, redeploy=redeploy, deploy=deploy)
+    if not has_secret:
+        add_security_group.link(network_start)
     start_chain.link(network_start)
     return start_chain
 
