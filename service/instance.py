@@ -17,6 +17,7 @@ from rtwo.exceptions import LibcloudBadResponseError
 from rtwo.driver import OSDriver
 from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_keystone_v3, _token_to_keystone_scoped_project
 from rtwo.drivers.openstack_network import NetworkManager
+from rtwo.drivers.openstack_user import UserManager
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
