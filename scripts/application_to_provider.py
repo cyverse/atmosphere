@@ -449,8 +449,7 @@ def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irod
         irods_dst_coll: Path to collection for iRODS images on destination provider
         img_uuid: UUID of image to be migrated
 
-    Returns:
-
+    Returns: True if successful, else raises exception
     """
     sess = iRODSSession(host=irods_conn.get('host'),
                         port=irods_conn.get('port'),
@@ -472,7 +471,7 @@ def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irod
     # Assumption that iRODS copy will always be correct+complete, not inspecting checksums afterward?
     dst_glance_client.images.add_location(img_uuid, dst_img_location, dict())
     logging.info("Set image location in Glance")
-    
+    return True
 
 
 def _parse_irods_conn(irods_conn_str):
