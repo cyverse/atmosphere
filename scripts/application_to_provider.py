@@ -98,8 +98,7 @@ def main():
         sprov = None
 
     dprov_acct_driver = service.driver.get_account_driver(dprov, raise_exception=True)
-    dprov_img_mgr = dprov_acct_driver.image_manager
-    dprov_glance_client = dprov_img_mgr.glance
+    dprov_glance_client = _get_glance_client(dprov)
 
     dprov_atmo_admin_uname = dprov.admin.project_name()
     dprov_atmo_admin_uuid = dprov_acct_driver.get_project(dprov_atmo_admin_uname).id
@@ -169,9 +168,7 @@ def main():
 
         # Get access to source provider
         sprov_img_uuid = sprov_instance_source.identifier
-        sprov_acct_driver = service.driver.get_account_driver(sprov, raise_exception=True)
-        sprov_img_mgr = sprov_acct_driver.image_manager
-        sprov_glance_client = sprov_img_mgr.glance
+        sprov_glance_client = _get_glance_client(sprov)
 
         # Get source image metadata from Glance, and determine if image is AMI-based
         sprov_glance_image = sprov_glance_client.images.get(sprov_img_uuid)
@@ -307,6 +304,15 @@ def main():
                                persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll)
             migrate_image_data(sprov_ari_glance_image.id, sprov_glance_client, dprov_glance_client, local_path,
                                persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll)
+
+
+def _get_glance_client(provider):
+    """
+    Given a Provider object, returns a Glance client object for that provider
+    """
+    acct_driver = service.driver.get_account_driver(provider, raise_exception=True)
+    img_mgr = acct_driver.image_manager
+    return img_mgr.glance
 
 
 def file_md5(path):
