@@ -335,15 +335,15 @@ def get_or_create_glance_image(glance_client, img_uuid):
             return glance_image
 
 
-def migrate_image_data(img_uuid, sprov_glance_client, dprov_glance_client, local_path, persist_local_cache, irods,
+def migrate_image_data(img_uuid, src_glance_client, dst_glance_client, local_path, persist_local_cache, irods,
                        irods_conn, irods_src_coll, irods_dst_coll):
     """
     Ensures that Glance image data matches between a source and a destination OpenStack provider.
     Migrates image data if needed, using either Glance API download/upload or iRODS data object copy.
     Args:
         img_uuid: UUID of image to be migrated
-        sprov_glance_client: glance client object for source provider
-        dprov_glance_client: glance client object for destination provider
+        src_glance_client: glance client object for source provider
+        dst_glance_client: glance client object for destination provider
         local_path: Local storage path
         persist_local_cache: If image download succeeds but upload fails, keep local cached copy for subsequent attempt
                              (Local cache is always deleted after successful upload)
@@ -355,8 +355,8 @@ def migrate_image_data(img_uuid, sprov_glance_client, dprov_glance_client, local
     Returns: True if successful, else raises exception
     """
 
-    src_img = sprov_glance_client.images.get(img_uuid)
-    dst_img = dprov_glance_client.images.get(img_uuid)
+    src_img = src_glance_client.images.get(img_uuid)
+    dst_img = dst_glance_client.images.get(img_uuid)
     if irods:
         # Unable to use checksum for irods transfer, because checksum is not set in Glance when a location
         # is added to an image (instead of uploading image data via Glance API) :(
@@ -364,13 +364,13 @@ def migrate_image_data(img_uuid, sprov_glance_client, dprov_glance_client, local
             logging.info("Image data size matches on source and destination providers, not migrating data")
             return True
         else:
-            migrate_image_data_irods(dprov_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
+            migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
     else:
         if src_img.checksum == dst_img.checksum:
             logging.info("Image data checksum matches on source and destination providers, not migrating data")
             return True
         else:
-            migrate_image_data_glance(sprov_glance_client, dprov_glance_client, img_uuid, local_path,
+            migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path,
                                       persist_local_cache)
 
 
