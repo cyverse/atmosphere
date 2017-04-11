@@ -432,7 +432,7 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
                 logging.warning("Image data upload attempt failed")
 
     if src_img.checksum != dst_glance_client.images.get(img_uuid).checksum:
-        raise Exception("Could not upload image data")
+        raise Exception("Image checksums don't match, upload may have failed!")
     else:
         os.remove(local_path)
         return True
