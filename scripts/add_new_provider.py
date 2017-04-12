@@ -58,19 +58,20 @@ def require_input(
 def review_information(provider_info, admin_info, provider_credentials, cloud_config):
     """
     """
-    print "1. Provider Information"
-    pprint.pprint(provider_info)
-    print "1. Provider Cloud config"
-    pprint.pprint(cloud_config)
-    print "2. Admin Information"
-    pprint.pprint(admin_info)
-    print "3. Provider Credentials"
-    pprint.pprint(provider_credentials)
+    # print "1. Provider Information"
+    # pprint.pprint(provider_info)
+    # print "1. Provider Cloud config"
+    # pprint.pprint(cloud_config)
+    # print "2. Admin Information"
+    # pprint.pprint(admin_info)
+    # print "3. Provider Credentials"
+    # pprint.pprint(provider_credentials)
     print "NOTE: Save this JSON File to make it easier for you to get back to this point later:"
-    jsonfile_text = json.dumps({
+    raw_data = {
         'provider': provider_info, 'admin': admin_info,
-        'credential': provider_credentials, 'cloud_config': cloud_config})
-    pprint.pprint(jsonfile_text)
+        'credential': provider_credentials, 'cloud_config': cloud_config}
+    jsonfile_text = json.dumps(raw_data)
+    print jsonfile_text
     review_completed = raw_input("Does everything above look correct? [Yes]/No")
     if not review_completed or review_completed.lower() == 'yes':
         return
