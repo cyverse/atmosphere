@@ -2,6 +2,7 @@
 
 # DEPRECATION WARNING -- Will be removed in favor of periodic task (To facilitate auto-generation of `atmo-user` accounts)
 # and the use of the /v2/accounts API.
+# FIXME: Add 'account_user, group_name, is_leader' args to this script
 import argparse
 import libcloud.security
 

@@ -2,7 +2,6 @@
 
 # DEPRECATION WARNING -- Will be removed in favor of contacting the Atmosphere API directly
 # or using the GUI to instantiate provider + accounts
-#FIXME: Add 'account_user, group_name, is_leader' args to this script
 import argparse
 import json
 import pprint
@@ -21,7 +20,6 @@ from core.models import Provider, PlatformType, ProviderType, Identity, Group,\
 from core.models import InstanceAction
 from service.driver import get_account_driver
 from service.networking import topology_list
-from atmosphere.settings import secrets
 from atmosphere import settings
 
 libcloud.security.VERIFY_SSL_CERT = False
@@ -68,8 +66,11 @@ def review_information(provider_info, admin_info, provider_credentials, cloud_co
     pprint.pprint(admin_info)
     print "3. Provider Credentials"
     pprint.pprint(provider_credentials)
-    #jsonfile_text = json.dumps({'provider':provider_info, 'admin': admin_info, 'credentials': provider_credentials})
-    #print jsonfile_text
+    print "NOTE: Save this JSON File to make it easier for you to get back to this point later:"
+    jsonfile_text = json.dumps({
+        'provider': provider_info, 'admin': admin_info,
+        'credential': provider_credentials, 'cloud_config': cloud_config})
+    pprint.pprint(jsonfile_text)
     review_completed = raw_input("Does everything above look correct? [Yes]/No")
     if not review_completed or review_completed.lower() == 'yes':
         return
@@ -93,6 +94,7 @@ def yes_no_truth(raw_text):
         return True
     else:
         return False
+
 
 def get_comma_list(raw_text):
     """
@@ -125,8 +127,8 @@ def has_fields(fields, required_fields):
 def read_json_file(filename):
     data = None
 
-    with open(filename) as fp:
-        data = fp.read()
+    with open(filename) as jsonfile:
+        data = jsonfile.read()
 
     # Require the file to contain content
     if not data:
@@ -135,16 +137,16 @@ def read_json_file(filename):
 
     # Load data as json
     try:
-        info = json.loads(data)
+        json_data = json.loads(data)
     except:
         raise
         print("Invalid file format expected a json file.")
         raise
 
-    provider_info = info["provider"]
-    admin_info = info["admin"]
-    credential_info = info["credential"]
-    cloud_config = info["cloud_config"]
+    provider_info = json_data.get("provider", {})
+    admin_info = json_data.get("admin", {})
+    credential_info = json_data.get("credential", {})
+    cloud_config = json_data.get("cloud_config", {})
 
     return provider_info, admin_info, credential_info, cloud_config
 
@@ -204,9 +206,9 @@ def get_provider_info(provider_info={}):
         print "1: KVM (Default), 2: Xen"
         platform = require_input("Select a platform type ([1]/2): ", lambda answer: answer in ['1','2'], default='1')
         if platform == '1':
-            platform = KVM
-        elif platform_choice == '2':
-            platform = XEN
+            platform = 'KVM'
+        elif platform == '2':
+            platform = 'XEN'
         provider_info['platform'] = platform
 
     if not provider_info.get('type'):
@@ -215,7 +217,7 @@ def get_provider_info(provider_info={}):
         # print "Select a provider type for your new provider"
         # print "1: Openstack"
         # provider_type = require_input("Select a provider type [1]", default=openstack)
-        provider_type = openstack
+        provider_type = 'openstack'
         provider_info['type'] = provider_type
     return provider_info
 
@@ -248,15 +250,15 @@ def get_cloud_config(cloud_config={}):
     set_user_config(user_config)
     set_deploy_config(deploy_config)
     set_network_config(net_config)
-    return {
+    cloud_config.update({
         'user': user_config,
         'deploy': deploy_config,
         'network': net_config,
-    }
+    })
+    return cloud_config
 
 
 def set_deploy_config(deploy_config):
-    #get/set deploy_format
     hostname_format = deploy_config.get('hostname_format')
     if not hostname_format:
         print "What is the hostname format for the instances deployed by your provider? (Default selection will use IP address as hostname)"
@@ -281,7 +283,7 @@ def set_network_config(net_config):
         for idx, choice in enumerate(choices):
             print "%s:" % idx,
             pprint.pprint(choice)
-        topology = require_input("Select the topology name by number: ", lambda answer: choices[int(answer)] if int(answer) < len(choices) else None, default='0')
+        topology = require_input("Select the topology name by number: ", lambda answer: choices[int(answer)] if int(answer) < len(choices) else None, default='0', use_validated_answer=True)
         topology_name = topology.name
     else:
         topology_name = net_config['topology']
@@ -291,19 +293,16 @@ def set_network_config(net_config):
 
 
 def set_user_config(user_config):
-    #get/set admin_role_name
     admin_role_name = user_config.get('admin_role_name')
     if not admin_role_name:
         print "What is the role name for 'admin' in your provider? (Default: admin)"
         admin_role_name = require_input("admin role_name for the provider: ", default='admin')
 
-    #get/set user_role_name
     user_role_name = user_config.get('user_role_name')
     if not user_role_name:
         print "What is the role name for default membership in your provider? (Default: _member_)"
         user_role_name = require_input("user_role_name for the provider: ", default='_member_')
 
-    #get/set domain
     domain = user_config.get('domain')
     if not domain:
         print "What is the domain name for your provider? (Default: default)"
@@ -311,7 +310,8 @@ def set_user_config(user_config):
 
     secret = user_config.get('secret')
     if not secret or len(secret) < 32:
-        secret = require_input("What secret would you like to use to create " +
+        secret = require_input(
+                "What secret would you like to use to create " +
                 "user accounts? (32 character minimum) ",
                 lambda answer: len(answer) >= 32)
     user_config.update({
@@ -351,7 +351,7 @@ def get_provider_credentials(credential_info={}):
 
     if not credential_info.get('ex_force_auth_version'):
         print "What is the Authentication Scheme (Openstack ONLY -- Default:'2.0_password')?"
-        ex_force_auth_version = require_input("ex_force_auth_version for the provider: ", lambda answer: answer in ['2.0_password','3.x_password'], default='2.0_password')
+        ex_force_auth_version = require_input("ex_force_auth_version for the provider: ", lambda answer: answer in ['2.0_password', '3.x_password'], default='2.0_password')
         credential_info['ex_force_auth_version'] = ex_force_auth_version
     # Verify that 'admin_url' is properly set.
     auth_version = credential_info['ex_force_auth_version']
@@ -365,7 +365,6 @@ def get_provider_credentials(credential_info={}):
     if '2' in auth_version and '/v2.0/tokens' not in auth_url:
         print "Note: Adding '/v2.0/tokens' to the end of the auth_url path (Required for 2.0_password)"
         credential_info['auth_url'] = urljoin(auth_url, '/v2.0/tokens')
-
 
     return credential_info
 
@@ -430,10 +429,12 @@ def create_provider(provider_info, provider_credentials={}, cloud_config={}):
         return provider
     except Provider.DoesNotExist:
         pass
+    prov_type = ProviderType.objects.get(name__iexact=provider_info['type'])
+    virtualization = PlatformType.objects.get(name__iexact=provider_info['platform'])
     new_provider = Provider.objects.create(
         location=provider_info["name"],
-        virtualization=provider_info["platform"],
-        type=provider_info["type"],
+        virtualization=virtualization,
+        type=prov_type,
         cloud_config=cloud_config,
         public=provider_info["public"])
     # 3b. Associate all InstanceActions
@@ -465,7 +466,6 @@ def main():
     parser = argparse.ArgumentParser(
         description="Add a new cloud provider and adminstrator")
 
-
     parser.add_argument("--from-openrc", dest="openrc",
                         help="Add a new provider from an openrc file.")
     parser.add_argument("--from-json", dest="json",
@@ -486,12 +486,11 @@ def main():
         (provider_info,
          admin_info,
          provider_credentials) = read_openrc_file(arguments.openrc)
-    
     while True:
         get_provider_info(provider_info)
         get_admin_info(admin_info)
         get_provider_credentials(provider_credentials)
-        get_cloud_config(cloud_config)
+        cloud_config = get_cloud_config(cloud_config)
         review_information(provider_info, admin_info, provider_credentials, cloud_config)
         if not provider_info or not admin_info or not provider_credentials or not cloud_config:
             continue

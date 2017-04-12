@@ -259,7 +259,7 @@ class Identity(models.Model):
         )
         identity_qs = Identity.objects\
             .filter(created_by=user, provider=provider)\
-            .filter(credentials_match_query).first()
+            .filter(credentials_match_query)
         # This shouldn't happen..
         if identity_qs.count() > 1:
             raise Exception("Could not uniquely identify the identity")
@@ -304,12 +304,13 @@ class Identity(models.Model):
         elif test_key_exists:
             # Single selection
             test_key_exists = test_key_exists.get()
-            logger.debug(
-                "Conflicting Key Error: Key:%s Value:%s %s Value:%s" %
-                (c_key, test_key_exists.value,
-                 "(to replace with new value, set replace=True) New"
-                 if not replace else "Replacement",
-                 c_value))
+            if test_key_exists.value != c_value:
+                logger.debug(
+                    "Conflicting Key Error: Key:%s Value:%s %s Value:%s" %
+                    (c_key, test_key_exists.value,
+                     "(to replace with new value, set replace=True) New"
+                     if not replace else "Replacement",
+                     c_value))
             # No Dupes... But should we really throw an Exception here?
             if not replace:
                 return test_key_exists

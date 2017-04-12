@@ -204,11 +204,12 @@ class AccountDriver(BaseAccountDriver):
                 "but the password does not match. "
                 "This conflict should be addressed by hand."
                 % (username, ))
-        ident = self.create_identity(username, password,
-                                     project.name,
-                                     quota=quota,
-                                     max_quota=max_quota,
-                                     is_leader=is_leader)
+        ident = self.create_identity(
+                account_user, group_name,
+                username, password, project.name,
+                quota=quota,
+                max_quota=max_quota,
+                is_leader=is_leader)
         return ident
 
     def build_account(self, username, password,

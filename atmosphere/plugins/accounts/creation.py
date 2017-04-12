@@ -126,7 +126,7 @@ class GrouperPlugin(AccountCreationPlugin):
         groups = self.driver.get_groups_for_username(username)
         for group in groups:
             new_groupname = self.parse_group_name(group['name'])
-            is_leader = self.driver.is_leader(group['name'], username)
+            self.driver.is_leader(group['name'], username)
             credentials_list.append({
                 'account_user': username,
                 'username': username,
