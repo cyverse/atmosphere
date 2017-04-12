@@ -19,7 +19,7 @@ class AccountCreationPlugin(object):
 
     def create_accounts(self, provider, username, force=False):
         from service.driver import get_account_driver
-        from core.models import Identity
+        from core.models import Project, Identity
         account_driver = get_account_driver(provider)
         if not account_driver:
             raise ValueError(
@@ -31,6 +31,7 @@ class AccountCreationPlugin(object):
         identities = Identity.objects.none()
         for credentials in credentials_list:
             try:
+                project_name = credentials['project_name']
                 created_identities = account_driver.find_accounts(**credentials)
                 if created_identities and not force:
                     identities |= created_identities
@@ -40,6 +41,16 @@ class AccountCreationPlugin(object):
                     % (username, credentials))
                 new_identity = account_driver.create_account(**credentials)
                 identities |= Identity.objects.filter(id=new_identity.id)
+                memberships = new_identity.identity_memberships.filter(member__memberships__is_leader=True)
+                if not memberships:
+                    memberships = new_identity.identity_memberships.all()
+                membership = memberships.first()
+                if not membership:
+                    raise ValueError("Expected at least one member in identity %s" % new_identity)
+                group = membership.member
+                Project.objects.create(
+                    name=project_name,
+                    owner=group)
             except:
                 logger.exception(
                     "Could *NOT* Create NEW account for %s"
