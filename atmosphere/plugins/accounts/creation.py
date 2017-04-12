@@ -1,6 +1,7 @@
 from threepio import logger
 from jetstream.allocation import TASAPIDriver
 from cyverse.api import GrouperDriver
+from django_cyverse_auth.protocol.ldap import get_groups_for
 
 class AccountCreationPlugin(object):
     """
@@ -132,7 +133,27 @@ class GrouperPlugin(AccountCreationPlugin):
                 'username': username,
                 'project_name': new_groupname,
                 'group_name': new_groupname,
-                'is_leader': True,
+                'is_leader': False,
+            })
+        return credentials_list
+
+
+class LDAPMapper(AccountCreationPlugin):
+    def get_credentials_list(self, provider, username):
+        """
+        For each provider:
+        - Lookup the user on LDAP
+        - Create a project for each group the user is a member of
+        """
+        credentials_list = []
+        ldap_groups = get_groups_for(username)
+        for group in ldap_groups:
+            credentials_list.append({
+                'account_user': username,
+                'username': username,
+                'project_name': group,
+                'group_name': group,
+                'is_leader': False,
             })
         return credentials_list
 
@@ -175,6 +196,6 @@ class XsedeGroup(AccountCreationPlugin):
                 'username': tacc_username,
                 'project_name': tacc_projectname,
                 'group_name': tacc_projectname,
-                'is_leader': True,
+                'is_leader': False,
             })
         return credentials_list
