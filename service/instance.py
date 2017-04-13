@@ -16,7 +16,7 @@ from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
 from rtwo.exceptions import LibcloudBadResponseError
 from rtwo.driver import OSDriver
 from service.driver import AtmosphereNetworkManager
-from service.mock import AtmosphereMockNetworkManager
+from service.mock import AtmosphereMockDriver, AtmosphereMockNetworkManager
 
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
@@ -175,7 +175,7 @@ def start_instance(esh_driver, esh_instance,
     """
     # Don't check capacity because.. I think.. its already being counted.
     _permission_to_act(identity_uuid, "Start")
-    if restore_ip:
+    if restore_ip and type(esh_driver) != AtmosphereMockDriver:
         restore_network(esh_driver, esh_instance, identity_uuid)
         deploy_task = restore_ip_chain(
             esh_driver, esh_instance, redeploy=True,
@@ -194,7 +194,7 @@ def start_instance(esh_driver, esh_instance,
             identity_uuid)
 
     esh_driver.start_instance(esh_instance)
-    if restore_ip:
+    if restore_ip and type(esh_driver) != AtmosphereMockDriver:
         deploy_task.apply_async(countdown=10)
     update_status(
         esh_driver,
@@ -418,6 +418,8 @@ def redeploy_init(esh_driver, esh_instance, core_identity):
     (No add fixed, No add floating)
     """
     from service.tasks.driver import deploy_init_to
+    if type(esh_driver) == AtmosphereMockDriver:
+        return
     logger.info("Add floating IP and Deploy")
     deploy_init_to.s(esh_driver.__class__, esh_driver.provider,
                      esh_driver.identity, esh_instance.id,
@@ -570,7 +572,7 @@ def resume_instance(esh_driver, esh_instance,
             identity_uuid)
 
     esh_driver.resume_instance(esh_instance)
-    if restore_ip:
+    if restore_ip and type(esh_driver) != AtmosphereMockDriver:
         deploy_task.apply_async()
 
 
