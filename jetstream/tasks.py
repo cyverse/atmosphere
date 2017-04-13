@@ -107,8 +107,6 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
 
 @task(name="report_allocations_to_tas")
 def report_allocations_to_tas():
-    if 'jetstream' not in settings.INSTALLED_APPS:
-        return
     logger.info("Reporting: Begin creating reports")
     create_reports()
     logger.info("Reporting: Completed, begin sending reports")
@@ -135,8 +133,6 @@ def send_reports():
 
 @task(name="update_snapshot")
 def update_snapshot(start_date=None, end_date=None):
-    if not settings.USE_ALLOCATION_SOURCE:
-        return False
     end_date = end_date or timezone.now()
     # TODO: Read this start_date from last 'reset event' for each allocation source
     start_date = start_date or '2016-09-01 00:00:00.0-05'
