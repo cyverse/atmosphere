@@ -691,12 +691,14 @@ def monitor_volumes_for(provider_id, print_logs=False):
                 identity = Identity.objects.filter(
                     contains_credential('ex_project_name', tenant.name), provider=provider
                 ).first()
+                if not identity:
+                    raise ObjectDoesNotExist()
                 core_volume = convert_esh_volume(
                     cloud_volume,
                     provider.uuid, identity.uuid,
                     identity.created_by)
             except ObjectDoesNotExist:
-                celery_logger.info("Skipping Volume %s - Unknown Identity: %s-%s" % (cloud_volume.id, provider, tenant.name))
+                celery_logger.info("Skipping Volume %s - No Identity for: Provider:%s + Project Name:%s" % (cloud_volume.id, provider, tenant.name))
             pass
 
     now_time = timezone.now()
