@@ -8,7 +8,7 @@ from django.utils import timezone
 from celery.decorators import task
 
 from core.query import (
-    only_current, only_current_source,
+    contains_credential, only_current, only_current_source,
     source_in_range, inactive_versions)
 from core.models.group import Group
 from core.models.size import Size, convert_esh_size
@@ -531,6 +531,34 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
         application.save()
 
 
+@task(name="monitor_resources")
+def monitor_resources():
+    """
+    Update instances for each active provider.
+    """
+    for p in Provider.get_active():
+        monitor_resources_for.apply_async(args=[p.id])
+
+
+@task(name="monitor_resources_for")
+def monitor_resources_for(provider_id, users=None, print_logs=False):
+    """
+    Run the set of tasks related to monitoring all cloud resources for a provider.
+    """
+    resources = {}
+    machines = monitor_machines_for(provider_id, print_logs=print_logs)
+    sizes = monitor_sizes_for(provider_id, print_logs=print_logs)
+    instances = monitor_instances_for(provider_id, users=users, print_logs=print_logs)
+    volumes = monitor_volumes_for(provider_id, print_logs=print_logs)
+    resources.update({
+        'instances': instances,
+        'machines': machines,
+        'sizes': sizes,
+        'volumes': volumes,
+    })
+    return resources
+
+
 @task(name="monitor_instances")
 def monitor_instances():
     """
@@ -660,8 +688,9 @@ def monitor_volumes_for(provider_id, print_logs=False):
             tenant_id = cloud_volume.extra['object']['os-vol-tenant-attr:tenant_id']
             tenant = account_driver.get_project_by_id(tenant_id)
             try:
-                identity = Identity.objects.get(
-                    provider=provider, created_by__username=tenant.name)
+                identity = Identity.objects.filter(
+                    contains_credential('ex_project_name', tenant.name), provider=provider
+                ).first()
                 core_volume = convert_esh_volume(
                     cloud_volume,
                     provider.uuid, identity.uuid,

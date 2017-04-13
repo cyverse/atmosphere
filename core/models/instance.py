@@ -221,7 +221,7 @@ class Instance(models.Model):
         import traceback
         # 1. Get status name
         status_name = _get_status_name_for_provider(
-            self.provider_machine.provider,
+            self.source.provider,
             status_name,
             task,
             tmp_status)
