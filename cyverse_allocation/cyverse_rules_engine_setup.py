@@ -139,17 +139,25 @@ def _create_actions_for(compute_allowed, renewed_in_days):
 # RENEWAL STRATEGY CONFIGURATION
 renewal_strategies = {
 
-    'default': {'compute_allowed': 250,
-                'renewed_in_days': 3},
+    'default': { 'id': 1,
+                'compute_allowed': 250,
+                'renewed_in_days': 3,
+                 'external': False },
 
-    'bi-weekly': {'compute_allowed': 150,
-                  'renewed_in_days': 14},
+    'bi-weekly': {'id': 2,
+                  'compute_allowed': 150,
+                  'renewed_in_days': 14,
+                  'external': True },
 
-    'workshop': {'compute_allowed': 0,
-                 'renewed_in_days': 0},
+    'workshop': {'id': 3,
+                 'compute_allowed': 0,
+                 'renewed_in_days': 0,
+                 'external': False },
 
-    'custom':   {'compute_allowed': 0,
-                 'renewed_in_days': 0},
+    'custom':   {'id': 4,
+                 'compute_allowed': 0,
+                 'renewed_in_days': 0,
+                 'external': True },
 }
 
 # MAIN RULES JSON
