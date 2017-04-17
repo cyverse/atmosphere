@@ -31,7 +31,7 @@ from service.exceptions import AnsibleDeployException
 def ansible_deployment(
     instance_ip, username, instance_id, playbooks_dir,
     limit_playbooks=[], limit_hosts={}, extra_vars={},
-    raise_exception=True):
+    raise_exception=True, **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     """
@@ -45,7 +45,10 @@ def ansible_deployment(
     hostname = build_host_name(instance_id, instance_ip)
     configure_ansible()
     if not limit_hosts:
-        limit_hosts = {"hostname": hostname, "ip": instance_ip}
+        if hostname:
+            limit_hosts = hostname
+        else:
+            limit_hosts = instance_ip
     host_file = settings.ANSIBLE_HOST_FILE
     identity = Identity.find_instance(instance_id)
     if identity:
@@ -58,7 +61,7 @@ def ansible_deployment(
     })
     pbs = execute_playbooks(
         playbooks_dir, host_file, extra_vars, limit_hosts,
-        logger=logger, limit_playbooks=limit_playbooks)
+        logger=logger, limit_playbooks=limit_playbooks, **runner_opts)
     if raise_exception:
         raise_playbook_errors(pbs, instance_ip, hostname)
     return pbs
@@ -114,7 +117,7 @@ def deploy_check_volume(instance_ip, username, instance_id,
 
 
 def instance_deploy(instance_ip, username, instance_id,
-		    limit_playbooks=[]):
+		    limit_playbooks=[], **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     """
@@ -127,7 +130,7 @@ def instance_deploy(instance_ip, username, instance_id,
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
         limit_playbooks=limit_playbooks,
-        extra_vars=extra_vars)
+        extra_vars=extra_vars, **runner_opts)
 
 
 def user_deploy(instance_ip, username, instance_id):
@@ -204,16 +207,16 @@ def _one_runner_all_playbook_execution(
     runner = Runner.factory(
             host_file,
             playbook_dir,
-            run_data=extra_vars,
+            extra_vars=extra_vars,
             limit_hosts=my_limit,
             logger=logger,
             limit_playbooks=limit_playbooks,
+            private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
             # Use atmosphere settings
             group_vars_map={
                 filename: os.path.join(
                     settings.ANSIBLE_GROUP_VARS_DIR, filename)
-                for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
-            private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
+                    for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
             **runner_opts)
     if runner.playbooks == []:
         msg = "Playbook directory has no playbooks: %s" \
@@ -233,7 +236,7 @@ def _one_runner_one_playbook_execution(
     runners = [Runner.factory(
             host_file,
             os.path.join(playbook_dir, playbook_path),
-            run_data=extra_vars,
+            extra_vars=extra_vars,
             limit_hosts=my_limit,
             logger=logger,
             limit_playbooks=limit_playbooks,
@@ -241,7 +244,7 @@ def _one_runner_one_playbook_execution(
             group_vars_map={
                 filename: os.path.join(
                     settings.ANSIBLE_GROUP_VARS_DIR, filename)
-                for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
+                    for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
             private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
             **runner_opts)
         for playbook_path in os.listdir(playbook_dir)
@@ -367,7 +370,7 @@ def execution_has_unreachable(pbs, hostname):
 def execution_has_failures(pbs, hostname):
     if type(pbs) != list:
         pbs = [pbs]
-    return any(pb.stats.failed for pb in pbs)
+    return any(pb.stats.failures for pb in pbs)
 
 
 def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
@@ -384,13 +387,13 @@ def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
             elif instance_ip in pb.stats.dark:
                 error_message += playbook_error_message(
                     pb.stats.dark[instance_ip], "Unreachable")
-        if not allow_failures and pb.stats.failed:
-            if hostname in pb.stats.failed:
+        if not allow_failures and pb.stats.failures:
+            if hostname in pb.stats.failures:
                 error_message += playbook_error_message(
-                    pb.stats.failed[hostname], "failed")
-            elif instance_ip in pb.stats.failed:
+                    pb.stats.failures[hostname], "failed")
+            elif instance_ip in pb.stats.failures:
                 error_message += playbook_error_message(
-                    pb.stats.failed[instance_ip], "failed")
+                    pb.stats.failures[instance_ip], "failed")
     if error_message:
         msg = error_message[:-2] + str(pb.stats.processed_playbooks.get(hostname,{}))
         raise AnsibleDeployException(msg)
