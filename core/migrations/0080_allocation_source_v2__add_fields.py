@@ -11,12 +11,8 @@ class Migration(migrations.Migration):
     from django.conf import settings
 
     dependencies = [
-        ('core', '0070_provider_created_by'),
+        ('core', '0079_add_events_for_old_allocationsource'),
     ]
-    if 'jetstream' in settings.INSTALLED_APPS:
-        dependencies.append(
-            ('jetstream', '0002_jetstreamallocationsource'),  # Migrate source_id -- we will be removing it soon.
-        )
 
     operations = [
         # Additions
@@ -52,10 +48,5 @@ class Migration(migrations.Migration):
             model_name='allocationsourcesnapshot',
             name='last_renewed',
             field=models.DateTimeField(default=django.utils.timezone.now),
-        ),
-        migrations.AddField(
-            model_name='allocationsource',
-            name='uuid',
-            field=models.UUIDField(default=uuid.uuid4, null=True),
-        ),
+        )
     ]

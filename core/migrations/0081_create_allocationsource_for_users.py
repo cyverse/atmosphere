@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from django.db import migrations
 from django.utils import timezone
 from django.conf import settings
-import uuid
 
 import uuid
 
@@ -107,7 +106,7 @@ def create_user_allocationsource_for(user, allocation_source,EventTable, UserAll
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0072_allocation_source_v2__remove_source_id__add_uuid'),
+        ('core', '0080_allocation_source_v2__add_fields'),
     ]
 
     operations = [
