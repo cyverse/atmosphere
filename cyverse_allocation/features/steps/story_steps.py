@@ -5,6 +5,7 @@ from datetime import timedelta
 from dateutil.parser import parse
 from dateutil.rrule import rrule, HOURLY
 from django.conf import settings
+from django.test import modify_settings
 from django.utils import timezone
 from django.test.client import Client
 from django.core.urlresolvers import reverse
@@ -17,28 +18,27 @@ from core.models import (
     ProviderMachine, InstanceStatusHistory, AtmosphereUser)
 from api.tests.factories import (
      InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
-    ProviderMachineFactory, IdentityFactory, ProviderFactory)
+    ProviderMachineFactory, IdentityFactory, ProviderFactory, UserFactory)
 
 ######## Story Implementation ##########
 
 @given('one admin user and two regular users who can launch instances')
 def step_impl(context):
     context.client = Client()
-    user, not_created = AtmosphereUser.objects.get_or_create(username='lenards')
-    if not_created:
-        user.is_staff = True
-        user.is_superuser = True
-        user.set_password('lenards')
-        user.save()
-    if 'django.contrib.auth.backends.ModelBackend' not in settings.AUTHENTICATION_BACKENDS:
-        raise Exception("Cannot test without including 'django.contrib.auth.backends.ModelBackend' in AUTHENTICATION_BACKENDS")
-    context.admin_user = user
-    context.client.login(username='lenards', password='lenards')
+    user = UserFactory.create(username='lenards', is_staff=True, is_superuser=True)
+    user.set_password('lenards')
+    user.save()
+    with modify_settings(AUTHENTICATION_BACKENDS={
+        'prepend': 'django.contrib.auth.backends.ModelBackend',
+        'remove': ['django_cyverse_auth.authBackends.MockLoginBackend']
+    }):
+        context.admin_user = user
+        context.client.login(username='lenards', password='lenards')
 
-    user_1 = AtmosphereUser.objects.get_or_create(username='amitj')
-    context.user_1 = user_1[0]
-    user_2 = AtmosphereUser.objects.get_or_create(username='julianp')
-    context.user_2 = user_2[0]
+    user_1 = UserFactory.create(username='amitj')
+    context.user_1 = user_1
+    user_2 = UserFactory.create(username='julianp')
+    context.user_2 = user_2
 
 @when('admin creates allocation source')
 def step_impl(context):
