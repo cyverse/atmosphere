@@ -102,12 +102,13 @@ def get_allocation_source_name_from_event(username, report_start_date, instance_
     if not events:
         return False
     else:
-        allocation_source_object = AllocationSource.objects.filter(name=events.last().payload['allocation_source_name'])
-        if allocation_source_object:
-            return allocation_source_object.last().name
-        else:
-            raise Exception('Allocation Source %s in event %s does not exist' % (events.last().payload['allocation_source_name'],events.last().id))
-       
+        try:
+            allocation_source_object = AllocationSource.objects.get(name=events.last().payload['allocation_source_name'])
+        except KeyError:
+            allocation_source_object = AllocationSource.objects.get(
+                uuid=events.last().payload['allocation_source_id'])
+        return allocation_source_object.name
+
 
 def create_rows(filtered_instance_histories, events_histories_dict, report_start_date, report_end_date):
     data = []
