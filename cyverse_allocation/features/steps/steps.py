@@ -1,16 +1,15 @@
 import json
 import uuid
 from behave import *
-from django.conf import settings
+from django.test import modify_settings
 from django.utils import timezone
 from django.test.client import Client
 from django.core.urlresolvers import reverse
 from rest_framework.test import APIClient
-from core.models import AtmosphereUser
 from core.models import AllocationSourceSnapshot, AllocationSource, Instance
 from api.tests.factories import (
     InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
-    ProviderMachineFactory, IdentityFactory, ProviderFactory)
+    ProviderMachineFactory, IdentityFactory, ProviderFactory, UserFactory)
 from core.models.allocation_source import get_allocation_source_object
 
 
@@ -19,17 +18,15 @@ def step_impl(context):
     context.client = Client()
     # the only user who can access apis on dev is lenards, so set staff
     # permission for lenards on test db
-    user, not_created = AtmosphereUser.objects.get_or_create(
-        username='lenards')
-    if not_created:
-        user.is_staff = True
-        user.is_superuser = True
-        user.set_password('lenards')
-        user.save()
-    if 'django.contrib.auth.backends.ModelBackend' not in settings.AUTHENTICATION_BACKENDS:
-        raise Exception("Cannot test without including 'django.contrib.auth.backends.ModelBackend' in AUTHENTICATION_BACKENDS")
-    context.user = user
-    context.client.login(username='lenards', password='lenards')
+    user = UserFactory.create(username='lenards', is_staff=True, is_superuser=True)
+    user.set_password('lenards')
+    user.save()
+    with modify_settings(AUTHENTICATION_BACKENDS={
+        'prepend': 'django.contrib.auth.backends.ModelBackend',
+        'remove': ['django_cyverse_auth.authBackends.MockLoginBackend']
+    }):
+        context.user = user
+        context.client.login(username='lenards', password='lenards')
 
 # Allocation Source Creation
 
