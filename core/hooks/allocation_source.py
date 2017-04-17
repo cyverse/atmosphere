@@ -157,7 +157,7 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     actual_value = payload['actual_value']
     if not settings.ENFORCING:
         return None
-    source = get_allocation_source_object(allocation_source_id)
+    source = AllocationSource.objects.filter(name=allocation_source_name).last()
     ##CHANGED
     #source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not source:
@@ -205,9 +205,7 @@ def listen_for_allocation_snapshot_changes(sender, instance, created, **kwargs):
     compute_used = payload['compute_used']
     global_burn_rate = payload['global_burn_rate']
 
-    allocation_source = get_allocation_source_object(allocation_source_id)
-    ##CHANGED
-    #allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
+    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not allocation_source:
         return None
     try:
@@ -249,9 +247,7 @@ def listen_for_user_snapshot_changes(sender, instance, created, **kwargs):
     compute_used = payload['compute_used']
     username = payload['username']
 
-    allocation_source = get_allocation_source_object(allocation_source_id)
-    ##CHANGED
-    #allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
+    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not allocation_source:
         return None
     user = AtmosphereUser.objects.filter(username=username).first()
@@ -294,9 +290,7 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
     payload = event.payload
     allocation_source_name = payload['allocation_source_name']
     instance_id = payload['instance_id']
-    allocation_source = get_allocation_source_object(allocation_source_id)
-    ##CHANGED
-    #allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
+    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not allocation_source:
         return None
     instance = Instance.objects.filter(provider_alias=instance_id).first()
