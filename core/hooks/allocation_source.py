@@ -288,13 +288,20 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
         return None
     logger.info("Instance allocation changed event: %s" % event.__dict__)
     payload = event.payload
-    allocation_source_name = payload['allocation_source_name']
+    assert 'allocation_source_name' in payload or 'allocation_source_id' in payload  # TODO: Standardize? And a schema?
+    try:
+        allocation_source_name = payload['allocation_source_name']
+        allocation_source = AllocationSource.objects.get(name=allocation_source_name)
+    except KeyError:
+        source_uuid = payload['allocation_source_id']
+        allocation_source = AllocationSource.objects.get(uuid=source_uuid)
     instance_id = payload['instance_id']
-    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not allocation_source:
+        # TODO: Not sure we should just swallow this
         return None
     instance = Instance.objects.filter(provider_alias=instance_id).first()
     if not instance:
+        # TODO: Not sure we should just swallow this either.
         return None
 
     try:
@@ -338,7 +345,7 @@ def listen_for_allocation_source_created_or_renewed(sender, instance, created, *
 def listen_for_allocation_source_compute_allowed_changed(sender, instance, created, **kwargs):
     """
        This listener expects:
-       EventType - 'instance_allocation_source_supplemented'
+       EventType - 'allocation_source_compute_allowed_changed'
        EventPayload - {
            "allocation_source_name": "TG-AG100345",
            "compute_allowed":1000,
@@ -350,14 +357,18 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
     event = instance
     if event.name != 'allocation_source_compute_allowed_changed':
         return None
-    logger.info("Allocation Source supplemented event: %s" % event.__dict__)
+    logger.info("Allocation Source Compute Allowed Changed event: %s" % event.__dict__)
     payload = event.payload
-    allocation_source_name = payload['allocation_source_name']
+    assert 'allocation_source_name' in payload or 'source_id' in payload  # TODO: Standardize? And a schema?
+    try:
+        allocation_source_name = payload['allocation_source_name']
+        source = AllocationSource.objects.get(name=allocation_source_name)
+    except KeyError:
+        source_uuid = payload['source_id']
+        source = AllocationSource.objects.get(uuid=source_uuid)
+
     compute_allowed = payload['compute_allowed']
-
-    source = AllocationSource.objects.filter(name=allocation_source_name).last()
     source.compute_allowed = compute_allowed
-
     source.save()
 
 
