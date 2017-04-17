@@ -627,36 +627,6 @@ def listen_for_allocation_source_name_changed(sender, instance, created, **kwarg
         raise Exception('Allocation Source %s name could not be changed because of the following error %s'%(allocation_source.name, e))
     return
 
-def listen_for_allocation_source_compute_allowed_changed(sender, instance, created, **kwargs):
-    """
-        This listener expects:
-               EventType - 'allocation_source_compute_allowed_changed'
-               EventPayload - {
-                   "source_id": "32712",
-                   "compute_allowed": -1000,
-               }
-
-               The method should result in storing the compute allowed change delta
-
-    """
-    event = instance
-    if event.name != 'allocation_source_compute_allowed_changed':
-        return None
-    logger.info('Allocation Source Compute Allowed Change event: %s', event.__dict__)
-    payload = event.payload
-    allocation_source_id = payload['source_id']
-    new_compute_allowed= payload['compute_allowed']
-    ##CHANGED
-    #allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id)
-
-    try:
-        allocation_source = get_allocation_source_object(allocation_source_id)
-        allocation_source.compute_allowed = new_compute_allowed
-        allocation_source.save()
-
-    except Exception as e:
-        raise Exception('Allocation Source %s compute_allowed could not be changed because of the following error %s'%(allocation_source.name, e))
-    return
 
 def listen_for_user_allocation_source_removed(sender, instance, created, **kwargs):
     """
