@@ -2,7 +2,6 @@ from django.test import TestCase, override_settings
 
 from api.tests.factories import UserFactory
 from core.models import EventTable, AllocationSource
-from jetstream.models import JetstreamAllocationSource
 from core.models import UserAllocationSource
 
 
@@ -16,7 +15,6 @@ class EventTableTest(TestCase):
         self.assertEqual(event_count, 0)
         user = UserFactory.create()
         alloc_src = AllocationSource.objects.create(name='DefaultAllocation', compute_allowed=1000)  # UUID assigned by default.
-        JetstreamAllocationSource.objects.create(parent_allocation_source=alloc_src, source_id='37623')  # Nothing 'special' about these except additional metadata, which wont be tested here.
         UserAllocationSource.objects.create(user=user, allocation_source=alloc_src)
         event_payload = {
             'allocation_source_id': str(alloc_src.uuid),

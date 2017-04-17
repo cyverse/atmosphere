@@ -19,25 +19,6 @@ def update_user_allocation_sources(sender, instance, created, **kwargs):
 # Create your models here.
 
 
-class JetstreamAllocationSource(models.Model):
-
-    parent_allocation_source = models.ForeignKey(AllocationSource)
-    source_id = models.CharField(max_length=128)
-
-    @staticmethod
-    def create_source(source_id=None, **allocation_source_kwargs):
-        new_source = AllocationSource.objects.create(
-            **allocation_source_kwargs)
-        jetstream_allocation = JetstreamAllocationSource.objects.create(
-            parent_allocation_source=new_source,
-            source_id=source_id)
-        return jetstream_allocation
-
-    def __unicode__(self):
-        return "%s (Source ID: %s)" %\
-            (self.parent_allocation_source, self.source_id)
-
-
 class TASAllocationReport(models.Model):
     """
     Keep track of each Allocation Report that is sent to TACC.API
