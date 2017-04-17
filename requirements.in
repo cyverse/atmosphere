@@ -1,6 +1,6 @@
 -e git+https://github.com/steve-gregory/billiard.git#egg=billiard # TEMPORARY
 -e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient  # Temporary until https://github.com/irods/python-irodsclient/pull/67 is merged
-
+business_rules
 Django==1.10.6
 django-cors-headers==0.12.0
 django-sslserver #NOTE: Debugs requests real-time.

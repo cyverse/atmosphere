@@ -2,6 +2,7 @@ behave
 behave-django
 coverage
 colorama==0.3.3 # used by ./configure
+django-behave
 django-debug-toolbar  #NOTE: Profiles SQL/CPU time of requests real-time.
 django-jenkins==0.19.0
 django-nose

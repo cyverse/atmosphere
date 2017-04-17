@@ -43,6 +43,7 @@ from core.models.instance_source import InstanceSource
 from core.models.node import NodeController
 from core.models.boot_script import ScriptType, BootScript, ApplicationVersionBootScript
 from core.models.quota import Quota
+#from core.models.renewal_strategy import RenewalStrategy
 from core.models.resource_request import ResourceRequest
 from core.models.size import Size
 from core.models.status_type import StatusType

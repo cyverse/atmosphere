@@ -4,10 +4,10 @@ from django.utils import timezone
 from core.models import ProjectInstance, Provider
 
 from api.v2.serializers.details import ProjectInstanceSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 
 
-class ProjectInstanceViewSet(AuthViewSet):
+class ProjectInstanceViewSet(AuthModelViewSet):
 
     """
     API endpoint that allows instance actions to be viewed or edited.

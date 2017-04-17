@@ -15,6 +15,7 @@ asn1crypto==0.22.0        # via cryptography
 babel==2.3.4              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-neutronclient, python-novaclient, python-openstackclient
 backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud, tornado
 boto==2.39.0              # via chromogenic
+business-rules==1.0.1
 caslib.py==2.2.2          # via django-cyverse-auth
 celery==4.0.2
 certifi==2017.1.23        # via tornado

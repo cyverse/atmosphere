@@ -51,10 +51,10 @@ pyflakes==1.5.0           # via flake8
 pygments==2.2.0           # via ipython
 pyparsing==2.2.0          # via packaging
 python-dateutil==2.6.0    # via freezegun
-PyYAML==3.12              # via vcrpy
+pyyaml==3.12              # via vcrpy
 scandir==1.5              # via pathlib2
 simplegeneric==0.8.1      # via ipython
-six==1.10.0               # via freezegun, packaging, pathlib2, pip-tools, prompt-toolkit, python-dateutil, setuptools, traitlets, vcrpy
+six==1.10.0               # via behave, freezegun, packaging, parse-type, pathlib2, pip-tools, prompt-toolkit, python-dateutil, setuptools, traitlets, vcrpy
 smmap==0.9.0              # via gitdb
 sqlparse==0.2.3           # via django-debug-toolbar
 traitlets==4.3.2          # via ipython

@@ -16,7 +16,6 @@ def create_report(report_start_date, report_end_date, user_id=None, allocation_s
     except:
         raise Exception("Cannot parse start and end dates for allocation calculation function")
     data = generate_data(report_start_date, report_end_date, username=user_id)
-
     if allocation_source_name:
         output = []
         for row in data:
@@ -193,6 +192,7 @@ def fill_data(row, history_obj, allocation_source):
     row['username'] = history_obj.instance.created_by.username
     row['allocation_source'] = allocation_source
     row['instance_id'] = history_obj.instance_id
+    row['image_name'] = Instance.objects.get(id=history_obj.instance_id).application_name()
     row['provider_alias'] = history_obj.instance.provider_alias
     row['instance_status_history_id'] = history_obj.id
     row['cpu'] = history_obj.size.cpu
@@ -202,6 +202,7 @@ def fill_data(row, history_obj, allocation_source):
     row['instance_status_end_date'] = still_running if not history_obj.end_date else history_obj.end_date
     row['instance_status'] = history_obj.status.name
     row['duration'] = (still_running - history_obj.start_date).total_seconds() if not history_obj.end_date else (history_obj.end_date - history_obj.start_date).total_seconds()
+    row['current_time'] = still_running
     return row
 
 
