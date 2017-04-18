@@ -34,6 +34,9 @@ class TASAllocationReport(models.Model):
     report_date = models.DateTimeField(blank=True, null=True)
     success = models.BooleanField(default=False)
 
+    class Meta:
+        app_label = 'jetstream'
+
     def send(self, use_beta=False):
         if not self.id:
             raise Exception("ERROR -- This report should be *saved* before you send it!")
