@@ -549,10 +549,10 @@ def monitor_resources_for(provider_id, users=None, print_logs=False):
     Run the set of tasks related to monitoring all cloud resources for a provider.
     """
     resources = {}
-    machines = monitor_machines_for(provider_id, print_logs=print_logs)
     sizes = monitor_sizes_for(provider_id, print_logs=print_logs)
-    instances = monitor_instances_for(provider_id, users=users, print_logs=print_logs)
     volumes = monitor_volumes_for(provider_id, print_logs=print_logs)
+    machines = monitor_machines_for(provider_id, print_logs=print_logs)
+    instances = monitor_instances_for(provider_id, users=users, print_logs=print_logs)
     resources.update({
         'instances': instances,
         'machines': machines,
