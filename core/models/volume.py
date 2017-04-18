@@ -61,7 +61,7 @@ class Volume(BaseSource):
         return projects
 
     def __unicode__(self):
-        return "%s" % (self.instance_source.identifier)
+        return "%s - %s" % (self.instance_source.identifier, self.name)
 
     def get_status(self):
         if hasattr(self,'esh') and self.esh.extra:
