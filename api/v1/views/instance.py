@@ -173,11 +173,8 @@ class InstanceList(AuthAPIView):
         boot_scripts = data.pop("scripts", [])
         try:
             logger.debug(data)
-            if not settings.USE_ALLOCATION_SOURCE:
-                allocation_source = None
-            else:
-                allocation_source = AllocationSource.objects.get(
-                    uuid=allocation_source_uuid)
+            allocation_source = AllocationSource.objects.get(
+                uuid=allocation_source_uuid)
             core_instance = launch_instance(
                 user, identity_uuid,
                 size_alias, machine_alias,
