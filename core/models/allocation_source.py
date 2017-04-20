@@ -18,6 +18,24 @@ class AllocationSource(models.Model):
         source_ids = UserAllocationSource.objects.filter(user=user).values_list('allocation_source', flat=True)
         return AllocationSource.objects.filter(id__in=source_ids)
 
+    def get_instance_ids(self):
+        return self.instanceallocationsourcesnapshot_set.all().values_list('instance__provider_alias', flat=True)
+
+    def check_over_allocation(self):
+        """
+        Check if allocation is "over" the compute_allowed and by what amount
+        Returns:
+        (False, ##) - AllocationSource is 'under' the threshold by ## hours
+        (True, ##) - AllocationSource is 'over' the threshold by ## hours
+        """
+        compute_used = self.compute_used
+        if compute_used == -1:
+            return (False, -1)
+        time_diff = self.compute_allowed - self.compute_used
+        if time_diff < 0:
+            return (True, -1*time_diff)
+        return (False, time_diff)
+
     @property
     def compute_used_updated(self):
         """

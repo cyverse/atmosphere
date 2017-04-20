@@ -89,11 +89,12 @@ class HypervisorCapacityError(ServiceException):
 
 class OverAllocationError(ServiceException):
 
-    def __init__(self, amount_exceeded):
+    def __init__(self, source_name, amount_exceeded):
         self.overage = amount_exceeded
-        self.message = "Time allocation exceeded: Instance usage is over by "\
-            "%s."\
-            % (self.overage,)
+        self.message = "Time allocation exceeded: "\
+            "Allocation %s is over 100% by "\
+            "%s hours."\
+            % (source_name, self.overage,)
         super(OverAllocationError, self).__init__(self.message)
 
     def __str__(self):

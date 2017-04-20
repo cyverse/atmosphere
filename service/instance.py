@@ -148,7 +148,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
                   reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    raise LibcloudInvalidCredsError
     """
     _permission_to_act(identity_uuid, "Stop")
     if reclaim_ip:
@@ -172,6 +172,7 @@ def start_instance(esh_driver, esh_instance,
     """
 
     raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    FIXME: actually raise OverQuota, OverAllocationError
     """
     # Don't check capacity because.. I think.. its already being counted.
     _permission_to_act(identity_uuid, "Start")
@@ -212,7 +213,7 @@ def suspend_instance(esh_driver, esh_instance,
                      user, reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    raise LibcloudInvalidCredsError
     """
     _permission_to_act(identity_uuid, "Suspend")
     if reclaim_ip:
@@ -550,6 +551,7 @@ def resume_instance(esh_driver, esh_instance,
                     update_meta=True):
     """
     raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    FIXME: actually raise OverQuota, OverAllocationError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Resume")
@@ -581,7 +583,7 @@ def shelve_instance(esh_driver, esh_instance,
                     user, reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    raise LibcloudInvalidCredsError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Shelve")
@@ -609,11 +611,11 @@ def unshelve_instance(esh_driver, esh_instance,
                       update_meta=True):
     """
     raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    FIXME: actually raise OverQuota, OverAllocationError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Unshelve")
     _update_status_log(esh_instance, "Unshelving Instance")
-    size = _get_size(esh_driver, esh_instance)
     admin_capacity_check(provider_uuid, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
@@ -633,7 +635,7 @@ def offload_instance(esh_driver, esh_instance,
                      user, reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    raise LibcloudInvalidCredsError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Shelve Offload")
@@ -825,15 +827,19 @@ def _pre_launch_validation(
         esh_driver,
         identity_uuid,
         boot_source,
-        size):
+        size,
+        allocation_source):
     """
     Used BEFORE launching a volume/instance .. Raise exceptions here to be dealt with by the caller.
     """
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
 
-    # May raise OverQuotaError or OverAllocationError
+    # May raise OverQuotaError
     check_quota(username, identity_uuid, size,
             include_networking=True)
+
+    # May raise OverAllocationError
+    check_allocation(username, allocation_source)
 
     # May raise UnderThresholdError
     check_application_threshold(username, identity_uuid, size, boot_source)
@@ -887,7 +893,8 @@ def launch_instance(user, identity_uuid,
         esh_driver,
         identity_uuid,
         boot_source,
-        size)
+        size,
+        launch_kwargs.get('allocation_source'))
 
     core_instance = _select_and_launch_source(
         user,
@@ -1300,9 +1307,14 @@ def _test_for_licensing(esh_machine, identity):
         (application.name, app_version.name))
 
 
+def check_allocation(username, allocation_source):
+    (over_allocation, time_diff) = allocation_source.check_over_allocation()
+    if over_allocation and settings.ENFORCING:
+        raise OverAllocationError(allocation_source.name, time_diff)
+
+
 def check_quota(username, identity_uuid, esh_size,
         include_networking=False):
-    from service.monitoring import check_over_allocation
     from service.quota import check_over_instance_quota
     try:
         check_over_instance_quota(
@@ -1310,15 +1322,6 @@ def check_quota(username, identity_uuid, esh_size,
             include_networking=include_networking)
     except ValidationError as bad_quota:
         raise OverQuotaError(message=bad_quota.message)
-
-    if settings.USE_ALLOCATION_SOURCE:
-        logger.info("Settings dictate that USE_ALLOCATION_SOURCE = True. A new method will be required to determine over-allocation based on the selected allocation_source. Returning..")
-        return
-    (over_allocation, time_diff) =\
-        check_over_allocation(username,
-                              identity_uuid)
-    if over_allocation and settings.ENFORCING:
-        raise OverAllocationError(time_diff)
 
 
 def delete_security_group(core_identity):
