@@ -14,9 +14,9 @@ class SizeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     API endpoint that allows instance actions to be viewed or edited.
     """
     lookup_fields = ("id", "uuid")
-    queryset = Size.objects.all().order_by('-cpu','-mem')
+    queryset = Size.objects.all().order_by('-disk','-cpu','-mem')
     serializer_class = SizeSerializer
-    ordering = ("cpu", "mem", "disk", "root", "name")
+    ordering = ("disk", "cpu", "mem", "root", "name")
     filter_fields = ('provider__id',)
 
     def get_queryset(self):

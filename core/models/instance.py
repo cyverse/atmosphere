@@ -16,6 +16,7 @@ import pytz
 
 from rtwo.models.machine import MockMachine
 from rtwo.models.size import MockSize
+from rtwo.models.size import OSSize
 
 from threepio import logger
 
@@ -534,7 +535,7 @@ class Instance(models.Model):
         if not allocation_source:
             raise Exception("Allocation source must not be null")
         payload = {
-                'allocation_source_id': allocation_source.source_id,
+                'allocation_source_name': allocation_source.name,
                 'instance_id': self.provider_alias
         }
         return EventTable.create_event(
@@ -855,7 +856,8 @@ def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
         # so a lookup on the size is required to get accurate
         # information.
         # TODO: Switch to 'get_cached_size!'
-        new_size = esh_driver.get_size(esh_size.id)
+        lc_size = esh_driver.get_size(esh_size.id, forced_lookup=True)
+        new_size = OSSize(lc_size)
         if new_size:
             esh_size = new_size
     core_size = convert_esh_size(esh_size, provider_uuid)

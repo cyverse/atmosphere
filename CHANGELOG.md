@@ -1,7 +1,9 @@
-## [Whimsical-Wyvern](https://github.com/cyverse/atmosphere/milestone/10?closed=1) (as of 3/21/2017)
+## [Whimsical-Wyvern](https://github.com/cyverse/atmosphere/milestone/10?closed=1) (as of 4/6/2017)
 
 Features:
   - Include sentry.io error reporting for production environments
+  - [application_to_provider](https://github.com/cyverse/atmosphere/pull/284) migration script
+  - [iRODS transfer support](https://github.com/cyverse/atmosphere/pull/318) for application_to_provider script
 
 Improvements:
   - Improved support for Instance Actions in v2 APIs

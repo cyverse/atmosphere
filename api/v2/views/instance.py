@@ -263,7 +263,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
             if settings.USE_ALLOCATION_SOURCE:
-                allocation_source = AllocationSource.objects.get(source_id=allocation_source_id)
+                allocation_source = AllocationSource.objects.get(uuid=allocation_source_id)
             core_instance = launch_instance(
                 user, identity_uuid, size_alias, source_alias, name, deploy,
                 **extra)
