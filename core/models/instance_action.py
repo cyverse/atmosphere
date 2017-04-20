@@ -121,9 +121,11 @@ class InstanceAction(models.Model):
             # Shelved instances can be unshelved or offloaded + <Basic Actions>
             all_actions.append('Shelve Offload')
             all_actions.append('Unshelve')
-        elif last_status == "verify_resize":
-            all_actions.append("Revert Resize")
-            all_actions.append("Confirm Resize")
+        # NOTE: Uncomment these lines to show the manual operations for 'Revert Resize' and 'Confirm Resize'
+        #       The current strategy is to keep the process 100% automated to keep cognitive overhead down
+        # elif last_status == "verify_resize":
+        #     all_actions.append("Revert Resize")
+        #     all_actions.append("Confirm Resize")
 
         if len(all_actions) == 2:
             logger.debug(
