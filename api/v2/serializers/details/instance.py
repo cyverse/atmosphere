@@ -61,7 +61,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_image(self, obj):
         image_uuid = obj.application_uuid()
-        image = Image.objects.get(uuid=image_uuid)
+        image = Image.objects.filter(uuid=image_uuid).first()
         serializer = ImageSummarySerializer(image, context=self.context)
         return serializer.data
 
