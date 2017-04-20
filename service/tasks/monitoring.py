@@ -13,7 +13,7 @@ from core.query import (
 from core.models.group import Group
 from core.models.size import Size, convert_esh_size
 from core.models.volume import Volume, convert_esh_volume
-from core.models.instance import convert_esh_instance
+from core.models.instance import Instance, convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import convert_glance_image, get_or_create_provider_machine, ProviderMachine, ProviderMachineMembership
 from core.models.application import Application, ApplicationMembership
@@ -32,7 +32,6 @@ from service.monitoring import (
     _get_identity_from_tenant_name,
     allocation_source_overage_enforcement
 )
-from service.monitoring import user_over_allocation_enforcement
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
 from rtwo.models.size import OSSize
@@ -558,21 +557,9 @@ def enforce_allocation_overage(allocation_source_name):
     #     payload=new_payload)
     return user_instances_enforced
 
-@task(name="monitor_instance_allocations")
-def monitor_instance_allocations():
-    """
-    Update instances for each active provider.
-    """
-    if settings.USE_ALLOCATION_SOURCE:
-        celery_logger.info("Skipping the old method of monitoring instance allocations")
-        return False
-    for p in Provider.get_active():
-        monitor_instances_for.apply_async(args=[p.id], kwargs={'check_allocations':True})
-
-
 @task(name="monitor_instances_for")
 def monitor_instances_for(provider_id, users=None,
-                          print_logs=False, check_allocations=False, start_date=None, end_date=None):
+                          print_logs=False, start_date=None, end_date=None):
     """
     Run the set of tasks related to monitoring instances for a provider.
     Optionally, provide a list of usernames to monitor
@@ -621,10 +608,6 @@ def monitor_instances_for(provider_id, users=None,
         core_instances = _cleanup_missing_instances(
             identity,
             core_running_instances)
-        if check_allocations:
-            allocation_result = user_over_allocation_enforcement(
-                provider, username,
-                print_logs, start_date, end_date)
     if print_logs:
         _exit_stdout_logging(console_handler)
     return running_total

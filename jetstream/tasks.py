@@ -190,8 +190,6 @@ def update_snapshot(start_date=None, end_date=None):
 
 @task(name="update_snapshot")
 def update_snapshot_cyverse_allocation(start_date,end_date):
-    if not settings.USE_ALLOCATION_SOURCE:
-        return False
     allocation_source_total_compute = {}
     allocation_source_total_burn_rate = {}
     start_date = start_date

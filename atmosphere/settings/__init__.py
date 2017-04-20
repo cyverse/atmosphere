@@ -23,7 +23,6 @@ DEBUG = True
 # Enforcing mode -- False, unless set otherwise. (ONLY ONE Production server should be set to 'ENFORCING'.)
 ENFORCING = False
 
-USE_ALLOCATION_SOURCE = False
 BLACKLIST_TAGS = ["Featured",]
 
 SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))

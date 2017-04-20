@@ -1,5 +1,3 @@
-from django.conf import settings
-
 from api.v2.serializers.details import InstanceSerializer, InstanceActionSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
 from api.v2.views.base import AuthModelViewSet
@@ -221,9 +219,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             error_map['source_alias'] = "This field is required."
         if not size_alias:
             error_map['size_alias'] = "This field is required."
-        if settings.USE_ALLOCATION_SOURCE:
-            if not allocation_source_id:
-                error_map['allocation_source_id'] = "This field is required."
+        if not allocation_source_id:
+            error_map['allocation_source_id'] = "This field is required."
 
         if error_map:
             raise Exception(error_map)
@@ -288,10 +285,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         extra = data.get('extra', {})
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
-            if settings.USE_ALLOCATION_SOURCE:
-                allocation_source = AllocationSource.objects.get(uuid=allocation_source_id)
+            allocation_source = AllocationSource.objects.get(uuid=allocation_source_id)
             core_instance = launch_instance(
                 user, identity_uuid, size_alias, source_alias, name, deploy,
+                allocation_source=allocation_source,
                 **extra)
             # Faking a 'partial update of nothing' to allow call to 'is_valid'
             serialized_instance = InstanceSerializer(
@@ -305,8 +302,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             instance.projects.add(project)
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
-            if settings.USE_ALLOCATION_SOURCE:
-                instance.change_allocation_source(allocation_source)
+            instance.change_allocation_source(allocation_source)
             return Response(
                 serialized_instance.data, status=status.HTTP_201_CREATED)
         except UnderThresholdError as ute:
