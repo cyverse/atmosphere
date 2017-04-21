@@ -13,7 +13,6 @@ Internal:
  - Bail out conditions for Celery task when MockDriver is used
  - Sourceid removed from Allocation Source model
  - Populate glance image metadata application_tags with valid JSON
- - BDD tests for Troposphere
  
  
 
