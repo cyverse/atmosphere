@@ -94,6 +94,7 @@ class UserAllocationSource(models.Model):
     class Meta:
         db_table = 'user_allocation_source'
         app_label = 'core'
+        unique_together = ('user', 'allocation_source')
 
 
 class UserAllocationSnapshot(models.Model):
