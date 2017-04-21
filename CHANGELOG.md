@@ -1,19 +1,19 @@
 ## [Xylotomous-Xenops](https://github.com/cyverse/atmosphere/milestone/11?closed=1) (as of 4/21/2017)
-Features:
- - 
  
 Improvements:
  - Updated Atmosphere to latest subspace Ansible 2.3 (https://github.com/cyverse/atmosphere/commit/253bf6d23ab1be0e15f35d97fa9a2b238b9bc639)
- - Jetstream fixes to allocation source
+ - Jetstream fixes to allocation source model
  
 Bugfixes:
  - Fixed application tags (https://github.com/cyverse/atmosphere/commit/fed9aae578025d8024f4a255ee109e12f1ff0483)
  - Behave fail for allocation settings (https://github.com/cyverse/atmosphere/commit/62686fd387203e2b5abe057d807503eabbddade4)
- - 
+ - Unknown sizes appear when sizes are disabled (https://github.com/cyverse/atmosphere/pull/321)
  
 Internal:
  - Bail out conditions for Celery task when MockDriver is used
  - Sourceid removed from Allocation Source model
+ - Populate glance image metadata application_tags with valid JSON
+ 
 
 ## [Whimsical-Wyvern](https://github.com/cyverse/atmosphere/milestone/10?closed=1) (as of 4/6/2017)
 
