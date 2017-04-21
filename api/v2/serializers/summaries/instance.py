@@ -29,6 +29,8 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
         return serializer.data
 
     def get_image(self, obj):
+        if obj.source.is_volume():
+            return {}
         image_uuid = obj.application_uuid()
         image = Image.objects.get(uuid=image_uuid)
         serializer = ImageSummarySerializer(image, context=self.context)

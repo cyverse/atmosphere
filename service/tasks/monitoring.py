@@ -175,7 +175,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
 
     account_driver = get_account_driver(provider)
     cloud_machines = account_driver.list_all_images()
-
+    db_machines = []
     # ASSERT: All non-end-dated machines in the DB can be found in the cloud
     # if you do not believe this is the case, you should call 'prune_machines_for'
     for cloud_machine in cloud_machines:
@@ -184,6 +184,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         owner_project = _get_owner(account_driver, cloud_machine)
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
         (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid, owner_project)
+        db_machines.append(db_machine)
         #STEP 2: For any private cloud_machine, convert the 'shared users' as known by cloud
         update_image_membership(account_driver, cloud_machine, db_machine)
 
@@ -198,7 +199,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
 
     if print_logs:
         _exit_stdout_logging(console_handler)
-    return
+    return db_machines
 
 def _get_owner(accounts, cloud_machine):
     """
@@ -533,6 +534,34 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
         application.save()
 
 
+@task(name="monitor_resources")
+def monitor_resources():
+    """
+    Update instances for each active provider.
+    """
+    for p in Provider.get_active():
+        monitor_resources_for.apply_async(args=[p.id])
+
+
+@task(name="monitor_resources_for")
+def monitor_resources_for(provider_id, users=None, print_logs=False):
+    """
+    Run the set of tasks related to monitoring all cloud resources for a provider.
+    """
+    resources = {}
+    sizes = monitor_sizes_for(provider_id, print_logs=print_logs)
+    volumes = monitor_volumes_for(provider_id, print_logs=print_logs)
+    machines = monitor_machines_for(provider_id, print_logs=print_logs)
+    instances = monitor_instances_for(provider_id, users=users, print_logs=print_logs)
+    resources.update({
+        'instances': instances,
+        'machines': machines,
+        'sizes': sizes,
+        'volumes': volumes,
+    })
+    return resources
+
+
 @task(name="monitor_instances")
 def monitor_instances():
     """
@@ -589,15 +618,13 @@ def monitor_instances_for(provider_id, users=None,
 
     if print_logs:
         console_handler = _init_stdout_logging()
-
+    seen_instances = []
     # DEVNOTE: Potential slowdown running multiple functions
     # Break this out when instance-caching is enabled
-    running_total = 0
     if not settings.ENFORCING:
         celery_logger.debug('Settings dictate allocations are NOT enforced')
     for username in sorted(instance_map.keys()):
         running_instances = instance_map[username]
-        running_total += len(running_instances)
         identity = _get_identity_from_tenant_name(provider, username)
         if identity and running_instances:
             try:
@@ -609,6 +636,7 @@ def monitor_instances_for(provider_id, users=None,
                         identity.provider.uuid,
                         identity.uuid,
                         identity.created_by) for inst in running_instances]
+                seen_instances.extend(core_running_instances)
             except Exception as exc:
                 celery_logger.exception(
                     "Could not convert running instances for %s" %
@@ -627,7 +655,7 @@ def monitor_instances_for(provider_id, users=None,
                 print_logs, start_date, end_date)
     if print_logs:
         _exit_stdout_logging(console_handler)
-    return running_total
+    return seen_instances
 
 
 @task(name="monitor_volumes")
@@ -684,6 +712,7 @@ def monitor_volumes_for(provider_id, print_logs=False):
 
     if print_logs:
         _exit_stdout_logging(console_handler)
+    return seen_volumes
 
 
 @task(name="monitor_sizes")
@@ -744,7 +773,7 @@ def monitor_sizes_for(provider_id, print_logs=False):
 
     if print_logs:
         _exit_stdout_logging(console_handler)
-
+    return seen_sizes
 
 @task(name="monthly_allocation_reset")
 def monthly_allocation_reset():
