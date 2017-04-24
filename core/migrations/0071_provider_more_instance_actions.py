@@ -15,6 +15,7 @@ def copy_data_to_new_models(apps, schema_editor):
 def add_instance_actions(Provider, InstanceAction, ProviderInstanceAction):
     InstanceAction.objects.get_or_create(
         name="Redeploy",
+        key="Redeploy",
         description="""Redeploy to an instance when it is in ANY active state""")
 
     instance_actions = InstanceAction.objects.all()
