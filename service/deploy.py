@@ -37,6 +37,8 @@ def ansible_deployment(
     """
     if not check_ansible():
         return []
+    # Expecting to be path-relative to the playbook path, so use basename
+    limit_playbooks = [os.path.basename(filepath) for filepath in limit_playbooks]
     logger = create_instance_logger(
         deploy_logger,
         instance_ip,
