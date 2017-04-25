@@ -11,6 +11,7 @@ from django.db.models import Max
 from django.db.models import ObjectDoesNotExist
 from rtwo.exceptions import NovaOverLimit, KeystoneUnauthorized
 from rtwo.exceptions import NeutronClientException, GlanceClientException
+from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_glance_by_auth
 from service.exceptions import AccountCreationConflict
 from keystoneauth1.exceptions.http import Unauthorized as KeystoneauthUnauthorized
 from requests.exceptions import ConnectionError
@@ -1084,7 +1085,20 @@ class AccountDriver(BaseAccountDriver):
         else:
             raise ValueError("Invalid client_name %s" % client_name)
 
+    def get_legacy_glance_client(self, all_creds):
+        all_creds['admin_url'] = all_creds['admin_url'] + '/v2.0'
+        all_creds['auth_url'] = all_creds['auth_url'] + '/v2.0'
+        keystone = _connect_to_keystone_v2(**all_creds)
+        mgr_keystone = self.user_manager.keystone
+        glance_service = mgr_keystone.services.find(type='image')
+        glance_endpoint_obj = mgr_keystone.endpoints.find(service_id=glance_service.id)
+        glance_endpoint = glance_endpoint_obj.publicurl
+        return _connect_to_glance_by_auth(endpoint=glance_endpoint, session=keystone.session)
+
     def get_glance_client(self, all_creds):
+        if 'ex_force_auth_version' in all_creds and all_creds['ex_force_auth_version'] == '2.0_password':
+            return self.get_legacy_glance_client(all_creds)
+        # Remove lines above when legacy cloud compatability is removed
         image_creds = self._build_image_creds(all_creds)
         _, _, glance = self.image_manager._new_connection(**image_creds)
         return glance
@@ -1117,12 +1131,14 @@ class AccountDriver(BaseAccountDriver):
         version = self.user_manager.keystone_version() 
         if version == 2:
             ex_version = '2.0_password'
+            keystone_auth_url = self.credentials['auth_url'].replace('/tokens','')
+            keystone_admin_url = self.credentials['admin_url'].replace('/tokens','')
         elif version == 3:
             ex_version = '3.x_password'
-        keystone_auth_url = self.user_manager.keystone.session.get_endpoint(
-            service_type='identity', interface='publicURL')
-        keystone_admin_url = self.user_manager.keystone.session.get_endpoint(
-            service_type='identity', interface='admin')
+            keystone_auth_url = self.user_manager.keystone.session.get_endpoint(
+                service_type='identity', interface='publicURL')
+            keystone_admin_url = self.user_manager.keystone.session.get_endpoint(
+                service_type='identity', interface='admin')
         region_name = self.user_manager.nova.client.region_name
         if not region_name:
             region_name = self.credentials['region_name']
