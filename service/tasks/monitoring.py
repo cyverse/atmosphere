@@ -712,8 +712,9 @@ def monitor_volumes_for(provider_id, print_logs=False):
 
     if print_logs:
         _exit_stdout_logging(console_handler)
+    for vol in seen_volumes:
+        vol.esh = None
     return seen_volumes
-
 
 @task(name="monitor_sizes")
 def monitor_sizes():
@@ -773,6 +774,8 @@ def monitor_sizes_for(provider_id, print_logs=False):
 
     if print_logs:
         _exit_stdout_logging(console_handler)
+    for size in seen_sizes:
+        size.esh = None
     return seen_sizes
 
 @task(name="monthly_allocation_reset")
