@@ -35,6 +35,7 @@ from service.monitoring import (
 from service.monitoring import user_over_allocation_enforcement
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
+from service.exceptions import TimeoutError
 from rtwo.models.size import OSSize
 from rtwo.exceptions import GlanceConflict, GlanceForbidden
 from libcloud.common.exceptions import BaseHTTPError
@@ -273,8 +274,11 @@ def distribute_image_membership(account_driver, cloud_machine, provider):
     group_ids = ProviderMachineMembership.objects.filter(provider_machine=pm).values_list('group', flat=True)
     groups = Group.objects.filter(id__in=group_ids)
     for group in groups:
-        update_cloud_membership_for_machine(pm, group)
-
+        try:
+            celery_logger.info("Add %s to cloud membership for %s" % (group, pm))
+            update_cloud_membership_for_machine(pm, group)
+        except TimeoutError:
+            celery_logger.warn("Failed to add cloud membership for %s - Operation timed out" % group)
 
 def update_image_membership(account_driver, cloud_machine, db_machine):
     """

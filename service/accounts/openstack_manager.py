@@ -29,9 +29,33 @@ from core.models.identity import Identity
 
 from service.accounts.base import BaseAccountDriver
 from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
+from service.exceptions import TimeoutError
 
 from atmosphere.settings.secrets import SECRET_SEED
 from atmosphere.settings import DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
+
+
+def timeout_after(seconds):
+  def real_timeout(func):
+    def wrapper(*args, **kwargs):
+        import signal
+
+        def handler(signum, frame):
+            raise TimeoutError()
+
+        # set the timeout handler
+        signal.signal(signal.SIGALRM, handler) 
+        signal.alarm(seconds)
+        try:
+            result = func(*args, **kwargs)
+        except TimeoutError as exc:
+            raise
+        finally:
+            signal.alarm(0)
+
+        return result
+    return wrapper
+  return real_timeout
 
 
 class AccountDriver(BaseAccountDriver):
@@ -453,6 +477,7 @@ class AccountDriver(BaseAccountDriver):
                     for member in shared_with if not status or status == member.status]
         return projects
 
+    @timeout_after(10)
     def share_image_with_identity(self, glance_image, identity):
         try:
             project_name = identity.project_name()
