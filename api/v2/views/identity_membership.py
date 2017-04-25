@@ -12,7 +12,7 @@ from api.v2.views.base import AdminAuthViewSet
 class IdentityMembershipFilter(django_filters.FilterSet):
     provider_id = django_filters.CharFilter('identity__provider__id')
     username = django_filters.CharFilter(
-        'identity__created_by__username', lookup_type='icontains')
+        'identity__created_by__username', lookup_expr='icontains')
     class Meta:
         model = IdentityMembership
         fields = ['provider_id', 'username']
