@@ -92,7 +92,7 @@ class InstanceAction(models.Model):
         last_history = instance.get_last_history()
         last_status = last_history.status.name
         last_activity = last_history.activity
-        if last_status in ['initializing', 'networking', 'deploying']:
+        if last_status in ['initializing', 'networking', 'deploying', 'deploy_error']:
             last_status = 'active'
         all_actions = []
         # Basic Actions: Reboot and terminate will work in (almost) every case.
