@@ -159,7 +159,7 @@ def monitor_machines():
 
 
 @task(name="monitor_machines_for")
-def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
+def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_run=False):
     """
     Run the set of tasks related to monitoring machines for a provider.
     Optionally, provide a list of usernames to monitor
@@ -175,6 +175,8 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
 
     account_driver = get_account_driver(provider)
     cloud_machines = account_driver.list_all_images()
+    if limit_machines:
+        cloud_machines = [cm for cm in cloud_machines if cm.id in limit_machines]
     db_machines = []
     # ASSERT: All non-end-dated machines in the DB can be found in the cloud
     # if you do not believe this is the case, you should call 'prune_machines_for'
@@ -284,7 +286,15 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     image_owner = cloud_machine.get('application_owner','')
     #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
     shared_group_names = [image_owner]
-    shared_projects = account_driver.shared_images_for(cloud_machine.id)
+    shared_projects = account_driver.shared_images_for(cloud_machine.id, None)
+    has_machine_request = db_machine.application_version.machinerequest_set.first()
+    if has_machine_request and has_machine_request.status.name == 'completed':
+        provider = has_machine_request.new_machine_provider
+        identifier = has_machine_request.new_machine.identifier
+        main_account_driver = get_account_driver(provider)
+        shared_projects_from_main =  main_account_driver.shared_images_for(identifier, None)
+        shared_group_names.extend(p.name for p in shared_projects_from_main if p)
+
     shared_group_names.extend(p.name for p in shared_projects if p)
     groups = Group.objects.filter(name__in=shared_group_names)
     if not groups:

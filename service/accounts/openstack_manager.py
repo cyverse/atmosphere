@@ -1,6 +1,6 @@
 """
 UserManager:
-  Remote Openstack  Admin controls..
+  Remote Openstack Admin controls..
 """
 import time
 import string
