@@ -117,7 +117,8 @@ class InstanceAction(models.Model):
         elif last_status == "shutoff":
             # Suspended instances can be started + <Basic Actions>
             all_actions.append('Start')
-        elif last_status == "shelved":
+        elif (last_status == "shelved" or
+              last_status == "shelved_offloaded"):
             # Shelved instances can be unshelved or offloaded + <Basic Actions>
             all_actions.append('Shelve Offload')
             all_actions.append('Unshelve')
