@@ -92,7 +92,7 @@ class InstanceAction(models.Model):
         last_history = instance.get_last_history()
         last_status = last_history.status.name
         last_activity = last_history.activity
-        if last_status in ['initializing', 'networking', 'deploying', 'deploy_error']:
+        if last_status in ['initializing', 'networking', 'deploying']:
             last_status = 'active'
         if last_activity in ['shelving_image_uploading', 'shelving_image_pending_upload']:
             last_status = 'shelved'
@@ -113,6 +113,16 @@ class InstanceAction(models.Model):
                 all_actions.append('Stop')
                 all_actions.append('Terminate')
                 all_actions.append('Imaging')
+        elif last_status == 'deploy_error':
+            all_actions.append('Redeploy')
+            all_actions.append('Reboot')
+            all_actions.append('Hard Reboot')
+            all_actions.append('Resize')
+            all_actions.append('Shelve')
+            all_actions.append('Suspend')
+            all_actions.append('Stop')
+            all_actions.append('Terminate')
+            all_actions.append('Imaging')
         elif last_status == "suspended":
             # Suspended instances can be resumed + <Basic Actions>
             all_actions.append('Reboot')
