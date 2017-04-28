@@ -568,6 +568,10 @@ Useful utility methods for the Core Model..
 """
 OPENSTACK_TASK_STATUS_MAP = {
     # Terminate tasks
+    # Shelving tasks
+    'shelving': 'shelved',
+    'shelving_image_uploading': 'shelved',
+    'shelving_image_pending_upload': 'shelved',
     # Suspend tasks
     'resuming': 'build',
     'suspending': 'suspended',
@@ -834,7 +838,6 @@ def convert_esh_instance(
     # Update the InstanceStatusHistory
     core_size = _esh_instance_size_to_core(esh_driver,
                                            esh_instance, provider_uuid)
-    # TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
         core_size,
