@@ -392,15 +392,22 @@ def get_or_create_user_allocation_source(user, allocation_source):
     from core.models import AtmosphereUser
     assert isinstance(user, AtmosphereUser)
     assert isinstance(allocation_source, AllocationSource)
-    payload = {
-        'allocation_source_name': allocation_source.name
-    }
 
-    created_event = EventTable.objects.create(name='user_allocation_source_created',
-                                              entity_id=user.username,
-                                              payload=payload)
-    assert isinstance(created_event, EventTable)
-    user_allocation_source = UserAllocationSource.objects.get(user=user, allocation_source=allocation_source)
+    user_allocation_source = UserAllocationSource.objects.filter(user=user, allocation_source=allocation_source)
+
+    if not user_allocation_source:
+        payload = {
+            'allocation_source_name': allocation_source.name
+        }
+
+        created_event = EventTable.objects.create(name='user_allocation_source_created',
+                                                  entity_id=user.username,
+                                                  payload=payload)
+        assert isinstance(created_event, EventTable)
+        user_allocation_source = UserAllocationSource.objects.get(user=user, allocation_source=allocation_source)
+    else:
+        user_allocation_source = user_allocation_source.last()
+
     return user_allocation_source
 
 
