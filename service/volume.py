@@ -224,7 +224,7 @@ def create_bootable_volume(
     # Return source or raises an Exception
     source = _retrieve_source(driver, new_source_alias, source_hint)
 
-    core_instance = boot_volume_instance(driver, identity,
+    core_instance = boot_volume_instance(driver, user, identity,
                                          source, size, name, **kwargs)
 
     return core_instance

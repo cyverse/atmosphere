@@ -2,7 +2,7 @@
   Machine models for atmosphere.
 """
 from hashlib import md5
-import json
+import json, ast
 
 from django.db import models
 from django.db.models import Q
@@ -204,7 +204,7 @@ def collect_image_metadata(glance_image):
         if verify_app_uuid(glance_image.get('application_uuid'), glance_image.id):
             app_kwargs['uuid'] = glance_image.get('application_uuid')
             app_kwargs['description'] = glance_image.get('application_description')#TODO: Verify that _LINE_BREAK_ is fixed
-            app_kwargs['tags'] = glance_image.get('application_tags')
+            app_kwargs['tags'] = ast.literal_eval(glance_image.get('application_tags'))
         elif is_replicated_version(glance_image.id):
             app_kwargs = replicate_app_kwargs(glance_image.id)
     except AttributeError as exc:

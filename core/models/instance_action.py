@@ -94,13 +94,15 @@ class InstanceAction(models.Model):
         last_activity = last_history.activity
         if last_status in ['initializing', 'networking', 'deploying']:
             last_status = 'active'
+        if last_activity in ['shelving_image_uploading', 'shelving_image_pending_upload']:
+            last_status = 'shelved'
         all_actions = []
-        # Basic Actions: Reboot and terminate will work in (almost) every case.
+        # Basic Actions: Terminate will work in (almost) every case.
         all_actions.append('Terminate')
-        all_actions.append('Reboot')
-        all_actions.append('Hard Reboot')
         if last_status == 'active':
             all_actions.append('Redeploy')
+            all_actions.append('Reboot')
+            all_actions.append('Hard Reboot')
             # If we are "in the process of deploying"
             # Our actions are limited to Redeploy + <Basic Actions>
             if not last_activity:
@@ -111,16 +113,40 @@ class InstanceAction(models.Model):
                 all_actions.append('Stop')
                 all_actions.append('Terminate')
                 all_actions.append('Imaging')
+        elif last_status == 'deploy_error':
+            all_actions.append('Redeploy')
+            all_actions.append('Reboot')
+            all_actions.append('Hard Reboot')
+            all_actions.append('Resize')
+            all_actions.append('Shelve')
+            all_actions.append('Suspend')
+            all_actions.append('Stop')
+            all_actions.append('Terminate')
+            all_actions.append('Imaging')
         elif last_status == "suspended":
             # Suspended instances can be resumed + <Basic Actions>
+            all_actions.append('Reboot')
+            all_actions.append('Hard Reboot')
             all_actions.append('Resume')
+        elif last_status == "build":
+            # This includes instances from `build - spawning` through `active - initializing`
+            # NOTE: Reboot/Hard Reboot would fail on an instance that is truly building. Will be fixed separately.
+            all_actions.append('Reboot')
+            all_actions.append('Hard Reboot')
         elif last_status == "shutoff":
             # Suspended instances can be started + <Basic Actions>
+            all_actions.append('Reboot')
+            all_actions.append('Hard Reboot')
             all_actions.append('Start')
         elif last_status == "shelved":
-            # Shelved instances can be unshelved or offloaded + <Basic Actions>
-            all_actions.append('Shelve Offload')
-            all_actions.append('Unshelve')
+            # Shelved instances can be unshelved, offloaded, or terminated
+            if not last_activity:
+                all_actions.append('Unshelve')
+                all_actions.append('Shelve Offload')
+        elif last_status == "shelved_offloaded":
+            # Shelved offloaded instances can be unshelved or terminated
+            if not last_activity:
+                all_actions.append('Unshelve')
 
         if len(all_actions) == 2:
             logger.debug(
@@ -130,6 +156,7 @@ class InstanceAction(models.Model):
 
         if not queryset:
             queryset = cls.objects.all()
+        #logger.info("List of instance actions for %s in state %s - %s: %s" % (instance, last_status, last_activity, all_actions))
         return queryset.filter(key__in=all_actions)
 
     def __unicode__(self):

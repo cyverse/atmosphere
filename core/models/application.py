@@ -129,7 +129,9 @@ class Application(models.Model):
         is_public = Q(private=False)
         if not user or isinstance(user, AnonymousUser):
             # Images that are not endated and are public
-            return Application.objects.filter(query.only_current_apps() & is_public).distinct()
+            return Application.objects.filter(
+                query.only_current_apps() & is_public,
+                versions__machines__instance_source__provider__public=True).distinct()
         if not isinstance(user, AtmosphereUser):
             raise Exception("Expected user to be of type AtmosphereUser"
                             " - Received %s" % type(user))
