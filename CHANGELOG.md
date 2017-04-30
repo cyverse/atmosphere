@@ -8,6 +8,8 @@ Bugfixes:
  - Fixed application tags (https://github.com/cyverse/atmosphere/commit/fed9aae578025d8024f4a255ee109e12f1ff0483)
  - Behave fail for allocation settings (https://github.com/cyverse/atmosphere/commit/62686fd387203e2b5abe057d807503eabbddade4)
  - Unknown sizes appear when sizes are disabled (https://github.com/cyverse/atmosphere/pull/321)
+ - Fixed duplicate `user_allocation_source` events (https://github.com/cyverse/atmosphere/issues/350)
+    - Also has a migration to delete old duplicate events
  
 Internal:
  - Bail out conditions for Celery task when MockDriver is used
