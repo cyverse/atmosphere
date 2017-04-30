@@ -116,5 +116,47 @@ Feature: Monitor Jetstream Allocation Sources
       | TG-TRA160003 | 87914.060    |
 
 
+  Scenario: Correct events, with no duplicates when checking twice
+    When we get all projects
+    Then we should have the following events
+      | entity_id | name | payload | timestamp |
+    When we fill user allocation sources from TAS
+    Then we should have the following user allocation sources
+      | atmosphere_username | allocation_source |
+      | user108             | TG-BIO150062      |
+      | user109             | TG-BIO150062      |
+      | user109             | TG-TRA160003      |
+      | user111             | TG-TRA160003      |
+    # TODO: `allocation_source_created_or_renewed` & `allocation_source_compute_allowed_changed` should have `entity_id`
+    And we should have the following events
+      | entity_id | name                                      | payload                                                                                                                                          | timestamp                |
+      |           | allocation_source_created_or_renewed      | {"allocation_source_name": "TG-BIO150062", "start_date": "2016-01-01T06:00:00Z", "end_date": "2017-06-30T05:00:00Z", "compute_allowed": 1000000} | 2017-02-15 05:00:00+0000 |
+      |           | allocation_source_compute_allowed_changed | {"allocation_source_name": "TG-BIO150062", "start_date": "2016-01-01T06:00:00Z", "end_date": "2017-06-30T05:00:00Z", "compute_allowed": 1000000} | 2017-02-15 05:00:00+0000 |
+      | user108   | user_allocation_source_created            | {"allocation_source_name": "TG-BIO150062"}                                                                                                       | 2017-02-15 05:00:00+0000 |
+      | user109   | user_allocation_source_created            | {"allocation_source_name": "TG-BIO150062"}                                                                                                       | 2017-02-15 05:00:00+0000 |
+      |           | allocation_source_created_or_renewed      | {"allocation_source_name": "TG-TRA160003", "start_date": "2017-01-22T06:00:00Z", "end_date": "2018-01-21T06:00:00Z", "compute_allowed": 600000}  | 2017-02-15 05:00:00+0000 |
+      |           | allocation_source_compute_allowed_changed | {"allocation_source_name": "TG-TRA160003", "start_date": "2017-01-22T06:00:00Z", "end_date": "2018-01-21T06:00:00Z", "compute_allowed": 600000}  | 2017-02-15 05:00:00+0000 |
+      | user109   | user_allocation_source_created            | {"allocation_source_name": "TG-TRA160003"}                                                                                                       | 2017-02-15 05:00:00+0000 |
+      | user111   | user_allocation_source_created            | {"allocation_source_name": "TG-TRA160003"}                                                                                                       | 2017-02-15 05:00:00+0000 |
+    Given a current time of '2017-02-16T06:00:00Z'
+    When we get all projects
+    And we fill user allocation sources from TAS
+    Then we should have the following user allocation sources
+      | atmosphere_username | allocation_source |
+      | user108             | TG-BIO150062      |
+      | user109             | TG-BIO150062      |
+      | user109             | TG-TRA160003      |
+      | user111             | TG-TRA160003      |
+    And we should have the following events
+      | entity_id | name                                      | payload                                                                                                                                          | timestamp                |
+      |           | allocation_source_created_or_renewed      | {"allocation_source_name": "TG-BIO150062", "start_date": "2016-01-01T06:00:00Z", "end_date": "2017-06-30T05:00:00Z", "compute_allowed": 1000000} | 2017-02-15 05:00:00+0000 |
+      |           | allocation_source_compute_allowed_changed | {"allocation_source_name": "TG-BIO150062", "start_date": "2016-01-01T06:00:00Z", "end_date": "2017-06-30T05:00:00Z", "compute_allowed": 1000000} | 2017-02-15 05:00:00+0000 |
+      | user108   | user_allocation_source_created            | {"allocation_source_name": "TG-BIO150062"}                                                                                                       | 2017-02-15 05:00:00+0000 |
+      | user109   | user_allocation_source_created            | {"allocation_source_name": "TG-BIO150062"}                                                                                                       | 2017-02-15 05:00:00+0000 |
+      |           | allocation_source_created_or_renewed      | {"allocation_source_name": "TG-TRA160003", "start_date": "2017-01-22T06:00:00Z", "end_date": "2018-01-21T06:00:00Z", "compute_allowed": 600000}  | 2017-02-15 05:00:00+0000 |
+      |           | allocation_source_compute_allowed_changed | {"allocation_source_name": "TG-TRA160003", "start_date": "2017-01-22T06:00:00Z", "end_date": "2018-01-21T06:00:00Z", "compute_allowed": 600000}  | 2017-02-15 05:00:00+0000 |
+      | user109   | user_allocation_source_created            | {"allocation_source_name": "TG-TRA160003"}                                                                                                       | 2017-02-15 05:00:00+0000 |
+      | user111   | user_allocation_source_created            | {"allocation_source_name": "TG-TRA160003"}                                                                                                       | 2017-02-15 05:00:00+0000 |
+
   @skip
   Scenario: Generate reports
