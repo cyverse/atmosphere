@@ -1,3 +1,4 @@
+import dateutil.parser
 import freezegun
 
 
@@ -17,6 +18,8 @@ def before_step(context, step):
     if hasattr(context, 'frozen_current_time'):
         if not hasattr(context, 'freezer'):
             context.freezer = freezegun.freeze_time(context.frozen_current_time, tick=True)
+        else:
+            context.freezer.time_to_freeze = dateutil.parser.parse(context.frozen_current_time)
         context.freezer.start()
 
 
