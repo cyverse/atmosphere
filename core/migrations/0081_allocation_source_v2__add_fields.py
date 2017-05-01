@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     from django.conf import settings
 
     dependencies = [
-        ('core', '0079_add_events_for_old_allocationsource'),
+        ('core', '0080_delete_duplicate_user_allocation_source_events'),
     ]
 
     operations = [

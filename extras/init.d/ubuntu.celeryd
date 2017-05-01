@@ -401,9 +401,9 @@ case "$1" in
     start)
         check_dev_null
         check_paths
+        start_flower
         start_workers
         #kill_flower
-        start_flower
     ;;
 
     stop)

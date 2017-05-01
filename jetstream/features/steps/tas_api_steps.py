@@ -1,4 +1,6 @@
 import copy
+import datetime
+import json
 from decimal import Decimal
 
 import mock
@@ -38,6 +40,7 @@ def _get_user_projects(context, url):
     user_projects = [project for project in context.tas_projects if project['chargeCode'] in project_names]
     data = {'status': 'success', 'message': None, 'result': user_projects}
     return data
+
 
 def _make_mock_tacc_api_get(context):
     def _mock_tacc_api_get(*args, **kwargs):
@@ -205,7 +208,7 @@ def should_have_allocation_source_snapshots(context):
     context.test.assertDictEqual(expected_allocation_source_snapshots, allocation_source_snapshots)
 
 
-@then(u'we should have the following user allocation sources')
+@step(u'we should have the following user allocation sources')
 def should_have_user_allocation_sources(context):
     expected_user_allocation_sources = [(row.cells[0], row.cells[1] or None,) for row in context.table]
     from core.models import UserAllocationSource
@@ -218,3 +221,21 @@ def should_have_user_allocation_sources(context):
                                    'allocation_source__name'
                                )]
     context.test.assertListEqual(expected_user_allocation_sources, user_allocation_sources)
+
+
+@step(u'we should have the following events')
+@step(u'we should have the following "{event_name}" events')
+def should_have_following_events(context, event_name=None):
+    expected_events = [dict(zip(row.headings, row.cells)) for row in context.table]
+    for expected_event in expected_events:
+        expected_event['payload'] = json.loads(expected_event['payload'])
+    from core.models import EventTable
+    query = EventTable.objects.all().order_by('id')
+    if event_name is not None:
+        query = query.filter(name=event_name)
+    events = [event for event in query.values('entity_id', 'name', 'payload', 'timestamp')]
+    for event in events:
+        event['timestamp'] = event['timestamp'].replace(microsecond=0)
+        event['timestamp'] = datetime.datetime.strftime(event['timestamp'], '%Y-%m-%d %H:%M:%S%z')
+    context.test.maxDiff = None
+    context.test.assertListEqual(expected_events, events)
