@@ -8,7 +8,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0081_create_allocationsource_for_users'),
+        ('core', '0082_create_allocationsource_for_users'),
     ]
 
     operations = [

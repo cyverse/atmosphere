@@ -106,7 +106,7 @@ def create_user_allocationsource_for(user, allocation_source,EventTable, UserAll
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0080_allocation_source_v2__add_fields'),
+        ('core', '0081_allocation_source_v2__add_fields'),
     ]
 
     operations = [
