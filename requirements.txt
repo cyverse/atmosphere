@@ -18,7 +18,7 @@ caslib.py==2.2.2          # via django-cyverse-auth
 celery==4.0.2
 certifi==2017.1.23        # via tornado
 cffi==1.10.0              # via cryptography
-chromogenic==0.4.4
+chromogenic==0.4.6
 cliff==2.4.0              # via osc-lib, python-neutronclient, python-openstackclient
 cmd2==0.7.0               # via cliff
 contextlib2==0.5.4        # via raven
