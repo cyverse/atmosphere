@@ -4,7 +4,7 @@ from celery.decorators import task
 from django.conf import settings
 from django.utils import timezone
 
-from core.models import EventTable
+from core.models import EventTable, AtmosphereUser
 from core.models.allocation_source import (
     UserAllocationSource, AllocationSourceSnapshot,
     AllocationSource, UserAllocationSnapshot
@@ -36,29 +36,55 @@ def create_reports():
     """
     user_allocation_list = UserAllocationSource.objects.all()
     all_reports = []
-    driver = TASAPIDriver()
     end_date = timezone.now()
+    last_report_date = TASAllocationReport.objects.order_by('end_date')
+
+    if not last_report_date:
+        last_report_date = end_date
+    else:
+        last_report_date = last_report_date.last().end_date
+
     for item in user_allocation_list:
         allocation_name = item.allocation_source.name
-        tacc_username = driver.get_tacc_username(item.user)
-        if not tacc_username:
-            logger.error("No TACC username for user: '{}' which came from allocation id: {}".format(item.user,
-                                                                                                    allocation_name))
-            continue
-        project_name = driver.get_allocation_project_name(allocation_name)
-        try:
-            project_report = _create_tas_report_for(
-                item.user,
-                tacc_username,
-                project_name,
-                end_date)
-        except TASPluginException:
-            logger.exception(
-                "Could not create the report because of the error below"
-            )
-            continue
-        all_reports.append(project_report)
+        project_report = _create_reports_for(item.user, allocation_name, end_date)
+        if project_report:
+            all_reports.append(project_report)
+
+    # Take care of Deleted Users
+
+    # filter user_allocation_source_removed events which are created after the last report date
+
+    for event in EventTable.objects.filter(name="user_allocation_source_deleted", timestamp__gte=last_report_date):
+
+        user = AtmosphereUser.objects.get(username=event.entity_id)
+        allocation_name = event.payload['allocation_source_name']
+        end_date = event.timestamp
+        project_report = _create_reports_for(user, allocation_name, end_date)
+        if project_report:
+            all_reports.append(project_report)
     return all_reports
+
+
+def _create_reports_for(user, allocation_name, end_date):
+    driver = TASAPIDriver()
+    tacc_username = driver.get_tacc_username(user)
+    if not tacc_username:
+        logger.error("No TACC username for user: '{}' which came from allocation id: {}".format(user,
+                                                                                                allocation_name))
+        return
+    project_name = driver.get_allocation_project_name(allocation_name)
+    try:
+        project_report = _create_tas_report_for(
+            user,
+            tacc_username,
+            project_name,
+            end_date)
+        return project_report
+    except TASPluginException:
+        logger.exception(
+            "Could not create the report because of the error below"
+        )
+        return
 
 
 def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
@@ -77,7 +103,7 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
     last_report = TASAllocationReport.objects.filter(
         project_name=tacc_project_name,
         user=user
-        ).order_by('end_date').last()
+    ).order_by('end_date').last()
     if not last_report:
         start_date = user.date_joined
     else:
