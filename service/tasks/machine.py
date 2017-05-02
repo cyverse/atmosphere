@@ -326,7 +326,8 @@ def validate_new_image(image_id, machine_request_id):
             "Need to know the AccountProvider to auto-validate instance")
         return False
     # Attempt to launch using the admin_driver
-    admin_driver.identity.user = admin_ident.created_by
+    user = admin_ident.created_by
+    admin_driver.identity.user = user
     machine = admin_driver.get_machine(image_id)
     sorted_sizes = admin_driver.list_sizes()
     size_index = 0
@@ -335,7 +336,7 @@ def validate_new_image(image_id, machine_request_id):
         size_index += 1
         try:
             instance = launch_machine_instance(
-                admin_driver, admin_ident,
+                admin_driver, user, admin_ident,
                 machine, selected_size,
                 'Automated Image Verification - %s' % image_id,
                 username=local_username,
