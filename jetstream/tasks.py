@@ -14,7 +14,6 @@ from .allocation import (TASAPIDriver, fill_user_allocation_sources, select_vali
 from .exceptions import TASPluginException
 from .models import TASAllocationReport
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -54,7 +53,8 @@ def create_reports():
 
     # filter user_allocation_source_removed events which are created after the last report date
 
-    for event in EventTable.objects.filter(name="user_allocation_source_deleted", timestamp__gte=last_report_date):
+    for event in EventTable.objects.filter(name="user_allocation_source_deleted",
+                                           timestamp__gte=last_report_date).order_by('timestamp'):
 
         user = AtmosphereUser.objects.get(username=event.entity_id)
         allocation_name = event.payload['allocation_source_name']
