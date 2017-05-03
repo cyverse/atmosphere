@@ -1,10 +1,10 @@
 from core.models import InstanceTag
 
 from api.v2.serializers.details import InstanceTagSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 
 
-class InstanceTagViewSet(AuthViewSet):
+class InstanceTagViewSet(AuthModelViewSet):
 
     """
     API endpoint that allows instance tags to be viewed

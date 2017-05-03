@@ -2,7 +2,7 @@ import django_filters
 
 from core.models import EventTable
 from api.v2.serializers.details import EventSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 
@@ -12,7 +12,7 @@ class EventFilter(django_filters.FilterSet):
         fields = ['entity_id', 'name']
 
 
-class EventViewSet(MultipleFieldLookup, AuthViewSet):
+class EventViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows scripts to be viewed or edited.

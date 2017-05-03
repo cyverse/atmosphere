@@ -1,14 +1,14 @@
 from django.contrib.auth.models import AnonymousUser
 
 from api.v2.serializers.details import AllocationSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.permissions import CloudAdminRequired
 from api.pagination import OptionalPagination
 from core.models import Allocation
 
 
-class AllocationViewSet(MultipleFieldLookup, AuthViewSet):
+class AllocationViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.

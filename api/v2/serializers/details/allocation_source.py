@@ -3,6 +3,8 @@ from rest_framework import serializers
 
 from core.models.allocation_source import AllocationSource, AllocationSourceSnapshot, UserAllocationSnapshot
 from core.models.user import AtmosphereUser
+from core.models.event_table import EventTable
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
@@ -13,7 +15,7 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
     user_compute_used = serializers.SerializerMethodField()
     user_snapshot_updated = serializers.SerializerMethodField()
     updated = serializers.SerializerMethodField()
-    url = serializers.HyperlinkedIdentityField(
+    url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:allocationsource-detail',
     )
 
@@ -63,6 +65,6 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = AllocationSource
         fields = (
-            'id', 'url', 'name', 'uuid', 'compute_allowed',
-            'compute_used', 'global_burn_rate', 'updated', 'uuid',
+            'id','url', 'name', 'uuid', 'compute_allowed', 'start_date',
+            'end_date','compute_used', 'global_burn_rate', 'updated', 'renewal_strategy',
             'user_compute_used', 'user_burn_rate', 'user_snapshot_updated')
