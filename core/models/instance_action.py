@@ -144,10 +144,12 @@ class InstanceAction(models.Model):
             if not last_activity:
                 all_actions.append('Unshelve')
                 all_actions.append('Shelve Offload')
+                all_actions.append('Imaging')
         elif last_status == "shelved_offloaded":
             # Shelved offloaded instances can be unshelved or terminated
             if not last_activity:
                 all_actions.append('Unshelve')
+                all_actions.append('Imaging')
 
         if len(all_actions) == 2:
             logger.debug(
