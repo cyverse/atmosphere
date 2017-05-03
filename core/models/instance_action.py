@@ -134,19 +134,22 @@ class InstanceAction(models.Model):
             all_actions.append('Reboot')
             all_actions.append('Hard Reboot')
         elif last_status == "shutoff":
-            # Suspended instances can be started + <Basic Actions>
+            # Stopped instances can be started, imaged + <Basic Actions>
             all_actions.append('Reboot')
             all_actions.append('Hard Reboot')
             all_actions.append('Start')
+            all_actions.append('Imaging')
         elif last_status == "shelved":
             # Shelved instances can be unshelved, offloaded, or terminated
             if not last_activity:
                 all_actions.append('Unshelve')
                 all_actions.append('Shelve Offload')
+                all_actions.append('Imaging')
         elif last_status == "shelved_offloaded":
             # Shelved offloaded instances can be unshelved or terminated
             if not last_activity:
                 all_actions.append('Unshelve')
+                all_actions.append('Imaging')
 
         if len(all_actions) == 2:
             logger.debug(
