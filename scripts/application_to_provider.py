@@ -437,6 +437,7 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
     if clean:
         # TODO is this a reasonable mount point or should we create one in /tmp?
         mount_and_clean(local_path, "/mnt")
+        logger.info("Cleaned image using Chromogenic")
     local_img_checksum = file_md5(local_path)
 
     # Upload image to destination provider, keep trying until checksums match
