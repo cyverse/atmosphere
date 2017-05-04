@@ -15,7 +15,7 @@ import glanceclient.exc
 import django; django.setup()
 import core.models
 import service.driver
-
+from chromogenic.clean import mount_and_clean
 from atmosphere.settings import secrets
 
 description = """
@@ -79,6 +79,8 @@ def main():
     logging.info("Running application_to_provider with the following arguments:\n{0}".format(str(args)))
 
     irods_args = (args.irods_conn, args.irods_src_coll, args.irods_dst_coll)
+    if args.clean and any(irods_args):
+        raise Exception("--clean cannot be used with iRODS transfer mode")
     if any(irods_args):
         irods = True
         if all(irods_args) and args.source_provider_id:
@@ -296,7 +298,7 @@ def main():
 
         # Populate image data in destination provider if needed
         migrate_image_data(sprov_img_uuid, sprov_glance_client, dprov_glance_client, local_path, persist_local_cache,
-                           irods, irods_conn, irods_src_coll, irods_dst_coll)
+                           irods, irods_conn, irods_src_coll, irods_dst_coll, clean=True if args.clean else False)
         # If AMI-based image, populate image data in destination provider if needed
         if ami:
             migrate_image_data(sprov_aki_glance_image.id, sprov_glance_client, dprov_glance_client, local_path,
@@ -332,7 +334,7 @@ def get_or_create_glance_image(glance_client, img_uuid):
 
 
 def migrate_image_data(img_uuid, src_glance_client, dst_glance_client, local_path, persist_local_cache, irods,
-                       irods_conn, irods_src_coll, irods_dst_coll):
+                       irods_conn, irods_src_coll, irods_dst_coll, clean=False):
     """
     Ensures that Glance image data matches between a source and a destination OpenStack provider.
     Migrates image data if needed, using either Glance API download/upload or iRODS data object copy.
@@ -347,6 +349,7 @@ def migrate_image_data(img_uuid, src_glance_client, dst_glance_client, local_pat
         irods_conn: dict as returned by _parse_irods_conn()
         irods_src_coll: Path to collection for iRODS images on source provider
         irods_dst_coll: Path to collection for iRODS images on destination provider
+        clean: apply Chromogenic mount_and_clean() to downloaded image
 
     Returns: True if successful, else raises exception
     """
@@ -367,10 +370,11 @@ def migrate_image_data(img_uuid, src_glance_client, dst_glance_client, local_pat
             return True
         else:
             migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path,
-                                      persist_local_cache)
+                                      persist_local_cache, clean)
 
 
-def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True, max_tries=3):
+def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True,
+                              max_tries=3, clean=False):
     """
     Migrates image data using Glance API. Assumes that:
     - The Glance image object has already been created in the source provider
@@ -384,6 +388,7 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
         persist_local_cache: If image download succeeds but upload fails, keep local cached copy for subsequent attempt
                              (Local cache is always deleted after successful upload)
         max_tries: number of times to attempt each of download and upload
+        clean: apply Chromogenic mount_and_clean() to downloaded image
 
     Returns: True if success, else raises an exception
     """
@@ -411,6 +416,11 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
                 os.remove(local_path)
             raise Exception("Could not download Glance image from source provider")
 
+    if clean:
+        # TODO is this a reasonable mount point or should we create one in /tmp?
+        mount_and_clean(local_path, "/mnt")
+    local_img_checksum = file_md5(local_path)
+
     # Upload image to destination provider, keep trying until checksums match
     tries = 0
     while tries < max_tries:
@@ -419,7 +429,7 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
         with open(local_path, 'rb') as img_file:
             try:
                 dst_glance_client.images.upload(img_uuid, img_file)
-                if src_img.checksum == dst_glance_client.images.get(img_uuid).checksum:
+                if local_img_checksum == dst_glance_client.images.get(img_uuid).checksum:
                     logging.info("Successfully uploaded image data to destination provider")
                     break
                 else:
@@ -427,7 +437,7 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
             except OpenSSL.SSL.SysCallError:
                 logging.warning("Image data upload attempt failed")
 
-    if src_img.checksum != dst_glance_client.images.get(img_uuid).checksum:
+    if local_img_checksum != dst_glance_client.images.get(img_uuid).checksum:
         raise Exception("Image checksums don't match, upload may have failed!")
     else:
         os.remove(local_path)
