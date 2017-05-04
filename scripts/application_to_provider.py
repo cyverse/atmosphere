@@ -375,7 +375,7 @@ def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client,
             migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
         else:
             migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache,
-                                      clean)
+                                      clean=clean)
     elif dst_img.get("status") == "active":
         if irods:
             if src_img.get("size") != dst_img.get("size"):
