@@ -323,6 +323,11 @@ def get_or_create_glance_image(glance_client, img_uuid):
     """
     try:
         glance_image = glance_client.images.get(img_uuid)
+    except glanceclient.exc.HTTPConflict:
+        raise Exception("Could not create Glance image with specified UUID, possibly because there is already a "
+                        "deleted image with the same UUID stored in the destination provider. If this is the case "
+                        "(look in Glance database on destination provider), then run a `glance-manage db purge` to "
+                        "free up the UUID.")
     except glanceclient.exc.HTTPNotFound:
         logging.debug("Could not locate glance image in specified provider")
         logging.info("Creating new Glance image")
