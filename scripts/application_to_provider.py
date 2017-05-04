@@ -391,7 +391,6 @@ def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client,
     return True
 
 
-
 def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True,
                               max_tries=3, clean=False):
     """
