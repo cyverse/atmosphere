@@ -205,22 +205,12 @@ def main():
                          ", new objects will be created")
 
         # Get or create Glance image
-        # Look for image matching identifier stored in InstanceSource for dprov
         """
         todo corner case: we have existing InstanceSource with wrong image UUID?
         Do we correct it later (good) or end up creating a duplicate (maybe bad)?
         this logic may also need refactor
         """
-        if dprov_instance_source is not None:
-            try:
-                dprov_glance_image = dprov_glance_client.images.get(dprov_instance_source.identifier)
-            except glanceclient.exc.HTTPNotFound:
-                pass
-            else:
-                if dprov_glance_image is not None:
-                    logging.info("Found Glance image from InstanceSource for destination provider, re-using it")
-        else:
-            dprov_glance_image = get_or_create_glance_image(dprov_glance_client, sprov_img_uuid)
+        dprov_glance_image = get_or_create_glance_image(dprov_glance_client, sprov_img_uuid)
 
         # Get or create AKI+ARI Glance images for AMI-based image
         if ami:
