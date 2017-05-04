@@ -24,9 +24,11 @@ provider by doing any/all of the following as needed:
 
 - Creates Glance image
 - Populates Glance image metadata
-- Transfers image data from existing provider
+- Optionally, uses Chromogenic library to remove undesired state from images
+  which were created from Atmosphere(1) instances
+- Transfers image data from existing provider to new provider, one of two ways:
   - Using Glance API (default)
-  - Optionally, using iRODS (Atmosphere(0)-specific feature)
+  - Using iRODS (Atmosphere(0)-specific feature), see below
 - If Application uses an AMI-style image, ensures the
   kernel (AKI) and ramdisk (ARI) images are also present on destination
   provider, and sets appropriate properties
@@ -42,6 +44,8 @@ If a non-public application has or more members without identities on the
 destination provider, script will exit with error unless
 --ignore_missing_members is set.
 
+## iRODS Transfer Information
+
 The iRODS transfer feature was developed for CyVerse Atmosphere(0); may be of
 limited use elsewhere. In order to use it:
 - Source and destination providers must use the iRODS storage backend for
@@ -51,6 +55,7 @@ limited use elsewhere. In order to use it:
   must all be defined
 - Credentials passed in --irods-conn must have write access to both source and
   destination collections
+- --clean cannot be used with iRODS transfer
 
 Considerations when using iRODS transfer:
 - The credentials passed in --irods-conn will be used to populate the image
@@ -487,6 +492,10 @@ def _parse_args():
                         action="store_true",
                         help="Transfer image if application is private and member(s) have no identity on destination "
                              "provider")
+    parser.add_argument("--clean",
+                        action="store_true",
+                        help="Use Chromogenic library to remove undesired state from images which were created from "
+                             "Atmosphere(1) instances (cannot be used with iRODS transfer)")
     parser.add_argument("--persist-local-cache",
                         action="store_true",
                         help="If image download succeeds but upload fails, keep local cached copy for subsequent "
