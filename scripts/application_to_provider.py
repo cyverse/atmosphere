@@ -361,21 +361,26 @@ def migrate_image_data(img_uuid, src_glance_client, dst_glance_client, local_pat
 
     src_img = src_glance_client.images.get(img_uuid)
     dst_img = dst_glance_client.images.get(img_uuid)
-    if irods:
-        # Unable to use checksum for irods transfer, because checksum is not set in Glance when a location
-        # is added to an image (instead of uploading image data via Glance API) :(
-        if src_img.size == dst_img.size:
-            logging.info("Image data size matches on source and destination providers, not migrating data")
-            return True
-        else:
+
+    if dst_img.get("status") == "queued":
+        if irods:
             migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
-    else:
-        if src_img.checksum == dst_img.checksum:
-            logging.info("Image data checksum matches on source and destination providers, not migrating data")
-            return True
         else:
-            migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path,
-                                      persist_local_cache, clean)
+            migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache,
+                                      clean)
+    elif dst_img.get("status") == "active":
+        if irods:
+            if src_img.get("size") != dst_img.get("size"):
+                logging.warn("Warning: image data already present on destination provider but size does not match; "
+                             "this may be OK if image was previously migrated with --clean")
+        else:
+            if src_img.get("checksum") != dst_img.get("checksum"):
+                logging.warn("Warning: image data already present on destination provider but checksum does not "
+                             "match; this may be OK if image was previously migrated with --clean")
+    else:
+        raise Exception("Glance image on destination provider is not in an uploadable or usable status")
+    return True
+
 
 
 def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True,
