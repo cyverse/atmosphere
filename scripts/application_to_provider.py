@@ -297,14 +297,17 @@ def main():
         local_path = os.path.join(local_storage_dir, sprov_img_uuid)
 
         # Populate image data in destination provider if needed
-        migrate_image_data(sprov_img_uuid, sprov_glance_client, dprov_glance_client, local_path, persist_local_cache,
-                           irods, irods_conn, irods_src_coll, irods_dst_coll, clean=True if args.clean else False)
+        migrate_or_verify_image_data(sprov_img_uuid, sprov_glance_client, dprov_glance_client, local_path,
+                                     persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll,
+                                     clean=True if args.clean else False)
         # If AMI-based image, populate image data in destination provider if needed
         if ami:
-            migrate_image_data(sprov_aki_glance_image.id, sprov_glance_client, dprov_glance_client, local_path,
-                               persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll)
-            migrate_image_data(sprov_ari_glance_image.id, sprov_glance_client, dprov_glance_client, local_path,
-                               persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll)
+            migrate_or_verify_image_data(sprov_aki_glance_image.id, sprov_glance_client, dprov_glance_client,
+                                         local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
+                                         irods_dst_coll)
+            migrate_or_verify_image_data(sprov_ari_glance_image.id, sprov_glance_client, dprov_glance_client,
+                                         local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
+                                         irods_dst_coll)
 
 
 def file_md5(path):
@@ -338,11 +341,16 @@ def get_or_create_glance_image(glance_client, img_uuid):
             return glance_image
 
 
-def migrate_image_data(img_uuid, src_glance_client, dst_glance_client, local_path, persist_local_cache, irods,
-                       irods_conn, irods_src_coll, irods_dst_coll, clean=False):
+def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client, local_path, persist_local_cache, irods,
+                                 irods_conn, irods_src_coll, irods_dst_coll, clean=False):
     """
-    Ensures that Glance image data matches between a source and a destination OpenStack provider.
-    Migrates image data if needed, using either Glance API download/upload or iRODS data object copy.
+    Migrates or verifies Glance image data between a source and destination provider, depending on image status
+    in destination provider.
+    - If image is in a queued state (accepting new data), migrates image data using either Glance API download/upload or
+      iRODS data object copy.
+    - If image is in an active state, attempts to verify image data matches using checksum or size
+    - If image is in any other state, it is not usable, raises an exception
+
     Args:
         img_uuid: UUID of image to be migrated
         src_glance_client: glance client object for source provider
@@ -376,7 +384,8 @@ def migrate_image_data(img_uuid, src_glance_client, dst_glance_client, local_pat
         else:
             if src_img.get("checksum") != dst_img.get("checksum"):
                 logging.warn("Warning: image data already present on destination provider but checksum does not "
-                             "match; this may be OK if image was previously migrated with --clean")
+                             "match; this may be OK if image was previously migrated with --clean, or if iRODS "
+                             "transfer was previously used to migrate image")
     else:
         raise Exception("Glance image on destination provider is not in an uploadable or usable status")
     return True
