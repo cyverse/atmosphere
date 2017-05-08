@@ -33,3 +33,4 @@
     - cp ./variables.ini.dist ./variables.ini
     - ./configure
     - python manage.py test
+    - python manage.py behave --keepdb
