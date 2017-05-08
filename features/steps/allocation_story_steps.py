@@ -96,12 +96,13 @@ def step_impl(context):
 def step_impl(context):
     for row in context.table:
         provider_alias = context.instance[row['instance_id']]
+        context.client.get('/api/v2/emulate_session/%s'%(row['username']))
         source_id = context.allocation_sources[row['allocation_source_id']]
         response = context.client.post('/api/v2/instance_allocation_source',
                             {"instance_id": provider_alias,
-                             "source_id": source_id
-                             })
+                             "source_id": source_id})
         assert response.status_code == 201
+    context.client.get('/api/v2/emulate_session/lenards')
 
 
 @when('User instance runs for some days')
