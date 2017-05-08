@@ -1,0 +1,16 @@
+Index: variables.ini
+===================================================================
+--- variables.ini
++++ variables.ini
+@@ -72,7 +72,10 @@
+ LOGSTASH_PORT = # 8000
+ METRIC_SERVER = # atmosphere-metrics.server.com
+ SELF_SIGNED_CERT =  False # Boolean required
+-TESTING =  False # Boolean required
++TESTING =  True # Boolean required
++TEST_RUNNER_USER = # Nothing
++TEST_RUNNER_PASS = # Nothing
++DJANGO_JENKINS = False
+ #local.py - site configuration
+ AUTO_CREATE_NEW_ACCOUNTS =  False # Boolean required
+ USE_JETSTREAM_PLUGIN =  False # Boolean required
