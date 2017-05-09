@@ -6,67 +6,18 @@ from decimal import Decimal
 import mock
 from behave import *
 
+import api.tests.factories
 import jetstream.allocation as jetstream_allocation
-import jetstream.exceptions as jetstream_exceptions
-
-
-def _make_mock_tacc_api_post(context):
-    def _mock_tacc_api_post(*args, **kwargs):
-        raise NotImplementedError
-
-    return _mock_tacc_api_post
-
-
-def _get_tas_projects(context):
-    data = {}
-    data['status'] = 'success'
-    data['result'] = context.tas_projects
-    return data
-
-
-def _get_xsede_to_tacc_username(context, url):
-    xsede_username = url.split('/v1/users/xsede/')[-1]
-    if xsede_username not in context.xsede_to_tacc_username_mapping:
-        data = {'status': 'error', 'message': 'No user found for XSEDE username {}'.format(xsede_username),
-                'result': None}
-    else:
-        data = {'status': 'success', 'message': None, 'result': context.xsede_to_tacc_username_mapping[xsede_username]}
-    return data
-
-
-def _get_user_projects(context, url):
-    tacc_username = url.split('/v1/projects/username/')[-1]
-    project_names = list(context.tacc_username_to_tas_project_mapping.get(tacc_username, []))
-    user_projects = [project for project in context.tas_projects if project['chargeCode'] in project_names]
-    data = {'status': 'success', 'message': None, 'result': user_projects}
-    return data
-
-
-def _make_mock_tacc_api_get(context):
-    def _mock_tacc_api_get(*args, **kwargs):
-        url = args[0]
-        assert isinstance(url, basestring)
-        if url.endswith('/v1/projects/resource/Jetstream'):
-            data = _get_tas_projects(context)
-        elif '/v1/users/xsede/' in url:
-            data = _get_xsede_to_tacc_username(context, url)
-        elif '/v1/projects/username/' in url:  # This can return 'Inactive', 'Active', and 'Approved' allocations. Maybe more.
-            data = _get_user_projects(context, url)
-        else:
-            raise ValueError('Unknown URL: {}'.format(url))
-        if not data:
-            raise jetstream_exceptions.TASAPIException('Invalid Response')
-        return None, data
-
-    return _mock_tacc_api_get
+from jetstream.tests.tas_api_mock_utils import _make_mock_tacc_api_post, _make_mock_tacc_api_get
 
 
 @given(u'the following Atmosphere users')
 def these_atmosphere_users(context):
-    from core.models import AtmosphereUser
     atmo_users = [dict(zip(row.headings, row.cells)) for row in context.table]
     for atmo_user in atmo_users:
-        AtmosphereUser.objects.create(username=atmo_user['username'])
+        user = api.tests.factories.UserFactory.create(username=atmo_user['username'])
+        user.set_password(atmo_user['username'])
+        user.save()
 
 
 @given(u'a TAS API driver')
@@ -220,7 +171,41 @@ def should_have_user_allocation_sources(context):
                                    'user__username',
                                    'allocation_source__name'
                                )]
-    context.test.assertListEqual(expected_user_allocation_sources, user_allocation_sources)
+    context.test.assertItemsEqual(expected_user_allocation_sources, user_allocation_sources)
+
+
+@then(u'we should have the following user allocation source snapshots')
+def should_have_user_allocation_source_snapshots(context):
+    raw_expected_allocation_source_snapshots = [dict(zip(row.headings, row.cells)) for row in context.table]
+    expected_allocation_source_snapshots = [
+        {
+            'atmosphere_username': raw_snapshot['atmosphere_username'],
+            'allocation_source': raw_snapshot['allocation_source'],
+            'compute_used': Decimal(raw_snapshot['compute_used']),
+            'burn_rate': Decimal(raw_snapshot['burn_rate'])
+        }
+        for raw_snapshot in raw_expected_allocation_source_snapshots
+    ]
+
+    import core.models
+    raw_user_allocation_source_snapshots = core.models.UserAllocationSnapshot.objects.all().values(
+        'user__username',
+        'allocation_source__name',
+        'compute_used',
+        'burn_rate'
+    ).order_by('user__username', 'allocation_source__name')
+    user_allocation_source_snapshots = [
+        {
+            'atmosphere_username': raw_snapshot['user__username'],
+            'allocation_source': raw_snapshot['allocation_source__name'],
+            'compute_used': raw_snapshot['compute_used'],
+            'burn_rate': raw_snapshot['burn_rate']
+        }
+        for raw_snapshot in raw_user_allocation_source_snapshots
+    ]
+
+    context.test.maxDiff = None
+    context.test.assertItemsEqual(expected_allocation_source_snapshots, user_allocation_source_snapshots)
 
 
 @step(u'we should have the following events')

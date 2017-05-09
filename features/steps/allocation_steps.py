@@ -15,20 +15,32 @@ from core.models import AllocationSourceSnapshot, Instance
 from core.models.allocation_source import get_allocation_source_object
 
 
-@given('a user')
-def step_impl(context):
+@given('an admin user "{username}"')
+def create_admin_user(context, username):
     context.client = Client()
-    # the only user who can access apis on dev is lenards, so set staff
-    # permission for lenards on test db
-    user = UserFactory.create(username='lenards', is_staff=True, is_superuser=True)
-    user.set_password('lenards')
+    user = UserFactory.create(username=username, is_staff=True, is_superuser=True)
+    user.set_password(username)
     user.save()
     with modify_settings(AUTHENTICATION_BACKENDS={
         'prepend': 'django.contrib.auth.backends.ModelBackend',
         'remove': ['django_cyverse_auth.authBackends.MockLoginBackend']
     }):
         context.user = user
-        context.client.login(username='lenards', password='lenards')
+        context.client.login(username=username, password=username)
+
+
+@given('a user "{username}"')
+def create_user_with_username(context, username):
+    context.client = Client()
+    user = UserFactory.create(username=username, is_staff=False, is_superuser=False)
+    user.set_password(username)
+    user.save()
+    with modify_settings(AUTHENTICATION_BACKENDS={
+        'prepend': 'django.contrib.auth.backends.ModelBackend',
+        'remove': ['django_cyverse_auth.authBackends.MockLoginBackend']
+    }):
+        context.user = user
+        context.client.login(username=username, password=username)
 
 
 # Allocation Source Creation

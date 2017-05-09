@@ -31,6 +31,39 @@ class PluginManager(object):
         return plugin_classes
 
 
+class DefaultQuotaPluginManager(PluginManager):
+    """
+    Provide a plugin to create more complicated rules for default quotas
+    """
+    list_of_classes = getattr(settings, 'DEFAULT_QUOTA_PLUGINS', [])
+    plugin_required = False
+
+    @classmethod
+    def default_quota(cls, user, provider):
+        """
+        Load each Default Quota Plugin and call `plugin.get_default_quota(user, provider)`
+        """
+        _default_quota = None
+        for DefaultQuotaPlugin in cls.load_plugins(cls.list_of_classes):
+            plugin = DefaultQuotaPlugin()
+            try:
+                inspect.getcallargs(
+                    getattr(plugin, 'get_default_quota'),
+                    user=user, provider=provider)
+            except AttributeError:
+                logger.info(
+                    "Validation plugin %s missing method 'get_default_quota'"
+                    % DefaultQuotaPlugin)
+            except TypeError:
+                logger.info(
+                    "Validation plugin %s does not accept kwargs `user` & `provider`"
+                    % DefaultQuotaPlugin)
+            _default_quota = plugin.get_default_quota(user=user, provider=provider)
+            if _default_quota:
+                return _default_quota
+        return _default_quota
+
+
 class ValidationPluginManager(PluginManager):
     """
     At least one plugin is required to test user validation.
@@ -77,7 +110,7 @@ class ExpirationPluginManager(PluginManager):
     """
     Plugins to test user expiration are not required.
     Use this if you wish to signal to Troposphere that a user has authenticated
-    succesfully but has been deemed "Expired" by an external service.
+    successfully but has been deemed "Expired" by an external service.
     This will not directly stop the user from accessing the Atmosphere APIs.
     For that, see ValidationPlugin
     """
@@ -103,7 +136,7 @@ class ExpirationPluginManager(PluginManager):
                 logger.info("Expiration plugin %s does not accept kwarg `user`"
                             % ExpirationPlugin)
             try:
-                #TODO: Set a reasonable timeout but dont let it hold this indefinitely
+                # TODO: Set a reasonable timeout but don't let it hold this indefinitely
                 _is_expired = plugin.is_expired(user=user)
             except Exception as exc:
                 logger.info("Expiration plugin %s encountered an error: %s" % (ExpirationPlugin, exc))
