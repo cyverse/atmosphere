@@ -78,7 +78,9 @@ class InstanceAllocationSourceViewSet(AuthModelViewSet):
 
         payload = {}
         payload['instance_id'] = request_data.get('instance_id')
-        payload['allocation_source_id'] = request_data.get('source_id')
+        #payload['allocation_source_id'] = request_data.get('source_id')
+        allocation_source = get_allocation_source_object(request_data['source_id'])
+        payload['allocation_source_name'] = allocation_source.name
         username=request_user.username
 
         creation_event = EventTable(
@@ -87,7 +89,7 @@ class InstanceAllocationSourceViewSet(AuthModelViewSet):
             payload=payload)
 
         creation_event.save()
-        allocation_source = get_allocation_source_object(request_data['source_id'])
+        #allocation_source = get_allocation_source_object(request_data['source_id'])
         return InstanceAllocationSourceSnapshot.objects.filter(
             allocation_source=allocation_source,
             instance__provider_alias=payload['instance_id'] ).last()

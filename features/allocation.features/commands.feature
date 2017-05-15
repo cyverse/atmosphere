@@ -70,19 +70,19 @@ Feature: Commands Testing
       |  240                    |  72                   |   50          | True                       |
 
 #  ######################################################################################################
-
-  Scenario Outline: Remove Allocation Source
-       Given Allocation Source
-        |  name   |  compute allowed   |  renewal strategy    |
-        |  <name> |  <compute_allowed> |  <renewal_strategy>  |
-
-       When Allocation Source is removed
-       Then Allocation Source Removal = <allocation_source_is_removed>
-
-  Examples: Remove Allocation Source
-        |  name                      |  compute_allowed   |  renewal_strategy   |  allocation_source_is_removed  |
-        |  DefaultAllocationSource   |  250               |  default            |  True                          |
-        |  NewAllocationSource       |  100               |  default            |  True                          |
+#
+#  Scenario Outline: Remove Allocation Source
+#       Given Allocation Source
+#        |  name   |  compute allowed   |  renewal strategy    |
+#        |  <name> |  <compute_allowed> |  <renewal_strategy>  |
+#
+#       When Allocation Source is removed
+#       Then Allocation Source Removal = <allocation_source_is_removed>
+#
+#  Examples: Remove Allocation Source
+#        |  name                      |  compute_allowed   |  renewal_strategy   |  allocation_source_is_removed  |
+#        |  DefaultAllocationSource   |  250               |  default            |  True                          |
+#        |  NewAllocationSource       |  100               |  default            |  True                          |
 
 #  ######################################################################################################
 
