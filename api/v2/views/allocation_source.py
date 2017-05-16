@@ -198,19 +198,19 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
     def _create_allocation_source(self, request_data):
 
         payload = {}
-        payload['source_id'] = str(uuid.uuid4())
-        payload['name'] = request_data.get('name')
+        payload['uuid'] = str(uuid.uuid4())
+        payload['allocation_source_name'] = request_data.get('name')
         payload['compute_allowed'] = request_data.get('compute_allowed')
         payload['renewal_strategy'] = request_data.get('renewal_strategy')
 
         creation_event = EventTable(
-            name='allocation_source_created',
-            entity_id=payload['source_id'],
+            name='allocation_source_created_or_renewed',
+            entity_id=payload['allocation_source_name'],
             payload=payload)
 
         creation_event.save()
 
-        return get_allocation_source_object(creation_event.entity_id)
+        return get_allocation_source_object(payload['uuid'])
 
     def _update_allocation_source(self, events, source_id):
 

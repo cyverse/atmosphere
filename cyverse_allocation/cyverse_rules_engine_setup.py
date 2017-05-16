@@ -30,17 +30,12 @@ class CyverseTestRenewalVariables(BaseVariables):
 
     @numeric_rule_variable
     def days_since_renewed(self):
-
         source_id = self.allocation_source.uuid
         last_renewal_event = EventTable.objects.filter(
-            name='allocation_source_renewed',
-            payload__source_id__exact=str(source_id)).order_by('timestamp')
-        if not last_renewal_event:
-            # remove microseconds for an approximate difference, otherwise a difference of 0.999999 will also be counted as 0 days
-            return (
-                self.current_time.replace(microsecond=0) - self.allocation_source.start_date.replace(
-                    microsecond=0)).days
-        return (last_renewal_event.last().timestamp - self.current_time).days
+            name='allocation_source_created_or_renewed',
+            payload__uuid__exact=str(source_id)).order_by('timestamp')
+        return (
+            self.current_time.replace(microsecond=0) - last_renewal_event.last().timestamp.replace(microsecond=0)).days
 
 
 class CyverseTestRenewalActions(BaseActions):
@@ -58,25 +53,24 @@ class CyverseTestRenewalActions(BaseActions):
                 self.allocation_source.name))
         source_snapshot = source_snapshot.last()
         remaining_compute = 0 if source_snapshot.compute_allowed - source_snapshot.compute_used < 0 else source_snapshot.compute_allowed - source_snapshot.compute_used
-        source_snapshot.compute_used = 0
         total_compute_allowed = float(remaining_compute + compute_allowed)
-        source_snapshot.compute_allowed = total_compute_allowed
-        source_snapshot.updated = self.current_time
-        source_snapshot.save()
 
         # fire renewal event
 
-        source_id = self.allocation_source.uuid
+        renewal_strategy = self.allocation_source.renewal_strategy
+        allocation_source_name = self.allocation_source.name
+        allocation_source_uuid = self.allocation_source.uuid
 
         payload = {
-            "source_id": str(source_id),
-            "name": self.allocation_source.name,
+            "uuid": str(allocation_source_uuid),
+            "renewal_strategy": renewal_strategy,
+            "allocation_source_name": allocation_source_name,
             "compute_allowed": total_compute_allowed
         }
 
-        EventTable.objects.create(name='allocation_source_renewed',
+        EventTable.objects.create(name='allocation_source_created_or_renewed',
                                   payload=payload,
-                                  entity_id=payload["source_id"],
+                                  entity_id=allocation_source_name,
                                   timestamp=self.current_time)
 
     @rule_action()
@@ -139,25 +133,25 @@ def _create_actions_for(compute_allowed, renewed_in_days):
 # RENEWAL STRATEGY CONFIGURATION
 renewal_strategies = {
 
-    'default': { 'id': 1,
+    'default': {'id': 1,
                 'compute_allowed': 250,
                 'renewed_in_days': 3,
-                 'external': False },
+                'external': False},
 
     'bi-weekly': {'id': 2,
                   'compute_allowed': 150,
                   'renewed_in_days': 14,
-                  'external': True },
+                  'external': True},
 
     'workshop': {'id': 3,
                  'compute_allowed': 0,
                  'renewed_in_days': 0,
-                 'external': False },
+                 'external': False},
 
-    'custom':   {'id': 4,
-                 'compute_allowed': 0,
-                 'renewed_in_days': 0,
-                 'external': True },
+    'custom': {'id': 4,
+               'compute_allowed': 0,
+               'renewed_in_days': 0,
+               'external': True},
 }
 
 # MAIN RULES JSON

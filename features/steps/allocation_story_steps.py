@@ -63,6 +63,10 @@ def step_impl(context):
             allocation_source.start_date = context.current_time
             allocation_source.save()
 
+            source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=allocation_source).last()
+            source_snapshot.updated=context.current_time
+            source_snapshot.save()
+
         context.allocation_sources[row['allocation_source_id']] = response.data['uuid']
 
 

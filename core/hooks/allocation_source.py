@@ -1,20 +1,15 @@
 import uuid
-from django.conf import settings
 
+from django.conf import settings
 from threepio import logger
+
 from core.models import (
     AllocationSource, Instance, AtmosphereUser,
     UserAllocationSnapshot,
     InstanceAllocationSourceSnapshot,
-    AllocationSourceSnapshot, UserAllocationSource)
-
-from core.models.allocation_source import get_allocation_source_object
-
-# Pre-Save hooks
-
-# Post-Save hooks
+    AllocationSourceSnapshot)
 from core.models import UserAllocationSource
-from django.db.models import Q
+from core.models.allocation_source import get_allocation_source_object
 
 
 def listen_for_allocation_overage(sender, instance, raw, **kwargs):
@@ -34,7 +29,6 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
         return None
     # Circular dep...
     from core.models import EventTable
-    from service.tasks.monitoring import enforce_allocation_overage
     payload = event.payload
     allocation_source_name = payload['allocation_source_name']
     new_compute_used = payload['compute_used']
@@ -315,14 +309,29 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
             instance=instance)
     return snapshot
 
+
+## EVENT FIRED WHEN ALLOCATION SOURCE IS CREATED OR RENEWED
+
 def listen_for_allocation_source_created_or_renewed(sender, instance, created, **kwargs):
     """
        This listener expects:
        EventType - 'allocation_source_created_or_renewed'
+       entity_id - "TG-AG100345" # Allocation Source Name
+
+       # CyVerse Payload
+
+       EventPayload - {
+           "source_id" : "16fd2706-8baf-433b-82eb-8c7fada847da"
+           "allocation_source_name": "TG-AG100345",
+           "compute_allowed":1000,
+           "renewal_strategy":"default"
+       }
+
+       # Jetstream Payload
+
        EventPayload - {
            "allocation_source_name": "TG-AG100345",
            "compute_allowed":1000,
-           "start_date":"2016-02-02T00:00+00:00"
        }
 
        The method should result in renewal of allocation source
@@ -335,10 +344,30 @@ def listen_for_allocation_source_created_or_renewed(sender, instance, created, *
     allocation_source_name = payload['allocation_source_name']
     compute_allowed = payload['compute_allowed']
 
-    object_updated, created = AllocationSource.objects.update_or_create(
-        name=allocation_source_name,
-        defaults={'compute_allowed': compute_allowed}
-    )
+    if 'renewal_strategy' in payload:
+        object_updated, created = AllocationSource.objects.update_or_create(
+            uuid=uuid.UUID(payload['uuid']),
+            name=allocation_source_name,
+            defaults={'compute_allowed': compute_allowed,
+                      'renewal_strategy': payload['renewal_strategy']}
+        )
+
+        allocation_source = get_allocation_source_object(payload['uuid'])
+
+        AllocationSourceSnapshot.objects.update_or_create(
+            allocation_source=allocation_source,
+            defaults={"compute_allowed":compute_allowed,
+            "global_burn_rate":0,
+            "compute_used":0.0,
+            "updated":event.timestamp})
+
+    else:
+        # Jetstream
+        object_updated, created = AllocationSource.objects.update_or_create(
+            name=allocation_source_name,
+            defaults={'compute_allowed': compute_allowed}
+        )
+
     logger.info('object_updated: %s, created: %s' % (object_updated, created,))
 
 
@@ -489,9 +518,9 @@ def listen_for_allocation_source_created(sender, instance, created, **kwargs):
     #create snapshot
 
     allocation_source_snapshot = AllocationSourceSnapshot(allocation_source=allocation_source,
-                                          global_burn_rate = 0,
+                                         global_burn_rate = 0,
                                          compute_used=0.0,
-                                         compute_allowed=allocation_compute_allowed
+                                         compute_allowed=allocation_compute_allowed,
                                          )
     allocation_source_snapshot.save()
 
