@@ -192,7 +192,7 @@ def step_impl(context):
 def step_impl(context):
     context.response = context.client.delete('/api/v2/user_allocation_sources',
                                              json.dumps({"username": context.user.username,
-                                                         "source_id": str(context.source_id)}),
+                                                         "allocation_source_name": context.name}),
                                              content_type='application/json')
 
 

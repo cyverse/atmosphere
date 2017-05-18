@@ -85,7 +85,7 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         except Exception as exc:
             logger.exception(
                 "Encountered exception while removing User %s from Allocation source %s "
-                % (request_data['username']), request_data['source_id'])
+                % (request_data['username']), request_data['allocation_source_name'])
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
 
@@ -112,13 +112,13 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
 
     def _delete_user_allocation_source(self, request_data):
 
+        username = request_data.get('username')
         payload = {}
-        payload['source_id'] = request_data.get('source_id')
-        payload['username'] = request_data.get('username')
+        payload['allocation_source_name'] = request_data.get('allocation_source_name')
 
         delete_event = EventTable(
             name='user_allocation_source_removed',
-            entity_id=payload['source_id'],
+            entity_id=username,
             payload=payload)
 
         delete_event.save()

@@ -99,7 +99,7 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     prev_percentage = int(100.0 * prev_compute_used / source.compute_allowed)
     current_percentage = int(100.0 * new_compute_used / source.compute_allowed)
     print "Souce: %s (%s) Previous:%s - New:%s" % (
-    source.name, allocation_source_name, prev_percentage, current_percentage)
+        source.name, allocation_source_name, prev_percentage, current_percentage)
     percent_event_triggered = None
     # Compare 'Now snapshot' with Previous snapshot. Have we "crossed a threshold?"
     # If yes:
@@ -402,7 +402,7 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
         return None
     logger.info("Allocation Source Compute Allowed Changed event: %s" % event.__dict__)
     payload = event.payload
-    assert 'allocation_source_name' in payload # TODO: Standardize? And a schema?
+    assert 'allocation_source_name' in payload  # TODO: Standardize? And a schema?
     allocation_source_name = payload['allocation_source_name']
     source = AllocationSource.objects.filter(name=allocation_source_name).last()
 
@@ -450,19 +450,32 @@ def listen_for_user_allocation_source_created(sender, instance, created, **kwarg
     logger.info('object_updated: %s, created: %s' % (object_updated, created,))
 
 
+## EVENT FIRED WHEN USER IS REMOVED FROM AN ALLOCATION SOURCE
+
 def listen_for_user_allocation_source_deleted(sender, instance, created, **kwargs):
     """
-       This listener expects:
-       EventType - 'user_allocation_source_deleted'
-       entity_id - 'sgregory'  # An AtmosphereUser.username
-       EventPayload - {
-           "allocation_source_name": "TG-AG100345"
-       }
+          This listener expects:
+          EventType - 'user_allocation_source_deleted'
+          entity_id - "amitj" # Username
 
-       The method should result in removing a user from an allocation source
-    """
+          # CyVerse Payload
+
+          EventPayload - {
+              "allocation_source_name" : "TG-amit100568",
+          }
+
+          # Jetstream Payload
+
+          EventPayload - {
+              "allocation_source_name": "TG-AG100345",
+          }
+
+          The method should remove a user from an allocation source
+       """
+
     event = instance
     from core.models import EventTable
+
     assert isinstance(event, EventTable)
     if event.name != 'user_allocation_source_deleted':
         return None
@@ -502,6 +515,7 @@ def listen_for_instance_allocation_removed(sender, instance, created, **kwargs):
         instance=instance, allocation_source=allocation_source)
     snapshot.delete()
 
+
 def listen_for_allocation_source_renewal_strategy_changed(sender, instance, created, **kwargs):
     """
         This listener expects:
@@ -531,7 +545,7 @@ def listen_for_allocation_source_renewal_strategy_changed(sender, instance, crea
     except Exception as e:
         raise Exception(
             'Allocation Source %s renewal strategy could not be changed because of the following error %s' % (
-            allocation_source.name, e))
+                allocation_source.name, e))
     return
 
 
@@ -563,38 +577,7 @@ def listen_for_allocation_source_name_changed(sender, instance, created, **kwarg
 
     except Exception as e:
         raise Exception('Allocation Source %s name could not be changed because of the following error %s' % (
-        allocation_source.name, e))
-    return
-
-
-def listen_for_user_allocation_source_removed(sender, instance, created, **kwargs):
-    """
-
-     This listener expects:
-               EventType -'user_allocation_source_removed'
-               EventPayload - {
-                   "source_id": "32712",
-                   "username": "amitj",
-               }
-
-               The method should result in storing the user removed from allocation source event
-    """
-    event = instance
-    if event.name != 'user_allocation_source_removed':
-        return None
-    logger.info('User removed from Allocation Source event: %s', event.__dict__)
-    payload = event.payload
-
-    allocation_source = get_allocation_source_object(payload['source_id'])
-    ##CHANGED
-    # allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id)
-
-    user_allocation_source_object = UserAllocationSource.objects.filter(
-        user__username=payload['username'],
-        allocation_source=allocation_source).last()
-
-    user_allocation_source_object.delete()
-
+            allocation_source.name, e))
     return
 
 
