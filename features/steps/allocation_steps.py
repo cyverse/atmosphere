@@ -1,15 +1,17 @@
 import json
 import uuid
+
 from behave import *
-from django.test import modify_settings
-from django.utils import timezone
-from django.test.client import Client
 from django.core.urlresolvers import reverse
+from django.test import modify_settings
+from django.test.client import Client
+from django.utils import timezone
 from rest_framework.test import APIClient
-from core.models import AllocationSourceSnapshot, AllocationSource, Instance
+
 from api.tests.factories import (
     InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
     ProviderMachineFactory, IdentityFactory, ProviderFactory, UserFactory)
+from core.models import AllocationSourceSnapshot, Instance
 from core.models.allocation_source import get_allocation_source_object
 
 
@@ -27,6 +29,7 @@ def step_impl(context):
     }):
         context.user = user
         context.client.login(username='lenards', password='lenards')
+
 
 # Allocation Source Creation
 
@@ -54,17 +57,17 @@ def step_impl(context):
         response = context.client.post('/api/v2/allocation_sources',
                                        {"renewal_strategy": row['renewal strategy'],
                                         "name": "TestAllocationSource",
-                                                "compute_allowed": 5000})
+                                        "compute_allowed": 5000})
         context.source_id = response.data['uuid']
 
 
 @when('change_renewal_strategy command is fired with {new_renewal_strategy}')
 def step_impl(context, new_renewal_strategy):
-
     # Django Client PATCH method requires json dumped data and Content-Type
     # otherwise it returns 415
     context.response = context.client.patch('/api/v2/allocation_sources/%s' % (context.source_id),
-                                            json.dumps({"renewal_strategy": new_renewal_strategy}), content_type='application/json')
+                                            json.dumps({"renewal_strategy": new_renewal_strategy}),
+                                            content_type='application/json')
     context.new_renewal_strategy = new_renewal_strategy
 
 
@@ -75,7 +78,7 @@ def step_impl(context, renewal_strategy_is_changed):
         assert result == _str2bool(renewal_strategy_is_changed.lower())
     else:
         assert result == _str2bool(renewal_strategy_is_changed.lower()) and context.response.data[
-            'renewal_strategy'] == context.new_renewal_strategy
+                                                                                'renewal_strategy'] == context.new_renewal_strategy
 
 
 # Change Allocation Source Name
@@ -105,7 +108,8 @@ def step_impl(context, name_is_changed):
         assert result == _str2bool(name_is_changed.lower())
     else:
         assert result == _str2bool(name_is_changed.lower()) and context.response.data[
-            'name'] == context.new_name
+                                                                    'name'] == context.new_name
+
 
 # Change Compute Allowed
 
@@ -133,7 +137,8 @@ def step_impl(context):
 @when('change_compute_allowed command is fired with {new_compute_allowed}')
 def step_impl(context, new_compute_allowed):
     context.response = context.client.patch('/api/v2/allocation_sources/%s' % (context.source_id),
-                                            json.dumps({"compute_allowed": int(new_compute_allowed)}), content_type='application/json')
+                                            json.dumps({"compute_allowed": int(new_compute_allowed)}),
+                                            content_type='application/json')
 
     context.new_compute_allowed = int(new_compute_allowed)
 
@@ -145,7 +150,7 @@ def step_impl(context, compute_allowed_is_changed):
         assert result == _str2bool(compute_allowed_is_changed.lower())
     else:
         assert result == _str2bool(compute_allowed_is_changed.lower()) and context.response.data[
-            'compute_allowed'] == context.new_compute_allowed
+                                                                               'compute_allowed'] == context.new_compute_allowed
 
 
 @given('Allocation Source')
@@ -200,6 +205,8 @@ def step_impl(context):
 def step_impl(context, user_is_removed):
     result = True if context.response.status_code == 200 else False
     assert result == _str2bool(user_is_removed.lower())
+
+
 # helper methods
 
 
@@ -215,7 +222,7 @@ def step_impl(context, allocation_source_is_removed):
     allocation_source = get_allocation_source_object(context.source_id)
     allocation_source_end_date = allocation_source.end_date
     assert result == _str2bool(allocation_source_is_removed.lower()) and \
-        allocation_source_end_date is not None
+           allocation_source_end_date is not None
 
 
 @given("Pre-initalizations")
@@ -296,7 +303,7 @@ def step_impl(context):
 def step_impl(context):
     context.response = context.client.post('/api/v2/instance_allocation_source',
                                            {"instance_id": Instance.objects.all().last().provider_alias,
-                                            "source_id": context.source_id
+                                            "allocation_source_name": context.name
                                             })
 
 

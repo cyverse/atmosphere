@@ -268,33 +268,43 @@ def listen_for_user_snapshot_changes(sender, instance, created, **kwargs):
     return snapshot
 
 
+## EVENT FIRED WHEN USER IS REMOVED FROM AN ALLOCATION SOURCE
+
 def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
     """
-    This listener expects:
-    EventType - 'instance_allocation_source_changed'
-    EventPayload - {
-        "allocation_source_name": "37623",
-        "instance_id":"2439b15a-293a-4c11-b447-bf349f16ed2e"
-    }
+       This listener expects:
+       EventType - 'instance_allocation_source_changed'
+       entity_id - "amitj" # Username
 
-    The method should result in an up-to-date snapshot of Instance+AllocationSource
+       # CyVerse Payload
+
+       EventPayload - {
+           "instance_id" : "abcd-efgh-ij245-23823h",
+           "allocation_source_name" : "TG-AG100345"
+       }
+
+       # Jetstream Payload
+
+       EventPayload - {
+           "instance_id" : "abcd-efgh-ij245-23823h",
+           "allocation_source_name" : "TG-AG100345"
+       }
+
+       The method assigns an instance to an allocation source
     """
     event = instance
     if event.name != 'instance_allocation_source_changed':
         return None
     logger.info("Instance allocation changed event: %s" % event.__dict__)
     payload = event.payload
-    assert 'allocation_source_name' in payload or 'allocation_source_id' in payload  # TODO: Standardize? And a schema?
-    try:
-        allocation_source_name = payload['allocation_source_name']
-        allocation_source = AllocationSource.objects.get(name=allocation_source_name)
-    except KeyError:
-        source_uuid = payload['allocation_source_id']
-        allocation_source = AllocationSource.objects.get(uuid=source_uuid)
-    instance_id = payload['instance_id']
+    assert 'allocation_source_name' in payload  # TODO: Standardize? And a schema?
+
+    allocation_source_name = payload['allocation_source_name']
+    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not allocation_source:
-        # TODO: Not sure we should just swallow this
-        return None
+        raise ("Allocation Source %s does not exist" % (payload['allocation_source_name']))
+
+    instance_id = payload['instance_id']
     instance = Instance.objects.filter(provider_alias=instance_id).first()
     if not instance:
         # TODO: Not sure we should just swallow this either.
