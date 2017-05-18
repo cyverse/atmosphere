@@ -1,19 +1,19 @@
 [Unit]
 Description=Deals with the workflow associated with running atmosphere as a service
+Documentation=https://github.com/cyverse/atmosphere/blob/master/README.md
 Requires=celeryd.service celerybeat.service uwsgi.service nginx.service redis-server.service
 After=celeryd.service celerybeat.service uwsgi.service nginx.service redis-server.service
 
 [Service]
 Type=simple
-ExecStart=/usr/sbin/service uwsgi start && /usr/sbin/service celerybeat start
-
-ExecStop=/usr/sbin/service uwsgi stop && \
-         /bin/systemctl stop nginx && \
-         /bin/systemctl stop celeryd && \
-         /usr/sbin/service celerybeat stop && \
-         /bin/systemctl stop redis-server
-
-ExecReload=/usr/sbin/service uwsgi restart && /bin/systemctl stop nginx
+# ExecStart=/usr/sbin/service uwsgi start && /usr/sbin/service celerybeat start
+ExecStart=/bin/echo "Atmosphere started"
+ExecStop=/bin/systemctl stop uwsgi        && \
+         /bin/systemctl stop nginx        && \
+         /bin/systemctl stop redis-server && \
+         /bin/systemctl stop celeryd      && \
+         /bin/systemctl stop celerybeat   ;  \
+         /bin/systemctl stop flower
 
 [Install]
 WantedBy=multi-user.target
