@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import time
 import unittest
 import uuid
 
@@ -134,7 +135,8 @@ def get_allocation_sources_from_api(context):
         expected_allocation_sources.append(clean_row)
 
     context.test.maxDiff = None
-    context.test.assertItemsEqual(expected_allocation_sources, api_allocation_sources)
+    # context.test.assertItemsEqual(expected_allocation_sources, api_allocation_sources)
+    context.test.assertListEqual(expected_allocation_sources, api_allocation_sources)
 
 
 @step('we create an allocation source through the API')
@@ -287,6 +289,9 @@ def create_active_instance(context):
     user = context.persona['user']
     user_identity = context.persona['user_identity']
     provider_machine = context.persona['provider_machine']
+    import core.models
+    context.test.assertIsInstance(provider_machine, core.models.ProviderMachine)
+    provider = provider_machine.provider
 
     active_instance = api.tests.factories.InstanceFactory.create(name='Instance in active', provider_alias=uuid.uuid4(),
                                                                  source=provider_machine.instance_source,
@@ -295,24 +300,73 @@ def create_active_instance(context):
                                                                  start_date=django.utils.timezone.now())
 
     active_status = api.tests.factories.InstanceStatusFactory.create(name='active')
+    single_cpu_size = api.tests.factories.InstanceSizeFactory.create(
+        name='single_cpu_size',
+        provider=provider,
+        cpu=1,
+        disk=100,
+        root=10,
+        mem=4096
+    )
     api.tests.factories.InstanceHistoryFactory.create(
         status=active_status,
         activity='',
-        instance=active_instance
+        instance=active_instance,
+        size=single_cpu_size
     )
 
     context.persona['active_instance'] = active_instance
 
 
+@step('I set "{key}" to attribute "{attribute}" of "{persona_var}"')
+@step('I set "{key}" to another variable "{persona_var}"')
+def set_key_to_persona_var_and_attribute(context, key, persona_var, attribute=None):
+    assert context.persona is not None, u'no persona is setup'
+    if attribute:
+        context.persona[key] = getattr(context.persona[persona_var], attribute)
+    else:
+        context.persona[key] = context.persona[persona_var]
+
+
+@step('I set "{key}" to allocation source with name "{allocation_source_name}"')
+def set_key_to_persona_var_and_attribute(context, key, allocation_source_name):
+    assert context.persona is not None, u'no persona is setup'
+    import core.models
+    allocation_source = core.models.AllocationSource.objects.get(name=allocation_source_name)
+    context.persona[key] = allocation_source
+
+
 @when('we get the details for the active instance via the API')
-def step_impl(context):
+def get_details_for_active_instance(context):
     assert context.persona
     client = context.persona['client']
     active_instance = context.persona['active_instance']
     url = django.urls.reverse('api:v2:instance-detail',
                               args=(active_instance.provider_alias,))
-    context.persona['response'] = client.get(url)
-    context.persona['provider_alias'] = context.persona['response'].data['version']['id']
+
+    # Try a few times. Sometimes this does not find the instance on the first try.
+    for i in range(10):
+        response = client.get(url)
+        if 'version' in response.data:
+            continue
+        time.sleep(0.1)
+    context.persona['response'] = response
+    context.persona['provider_alias'] = response.data['version']['id']
+
+
+@when('I assign allocation source "{allocation_source_name}" to active instance')
+def assign_allocation_source_to_active_instance(context, allocation_source_name):
+    assert context.persona
+    import core.models
+    allocation_source = core.models.AllocationSource.objects.get(name=allocation_source_name)
+    active_instance = context.persona['active_instance']
+    client = context.persona['client']
+    response = client.post('/api/v2/instance_allocation_source',
+                           {
+                               'instance_id': active_instance.provider_alias,
+                               'source_id': allocation_source.uuid
+                           })
+    context.persona['response'] = response
 
 
 @step('the API response code is {response_code:d}')

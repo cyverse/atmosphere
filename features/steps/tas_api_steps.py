@@ -123,9 +123,13 @@ def we_should_have_the_following_local_allocations(context):
     context.test.assertListEqual(expected_local_allocations, local_allocations)
 
 
+@given(u'a current time of "{frozen_current_time}"')
 @given(u'a current time of \'{frozen_current_time}\'')
-def current_time(context, frozen_current_time):
+@given(u'a current time of "{frozen_current_time}" with tick = {tick}')
+@given(u'a current time of \'{frozen_current_time}\' with tick = {tick}')
+def current_time(context, frozen_current_time, tick=True):
     context.frozen_current_time = frozen_current_time
+    context.freeze_time_with_tick = (tick is True)
 
 
 @when(u'we update snapshots')
@@ -213,14 +217,35 @@ def should_have_user_allocation_source_snapshots(context):
 def should_have_following_events(context, event_name=None):
     expected_events = [dict(zip(row.headings, row.cells)) for row in context.table]
     for expected_event in expected_events:
-        expected_event['payload'] = json.loads(expected_event['payload'])
+        payload = expected_event['payload']
+        payload_dict = json.loads(payload)
+        if hasattr(context, 'persona'):
+            # Use Python string formatting to insert persona variables into any template strings
+            for key, value in payload_dict.iteritems():
+                if isinstance(value, basestring):
+                    payload_dict[key] = value.format(**context.persona)
+        expected_event['payload'] = payload_dict
     from core.models import EventTable
     query = EventTable.objects.all().order_by('id')
     if event_name is not None:
         query = query.filter(name=event_name)
-    events = [event for event in query.values('entity_id', 'name', 'payload', 'timestamp')]
+    fields_we_care_about = context.table.headings
+    events = [event for event in query.values(*fields_we_care_about)]
+    actual_events_rows = []
+
+    def dump_field(a_field):
+        if isinstance(a_field, dict):
+            return json.dumps(a_field)
+        return a_field
+
     for event in events:
         event['timestamp'] = event['timestamp'].replace(microsecond=0)
         event['timestamp'] = datetime.datetime.strftime(event['timestamp'], '%Y-%m-%d %H:%M:%S%z')
+        actual_event_content = [dump_field(event[field]) for field in fields_we_care_about]
+        actual_event_row = '| {} |'.format(' | '.join(actual_event_content))
+        actual_events_rows.append(actual_event_row)
+    print('actual_events_rows:')
+    print('(In case of unexpected events this will provide an easy way to copy valid table values from the console)')
+    print('\n'.join(actual_events_rows))
     context.test.maxDiff = None
     context.test.assertListEqual(expected_events, events)

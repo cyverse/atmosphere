@@ -381,6 +381,8 @@ def listen_for_allocation_source_created_or_renewed(sender, instance, created, *
         )
 
     logger.info('object_updated: %s, created: %s' % (object_updated, created,))
+    import time
+    time.sleep(2)
 
 
 ## EVENT FIRED WHEN COMPUTE ALLOWED FOR AN ALLOCATION SOURCE IS UPDATED
@@ -419,6 +421,8 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
     compute_allowed = payload['compute_allowed']
     source.compute_allowed = compute_allowed
     source.save()
+    import time
+    time.sleep(2)
 
 
 ## EVENT FIRED WHEN USER IS ASSIGNED TO AN ALLOCATION SOURCE
@@ -458,6 +462,8 @@ def listen_for_user_allocation_source_created(sender, instance, created, **kwarg
         allocation_source=AllocationSource.objects.get(name=allocation_source_name)
     )
     logger.info('object_updated: %s, created: %s' % (object_updated, created,))
+    import time
+    time.sleep(2)
 
 
 ## EVENT FIRED WHEN USER IS REMOVED FROM AN ALLOCATION SOURCE
