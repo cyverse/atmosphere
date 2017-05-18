@@ -411,17 +411,28 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
     source.save()
 
 
+## EVENT FIRED WHEN USER IS ASSIGNED TO AN ALLOCATION SOURCE
+
 def listen_for_user_allocation_source_created(sender, instance, created, **kwargs):
     """
-       This listener expects:
-       EventType - 'user_allocation_source_created'
-       entity_id - 'sgregory'  # An AtmosphereUser.username
-       EventPayload - {
-           "allocation_source_name": "TG-AG100345"
-       }
+           This listener expects:
+           EventType - 'user_allocation_source_created'
+           entity_id - "amitj" # Username
 
-       The method should result in adding a user to an allocation source
-    """
+           # CyVerse Payload
+
+           EventPayload - {
+               "allocation_source_name" : "TG-amit100568",
+           }
+
+           # Jetstream Payload
+
+           EventPayload - {
+               "allocation_source_name": "TG-AG100345",
+           }
+
+           The method should assign a user to an allocation source
+        """
     event = instance
     from core.models import EventTable, AtmosphereUser, AllocationSource
     assert isinstance(event, EventTable)
@@ -490,42 +501,6 @@ def listen_for_instance_allocation_removed(sender, instance, created, **kwargs):
     snapshot = InstanceAllocationSourceSnapshot.objects.get(
         instance=instance, allocation_source=allocation_source)
     snapshot.delete()
-
-
-def listen_for_user_allocation_source_assigned(sender, instance, created, **kwargs):
-    """
-        This listener expects:
-        EventType - 'allocation_source_created'
-        EventPayload - {
-            "source_id": "2439b15a-293a-4c11-b447-bf349f16ed2e",
-            "username": "amitj",
-        }
-
-        The method should result in User being assigned an AllocationSource
-    """
-    event = instance
-    if event.name != 'user_allocation_source_assigned':
-        return None
-    logger.info('User allocation source assigned event: %s', event.__dict__)
-    payload = event.payload
-    allocation_source_id = payload['source_id']
-    username = payload['username']
-
-    user = AtmosphereUser.objects.filter(username=username).first()
-    allocation_source = get_allocation_source_object(allocation_source_id)
-    ##CHANGED
-    # allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
-
-    # if not user:
-    #     raise Exception('User does not exist')
-    # if not allocation_source:
-    #     raise Exception('Allocation Source does not exist')
-
-    allocation_source = UserAllocationSource(allocation_source=allocation_source,
-                                             user=user)
-    allocation_source.save()
-    return
-
 
 def listen_for_allocation_source_renewal_strategy_changed(sender, instance, created, **kwargs):
     """

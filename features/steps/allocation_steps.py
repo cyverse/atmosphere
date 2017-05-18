@@ -156,13 +156,14 @@ def step_impl(context):
                                         "name": row['name'],
                                         "compute_allowed": row['compute allowed']})
         context.source_id = response.data['uuid']
+        context.name = row['name']
 
 
 @when('User is assigned to the allocation source')
 def step_impl(context):
     context.response = context.client.post('/api/v2/user_allocation_sources',
                                            {"username": context.user.username,
-                                            "source_id": context.source_id})
+                                            "allocation_source_name": context.name})
 
 
 @then('User assignment = {user_is_assigned}')
@@ -180,10 +181,11 @@ def step_impl(context):
                                         "compute_allowed": row['compute allowed']})
 
         context.source_id = response.data['uuid']
+        context.name = row['name']
 
         response_main = context.client.post('/api/v2/user_allocation_sources',
                                             {"username": context.user.username,
-                                             "source_id": context.source_id})
+                                             "allocation_source_name": context.name})
 
 
 @when('User is removed from Allocation Source')
@@ -284,9 +286,10 @@ def step_impl(context):
                                         "compute_allowed": row['compute allowed']})
 
         context.source_id = response.data['uuid']
+        context.name = row['name']
         response_main = context.client.post('/api/v2/user_allocation_sources',
                                             {"username": context.user.username,
-                                             "source_id": context.source_id})
+                                             "allocation_source_name": context.name})
 
 
 @when('User assigns allocation source to instance')

@@ -43,6 +43,7 @@ def step_impl(context):
 @when('admin creates allocation source')
 def step_impl(context):
     context.allocation_sources = {}
+    context.allocation_sources_name = {}
     context.current_time = timezone.now()
     for row in context.table:
         response = context.client.post('/api/v2/allocation_sources',
@@ -68,6 +69,7 @@ def step_impl(context):
             source_snapshot.save()
 
         context.allocation_sources[row['allocation_source_id']] = response.data['uuid']
+        context.allocation_sources_name[row['allocation_source_id']] = row['name']
 
 
 
@@ -75,9 +77,10 @@ def step_impl(context):
 def step_impl(context):
     for row in context.table:
         source_id = context.allocation_sources[row['allocation_source_id']]
+        name = context.allocation_sources_name[row['allocation_source_id']]
         response = context.client.post('/api/v2/user_allocation_sources',
                             {"username": row['username'],
-                             "source_id": source_id})
+                             "allocation_source_name": name})
 
         assert response.status_code==201
 

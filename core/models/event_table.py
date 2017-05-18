@@ -15,7 +15,7 @@ from core.hooks.allocation_source import (
     listen_for_user_allocation_source_deleted,
     listen_for_user_allocation_source_created,
     #listen_for_allocation_source_created,
-    listen_for_user_allocation_source_assigned,
+    #listen_for_user_allocation_source_assigned,
     listen_for_user_allocation_source_removed,
     #listen_for_allocation_source_renewed,
     listen_for_allocation_source_renewal_strategy_changed,
@@ -74,7 +74,7 @@ post_save.connect(listen_for_allocation_source_compute_allowed_changed, sender=E
 post_save.connect(listen_for_user_allocation_source_created, sender=EventTable)
 post_save.connect(listen_for_user_allocation_source_deleted, sender=EventTable)
 pre_save.connect(listen_before_allocation_snapshot_changes, sender=EventTable)
-post_save.connect(listen_for_user_allocation_source_assigned, sender=EventTable)
+#post_save.connect(listen_for_user_allocation_source_assigned, sender=EventTable)
 post_save.connect(listen_for_user_allocation_source_removed, sender=EventTable)
 post_save.connect(listen_for_allocation_overage, sender=EventTable)
 post_save.connect(listen_for_instance_allocation_removed, sender=EventTable)
