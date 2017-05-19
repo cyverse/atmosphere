@@ -114,15 +114,26 @@ class UserAllocationSnapshot(models.Model):
 
     def time_remaining(self, compute_allowed=None):
         """
-        Returns:
-            UnderAllocation: (True, <# allocation remaining>)
-            OverAllocation: (False, <# over allocation>)
+        Returns compute allowed remaining.
+
+        Will return a negative number if `compute_used` is larger than `compute_allowed`.
+
+        :return: decimal.Decimal
+        :rtype: decimal.Decimal
         """
         if not compute_allowed:
             compute_allowed = self.allocation_source.compute_allowed
         remaining_compute = compute_allowed - self.compute_used
-        is_over_allocation = (remaining_compute > 0)
-        return (is_over_allocation, abs(remaining_compute))
+        return remaining_compute
+
+    def is_over_allocation(self, compute_allowed=None):
+        """Return whether the allocation source `compute_used` is over the `compute_allowed`.
+
+        :return: bool
+        :rtype: bool
+        """
+        return self.time_remaining(compute_allowed) < 0
+
 
     class Meta:
         db_table = 'user_allocation_snapshot'
@@ -154,13 +165,23 @@ class AllocationSourceSnapshot(models.Model):
 
     def time_remaining(self):
         """
-        Returns:
-            UnderAllocation: (True, <# allocation remaining>)
-            OverAllocation: (False, <# over allocation>)
+        Returns compute allowed remaining.
+
+        Will return a negative number if `compute_used` is larger than `compute_allowed`.
+
+        :return: decimal.Decimal
+        :rtype: decimal.Decimal
         """
         remaining_compute = self.compute_allowed - self.compute_used
-        is_over_allocation = (remaining_compute > 0)
-        return (is_over_allocation, abs(remaining_compute))
+        return remaining_compute
+
+    def is_over_allocation(self):
+        """Return whether the allocation source `compute_used` is over the `compute_allowed`.
+
+        :return: bool
+        :rtype: bool
+        """
+        return self.time_remaining() < 0
 
     def __unicode__(self):
         return "%s (Used:%s, Burn Rate:%s Updated on:%s)" %\
