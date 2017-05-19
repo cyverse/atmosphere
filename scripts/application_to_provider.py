@@ -15,7 +15,7 @@ import glanceclient.exc
 import django; django.setup()
 import core.models
 import service.driver
-
+from chromogenic.clean import mount_and_clean
 from atmosphere.settings import secrets
 
 description = """
@@ -24,9 +24,11 @@ provider by doing any/all of the following as needed:
 
 - Creates Glance image
 - Populates Glance image metadata
-- Transfers image data from existing provider
+- Optionally, uses Chromogenic library to remove undesired state from images
+  which were created from Atmosphere(1) instances
+- Transfers image data from existing provider to new provider, one of two ways:
   - Using Glance API (default)
-  - Optionally, using iRODS (Atmosphere(0)-specific feature)
+  - Using iRODS (Atmosphere(0)-specific feature), see below
 - If Application uses an AMI-style image, ensures the
   kernel (AKI) and ramdisk (ARI) images are also present on destination
   provider, and sets appropriate properties
@@ -42,6 +44,8 @@ If a non-public application has or more members without identities on the
 destination provider, script will exit with error unless
 --ignore_missing_members is set.
 
+## iRODS Transfer Information
+
 The iRODS transfer feature was developed for CyVerse Atmosphere(0); may be of
 limited use elsewhere. In order to use it:
 - Source and destination providers must use the iRODS storage backend for
@@ -51,6 +55,7 @@ limited use elsewhere. In order to use it:
   must all be defined
 - Credentials passed in --irods-conn must have write access to both source and
   destination collections
+- --clean cannot be used with iRODS transfer
 
 Considerations when using iRODS transfer:
 - The credentials passed in --irods-conn will be used to populate the image
@@ -74,6 +79,8 @@ def main():
     logging.info("Running application_to_provider with the following arguments:\n{0}".format(str(args)))
 
     irods_args = (args.irods_conn, args.irods_src_coll, args.irods_dst_coll)
+    if args.clean and any(irods_args):
+        raise Exception("--clean cannot be used with iRODS transfer mode")
     if any(irods_args):
         irods = True
         if all(irods_args) and args.source_provider_id:
@@ -205,22 +212,12 @@ def main():
                          ", new objects will be created")
 
         # Get or create Glance image
-        # Look for image matching identifier stored in InstanceSource for dprov
         """
         todo corner case: we have existing InstanceSource with wrong image UUID?
         Do we correct it later (good) or end up creating a duplicate (maybe bad)?
         this logic may also need refactor
         """
-        if dprov_instance_source is not None:
-            try:
-                dprov_glance_image = dprov_glance_client.images.get(dprov_instance_source.identifier)
-            except glanceclient.exc.HTTPNotFound:
-                pass
-            else:
-                if dprov_glance_image is not None:
-                    logging.info("Found Glance image from InstanceSource for destination provider, re-using it")
-        else:
-            dprov_glance_image = get_or_create_glance_image(dprov_glance_client, sprov_img_uuid)
+        dprov_glance_image = get_or_create_glance_image(dprov_glance_client, sprov_img_uuid)
 
         # Get or create AKI+ARI Glance images for AMI-based image
         if ami:
@@ -300,14 +297,17 @@ def main():
         local_path = os.path.join(local_storage_dir, sprov_img_uuid)
 
         # Populate image data in destination provider if needed
-        migrate_image_data(sprov_img_uuid, sprov_glance_client, dprov_glance_client, local_path, persist_local_cache,
-                           irods, irods_conn, irods_src_coll, irods_dst_coll)
+        migrate_or_verify_image_data(sprov_img_uuid, sprov_glance_client, dprov_glance_client, local_path,
+                                     persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll,
+                                     clean=True if args.clean else False)
         # If AMI-based image, populate image data in destination provider if needed
         if ami:
-            migrate_image_data(sprov_aki_glance_image.id, sprov_glance_client, dprov_glance_client, local_path,
-                               persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll)
-            migrate_image_data(sprov_ari_glance_image.id, sprov_glance_client, dprov_glance_client, local_path,
-                               persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll)
+            migrate_or_verify_image_data(sprov_aki_glance_image.id, sprov_glance_client, dprov_glance_client,
+                                         local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
+                                         irods_dst_coll)
+            migrate_or_verify_image_data(sprov_ari_glance_image.id, sprov_glance_client, dprov_glance_client,
+                                         local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
+                                         irods_dst_coll)
 
 
 def file_md5(path):
@@ -326,6 +326,11 @@ def get_or_create_glance_image(glance_client, img_uuid):
     """
     try:
         glance_image = glance_client.images.get(img_uuid)
+    except glanceclient.exc.HTTPConflict:
+        raise Exception("Could not create Glance image with specified UUID, possibly because there is already a "
+                        "deleted image with the same UUID stored in the destination provider. If this is the case "
+                        "(look in Glance database on destination provider), then run a `glance-manage db purge` to "
+                        "free up the UUID.")
     except glanceclient.exc.HTTPNotFound:
         logging.debug("Could not locate glance image in specified provider")
         logging.info("Creating new Glance image")
@@ -336,11 +341,16 @@ def get_or_create_glance_image(glance_client, img_uuid):
             return glance_image
 
 
-def migrate_image_data(img_uuid, src_glance_client, dst_glance_client, local_path, persist_local_cache, irods,
-                       irods_conn, irods_src_coll, irods_dst_coll):
+def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client, local_path, persist_local_cache, irods,
+                                 irods_conn, irods_src_coll, irods_dst_coll, clean=False):
     """
-    Ensures that Glance image data matches between a source and a destination OpenStack provider.
-    Migrates image data if needed, using either Glance API download/upload or iRODS data object copy.
+    Migrates or verifies Glance image data between a source and destination provider, depending on image status
+    in destination provider.
+    - If image is in a queued state (accepting new data), migrates image data using either Glance API download/upload or
+      iRODS data object copy.
+    - If image is in an active state, attempts to verify image data matches using checksum or size
+    - If image is in any other state, it is not usable, raises an exception
+
     Args:
         img_uuid: UUID of image to be migrated
         src_glance_client: glance client object for source provider
@@ -352,30 +362,37 @@ def migrate_image_data(img_uuid, src_glance_client, dst_glance_client, local_pat
         irods_conn: dict as returned by _parse_irods_conn()
         irods_src_coll: Path to collection for iRODS images on source provider
         irods_dst_coll: Path to collection for iRODS images on destination provider
+        clean: apply Chromogenic mount_and_clean() to downloaded image
 
     Returns: True if successful, else raises exception
     """
 
     src_img = src_glance_client.images.get(img_uuid)
     dst_img = dst_glance_client.images.get(img_uuid)
-    if irods:
-        # Unable to use checksum for irods transfer, because checksum is not set in Glance when a location
-        # is added to an image (instead of uploading image data via Glance API) :(
-        if src_img.size == dst_img.size:
-            logging.info("Image data size matches on source and destination providers, not migrating data")
-            return True
-        else:
+
+    if dst_img.get("status") == "queued":
+        if irods:
             migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
-    else:
-        if src_img.checksum == dst_img.checksum:
-            logging.info("Image data checksum matches on source and destination providers, not migrating data")
-            return True
         else:
-            migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path,
-                                      persist_local_cache)
+            migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache,
+                                      clean=clean)
+    elif dst_img.get("status") == "active":
+        if irods:
+            if src_img.get("size") != dst_img.get("size"):
+                logging.warn("Warning: image data already present on destination provider but size does not match; "
+                             "this may be OK if image was previously migrated with --clean")
+        else:
+            if src_img.get("checksum") != dst_img.get("checksum"):
+                logging.warn("Warning: image data already present on destination provider but checksum does not "
+                             "match; this may be OK if image was previously migrated with --clean, or if iRODS "
+                             "transfer was previously used to migrate image")
+    else:
+        raise Exception("Glance image on destination provider is not in an uploadable or usable status")
+    return True
 
 
-def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True, max_tries=3):
+def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True,
+                              max_tries=3, clean=False):
     """
     Migrates image data using Glance API. Assumes that:
     - The Glance image object has already been created in the source provider
@@ -389,6 +406,7 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
         persist_local_cache: If image download succeeds but upload fails, keep local cached copy for subsequent attempt
                              (Local cache is always deleted after successful upload)
         max_tries: number of times to attempt each of download and upload
+        clean: apply Chromogenic mount_and_clean() to downloaded image
 
     Returns: True if success, else raises an exception
     """
@@ -416,6 +434,12 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
                 os.remove(local_path)
             raise Exception("Could not download Glance image from source provider")
 
+    if clean:
+        # TODO is this a reasonable mount point or should we create one in /tmp?
+        mount_and_clean(local_path, "/mnt")
+        logging.info("Cleaned image using Chromogenic")
+    local_img_checksum = file_md5(local_path)
+
     # Upload image to destination provider, keep trying until checksums match
     tries = 0
     while tries < max_tries:
@@ -424,7 +448,7 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
         with open(local_path, 'rb') as img_file:
             try:
                 dst_glance_client.images.upload(img_uuid, img_file)
-                if src_img.checksum == dst_glance_client.images.get(img_uuid).checksum:
+                if local_img_checksum == dst_glance_client.images.get(img_uuid).checksum:
                     logging.info("Successfully uploaded image data to destination provider")
                     break
                 else:
@@ -432,7 +456,7 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
             except OpenSSL.SSL.SysCallError:
                 logging.warning("Image data upload attempt failed")
 
-    if src_img.checksum != dst_glance_client.images.get(img_uuid).checksum:
+    if local_img_checksum != dst_glance_client.images.get(img_uuid).checksum:
         raise Exception("Image checksums don't match, upload may have failed!")
     else:
         os.remove(local_path)
@@ -497,6 +521,10 @@ def _parse_args():
                         action="store_true",
                         help="Transfer image if application is private and member(s) have no identity on destination "
                              "provider")
+    parser.add_argument("--clean",
+                        action="store_true",
+                        help="Use Chromogenic library to remove undesired state from images which were created from "
+                             "Atmosphere(1) instances (cannot be used with iRODS transfer)")
     parser.add_argument("--persist-local-cache",
                         action="store_true",
                         help="If image download succeeds but upload fails, keep local cached copy for subsequent "
