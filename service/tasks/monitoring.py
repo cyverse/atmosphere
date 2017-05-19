@@ -30,7 +30,6 @@ from service.monitoring import (
     _cleanup_missing_instances,
     _get_instance_owner_map,
     _get_identity_from_tenant_name,
-    allocation_source_overage_enforcement
 )
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
@@ -584,26 +583,68 @@ def monitor_instances():
         monitor_instances_for.apply_async(args=[p.id])
 
 @task(name="monitor_allocation_sources")
-def monitor_allocation_sources():
+def monitor_allocation_sources(usernames=[]):
     """
     Monitor allocation sources, if a snapshot shows that all compute has been used, then enforce as necessary
     """
-    for snapshot in AllocationSourceSnapshot.objects.all().order_by('allocation_source__name'):
-        (time_remaining, time_difference) = snapshot.time_remaining()
+    allocation_sources = AllocationSource.objects.all()
+    time_shared_allocations = getattr(settings, 'SPECIAL_ALLOCATION_SOURCES', {})
+    for allocation_source in allocation_sources.order_by('allocation_source__name'):
+        if allocation_source.name in time_shared_allocations:
+            try:
+                compute_allowed = time_shared_allocations[allocation_source.name]['compute_allowed']
+            except:
+                raise Exception(
+                    "The structure of settings.SPECIAL_ALLOCATION_SOURCES "
+                    "has changed! Verify your settings are correct and/or "
+                    "change the lines of code above.")
+            enforce_per_user_allocation(allocation_source, compute_allowed, usernames=usernames)
+        else:
+            enforce_allocation(allocation_source, usernames=usernames)
+
+def enforce_per_user_allocation(allocation_source, compute_allowed, usernames=usernames):
+    """
+    Create new AsyncTask for all users in a given AllocationSource , if over their allocation of compute_allowed
+    """
+    for user_snapshot in allocation_source.user_allocation_snapshots.all():
+        user = user_snapshot.user
+        if user.username not in usernames:
+            logger.info("Skipping User %s - not in the list" % user.username)
+            continue
+        (time_remaining, time_difference) = user_snapshot.time_remaining(compute_allowed)
         if time_remaining:
             continue
-        enforce_allocation_overage(snapshot.allocation_source.name)
+        allocation_source_overage_enforcement_for_user.apply_async(
+            args=(allocation_source.name, user=user))
 
 
-
-@task(name="enforce_allocation_overage")
-def enforce_allocation_overage(allocation_source_name):
+def enforce_allocation(allocation_source, usernames=usernames):
     """
-    Update instances for each active provider.
+    Create new AsyncTask for all users in a given AllocationSource, if over the compute_allowed
     """
-    allocation_source = AllocationSource.objects.get(name=allocation_source_name)
-    user_instances_enforced = allocation_source_overage_enforcement(allocation_source)
-    return user_instances_enforced
+    snapshot = allocation_source.snapshot
+    (time_remaining, time_difference) = snapshot.time_remaining()
+    if time_remaining:
+        continue
+    #ASSERT: No time remaining, _all users_ should be enforced (upon?)
+    all_user_instances = {}
+    for user in allocation_source.all_users:
+        if usernames and user.username not in usernames:
+            logger.info("Skipping User %s - not in the list" % user.username)
+            continue
+        allocation_source_overage_enforcement_for_user.apply_async(
+            args=(allocation_source, user))
+
+@task(name="allocation_source_overage_enforcement_for_user")
+def allocation_source_overage_enforcement_for_user(allocation_source, user)
+    user_instances = []
+    for identity in user.current_identities:
+        affected_instances = allocation_source_overage_enforcement_for(
+                allocation_source, user, identity)
+        user_instances.extend(affected_instances)
+    return user_instances
+
+
 
 @task(name="monitor_instances_for")
 def monitor_instances_for(provider_id, users=None,
