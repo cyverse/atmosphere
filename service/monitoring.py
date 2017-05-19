@@ -463,16 +463,21 @@ def allocation_source_overage_enforcement(allocation_source):
     return all_user_instances
 
 
-def filter_allocation_source_instances(allocation_source, esh_instances):
-    #Circ Dep
-    from core.models.allocation_strategy import InstanceAllocationSourceSnapshot
+def filter_allocation_source_instances(allocation_source, user, esh_instances):
     as_instances = []
     for inst in esh_instances:
-        provider_alias = inst.id
-        snapshot = InstanceAllocationSourceSnapshot.objects.filter(
-            instance__provider_alias=provider_alias).first()
-        if snapshot and snapshot.allocation_source == allocation_source:
-            as_instances.append(inst)
+        core_instance = CoreInstance.objects.filter(created_by=user, provider_alias=inst.id).first()
+        if not core_instance:
+            logger.debug("Skipping Instance %s -- not included in DB." % inst.id)
+            continue
+        source = core_instance.allocation_source
+        if not source:
+            logger.debug("Skipping Instance %s -- no allocation source set." % inst.id)
+            continue
+        if source != allocation_source:
+            logger.debug("Skipping Instance %s -- Allocation source mismatch." % inst.id)
+            continue
+        as_instances.append(inst)
     return as_instances
 
 
@@ -490,7 +495,7 @@ def allocation_source_overage_enforcement_for(allocation_source, user, identity)
         esh_instances = driver.list_instances()
     except LibcloudInvalidCredsError:
         raise Exception("User %s has invalid credentials on Identity %s" % (user, identity))
-    filtered_instances = filter_allocation_source_instances(allocation_source, esh_instances)
+    filtered_instances = filter_allocation_source_instances(allocation_source, user, esh_instances)
     # TODO: Parallelize this operation so you don't wait for larger instances
     # to finish 'wait_for' task below..
     instances = []

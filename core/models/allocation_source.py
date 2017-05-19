@@ -140,6 +140,16 @@ class AllocationSourceSnapshot(models.Model):
     compute_used = models.DecimalField(max_digits=19, decimal_places=3)
     compute_allowed = models.DecimalField(max_digits=19, decimal_places=3, default=0)
 
+    def time_remaining(self):
+        """
+        Returns:
+            UnderAllocation: (True, <# allocation remaining>)
+            OverAllocation: (False, <# over allocation>)
+        """
+        remaining_compute = self.compute_allowed - self.compute_used
+        is_over_allocation = (remaining_compute > 0)
+        return (is_over_allocation, abs(remaining_compute))
+
     def __unicode__(self):
         return "%s (Used:%s, Burn Rate:%s Updated on:%s)" %\
             (self.allocation_source, self.compute_used,
