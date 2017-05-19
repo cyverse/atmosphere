@@ -17,7 +17,7 @@ from core.models.instance import Instance, convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import convert_glance_image, get_or_create_provider_machine, ProviderMachine, ProviderMachineMembership
 from core.models.application import Application, ApplicationMembership
-from core.models.allocation_source import AllocationSource
+from core.models.allocation_source import AllocationSource, AllocationSourceSnapshot
 from core.models.event_table import EventTable
 from core.models.application_version import ApplicationVersion
 from core.models import Allocation, Credential, IdentityMembership
@@ -582,6 +582,18 @@ def monitor_instances():
     """
     for p in Provider.get_active():
         monitor_instances_for.apply_async(args=[p.id])
+
+@task(name="monitor_allocation_sources")
+def monitor_allocation_sources():
+    """
+    Monitor allocation sources, if a snapshot shows that all compute has been used, then enforce as necessary
+    """
+    for snapshot in AllocationSourceSnapshot.objects.all().order_by('allocation_source__name'):
+        (time_remaining, time_difference) = snapshot.time_remaining()
+        if time_remaining:
+            continue
+        enforce_allocation_overage(snapshot.allocation_source.name)
+
 
 
 @task(name="enforce_allocation_overage")

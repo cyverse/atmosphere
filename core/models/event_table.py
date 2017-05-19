@@ -24,6 +24,7 @@ from core.hooks.allocation_source import (
     listen_for_allocation_source_removed,
     listen_for_instance_allocation_removed
 )
+from threepio import logger
 
 
 class EventTable(models.Model):
@@ -40,6 +41,7 @@ class EventTable(models.Model):
 
     @classmethod
     def create_event(cls, name, payload, entity_id):
+        logger.info("Creating new event: %s\tPayload: %s" % (name, payload))
         return EventTable.objects.create(
             name=name,
             entity_id=entity_id,
