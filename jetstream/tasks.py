@@ -213,16 +213,21 @@ def update_snapshot(start_date=None, end_date=None):
         )
     return True
 
-
+#FIXME: Move this task!
 @task(name="update_snapshot")
-def update_snapshot_cyverse_allocation(start_date,end_date):
+def update_snapshot_cyverse_allocation(start_date=None, end_date=None, usernames=[]):
     allocation_source_total_compute = {}
     allocation_source_total_burn_rate = {}
-    start_date = start_date
-    end_date = end_date #timezone.now() if not end_date else end_date
+    # TODO: Read this start_date from last 'reset event' for each allocation source
+    #       If no reset event found, then the 'creation' date of the allocation source should be used.
+    start_date = start_date or timezone.now()-timezone.timedelta(days=30)
+    end_date = end_date or timezone.now()
     for source in AllocationSource.objects.order_by('uuid'):
         # iterate over user + allocation_source combo
-        for user_allocation_source in UserAllocationSource.objects.filter(allocation_source__exact=source.id).order_by('user__username'):
+        user_allocation_sources = UserAllocationSource.objects.filter(allocation_source__exact=source.id)
+        if usernames:
+            user_allocation_sources = user_allocation_sources.filter(user__username__in=usernames)
+        for user_allocation_source in user_allocation_sources.order_by('user__username'):
             user = user_allocation_source.user
             # determine end date and start date using last snapshot
             #start_date = start_date
