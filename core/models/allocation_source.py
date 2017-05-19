@@ -112,6 +112,18 @@ class UserAllocationSnapshot(models.Model):
         return "User %s + AllocationSource %s: Total AU Usage:%s Burn Rate:%s hours/hour Updated:%s" %\
             (self.user, self.allocation_source, self.compute_used, self.burn_rate, self.updated)
 
+    def time_remaining(self, compute_allowed=None):
+        """
+        Returns:
+            UnderAllocation: (True, <# allocation remaining>)
+            OverAllocation: (False, <# over allocation>)
+        """
+        if not compute_allowed:
+            compute_allowed = self.allocation_source.compute_allowed
+        remaining_compute = compute_allowed - self.compute_used
+        is_over_allocation = (remaining_compute > 0)
+        return (is_over_allocation, abs(remaining_compute))
+
     class Meta:
         db_table = 'user_allocation_snapshot'
         app_label = 'core'

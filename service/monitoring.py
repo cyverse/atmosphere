@@ -450,19 +450,6 @@ def _get_strategy(identity):
         return None
 
 
-def allocation_source_overage_enforcement(allocation_source):
-    all_user_instances = {}
-    for user in allocation_source.all_users:
-        all_user_instances[user.username] = []
-        for identity in user.current_identities:
-            affected_instances = allocation_source_overage_enforcement_for(
-                    allocation_source, user, identity)
-            user_instances = all_user_instances[user.username]
-            user_instances.extend(affected_instances)
-            all_user_instances[user.username] = user_instances
-    return all_user_instances
-
-
 def filter_allocation_source_instances(allocation_source, user, esh_instances):
     as_instances = []
     for inst in esh_instances:
