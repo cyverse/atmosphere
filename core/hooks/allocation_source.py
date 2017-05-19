@@ -1,20 +1,15 @@
 import uuid
-from django.conf import settings
 
+from django.conf import settings
 from threepio import logger
+
 from core.models import (
     AllocationSource, Instance, AtmosphereUser,
     UserAllocationSnapshot,
     InstanceAllocationSourceSnapshot,
-    AllocationSourceSnapshot, UserAllocationSource)
-
-from core.models.allocation_source import get_allocation_source_object
-
-# Pre-Save hooks
-
-# Post-Save hooks
+    AllocationSourceSnapshot)
 from core.models import UserAllocationSource
-from django.db.models import Q
+from core.models.allocation_source import get_allocation_source_object
 
 
 def listen_for_allocation_overage(sender, instance, raw, **kwargs):
@@ -34,7 +29,6 @@ def listen_for_allocation_overage(sender, instance, raw, **kwargs):
         return None
     # Circular dep...
     from core.models import EventTable
-    from service.tasks.monitoring import enforce_allocation_overage
     payload = event.payload
     allocation_source_name = payload['allocation_source_name']
     new_compute_used = payload['compute_used']
@@ -97,14 +91,15 @@ def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
         return
     prev_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=source).first()
     ##CHANGED
-    #prev_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source__name=allocation_source_name).last()
+    # prev_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source__name=allocation_source_name).last()
     if not prev_snapshot:
         prev_compute_used = 0
     else:
         prev_compute_used = float(prev_snapshot.compute_used)
     prev_percentage = int(100.0 * prev_compute_used / source.compute_allowed)
     current_percentage = int(100.0 * new_compute_used / source.compute_allowed)
-    print "Souce: %s (%s) Previous:%s - New:%s" % (source.name, allocation_source_name, prev_percentage, current_percentage)
+    print "Souce: %s (%s) Previous:%s - New:%s" % (
+        source.name, allocation_source_name, prev_percentage, current_percentage)
     percent_event_triggered = None
     # Compare 'Now snapshot' with Previous snapshot. Have we "crossed a threshold?"
     # If yes:
@@ -159,13 +154,14 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
         return None
     source = AllocationSource.objects.filter(name=allocation_source_name).last()
     ##CHANGED
-    #source = AllocationSource.objects.filter(name=allocation_source_name).last()
+    # source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not source:
         return None
     users = AtmosphereUser.for_allocation_source(source.name)
 
     for user in users:
         send_usage_email_to(user, source, threshold, actual_value)
+
 
 def send_usage_email_to(user, source, threshold, actual_value=None):
     from core.email import send_allocation_usage_email
@@ -272,33 +268,43 @@ def listen_for_user_snapshot_changes(sender, instance, created, **kwargs):
     return snapshot
 
 
+## EVENT FIRED WHEN USER IS REMOVED FROM AN ALLOCATION SOURCE
+
 def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
     """
-    This listener expects:
-    EventType - 'instance_allocation_source_changed'
-    EventPayload - {
-        "allocation_source_name": "37623",
-        "instance_id":"2439b15a-293a-4c11-b447-bf349f16ed2e"
-    }
+       This listener expects:
+       EventType - 'instance_allocation_source_changed'
+       entity_id - "amitj" # Username
 
-    The method should result in an up-to-date snapshot of Instance+AllocationSource
+       # CyVerse Payload
+
+       EventPayload - {
+           "instance_id" : "abcd-efgh-ij245-23823h",
+           "allocation_source_name" : "TG-AG100345"
+       }
+
+       # Jetstream Payload
+
+       EventPayload - {
+           "instance_id" : "abcd-efgh-ij245-23823h",
+           "allocation_source_name" : "TG-AG100345"
+       }
+
+       The method assigns an instance to an allocation source
     """
     event = instance
     if event.name != 'instance_allocation_source_changed':
         return None
     logger.info("Instance allocation changed event: %s" % event.__dict__)
     payload = event.payload
-    assert 'allocation_source_name' in payload or 'allocation_source_id' in payload  # TODO: Standardize? And a schema?
-    try:
-        allocation_source_name = payload['allocation_source_name']
-        allocation_source = AllocationSource.objects.get(name=allocation_source_name)
-    except KeyError:
-        source_uuid = payload['allocation_source_id']
-        allocation_source = AllocationSource.objects.get(uuid=source_uuid)
-    instance_id = payload['instance_id']
+    assert 'allocation_source_name' in payload  # TODO: Standardize? And a schema?
+
+    allocation_source_name = payload['allocation_source_name']
+    allocation_source = AllocationSource.objects.filter(name=allocation_source_name).last()
     if not allocation_source:
-        # TODO: Not sure we should just swallow this
-        return None
+        raise ("Allocation Source %s does not exist" % (payload['allocation_source_name']))
+
+    instance_id = payload['instance_id']
     instance = Instance.objects.filter(provider_alias=instance_id).first()
     if not instance:
         # TODO: Not sure we should just swallow this either.
@@ -315,14 +321,29 @@ def listen_for_instance_allocation_changes(sender, instance, created, **kwargs):
             instance=instance)
     return snapshot
 
+
+## EVENT FIRED WHEN ALLOCATION SOURCE IS CREATED OR RENEWED
+
 def listen_for_allocation_source_created_or_renewed(sender, instance, created, **kwargs):
     """
        This listener expects:
        EventType - 'allocation_source_created_or_renewed'
+       entity_id - "TG-AG100345" # Allocation Source Name
+
+       # CyVerse Payload
+
+       EventPayload - {
+           "uuid" : "16fd2706-8baf-433b-82eb-8c7fada847da"
+           "allocation_source_name": "TG-AG100345",
+           "compute_allowed":1000,
+           "renewal_strategy":"default"
+       }
+
+       # Jetstream Payload
+
        EventPayload - {
            "allocation_source_name": "TG-AG100345",
            "compute_allowed":1000,
-           "start_date":"2016-02-02T00:00+00:00"
        }
 
        The method should result in renewal of allocation source
@@ -335,54 +356,93 @@ def listen_for_allocation_source_created_or_renewed(sender, instance, created, *
     allocation_source_name = payload['allocation_source_name']
     compute_allowed = payload['compute_allowed']
 
-    object_updated, created = AllocationSource.objects.update_or_create(
-        name=allocation_source_name,
-        defaults={'compute_allowed': compute_allowed}
-    )
+    if 'renewal_strategy' in payload:
+        object_updated, created = AllocationSource.objects.update_or_create(
+            uuid=uuid.UUID(payload['uuid']),
+            name=allocation_source_name,
+            defaults={'compute_allowed': compute_allowed,
+                      'renewal_strategy': payload['renewal_strategy']}
+        )
+
+        allocation_source = get_allocation_source_object(payload['uuid'])
+
+        AllocationSourceSnapshot.objects.update_or_create(
+            allocation_source=allocation_source,
+            defaults={"compute_allowed": compute_allowed,
+                      "global_burn_rate": 0,
+                      "compute_used": 0.0,
+                      "updated": event.timestamp})
+
+    else:
+        # Jetstream
+        object_updated, created = AllocationSource.objects.update_or_create(
+            name=allocation_source_name,
+            defaults={'compute_allowed': compute_allowed}
+        )
+
     logger.info('object_updated: %s, created: %s' % (object_updated, created,))
 
 
+## EVENT FIRED WHEN COMPUTE ALLOWED FOR AN ALLOCATION SOURCE IS UPDATED
+
 def listen_for_allocation_source_compute_allowed_changed(sender, instance, created, **kwargs):
     """
-       This listener expects:
-       EventType - 'allocation_source_compute_allowed_changed'
-       EventPayload - {
-           "allocation_source_name": "TG-AG100345",
-           "compute_allowed":1000,
-           "start_date":"2016-02-02T00:00+00:00"
-       }
+           This listener expects:
+           EventType - 'allocation_source_compute_allowed_changed'
+           entity_id - "TG-AG100345" # Allocation Source Name
 
-       The method should result in supplement of allocation source
-       """
+           # CyVerse Payload
+
+           EventPayload - {
+               "allocation_source_name" : "TG-amit100568",
+               "compute_allowed":1000
+           }
+
+           # Jetstream Payload
+
+           EventPayload - {
+               "allocation_source_name": "TG-AG100345",
+               "compute_allowed":1000,
+           }
+
+           The method should result in an updated compute allowed
+        """
     event = instance
     if event.name != 'allocation_source_compute_allowed_changed':
         return None
     logger.info("Allocation Source Compute Allowed Changed event: %s" % event.__dict__)
     payload = event.payload
-    assert 'allocation_source_name' in payload or 'source_id' in payload  # TODO: Standardize? And a schema?
-    try:
-        allocation_source_name = payload['allocation_source_name']
-        source = AllocationSource.objects.get(name=allocation_source_name)
-    except KeyError:
-        source_uuid = payload['source_id']
-        source = AllocationSource.objects.get(uuid=source_uuid)
+    assert 'allocation_source_name' in payload  # TODO: Standardize? And a schema?
+    allocation_source_name = payload['allocation_source_name']
+    source = AllocationSource.objects.filter(name=allocation_source_name).last()
 
     compute_allowed = payload['compute_allowed']
     source.compute_allowed = compute_allowed
     source.save()
 
 
+## EVENT FIRED WHEN USER IS ASSIGNED TO AN ALLOCATION SOURCE
+
 def listen_for_user_allocation_source_created(sender, instance, created, **kwargs):
     """
-       This listener expects:
-       EventType - 'user_allocation_source_created'
-       entity_id - 'sgregory'  # An AtmosphereUser.username
-       EventPayload - {
-           "allocation_source_name": "TG-AG100345"
-       }
+           This listener expects:
+           EventType - 'user_allocation_source_created'
+           entity_id - "amitj" # Username
 
-       The method should result in adding a user to an allocation source
-    """
+           # CyVerse Payload
+
+           EventPayload - {
+               "allocation_source_name" : "TG-amit100568",
+           }
+
+           # Jetstream Payload
+
+           EventPayload - {
+               "allocation_source_name": "TG-AG100345",
+           }
+
+           The method should assign a user to an allocation source
+        """
     event = instance
     from core.models import EventTable, AtmosphereUser, AllocationSource
     assert isinstance(event, EventTable)
@@ -400,19 +460,32 @@ def listen_for_user_allocation_source_created(sender, instance, created, **kwarg
     logger.info('object_updated: %s, created: %s' % (object_updated, created,))
 
 
+## EVENT FIRED WHEN USER IS REMOVED FROM AN ALLOCATION SOURCE
+
 def listen_for_user_allocation_source_deleted(sender, instance, created, **kwargs):
     """
-       This listener expects:
-       EventType - 'user_allocation_source_deleted'
-       entity_id - 'sgregory'  # An AtmosphereUser.username
-       EventPayload - {
-           "allocation_source_name": "TG-AG100345"
-       }
+          This listener expects:
+          EventType - 'user_allocation_source_deleted'
+          entity_id - "amitj" # Username
 
-       The method should result in removing a user from an allocation source
-    """
+          # CyVerse Payload
+
+          EventPayload - {
+              "allocation_source_name" : "TG-amit100568",
+          }
+
+          # Jetstream Payload
+
+          EventPayload - {
+              "allocation_source_name": "TG-AG100345",
+          }
+
+          The method should remove a user from an allocation source
+       """
+
     event = instance
     from core.models import EventTable
+
     assert isinstance(event, EventTable)
     if event.name != 'user_allocation_source_deleted':
         return None
@@ -426,12 +499,15 @@ def listen_for_user_allocation_source_deleted(sender, instance, created, **kwarg
         allocation_source__name__exact=allocation_source_name).delete()
     logger.info('deleted_info: {}'.format(deleted_info))
 
+
+# THIS EVENT IS NEVER FIRED
+
 def listen_for_instance_allocation_removed(sender, instance, created, **kwargs):
     """
     This listener expects:
     EventType - 'instance_allocation_source_removed'
     EventPayload - {
-        "allocation_source_id": "37623",
+        "allocation_source_id": "TG-amit100568",
         "instance_id":"2439b15a-293a-4c11-b447-bf349f16ed2e"
     """
     event = instance
@@ -448,142 +524,21 @@ def listen_for_instance_allocation_removed(sender, instance, created, **kwargs):
     if not instance:
         return None
     snapshot = InstanceAllocationSourceSnapshot.objects.get(
-            instance=instance,allocation_source=allocation_source)
+        instance=instance, allocation_source=allocation_source)
     snapshot.delete()
 
-def listen_for_allocation_source_created(sender, instance, created, **kwargs):
-    """
-    This listener expects:
-    EventType - 'allocation_source_created'
-    EventEntityID - '<allocation_source.uuid>'
-    EventPayload - {
-        "uuid": "2439b15a-293a-4c11-b447-bf349f16ed2e",
-        "name": "TestAllocationSource",
-        "compute_allowed": 50000,
-        "renewal_strategy": "default"
-    }
 
-    The method should result in a new AllocationSource
-    """
-    event = instance
-    if event.name != 'allocation_source_created':
-        return None
-    logger.info('Allocation source created event: %s', event.__dict__)
-    payload = event.payload
-    timestamp = event.timestamp
-    # TODO: Some web-request/marshmallow validation
-    allocation_source_name = payload['name']
-    allocation_compute_allowed = payload['compute_allowed']
-
-    # validation to check if renewal strategy is a string or not ?
-    allocation_source = AllocationSource(
-                                         uuid = uuid.UUID(payload['source_id']),
-                                         name=allocation_source_name,
-                                         compute_allowed=allocation_compute_allowed,
-                                         renewal_strategy=payload['renewal_strategy'],
-                                         start_date = timestamp
-                                         )
-
-    allocation_source.save()
-
-    #create snapshot
-
-    allocation_source_snapshot = AllocationSourceSnapshot(allocation_source=allocation_source,
-                                          global_burn_rate = 0,
-                                         compute_used=0.0,
-                                         compute_allowed=allocation_compute_allowed
-                                         )
-    allocation_source_snapshot.save()
-
-def listen_for_user_allocation_source_assigned(sender, instance, created, **kwargs):
-    """
-        This listener expects:
-        EventType - 'allocation_source_created'
-        EventPayload - {
-            "source_id": "2439b15a-293a-4c11-b447-bf349f16ed2e",
-            "username": "amitj",
-        }
-
-        The method should result in User being assigned an AllocationSource
-    """
-    event = instance
-    if event.name != 'user_allocation_source_assigned':
-        return None
-    logger.info('User allocation source assigned event: %s', event.__dict__)
-    payload = event.payload
-    allocation_source_id = payload['source_id']
-    username = payload['username']
-
-    user = AtmosphereUser.objects.filter(username=username).first()
-    allocation_source = get_allocation_source_object(allocation_source_id)
-    ##CHANGED
-    #allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id).first()
-
-    # if not user:
-    #     raise Exception('User does not exist')
-    # if not allocation_source:
-    #     raise Exception('Allocation Source does not exist')
-
-    allocation_source = UserAllocationSource(allocation_source=allocation_source,
-                                             user=user)
-    allocation_source.save()
-    return
-
-
-def listen_for_allocation_source_renewed(sender, instance, created, **kwargs):
-    """
-               This listener expects:
-               EventType - 'allocation_source_renewed'
-               EventPayload - {
-                   "source_id": "32712",
-                   "name": "TestAllocationSource",
-                   "compute_allowed": 50000
-               }
-
-               The method should result in compute allowed of allocation source being renewed
-    """
-    event = instance
-    if event.name != 'allocation_source_renewed':
-        return None
-    logger.info('Allocation Source renewed event: %s', event.__dict__)
-    payload = event.payload
-    allocation_source_id = payload['source_id']
-    allocation_source_name = payload['name']
-    compute_allowed = payload['compute_allowed']
-
-    allocation_source = get_allocation_source_object(allocation_source_id)
-    ##CHANGED
-    #allocation_source = AllocationSource.objects.filter(
-    #    Q(source_id=allocation_source_id) & Q(name=allocation_source_name) ).first()
-    if not allocation_source:
-        raise('Allocation Source %s does not exist'%(payload['source_id']))
-
-    try:
-        allocation_source.compute_allowed = compute_allowed
-        allocation_source.save()
-    except Exception as e:
-        raise('Allocation Source %s could not be renewed because of the following error %s '%(allocation_source.name, e))
-
-    allocation_source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source = allocation_source)
-    if not allocation_source_snapshot:
-        raise('Allocation Source Snapshot for Allocation Source %s does not exist'%(allocation_source.name))
-    try:
-        allocation_source_snapshot = allocation_source_snapshot.last()
-        allocation_source_snapshot.compute_used = 0
-        allocation_source_snapshot.compute_allowed = payload['compute_allowed']
-        allocation_source_snapshot.updated = event.timestamp
-        allocation_source_snapshot.save()
-    except Exception as e:
-        raise Exception('Allocation Source Snapshot %s could not be renewed because of the following error %s '%(allocation_source.name, e))
-    return
-
+## EVENT FIRED WHEN RENEWAL STRATEGY OF ALLOCATION SOURCE IS CHANGED
 
 def listen_for_allocation_source_renewal_strategy_changed(sender, instance, created, **kwargs):
     """
+        #CyVerse Payload
+
         This listener expects:
                EventType - 'allocation_source_renewal_strategy_changed'
+               entity_id - "TG-amit100568" #Allocation Source Name
+
                EventPayload - {
-                   "source_id": "32712",
                    "renewal_strategy": "workshop",
                }
 
@@ -593,20 +548,21 @@ def listen_for_allocation_source_renewal_strategy_changed(sender, instance, crea
     event = instance
     if event.name != 'allocation_source_renewal_strategy_changed':
         return None
-    logger.info('Allocation Source renewal strategy changed event: %s',event.__dict__)
+    logger.info('Allocation Source renewal strategy changed event: %s', event.__dict__)
     payload = event.payload
-    allocation_source_id = payload['source_id']
+    allocation_source_name = payload['allocation_source_name']
     new_renewal_strategy = payload['renewal_strategy']
-    ##CHANGED
-    #allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id)
     try:
-        allocation_source = get_allocation_source_object(allocation_source_id)
-        allocation_source.renewal_strategy = new_renewal_strategy
-        allocation_source.save()
-
+        AllocationSource.objects.update_or_create(name=allocation_source_name,
+                                                  defaults={'renewal_strategy': new_renewal_strategy})
     except Exception as e:
-        raise Exception('Allocation Source %s renewal strategy could not be changed because of the following error %s'%(allocation_source.name, e))
+        raise Exception(
+            'Allocation Source %s renewal strategy could not be changed because of the following error %s' % (
+                allocation_source_name, e))
     return
+
+
+# THIS EVENT IS NEVER FIRED
 
 def listen_for_allocation_source_name_changed(sender, instance, created, **kwargs):
     """
@@ -623,59 +579,33 @@ def listen_for_allocation_source_name_changed(sender, instance, created, **kwarg
     event = instance
     if event.name != 'allocation_source_name_changed':
         return None
-    logger.info('Allocation Source name changed event: %s',event.__dict__)
+    logger.info('Allocation Source name changed event: %s', event.__dict__)
     payload = event.payload
     allocation_source_id = payload['source_id']
-    new_name= payload['name']
+    new_name = payload['name']
     ##CHANGED
-    #allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id)
+    # allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id)
     try:
         allocation_source = get_allocation_source_object(allocation_source_id)
         allocation_source.name = new_name
         allocation_source.save()
 
     except Exception as e:
-        raise Exception('Allocation Source %s name could not be changed because of the following error %s'%(allocation_source.name, e))
+        raise Exception('Allocation Source %s name could not be changed because of the following error %s' % (
+            allocation_source.name, e))
     return
 
-
-def listen_for_user_allocation_source_removed(sender, instance, created, **kwargs):
-    """
-
-     This listener expects:
-               EventType -'user_allocation_source_removed'
-               EventPayload - {
-                   "source_id": "32712",
-                   "username": "amitj",
-               }
-
-               The method should result in storing the user removed from allocation source event
-    """
-    event = instance
-    if event.name != 'user_allocation_source_removed':
-        return None
-    logger.info('User removed from Allocation Source event: %s', event.__dict__)
-    payload = event.payload
-
-    allocation_source = get_allocation_source_object(payload['source_id'])
-    ##CHANGED
-    # allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id)
-
-    user_allocation_source_object = UserAllocationSource.objects.filter(
-        user__username=payload['username'],
-        allocation_source=allocation_source).last()
-
-    user_allocation_source_object.delete()
-
-    return
+## EVENT FIRED WHEN RENEWAL STRATEGY OF ALLOCATION SOURCE IS CHANGED
 
 def listen_for_allocation_source_removed(sender, instance, created, **kwargs):
     """
-
+         # CyVerse Payload
          This listener expects:
                    EventType -'allocation_source_removed'
+                   entity_id - "TestAllocationSource2" # Allocation Source Name
                    EventPayload - {
-                       "source_id": "32712",
+                       "allocation_source_name": "TestAllocationSource2",
+                       "delete_date": "2016-05-16T00:00T00:00"
                    }
 
                    The method should result in removal of allocation source
@@ -686,13 +616,8 @@ def listen_for_allocation_source_removed(sender, instance, created, **kwargs):
     logger.info('Allocation Source deleted event: %s', event.__dict__)
     payload = event.payload
 
-    allocation_source = get_allocation_source_object(payload['source_id'])
-    ##CHANGED
-    #allocation_source = AllocationSource.objects.filter(source_id=payload['source_id']).last()
-
+    allocation_source = AllocationSource.objects.filter(name=payload['allocation_source_name']).last()
     allocation_source.end_date = payload['delete_date']
     allocation_source.save()
 
     return
-
-

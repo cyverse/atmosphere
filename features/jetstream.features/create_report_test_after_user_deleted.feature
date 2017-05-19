@@ -2,7 +2,7 @@ Feature: Testing create_report task after user deleted from allocation source
 
   Scenario Outline: testing create_reports task
 
-    Given Allocation Source
+    Given a test Allocation Source
 
     When Allocation Source is assigned to Users
       | number of users assigned to allocation source |
