@@ -500,12 +500,14 @@ def listen_for_user_allocation_source_deleted(sender, instance, created, **kwarg
     logger.info('deleted_info: {}'.format(deleted_info))
 
 
+# THIS EVENT IS NEVER FIRED
+
 def listen_for_instance_allocation_removed(sender, instance, created, **kwargs):
     """
     This listener expects:
     EventType - 'instance_allocation_source_removed'
     EventPayload - {
-        "allocation_source_id": "37623",
+        "allocation_source_id": "TG-amit100568",
         "instance_id":"2439b15a-293a-4c11-b447-bf349f16ed2e"
     """
     event = instance
@@ -526,12 +528,17 @@ def listen_for_instance_allocation_removed(sender, instance, created, **kwargs):
     snapshot.delete()
 
 
+## EVENT FIRED WHEN RENEWAL STRATEGY OF ALLOCATION SOURCE IS CHANGED
+
 def listen_for_allocation_source_renewal_strategy_changed(sender, instance, created, **kwargs):
     """
+        #CyVerse Payload
+
         This listener expects:
                EventType - 'allocation_source_renewal_strategy_changed'
+               entity_id - "TG-amit100568" #Allocation Source Name
+
                EventPayload - {
-                   "source_id": "32712",
                    "renewal_strategy": "workshop",
                }
 
@@ -543,21 +550,19 @@ def listen_for_allocation_source_renewal_strategy_changed(sender, instance, crea
         return None
     logger.info('Allocation Source renewal strategy changed event: %s', event.__dict__)
     payload = event.payload
-    allocation_source_id = payload['source_id']
+    allocation_source_name = payload['allocation_source_name']
     new_renewal_strategy = payload['renewal_strategy']
-    ##CHANGED
-    # allocation_source = AllocationSource.objects.filter(source_id=allocation_source_id)
     try:
-        allocation_source = get_allocation_source_object(allocation_source_id)
-        allocation_source.renewal_strategy = new_renewal_strategy
-        allocation_source.save()
-
+        AllocationSource.objects.update_or_create(name=allocation_source_name,
+                                                  defaults={'renewal_strategy': new_renewal_strategy})
     except Exception as e:
         raise Exception(
             'Allocation Source %s renewal strategy could not be changed because of the following error %s' % (
-                allocation_source.name, e))
+                allocation_source_name, e))
     return
 
+
+# THIS EVENT IS NEVER FIRED
 
 def listen_for_allocation_source_name_changed(sender, instance, created, **kwargs):
     """
@@ -590,14 +595,17 @@ def listen_for_allocation_source_name_changed(sender, instance, created, **kwarg
             allocation_source.name, e))
     return
 
+## EVENT FIRED WHEN RENEWAL STRATEGY OF ALLOCATION SOURCE IS CHANGED
 
 def listen_for_allocation_source_removed(sender, instance, created, **kwargs):
     """
-
+         # CyVerse Payload
          This listener expects:
                    EventType -'allocation_source_removed'
+                   entity_id - "TestAllocationSource2" # Allocation Source Name
                    EventPayload - {
-                       "source_id": "32712",
+                       "allocation_source_name": "TestAllocationSource2",
+                       "delete_date": "2016-05-16T00:00T00:00"
                    }
 
                    The method should result in removal of allocation source
@@ -608,10 +616,7 @@ def listen_for_allocation_source_removed(sender, instance, created, **kwargs):
     logger.info('Allocation Source deleted event: %s', event.__dict__)
     payload = event.payload
 
-    allocation_source = get_allocation_source_object(payload['source_id'])
-    ##CHANGED
-    # allocation_source = AllocationSource.objects.filter(source_id=payload['source_id']).last()
-
+    allocation_source = AllocationSource.objects.filter(name=payload['allocation_source_name']).last()
     allocation_source.end_date = payload['delete_date']
     allocation_source.save()
 

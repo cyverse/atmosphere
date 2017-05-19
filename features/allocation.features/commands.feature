@@ -40,19 +40,19 @@ Feature: Commands Testing
       |  default                |  workshop              | True                         |
       |  biweekly               |  biyearly              | False                        |
 
-#  ######################################################################################################
+##  ######################################################################################################
+##
+#  Scenario Outline: Change Allocation Source Name
+#      Given An Allocation Source with name
+#      |  name       |
+#      |  <old_name> |
+#      When  change_allocation_source_name command is fired with <new_name>
+#      Then  name is changed = <name_is_changed>
 #
-  Scenario Outline: Change Allocation Source Name
-      Given An Allocation Source with name
-      |  name       |
-      |  <old_name> |
-      When  change_allocation_source_name command is fired with <new_name>
-      Then  name is changed = <name_is_changed>
-
-  Examples: Names
-      |  old_name                |  new_name                  |  name_is_changed  |
-      |  DefaultAllocationSource |  WorkshopAllocationSource  |  True             |
-#
+#  Examples: Names
+#      |  old_name                |  new_name                  |  name_is_changed  |
+#      |  DefaultAllocationSource |  WorkshopAllocationSource  |  True             |
+##
 #  ######################################################################################################
 
   Scenario Outline: Change Compute Allowed
@@ -69,22 +69,22 @@ Feature: Commands Testing
       |  240                    |  72                   |  150          | False                      |
       |  240                    |  72                   |   50          | True                       |
 
-#  ######################################################################################################
-#
+  ######################################################################################################
+
 #  Scenario Outline: Remove Allocation Source
 #       Given Allocation Source
 #        |  name   |  compute allowed   |  renewal strategy    |
 #        |  <name> |  <compute_allowed> |  <renewal_strategy>  |
-#
+
 #       When Allocation Source is removed
-#       Then Allocation Source Removal = <allocation_source_is_removed>
+#       Then Allocation Source Removal = <allocation_source_is_removed>#
 #
 #  Examples: Remove Allocation Source
 #        |  name                      |  compute_allowed   |  renewal_strategy   |  allocation_source_is_removed  |
 #        |  DefaultAllocationSource   |  250               |  default            |  True                          |
 #        |  NewAllocationSource       |  100               |  default            |  True                          |
 
-#  ######################################################################################################
+  ######################################################################################################
 
   Scenario Outline: Assign User to Allocation Source
        Given Allocation Source
@@ -99,7 +99,7 @@ Feature: Commands Testing
         |  DefaultAllocationSource   |  250               |  default            |  True              |
         |  NewAllocationSource       |  100               |  default            |  True              |
 
-#  ######################################################################################################
+  ######################################################################################################
 
   Scenario Outline: Remove User from Allocation Source
      Given User assigned to Allocation Source
@@ -114,7 +114,7 @@ Feature: Commands Testing
         |  DefaultAllocationSource   |  250               |  default            |  True              |
         |  NewAllocationSource       |  100               |  default            |  True              |
 
-#  ######################################################################################################
+  ######################################################################################################
 
   Scenario: Test Instance launch and instance creation
     Given Pre-initalizations

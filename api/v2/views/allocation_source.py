@@ -105,12 +105,12 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
             # events to call
             events = []
 
-            if 'name' in request_data:
-                payload_name = payload.copy()
-                payload_name['name'] = request_data['name']
-                events.append((
-                    'allocation_source_name_changed',
-                    payload_name))
+            # if 'name' in request_data:
+            #     payload_name = payload.copy()
+            #     payload_name['name'] = request_data['name']
+            #     events.append((
+            #         'allocation_source_name_changed',
+            #         payload_name))
 
             if 'renewal_strategy' in request_data:
                 payload_renewal_strategy = payload.copy()
@@ -150,7 +150,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
         request_user = self.request.user
         request_data = {}
-        request_data['source_id'] = allocation_source.uuid
+        request_data['allocation_source_name'] = allocation_source.name
 
         # validate user
         try:
@@ -165,13 +165,13 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
             self._validate_params(request_data)
             # create payload
             payload = {}
-            payload['source_id'] = str(request_data['source_id'])
+            payload['allocation_source_name'] = str(request_data['allocation_source_name'])
             payload['delete_date'] = str(timezone.now().strftime("%Y-%m-%dT%H:%M:%S+00:00"))
 
             EventTable.create_event(
                 'allocation_source_removed',
                 payload,
-                payload['source_id'])
+                payload['allocation_source_name'])
 
         except Exception as exc:
             return failure_response(
@@ -179,7 +179,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 exc.message)
 
         try:
-            allocation_source = get_allocation_source_object(request_data['source_id'])
+            allocation_source = allocation_source
 
             serialized_allocation_source = AllocationSourceSerializer(
                 allocation_source, context={'request': self.request})
@@ -221,7 +221,7 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 request_data['allocation_source_name']
             )
 
-        return get_allocation_source_object(request_data['source_id'])
+        return AllocationSource.objects.filter(name=request_data['allocation_source_name']).last()
 
     def _validate_params(self, data):
 
