@@ -611,8 +611,8 @@ def enforce_per_user_allocation(allocation_source, compute_allowed, usernames=us
         if user.username not in usernames:
             logger.info("Skipping User %s - not in the list" % user.username)
             continue
-        (time_remaining, time_difference) = user_snapshot.time_remaining(compute_allowed)
-        if time_remaining:
+        over_allocation = user_snapshot.is_over_allocation(compute_allowed)
+        if over_allocation:
             continue
         allocation_source_overage_enforcement_for_user.apply_async(
             args=(allocation_source.name, user=user))
@@ -623,8 +623,8 @@ def enforce_allocation(allocation_source, usernames=usernames):
     Create new AsyncTask for all users in a given AllocationSource, if over the compute_allowed
     """
     snapshot = allocation_source.snapshot
-    (time_remaining, time_difference) = snapshot.time_remaining()
-    if time_remaining:
+    over_allocation = snapshot.is_over_allocation()
+    if over_allocation:
         continue
     #ASSERT: No time remaining, _all users_ should be enforced (upon?)
     all_user_instances = {}
