@@ -119,6 +119,7 @@ class OverQuotaError(ServiceException):
 class DeviceBusyException(ServiceException):
 
     def __init__(self, mount_loc, process_list):
+        self.process_list = process_list
         proc_str = ''
         for proc_name, pid in process_list:
             proc_str += '\nProcess name:%s process id:%s' % (proc_name, pid)
