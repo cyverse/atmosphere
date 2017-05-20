@@ -457,11 +457,12 @@ def filter_allocation_source_instances(allocation_source, user, esh_instances):
         if not core_instance:
             logger.debug("Skipping Instance %s -- not included in DB." % inst.id)
             continue
-        source = core_instance.allocation_source
-        if not source:
+        assert isinstance(core_instance, CoreInstance)
+        instance_allocation_source = core_instance.allocation_source
+        if not instance_allocation_source:
             logger.debug("Skipping Instance %s -- no allocation source set." % inst.id)
             continue
-        if source != allocation_source:
+        if instance_allocation_source != allocation_source:
             logger.debug("Skipping Instance %s -- Allocation source mismatch." % inst.id)
             continue
         as_instances.append(inst)
@@ -490,6 +491,7 @@ def allocation_source_overage_enforcement_for(allocation_source, user, identity)
         core_instance = execute_provider_action(user, driver, identity, instance, action)
         instances.append(core_instance)
     return instances
+
 
 def execute_provider_action(user, driver, identity, instance, action):
     try:
