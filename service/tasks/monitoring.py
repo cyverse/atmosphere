@@ -502,24 +502,6 @@ def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
     identity_list = Identity.objects.filter(id__in=all_identities)
     return identity_list
 
-def update_membership(application, shared_identities):
-    """
-    For machine in application/version:
-        Get list of current users
-        For "super-set" list of identities:
-            if identity exists on provider && identity NOT in current user list:
-                account_driver.add_user(identity.name)
-    """
-    db_identity_membership = identity.identity_memberships.all().distinct()
-    for db_identity_member in db_identity_membership:
-        # For each group who holds this identity:
-        #   grant them access to the now-private App, Version & Machine
-        db_group = db_identity_member.member
-        ApplicationMembership.objects.get_or_create(
-            application=application, group=db_group)
-        celery_logger.info("Added Application, Version, and Machine Membership to Group: %s" % (db_group,))
-    return application
-
 
 def make_machines_public(application, account_drivers={}, dry_run=False):
     """
