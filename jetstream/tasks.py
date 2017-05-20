@@ -235,14 +235,14 @@ def update_snapshot_cyverse_allocation(start_date=None, end_date=None, usernames
             compute_used, burn_rate = total_usage(user.username,start_date,allocation_source_name=source.name,end_date=end_date,burn_rate=True)
             allocation_source_total_compute[source.name] = allocation_source_total_compute.get(source.name,0) + compute_used
             allocation_source_total_burn_rate[source.name] = allocation_source_total_burn_rate.get(source.name,0) + burn_rate
-            payload_ubr = {"allocation_source_id":source.uuid, "username":user.username, "burn_rate":burn_rate, "compute_used":compute_used}
+            payload_ubr = {"allocation_source_name":str(source.name), "username":user.username, "burn_rate":burn_rate, "compute_used":compute_used}
             EventTable.create_event("user_allocation_snapshot_changed", payload_ubr, user.username)
         compute_used_total = allocation_source_total_compute.get(source.name,0)
         global_burn_rate = allocation_source_total_burn_rate.get(source.name,0)
         if compute_used_total != 0:
             logger.info("Total usage for AllocationSource %s (%s-%s) = %s (Burn Rate: %s)" % (source.name, start_date, end_date, compute_used_total, global_burn_rate))
         payload_as = {
-            "allocation_source_id":source.uuid,
+            "allocation_source_name":source.name,
             "compute_used":compute_used_total,
             "global_burn_rate":global_burn_rate
         }

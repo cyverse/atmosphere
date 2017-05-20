@@ -112,6 +112,29 @@ class UserAllocationSnapshot(models.Model):
         return "User %s + AllocationSource %s: Total AU Usage:%s Burn Rate:%s hours/hour Updated:%s" %\
             (self.user, self.allocation_source, self.compute_used, self.burn_rate, self.updated)
 
+    def time_remaining(self, compute_allowed=None):
+        """
+        Returns compute allowed remaining.
+
+        Will return a negative number if `compute_used` is larger than `compute_allowed`.
+
+        :return: decimal.Decimal
+        :rtype: decimal.Decimal
+        """
+        if not compute_allowed:
+            compute_allowed = self.allocation_source.compute_allowed
+        remaining_compute = compute_allowed - self.compute_used
+        return remaining_compute
+
+    def is_over_allocation(self, compute_allowed=None):
+        """Return whether the allocation source `compute_used` is over the `compute_allowed`.
+
+        :return: bool
+        :rtype: bool
+        """
+        return self.time_remaining(compute_allowed) < 0
+
+
     class Meta:
         db_table = 'user_allocation_snapshot'
         app_label = 'core'
@@ -139,6 +162,26 @@ class AllocationSourceSnapshot(models.Model):
     global_burn_rate = models.DecimalField(max_digits=19, decimal_places=3)
     compute_used = models.DecimalField(max_digits=19, decimal_places=3)
     compute_allowed = models.DecimalField(max_digits=19, decimal_places=3, default=0)
+
+    def time_remaining(self):
+        """
+        Returns compute allowed remaining.
+
+        Will return a negative number if `compute_used` is larger than `compute_allowed`.
+
+        :return: decimal.Decimal
+        :rtype: decimal.Decimal
+        """
+        remaining_compute = self.compute_allowed - self.compute_used
+        return remaining_compute
+
+    def is_over_allocation(self):
+        """Return whether the allocation source `compute_used` is over the `compute_allowed`.
+
+        :return: bool
+        :rtype: bool
+        """
+        return self.time_remaining() < 0
 
     def __unicode__(self):
         return "%s (Used:%s, Burn Rate:%s Updated on:%s)" %\

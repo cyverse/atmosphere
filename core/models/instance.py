@@ -516,9 +516,8 @@ class Instance(models.Model):
 
     @property
     def allocation_source(self):
-        #FIXME: look up the current allocation source by "Scanning the event table" on this instance.
-        from core.models.allocation_source import \
-                InstanceAllocationSourceSnapshot as Snapshot
+        # FIXME: look up the current allocation source by "Scanning the event table" on this instance.
+        from core.models.allocation_source import InstanceAllocationSourceSnapshot as Snapshot
         snapshot = Snapshot.objects.filter(instance=self).first()
         return snapshot.allocation_source if snapshot else None
 
