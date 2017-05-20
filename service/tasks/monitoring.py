@@ -17,8 +17,7 @@ from core.models.instance import Instance, convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import convert_glance_image, get_or_create_provider_machine, ProviderMachine, ProviderMachineMembership
 from core.models.application import Application, ApplicationMembership
-from core.models.allocation_source import AllocationSource, AllocationSourceSnapshot
-from core.models.event_table import EventTable
+from core.models.allocation_source import AllocationSource
 from core.models.application_version import ApplicationVersion
 from core.models import Allocation, Credential, IdentityMembership
 
@@ -30,7 +29,7 @@ from service.monitoring import (
     _cleanup_missing_instances,
     _get_instance_owner_map,
     _get_identity_from_tenant_name,
-)
+    allocation_source_overage_enforcement_for)
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
 from service.exceptions import TimeoutError
@@ -582,8 +581,9 @@ def monitor_instances():
     for p in Provider.get_active():
         monitor_instances_for.apply_async(args=[p.id])
 
+
 @task(name="monitor_allocation_sources")
-def monitor_allocation_sources(usernames=[]):
+def monitor_allocation_sources(usernames=()):
     """
     Monitor allocation sources, if a snapshot shows that all compute has been used, then enforce as necessary
     """
@@ -598,52 +598,48 @@ def monitor_allocation_sources(usernames=[]):
                     "The structure of settings.SPECIAL_ALLOCATION_SOURCES "
                     "has changed! Verify your settings are correct and/or "
                     "change the lines of code above.")
-            enforce_per_user_allocation(allocation_source, compute_allowed, usernames=usernames)
+            enforce_per_user_allocation(allocation_source, compute_allowed, usernames)
         else:
-            enforce_allocation(allocation_source, usernames=usernames)
+            enforce_allocation(allocation_source, usernames)
 
-def enforce_per_user_allocation(allocation_source, compute_allowed, usernames=usernames):
+
+def enforce_per_user_allocation(allocation_source, compute_allowed, usernames):
     """
     Create new AsyncTask for all users in a given AllocationSource , if over their allocation of compute_allowed
     """
     for user_snapshot in allocation_source.user_allocation_snapshots.all():
         user = user_snapshot.user
         if user.username not in usernames:
-            logger.info("Skipping User %s - not in the list" % user.username)
+            celery_logger.info("Skipping User %s - not in the list" % user.username)
             continue
         over_allocation = user_snapshot.is_over_allocation(compute_allowed)
         if over_allocation:
             continue
-        allocation_source_overage_enforcement_for_user.apply_async(
-            args=(allocation_source.name, user=user))
+        allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source.name, user))
 
 
-def enforce_allocation(allocation_source, usernames=usernames):
+def enforce_allocation(allocation_source, usernames):
     """
     Create new AsyncTask for all users in a given AllocationSource, if over the compute_allowed
     """
     snapshot = allocation_source.snapshot
-    over_allocation = snapshot.is_over_allocation()
-    if over_allocation:
-        continue
-    #ASSERT: No time remaining, _all users_ should be enforced (upon?)
-    all_user_instances = {}
+    if not snapshot.is_over_allocation():
+        return
+    # ASSERT: No time remaining, _all users_ should be enforced (upon?)
     for user in allocation_source.all_users:
         if usernames and user.username not in usernames:
-            logger.info("Skipping User %s - not in the list" % user.username)
+            celery_logger.info("Skipping User %s - not in the list" % user.username)
             continue
-        allocation_source_overage_enforcement_for_user.apply_async(
-            args=(allocation_source, user))
+        allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source, user))
+
 
 @task(name="allocation_source_overage_enforcement_for_user")
-def allocation_source_overage_enforcement_for_user(allocation_source, user)
+def allocation_source_overage_enforcement_for_user(allocation_source, user):
     user_instances = []
     for identity in user.current_identities:
-        affected_instances = allocation_source_overage_enforcement_for(
-                allocation_source, user, identity)
+        affected_instances = allocation_source_overage_enforcement_for(allocation_source, user, identity)
         user_instances.extend(affected_instances)
     return user_instances
-
 
 
 @task(name="monitor_instances_for")
