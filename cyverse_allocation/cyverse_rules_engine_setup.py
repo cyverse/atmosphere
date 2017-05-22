@@ -7,9 +7,10 @@ from core.models.event_table import EventTable
 
 
 class CyverseTestRenewalVariables(BaseVariables):
-    def __init__(self, allocation_source, current_time):
+    def __init__(self, allocation_source, current_time, last_renewal_event_date):
         self.allocation_source = allocation_source
         self.current_time = current_time
+        self.last_renewal_event_date = last_renewal_event_date
 
     @string_rule_variable
     def renewal_strategy(self):
@@ -30,12 +31,8 @@ class CyverseTestRenewalVariables(BaseVariables):
 
     @numeric_rule_variable
     def days_since_renewed(self):
-        source_id = self.allocation_source.uuid
-        last_renewal_event = EventTable.objects.filter(
-            name='allocation_source_created_or_renewed',
-            payload__uuid__exact=str(source_id)).order_by('timestamp')
         return (
-            self.current_time.replace(microsecond=0) - last_renewal_event.last().timestamp.replace(microsecond=0)).days
+            self.current_time - self.last_renewal_event_date).days
 
 
 class CyverseTestRenewalActions(BaseActions):

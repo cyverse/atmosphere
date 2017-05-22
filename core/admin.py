@@ -5,9 +5,9 @@ from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.models import Group as DjangoGroup
 from django.contrib.sessions.models import Session as DjangoSession
 from django.utils import timezone
-
 from threepio import logger
 
+from api.v2.views import AllocationSourceViewSet, UserAllocationSourceViewSet
 from core import email
 from core import models
 from core import tasks
@@ -16,16 +16,20 @@ from service.tasks import admin as admin_task
 
 def private_object(modeladmin, request, queryset):
     queryset.update(private=True)
+
+
 private_object.short_description = 'Make objects private True'
 
 
 def end_date_object(modeladmin, request, queryset):
     queryset.update(end_date=timezone.now())
-end_date_object.short_description = 'Add end-date to objects'
 
+
+end_date_object.short_description = 'Add end-date to objects'
 
 # For removing 'standard' registrations
 admin.site.unregister(DjangoGroup)
+
 
 @admin.register(models.NodeController)
 class NodeControllerAdmin(admin.ModelAdmin):
@@ -45,7 +49,7 @@ class MaintenanceAdmin(admin.ModelAdmin):
 @admin.register(models.ApplicationVersion)
 class ImageVersionAdmin(admin.ModelAdmin):
     search_fields = [
-        "name","application__name",
+        "name", "application__name",
         "machines__instance_source__identifier"
     ]
     actions = [end_date_object, ]
@@ -57,6 +61,7 @@ class ImageVersionAdmin(admin.ModelAdmin):
         "start_date",
         "end_date",
     )
+
 
 @admin.register(models.Quota)
 class QuotaAdmin(admin.ModelAdmin):
@@ -72,7 +77,7 @@ class QuotaAdmin(admin.ModelAdmin):
 @admin.register(models.AllocationSource)
 class AllocationSourceAdmin(admin.ModelAdmin):
     search_fields = [
-        "name","uuid",
+        "name", "uuid",
         "users__user__username"
     ]
     actions = [end_date_object, ]
@@ -83,6 +88,37 @@ class AllocationSourceAdmin(admin.ModelAdmin):
         "compute_allowed",
     )
 
+    def save_model(self, request, obj, form, change):
+        request.data = {"renewal_strategy": obj.renewal_strategy,
+                        "name": obj.name,
+                        "compute_allowed": obj.compute_allowed}
+        if not change:
+            api = AllocationSourceViewSet()
+            api.create(request)
+        else:
+            request.data = {}
+
+            # renewal strategy modified
+            if form.initial['renewal_strategy'] != obj.renewal_strategy:
+                request.data['renewal_strategy'] = obj.renewal_strategy
+
+            # compute allowed modified
+            if form.initial['compute_allowed'] != obj.compute_allowed:
+                request.data['compute_allowed'] = obj.compute_allowed
+
+            if request.data:
+                api = AllocationSourceViewSet()
+                api.update(request, obj.uuid)
+
+            # if allocation source is end dated
+            if form.initial['end_date'] != obj.end_date:
+                api = AllocationSourceViewSet()
+                api.perform_destroy(obj, request=request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(models.AllocationStrategy)
 class AllocationStrategyAdmin(admin.ModelAdmin):
     pass
@@ -90,7 +126,6 @@ class AllocationStrategyAdmin(admin.ModelAdmin):
 
 @admin.register(models.Allocation)
 class AllocationAdmin(admin.ModelAdmin):
-
     list_display = ("threshold_str", "delta_str")
 
     def threshold_str(self, obj):
@@ -98,6 +133,7 @@ class AllocationAdmin(admin.ModelAdmin):
         return '%s days, %s hours, %s minutes' % (td.days,
                                                   td.seconds // 3600,
                                                   (td.seconds // 60) % 60)
+
     threshold_str.short_description = 'Threshold'
 
     def delta_str(self, obj):
@@ -105,6 +141,7 @@ class AllocationAdmin(admin.ModelAdmin):
         return '%s days, %s hours, %s minutes' % (td.days,
                                                   td.seconds // 3600,
                                                   (td.seconds // 60) % 60)
+
     delta_str.short_description = 'Delta'
 
 
@@ -159,6 +196,7 @@ class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
 
     def _app_private(self, obj):
         return obj.application_version.application.private
+
     _app_private.boolean = True
 
     def _app_name(self, obj):
@@ -166,7 +204,7 @@ class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
 
     def render_change_form(self, request, context, *args, **kwargs):
         context['adminform'].form.fields['application_version'].queryset = \
-                models.ApplicationVersion.objects.order_by('application__name')
+            models.ApplicationVersion.objects.order_by('application__name')
         context['adminform'].form.fields[
             'group'].queryset = models.Group.objects.order_by('name')
         return super(
@@ -176,6 +214,7 @@ class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
             context,
             *args,
             **kwargs)
+
     pass
 
 
@@ -194,6 +233,7 @@ class ProviderMachineMembershipAdmin(admin.ModelAdmin):
 
     def _pm_private(self, obj):
         return obj.provider_machine.application_version.application.private
+
     _pm_private.boolean = True
 
     def _pm_identifier(self, obj):
@@ -201,6 +241,7 @@ class ProviderMachineMembershipAdmin(admin.ModelAdmin):
 
     def _pm_name(self, obj):
         return obj.provider_machine.application_version.application.name
+
     pass
 
 
@@ -208,11 +249,13 @@ class ProviderCredentialInline(admin.TabularInline):
     model = models.ProviderCredential
     extra = 1
 
+
 @admin.register(models.EventTable)
 class EventTableAdmin(admin.ModelAdmin):
     search_fields = ["entity_id", "name"]
     list_display = ["uuid", "name", "entity_id", "payload", "timestamp"]
     list_filter = ["entity_id", "name"]
+
 
 @admin.register(models.Provider)
 class ProviderAdmin(admin.ModelAdmin):
@@ -228,6 +271,7 @@ class ProviderAdmin(admin.ModelAdmin):
             return_text += "<strong>%s</strong>:%s<br/>" % (
                 cred.key, cred.value)
         return return_text
+
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Provider Credentials'
 
@@ -252,10 +296,40 @@ class TagAdmin(admin.ModelAdmin):
     list_display = ["name", "description"]
 
 
+@admin.register(models.UserAllocationSource)
+class UserAllocationSourceAdmin(admin.ModelAdmin):
+    search_fields = [
+        "name", "allocation_source__name",
+        "user__username"
+    ]
+    actions = [end_date_object, ]
+    list_display = (
+        "user",
+        "allocation_source",
+    )
+
+    def save_model(self, request, obj, form, change):
+        request.data = {"username": obj.user.username,
+                        "allocation_source_name": obj.allocation_source.name}
+        if not change:
+            api = UserAllocationSourceViewSet()
+            api.create(request)
+        else:
+            return
+
+    def delete_model(self, request, obj):
+        request.data = request.data = {"username": obj.user.username,
+                                       "allocation_source_name": obj.allocation_source.name}
+
+        api = UserAllocationSourceViewSet()
+        api.delete(request)
+
+
 @admin.register(models.Volume)
 class VolumeAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]
-    search_fields = ["instance_source__identifier", "name", "instance_source__provider__location", "instance_source__created_by__username"]
+    search_fields = ["instance_source__identifier", "name", "instance_source__provider__location",
+                     "instance_source__created_by__username"]
     list_display = ["identifier", "size", "provider",
                     "start_date", "end_date"]
     list_filter = ["instance_source__provider__location"]
@@ -327,6 +401,7 @@ class IdentityAdmin(admin.ModelAdmin):
             return_text += "<strong>%s</strong>:%s<br/>" % (
                 cred.key, cred.value)
         return return_text
+
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Credentials'
 
@@ -349,7 +424,7 @@ class UserProfileInline(admin.StackedInline):
 class UserAdmin(AuthUserAdmin):
     inlines = [UserProfileInline]
     fieldsets = AuthUserAdmin.fieldsets + (
-        (None, {'fields': ('selected_identity', )}),
+        (None, {'fields': ('selected_identity',)}),
     )
 
 
@@ -379,10 +454,12 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
 
     def _identity_provider(self, obj):
         return obj.identity.provider.location
+
     _identity_provider.short_description = 'Provider'
 
     def _identity_user(self, obj):
         return obj.identity.created_by.username
+
     _identity_user.short_description = 'Username'
 
 
@@ -432,7 +509,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
         parent_machine = models.ProviderMachine.objects.filter(
             instance_source__identifier=instance.source.identifier)
         new_machine = models.ProviderMachine.objects.filter(
-                instance_source__provider=provider)
+            instance_source__provider=provider)
 
         admin_fields = context['adminform'].form.fields
         admin_fields['new_machine_owner'].queryset = provider.list_users()
@@ -456,6 +533,7 @@ class MachineRequestAdmin(admin.ModelAdmin):
             )
 
         return machine_request.new_application_visibility
+
     opt_machine_visibility.allow_tags = True
 
     def opt_parent_machine(self, machine_request):
@@ -474,7 +552,8 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
                      "instance__source__identifier",
                      "instance__provider_alias", "status__name"]
-    list_display = ["instance_alias", "machine_alias", "instance_owner","instance_ip_address","status", "start_date", "end_date"]
+    list_display = ["instance_alias", "machine_alias", "instance_owner", "instance_ip_address", "status", "start_date",
+                    "end_date"]
     list_filter = ["instance__source__provider__location",
                    "status__name",
                    "instance__created_by__username"]
@@ -496,15 +575,16 @@ class InstanceStatusHistoryAdmin(admin.ModelAdmin):
 @admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
     search_fields = ["created_by__username", "provider_alias", "ip_address"]
-    list_display = ["provider_alias", "get_size", "application_id", "application_name", "start_date", "name", "created_by", "ip_address"]
+    list_display = ["provider_alias", "get_size", "application_id", "application_name", "start_date", "name",
+                    "created_by", "ip_address"]
     list_filter = ["source__provider__location"]
 
 
 @admin.register(DjangoSession)
 class SessionAdmin(admin.ModelAdmin):
-
     def _session_data(self, obj):
         return obj.get_decoded()
+
     list_display = ['session_key', '_session_data', 'expire_date']
     search_fields = ["session_key", ]
 
@@ -564,9 +644,10 @@ class GroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'uuid',)
     list_filter = ['name', ]
 
+
 @admin.register(models.EmailTemplate)
 class EmailTemplateAdmin(admin.ModelAdmin):
-    actions = None # disable the `delete selected` action
+    actions = None  # disable the `delete selected` action
 
     def has_add_permission(self, request):
         return False
@@ -577,12 +658,12 @@ class EmailTemplateAdmin(admin.ModelAdmin):
 
 @admin.register(models.HelpLink)
 class HelpLinkAdmin(admin.ModelAdmin):
-    actions = None # disable the `delete selected` action
+    actions = None  # disable the `delete selected` action
     list_display = ["link_key", "topic", "context", "href"]
 
     def get_readonly_fields(self, request, obj=None):
-        if obj: # editing an existing object
-            return self.readonly_fields + ("link_key", )
+        if obj:  # editing an existing object
+            return self.readonly_fields + ("link_key",)
         return self.readonly_fields
 
     def has_add_permission(self, request):

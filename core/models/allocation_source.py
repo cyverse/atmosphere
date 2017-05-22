@@ -7,7 +7,7 @@ from uuid import uuid4
 
 class AllocationSource(models.Model):
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
-    name = models.CharField(max_length=255, unique=True, editable=False)
+    name = models.CharField(max_length=255, unique=True)
     compute_allowed = models.IntegerField()
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
