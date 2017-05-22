@@ -1241,7 +1241,7 @@ def add_security_group_task(driverCls, provider, core_identity,
     except:
         raise Exception("Cannot find the instance")
     try:
-        security_group_name = core_identity.provider.get_config("network", "security_group_name", "atmosphere")
+        security_group_name = core_identity.provider.get_config("network", "security_group_name", "default")
         server_instance.add_security_group(security_group_name)
     except:
         raise Exception("Cannot add the security group to the instance usng nova")
