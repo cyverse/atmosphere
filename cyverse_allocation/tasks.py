@@ -15,7 +15,7 @@ from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVari
 logger = logging.getLogger(__name__)
 
 @task(name="update_snapshot_cyverse")
-def update_cyverse_snapshot(start_date=None, end_date=None):
+def update_snapshot_cyverse(start_date=None, end_date=None):
     end_date = timezone.now().replace(microsecond=0) if not end_date else end_date
 
     for allocation_source in AllocationSource.objects.all():
