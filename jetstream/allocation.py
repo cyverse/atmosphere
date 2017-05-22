@@ -1,12 +1,14 @@
 import logging
-
+import uuid
 from django.conf import settings
+from django.db import IntegrityError
 from django.utils import timezone
 from dateutil.parser import parse
 
 from .exceptions import TASAPIException
 #FIXME: Next iteration, move this into the driver.
 from .tas_api import tacc_api_post, tacc_api_get
+from core.models import EventTable
 from core.models.allocation_source import AllocationSource, UserAllocationSource
 
 logger = logging.getLogger(__name__)
@@ -146,14 +148,14 @@ class TASAPIDriver(object):
     
         return data
 
-    def get_allocation_project_id(self, allocation_id):
-        allocation = self.get_allocation(allocation_id)
+    def get_allocation_project_id(self, allocation_name):
+        allocation = self.get_allocation(allocation_name)
         if not allocation:
             return
         return allocation['projectId']
 
-    def get_allocation_project_name(self, allocation_id):
-        allocation = self.get_allocation(allocation_id)
+    def get_allocation_project_name(self, allocation_name):
+        allocation = self.get_allocation(allocation_name)
         if not allocation:
             return
         return allocation['project']
@@ -168,12 +170,12 @@ class TASAPIDriver(object):
             return filtered_list[0]
         return None
 
-    def get_allocation(self, allocation_id):
+    def get_allocation(self, allocation_name):
         filtered_list = [
             a for a in self.get_all_allocations()
-            if str(a['id']) == str(allocation_id)]
+            if str(a['project']) == str(allocation_name)]
         if len(filtered_list) > 1:
-            logger.error(">1 value found for allocation %s" % allocation_id)
+            logger.error(">1 value found for allocation %s" % allocation_name)
         if filtered_list:
             return filtered_list[0]
         return None
@@ -255,7 +257,7 @@ class TASAPIDriver(object):
 
 
 
-def get_or_create_allocation_source(api_allocation, update_source=False):
+def get_or_create_allocation_source(api_allocation):
     try:
         source_name = "%s" % (api_allocation['project'],)
         source_id = api_allocation['id']
@@ -263,24 +265,38 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
     except (TypeError, KeyError, ValueError):
         raise TASAPIException("Malformed API Allocation - Missing keys in dict: %s" % api_allocation)
 
+    payload = {
+        'allocation_source_name': source_name,
+        'compute_allowed': compute_allowed,
+        'start_date':api_allocation['start'],
+        'end_date':api_allocation['end']
+    }
+
     try:
-        source = AllocationSource.objects.get(
-            source_id=source_id
-        )
-        if update_source:
-            if compute_allowed != source.compute_allowed:
-                #FIXME: Here would be a *great* place to create a new event to "ignore" all previous allocation_source_`threshold_met/threshold_enforced`
-                source.compute_allowed = compute_allowed
-            source.name = source_name
-            source.save()
-        return source, False
-    except AllocationSource.DoesNotExist:
-        source = AllocationSource.objects.create(
-            name=source_name,
-            compute_allowed=compute_allowed,
-            source_id=source_id
-        )
-        return source, True
+        created_event_key = 'sn=%s,si=%s,ev=%s,dc=jetstream,dc=atmosphere' % (
+            source_name, source_id, 'allocation_source_created_or_renewed')
+        created_event_uuid = uuid.uuid5(uuid.NAMESPACE_X500, str(created_event_key))
+        created_event = EventTable.objects.create(name='allocation_source_created_or_renewed',
+                                                  uuid=created_event_uuid,
+                                                  payload=payload)
+        assert isinstance(created_event, EventTable)
+    except IntegrityError as e:
+        # This is totally fine. No really. This should fail if it already exists and we should ignore it.
+        pass
+
+    try:
+        compute_event_key = 'ca=%s,sn=%s,si=%s,ev=%s,dc=jetstream,dc=atmosphere' % (
+            compute_allowed, source_name, source_id, 'allocation_source_compute_allowed_changed')
+        compute_event_uuid = uuid.uuid5(uuid.NAMESPACE_X500, str(compute_event_key))
+        compute_allowed_event = EventTable.objects.create(
+            name='allocation_source_compute_allowed_changed', uuid=compute_event_uuid, payload=payload)
+        assert isinstance(compute_allowed_event, EventTable)
+    except IntegrityError as e:
+        # This is totally fine. No really. This should fail if it already exists and we should ignore it.
+        pass
+
+    source = AllocationSource.objects.get(name__iexact=source_name)
+    return source
 
 
 def find_user_allocation_source_for(driver, user):
@@ -294,15 +310,13 @@ def find_user_allocation_source_for(driver, user):
     return allocations
 
 
-def fill_allocation_sources(force_update=False):
+def fill_allocation_sources():
     driver = TASAPIDriver()
     allocations = driver.get_all_allocations()
     create_list = []
     for api_allocation in allocations:
-        obj, created = get_or_create_allocation_source(
-            api_allocation, update_source=force_update)
-        if created:
-            create_list.append(obj)
+        obj = get_or_create_allocation_source(api_allocation)
+        create_list.append(obj)
     return len(create_list)
 
 
@@ -338,17 +352,63 @@ def fill_user_allocation_sources():
     return allocation_resources
 
 
-def fill_user_allocation_source_for(driver, user, force_update=True):
+def fill_user_allocation_source_for(driver, user):
+    from core.models import AtmosphereUser
+    assert isinstance(user, AtmosphereUser)
     allocation_list = find_user_allocation_source_for(driver, user)
     allocation_resources = []
+    user_allocation_sources = []
+    old_user_allocation_sources = list(UserAllocationSource.objects.filter(user=user).order_by(
+        'allocation_source__name').all())
+
     for api_allocation in allocation_list:
-        allocation_source, _ = get_or_create_allocation_source(
-            api_allocation, update_source=force_update)
-        resource, _ = UserAllocationSource.objects.get_or_create(
-            allocation_source=allocation_source,
-            user=user)
+        allocation_source = get_or_create_allocation_source(api_allocation)
         allocation_resources.append(allocation_source)
+        user_allocation_source = get_or_create_user_allocation_source(user, allocation_source)
+        user_allocation_sources.append(user_allocation_source)
+
+    canonical_source_names = [source.name for source in allocation_resources]
+    for user_allocation_source in old_user_allocation_sources:
+        if user_allocation_source.allocation_source.name not in canonical_source_names:
+            delete_user_allocation_source(user, user_allocation_source.allocation_source)
     return allocation_resources
+
+
+def delete_user_allocation_source(user, allocation_source):
+    from core.models import AtmosphereUser
+    assert isinstance(user, AtmosphereUser)
+    assert isinstance(allocation_source, AllocationSource)
+    payload = {
+        'allocation_source_name': allocation_source.name
+    }
+
+    created_event = EventTable.objects.create(name='user_allocation_source_deleted',
+                                              entity_id=user.username,
+                                              payload=payload)
+    assert isinstance(created_event, EventTable)
+
+
+def get_or_create_user_allocation_source(user, allocation_source):
+    from core.models import AtmosphereUser
+    assert isinstance(user, AtmosphereUser)
+    assert isinstance(allocation_source, AllocationSource)
+
+    user_allocation_source = UserAllocationSource.objects.filter(user=user, allocation_source=allocation_source)
+
+    if not user_allocation_source:
+        payload = {
+            'allocation_source_name': allocation_source.name
+        }
+
+        created_event = EventTable.objects.create(name='user_allocation_source_created',
+                                                  entity_id=user.username,
+                                                  payload=payload)
+        assert isinstance(created_event, EventTable)
+        user_allocation_source = UserAllocationSource.objects.get(user=user, allocation_source=allocation_source)
+    else:
+        user_allocation_source = user_allocation_source.last()
+
+    return user_allocation_source
 
 
 def select_valid_allocations(allocation_list):

@@ -2,7 +2,6 @@ from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
 
-
 cwd_path = os.path.dirname(os.path.dirname(__file__))
 os.environ.setdefault('PYTHONPATH', cwd_path)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'atmosphere.settings')
@@ -22,6 +21,7 @@ from atmosphere import settings
 app.Task.resultrepr_maxsize = 2000
 
 # Django-Celery secrets ( set inside atmosphere/settings/__init__.py )
+app.conf.beat_schedule = settings.CELERYBEAT_SCHEDULE
 app.conf.broker_url = settings.CELERY_BROKER_URL
 app.conf.result_backend = settings.CELERY_RESULT_BACKEND
 app.conf.task_send_sent_event = settings.CELERY_SEND_EVENTS

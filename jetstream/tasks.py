@@ -1,23 +1,18 @@
 import logging
-import collections
 
+from celery.decorators import task
 from django.conf import settings
 from django.utils import timezone
 
-from celery.decorators import task
-from core.models.allocation_source import total_usage
+from core.models import EventTable, AtmosphereUser
 from core.models.allocation_source import (
     UserAllocationSource, AllocationSourceSnapshot,
     AllocationSource, UserAllocationSnapshot
 )
-from service.allocation_logic import create_report, get_instance_burn_rate_from_row
-from core.models.user import AtmosphereUser
-
-from .models import TASAllocationReport
-from .allocation import (TASAPIDriver, fill_user_allocation_sources)
-
+from core.models.allocation_source import total_usage
+from .allocation import (TASAPIDriver, fill_user_allocation_sources, select_valid_allocation)
 from .exceptions import TASPluginException
-
+from .models import TASAllocationReport
 
 logger = logging.getLogger(__name__)
 
@@ -40,29 +35,56 @@ def create_reports():
     """
     user_allocation_list = UserAllocationSource.objects.all()
     all_reports = []
-    driver = TASAPIDriver()
     end_date = timezone.now()
+    last_report_date = TASAllocationReport.objects.order_by('end_date')
+
+    if not last_report_date:
+        last_report_date = end_date
+    else:
+        last_report_date = last_report_date.last().end_date
+
     for item in user_allocation_list:
-        allocation_id = item.allocation_source.source_id
-        tacc_username = driver.get_tacc_username(item.user)
-        if not tacc_username:
-            logger.error("No TACC username for user: '{}' which came from allocation id: {}".format(item.user,
-                                                                                                    allocation_id))
-            continue
-        project_name = driver.get_allocation_project_name(allocation_id)
-        try:
-            project_report = _create_tas_report_for(
-                item.user,
-                tacc_username,
-                project_name,
-                end_date)
-        except TASPluginException:
-            logger.exception(
-                "Could not create the report because of the error below"
-            )
-            continue
-        all_reports.append(project_report)
+        allocation_name = item.allocation_source.name
+        project_report = _create_reports_for(item.user, allocation_name, end_date)
+        if project_report:
+            all_reports.append(project_report)
+
+    # Take care of Deleted Users
+
+    # filter user_allocation_source_removed events which are created after the last report date
+
+    for event in EventTable.objects.filter(name="user_allocation_source_deleted",
+                                           timestamp__gte=last_report_date).order_by('timestamp'):
+
+        user = AtmosphereUser.objects.get(username=event.entity_id)
+        allocation_name = event.payload['allocation_source_name']
+        end_date = event.timestamp
+        project_report = _create_reports_for(user, allocation_name, end_date)
+        if project_report:
+            all_reports.append(project_report)
     return all_reports
+
+
+def _create_reports_for(user, allocation_name, end_date):
+    driver = TASAPIDriver()
+    tacc_username = driver.get_tacc_username(user)
+    if not tacc_username:
+        logger.error("No TACC username for user: '{}' which came from allocation id: {}".format(user,
+                                                                                                allocation_name))
+        return
+    project_name = driver.get_allocation_project_name(allocation_name)
+    try:
+        project_report = _create_tas_report_for(
+            user,
+            tacc_username,
+            project_name,
+            end_date)
+        return project_report
+    except TASPluginException:
+        logger.exception(
+            "Could not create the report because of the error below"
+        )
+        return
 
 
 def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
@@ -81,7 +103,7 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
     last_report = TASAllocationReport.objects.filter(
         project_name=tacc_project_name,
         user=user
-        ).order_by('end_date').last()
+    ).order_by('end_date').last()
     if not last_report:
         start_date = user.date_joined
     else:
@@ -111,8 +133,6 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
 
 @task(name="report_allocations_to_tas")
 def report_allocations_to_tas():
-    if 'jetstream' not in settings.INSTALLED_APPS:
-        return
     logger.info("Reporting: Begin creating reports")
     create_reports()
     logger.info("Reporting: Completed, begin sending reports")
@@ -139,66 +159,56 @@ def send_reports():
 
 @task(name="update_snapshot")
 def update_snapshot(start_date=None, end_date=None):
-    if not settings.USE_ALLOCATION_SOURCE:
-        return False
     end_date = end_date or timezone.now()
     # TODO: Read this start_date from last 'reset event' for each allocation source
     start_date = start_date or '2016-09-01 00:00:00.0-05'
-    all_data = create_report(start_date, end_date)
-
-    user_allocation_snapshots = {}
-    unique_usernames = set()
-
-    for row in all_data:
-        key = (row['allocation_source'], row['username'])
-        compute_used, instance_burn_rates = user_allocation_snapshots.get(key, (0.0, {}))
-        new_compute_used = compute_used + float(row['applicable_duration'])
-        new_instance_burn_rate = int(get_instance_burn_rate_from_row(row))
-        instance_burn_rates['instance_id'] = new_instance_burn_rate
-        user_allocation_snapshots[key] = (new_compute_used, instance_burn_rates)
-
-        unique_usernames.add(row['username'])
-
-    allocation_source_ids = {obj['name']: obj['id'] for obj in AllocationSource.objects.all().values('name', 'id')}
-    relevant_users = {obj['username']: obj['id'] for obj in
-                      AtmosphereUser.objects.filter(username__in=unique_usernames).values(
-                          'username', 'id')}
-
-    allocation_source_burn_rates = collections.Counter()
-    for key, snapshot_numbers in user_allocation_snapshots.iteritems():
-        allocation_source_name, username = key
-        compute_used, instance_burn_rates = snapshot_numbers
-        try:
-            allocation_source_id = allocation_source_ids[allocation_source_name]
-        except KeyError:
-            # This allocation source does not exist in our database yet. Create it? Skip for now. Could be 'N/A' as well
-            continue
-        user_allocation_burn_rate = sum(instance_burn_rates.values())
-        snapshot, created = UserAllocationSnapshot.objects.update_or_create(
-            allocation_source_id=allocation_source_id,
-            user_id=relevant_users[username],
-            defaults={
-                'compute_used': round(compute_used / 3600, 2),
-                'burn_rate': user_allocation_burn_rate
-            }
-        )
-        allocation_source_burn_rates[allocation_source_name] += user_allocation_burn_rate
 
     tas_api_obj = TASAPIDriver()
     allocation_source_usage_from_tas = tas_api_obj.get_all_projects()
+
     for project in allocation_source_usage_from_tas:
+        total_burn_rate = 0
         allocation_source_name = project['chargeCode']
         try:
-            allocation_source_id = allocation_source_ids[allocation_source_name]
+            allocation_source = AllocationSource.objects.filter(name=allocation_source_name).order_by('id').last()
+
+            if not allocation_source:
+                continue
+
+            created_or_updated_event = EventTable.objects.filter(
+                name='allocation_source_created_or_renewed',
+                payload__allocation_source_name=allocation_source.name
+            ).order_by('timestamp').last()
+
+            if created_or_updated_event:
+                # if renewed, change ignore old allocation usage
+                start_date = created_or_updated_event.payload['start_date']
+
+            for user in allocation_source.all_users:
+                compute_used, burn_rate = total_usage(user.username, start_date,
+                                                      allocation_source_name=allocation_source.name,
+                                                      end_date=end_date,
+                                                      burn_rate=True)
+                total_burn_rate += burn_rate
+                UserAllocationSnapshot.objects.update_or_create(
+                    allocation_source_id=allocation_source.id,
+                    user_id=user.id,
+                    defaults={
+                        'compute_used': compute_used,
+                        'burn_rate': burn_rate
+                    }
+                )
+
         except KeyError:
             # This allocation source does not exist in our database yet. Create it? Skip for now.
             continue
-        compute_used = project['allocations'][-1]['computeUsed']
-        snapshot, created = AllocationSourceSnapshot.objects.update_or_create(
-            allocation_source_id=allocation_source_id,
+        valid_allocation = select_valid_allocation(project['allocations'])
+        compute_used = valid_allocation['computeUsed'] if valid_allocation else 0
+        AllocationSourceSnapshot.objects.update_or_create(
+            allocation_source_id=allocation_source.id,
             defaults={
                 'compute_used': compute_used,
-                'global_burn_rate': allocation_source_burn_rates.get(allocation_source_name, 0)
+                'global_burn_rate': total_burn_rate
             }
         )
     return True

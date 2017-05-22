@@ -1,8 +1,6 @@
 [COMMON]
 # Examples of each are listed behind the #
 SERVER_URL = # https://www.my-website.com
-LDAP_SERVER = # ldap://my.ldap.com
-LDAP_SERVER_DN = # ou=example,dc=org
 TOKEN_EXPIRY_TIME_DAYS = 1 # (Integer required)
 DJANGO_SERVER_URL = # https://www.my-website.com
 VIRTUALENV_PATH =# /path/virtualenv/atmo

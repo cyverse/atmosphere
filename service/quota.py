@@ -107,6 +107,9 @@ def set_provider_quota(identity_uuid, limit_dict=None):
         # that have not included a set of credentials from
         # causing task failures
         return
+    provider = identity.provider
+    if provider.get_type_name() == 'mock':
+        return
 
     # NOTE: You can use the 'limit_dict' to avoid
     # going above the hard-set limits per provider.

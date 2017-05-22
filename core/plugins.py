@@ -102,7 +102,13 @@ class ExpirationPluginManager(PluginManager):
             except TypeError:
                 logger.info("Expiration plugin %s does not accept kwarg `user`"
                             % ExpirationPlugin)
-            _is_expired = plugin.is_expired(user=user)
+            try:
+                #TODO: Set a reasonable timeout but dont let it hold this indefinitely
+                _is_expired = plugin.is_expired(user=user)
+            except Exception as exc:
+                logger.info("Expiration plugin %s encountered an error: %s" % (ExpirationPlugin, exc))
+                _is_expired = True
+
             if _is_expired:
                 return True
         return _is_expired
