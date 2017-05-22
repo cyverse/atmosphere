@@ -19,4 +19,3 @@ class InstanceHistoryFactory(factory.DjangoModelFactory):
         model = InstanceStatusHistory
 
     status = factory.SubFactory(InstanceStatusFactory)
-    size = factory.SubFactory(InstanceSizeFactory)
