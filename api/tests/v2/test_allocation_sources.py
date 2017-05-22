@@ -25,15 +25,12 @@ class AllocationSourceTests(APITestCase):
             provider=self.provider)
 
         self.allocation_source_1 = AllocationSourceFactory.create(name='TG-TRA110001',
-                                                                  source_id='110001',
                                                                   compute_allowed=1000)
 
         self.allocation_source_2 = AllocationSourceFactory.create(name='TG-TRA220002',
-                                                                  source_id='220002',
                                                                   compute_allowed=2000)
 
         self.allocation_source_3 = AllocationSourceFactory.create(name='TG-TRA330003',
-                                                                  source_id='330003',
                                                                   compute_allowed=3000)
 
         UserAllocationSourceFactory.create(user=self.user_with_sources, allocation_source=self.allocation_source_1)
@@ -44,11 +41,9 @@ class AllocationSourceTests(APITestCase):
         client = APIClient()
         client.force_authenticate(user=self.user_without_sources)
         allocation_source = AllocationSourceFactory.create(name='TG-TRA990001',
-                                                           source_id='990001',
                                                            compute_allowed=9000)
         expected_values = {
             'name': 'TG-TRA990001',
-            'source_id': '990001',
             'compute_allowed': 9000
         }
         self.assertDictContainsSubset(expected_values, allocation_source.__dict__)
@@ -89,12 +84,10 @@ class AllocationSourceTests(APITestCase):
         expected_values = [
             {
                 'name': 'TG-TRA110001',
-                'source_id': '110001',
                 'compute_allowed': 1000
             },
             {
                 'name': 'TG-TRA220002',
-                'source_id': '220002',
                 'compute_allowed': 2000
             }
         ]

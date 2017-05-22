@@ -261,7 +261,9 @@ def update_cloud_membership_for_machine(provider_machine, group):
     if not admin_driver:
         raise NotImplemented("Admin Driver could not be created for %s" % prov)
     img = accounts.get_image(provider_machine.identifier)
-    projects = accounts.shared_images_for(img.id)
+    if img.visibility == 'public':
+       return
+    approved_projects = accounts.shared_images_for(img.id)
     for identity_membership in group.identitymembership_set.all():
         if identity_membership.identity.provider != prov:
             logger.debug("Skipped %s -- Wrong provider" % identity_membership.identity)
@@ -270,7 +272,10 @@ def update_cloud_membership_for_machine(provider_machine, group):
         identity = identity_membership.identity
         project_name = identity.get_credential('ex_project_name')
         project = accounts.get_project(project_name)
-        if project and project not in projects:
+        if not project:
+            logger.debug("Unknown Project: %s -- Does not exist" % project)
+            continue
+        elif project in approved_projects:
             logger.debug("Skipped Project: %s -- Already shared" % project)
             continue
         accounts.share_image_with_identity(img, identity)
@@ -313,7 +318,7 @@ def remove_membership(image_version, group):
         if not admin_driver:
             raise NotImplemented("Admin Driver could not be created for %s" % prov)
         img = accounts.get_image(provider_machine.identifier)
-        projects = accounts.shared_images_for(img.id)
+        approved_projects = accounts.shared_images_for(img.id)
         for identity_membership in group.identitymembership_set.all():
             if identity_membership.identity.provider != prov:
                 continue
@@ -321,7 +326,7 @@ def remove_membership(image_version, group):
             project_name = identity_membership.identity.get_credential(
                     'ex_project_name')
             project = accounts.get_project(project_name)
-            if project and project not in projects:
+            if project and project not in approved_projects:
                 continue
             # Perform a *DATABASE* remove first.
             models.ApplicationMembership.objects.filter(

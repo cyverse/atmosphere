@@ -76,6 +76,8 @@ def convert_esh_size(esh_size, provider_uuid):
     try:
         core_size = Size.objects.get(alias=alias, provider__uuid=provider_uuid)
         core_size = _update_from_cloud_size(core_size, esh_size)
+    except AttributeError:
+        raise Exception("The 'contract' for an esh_size has likely changed -- check _update_from_cloud_size'")
     except Size.DoesNotExist:
         # Gather up the additional, necessary information to create a DB repr
         try:
@@ -89,15 +91,18 @@ def convert_esh_size(esh_size, provider_uuid):
     return core_size
 
 
-def _update_from_cloud_size(core_size, esh_size):
+def _update_from_cloud_size(core_size, rtwo_size):
     """
     Full scope replacement based on cloud(rtwo) size
     """
-    core_size.name = esh_size.name
-    core_size.disk = esh_size.disk
-    core_size.root = esh_size.ephemeral
-    core_size.cpu = esh_size.cpu
-    core_size.mem = esh_size.ram
+    core_size.name = rtwo_size.name
+    # Don't update to -1,-1 or 0,0
+    if rtwo_size.cpu < 1 or rtwo_size.ram < 1:
+        return core_size
+    core_size.disk = rtwo_size.disk
+    core_size.root = rtwo_size.ephemeral
+    core_size.cpu = rtwo_size.cpu
+    core_size.mem = rtwo_size.ram
     core_size.save()
     return core_size
 

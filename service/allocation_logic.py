@@ -2,7 +2,7 @@ from dateutil.parser import parse
 import pytz
 import datetime
 from django.db.models.query import Q
-from core.models.event_table import EventTable
+from core.models import EventTable
 from core.models.instance import Instance
 from core.models.allocation_source import UserAllocationSource, AllocationSource
 
@@ -98,15 +98,16 @@ def map_events_to_histories(filtered_instance_histories, event_instance_dict):
     return out_dic
 
 def get_allocation_source_name_from_event(username, report_start_date, instance_id):
+
     events = EventTable.objects.filter(Q(timestamp__lt=report_start_date) & Q(name__exact="instance_allocation_source_changed") & Q(Q(payload__username__exact=username) | Q(entity_id=username)) & Q(payload__instance_id__exact=instance_id)).order_by('timestamp')
     if not events:
         return False
     else:
-        allocation_source_object = AllocationSource.objects.filter(source_id=events.last().payload['allocation_source_id'])
+        allocation_source_object = AllocationSource.objects.filter(name=events.last().payload['allocation_source_name'])
         if allocation_source_object:
             return allocation_source_object.last().name
         else:
-            raise Exception('Allocation Source ID %s in event %s does not exist' % (events.last().payload['allocation_source_id'],events.last().id))
+            raise Exception('Allocation Source %s in event %s does not exist' % (events.last().payload['allocation_source_name'],events.last().id))
        
 
 def create_rows(filtered_instance_histories, events_histories_dict, report_start_date, report_end_date):
@@ -149,7 +150,7 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                     filled_row_temp['instance_status_end_date'] = end_date
                     filled_row_temp['allocation_source'] = allocation_source_name 
                     try:
-                        new_allocation_source = AllocationSource.objects.get(source_id=event.payload['allocation_source_id']).name
+                        new_allocation_source =event.payload['allocation_source_name']
                     except:
                         new_allocation_source = 'N/A'
                     allocation_source_name = new_allocation_source

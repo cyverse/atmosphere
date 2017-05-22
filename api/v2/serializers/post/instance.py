@@ -37,7 +37,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     # Optional kwargs to be inluded
     deploy = serializers.BooleanField(default=True)
     extra = serializers.DictField(required=False)
-    # Note: When CyVerse uses the allocation_source, remove 'required=False'
+    # FIXME: When CyVerse uses the allocation_source, remove 'required=False' -- Additionally, should this be a UUID field instead?
     allocation_source_id = serializers.CharField(write_only=True, required=False)
 
     def to_internal_value(self, data):
@@ -64,7 +64,7 @@ class InstanceSerializer(serializers.ModelSerializer):
                 raise ValidationError({
                     'allocation_source_id': 'This field is required.'
                 })
-            allocation_source = allocation_source_queryset.filter(allocation_source__source_id=allocation_source_id)
+            allocation_source = allocation_source_queryset.filter(allocation_source__uuid=allocation_source_id)
             if not allocation_source:
                 raise ValidationError({
                     'allocation_source_id': 'Value %s did not match a allocation_source.' % allocation_source_id
