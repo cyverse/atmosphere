@@ -225,13 +225,13 @@ def _remove_extra_floating_ips(driver, tenant_name):
     return num_ips_removed
 
 
-def _remove_ips_from_inactive_instances(driver, instances):
+def _remove_ips_from_inactive_instances(driver, instances, core_identity):
     from service import instance as instance_service
     for instance in instances:
         # DOUBLE-CHECK:
         if driver._is_inactive_instance(instance) and instance.ip:
             # If an inactive instance has floating/fixed IPs.. Remove them!
-            instance_service.remove_ips(driver, instance)
+            instance_service.remove_ips(driver, instance, str(core_identity.uuid))
     return True
 
 
@@ -289,7 +289,7 @@ def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
     # Inactive True IFF ALL instances are suspended/stopped
     inactive_instances = all(driver._is_inactive_instance(inst)
                              for inst in instances)
-    _remove_ips_from_inactive_instances(driver, instances)
+    _remove_ips_from_inactive_instances(driver, instances, core_identity)
     if active_instances and not inactive_instances:
         # User has >1 active instances AND not all instances inactive_instances
         return (num_ips_removed, False)

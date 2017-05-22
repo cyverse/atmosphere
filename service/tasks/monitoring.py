@@ -35,7 +35,10 @@ from service.monitoring import (
 from service.monitoring import user_over_allocation_enforcement
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
+from service.exceptions import TimeoutError
+from rtwo.models.size import OSSize
 from rtwo.exceptions import GlanceConflict, GlanceForbidden
+from libcloud.common.exceptions import BaseHTTPError
 
 from threepio import celery_logger
 
@@ -157,7 +160,7 @@ def monitor_machines():
 
 
 @task(name="monitor_machines_for")
-def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
+def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_run=False):
     """
     Run the set of tasks related to monitoring machines for a provider.
     Optionally, provide a list of usernames to monitor
@@ -173,7 +176,9 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
 
     account_driver = get_account_driver(provider)
     cloud_machines = account_driver.list_all_images()
-
+    if limit_machines:
+        cloud_machines = [cm for cm in cloud_machines if cm.id in limit_machines]
+    db_machines = []
     # ASSERT: All non-end-dated machines in the DB can be found in the cloud
     # if you do not believe this is the case, you should call 'prune_machines_for'
     for cloud_machine in cloud_machines:
@@ -182,6 +187,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         owner_project = _get_owner(account_driver, cloud_machine)
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
         (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid, owner_project)
+        db_machines.append(db_machine)
         #STEP 2: For any private cloud_machine, convert the 'shared users' as known by cloud
         update_image_membership(account_driver, cloud_machine, db_machine)
 
@@ -196,7 +202,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
 
     if print_logs:
         _exit_stdout_logging(console_handler)
-    return
+    return db_machines
 
 def _get_owner(accounts, cloud_machine):
     """
@@ -268,8 +274,11 @@ def distribute_image_membership(account_driver, cloud_machine, provider):
     group_ids = ProviderMachineMembership.objects.filter(provider_machine=pm).values_list('group', flat=True)
     groups = Group.objects.filter(id__in=group_ids)
     for group in groups:
-        update_cloud_membership_for_machine(pm, group)
-
+        try:
+            celery_logger.info("Add %s to cloud membership for %s" % (group, pm))
+            update_cloud_membership_for_machine(pm, group)
+        except TimeoutError:
+            celery_logger.warn("Failed to add cloud membership for %s - Operation timed out" % group)
 
 def update_image_membership(account_driver, cloud_machine, db_machine):
     """
@@ -281,7 +290,15 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     image_owner = cloud_machine.get('application_owner','')
     #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
     shared_group_names = [image_owner]
-    shared_projects = account_driver.shared_images_for(cloud_machine.id)
+    shared_projects = account_driver.shared_images_for(cloud_machine.id, None)
+    has_machine_request = db_machine.application_version.machinerequest_set.first()
+    if has_machine_request and has_machine_request.status.name == 'completed':
+        provider = has_machine_request.new_machine_provider
+        identifier = has_machine_request.new_machine.identifier
+        main_account_driver = get_account_driver(provider)
+        shared_projects_from_main =  main_account_driver.shared_images_for(identifier, None)
+        shared_group_names.extend(p.name for p in shared_projects_from_main if p)
+
     shared_group_names.extend(p.name for p in shared_projects if p)
     groups = Group.objects.filter(name__in=shared_group_names)
     if not groups:
@@ -531,6 +548,34 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
         application.save()
 
 
+@task(name="monitor_resources")
+def monitor_resources():
+    """
+    Update instances for each active provider.
+    """
+    for p in Provider.get_active():
+        monitor_resources_for.apply_async(args=[p.id])
+
+
+@task(name="monitor_resources_for")
+def monitor_resources_for(provider_id, users=None, print_logs=False):
+    """
+    Run the set of tasks related to monitoring all cloud resources for a provider.
+    """
+    resources = {}
+    sizes = monitor_sizes_for(provider_id, print_logs=print_logs)
+    volumes = monitor_volumes_for(provider_id, print_logs=print_logs)
+    machines = monitor_machines_for(provider_id, print_logs=print_logs)
+    instances = monitor_instances_for(provider_id, users=users, print_logs=print_logs)
+    resources.update({
+        'instances': instances,
+        'machines': machines,
+        'sizes': sizes,
+        'volumes': volumes,
+    })
+    return resources
+
+
 @task(name="monitor_instances")
 def monitor_instances():
     """
@@ -541,16 +586,19 @@ def monitor_instances():
 
 
 @task(name="enforce_allocation_overage")
-def enforce_allocation_overage(allocation_source_id):
+def enforce_allocation_overage(allocation_source_name):
     """
     Update instances for each active provider.
     """
-    allocation_source = AllocationSource.objects.get(source_id=allocation_source_id)
+    allocation_source = AllocationSource.objects.get(name=allocation_source_name)
     user_instances_enforced = allocation_source_overage_enforcement(allocation_source)
-    EventTable.create_event(
-        name="allocation_source_threshold_enforced",
-        entity_id=source.source_id,
-        payload=new_payload)
+
+    #NOT IN USE
+
+    # EventTable.create_event(
+    #     name="allocation_source_threshold_enforced",
+    #     entity_id=allocation_source.name,
+    #     payload=new_payload)
     return user_instances_enforced
 
 @task(name="monitor_instance_allocations")
@@ -584,15 +632,13 @@ def monitor_instances_for(provider_id, users=None,
 
     if print_logs:
         console_handler = _init_stdout_logging()
-
+    seen_instances = []
     # DEVNOTE: Potential slowdown running multiple functions
     # Break this out when instance-caching is enabled
-    running_total = 0
     if not settings.ENFORCING:
         celery_logger.debug('Settings dictate allocations are NOT enforced')
     for username in sorted(instance_map.keys()):
         running_instances = instance_map[username]
-        running_total += len(running_instances)
         identity = _get_identity_from_tenant_name(provider, username)
         if identity and running_instances:
             try:
@@ -604,6 +650,7 @@ def monitor_instances_for(provider_id, users=None,
                         identity.provider.uuid,
                         identity.uuid,
                         identity.created_by) for inst in running_instances]
+                seen_instances.extend(core_running_instances)
             except Exception as exc:
                 celery_logger.exception(
                     "Could not convert running instances for %s" %
@@ -622,7 +669,7 @@ def monitor_instances_for(provider_id, users=None,
                 print_logs, start_date, end_date)
     if print_logs:
         _exit_stdout_logging(console_handler)
-    return running_total
+    return seen_instances
 
 
 @task(name="monitor_volumes")
@@ -679,7 +726,9 @@ def monitor_volumes_for(provider_id, print_logs=False):
 
     if print_logs:
         _exit_stdout_logging(console_handler)
-
+    for vol in seen_volumes:
+        vol.esh = None
+    return seen_volumes
 
 @task(name="monitor_sizes")
 def monitor_sizes():
@@ -720,9 +769,28 @@ def monitor_sizes_for(provider_id, print_logs=False):
         size.end_date = now_time
         size.save()
 
+    # Find home for 'Unknown Size'
+    unknown_sizes = Size.objects.filter(provider=provider, name__contains='Unknown Size')
+    for size in unknown_sizes:
+        # Lookup sizes may not show up in 'list_sizes'
+        if size.alias == 'N/A':
+            continue  # This is a sentinal value added for a separate purpose.
+        try:
+            libcloud_size = admin_driver.get_size(size.alias, forced_lookup=True)
+        except BaseHTTPError as error:
+            if error.code == 404:
+                # The size may have been truly deleted
+                continue
+        if not libcloud_size:
+            continue
+        cloud_size = OSSize(libcloud_size)
+        core_size = convert_esh_size(cloud_size, provider.uuid)
+
     if print_logs:
         _exit_stdout_logging(console_handler)
-
+    for size in seen_sizes:
+        size.esh = None
+    return seen_sizes
 
 @task(name="monthly_allocation_reset")
 def monthly_allocation_reset():
