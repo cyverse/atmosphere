@@ -8,7 +8,7 @@ from dateutil.rrule import rrule, HOURLY
 from django.test import modify_settings
 from django.test.client import Client
 from django.utils import timezone
-from cyverse_allocation.tasks import update_cyverse_snapshot
+from cyverse_allocation.tasks import update_snapshot_cyverse
 
 from api.tests.factories import (
     InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
@@ -147,7 +147,7 @@ def step_impl(context):
         for current_time in celery_iterator:
             # update AllocationSourceSnapshot with the current compute_used
             if prev_time:
-                update_cyverse_snapshot(end_date=current_time)
+                update_snapshot_cyverse(end_date=current_time)
             prev_time=current_time
 
         compute_used_total = 0
