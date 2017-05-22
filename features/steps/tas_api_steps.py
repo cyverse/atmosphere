@@ -3,6 +3,7 @@ import datetime
 import json
 from decimal import Decimal
 
+import collections
 import mock
 from behave import *
 
@@ -219,7 +220,7 @@ def should_have_following_events(context, event_name=None):
     for expected_event in expected_events:
         payload = expected_event['payload']
         payload_dict = json.loads(payload)
-        if hasattr(context, 'persona'):
+        if hasattr(context, 'persona') and isinstance(context.persona, collections.Mapping):
             # Use Python string formatting to insert persona variables into any template strings
             for key, value in payload_dict.iteritems():
                 if isinstance(value, basestring):
