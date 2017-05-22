@@ -117,7 +117,7 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         payload['allocation_source_name'] = request_data.get('allocation_source_name')
 
         delete_event = EventTable(
-            name='user_allocation_source_removed',
+            name='user_allocation_source_deleted',
             entity_id=username,
             payload=payload)
 
