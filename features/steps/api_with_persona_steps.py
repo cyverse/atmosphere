@@ -135,8 +135,7 @@ def get_allocation_sources_from_api(context):
         expected_allocation_sources.append(clean_row)
 
     context.test.maxDiff = None
-    # context.test.assertItemsEqual(expected_allocation_sources, api_allocation_sources)
-    context.test.assertListEqual(expected_allocation_sources, api_allocation_sources)
+    context.test.assertItemsEqual(expected_allocation_sources, api_allocation_sources)
 
 
 @step('we create an allocation source through the API')
