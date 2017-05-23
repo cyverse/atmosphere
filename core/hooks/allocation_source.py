@@ -139,6 +139,7 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     EventPayload - {
         "allocation_source_name": "37623",
         "threshold":20  # The '20%' threshold was hit for this allocation.
+        "actual_value":299.78 # The actual compute used value
     }
     The method should fire off emails to the users who should be informed of the new threshold value.
     """
@@ -168,7 +169,7 @@ def send_usage_email_to(user, source, threshold, actual_value=None):
     user_snapshot = UserAllocationSnapshot.objects.filter(
         allocation_source=source, user=user).last()
     if not actual_value:
-        actual_value = int(source.snapshot.compute_used / source.compute_allowed * 100)
+        actual_value = int(source.snapshot.compute_used / source.snapshot.compute_allowed * 100)
     if not user_snapshot:
         compute_used = None
     else:
@@ -445,7 +446,6 @@ def listen_for_user_allocation_source_created(sender, instance, created, **kwarg
         """
     event = instance
     from core.models import EventTable, AtmosphereUser, AllocationSource
-    assert isinstance(event, EventTable)
     if event.name != 'user_allocation_source_created':
         return None
     logger.info('user_allocation_source_created: %s' % event.__dict__)
