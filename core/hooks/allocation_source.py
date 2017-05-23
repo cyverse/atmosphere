@@ -595,7 +595,7 @@ def listen_for_allocation_source_name_changed(sender, instance, created, **kwarg
             allocation_source.name, e))
     return
 
-## EVENT FIRED WHEN RENEWAL STRATEGY OF ALLOCATION SOURCE IS CHANGED
+## EVENT FIRED WHEN ALLOCATION SOURCE IS CHANGED
 
 def listen_for_allocation_source_removed(sender, instance, created, **kwargs):
     """

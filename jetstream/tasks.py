@@ -212,39 +212,3 @@ def update_snapshot(start_date=None, end_date=None):
             }
         )
     return True
-
-#FIXME: Move this task!
-@task(name="update_snapshot")
-def update_snapshot_cyverse_allocation(start_date=None, end_date=None, usernames=[]):
-    allocation_source_total_compute = {}
-    allocation_source_total_burn_rate = {}
-    # TODO: Read this start_date from last 'reset event' for each allocation source
-    #       If no reset event found, then the 'creation' date of the allocation source should be used.
-    start_date = start_date or timezone.now()-timezone.timedelta(days=30)
-    end_date = end_date or timezone.now()
-    for source in AllocationSource.objects.order_by('uuid'):
-        # iterate over user + allocation_source combo
-        user_allocation_sources = UserAllocationSource.objects.filter(allocation_source__exact=source.id)
-        if usernames:
-            user_allocation_sources = user_allocation_sources.filter(user__username__in=usernames)
-        for user_allocation_source in user_allocation_sources.order_by('user__username'):
-            user = user_allocation_source.user
-            # determine end date and start date using last snapshot
-            #start_date = start_date
-            # calculate compute used and burn rate for the user and allocation source combo
-            compute_used, burn_rate = total_usage(user.username,start_date,allocation_source_name=source.name,end_date=end_date,burn_rate=True)
-            allocation_source_total_compute[source.name] = allocation_source_total_compute.get(source.name,0) + compute_used
-            allocation_source_total_burn_rate[source.name] = allocation_source_total_burn_rate.get(source.name,0) + burn_rate
-            payload_ubr = {"allocation_source_id":source.uuid, "username":user.username, "burn_rate":burn_rate, "compute_used":compute_used}
-            EventTable.create_event("user_allocation_snapshot_changed", payload_ubr, user.username)
-        compute_used_total = allocation_source_total_compute.get(source.name,0)
-        global_burn_rate = allocation_source_total_burn_rate.get(source.name,0)
-        if compute_used_total != 0:
-            logger.info("Total usage for AllocationSource %s (%s-%s) = %s (Burn Rate: %s)" % (source.name, start_date, end_date, compute_used_total, global_burn_rate))
-        payload_as = {
-            "allocation_source_id":source.uuid,
-            "compute_used":compute_used_total,
-            "global_burn_rate":global_burn_rate
-        }
-        EventTable.create_event("allocation_source_snapshot", payload_as,source.name)
-    return True

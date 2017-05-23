@@ -37,6 +37,9 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         Create allocation source and fire respective events
         """
 
+        if not hasattr(self, 'request'):
+            self.request = request
+
         request_user = request.user
         request_data = request.data
 
@@ -75,6 +78,9 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
                                     str(exc.message))
 
     def update(self, request, pk, *args, **fields):
+
+        if not hasattr(self, 'request'):
+            self.request = request
 
         request_user = request.user
         request_data = request.data
@@ -146,7 +152,10 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
 
-    def perform_destroy(self, allocation_source):
+    def perform_destroy(self, allocation_source, request=None):
+
+        if not hasattr(self, 'request'):
+            self.request = request
 
         request_user = self.request.user
         request_data = {}
