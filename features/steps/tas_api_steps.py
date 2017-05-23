@@ -3,70 +3,22 @@ import datetime
 import json
 from decimal import Decimal
 
+import collections
 import mock
 from behave import *
 
+import api.tests.factories
 import jetstream.allocation as jetstream_allocation
-import jetstream.exceptions as jetstream_exceptions
-
-
-def _make_mock_tacc_api_post(context):
-    def _mock_tacc_api_post(*args, **kwargs):
-        raise NotImplementedError
-
-    return _mock_tacc_api_post
-
-
-def _get_tas_projects(context):
-    data = {}
-    data['status'] = 'success'
-    data['result'] = context.tas_projects
-    return data
-
-
-def _get_xsede_to_tacc_username(context, url):
-    xsede_username = url.split('/v1/users/xsede/')[-1]
-    if xsede_username not in context.xsede_to_tacc_username_mapping:
-        data = {'status': 'error', 'message': 'No user found for XSEDE username {}'.format(xsede_username),
-                'result': None}
-    else:
-        data = {'status': 'success', 'message': None, 'result': context.xsede_to_tacc_username_mapping[xsede_username]}
-    return data
-
-
-def _get_user_projects(context, url):
-    tacc_username = url.split('/v1/projects/username/')[-1]
-    project_names = list(context.tacc_username_to_tas_project_mapping.get(tacc_username, []))
-    user_projects = [project for project in context.tas_projects if project['chargeCode'] in project_names]
-    data = {'status': 'success', 'message': None, 'result': user_projects}
-    return data
-
-
-def _make_mock_tacc_api_get(context):
-    def _mock_tacc_api_get(*args, **kwargs):
-        url = args[0]
-        assert isinstance(url, basestring)
-        if url.endswith('/v1/projects/resource/Jetstream'):
-            data = _get_tas_projects(context)
-        elif '/v1/users/xsede/' in url:
-            data = _get_xsede_to_tacc_username(context, url)
-        elif '/v1/projects/username/' in url:  # This can return 'Inactive', 'Active', and 'Approved' allocations. Maybe more.
-            data = _get_user_projects(context, url)
-        else:
-            raise ValueError('Unknown URL: {}'.format(url))
-        if not data:
-            raise jetstream_exceptions.TASAPIException('Invalid Response')
-        return None, data
-
-    return _mock_tacc_api_get
+from jetstream.tests.tas_api_mock_utils import _make_mock_tacc_api_post, _make_mock_tacc_api_get
 
 
 @given(u'the following Atmosphere users')
 def these_atmosphere_users(context):
-    from core.models import AtmosphereUser
     atmo_users = [dict(zip(row.headings, row.cells)) for row in context.table]
     for atmo_user in atmo_users:
-        AtmosphereUser.objects.create(username=atmo_user['username'])
+        user = api.tests.factories.UserFactory.create(username=atmo_user['username'])
+        user.set_password(atmo_user['username'])
+        user.save()
 
 
 @given(u'a TAS API driver')
@@ -74,13 +26,22 @@ def a_tas_api_driver(context):
     context.driver = jetstream_allocation.TASAPIDriver()
 
 
-@given(u'we clear the local cache')
+@step(u'we clear the local cache')
 def we_clear_the_local_cache(context):
     context.driver.clear_cache()
     context.test.assertDictEqual(context.driver.username_map, {})
     context.test.assertListEqual(context.driver.user_project_list, [])
     context.test.assertListEqual(context.driver.project_list, [])
     context.test.assertListEqual(context.driver.allocation_list, [])
+
+    jetstream_allocation.TASAPIDriver.username_map = {}
+    jetstream_allocation.TASAPIDriver.user_project_list = []
+    jetstream_allocation.TASAPIDriver.project_list = []
+    jetstream_allocation.TASAPIDriver.allocation_list = []
+    context.test.assertDictEqual(jetstream_allocation.TASAPIDriver.username_map, {})
+    context.test.assertListEqual(jetstream_allocation.TASAPIDriver.user_project_list, [])
+    context.test.assertListEqual(jetstream_allocation.TASAPIDriver.project_list, [])
+    context.test.assertListEqual(jetstream_allocation.TASAPIDriver.allocation_list, [])
 
 
 @given(u'the following XSEDE to TACC username mappings')
@@ -172,9 +133,13 @@ def we_should_have_the_following_local_allocations(context):
     context.test.assertListEqual(expected_local_allocations, local_allocations)
 
 
+@given(u'a current time of "{frozen_current_time}"')
 @given(u'a current time of \'{frozen_current_time}\'')
-def current_time(context, frozen_current_time):
+@given(u'a current time of "{frozen_current_time}" with tick = {tick}')
+@given(u'a current time of \'{frozen_current_time}\' with tick = {tick}')
+def current_time(context, frozen_current_time, tick=True):
     context.frozen_current_time = frozen_current_time
+    context.freeze_time_with_tick = (tick is True)
 
 
 @when(u'we update snapshots')
@@ -220,7 +185,41 @@ def should_have_user_allocation_sources(context):
                                    'user__username',
                                    'allocation_source__name'
                                )]
-    context.test.assertListEqual(expected_user_allocation_sources, user_allocation_sources)
+    context.test.assertItemsEqual(expected_user_allocation_sources, user_allocation_sources)
+
+
+@then(u'we should have the following user allocation source snapshots')
+def should_have_user_allocation_source_snapshots(context):
+    raw_expected_allocation_source_snapshots = [dict(zip(row.headings, row.cells)) for row in context.table]
+    expected_allocation_source_snapshots = [
+        {
+            'atmosphere_username': raw_snapshot['atmosphere_username'],
+            'allocation_source': raw_snapshot['allocation_source'],
+            'compute_used': Decimal(raw_snapshot['compute_used']),
+            'burn_rate': Decimal(raw_snapshot['burn_rate'])
+        }
+        for raw_snapshot in raw_expected_allocation_source_snapshots
+    ]
+
+    import core.models
+    raw_user_allocation_source_snapshots = core.models.UserAllocationSnapshot.objects.all().values(
+        'user__username',
+        'allocation_source__name',
+        'compute_used',
+        'burn_rate'
+    ).order_by('user__username', 'allocation_source__name')
+    user_allocation_source_snapshots = [
+        {
+            'atmosphere_username': raw_snapshot['user__username'],
+            'allocation_source': raw_snapshot['allocation_source__name'],
+            'compute_used': raw_snapshot['compute_used'],
+            'burn_rate': raw_snapshot['burn_rate']
+        }
+        for raw_snapshot in raw_user_allocation_source_snapshots
+    ]
+
+    context.test.maxDiff = None
+    context.test.assertItemsEqual(expected_allocation_source_snapshots, user_allocation_source_snapshots)
 
 
 @step(u'we should have the following events')
@@ -228,14 +227,35 @@ def should_have_user_allocation_sources(context):
 def should_have_following_events(context, event_name=None):
     expected_events = [dict(zip(row.headings, row.cells)) for row in context.table]
     for expected_event in expected_events:
-        expected_event['payload'] = json.loads(expected_event['payload'])
+        payload = expected_event['payload']
+        payload_dict = json.loads(payload)
+        if hasattr(context, 'persona') and isinstance(context.persona, collections.Mapping):
+            # Use Python string formatting to insert persona variables into any template strings
+            for key, value in payload_dict.iteritems():
+                if isinstance(value, basestring):
+                    payload_dict[key] = value.format(**context.persona)
+        expected_event['payload'] = payload_dict
     from core.models import EventTable
     query = EventTable.objects.all().order_by('id')
     if event_name is not None:
         query = query.filter(name=event_name)
-    events = [event for event in query.values('entity_id', 'name', 'payload', 'timestamp')]
+    fields_we_care_about = context.table.headings
+    events = [event for event in query.values(*fields_we_care_about)]
+    actual_events_rows = []
+
+    def dump_field(a_field):
+        if isinstance(a_field, dict):
+            return json.dumps(a_field)
+        return a_field
+
     for event in events:
         event['timestamp'] = event['timestamp'].replace(microsecond=0)
         event['timestamp'] = datetime.datetime.strftime(event['timestamp'], '%Y-%m-%d %H:%M:%S%z')
+        actual_event_content = [dump_field(event[field]) for field in fields_we_care_about]
+        actual_event_row = '| {} |'.format(' | '.join(actual_event_content))
+        actual_events_rows.append(actual_event_row)
+    print('actual_events_rows:')
+    print('(In case of unexpected events this will provide an easy way to copy valid table values from the console)')
+    print('\n'.join(actual_events_rows))
     context.test.maxDiff = None
     context.test.assertListEqual(expected_events, events)

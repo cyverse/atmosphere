@@ -389,6 +389,26 @@ INSTALLED_APPS += (
 TACC_API_USER = '{{ TACC_API_USER }}'
 TACC_API_PASS = '{{ TACC_API_PASS }}'
 TACC_API_URL = '{{ TACC_API_URL }}'
+# Uncomment this DEFAULT_QUOTA_PLUGINS line to use the JetstreamSpecialAllocationQuota plugin
+DEFAULT_QUOTA_PLUGINS = [
+    'jetstream.plugins.quota.default_quota.JetstreamSpecialAllocationQuota',
+]
+# TODO: Load special allocation sources from variables.ini
+SPECIAL_ALLOCATION_SOURCES = {
+    'TG-ASC160018': {
+        'compute_allowed': 1000,
+        'default_quota': {
+            'cpu': 2,
+            'memory': 128,
+            'storage': 10,
+            'storage_count': 1,
+            'instance_count': 1,
+            'snapshot_count': 1,
+            'floating_ip_count': -1,
+            'port_count': -1,
+        }
+    }
+}
 {% else %}
 # Uncomment and add values to TACC_API if you intend to use the jetstream plugin
 # INSTALLED_APPS += (

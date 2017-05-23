@@ -150,7 +150,7 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                     filled_row_temp['instance_status_end_date'] = end_date
                     filled_row_temp['allocation_source'] = allocation_source_name 
                     try:
-                        new_allocation_source =event.payload['allocation_source_name']
+                        new_allocation_source = event.payload['allocation_source_name']
                     except:
                         new_allocation_source = 'N/A'
                     allocation_source_name = new_allocation_source

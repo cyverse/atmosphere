@@ -1,4 +1,6 @@
 from decimal import Decimal
+
+import django
 from rest_framework import serializers
 
 from core.models.allocation_source import AllocationSource, AllocationSourceSnapshot, UserAllocationSnapshot
@@ -8,7 +10,7 @@ from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
-
+    compute_allowed = serializers.SerializerMethodField()
     compute_used = serializers.SerializerMethodField()
     global_burn_rate = serializers.SerializerMethodField()
     user_burn_rate = serializers.SerializerMethodField()
@@ -42,7 +44,11 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
         return attr
 
     def get_global_burn_rate(self, allocation_source):
-        return self._get_allocation_source_snapshot(allocation_source, 'global_burn_rate')
+        special_allocation_sources = getattr(django.conf.settings, 'SPECIAL_ALLOCATION_SOURCES', {})
+        if allocation_source.name in special_allocation_sources:
+            return self.get_user_burn_rate(allocation_source)
+        else:
+            return self._get_allocation_source_snapshot(allocation_source, 'global_burn_rate')
 
     def get_user_snapshot_updated(self, allocation_source):
         return self._get_user_allocation_snapshot(allocation_source, 'updated')
@@ -51,13 +57,27 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
         return self._get_user_allocation_snapshot(allocation_source, 'burn_rate')
 
     def get_user_compute_used(self, allocation_source):
-        return self._get_user_allocation_snapshot(allocation_source, 'compute_used')
+        return self._get_user_allocation_snapshot(allocation_source, 'compute_used') or Decimal(0.000)
 
     def get_compute_used(self, allocation_source):
         """
         Return last known value of AllocationSourceSnapshot in hrs
         """
-        return self._get_allocation_source_snapshot(allocation_source, 'compute_used')
+        assert isinstance(allocation_source, AllocationSource)
+        special_allocation_sources = getattr(django.conf.settings, 'SPECIAL_ALLOCATION_SOURCES', {})
+        if allocation_source.name in special_allocation_sources:
+            return self.get_user_compute_used(allocation_source)
+        else:
+            return self._get_allocation_source_snapshot(allocation_source, 'compute_used')
+
+    def get_compute_allowed(self, allocation_source):
+        assert isinstance(allocation_source, AllocationSource)
+        special_allocation_sources = getattr(django.conf.settings, 'SPECIAL_ALLOCATION_SOURCES', {})
+        if allocation_source.name in special_allocation_sources:
+            sub_allocation_compute_allowed = special_allocation_sources[allocation_source.name]['compute_allowed']
+            return sub_allocation_compute_allowed
+        else:
+            return allocation_source.compute_allowed
 
     def get_updated(self, allocation_source):
         return self._get_allocation_source_snapshot(allocation_source, 'updated')
@@ -65,6 +85,6 @@ class AllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = AllocationSource
         fields = (
-            'id','url', 'name', 'uuid', 'compute_allowed', 'start_date',
-            'end_date','compute_used', 'global_burn_rate', 'updated', 'renewal_strategy',
+            'id', 'url', 'name', 'uuid', 'compute_allowed', 'start_date',
+            'end_date', 'compute_used', 'global_burn_rate', 'updated', 'uuid', 'renewal_strategy',
             'user_compute_used', 'user_burn_rate', 'user_snapshot_updated')

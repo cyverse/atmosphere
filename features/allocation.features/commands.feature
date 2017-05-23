@@ -8,7 +8,7 @@
 Feature: Commands Testing
 
   Background:
-      Given a user
+    Given an admin user "lenards"
 
   ######################################################################################################
 
