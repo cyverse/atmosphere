@@ -105,7 +105,8 @@ class UserAllocationSource(models.Model):
           It is presumed that this table will be *MAINTAINED* regularly via periodic task.
     """
 
-    user = models.ForeignKey("AtmosphereUser")
+    user = models.ForeignKey("AtmosphereUser", related_name="user_allocation_sources")
+    # FIXME: this will not return a QuerySet of AtmosphereUser, it will return a QuerySet of UserAllocationSource.. (Rename related_name?)
     allocation_source = models.ForeignKey(AllocationSource, related_name="users")
 
     def __unicode__(self):
