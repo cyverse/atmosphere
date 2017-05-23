@@ -1,4 +1,3 @@
-# From https://uwsgi-docs.readthedocs.io/en/latest/Systemd.html
 [Unit]
 Description=uWSGI
 After=syslog.target
@@ -7,7 +6,14 @@ After=syslog.target
 Type=simple
 User=www-data
 Group=www-data
-ExecStart=/bin/sh -c '/opt/env/atmo/bin/uwsgi --ini /usr/share/uwsgi/conf/default.ini --ini /etc/uwsgi/apps-enabled/atmosphere.ini --daemonize /var/log/uwsgi/app/atmosphere.log; /opt/env/atmo/bin/uwsgi --ini /usr/share/uwsgi/conf/default.ini --ini /etc/uwsgi/apps-enabled/troposphere.ini --daemonize /var/log/uwsgi/app/troposphere.log'
+ExecStart=/bin/sh -c '/opt/env/atmo/bin/uwsgi    \
+  --ini /usr/share/uwsgi/conf/default.ini        \
+  --ini /etc/uwsgi/apps-enabled/atmosphere.ini   \
+  --daemonize /var/log/uwsgi/app/atmosphere.log; \
+  /opt/env/atmo/bin/uwsgi                        \
+  --ini /usr/share/uwsgi/conf/default.ini        \
+  --ini /etc/uwsgi/apps-enabled/troposphere.ini  \
+  --daemonize /var/log/uwsgi/app/troposphere.log'
 ExecStop=/bin/kill -9 `ps aux | grep [u]wsgi | awk '{print $2}'`
 
 [Install]
