@@ -63,26 +63,17 @@ class WebTokenView(RetrieveAPIView):
                 status.HTTP_404_NOT_FOUND,
                 'Instance %s no longer exists' % (instance_id,))
         ip_address = instance.ip_address
-        client_ip = request.META['REMOTE_ADDR']
         auth_token = request.session.get('token')
 
         logger.info("ip_address: %s" % ip_address)
-        logger.info("client_ip: %s" % client_ip)
-        client_ip_fingerprint = SIGNER.get_signature(client_ip)
         token_fingerprint = SIGNER.get_signature(auth_token)
 
         sig = SIGNED_SERIALIZER.dumps([ip_address,
-            client_ip_fingerprint,
             token_fingerprint])
 
-        #FIXME: stop here? Remove fingerprinting?
-        url = '%s?token=%s&password=display' % (
-            settings.WEB_DESKTOP['redirect']['PROXY_URL'],
-            sig)
-
-        payload = {'token': sig, 'url': url}
-        #json_data = json.dumps(payload)
-        #response = Response(json_data)
+        payload = {
+            'token': sig,
+        }
         response = Response(payload)
         return response
 
