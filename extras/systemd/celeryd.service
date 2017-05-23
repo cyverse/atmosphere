@@ -8,14 +8,19 @@ User=root
 Group=root
 EnvironmentFile=/etc/default/celeryd
 WorkingDirectory=/opt/dev/atmosphere
-ExecStart=/bin/sh -c '${CELERY_BIN} multi start $CELERYD_NODES \
-	-A $CELERY_APP --logfile=${CELERYD_LOG_FILE} \
-	--pidfile=${CELERYD_PID_FILE} ${CELERYD_OPTS}'
-ExecStop=/bin/sh -c '${CELERY_BIN} multi stopwait $CELERYD_NODES \
-	--pidfile=${CELERYD_PID_FILE}'
-ExecReload=/bin/sh -c '${CELERY_BIN} multi restart $CELERYD_NODES \
-	-A $CELERY_APP --pidfile=${CELERYD_PID_FILE} --logfile=${CELERYD_LOG_FILE} \
-	--loglevel="${CELERYD_LOG_LEVEL}" ${CELERYD_OPTS}'
+ExecStart=/bin/sh -c '${CELERY_BIN} multi start ${CELERYD_NODES} \
+  --app=${CELERY_APP} \
+  --logfile=${CELERYD_LOG_FILE} \
+  --pidfile=${CELERYD_PID_FILE} \
+  ${CELERYD_OPTS}'
+ExecStop=/bin/sh -c '${CELERY_BIN} multi stopwait ${CELERYD_NODES} \
+  --pidfile=${CELERYD_PID_FILE}'
+ExecReload=/bin/sh -c '${CELERY_BIN} multi restart ${CELERYD_NODES} \
+  --app=${CELERY_APP} \
+  --pidfile=${CELERYD_PID_FILE} \
+  --logfile=${CELERYD_LOG_FILE} \
+  --loglevel="${CELERYD_LOG_LEVEL}" \
+  ${CELERYD_OPTS}'
 
 [Install]
 WantedBy=multi-user.target

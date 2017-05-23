@@ -8,12 +8,12 @@ After=celeryd.service celerybeat.service uwsgi.service nginx.service redis-serve
 Type=simple
 # ExecStart=/usr/sbin/service uwsgi start && /usr/sbin/service celerybeat start
 ExecStart=/bin/echo "Atmosphere started"
-ExecStop=/bin/systemctl stop uwsgi        && \
-         /bin/systemctl stop nginx        && \
-         /bin/systemctl stop redis-server && \
-         /bin/systemctl stop celeryd      && \
-         /bin/systemctl stop celerybeat   ;  \
-         /bin/systemctl stop flower
+ExecStop=/bin/sh -c '/bin/systemctl stop uwsgi; \
+         /bin/systemctl stop nginx;             \
+         /bin/systemctl stop redis-server;      \
+         /bin/systemctl stop celeryd;           \
+         /bin/systemctl stop celerybeat;        \
+         /bin/systemctl stop flower'
 
 [Install]
 WantedBy=multi-user.target
