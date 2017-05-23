@@ -5,15 +5,9 @@ Requires=celeryd.service flower.service celerybeat.service uwsgi.service nginx.s
 After=celeryd.service flower.service celerybeat.service uwsgi.service nginx.service redis-server.service
 
 [Service]
-Type=simple
-# ExecStart=/usr/sbin/service uwsgi start && /usr/sbin/service celerybeat start
+Type=forking
 ExecStart=/bin/echo "Atmosphere started"
-ExecStop=/bin/sh -c '/bin/systemctl stop uwsgi; \
-         /bin/systemctl stop nginx;             \
-         /bin/systemctl stop redis-server;      \
-         /bin/systemctl stop celeryd;           \
-         /bin/systemctl stop celerybeat;        \
-         /bin/systemctl stop flower'
+ExecStop=/bin/systemctl stop uwsgi nginx redis-server celeryd celerybeat flower
 
 [Install]
 WantedBy=multi-user.target
