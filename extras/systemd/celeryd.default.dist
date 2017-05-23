@@ -89,7 +89,7 @@ CELERYBEAT_OPTS="--schedule=django_celery_beat.schedulers.DatabaseScheduler"
 
 #Where to log and store process id
 CELERYBEAT_LOG_FILE="/var/log/celery/celerybeat.log"
-CELERYBEAT_PID_FILE="/var/run/celerybeat.pid"
+CELERYBEAT_PID_FILE="/var/run/celery/celerybeat.pid"
 
 #Default is INFO
 #CELERYBEAT_LOG_LEVEL="DEBUG"
