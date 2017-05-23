@@ -4,17 +4,16 @@ Requires=network.target
 After=network.target
 
 [Service]
-Type=simple
+Type=forking
 User=root
 Group=root
 PIDFile=/var/run/celery/celerybeat.pid
 EnvironmentFile=/etc/default/celeryd
 WorkingDirectory=/opt/dev/atmosphere
-ExecStart=/bin/sh -c '${CELERY_BIN} beat \
+ExecStart=/bin/sh -c '${CELERY_BIN} beat   \
   --app=${CELERY_APP}                      \
   --schedule=django_celery_beat.schedulers.DatabaseScheduler \
   --logfile ${CELERYBEAT_LOG_FILE}         \
-  --loglevel "${CELERYD_LOG_LEVEL}"        \
   --workdir=${CELERYBEAT_CHDIR}            \
   --detach                                 \
   --pidfile=${CELERYBEAT_PID_FILE}'
