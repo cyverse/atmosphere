@@ -588,49 +588,15 @@ def monitor_allocation_sources(usernames=()):
     Monitor allocation sources, if a snapshot shows that all compute has been used, then enforce as necessary
     """
     allocation_sources = AllocationSource.objects.all()
-    time_shared_allocations = getattr(settings, 'SPECIAL_ALLOCATION_SOURCES', {})
-    for allocation_source in allocation_sources.order_by('allocation_source__name'):
-        if allocation_source.name in time_shared_allocations:
-            try:
-                compute_allowed = time_shared_allocations[allocation_source.name]['compute_allowed']
-            except:
-                raise Exception(
-                    "The structure of settings.SPECIAL_ALLOCATION_SOURCES "
-                    "has changed! Verify your settings are correct and/or "
-                    "change the lines of code above.")
-            enforce_per_user_allocation(allocation_source, compute_allowed, usernames)
-        else:
-            enforce_allocation(allocation_source, usernames)
-
-
-def enforce_per_user_allocation(allocation_source, compute_allowed, usernames):
-    """
-    Create new AsyncTask for all users in a given AllocationSource , if over their allocation of compute_allowed
-    """
-    for user_snapshot in allocation_source.user_allocation_snapshots.all():
-        user = user_snapshot.user
-        if user.username not in usernames:
-            celery_logger.info("Skipping User %s - not in the list" % user.username)
-            continue
-        over_allocation = user_snapshot.is_over_allocation(compute_allowed)
-        if over_allocation:
-            continue
-        allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source.name, user))
-
-
-def enforce_allocation(allocation_source, usernames):
-    """
-    Create new AsyncTask for all users in a given AllocationSource, if over the compute_allowed
-    """
-    snapshot = allocation_source.snapshot
-    if not snapshot.is_over_allocation():
-        return
-    # ASSERT: No time remaining, _all users_ should be enforced (upon?)
-    for user in allocation_source.all_users:
-        if usernames and user.username not in usernames:
-            celery_logger.info("Skipping User %s - not in the list" % user.username)
-            continue
-        allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source, user))
+    for allocation_source in allocation_sources.order_by('name'):
+        for user in allocation_source.all_users:
+            if usernames and user.username not in usernames:
+                celery_logger.info("Skipping User %s - not in the list" % user.username)
+                continue
+            over_allocation = allocation_source.is_over_allocation(user)
+            if not over_allocation:
+                continue
+            allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source.name, user))
 
 
 @task(name="allocation_source_overage_enforcement_for_user")

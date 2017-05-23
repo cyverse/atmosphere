@@ -21,20 +21,42 @@ class AllocationSource(models.Model):
     def get_instance_ids(self):
         return self.instanceallocationsourcesnapshot_set.all().values_list('instance__provider_alias', flat=True)
 
-    def check_over_allocation(self):
+    def is_over_allocation(self, user=None):
+        """Return whether the allocation source `compute_used` is over the `compute_allowed`.
+
+        :return: bool
+        :rtype: bool
         """
-        Check if allocation is "over" the compute_allowed and by what amount
-        Returns:
-        (False, ##) - AllocationSource is 'under' the threshold by ## hours
-        (True, ##) - AllocationSource is 'over' the threshold by ## hours
+        return self.time_remaining(user) < 0
+
+    def time_remaining(self, user=None):
         """
-        compute_used = self.compute_used
-        if compute_used == -1:
-            return (False, -1)
-        time_diff = self.compute_allowed - self.compute_used
-        if time_diff < 0:
-            return (True, -1*time_diff)
-        return (False, time_diff)
+        Returns the remaining compute_allowed,
+
+        user: If passed in *and* allocation source is 'special', calculate remaining time based on user snapshots.
+
+        Will return a negative number if 'over allocation', when `compute_used` is larger than `compute_allowed`.
+        :return: decimal.Decimal
+        :rtype: decimal.Decimal
+        """
+        # Handling the 'SPECIAL_ALLOCATION_SOURCES'
+        time_shared_allocations = getattr(settings, 'SPECIAL_ALLOCATION_SOURCES', {})
+        if user and self.name in time_shared_allocations.keys():
+            try:
+                compute_allowed = time_shared_allocations[self.name]['compute_allowed']
+            except:
+                raise Exception(
+                    "The structure of settings.SPECIAL_ALLOCATION_SOURCES "
+                    "has changed! Verify your settings are correct and/or "
+                    "change the lines of code above.")
+            last_snapshot = self.user_allocation_snapshots.filter(user__username='test-sgregory').order_by('-updated').last()
+        else:
+            compute_allowed = self.compute_allowed
+            last_snapshot = self.snapshot
+        compute_used = last_snapshot.compute_used if last_snapshot else 0
+        remaining_compute = compute_allowed - compute_used
+        return remaining_compute
+
 
     @property
     def compute_used_updated(self):
@@ -112,29 +134,6 @@ class UserAllocationSnapshot(models.Model):
         return "User %s + AllocationSource %s: Total AU Usage:%s Burn Rate:%s hours/hour Updated:%s" %\
             (self.user, self.allocation_source, self.compute_used, self.burn_rate, self.updated)
 
-    def time_remaining(self, compute_allowed=None):
-        """
-        Returns compute allowed remaining.
-
-        Will return a negative number if `compute_used` is larger than `compute_allowed`.
-
-        :return: decimal.Decimal
-        :rtype: decimal.Decimal
-        """
-        if not compute_allowed:
-            compute_allowed = self.allocation_source.compute_allowed
-        remaining_compute = compute_allowed - self.compute_used
-        return remaining_compute
-
-    def is_over_allocation(self, compute_allowed=None):
-        """Return whether the allocation source `compute_used` is over the `compute_allowed`.
-
-        :return: bool
-        :rtype: bool
-        """
-        return self.time_remaining(compute_allowed) < 0
-
-
     class Meta:
         db_table = 'user_allocation_snapshot'
         app_label = 'core'
@@ -162,26 +161,6 @@ class AllocationSourceSnapshot(models.Model):
     global_burn_rate = models.DecimalField(max_digits=19, decimal_places=3)
     compute_used = models.DecimalField(max_digits=19, decimal_places=3)
     compute_allowed = models.DecimalField(max_digits=19, decimal_places=3, default=0)
-
-    def time_remaining(self):
-        """
-        Returns compute allowed remaining.
-
-        Will return a negative number if `compute_used` is larger than `compute_allowed`.
-
-        :return: decimal.Decimal
-        :rtype: decimal.Decimal
-        """
-        remaining_compute = self.compute_allowed - self.compute_used
-        return remaining_compute
-
-    def is_over_allocation(self):
-        """Return whether the allocation source `compute_used` is over the `compute_allowed`.
-
-        :return: bool
-        :rtype: bool
-        """
-        return self.time_remaining() < 0
 
     def __unicode__(self):
         return "%s (Used:%s, Burn Rate:%s Updated on:%s)" %\
