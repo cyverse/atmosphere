@@ -26,13 +26,22 @@ def a_tas_api_driver(context):
     context.driver = jetstream_allocation.TASAPIDriver()
 
 
-@given(u'we clear the local cache')
+@step(u'we clear the local cache')
 def we_clear_the_local_cache(context):
     context.driver.clear_cache()
     context.test.assertDictEqual(context.driver.username_map, {})
     context.test.assertListEqual(context.driver.user_project_list, [])
     context.test.assertListEqual(context.driver.project_list, [])
     context.test.assertListEqual(context.driver.allocation_list, [])
+
+    jetstream_allocation.TASAPIDriver.username_map = {}
+    jetstream_allocation.TASAPIDriver.user_project_list = []
+    jetstream_allocation.TASAPIDriver.project_list = []
+    jetstream_allocation.TASAPIDriver.allocation_list = []
+    context.test.assertDictEqual(jetstream_allocation.TASAPIDriver.username_map, {})
+    context.test.assertListEqual(jetstream_allocation.TASAPIDriver.user_project_list, [])
+    context.test.assertListEqual(jetstream_allocation.TASAPIDriver.project_list, [])
+    context.test.assertListEqual(jetstream_allocation.TASAPIDriver.allocation_list, [])
 
 
 @given(u'the following XSEDE to TACC username mappings')
