@@ -356,14 +356,12 @@ def get_details_for_active_instance(context):
 @when('I assign allocation source "{allocation_source_name}" to active instance')
 def assign_allocation_source_to_active_instance(context, allocation_source_name):
     assert context.persona
-    import core.models
-    allocation_source = core.models.AllocationSource.objects.get(name=allocation_source_name)
     active_instance = context.persona['active_instance']
     client = context.persona['client']
     response = client.post('/api/v2/instance_allocation_source',
                            {
                                'instance_id': active_instance.provider_alias,
-                               'source_id': allocation_source.uuid
+                               'allocation_source_name': allocation_source_name
                            })
     context.persona['response'] = response
 

@@ -123,14 +123,13 @@ Feature: Enforcing allocation usage on Jetstream
     When I assign allocation source "TG-BIO150062" to active instance
     Then the API response code is 201
     And I set "instance01" to another variable "active_instance"
-    And I set "tgbio150062" to allocation source with name "TG-BIO150062"
     # TODO: And the active instance is associated with allocation source "TG-BIO150062"
     Then we should have the following events
       | entity_id | name                                      | payload                                                                                                                                          | timestamp                |
       |           | allocation_source_created_or_renewed      | {"allocation_source_name": "TG-BIO150062", "start_date": "2016-01-01T06:00:00Z", "end_date": "2017-06-30T05:00:00Z", "compute_allowed": 1000000} | 2017-02-16 06:00:00+0000 |
       |           | allocation_source_compute_allowed_changed | {"allocation_source_name": "TG-BIO150062", "start_date": "2016-01-01T06:00:00Z", "end_date": "2017-06-30T05:00:00Z", "compute_allowed": 1000000} | 2017-02-16 06:00:00+0000 |
       | user108   | user_allocation_source_created            | {"allocation_source_name": "TG-BIO150062"}                                                                                                       | 2017-02-16 06:00:00+0000 |
-      | user108   | instance_allocation_source_changed        | {"instance_id": "{instance01.provider_alias}", "allocation_source_id": "{tgbio150062.uuid}"}                                                     | 2017-02-16 07:01:00+0000 |
+      | user108   | instance_allocation_source_changed        | {"instance_id": "{instance01.provider_alias}", "allocation_source_name": "TG-BIO150062"}                                                         | 2017-02-16 07:01:00+0000 |
 
 
     # Check usage immediately after launching instance
