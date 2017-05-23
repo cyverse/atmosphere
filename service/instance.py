@@ -1314,7 +1314,7 @@ def check_allocation(username, allocation_source):
         raise Exception("Username %s does not exist" % username)
     compute_remaining = allocation_source.time_remaining(user)
     over_allocation = compute_remaining < 0
-    if over_allocation:
+    if over_allocation and settings.ENFORCING:
         raise OverAllocationError(allocation_source.name, abs(compute_remaining))
 
 
