@@ -51,16 +51,8 @@ class WebTokenView(RetrieveAPIView):
             logger.info("Instance %s not found" % instance_id)
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                'Instance %s no longer exists' % (instance_id,))
+                'Instance %s not found / no longer exists' % (instance_id,))
         ip_address = instance.ip_address
-        auth_token = request.session.get('token')
-        if not auth_token:
-            auth_token = request.META['HTTP_AUTHORIZATION']
-        if not auth_token:
-            return failure_response(
-                status.HTTP_501_NOT_IMPLEMENTED,
-                "Token could not be determined! If you can reproduce this, please file an issue!")
-
         logger.info("ip_address: %s" % ip_address)
 
         SIGNER = Signer(
@@ -72,15 +64,25 @@ class WebTokenView(RetrieveAPIView):
             salt=settings.WEB_DESKTOP['signing']['SALT'])
 
 
-        token_fingerprint = SIGNER.get_signature(auth_token)
+        # NOTE: Lets say you wanted an _extra level of security_
+        #       if you need to 'tie in' to Atmosphere API, this code
+        #       below would be helpful in phoning home for verification.
+        # auth_token = request.session.get('token')
+        # if not auth_token:
+        #     auth_token = request.META['HTTP_AUTHORIZATION']
+        # if not auth_token:
+        #     return failure_response(
+        #         status.HTTP_501_NOT_IMPLEMENTED,
+        #         "Token could not be determined! If you can reproduce this, please file an issue!")
 
-        random_id = str(uuid.uuid4())
-        uuid_fingerprint = SIGNER.get_signature(random_id)
-        # import ipdb;ipdb.set_trace()
+        # token_fingerprint = SIGNER.get_signature(auth_token)
+
         sig = signed_serializer.dumps([
-            uuid_fingerprint,
             ip_address,
-            token_fingerprint])
+            #auth_token,
+            #token_fingerprint,
+            #settings.SERVER_URL,
+	    ])
 
         payload = {
             'token': sig,
