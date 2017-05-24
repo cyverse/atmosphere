@@ -5,8 +5,8 @@ Requires=celeryd.service flower.service celerybeat.service uwsgi.service nginx.s
 After=celeryd.service flower.service celerybeat.service uwsgi.service nginx.service redis-server.service
 
 [Service]
-Type=forking
-ExecStart=/bin/echo "Atmosphere started"
+Type=oneshot
+RemainAfterExit=yes
 ExecStop=/bin/systemctl stop uwsgi nginx redis-server celeryd celerybeat flower
 
 [Install]
