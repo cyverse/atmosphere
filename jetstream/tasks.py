@@ -11,8 +11,6 @@ from core.models.allocation_source import (
     AllocationSource, UserAllocationSnapshot
 )
 from core.models.allocation_source import total_usage
-from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVariables, CyverseTestRenewalActions, \
-    cyverse_rules
 from .allocation import (TASAPIDriver, fill_user_allocation_sources, select_valid_allocation)
 from .exceptions import TASPluginException
 from .models import TASAllocationReport
