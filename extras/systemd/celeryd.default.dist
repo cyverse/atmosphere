@@ -10,10 +10,9 @@ CELERY_APP="atmosphere"
 # Development Settings (Single-Node!)
 #############
 
-CELERYD_NODES="atmosphere-node_1"
-CELERYD_NODES="$CELERYD_NODES imaging celery_periodic email"
-CELERYD_OPTS="-Q:atmosphere-node_1 default,fast_deploy,ssh_deploy -c:atmosphere-node_1 13 -O:atmosphere-node_1 fair"
-
+# CELERYD_NODES="atmosphere-node_1"
+# CELERYD_NODES="$CELERYD_NODES imaging celery_periodic email"
+# CELERYD_OPTS="-Q:atmosphere-node_1 default,fast_deploy,ssh_deploy -c:atmosphere-node_1 13 -O:atmosphere-node_1 fair"
 
 #############
 # Production Settings (14 nodes!)
