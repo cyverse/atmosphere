@@ -1,6 +1,6 @@
 [Unit]
 Description=Celery Service
-After=network.target
+After=network.target flower.service
 
 [Service]
 Type=forking
@@ -14,7 +14,7 @@ ExecStart=/bin/sh -c '${CELERY_BIN} multi start ${CELERYD_NODES}    \
   --logfile=${CELERYD_LOG_FILE}                                     \
   ${CELERYD_OPTS}'
 ExecStop=/bin/sh -c '${CELERY_BIN} multi stopwait ${CELERYD_NODES}  \
-  --pidfile=${CELERYD_PID_FILE}'
+  --pidfile=${CELERYD_PID_FILE} && systemctl stop flower'
 ExecReload=/bin/sh -c '${CELERY_BIN} multi restart ${CELERYD_NODES} \
   --app=${CELERY_APP}                                               \
   --pidfile=${CELERYD_PID_FILE}                                     \
