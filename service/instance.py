@@ -26,6 +26,7 @@ from libcloud.common.exceptions import BaseHTTPError  # Move into rtwo.exception
 
 from core.query import only_current
 from core.models.instance_source import InstanceSource
+from core.models import AtmosphereUser
 from core.models.ssh_key import get_user_ssh_keys
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
@@ -1308,9 +1309,13 @@ def _test_for_licensing(esh_machine, identity):
 
 
 def check_allocation(username, allocation_source):
-    (over_allocation, time_diff) = allocation_source.check_over_allocation()
+    user = AtmosphereUser.objects.filter(username=username).first()
+    if not user:
+        raise Exception("Username %s does not exist" % username)
+    compute_remaining = allocation_source.time_remaining(user)
+    over_allocation = compute_remaining < 0
     if over_allocation and settings.ENFORCING:
-        raise OverAllocationError(allocation_source.name, time_diff)
+        raise OverAllocationError(allocation_source.name, abs(compute_remaining))
 
 
 def check_quota(username, identity_uuid, esh_size,

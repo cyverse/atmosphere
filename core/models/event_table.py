@@ -9,7 +9,6 @@ from core.hooks.allocation_source import (
     listen_for_allocation_snapshot_changes,
     listen_for_user_snapshot_changes,
     listen_for_allocation_threshold_met,
-    listen_for_allocation_overage,
     listen_for_instance_allocation_changes,
     listen_for_allocation_source_created_or_renewed,
     listen_for_user_allocation_source_deleted,
@@ -24,6 +23,7 @@ from core.hooks.allocation_source import (
     listen_for_allocation_source_removed,
     listen_for_instance_allocation_removed
 )
+from threepio import logger
 
 
 class EventTable(models.Model):
@@ -40,6 +40,7 @@ class EventTable(models.Model):
 
     @classmethod
     def create_event(cls, name, payload, entity_id):
+        logger.info("Creating new event: %s\tPayload: %s" % (name, payload))
         return EventTable.objects.create(
             name=name,
             entity_id=entity_id,
@@ -76,7 +77,6 @@ post_save.connect(listen_for_user_allocation_source_deleted, sender=EventTable)
 pre_save.connect(listen_before_allocation_snapshot_changes, sender=EventTable)
 #post_save.connect(listen_for_user_allocation_source_assigned, sender=EventTable)
 #post_save.connect(listen_for_user_allocation_source_removed, sender=EventTable)
-post_save.connect(listen_for_allocation_overage, sender=EventTable)
 post_save.connect(listen_for_instance_allocation_removed, sender=EventTable)
 post_save.connect(listen_for_allocation_snapshot_changes, sender=EventTable)
 post_save.connect(listen_for_user_snapshot_changes, sender=EventTable)

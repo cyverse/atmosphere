@@ -11,53 +11,7 @@ from core.models import (
 from core.models import UserAllocationSource
 from core.models.allocation_source import get_allocation_source_object
 
-
-def listen_for_allocation_overage(sender, instance, raw, **kwargs):
-    """
-    This listener expects:
-    EventType - 'allocation_source_snapshot'
-    EventPayload - {
-        "allocation_source_name": "37623",
-        "compute_used":100.00,  # 100 hours used ( a number, not a string, IN HOURS!)
-        "global_burn_rate":2.00,  # 2 hours used each hour
-    }
-    The method will only run in the case where an allocation_source `compute_used` >= source.compute_allowed
-    """
-
-    event = instance
-    if event.name != 'allocation_source_snapshot':
-        return None
-    # Circular dep...
-    from core.models import EventTable
-    payload = event.payload
-    allocation_source_name = payload['allocation_source_name']
-    new_compute_used = payload['compute_used']
-    source = AllocationSource.objects.filter(name=allocation_source_name).last()
-    prev_enforcement_event = EventTable.objects \
-        .filter(name="allocation_source_threshold_enforced") \
-        .filter(entity_id=allocation_source_name).last()
-    # test for previous event of 'allocation_source_threshold_enforced'
-    if prev_enforcement_event:
-        return
-    if new_compute_used == 0:
-        return
-    if not source:
-        return
-    if source.compute_allowed in [None, 0]:
-        return
-    # FIXME: Remove this line when you are ready to start enforcing 100% allocation:
-    return
-    current_percentage = int(100.0 * new_compute_used / source.compute_allowed) if source.compute_allowed != 0 else 0
-    if new_compute_used < source.compute_allowed:
-        return
-    enforce_allocation_overage.apply_async(args=(source.name,))
-    new_payload = {
-        "allocation_source_name": source.name,
-        "actual_value": current_percentage
-    }
-    return
-
-
+#FIXME: MARKED FOR DELETION according to julianp
 def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     """
     DEV NOTE: This is a *pre_save* signal. As such, the arguments are slightly different and the object in the database matching the data will be the "before", while the data coming into the function should be considered the "after". For more details about pre_save signals: https://docs.djangoproject.com/en/dev/ref/signals/#pre-save

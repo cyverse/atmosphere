@@ -21,20 +21,42 @@ class AllocationSource(models.Model):
     def get_instance_ids(self):
         return self.instanceallocationsourcesnapshot_set.all().values_list('instance__provider_alias', flat=True)
 
-    def check_over_allocation(self):
+    def is_over_allocation(self, user=None):
+        """Return whether the allocation source `compute_used` is over the `compute_allowed`.
+
+        :return: bool
+        :rtype: bool
         """
-        Check if allocation is "over" the compute_allowed and by what amount
-        Returns:
-        (False, ##) - AllocationSource is 'under' the threshold by ## hours
-        (True, ##) - AllocationSource is 'over' the threshold by ## hours
+        return self.time_remaining(user) < 0
+
+    def time_remaining(self, user=None):
         """
-        compute_used = self.compute_used
-        if compute_used == -1:
-            return (False, -1)
-        time_diff = self.compute_allowed - self.compute_used
-        if time_diff < 0:
-            return (True, -1*time_diff)
-        return (False, time_diff)
+        Returns the remaining compute_allowed,
+
+        user: If passed in *and* allocation source is 'special', calculate remaining time based on user snapshots.
+
+        Will return a negative number if 'over allocation', when `compute_used` is larger than `compute_allowed`.
+        :return: decimal.Decimal
+        :rtype: decimal.Decimal
+        """
+        # Handling the 'SPECIAL_ALLOCATION_SOURCES'
+        time_shared_allocations = getattr(settings, 'SPECIAL_ALLOCATION_SOURCES', {})
+        if user and self.name in time_shared_allocations.keys():
+            try:
+                compute_allowed = time_shared_allocations[self.name]['compute_allowed']
+            except:
+                raise Exception(
+                    "The structure of settings.SPECIAL_ALLOCATION_SOURCES "
+                    "has changed! Verify your settings are correct and/or "
+                    "change the lines of code above.")
+            last_snapshot = self.user_allocation_snapshots.get(user=user)
+        else:
+            compute_allowed = self.compute_allowed
+            last_snapshot = self.snapshot
+        compute_used = last_snapshot.compute_used if last_snapshot else 0
+        remaining_compute = compute_allowed - compute_used
+        return remaining_compute
+
 
     @property
     def compute_used_updated(self):
@@ -83,7 +105,8 @@ class UserAllocationSource(models.Model):
           It is presumed that this table will be *MAINTAINED* regularly via periodic task.
     """
 
-    user = models.ForeignKey("AtmosphereUser")
+    user = models.ForeignKey("AtmosphereUser", related_name="user_allocation_sources")
+    # FIXME: this will not return a QuerySet of AtmosphereUser, it will return a QuerySet of UserAllocationSource.. (Rename related_name?)
     allocation_source = models.ForeignKey(AllocationSource, related_name="users")
 
     def __unicode__(self):
