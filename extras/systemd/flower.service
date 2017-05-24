@@ -2,6 +2,7 @@
 Description=Flower Service
 Requires=network.target
 After=network.target
+BindsTo=celeryd.service
 
 [Service]
 Type=forking
