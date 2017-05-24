@@ -2,6 +2,7 @@ import logging
 
 from business_rules import run_all
 from celery.decorators import task
+from django.conf import settings
 from django.utils import timezone
 
 from core.models import EventTable
@@ -15,6 +16,7 @@ from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVari
 
 logger = logging.getLogger(__name__)
 
+
 @task(name="update_snapshot_cyverse")
 def update_snapshot_cyverse(start_date=None, end_date=None):
     end_date = timezone.now().replace(microsecond=0) if not end_date else end_date
@@ -27,7 +29,7 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
             payload__allocation_source_name__exact=str(allocation_source_name)).order_by('timestamp')
 
         if not last_renewal_event:
-            logger.info('Allocation Source %s Create/Renewal event missing',allocation_source_name)
+            logger.info('Allocation Source %s Create/Renewal event missing', allocation_source_name)
             continue
 
         start_date = last_renewal_event.last().timestamp.replace(microsecond=0) if not start_date else start_date
@@ -38,7 +40,6 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
             compute_used, burn_rate = total_usage(user.username, start_date=start_date,
                                                   end_date=end_date, allocation_source_name=allocation_source_name,
                                                   burn_rate=True)
-
 
             UserAllocationSnapshot.objects.update_or_create(allocation_source=allocation_source, user=user,
                                                             defaults={'compute_used': compute_used,
@@ -56,6 +57,9 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
 
 @task(name="allocation_threshold_check")
 def allocation_threshold_check():
+    if not settings.CHECK_THRESHOLD:
+        return
+
     for allocation_source in AllocationSource.objects.all():
         snapshot = allocation_source.snapshot
         percentage_used = (snapshot.compute_used / snapshot.compute_allowed) * 100
@@ -68,8 +72,8 @@ def allocation_threshold_check():
 
                 # check if event has been fired
                 prev_event = EventTable.objects.filter(name='allocation_source_threshold_met',
-                                          payload__allocation_source_name=allocation_source_name,
-                                          payload__threshold=threshold).last()
+                                                       payload__allocation_source_name=allocation_source_name,
+                                                       payload__threshold=threshold).last()
                 if prev_event:
                     continue
 
