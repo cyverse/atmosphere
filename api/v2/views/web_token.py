@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -20,15 +21,6 @@ from core.query import only_current
 from api.v2.exceptions import failure_response
 
 logger = logging.getLogger(__name__)
-
-
-SIGNED_SERIALIZER = URLSafeTimedSerializer(
-    settings.WEB_DESKTOP['signing']['SECRET_KEY'],
-    salt=settings.WEB_DESKTOP['signing']['SALT'])
-
-SIGNER = Signer(
-    settings.WEB_DESKTOP['fingerprint']['SECRET_KEY'],
-    salt=settings.WEB_DESKTOP['fingerprint']['SALT'])
 
 
 class WebTokenView(RetrieveAPIView):
@@ -70,9 +62,24 @@ class WebTokenView(RetrieveAPIView):
                 "Token could not be determined! If you can reproduce this, please file an issue!")
 
         logger.info("ip_address: %s" % ip_address)
+
+        SIGNER = Signer(
+            settings.WEB_DESKTOP['fingerprint']['SECRET_KEY'],
+            salt=settings.WEB_DESKTOP['fingerprint']['SALT'])
+
+        signed_serializer = URLSafeTimedSerializer(
+            settings.WEB_DESKTOP['signing']['SECRET_KEY'],
+            salt=settings.WEB_DESKTOP['signing']['SALT'])
+
+
         token_fingerprint = SIGNER.get_signature(auth_token)
 
-        sig = SIGNED_SERIALIZER.dumps([ip_address,
+        random_id = str(uuid.uuid4())
+        uuid_fingerprint = SIGNER.get_signature(random_id)
+        # import ipdb;ipdb.set_trace()
+        sig = signed_serializer.dumps([
+            uuid_fingerprint,
+            ip_address,
             token_fingerprint])
 
         payload = {
