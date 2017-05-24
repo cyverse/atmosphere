@@ -1,6 +1,5 @@
 import logging
 
-from business_rules import run_all
 from celery.decorators import task
 from django.conf import settings
 from django.utils import timezone
