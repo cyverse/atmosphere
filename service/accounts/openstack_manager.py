@@ -4,6 +4,7 @@ UserManager:
 """
 import time
 import string
+import uuid
 from urlparse import urlparse
 
 from django.db.models import Max
@@ -26,6 +27,7 @@ from chromogenic.drivers.openstack import ImageManager
 from atmosphere import settings
 
 from core.models.identity import Identity
+from core.models.event_table import EventTable
 
 from service.accounts.base import BaseAccountDriver
 from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
@@ -225,6 +227,23 @@ class AccountDriver(BaseAccountDriver):
                 "but the password does not match. "
                 "This conflict should be addressed by hand."
                 % (username, ))
+
+        try:
+            allocation_source_name = "%s_allocationsource"
+
+            # Create Allocation Source for User
+            self._create_allocation_source(allocation_source_name)
+            # Add User to Allocation Source
+            self._assign_user_allocation_source(allocation_source_name,username)
+
+        except Exception as e:
+
+            logger.exception("Encountered error creating/assigning Allocation Source to User - %s" % e)
+            raise AccountCreationConflict(
+                "AccountDriver is trying to create an account, (%s)"
+                "but there is a problem creating and assigning Allocation Source to the user. "
+                % (username,))
+
         ident = self.create_identity(username, password,
                                      project.name,
                                      quota=quota,
@@ -1371,3 +1390,30 @@ class AccountDriver(BaseAccountDriver):
         os_args.pop("ex_tenant_name", None)
         os_args.pop("tenant_name", None)
         return os_args
+
+    def _create_allocation_source(allocation_source_name):
+        payload = {}
+        payload['uuid'] = str(uuid.uuid4())
+        payload['allocation_source_name'] = allocation_source_name
+        payload['compute_allowed'] = 168
+        payload['renewal_strategy'] = "default"
+
+        event = EventTable(
+            name='allocation_source_created_or_renewed',
+            entity_id=allocation_source_name,
+            payload=payload
+        )
+
+        event.save()
+
+    def _assign_user_allocation_source(allocation_source_name, username):
+        payload = {}
+        payload['allocation_source_name'] = allocation_source_name
+
+        event = EventTable(
+            name='user_allocation_source_created',
+            entity_id=username,
+            payload=payload
+        )
+
+        event.save()
