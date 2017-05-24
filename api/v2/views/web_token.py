@@ -48,8 +48,6 @@ class WebTokenView(RetrieveAPIView):
         Signs a redirect to transparent proxy for web desktop view.
         """
         template_params = {}
-
-        logger.info("POST body: %s" % request.POST)
         if not request.user.is_authenticated():
             logger.info("not authenticated: \nrequest:\n %s" % request)
             raise PermissionDenied
@@ -64,6 +62,12 @@ class WebTokenView(RetrieveAPIView):
                 'Instance %s no longer exists' % (instance_id,))
         ip_address = instance.ip_address
         auth_token = request.session.get('token')
+        if not auth_token:
+            auth_token = request.META['HTTP_AUTHORIZATION']
+        if not auth_token:
+            return failure_response(
+                status.HTTP_501_NOT_IMPLEMENTED,
+                "Token could not be determined! If you can reproduce this, please file an issue!")
 
         logger.info("ip_address: %s" % ip_address)
         token_fingerprint = SIGNER.get_signature(auth_token)
