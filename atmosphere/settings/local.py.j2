@@ -445,3 +445,17 @@ EXPIRATION_PLUGINS = [
     'atmosphere.plugins.auth.expiration.NeverExpire',
 ]
 {%- endif %}
+
+# Support for Web Desktop
+WEB_DESKTOP_INCLUDE_LINK = {{ WEB_DESKTOP_INCLUDE_LINK }}
+
+WEB_DESKTOP = {
+    'signing': {
+        'SECRET_KEY': '{{ WEB_DESKTOP_SIGNING_SECRET_KEY }}',
+        'SALT': '{{ WEB_DESKTOP_SIGNING_SALT }}'
+    },
+    'fingerprint': {
+        'SECRET_KEY': '{{ WEB_DESKTOP_FP_SECRET_KEY }}',
+        'SALT': '{{ WEB_DESKTOP_FP_SALT }}'
+    }
+}

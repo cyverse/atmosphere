@@ -14,6 +14,7 @@ pandas
 xlsxwriter
 django-filter==1.0.1
 django-redis-cache==0.13.0
+itsdangerous==0.24
 redis==2.10.5
 eventlet==0.18.4
 

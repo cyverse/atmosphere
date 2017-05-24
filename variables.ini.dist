@@ -106,6 +106,13 @@ VALIDATION_PLUGINS = ["atmosphere.plugins.auth.validation.AlwaysAllow"] # list o
 SENTRY_ENABLED =  True # Boolean required or False
 SENTRY_DSN = # https://...@sentry.io/....
 
+# Web Desktop - feature flag is WEB_DESKTOP_INCLUDE_LINK
+WEB_DESKTOP_SIGNING_SALT =
+WEB_DESKTOP_FP_SALT =
+WEB_DESKTOP_SIGNING_SECRET_KEY =
+WEB_DESKTOP_FP_SECRET_KEY =
+WEB_DESKTOP_INCLUDE_LINK = False
+
 #NOTE: Jetstream Specific
 TACC_API_USER = # "tas-username"
 TACC_API_PASS = # "tas-password"

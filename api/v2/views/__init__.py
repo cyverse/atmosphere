@@ -46,6 +46,7 @@ from .emulate import TokenEmulateViewSet, SessionEmulateViewSet
 from .tag import TagViewSet
 from .token import TokenViewSet
 from .token_update import TokenUpdateViewSet
+from .web_token import WebTokenView
 from .user import UserViewSet
 from .volume import VolumeViewSet
 from .metric import MetricViewSet

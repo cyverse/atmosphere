@@ -51,6 +51,7 @@ httplib2==0.10.3          # via oauth2client
 idna==2.5                 # via cryptography
 ipaddress==1.0.18         # via cryptography
 iso8601==0.1.11           # via keystoneauth1, oslo.utils, python-neutronclient, python-novaclient
+itsdangerous==0.24
 Jinja2==2.8.1             # via ansible
 jsonpatch==1.15           # via warlock
 jsonpointer==1.10         # via jsonpatch
