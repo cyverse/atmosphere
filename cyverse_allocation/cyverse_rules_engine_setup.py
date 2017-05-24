@@ -49,8 +49,12 @@ class CyverseTestRenewalActions(BaseActions):
             raise Exception('Allocation Source %s cannot be renewed because no snapshot is available' % (
                 self.allocation_source.name))
         source_snapshot = source_snapshot.last()
-        remaining_compute = 0 if source_snapshot.compute_allowed - source_snapshot.compute_used < 0 else source_snapshot.compute_allowed - source_snapshot.compute_used
-        total_compute_allowed = float(remaining_compute + compute_allowed)
+
+        # carryover logic
+        #remaining_compute = 0 if source_snapshot.compute_allowed - source_snapshot.compute_used < 0 else source_snapshot.compute_allowed - source_snapshot.compute_used
+        #total_compute_allowed = float(remaining_compute + compute_allowed)
+
+        total_compute_allowed = compute_allowed
 
         # fire renewal event
 
