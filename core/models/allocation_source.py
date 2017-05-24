@@ -49,7 +49,7 @@ class AllocationSource(models.Model):
                     "The structure of settings.SPECIAL_ALLOCATION_SOURCES "
                     "has changed! Verify your settings are correct and/or "
                     "change the lines of code above.")
-            last_snapshot = self.user_allocation_snapshots.filter(user__username='test-sgregory').order_by('-updated').last()
+            last_snapshot = self.user_allocation_snapshots.get(user=user)
         else:
             compute_allowed = self.compute_allowed
             last_snapshot = self.snapshot
