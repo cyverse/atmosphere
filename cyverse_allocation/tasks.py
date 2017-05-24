@@ -1,13 +1,14 @@
 import logging
-from django.utils import timezone
-from celery.decorators import task
 
 from business_rules import run_all
+from celery.decorators import task
+from django.utils import timezone
+
+from core.models import EventTable
 from core.models.allocation_source import (
     AllocationSourceSnapshot,
     AllocationSource, UserAllocationSnapshot
 )
-from core.models import EventTable
 from core.models.allocation_source import total_usage
 from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVariables, CyverseTestRenewalActions, \
     cyverse_rules
@@ -51,3 +52,34 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
         run_all(rule_list=cyverse_rules,
                 defined_variables=CyverseTestRenewalVariables(allocation_source, end_date, start_date),
                 defined_actions=CyverseTestRenewalActions(allocation_source, end_date), )
+
+
+@task(name="allocation_threshold_check")
+def allocation_threshold_check():
+    for allocation_source in AllocationSource.objects.all():
+        snapshot = allocation_source.snapshot
+        percentage_used = (snapshot.compute_used / snapshot.compute_allowed) * 100
+        # check if percentage more than threshold
+        THRESHOLD = [50.0, 90.0]
+        for threshold in THRESHOLD:
+            if percentage_used > threshold:
+                compute_used = snapshot.compute_used
+                allocation_source_name = allocation_source.name
+
+                # check if event has been fired
+                prev_event = EventTable.objects.filter(name='allocation_source_threshold_met',
+                                          payload__allocation_source_name=allocation_source_name,
+                                          payload__threshold=threshold).last()
+                if prev_event:
+                    continue
+
+                payload = {}
+                payload['allocation_source_name'] = allocation_source_name
+                payload['threshold'] = threshold
+                payload['usage_percentage'] = float(percentage_used)
+
+                EventTable.objects.create(
+                    name='allocation_source_threshold_met',
+                    payload=payload,
+                    entity_id=payload['allocation_source_name'])
+                break

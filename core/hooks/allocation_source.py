@@ -139,7 +139,7 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     EventPayload - {
         "allocation_source_name": "37623",
         "threshold":20  # The '20%' threshold was hit for this allocation.
-        "actual_value":299.78 # The actual compute used value
+        "usage_percentage":22 # The actual perecntage used
     }
     The method should fire off emails to the users who should be informed of the new threshold value.
     """
@@ -150,7 +150,7 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     payload = event.payload
     allocation_source_name = payload['allocation_source_name']
     threshold = payload['threshold']
-    actual_value = payload['actual_value']
+    usage_percentage = payload['usage_percentage']
     if not settings.ENFORCING:
         return None
     source = AllocationSource.objects.filter(name=allocation_source_name).last()
@@ -161,22 +161,22 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     users = AtmosphereUser.for_allocation_source(source.name)
 
     for user in users:
-        send_usage_email_to(user, source, threshold, actual_value)
+        send_usage_email_to(user, source, threshold, usage_percentage=usage_percentage)
 
 
-def send_usage_email_to(user, source, threshold, actual_value=None):
+def send_usage_email_to(user, source, threshold, usage_percentage=None):
     from core.email import send_allocation_usage_email
     user_snapshot = UserAllocationSnapshot.objects.filter(
         allocation_source=source, user=user).last()
-    if not actual_value:
-        actual_value = int(source.snapshot.compute_used / source.snapshot.compute_allowed * 100)
+    if not usage_percentage:
+        usage_percentage = int(source.snapshot.compute_used / source.snapshot.compute_allowed * 100)
     if not user_snapshot:
         compute_used = None
     else:
         compute_used = getattr(user_snapshot, 'compute_used')
     try:
         send_allocation_usage_email(
-            user, source, threshold, actual_value,
+            user, source, threshold, usage_percentage,
             user_compute_used=compute_used)
     except Exception:
         logger.exception("Could not send a usage email to user %s" % user)
