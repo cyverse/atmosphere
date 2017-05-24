@@ -40,5 +40,5 @@ Feature: Testing a story
 
     Then calculate allocations used by allocation source after certain number of days
     |  report start date                  | number of days   | total compute used   | current compute used | current compute allowed | allocation_source_id |
-    |      current                        |  4               |     240              | 48                   | 308                     | 1                    |
+    |      current                        |  4               |     240              | 48                   | 250                     | 1                    |
 
