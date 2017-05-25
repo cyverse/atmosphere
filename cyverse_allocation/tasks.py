@@ -53,7 +53,8 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
         run_all(rule_list=cyverse_rules,
                 defined_variables=CyverseTestRenewalVariables(allocation_source, end_date, start_date),
                 defined_actions=CyverseTestRenewalActions(allocation_source, end_date), )
-
+    # At the end of the task, fire-off an allocation threshold check
+    allocation_threshold_check.apply_async()
 
 @task(name="allocation_threshold_check")
 def allocation_threshold_check():

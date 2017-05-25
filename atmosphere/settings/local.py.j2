@@ -171,6 +171,12 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute="*/60"),
         "options" : {"expires": 45 * 60,"time_limit": 45 * 60}
   }
+  "update_snapshot_cyverse":{
+	"task":"update_snapshot_cyverse",
+        # Every 15 minutes
+        "schedule": timedelta(minutes=15),
+        "options" : {"expires": 15 * 60,"time_limit": 15 * 60}
+  }
 }
 CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
 {% endif %}
