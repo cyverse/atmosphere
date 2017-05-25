@@ -171,6 +171,10 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute="*/60"),
         "options" : {"expires": 45 * 60,"time_limit": 45 * 60}
   }
+}
+CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
+{% else %}
+ALLOCATIONS_CELERYBEAT_SCHEDULE = {
   "update_snapshot_cyverse":{
 	"task":"update_snapshot_cyverse",
         # Every 15 minutes
@@ -178,7 +182,7 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
         "options" : {"expires": 15 * 60,"time_limit": 15 * 60}
   }
 }
-CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
+CELERYBEAT_SCHEDULE.update(ALLOCATIONS_CELERYBEAT_SCHEDULE)
 {% endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL | default("logging.INFO") }}
