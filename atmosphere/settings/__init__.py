@@ -23,7 +23,7 @@ DEBUG = True
 # Enforcing mode -- False, unless set otherwise. (ONLY ONE Production server should be set to 'ENFORCING'.)
 ENFORCING = False
 
-CHECK_THRESHOLD = True
+CHECK_THRESHOLD = False
 
 BLACKLIST_TAGS = ["Featured",]
 
