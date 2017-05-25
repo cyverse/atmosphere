@@ -229,8 +229,7 @@ class AccountDriver(BaseAccountDriver):
                 % (username, ))
 
         try:
-            allocation_source_name = "%s_allocationsource"
-
+            allocation_source_name = username
             # Create Allocation Source for User
             self._create_allocation_source(allocation_source_name)
             # Add User to Allocation Source

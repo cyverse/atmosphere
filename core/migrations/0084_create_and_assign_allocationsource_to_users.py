@@ -83,7 +83,7 @@ def create_and_assign_allocationsource(apps, schema_editor):
 
     for user in UserTable.objects.all():
         username = user.username
-        allocation_source_name = "%s_allocationsource" % username
+        allocation_source_name = "%s" % username
 
         # create allocation source
         _create_allocation_source(allocation_source_name, EventTable, AllocationSourceTable)
