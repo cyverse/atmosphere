@@ -1,4 +1,3 @@
-from django.conf import settings
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -58,17 +57,17 @@ class InstanceSerializer(serializers.ModelSerializer):
         size_queryset = self.fields['size_alias'].queryset
         allocation_source_queryset = UserAllocationSource.objects.filter(user=request_user)
         source_queryset = self.fields['source_alias'].queryset
-        if settings.USE_ALLOCATION_SOURCE:
-            allocation_source_id = data.get('allocation_source_id')
-            if not allocation_source_id:
-                raise ValidationError({
-                    'allocation_source_id': 'This field is required.'
-                })
-            allocation_source = allocation_source_queryset.filter(allocation_source__uuid=allocation_source_id)
-            if not allocation_source:
-                raise ValidationError({
-                    'allocation_source_id': 'Value %s did not match a allocation_source.' % allocation_source_id
-                })
+
+        allocation_source_id = data.get('allocation_source_id')
+        if not allocation_source_id:
+            raise ValidationError({
+                'allocation_source_id': 'This field is required.'
+            })
+        allocation_source = allocation_source_queryset.filter(allocation_source__uuid=allocation_source_id)
+        if not allocation_source:
+            raise ValidationError({
+                'allocation_source_id': 'Value %s did not match a allocation_source.' % allocation_source_id
+            })
 
         size_alias = data.get('size_alias')
         if not size_alias:

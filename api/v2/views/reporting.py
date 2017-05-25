@@ -13,14 +13,15 @@ from rest_framework.settings import api_settings
 from api.renderers import PandasExcelRenderer, CSVRenderer
 from api.v2.exceptions import failure_response
 from api.v2.serializers.details import InstanceReportingSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from core.models import Instance
 
 
-class ReportingViewSet(AuthViewSet):
+class ReportingViewSet(AuthModelViewSet):
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [PandasExcelRenderer, CSVRenderer]
     pagination_class = None
     serializer_class = InstanceReportingSerializer
+    queryset = Instance.objects.none()
     ordering_fields = ('id', 'start_date')
     http_method_names = ['get', 'head', 'options', 'trace']
 

@@ -23,7 +23,8 @@ DEBUG = True
 # Enforcing mode -- False, unless set otherwise. (ONLY ONE Production server should be set to 'ENFORCING'.)
 ENFORCING = False
 
-USE_ALLOCATION_SOURCE = False
+CHECK_THRESHOLD = True
+
 BLACKLIST_TAGS = ["Featured",]
 
 SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -87,6 +88,7 @@ INSTALLED_APPS = (
     # atmosphere apps
     'api',
     'allocation',
+    'cyverse_allocation',
     'service',
     'core',
 )

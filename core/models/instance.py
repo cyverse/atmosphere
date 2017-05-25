@@ -516,9 +516,8 @@ class Instance(models.Model):
 
     @property
     def allocation_source(self):
-        #FIXME: look up the current allocation source by "Scanning the event table" on this instance.
-        from core.models.allocation_source import \
-                InstanceAllocationSourceSnapshot as Snapshot
+        # FIXME: look up the current allocation source by "Scanning the event table" on this instance.
+        from core.models.allocation_source import InstanceAllocationSourceSnapshot as Snapshot
         snapshot = Snapshot.objects.filter(instance=self).first()
         return snapshot.allocation_source if snapshot else None
 
@@ -526,8 +525,6 @@ class Instance(models.Model):
         """
         Call this method when you want to issue a 'change_allocation_source' event to the database.
         """
-        if not settings.USE_ALLOCATION_SOURCE:
-            return
         from core.models.event_table import EventTable
         if not user:
             user = self.created_by

@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from core.models import AllocationSource
 from django.db.models.signals import post_save
 
 from .allocation import TASAPIDriver, fill_user_allocation_source_for
@@ -11,10 +12,13 @@ def update_user_allocation_sources(sender, instance, created, **kwargs):
     driver = TASAPIDriver()
     fill_user_allocation_source_for(driver, user)
 
-#FIXME: Re-add this when you have access to the XSede API
+#FIXME: Re-add this when you have access to the XSede API **AND**
+#       ONLY RUN IF you are ENFORCING=True
 #post_save.connect(update_user_allocation_sources, sender=AUTH_USER_MODEL)
 
 # Create your models here.
+
+
 class TASAllocationReport(models.Model):
     """
     Keep track of each Allocation Report that is sent to TACC.API

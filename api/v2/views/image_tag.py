@@ -1,10 +1,10 @@
 from core.models import ApplicationTag as ImageTag
 
 from api.v2.serializers.details import ImageTagSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 
 
-class ImageTagViewSet(AuthViewSet):
+class ImageTagViewSet(AuthModelViewSet):
 
     """
     API endpoint that allows instance tags to be viewed

@@ -147,70 +147,6 @@ def get_allocation_result_for(
     #ENDFIXME: Remove this after debug testing is complete
 
 
-def user_over_allocation_enforcement(
-        provider, username, print_logs=False, start_date=None, end_date=None):
-    """
-    Begin monitoring 'username' on 'provider'.
-    * Calculate allocation from START of month to END of month
-    * If user is deemed OverAllocation, apply enforce_allocation_policy
-    """
-    if settings.USE_ALLOCATION_SOURCE:
-        logger.info("Settings dictate that USE_ALLOCATION_SOURCE = True."
-                    " To manually enforce 'over-allocation', "
-                    "call allocation_source_overage_enforcement(allocation_source)")
-        return None
-    identity = _get_identity_from_tenant_name(provider, username)
-    allocation_result = get_allocation_result_for(
-        provider, username,
-        print_logs, start_date, end_date)
-    # ASSERT: allocation_result has been retrieved successfully
-    # Make some enforcement decision based on the allocation_result's output.
-
-    if not identity:
-        logger.warn(
-            "%s has NO identity. "
-            "Total Runtime could NOT be calculated. Returning.." %
-            (username, ))
-        return allocation_result
-    user = User.objects.get(username=username)
-    allocation = get_allocation(username, identity.uuid)
-    if not allocation:
-        logger.info(
-            "%s has NO allocation. Total Runtime: %s. Returning.." %
-            (username, allocation_result.total_runtime()))
-        return allocation_result
-
-    if not settings.ENFORCING:
-        return allocation_result
-
-    # Enforce allocation if overboard.
-    over_allocation, diff_amount = allocation_result.total_difference()
-    if over_allocation:
-        logger.info(
-            "%s is OVER allocation. %s - %s = %s"
-            % (username,
-               allocation_result.total_credit(),
-               allocation_result.total_runtime(),
-               diff_amount))
-        try:
-            enforce_allocation_policy(identity, user)
-        except:
-            logger.info("Unable to enforce allocation for user: %s" % user)
-    return allocation_result
-
-
-def enforce_allocation_policy(identity, user):
-    """
-    Add additional logic here to determine the proper 'action to take'
-    when THIS identity/user combination is given
-    #Possible combinations:
-    1. Check the 'rules' for this provider
-    2. Notify the 'ProviderAdministrator' that a user has exceeded
-       their allocation, but that NO action has been taken.
-    """
-    return provider_over_allocation_enforcement(identity, user)
-
-
 def _execute_provider_action(identity, user, instance, action_name):
     driver = get_cached_driver(identity=identity)
     logger.info("User %s has gone over their allocation on Instance %s - Enforcement Choice: %s" % (user, instance, action_name))
@@ -256,24 +192,6 @@ def _execute_provider_action(identity, user, instance, action_name):
             "Provider %s - 'Do Nothing' for Over Allocation" %
             provider)
         return
-
-
-def provider_over_allocation_enforcement(identity, user):
-    provider = identity.provider
-    action = provider.over_allocation_action
-    if not action:
-        logger.debug("No 'over_allocation_action' provided for %s" % provider)
-        return False
-    if not settings.ENFORCING:
-        logger.debug("Do not enforce over allocation action (%s) for provider %s, ENFORCING is disabled" % (action, provider))
-        return False
-    driver = get_cached_driver(identity=identity)
-    esh_instances = driver.list_instances()
-    # TODO: Parallelize this operation so you don't wait for larger instances
-    # to finish 'wait_for' task below..
-    for instance in esh_instances:
-        execute_provider_action(user, driver, identity, instance, action)
-    return True  # User was over_allocation
 
 
 def update_instances(driver, identity, esh_list, core_list):
@@ -532,29 +450,22 @@ def _get_strategy(identity):
         return None
 
 
-def allocation_source_overage_enforcement(allocation_source):
-    all_user_instances = {}
-    for user in allocation_source.all_users:
-        all_user_instances[user.username] = []
-        for identity in user.current_identities:
-            affected_instances = allocation_source_overage_enforcement_for(
-                    allocation_source, user, identity)
-            user_instances = all_user_instances[user.username]
-            user_instances.extend(affected_instances)
-            all_user_instances[user.username] = user_instances
-    return all_user_instances
-
-
-def filter_allocation_source_instances(allocation_source, esh_instances):
-    #Circ Dep
-    from core.models.allocation_strategy import InstanceAllocationSourceSnapshot
+def filter_allocation_source_instances(allocation_source, user, esh_instances):
     as_instances = []
     for inst in esh_instances:
-        provider_alias = inst.id
-        snapshot = InstanceAllocationSourceSnapshot.objects.filter(
-            instance__provider_alias=provider_alias).first()
-        if snapshot and snapshot.allocation_source == allocation_source:
-            as_instances.append(inst)
+        core_instance = CoreInstance.objects.filter(created_by=user, provider_alias=inst.id).first()
+        if not core_instance:
+            logger.debug("Skipping Instance %s -- not included in DB." % inst.id)
+            continue
+        assert isinstance(core_instance, CoreInstance)
+        instance_allocation_source = core_instance.allocation_source
+        if not instance_allocation_source:
+            logger.debug("Skipping Instance %s -- no allocation source set." % inst.id)
+            continue
+        if instance_allocation_source != allocation_source:
+            logger.debug("Skipping Instance %s -- Allocation source mismatch." % inst.id)
+            continue
+        as_instances.append(inst)
     return as_instances
 
 
@@ -572,7 +483,7 @@ def allocation_source_overage_enforcement_for(allocation_source, user, identity)
         esh_instances = driver.list_instances()
     except LibcloudInvalidCredsError:
         raise Exception("User %s has invalid credentials on Identity %s" % (user, identity))
-    filtered_instances = filter_allocation_source_instances(allocation_source, esh_instances)
+    filtered_instances = filter_allocation_source_instances(allocation_source, user, esh_instances)
     # TODO: Parallelize this operation so you don't wait for larger instances
     # to finish 'wait_for' task below..
     instances = []
@@ -580,6 +491,7 @@ def allocation_source_overage_enforcement_for(allocation_source, user, identity)
         core_instance = execute_provider_action(user, driver, identity, instance, action)
         instances.append(core_instance)
     return instances
+
 
 def execute_provider_action(user, driver, identity, instance, action):
     try:

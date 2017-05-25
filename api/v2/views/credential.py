@@ -1,13 +1,13 @@
 from django.contrib.auth.models import AnonymousUser
 
 from api.v2.serializers.details import CredentialSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.permissions import CanEditOrReadOnly
 from core.models import Credential
 
 
-class CredentialViewSet(MultipleFieldLookup, AuthViewSet):
+class CredentialViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.

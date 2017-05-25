@@ -5,7 +5,6 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from threepio import logger
-from atmosphere import settings
 
 from core.exceptions import ProviderNotActive
 from core.models import AtmosphereUser as User
@@ -173,15 +172,14 @@ class InstanceList(AuthAPIView):
         boot_scripts = data.pop("scripts", [])
         try:
             logger.debug(data)
-            if not settings.USE_ALLOCATION_SOURCE:
-                allocation_source = None
-            else:
-                allocation_source = AllocationSource.objects.get(
-                    uuid=allocation_source_uuid)
+            allocation_source = AllocationSource.objects.get(
+                uuid=allocation_source_uuid)
             core_instance = launch_instance(
                 user, identity_uuid,
                 size_alias, machine_alias,
-                deploy=deploy, **data)
+                deploy=deploy,
+                allocation_source=allocation_source,
+                **data)
         except UnderThresholdError as ute:
             return under_threshold(ute)
         except OverQuotaError as oqe:

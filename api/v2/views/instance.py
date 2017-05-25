@@ -1,13 +1,11 @@
-from django.conf import settings
-
 from api.v2.serializers.details import InstanceSerializer, InstanceActionSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.v2.views.instance_action import InstanceActionViewSet
 
 from core.exceptions import ProviderNotActive
-from core.models import Instance, Identity, AllocationSource, EventTable, Project
+from core.models import Instance, Identity, UserAllocationSource, Project
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
 from core.models.instance_action import InstanceAction
@@ -38,7 +36,7 @@ from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 
 
-class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
+class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.
@@ -221,9 +219,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             error_map['source_alias'] = "This field is required."
         if not size_alias:
             error_map['size_alias'] = "This field is required."
-        if settings.USE_ALLOCATION_SOURCE:
-            if not allocation_source_id:
-                error_map['allocation_source_id'] = "This field is required."
+        if not allocation_source_id:
+            error_map['allocation_source_id'] = "This field is required."
 
         if error_map:
             raise Exception(error_map)
@@ -238,6 +235,32 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             error_map["identity"] = "The uuid (%s) is invalid." % identity_uuid
             raise Exception(error_map)
         return
+
+    # Caveat: update only accepts updates for the allocation_source field
+    def update(self, request, pk=None, partial=False):
+        if not pk:
+            return Response("Missing instance primary key",
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        data = request.data
+        instance = Instance.objects.get(id=pk)
+
+        if data.has_key("allocation_source") and \
+            data["allocation_source"].has_key("id"):
+            allocation_id = data["allocation_source"]["id"]
+            try:
+                user_source = UserAllocationSource.objects.get(user=request.user,
+                        allocation_source_id=allocation_id)
+            except UserAllocationSource.DoesNotExist:
+                return Response("Invalid allocation_source",
+                                status=status.HTTP_400_BAD_REQUEST)
+            instance.change_allocation_source(user_source.allocation_source)
+
+        serialized_instance = InstanceSerializer(
+                instance, context={'request': self.request})
+
+        return Response(serialized_instance.data,
+                status=status.HTTP_200_OK)
 
     def create(self, request):
         user = request.user
@@ -262,10 +285,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         extra = data.get('extra', {})
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
-            if settings.USE_ALLOCATION_SOURCE:
-                allocation_source = AllocationSource.objects.get(uuid=allocation_source_id)
+            allocation_source = AllocationSource.objects.get(uuid=allocation_source_id)
             core_instance = launch_instance(
                 user, identity_uuid, size_alias, source_alias, name, deploy,
+                allocation_source=allocation_source,
                 **extra)
             # Faking a 'partial update of nothing' to allow call to 'is_valid'
             serialized_instance = InstanceSerializer(
@@ -279,8 +302,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             instance.projects.add(project)
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
-            if settings.USE_ALLOCATION_SOURCE:
-                instance.change_allocation_source(allocation_source)
+            instance.change_allocation_source(allocation_source)
             return Response(
                 serialized_instance.data, status=status.HTTP_201_CREATED)
         except UnderThresholdError as ute:
