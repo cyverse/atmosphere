@@ -809,7 +809,7 @@ def convert_esh_instance(
         _update_core_instance(core_instance, ip_address, password)
     else:
         start_date = _find_esh_start_date(esh_instance)
-        logger.debug("Instance: %s" % instance_id)
+        logger.debug("Creating new CoreInstance: %s" % instance_id)
         core_source = convert_instance_source(
             esh_driver,
             esh_instance,

@@ -62,9 +62,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         """
         user = self.request.user
         qs = Instance.for_user(user)
-        if 'archived' in self.request.query_params:
-            return qs
-        return qs.filter(only_current())
+        if 'archived' not in self.request.query_params:
+            qs = qs.filter(only_current())
+        logger.info("DEBUG- User %s querying for instances, available IDs are:%s" % (user, qs.values_list('id',flat=True)))
+        return qs
 
     @detail_route(methods=['post'])
     def update_metadata(self, request, pk=None):

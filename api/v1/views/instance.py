@@ -210,6 +210,7 @@ class InstanceList(AuthAPIView):
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
             instance.change_allocation_source(allocation_source)
+            logger.info("DEBUG- Instance launch completed - Returning instance %s (%s) to user %s" % (instance, instance.created_by_identity, request.user))
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,
@@ -554,11 +555,14 @@ class Instance(AuthAPIView):
         # Cleared provider testing -- ready for driver prep.
         try:
             esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
-            logger.info("Looking for %s" % instance_id)
+            logger.info("InstanceQuery Looking for %s" % instance_id)
             esh_instance = esh_driver.get_instance(instance_id)
+            logger.info("InstanceQuery Found instance %s" % esh_instance)
         except (socket_error, ConnectionFailure):
+            logger.exception("Connection failure prevented InstanceQuery")
             return connection_failure(provider_uuid, identity_uuid)
         except LibcloudInvalidCredsError:
+            logger.exception("Invalid credentialsprevented InstanceQuery")
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
