@@ -1157,7 +1157,8 @@ def _complete_launch_instance(
     core_instance = convert_esh_instance(
         driver, instance, identity.provider.uuid, identity.uuid,
         user, token, password)
-    # Update InstanceStatusHistory
+
+    # FIXME: Remove duplicate line below, this happens inside convert_esh_instance
     _first_update(driver, identity, core_instance, instance)
     # call async task to deploy to instance.
     task.deploy_init_task(driver, instance, identity, user.username,

@@ -214,8 +214,8 @@ class Instance(models.Model):
             tmp_status)
         activity = self.esh_activity()
         # 2. Get the last history (or Build a new one if no other exists)
-        last_history = self.get_last_history()
-        if not last_history:
+        has_history = self.instancestatushistory_set.all().count()
+        if not has_history:
             last_history = InstanceStatusHistory.create_history(
                 status_name, self, size, start_date=self.start_date, activity=activity)
             last_history.save()
@@ -227,6 +227,7 @@ class Instance(models.Model):
                                               tmp_status))
             logger.debug("STATUSUPDATE - Traceback: %s"
                          % traceback.format_stack())
+        last_history = self.get_last_history()
         # 2. Size and name must match to continue using last history
         if last_history.status.name == status_name \
                 and last_history.size.id == size.id:
@@ -932,5 +933,5 @@ def create_instance(
     else:
         logger.debug("New instance object - %s<%s>" %
                      (name, provider_alias,))
-    # NOTE: No instance_status_history here, because status is not passed
+    # FIXME: create instance_status_history here, pass in size & status to help
     return new_inst
