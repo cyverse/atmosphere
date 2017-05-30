@@ -194,45 +194,8 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
         )
 
 
-class UserResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
+class UserResourceRequestSerializer(ResourceRequestSerializer):
     def validate_status(self, value):
         if str(value) not in ["pending", "closed"]:
             raise serializers.ValidationError("Users can only open and close requests.")
         return value
-
-    quota = QuotaRelatedField(read_only=True)
-    allocation = AllocationRelatedField(read_only=True)
-    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
-                                    allow_null=True,
-                                    required=False)
-    admin_message = serializers.CharField(read_only=True)
-    uuid = serializers.CharField(read_only=True)
-    created_by = UserRelatedField(read_only=True)
-    user = UserSummarySerializer(
-        source='membership.identity.created_by',
-        read_only=True)
-    identity = IdentityRelatedField(source='membership.identity',
-                                    queryset=Identity.objects.none())
-    provider = ProviderSummarySerializer(
-        source='membership.identity.provider',
-        read_only=True)
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:resourcerequest-detail',
-    )
-    class Meta:
-        model = ResourceRequest
-        fields = (
-            'id',
-            'uuid',
-            'url',
-            'request',
-            'description',
-            'status',
-            'created_by',
-            'user',
-            'identity',
-            'provider',
-            'admin_message',
-            'quota',
-            'allocation'
-        )
