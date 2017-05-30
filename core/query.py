@@ -48,7 +48,7 @@ def only_current_provider(now_time=None):
         Q(provider__start_date__lt=now_time)
 
 
-def only_current_instances(now_time=None):
+def only_current_instances(now_time=None, restrict_start=False):
     """
     Filter the current instances.
     """
@@ -60,19 +60,9 @@ def only_current_instances(now_time=None):
                 Q(source__provider__end_date__gt=now_time)) &\
             Q(source__provider__active=True)
 
-    def _source_in_range():
-        """
-        A source is in range if it has been started before -now-
-        AND if it has not been end-dated before -now-
-        """
-        return (Q(source__end_date__isnull=True) |
-                Q(source__end_date__gt=now_time)) &\
-            Q(source__start_date__lt=now_time)
-
     if not now_time:
         now_time = timezone.now()
-    #NOTE: Purposefully absent: 'source_in_range'
-    return only_current() & _active_source()
+    return only_current(restrict_start=restrict_start) & _active_source()
 
 
 
@@ -202,14 +192,16 @@ def source_in_range(now_time=None):
         now_time = timezone.now()
     return _in_range()
 
-def only_current(now_time=None):
+def only_current(now_time=None, restrict_start=False):
     """
     Filters in range using start_date and end_date.
     """
     if not now_time:
         now_time = timezone.now()
-    return (Q(end_date=None) | Q(end_date__gt=now_time)) &\
-        Q(start_date__lt=now_time)
+    query = (Q(end_date=None) | Q(end_date__gt=now_time))
+    if restrict_start:
+        query &= Q(providermachine__instance_source__start_date__lt=now_time)
+    return query
 
 
 def only_active_provider_memberships(user=None, now_time=None):
