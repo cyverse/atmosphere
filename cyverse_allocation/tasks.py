@@ -24,7 +24,7 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
     logger.debug("update_snapshot_cyverse task started at %s." % datetime.now())
     end_date = timezone.now().replace(microsecond=0) if not end_date else end_date
 
-    for allocation_source in AllocationSource.objects.all():
+    for allocation_source in AllocationSource.objects.order_by('name'):
         # calculate and save snapshots here
         allocation_source_name = allocation_source.name
         last_renewal_event = EventTable.objects.filter(

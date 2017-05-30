@@ -373,6 +373,8 @@ def listen_for_allocation_source_compute_allowed_changed(sender, instance, creat
 
     compute_allowed = payload['compute_allowed']
     source.compute_allowed = compute_allowed
+    source.snapshot.compute_allowed = compute_allowed
+    source.snapshot.save()
     source.save()
 
 

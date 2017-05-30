@@ -5,7 +5,7 @@ from django.db.models.query import Q
 from core.models import EventTable
 from core.models.instance import Instance
 from core.models.allocation_source import UserAllocationSource, AllocationSource
-
+from threepio import logger
 
 def create_report(report_start_date, report_end_date, user_id=None, allocation_source_name=None):
     if not report_start_date or not report_end_date:
@@ -60,6 +60,8 @@ def filter_events_and_instances(report_start_date, report_end_date, username=Non
             raise Exception("User '%s' does not exist"%(username))
         events = events.filter(Q(payload__username__exact=username) | Q(entity_id=username)).order_by('timestamp')
         instances = instances.filter(Q(created_by__exact=user_id_int))
+    instance_ids = instances.values_list("id", flat=True)
+    logger.info("Checking instance IDs %s for User %s" % (instance_ids, username))
     return {'events': events, 'instances': instances}
 
 
