@@ -135,13 +135,13 @@ def _create_actions_for(compute_allowed, renewed_in_days):
 renewal_strategies = {
 
     'default': {'id': 1,
-                'compute_allowed': 250,
-                'renewed_in_days': 3,
+                'compute_allowed': 168,
+                'renewed_in_days': 30,
                 'external': False},
 
     'bi-weekly': {'id': 2,
-                  'compute_allowed': 150,
-                  'renewed_in_days': 14,
+                  'compute_allowed': 84,
+                  'renewed_in_days': 15,
                   'external': True},
 
     'workshop': {'id': 3,
