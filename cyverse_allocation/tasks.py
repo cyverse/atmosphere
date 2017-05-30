@@ -14,11 +14,14 @@ from core.models.allocation_source import total_usage
 from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVariables, CyverseTestRenewalActions, \
     cyverse_rules
 
-logger = logging.getLogger(__name__)
+from threepio import celery_logger as logger
+from django.utils.timezone import datetime
+# logger = logging.getLogger(__name__)
 
 
 @task(name="update_snapshot_cyverse")
 def update_snapshot_cyverse(start_date=None, end_date=None):
+    logger.debug("update_snapshot_cyverse task started at %s." % datetime.now())
     end_date = timezone.now().replace(microsecond=0) if not end_date else end_date
 
     for allocation_source in AllocationSource.objects.all():
@@ -54,11 +57,14 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
                 defined_variables=CyverseTestRenewalVariables(allocation_source, end_date, start_date),
                 defined_actions=CyverseTestRenewalActions(allocation_source, end_date), )
     # At the end of the task, fire-off an allocation threshold check
+    logger.debug("update_snapshot_cyverse task finished at %s." % datetime.now())
     allocation_threshold_check.apply_async()
 
 @task(name="allocation_threshold_check")
 def allocation_threshold_check():
+    logger.debug("allocation_threshold_check task started at %s." % datetime.now())
     if not settings.CHECK_THRESHOLD:
+        logger.debug("allocation_threshold_check task finished at %s." % datetime.now())
         return
 
     for allocation_source in AllocationSource.objects.all():
@@ -88,3 +94,4 @@ def allocation_threshold_check():
                     payload=payload,
                     entity_id=payload['allocation_source_name'])
                 break
+    logger.debug("allocation_threshold_check task finished at %s." % datetime.now())
