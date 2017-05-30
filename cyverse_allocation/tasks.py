@@ -64,7 +64,7 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
 def allocation_threshold_check():
     logger.debug("allocation_threshold_check task started at %s." % datetime.now())
     if not settings.CHECK_THRESHOLD:
-        logger.debug("allocation_threshold_check task finished at %s." % datetime.now())
+        logger.debug("CHECK_THRESHOLD is FALSE -- allocation_threshold_check task finished at %s." % datetime.now())
         return
 
     for allocation_source in AllocationSource.objects.all():
