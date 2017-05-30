@@ -200,7 +200,7 @@ def only_current(now_time=None, restrict_start=False):
         now_time = timezone.now()
     query = (Q(end_date=None) | Q(end_date__gt=now_time))
     if restrict_start:
-        query &= Q(providermachine__instance_source__start_date__lt=now_time)
+        query &= Q(start_date__lt=now_time)
     return query
 
 
