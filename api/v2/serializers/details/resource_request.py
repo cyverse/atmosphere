@@ -1,15 +1,15 @@
 from rest_framework import exceptions, serializers
 from core.models import ResourceRequest, Allocation, Quota, Identity, AtmosphereUser as User, IdentityMembership
-from core.models.status_type import StatusType
 from api.v2.serializers.summaries import (
     AllocationSummarySerializer,
     IdentitySummarySerializer,
     UserSummarySerializer,
     ProviderSummarySerializer,
     QuotaSummarySerializer,
-    StatusTypeSummarySerializer
 )
-from api.v2.serializers.fields import IdentityRelatedField
+from api.v2.serializers.fields import (
+    IdentityRelatedField, StatusTypeRelatedField
+)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
@@ -82,34 +82,6 @@ class QuotaRelatedField(serializers.RelatedField):
             )
 
 
-class StatusTypeRelatedField(serializers.RelatedField):
-
-    def get_queryset(self):
-        return StatusType.objects.all()
-
-    def to_representation(self, value):
-        status_type = StatusType.objects.get(pk=value.pk)
-        serializer = StatusTypeSummarySerializer(
-            status_type,
-            context=self.context)
-        return serializer.data
-
-    def to_internal_value(self, data):
-        queryset = self.get_queryset()
-        if isinstance(data, dict):
-            identity = data.get("id", None)
-        else:
-            identity = data
-
-        try:
-            return queryset.get(id=identity)
-        except:
-            raise exceptions.ValidationError(
-                "StatusType with id '%s' does not exist."
-                % identity
-            )
-
-
 class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.CharField(read_only=True)
     url = UUIDHyperlinkedIdentityField(
@@ -123,9 +95,7 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     provider = ProviderSummarySerializer(
         source='membership.identity.provider',
         read_only=True)
-    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
-                                    allow_null=True,
-                                    required=False)
+    status = StatusTypeRelatedField(allow_null=True, required=False)
     quota = QuotaRelatedField(queryset=Quota.objects.all(),
                               allow_null=True,
                               required=False)
