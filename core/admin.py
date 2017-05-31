@@ -606,8 +606,7 @@ class ResourceRequestAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'created_by', 'request', 'description',
                        'start_date', 'end_date')
     list_display = ("request", "status", "created_by", "start_date",
-                    "end_date", "allocation", "quota")
-
+                    "end_date")
     list_filter = ["status", "membership__identity__provider__location"]
     exclude = ("membership",)
 
@@ -619,23 +618,10 @@ class ResourceRequestAdmin(admin.ModelAdmin):
         obj.save()
 
         if obj.is_approved():
-            membership = obj.membership
-            identity = membership.identity
-            identity.quota = obj.quota or identity.quota
-            identity.save()
-            # Marked for deletion
-            membership.allocation = obj.allocation or membership.allocation
-            membership.save()
-
-            email_task = email.send_approved_resource_email(
+            email.send_approved_resource_email(
                 user=obj.created_by,
                 request=obj.request,
                 reason=obj.admin_message)
-
-            admin_task.set_provider_quota.apply_async(
-                args=[str(identity.uuid)],
-                link=[tasks.close_request.si(obj), email_task],
-                link_error=tasks.set_request_as_failed.si(obj))
 
 
 @admin.register(models.Group)
