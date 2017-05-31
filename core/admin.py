@@ -299,7 +299,7 @@ class TagAdmin(admin.ModelAdmin):
 @admin.register(models.UserAllocationSource)
 class UserAllocationSourceAdmin(admin.ModelAdmin):
     search_fields = [
-        "name", "allocation_source__name",
+        "allocation_source__name",
         "user__username"
     ]
     actions = [end_date_object, ]
