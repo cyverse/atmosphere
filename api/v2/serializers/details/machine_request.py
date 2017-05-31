@@ -25,7 +25,8 @@ from api.v2.serializers.summaries import (
     StatusTypeSummarySerializer
 )
 from api.v2.serializers.fields import (
-    ProviderMachineRelatedField, ModelRelatedField)
+    ProviderMachineRelatedField, ModelRelatedField, IdentityRelatedField
+)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from api.validators import NoSpecialCharacters
 
@@ -61,31 +62,6 @@ class ProviderRelatedField(serializers.RelatedField):
         return serializer.data
 
 
-class IdentityRelatedField(serializers.RelatedField):
-
-    def get_queryset(self):
-        return Identity.objects.all()
-
-    def to_representation(self, value):
-        identity = Identity.objects.get(pk=value.pk)
-        serializer = IdentitySummarySerializer(identity, context=self.context)
-        return serializer.data
-
-    def to_internal_value(self, data):
-        queryset = self.get_queryset()
-        if isinstance(data, dict):
-            identity = data.get("id", None)
-        else:
-            identity = data
-        try:
-            return queryset.get(id=identity)
-        except:
-            raise exceptions.ValidationError(
-                "Identity with id '%s' does not exist."
-                % identity
-            )
-
-
 class StatusTypeRelatedField(serializers.RelatedField):
 
     def get_queryset(self):
@@ -117,8 +93,7 @@ class StatusTypeRelatedField(serializers.RelatedField):
 class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
 
     uuid = serializers.CharField(read_only=True)
-    identity = IdentityRelatedField(source='membership.identity',
-                                    queryset=Identity.objects.none())
+    identity = IdentityRelatedField(source='membership.identity')
     # This is a *STAFF EXCLUSIVE* serializer. These are the values that make it that way:
     admin_message = serializers.CharField(read_only=True)
     parent_machine = ModelRelatedField(

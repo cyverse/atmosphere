@@ -9,6 +9,7 @@ from api.v2.serializers.summaries import (
     QuotaSummarySerializer,
     StatusTypeSummarySerializer
 )
+from api.v2.serializers.fields import IdentityRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
@@ -21,31 +22,6 @@ class UserRelatedField(serializers.PrimaryKeyRelatedField):
         user = User.objects.get(pk=value.pk)
         serializer = UserSummarySerializer(user, context=self.context)
         return serializer.data
-
-
-class IdentityRelatedField(serializers.RelatedField):
-
-    def get_queryset(self):
-        return Identity.objects.all()
-
-    def to_representation(self, value):
-        identity = Identity.objects.get(pk=value.pk)
-        serializer = IdentitySummarySerializer(identity, context=self.context)
-        return serializer.data
-
-    def to_internal_value(self, data):
-        queryset = self.get_queryset()
-        if isinstance(data, dict):
-            identity = data.get("id", None)
-        else:
-            identity = data
-        try:
-            return queryset.get(id=identity)
-        except:
-            raise exceptions.ValidationError(
-                "Identity with id '%s' does not exist."
-                % identity
-            )
 
 
 class AllocationRelatedField(serializers.RelatedField):
@@ -143,8 +119,7 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSummarySerializer(
         source='membership.identity.created_by',
         read_only=True)
-    identity = IdentityRelatedField(source='membership.identity',
-                                    queryset=Identity.objects.none())
+    identity = IdentityRelatedField(source='membership.identity')
     provider = ProviderSummarySerializer(
         source='membership.identity.provider',
         read_only=True)
