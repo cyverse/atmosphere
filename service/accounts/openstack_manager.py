@@ -1390,7 +1390,7 @@ class AccountDriver(BaseAccountDriver):
         os_args.pop("tenant_name", None)
         return os_args
 
-    def _create_allocation_source(allocation_source_name):
+    def _create_allocation_source(self,allocation_source_name):
         payload = {}
         payload['uuid'] = str(uuid.uuid4())
         payload['allocation_source_name'] = allocation_source_name
@@ -1405,7 +1405,7 @@ class AccountDriver(BaseAccountDriver):
 
         event.save()
 
-    def _assign_user_allocation_source(allocation_source_name, username):
+    def _assign_user_allocation_source(self,allocation_source_name, username):
         payload = {}
         payload['allocation_source_name'] = allocation_source_name
 
