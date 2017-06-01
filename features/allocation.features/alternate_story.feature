@@ -10,7 +10,7 @@ Feature: Testing an Alternate story
     Given one admin user and two regular users who can launch instances
 
 
-  Scenario: Use cases of allocation source
+  Scenario: Reproducing the bug with allocation source logic
 
     When admin creates allocation source
     |  name     |  compute allowed   |  renewal strategy   |   allocation_source_id | date_created |
@@ -47,5 +47,5 @@ Feature: Testing an Alternate story
 
     Then calculate allocations used by allocation source after certain number of days
     |  report start date                  | number of days   | total compute used   | current compute used | current compute allowed | allocation_source_id |
-    |      current                        |  1               |     0                | 0                    | 168                     | 1                    |
+    |      current                        |  1               |     24               | 24                   | 168                     | 1                    |
     |      current                        |  1               |     24               | 24                   | 168                     | 2                    |

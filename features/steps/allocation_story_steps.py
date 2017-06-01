@@ -1,6 +1,5 @@
 import uuid
 from datetime import timedelta
-
 from behave import *
 from dateutil.parser import parse
 from dateutil.rrule import rrule, HOURLY
@@ -85,7 +84,8 @@ def step_impl(context):
 
 @when('User launch Instance')
 def step_impl(context):
-    context.instance = {}
+    if not hasattr(context,'instance'):
+        context.instance = {}
     for row in context.table:
         user = AtmosphereUser.objects.get(username=row['username'])
         try:
@@ -133,7 +133,8 @@ def step_impl(context):
     current_time = context.current_time
     for row in context.table:
         allocation_source = AllocationSource.objects.filter(
-            uuid=context.allocation_sources[row['allocation_source_id']]).last()
+            name=context.allocation_sources_name[row['allocation_source_id']]).last()
+
         start_date = current_time if str(row['report start date']) == 'current' else parse(
             str(row['report start date']))
         end_date = start_date + timedelta(days=int(row['number of days']))
@@ -150,13 +151,13 @@ def step_impl(context):
         compute_used_total = 0
         for user in allocation_source.all_users:
             compute_used_total += total_usage(user.username, start_date=start_date,
-                                              end_date=end_date, allocation_source_name=allocation_source.name)
+                                              end_date=end_date, allocation_source_name=context.allocation_sources_name[row['allocation_source_id']])
 
         compute_allowed = AllocationSourceSnapshot.objects.filter(
             allocation_source=allocation_source).last().compute_allowed
         compute_used_from_snapshot = AllocationSourceSnapshot.objects.filter(
             allocation_source=allocation_source).last().compute_used
-        assert float(row['total compute used']) == compute_used_total
+        assert float(row['total compute used']) == float(compute_used_from_snapshot)
         assert float(row['current compute used']) == float(compute_used_from_snapshot)
         assert float(row['current compute allowed']) == float(compute_allowed)
         # assert (float(compute_allowed) - float(compute_used_from_snapshot)) == float(row['compute remaining'])
@@ -179,7 +180,7 @@ def step_impl(context):
         provider_alias = instance.provider_alias
         assert provider_alias is not None
         context.instance[row['instance_id']] = provider_alias
-        context.instance_history_args[row['instance_id']] = {'instnace': instance, 'provider': instance.provider,
+        context.instance_history_args[row['instance_id']] = {'instance': instance, 'provider': instance.provider,
                                                              'status': status, 'cpu': int(row["cpu"])}
 
 
@@ -188,7 +189,7 @@ def step_impl(context):
     for row in context.table:
         payload = {}
         payload['allocation_source_name'] = context.allocation_sources_name[row["allocation_source_id"]]
-        payload['instance_id'] = context.instance[row['instance_id']]
+        payload['instance_id'] = str(context.instance[row['instance_id']])
 
         name = 'instance_allocation_source_changed'
         ts = context.current_time
@@ -206,7 +207,7 @@ def step_impl(context):
 
         # create status history
         args = context.instance_history_args[row['instance_id']]
-        time_created = ts + timedelta(minutes=2)
+        time_created = ts + timedelta(seconds=3)
         launch_instance_history(args['instance'], args['cpu'], args['provider'], args['status'], time_created)
 
 # @when('Users added to allocation source launch instance (at the same time)')
