@@ -49,3 +49,13 @@ Feature: Testing an Alternate story
     |  report start date                  | number of days   | total compute used   | current compute used | current compute allowed | allocation_source_id |
     |      current                        |  1               |     24               | 24                   | 168                     | 1                    |
     |      current                        |  1               |     24               | 24                   | 168                     | 2                    |
+
+    And Compute Allowed is increased for Allocation Source
+    | allocation_source_id | new_compute_allowed |
+    |          1           |    400              |
+
+    # test that one off renewal task does not reset EVERY allocation source to the original compute allowed value
+    And One off Renewal task is run without rules engine
+    | current compute used | current compute allowed | allocation_source_id |
+    | 0                    | 400                     | 1                    |
+    | 0                    | 168                     | 2                    |
