@@ -2,23 +2,20 @@ import uuid
 from datetime import timedelta
 
 from behave import *
-from business_rules import run_all
 from dateutil.parser import parse
 from dateutil.rrule import rrule, HOURLY
 from django.test import modify_settings
 from django.test.client import Client
 from django.utils import timezone
-from cyverse_allocation.tasks import update_snapshot_cyverse
 
 from api.tests.factories import (
     InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
     ProviderMachineFactory, IdentityFactory, ProviderFactory, UserFactory)
 from core.models import (
     AllocationSourceSnapshot, AllocationSource, Instance, Size,
-    ProviderMachine, InstanceStatusHistory, AtmosphereUser)
+    ProviderMachine, InstanceStatusHistory, AtmosphereUser, EventTable, InstanceAllocationSourceSnapshot)
 from core.models.allocation_source import total_usage
-from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVariables, CyverseTestRenewalActions, \
-    cyverse_rules
+from cyverse_allocation.tasks import update_snapshot_cyverse
 
 
 ######## Story Implementation ##########
@@ -165,6 +162,53 @@ def step_impl(context):
         # assert (float(compute_allowed) - float(compute_used_from_snapshot)) == float(row['compute remaining'])
 
 
+# Alternate Story Step Implementation
+
+@when('User launch Instance and no statushistory is created')
+def step_impl(context):
+    context.instance = {}
+    context.instance_history_args = {}
+    for row in context.table:
+        user = AtmosphereUser.objects.get(username=row['username'])
+        try:
+            time_created = context.current_time if str(row['start_date']) == 'current' else parse(
+                str(row['start_date']))
+        except Exception as e:
+            raise Exception('Parsing the start date caused an error %s' % (e))
+        instance, status = launch_instance(user, time_created, int(row["cpu"]), before=True)
+        provider_alias = instance.provider_alias
+        assert provider_alias is not None
+        context.instance[row['instance_id']] = provider_alias
+        context.instance_history_args[row['instance_id']] = {'instnace': instance, 'provider': instance.provider,
+                                                             'status': status, 'cpu': int(row["cpu"])}
+
+
+@when('Instance Allocation Source Changed Event is fired BEFORE statushistory is created')
+def step_impl(context):
+    for row in context.table:
+        payload = {}
+        payload['allocation_source_name'] = context.allocation_sources_name[row["allocation_source_id"]]
+        payload['instance_id'] = context.instance[row['instance_id']]
+
+        name = 'instance_allocation_source_changed'
+        ts = context.current_time
+        entity_id = str(row["username"])
+
+        event = EventTable(name=name, payload=payload, timestamp=ts, entity_id=entity_id)
+        event.save()
+
+        # test the obj was created
+        obj = InstanceAllocationSourceSnapshot.objects.filter(
+            allocation_source__name=payload['allocation_source_name'],
+            instance__provider_alias=payload['instance_id'])
+
+        assert (len(obj) == 1)
+
+        # create status history
+        args = context.instance_history_args[row['instance_id']]
+        time_created = ts + timedelta(minutes=2)
+        launch_instance_history(args['instance'], args['cpu'], args['provider'], args['status'], time_created)
+
 # @when('Users added to allocation source launch instance (at the same time)')
 # def step_impl(context):
 #     user = [context.user_1,context.user_2]
@@ -226,7 +270,7 @@ def step_impl(context):
 
 ########### Helpers ###############
 
-def launch_instance(user, time_created, cpu):
+def launch_instance(user, time_created, cpu, before=False):
     # context.user is admin and regular user
     provider = ProviderFactory.create()
     from core.models import IdentityMembership, Identity
@@ -253,6 +297,14 @@ def launch_instance(user, time_created, cpu):
         created_by=user,
         created_by_identity=user_identity,
         start_date=time_created)
+
+    if not before:
+        return launch_instance_history(instance_state, cpu, provider, status, time_created)
+
+    return instance_state, status
+
+
+def launch_instance_history(instance_state, cpu, provider, status, time_created):
 
     size = Size(alias=uuid.uuid4(), name='small', provider=provider, cpu=cpu, disk=1, root=1, mem=1)
     size.save()
