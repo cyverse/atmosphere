@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework import filters
 import django_filters
 
-from core.models import Identity, Group
+from core.models import Identity, Group, AtmosphereUser
 from core.query import only_current_provider
 
 from api.v2.serializers.details import IdentitySerializer
@@ -47,11 +47,26 @@ class IdentityViewSet(MultipleFieldLookup, AuthModelViewSet):
             export_data,
             status=status.HTTP_200_OK)
 
+    def queryset_by_username(self, username):
+        try:
+            group = Group.objects.get(name=username)
+        except Group.DoesNotExist:
+            return Identity.objects.none()
+        identities = group.current_identities.all()
+        return identities
 
     def get_queryset(self):
         """
         Filter identities by current user
         """
         user = self.request.user
-        identity_list = Identity.shared_with_user(user).filter(only_current_provider())
-        return identity_list
+        idents = Identity.shared_with_user(user)
+        if user.is_admin():
+            if 'all_users' in self.request.GET:
+                idents = Identity.objects.all()
+            if 'username' in self.request.GET:
+                target_username = self.request.GET.get('username')
+                user = AtmosphereUser.objects.get(username=target_username)
+                idents = Identity.shared_with_user(user)
+
+        return idents.filter(only_current_provider())
