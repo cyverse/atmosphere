@@ -74,7 +74,9 @@ def _assign_instance_allocation_source(allocation_source_name, username, instanc
 
 
 def create_and_assign_allocationsource(apps, schema_editor):
-    if 'jetstream' in settings.INSTALLED_APPS:
+    JETSTREAM_INSTALLED = apps.is_installed('jetstream')
+    if JETSTREAM_INSTALLED:
+        print "Jetstream installed -- Skipping migration 0084...",
         return
     AllocationSourceTable = apps.get_model('core', 'AllocationSource')
     UserAllocationSourceTable = apps.get_model('core', 'UserAllocationSource')
