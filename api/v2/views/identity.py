@@ -28,6 +28,7 @@ class IdentityViewSet(MultipleFieldLookup, AuthModelViewSet):
     """
     filter_class = IdentityFilter
     lookup_fields = ("id", "uuid")
+    serializer_class = IdentitySerializer
     queryset = Identity.objects.all()
     http_method_names = ['get', 'head', 'options', 'trace']
 
@@ -46,11 +47,6 @@ class IdentityViewSet(MultipleFieldLookup, AuthModelViewSet):
             export_data,
             status=status.HTTP_200_OK)
 
-    def get_serializer_class(self):
-        serializer_class = IdentitySerializer
-        if self.action == 'openrc':
-            return serializer_class
-        return serializer_class
 
     def get_queryset(self):
         """
