@@ -410,8 +410,9 @@ def create_admin(provider, admin_info):
     (user, group) = Group.create_usergroup(username)
 
     try:
-        new_identity = Identity.objects.get(provider=provider,
-                                            created_by=user)
+        new_identity = Identity.objects.get(
+            provider=provider,
+            created_by=user)  # FIXME: This will need to be more explicit, look for AccountProvider?
     except Identity.DoesNotExist:
         new_identity = Identity.objects.create(
             provider=provider,
@@ -476,7 +477,7 @@ def create_provider(provider_info, provider_credentials={}, cloud_config={}):
 
 
 def create_provider_credentials(provider, credential_info):
-    REQUIRED_FIELDS = ["admin_url", "auth_url", "public_routers", "region_name"]
+    REQUIRED_FIELDS = ["admin_url", "auth_url", "region_name"]
 
     if not has_fields(credential_info, REQUIRED_FIELDS):
         print "Please add missing credential information."
@@ -533,7 +534,12 @@ def _create_provider_and_identity(arguments):
 
 
 def validate_new_provider(new_provider, new_identity):
-    acct_driver = get_account_driver(new_provider, raise_exception=True)
+    acct_driver = None
+    try:
+        acct_driver = get_account_driver(new_provider, raise_exception=True)
+    except Exception as exc:
+        print "Error occurred creating account driver: %s" % exc
+
     if not acct_driver:
         print "Could not create an account driver for the new Provider"\
                 " %s - %s. Check your credentials and try again. "\
