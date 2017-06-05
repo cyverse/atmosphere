@@ -26,11 +26,23 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     def get_queryset(self):
         """
-        Get allocation sources for user
+        Get allocation sources by user or by all users
         """
         user = self.request.user
-        sources = UserAllocationSource.objects.filter(user=user).values_list('allocation_source')
-        return AllocationSource.objects.filter(id__in=sources)
+        if user.is_admin():
+            if 'all_users' in self.request.GET:
+                return AllocationSource.objects.all()
+            if 'username' in self.request.GET:
+                target_username = self.request.GET.get('username')
+                return self.queryset_by_username(target_username)
+        return self.queryset_by_username(user.username)
+
+    def queryset_by_username(self, username):
+        """
+        Get allocation sources for user
+        """
+        sources = UserAllocationSource.objects.filter(user__username=username)
+        return AllocationSource.objects.filter(id__in=sources.values_list('allocation_source'))
 
     def create(self, request):
         """
