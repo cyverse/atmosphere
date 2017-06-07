@@ -485,6 +485,13 @@ EXPIRATION_PLUGINS = [
 ]
 {%- endif %}
 
+# Support for Guacamole
+GUACAMOLE_ENABLED = {{ GUACAMOLE_ENABLED }}
+GUACAMOLE = {
+    'SECRET_KEY': '{{ GUACAMOLE_SECRET_KEY }}',
+    'SERVER_URL': '{{ GUACAMOLE_SERVER_URL }}'
+}
+
 # Support for Web Desktop
 WEB_DESKTOP_INCLUDE_LINK = {{ WEB_DESKTOP_INCLUDE_LINK }}
 
@@ -496,5 +503,10 @@ WEB_DESKTOP = {
     'fingerprint': {
         'SECRET_KEY': '{{ WEB_DESKTOP_FP_SECRET_KEY }}',
         'SALT': '{{ WEB_DESKTOP_FP_SALT }}'
+    }
+    'redirect': {
+        'ENABLED': WEB_DESKTOP_INCLUDE_LINK,
+        'PROXY_URL': '{{ WEB_DESKTOP_PROXY_URL }}',
+        'COOKIE_DOMAIN': '{{ WEB_DESKTOP_PROXY_DOMAIN }}'
     }
 }

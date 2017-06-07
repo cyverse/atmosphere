@@ -105,11 +105,18 @@ VALIDATION_PLUGINS = ["atmosphere.plugins.auth.validation.AlwaysAllow"] # list o
 SENTRY_ENABLED =  True # Boolean required or False
 SENTRY_DSN = # https://...@sentry.io/....
 
+# - feature flag: GUACAMOLE_ENABLED
+GUACAMOLE_ENABLED = False
+GUACAMOLE_SECRET_KEY =
+GUACAMOLE_SERVER_URL =
+
 # Web Desktop - feature flag is WEB_DESKTOP_INCLUDE_LINK
 WEB_DESKTOP_SIGNING_SALT =
 WEB_DESKTOP_FP_SALT =
 WEB_DESKTOP_SIGNING_SECRET_KEY =
 WEB_DESKTOP_FP_SECRET_KEY =
+WEB_DESKTOP_PROXY_URL  =
+WEB_DESKTOP_PROXY_DOMAIN =
 WEB_DESKTOP_INCLUDE_LINK = False
 
 #NOTE: Jetstream Specific
