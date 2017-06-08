@@ -722,12 +722,6 @@ class Instance(AuthAPIView):
                 identity=Identity.objects.get(uuid=identity_uuid))
 
             existing_instance = esh_driver.get_instance(instance_id)
-            if existing_instance:
-                # Instance will be deleted soon...
-                esh_instance = existing_instance
-                if esh_instance.extra\
-                   and 'task' not in esh_instance.extra:
-                    esh_instance.extra['task'] = 'queueing delete'
         except VolumeAttachConflict as exc:
             message = exc.message
             return failure_response(status.HTTP_409_CONFLICT, message)
@@ -746,13 +740,19 @@ class Instance(AuthAPIView):
                                     str(exc.message))
 
         try:
-            core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                                 provider_uuid, identity_uuid,
-                                                 user)
-            if core_instance:
-                core_instance.end_date_all()
-            else:
+            if existing_instance:
+                # Instance will be deleted soon...
+                esh_instance = existing_instance
+                if esh_instance.extra\
+                   and 'task' not in esh_instance.extra:
+                    esh_instance.extra['task'] = 'queueing delete'
+                core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                                     provider_uuid, identity_uuid,
+                                                     user)
+            if not core_instance:
                 logger.warn("Unable to find core instance %s." % (instance_id))
+                core_instance = CoreInstance.objects.filter(
+                    provider_alias=instance_id).first()
             serialized_data = InstanceSerializer(
                 core_instance,
                 context={"request": request}).data
