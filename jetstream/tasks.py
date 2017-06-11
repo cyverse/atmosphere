@@ -1,5 +1,3 @@
-import logging
-
 from celery.decorators import task
 from django.conf import settings
 from django.utils import timezone
@@ -14,7 +12,7 @@ from .allocation import (TASAPIDriver, fill_user_allocation_sources, select_vali
 from .exceptions import TASPluginException
 from .models import TASAllocationReport
 
-logger = logging.getLogger(__name__)
+from threepio import logger
 
 
 @task(name="monitor_jetstream_allocation_sources")
@@ -33,6 +31,7 @@ def create_reports():
     For each username, get an XSede API map to the 'TACC username'
     if 'TACC username' includes a jetstream resource, create a report
     """
+    logger.debug('create_reports - START')
     user_allocation_list = UserAllocationSource.objects.all()
     all_reports = []
     end_date = timezone.now()
@@ -45,6 +44,8 @@ def create_reports():
 
     for item in user_allocation_list:
         allocation_name = item.allocation_source.name
+        logger.debug('create_reports - allocation_name: %s', allocation_name)
+        logger.debug('create_reports - item.user: %s', item.user)
         project_report = _create_reports_for(item.user, allocation_name, end_date)
         if project_report:
             all_reports.append(project_report)
@@ -66,6 +67,7 @@ def create_reports():
 
 
 def _create_reports_for(user, allocation_name, end_date):
+    logger.debug('_create_reports_for - user: %s, allocation_name: %s, end_date: %s', user, allocation_name, end_date)
     driver = TASAPIDriver()
     tacc_username = driver.get_tacc_username(user)
     if not tacc_username:
@@ -144,7 +146,9 @@ def send_reports():
     failed_reports = 0
     reports_to_send = TASAllocationReport.objects.filter(success=False).order_by('user__username', 'start_date')
     count = reports_to_send.count()
-    for tas_report in reports_to_send:
+    logger.info('send_reports - count: %d', count)
+    for current_report_index, tas_report in enumerate(reports_to_send):
+        logger.debug('send_reports - current_report_index: %d', current_report_index)
         try:
             tas_report.send()
         except TASPluginException:
