@@ -1,6 +1,7 @@
 from celery.decorators import task
 from django.conf import settings
 from django.utils import timezone
+import django.db.models
 
 from core.models import EventTable, AtmosphereUser
 from core.models.allocation_source import (
@@ -35,12 +36,14 @@ def create_reports():
     user_allocation_list = UserAllocationSource.objects.all()
     all_reports = []
     end_date = timezone.now()
-    last_report_date = TASAllocationReport.objects.order_by('end_date')
+    logger.debug('create_reports - end_date: %s', end_date)
+    max_report_end_date = TASAllocationReport.objects.all().aggregate(django.db.models.Max('end_date'))
 
-    if not last_report_date:
+    if not max_report_end_date:
         last_report_date = end_date
     else:
-        last_report_date = last_report_date.last().end_date
+        last_report_date = max_report_end_date['end_date__max']
+    logger.info('create_reports - last_report_date: %s', last_report_date)
 
     for item in user_allocation_list:
         allocation_name = item.allocation_source.name
