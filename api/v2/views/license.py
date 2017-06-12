@@ -1,11 +1,11 @@
 from api import permissions
 from api.v2.serializers.details import LicenseSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from core.models import License
 
 
-class LicenseViewSet(MultipleFieldLookup, AuthViewSet):
+class LicenseViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows licenses to be viewed or edited.

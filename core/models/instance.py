@@ -208,14 +208,14 @@ class Instance(models.Model):
         import traceback
         # 1. Get status name
         status_name = _get_status_name_for_provider(
-            self.provider_machine.provider,
+            self.source.provider,
             status_name,
             task,
             tmp_status)
         activity = self.esh_activity()
         # 2. Get the last history (or Build a new one if no other exists)
-        last_history = self.get_last_history()
-        if not last_history:
+        has_history = self.instancestatushistory_set.all().count()
+        if not has_history:
             last_history = InstanceStatusHistory.create_history(
                 status_name, self, size, start_date=self.start_date, activity=activity)
             last_history.save()
@@ -227,6 +227,7 @@ class Instance(models.Model):
                                               tmp_status))
             logger.debug("STATUSUPDATE - Traceback: %s"
                          % traceback.format_stack())
+        last_history = self.get_last_history()
         # 2. Size and name must match to continue using last history
         if last_history.status.name == status_name \
                 and last_history.size.id == size.id:
@@ -516,9 +517,8 @@ class Instance(models.Model):
 
     @property
     def allocation_source(self):
-        #FIXME: look up the current allocation source by "Scanning the event table" on this instance.
-        from core.models.allocation_source import \
-                InstanceAllocationSourceSnapshot as Snapshot
+        # FIXME: look up the current allocation source by "Scanning the event table" on this instance.
+        from core.models.allocation_source import InstanceAllocationSourceSnapshot as Snapshot
         snapshot = Snapshot.objects.filter(instance=self).first()
         return snapshot.allocation_source if snapshot else None
 
@@ -526,8 +526,6 @@ class Instance(models.Model):
         """
         Call this method when you want to issue a 'change_allocation_source' event to the database.
         """
-        if not settings.USE_ALLOCATION_SOURCE:
-            return
         from core.models.event_table import EventTable
         if not user:
             user = self.created_by
@@ -568,6 +566,10 @@ Useful utility methods for the Core Model..
 """
 OPENSTACK_TASK_STATUS_MAP = {
     # Terminate tasks
+    # Shelving tasks
+    'shelving': 'shelved',
+    'shelving_image_uploading': 'shelved',
+    'shelving_image_pending_upload': 'shelved',
     # Suspend tasks
     'resuming': 'build',
     'suspending': 'suspended',
@@ -808,7 +810,7 @@ def convert_esh_instance(
         _update_core_instance(core_instance, ip_address, password)
     else:
         start_date = _find_esh_start_date(esh_instance)
-        logger.debug("Instance: %s" % instance_id)
+        logger.debug("Creating new CoreInstance: %s" % instance_id)
         core_source = convert_instance_source(
             esh_driver,
             esh_instance,
@@ -834,7 +836,6 @@ def convert_esh_instance(
     # Update the InstanceStatusHistory
     core_size = _esh_instance_size_to_core(esh_driver,
                                            esh_instance, provider_uuid)
-    # TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
         core_size,
@@ -932,5 +933,5 @@ def create_instance(
     else:
         logger.debug("New instance object - %s<%s>" %
                      (name, provider_alias,))
-    # NOTE: No instance_status_history here, because status is not passed
+    # FIXME: create instance_status_history here, pass in size & status to help
     return new_inst

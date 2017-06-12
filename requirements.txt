@@ -6,20 +6,20 @@
 #
 -e git+https://github.com/steve-gregory/billiard.git#egg=billiard
 -e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient
-
 amqp==2.1.4               # via kombu
-ansible==2.3.0.0
+ansible==2.3.0.0          # via subspace
 apache-libcloud==0.20.1
 appdirs==1.4.3            # via os-client-config, setuptools
 asn1crypto==0.22.0        # via cryptography
 babel==2.3.4              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-neutronclient, python-novaclient, python-openstackclient
 backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud, tornado
 boto==2.39.0              # via chromogenic
+business-rules==1.0.1
 caslib.py==2.2.2          # via django-cyverse-auth
 celery==4.0.2
 certifi==2017.1.23        # via tornado
-cffi==1.10.0               # via cryptography
-chromogenic==0.4.2
+cffi==1.10.0              # via cryptography
+chromogenic==0.4.7
 cliff==2.4.0              # via osc-lib, python-neutronclient, python-openstackclient
 cmd2==0.7.0               # via cliff
 contextlib2==0.5.4        # via raven
@@ -52,7 +52,8 @@ httplib2==0.10.3          # via oauth2client
 idna==2.5                 # via cryptography
 ipaddress==1.0.18         # via cryptography
 iso8601==0.1.11           # via keystoneauth1, oslo.utils, python-neutronclient, python-novaclient
-jinja2==2.9.6
+itsdangerous==0.24
+Jinja2==2.8.1             # via ansible
 jsonpatch==1.15           # via warlock
 jsonpointer==1.10         # via jsonpatch
 jsonschema==2.6.0         # via warlock
@@ -80,7 +81,7 @@ paramiko==2.1.2           # via ansible, fabric
 pbr==2.0.0                # via cliff, debtcollector, keystoneauth1, openstacksdk, osc-lib, oslo.i18n, oslo.serialization, oslo.utils, positional, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, requestsexceptions, rtwo, stevedore
 Pillow==2.5.3
 positional==1.1.1         # via keystoneauth1, python-keystoneclient
-prettytable==0.7.2        # via cliff, python-cinderclient, python-glanceclient, python-irodsclient, python-novaclient
+prettytable==0.7.2        # via cliff, python-cinderclient, python-glanceclient, python-novaclient
 psycopg2==2.5.4
 pyasn1-modules==0.0.8     # via oauth2client
 pyasn1==0.2.3             # via oauth2client, paramiko, pyasn1-modules, requests, rsa
@@ -110,7 +111,7 @@ requestsexceptions==1.2.0  # via os-client-config
 rfc3986==0.4.1            # via oslo.config
 rfive==0.2.0              # via rtwo
 rsa==3.4.2                # via oauth2client
-rtwo==0.5.8
+rtwo==0.5.10
 simplejson==3.10.0        # via osc-lib, python-cinderclient, python-neutronclient, python-novaclient
 six==1.10.0               # via cliff, cmd2, cryptography, debtcollector, djangorestframework-csv, keystoneauth1, oauth2client, openstacksdk, osc-lib, oslo.config, oslo.i18n, oslo.serialization, oslo.utils, packaging, pyopenssl, python-cinderclient, python-dateutil, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-swiftclient, setuptools, stevedore, warlock
 stevedore==1.21.0         # via cliff, keystoneauth1, openstacksdk, osc-lib, oslo.config, python-keystoneclient

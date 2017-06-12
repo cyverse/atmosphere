@@ -89,11 +89,13 @@ class HypervisorCapacityError(ServiceException):
 
 class OverAllocationError(ServiceException):
 
-    def __init__(self, amount_exceeded):
+    def __init__(self, source_name, amount_exceeded):
         self.overage = amount_exceeded
-        self.message = "Time allocation exceeded: Instance usage is over by "\
-            "%s."\
-            % (self.overage,)
+        self.message = "Time allocation exceeded: "\
+            "Allocation %s is over 100%% by "\
+            "%s hours."\
+            % (source_name,
+               self.overage)
         super(OverAllocationError, self).__init__(self.message)
 
     def __str__(self):
@@ -119,6 +121,7 @@ class OverQuotaError(ServiceException):
 class DeviceBusyException(ServiceException):
 
     def __init__(self, mount_loc, process_list):
+        self.process_list = process_list
         proc_str = ''
         for proc_name, pid in process_list:
             proc_str += '\nProcess name:%s process id:%s' % (proc_name, pid)
@@ -193,3 +196,7 @@ class VolumeMountConflict(ServiceException):
 
 class AnsibleDeployException(AnsibleError, ServiceException):
     pass
+
+class TimeoutError(Exception):
+    pass
+

@@ -1,8 +1,6 @@
 [COMMON]
 # Examples of each are listed behind the #
 SERVER_URL = # https://www.my-website.com
-LDAP_SERVER = # ldap://my.ldap.com
-LDAP_SERVER_DN = # ou=example,dc=org
 TOKEN_EXPIRY_TIME_DAYS = 1 # (Integer required)
 DJANGO_SERVER_URL = # https://www.my-website.com
 VIRTUALENV_PATH =# /path/virtualenv/atmo
@@ -78,7 +76,6 @@ TESTING =  False # Boolean required
 #local.py - site configuration
 AUTO_CREATE_NEW_ACCOUNTS =  False # Boolean required
 USE_JETSTREAM_PLUGIN =  False # Boolean required
-USE_ALLOCATION_SOURCE =  False # Boolean required
 TIME_ZONE = # America/Phoenix
 SITE_NAME = # CyVerse
 ORG_NAME = # CyVerse
@@ -108,6 +105,13 @@ EXPIRATION_PLUGINS = ["atmosphere.plugins.auth.validation.NeverExpire"] # list o
 VALIDATION_PLUGINS = ["atmosphere.plugins.auth.validation.AlwaysAllow"] # list of plugins
 SENTRY_ENABLED =  True # Boolean required or False
 SENTRY_DSN = # https://...@sentry.io/....
+
+# Web Desktop - feature flag is WEB_DESKTOP_INCLUDE_LINK
+WEB_DESKTOP_SIGNING_SALT =
+WEB_DESKTOP_FP_SALT =
+WEB_DESKTOP_SIGNING_SECRET_KEY =
+WEB_DESKTOP_FP_SECRET_KEY =
+WEB_DESKTOP_INCLUDE_LINK = False
 
 #NOTE: Jetstream Specific
 TACC_API_USER = # "tas-username"

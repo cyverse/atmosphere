@@ -245,13 +245,13 @@ def _remove_extra_floating_ips(driver, tenant_name):
     return num_ips_removed
 
 
-def _remove_ips_from_inactive_instances(driver, instances):
+def _remove_ips_from_inactive_instances(driver, instances, core_identity):
     from service import instance as instance_service
     for instance in instances:
         # DOUBLE-CHECK:
         if driver._is_inactive_instance(instance) and instance.ip:
             # If an inactive instance has floating/fixed IPs.. Remove them!
-            instance_service.remove_ips(driver, instance)
+            instance_service.remove_ips(driver, instance, str(core_identity.uuid))
     return True
 
 
@@ -309,7 +309,7 @@ def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
     # Inactive True IFF ALL instances are suspended/stopped
     inactive_instances = all(driver._is_inactive_instance(inst)
                              for inst in instances)
-    _remove_ips_from_inactive_instances(driver, instances)
+    _remove_ips_from_inactive_instances(driver, instances, core_identity)
     if active_instances and not inactive_instances:
         # User has >1 active instances AND not all instances inactive_instances
         return (num_ips_removed, False)
@@ -632,10 +632,16 @@ def get_chain_from_build(
     """
     wait_active_task = wait_for_instance.s(
         instance.id, driverCls, provider, identity, "active")
+    has_secret = core_identity.get_credential('secret') is not None
+    if not has_secret:
+        add_security_group = add_security_group_task.si(driverCls, provider, core_identity, instance.id)
+        wait_active_task.link(add_security_group)
     start_chain = wait_active_task
     network_start = get_chain_from_active_no_ip(
         driverCls, provider, identity, instance, core_identity, username=username,
         password=password, redeploy=redeploy, deploy=deploy)
+    if not has_secret:
+        add_security_group.link(network_start)
     start_chain.link(network_start)
     return start_chain
 
@@ -1282,6 +1288,30 @@ def check_web_desktop_task(driverCls, provider, identity,
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
         check_web_desktop_task.retry(exc=exc)
+
+
+@task(name="add_security_group_task",
+      max_retries = 5,
+      default_retry_delay=10)
+def add_security_group_task(driverCls, provider, core_identity,
+                            instance_alias, *args, **kwargs):
+    """
+    Assign the security group to the instance using the OpenStack Nova API
+    """
+    from service.instance import _to_user_driver
+    user_driver = _to_user_driver(core_identity)
+    user_nova = user_driver.nova
+    try:
+        server_instance = user_nova.servers.get(instance_alias)
+    except:
+        raise Exception("Cannot find the instance")
+    try:
+        security_group_name = core_identity.provider.get_config("network", "security_group_name", "default")
+        server_instance.add_security_group(security_group_name)
+    except:
+        raise Exception("Cannot add the security group to the instance usng nova")
+    return True
+
 
 
 @task(name="check_process_task",

@@ -8,7 +8,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
-from core.plugins import ValidationPluginManager, ExpirationPluginManager
+from core.plugins import ValidationPluginManager, ExpirationPluginManager, DefaultQuotaPluginManager
 from core.exceptions import InvalidUser
 from threepio import logger
 from django.utils.translation import ugettext_lazy as _
@@ -316,7 +316,8 @@ def create_new_account_for(provider, user):
     try:
         accounts = get_account_driver(provider)
         logger.info("Create NEW account for %s" % user.username)
-        new_identity = accounts.create_account(user.username)
+        default_quota = DefaultQuotaPluginManager.default_quota(user=user, provider=provider)
+        new_identity = accounts.create_account(user.username, quota=default_quota)
         return new_identity
     except AccountCreationConflict:
         raise  # TODO: Ideally, have sentry handle these events, rather than force an Unhandled 500 to bubble up.

@@ -10,17 +10,18 @@ from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.settings import api_settings
 
-from api.renderers import PandasExcelRenderer
+from api.renderers import PandasExcelRenderer, CSVRenderer
 from api.v2.exceptions import failure_response
 from api.v2.serializers.details import InstanceReportingSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from core.models import Instance
 
 
-class ReportingViewSet(AuthViewSet):
-    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [PandasExcelRenderer, ]
+class ReportingViewSet(AuthModelViewSet):
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [PandasExcelRenderer, CSVRenderer]
     pagination_class = None
     serializer_class = InstanceReportingSerializer
+    queryset = Instance.objects.none()
     ordering_fields = ('id', 'start_date')
     http_method_names = ['get', 'head', 'options', 'trace']
 
@@ -248,6 +249,10 @@ class ReportingViewSet(AuthViewSet):
             query &= Q(start_date__lt=end_date)
         if 'username' in query_params:
             query &= Q(created_by__username=query_params['username'])
+        if 'source_alias' in query_params:
+            query &= Q(source__identifier=query_params['source_alias'])
+        if 'status' in query_params:
+            query &= Q(instancestatushistory__status__name=query_params['status'])
 
         return query
 

@@ -1,7 +1,8 @@
 {
     "SECTION_MAPPING": {
         "celeryd.default": [
-            "celeryd.default"
+            "celeryd.default",
+            "celeryd.sysd.default"
         ],
         "local.py": [
             "local.py"
@@ -20,6 +21,10 @@
         "celeryd.default": [
             "extras/init.d/celeryd.default.dist.j2",
             "extras/init.d/celeryd.default"
+        ],
+        "celeryd.sysd.default": [
+          "extras/systemd/celeryd.default.dist.j2",
+          "extras/systemd/celeryd.default"
         ],
         "local.py": [
             "atmosphere/settings/local.py.j2",

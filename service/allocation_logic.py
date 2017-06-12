@@ -5,7 +5,7 @@ from django.db.models.query import Q
 from core.models import EventTable
 from core.models.instance import Instance
 from core.models.allocation_source import UserAllocationSource, AllocationSource
-
+from threepio import logger
 
 def create_report(report_start_date, report_end_date, user_id=None, allocation_source_name=None):
     if not report_start_date or not report_end_date:
@@ -16,7 +16,6 @@ def create_report(report_start_date, report_end_date, user_id=None, allocation_s
     except:
         raise Exception("Cannot parse start and end dates for allocation calculation function")
     data = generate_data(report_start_date, report_end_date, username=user_id)
-
     if allocation_source_name:
         output = []
         for row in data:
@@ -61,6 +60,8 @@ def filter_events_and_instances(report_start_date, report_end_date, username=Non
             raise Exception("User '%s' does not exist"%(username))
         events = events.filter(Q(payload__username__exact=username) | Q(entity_id=username)).order_by('timestamp')
         instances = instances.filter(Q(created_by__exact=user_id_int))
+    instance_ids = instances.values_list("id", flat=True)
+    logger.info("Checking instance IDs %s for User %s" % (instance_ids, username))
     return {'events': events, 'instances': instances}
 
 
@@ -103,12 +104,13 @@ def get_allocation_source_name_from_event(username, report_start_date, instance_
     if not events:
         return False
     else:
-        allocation_source_object = AllocationSource.objects.filter(name=events.last().payload['allocation_source_name'])
-        if allocation_source_object:
-            return allocation_source_object.last().name
-        else:
-            raise Exception('Allocation Source %s in event %s does not exist' % (events.last().payload['allocation_source_name'],events.last().id))
-       
+        try:
+            allocation_source_object = AllocationSource.objects.get(name=events.last().payload['allocation_source_name'])
+        except KeyError:
+            allocation_source_object = AllocationSource.objects.get(
+                uuid=events.last().payload['allocation_source_id'])
+        return allocation_source_object.name
+
 
 def create_rows(filtered_instance_histories, events_histories_dict, report_start_date, report_end_date):
     data = []
@@ -150,7 +152,7 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                     filled_row_temp['instance_status_end_date'] = end_date
                     filled_row_temp['allocation_source'] = allocation_source_name 
                     try:
-                        new_allocation_source =event.payload['allocation_source_name']
+                        new_allocation_source = event.payload['allocation_source_name']
                     except:
                         new_allocation_source = 'N/A'
                     allocation_source_name = new_allocation_source
@@ -193,6 +195,7 @@ def fill_data(row, history_obj, allocation_source):
     row['username'] = history_obj.instance.created_by.username
     row['allocation_source'] = allocation_source
     row['instance_id'] = history_obj.instance_id
+    row['image_name'] = Instance.objects.get(id=history_obj.instance_id).application_name()
     row['provider_alias'] = history_obj.instance.provider_alias
     row['instance_status_history_id'] = history_obj.id
     row['cpu'] = history_obj.size.cpu
@@ -202,6 +205,7 @@ def fill_data(row, history_obj, allocation_source):
     row['instance_status_end_date'] = still_running if not history_obj.end_date else history_obj.end_date
     row['instance_status'] = history_obj.status.name
     row['duration'] = (still_running - history_obj.start_date).total_seconds() if not history_obj.end_date else (history_obj.end_date - history_obj.start_date).total_seconds()
+    row['current_time'] = still_running
     return row
 
 

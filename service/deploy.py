@@ -37,6 +37,8 @@ def ansible_deployment(
     """
     if not check_ansible():
         return []
+    # Expecting to be path-relative to the playbook path, so use basename
+    limit_playbooks = [os.path.basename(filepath) for filepath in limit_playbooks]
     logger = create_instance_logger(
         deploy_logger,
         instance_ip,
@@ -444,6 +446,8 @@ def check_process(proc_name):
 def umount_volume(mount_location):
     return ScriptDeployment("mounts=`mount | grep '%s' | cut -d' ' -f3`; "
                             "for mount in $mounts; do umount %s; done;"
+                            "/bin/sed -i \"/vd[c-z]/d\" /etc/fstab;"  # should work for most
+                            "/bin/sed -i \"/vol_[b-z]/d\" /etc/fstab;"  # should catch any lingerers
                             % (mount_location, mount_location),
                             name="./deploy_umount_volume.sh")
 

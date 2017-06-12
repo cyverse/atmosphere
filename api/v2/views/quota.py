@@ -1,12 +1,12 @@
 from api.v2.serializers.details import QuotaSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.permissions import CloudAdminRequired
 from api.pagination import OptionalPagination
 from core.models import Quota
 
 
-class QuotaViewSet(MultipleFieldLookup, AuthViewSet):
+class QuotaViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.
