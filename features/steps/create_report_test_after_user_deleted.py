@@ -16,7 +16,7 @@ from jetstream.models import *
 logger = logging.getLogger(__name__)
 
 
-@given('Allocation Source')
+@given('a test Allocation Source')
 def step_impl(context):
     context.current_time = timezone.now()
     name, compute_allowed = "testSource", 1000

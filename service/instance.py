@@ -15,9 +15,9 @@ from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     OSProvider, OSValhallaProvider
 from rtwo.exceptions import LibcloudBadResponseError
 from rtwo.driver import OSDriver
+from rtwo.drivers.openstack_user import UserManager
 from service.driver import AtmosphereNetworkManager
 from service.mock import AtmosphereMockDriver, AtmosphereMockNetworkManager
-
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
@@ -26,6 +26,7 @@ from libcloud.common.exceptions import BaseHTTPError  # Move into rtwo.exception
 
 from core.query import only_current
 from core.models.instance_source import InstanceSource
+from core.models import AtmosphereUser
 from core.models.ssh_key import get_user_ssh_keys
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
@@ -52,6 +53,7 @@ from service.exceptions import (
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
+from neutronclient.common.exceptions import Conflict
 
 def _get_size(esh_driver, esh_instance):
     if isinstance(esh_instance.size, MockSize):
@@ -148,7 +150,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
                   reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    raise LibcloudInvalidCredsError
     """
     _permission_to_act(identity_uuid, "Stop")
     if reclaim_ip:
@@ -172,6 +174,7 @@ def start_instance(esh_driver, esh_instance,
     """
 
     raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    FIXME: actually raise OverQuota, OverAllocationError
     """
     # Don't check capacity because.. I think.. its already being counted.
     _permission_to_act(identity_uuid, "Start")
@@ -212,7 +215,7 @@ def suspend_instance(esh_driver, esh_instance,
                      user, reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    raise LibcloudInvalidCredsError
     """
     _permission_to_act(identity_uuid, "Suspend")
     if reclaim_ip:
@@ -539,6 +542,7 @@ def resume_instance(esh_driver, esh_instance,
                     update_meta=True):
     """
     raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    FIXME: actually raise OverQuota, OverAllocationError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Resume")
@@ -570,7 +574,7 @@ def shelve_instance(esh_driver, esh_instance,
                     user, reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    raise LibcloudInvalidCredsError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Shelve")
@@ -598,11 +602,11 @@ def unshelve_instance(esh_driver, esh_instance,
                       update_meta=True):
     """
     raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    FIXME: actually raise OverQuota, OverAllocationError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Unshelve")
     _update_status_log(esh_instance, "Unshelving Instance")
-    size = _get_size(esh_driver, esh_instance)
     admin_capacity_check(provider_uuid, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
@@ -622,7 +626,7 @@ def offload_instance(esh_driver, esh_instance,
                      user, reclaim_ip=True):
     """
 
-    raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
+    raise LibcloudInvalidCredsError
     """
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Shelve Offload")
@@ -814,15 +818,19 @@ def _pre_launch_validation(
         esh_driver,
         identity_uuid,
         boot_source,
-        size):
+        size,
+        allocation_source):
     """
     Used BEFORE launching a volume/instance .. Raise exceptions here to be dealt with by the caller.
     """
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
 
-    # May raise OverQuotaError or OverAllocationError
+    # May raise OverQuotaError
     check_quota(username, identity_uuid, size,
             include_networking=True)
+
+    # May raise OverAllocationError
+    check_allocation(username, allocation_source)
 
     # May raise UnderThresholdError
     check_application_threshold(username, identity_uuid, size, boot_source)
@@ -876,7 +884,8 @@ def launch_instance(user, identity_uuid,
         esh_driver,
         identity_uuid,
         boot_source,
-        size)
+        size,
+        launch_kwargs.get('allocation_source'))
 
     core_instance = _select_and_launch_source(
         user,
@@ -1137,7 +1146,8 @@ def _complete_launch_instance(
     core_instance = convert_esh_instance(
         driver, instance, identity.provider.uuid, identity.uuid,
         user, token, password)
-    # Update InstanceStatusHistory
+
+    # FIXME: Remove duplicate line below, this happens inside convert_esh_instance
     _first_update(driver, identity, core_instance, instance)
     # call async task to deploy to instance.
     task.deploy_init_task(driver, instance, identity, user.username,
@@ -1289,9 +1299,18 @@ def _test_for_licensing(esh_machine, identity):
         (application.name, app_version.name))
 
 
+def check_allocation(username, allocation_source):
+    user = AtmosphereUser.objects.filter(username=username).first()
+    if not user:
+        raise Exception("Username %s does not exist" % username)
+    compute_remaining = allocation_source.time_remaining(user)
+    over_allocation = compute_remaining < 0
+    if over_allocation and settings.ENFORCING:
+        raise OverAllocationError(allocation_source.name, abs(compute_remaining))
+
+
 def check_quota(username, identity_uuid, esh_size,
         include_networking=False):
-    from service.monitoring import check_over_allocation
     from service.quota import check_over_instance_quota
     try:
         check_over_instance_quota(
@@ -1299,15 +1318,6 @@ def check_quota(username, identity_uuid, esh_size,
             include_networking=include_networking)
     except ValidationError as bad_quota:
         raise OverQuotaError(message=bad_quota.message)
-
-    if settings.USE_ALLOCATION_SOURCE:
-        logger.info("Settings dictate that USE_ALLOCATION_SOURCE = True. A new method will be required to determine over-allocation based on the selected allocation_source. Returning..")
-        return
-    (over_allocation, time_diff) =\
-        check_over_allocation(username,
-                              identity_uuid)
-    if over_allocation and settings.ENFORCING:
-        raise OverAllocationError(time_diff)
 
 
 def delete_security_group(core_identity):
@@ -1335,22 +1345,106 @@ def user_delete_security_group(core_identity):
 
 def security_group_init(core_identity, max_attempts=3):
     has_secret = core_identity.get_credential('secret') is not None
+    security_group_name = core_identity.provider.get_config("network", "security_group_name", "default")
     if has_secret:
         return admin_security_group_init(core_identity)
-    return user_security_group_init(core_identity)
+    return user_security_group_init(core_identity, security_group_name = security_group_name)
 
 
-def user_security_group_init(core_identity, security_group_name='default'):
-    # Rules can come from the provider _or_ from settings _otherwise_ empty-list
-    rules = core_identity.provider.get_config('network', 'default_security_rules',getattr(settings,'DEFAULT_RULES',[]))
-    driver = get_cached_driver(identity=core_identity)
-    lc_driver = driver._connection
-    security_group = get_or_create_security_group(lc_driver, security_group_name)
-    set_security_group_rules(lc_driver, security_group, rules)
+def user_security_group_init(core_identity, security_group_name):
+    network_driver = _to_network_driver(core_identity)
+    user_neutron = network_driver.neutron
+    extended_default_rules = _get_default_rules()
+    user_security_group_rules = core_identity.provider.get_config('network', 'user_security_rules', extended_default_rules)
+    security_group = get_or_create_security_group(security_group_name, user_neutron)
+    neutron_set_security_group_rules(security_group_name, user_security_group_rules, user_neutron)
     return security_group
 
 
-def set_security_group_rules(lc_driver, security_group, rules):
+def _get_default_rules():
+    """
+    A basic set of rules:
+    - Allow access to Port 22 (SSH)
+    - Allow IPv4 Access
+    - Allow IPv6 Access
+    ---
+    This is an EXAMPLE of what should be in your PROVIDER's `cloud_config`:
+    cloud_config = {
+        ...
+        'network': {
+            ...
+            'user_security_rules': [
+                {... rule1 ...},
+                {... rule2 ...},
+                {... rule3 ...}
+            ],
+            ...
+        },
+        ...
+    }
+    NOTE: new rules are DICTs and not 4-tuples!
+    """
+    extended_default_rules = [
+        {
+            "direction": "ingress",
+            "ethertype": "IPv4",
+        },
+        {
+            "direction": "ingress",
+            "ethertype": "IPv6",
+         },
+        {
+            "direction": "ingress",
+            "port_range_min": 22,
+            "port_range_max": 22,
+            "protocol": "tcp",
+            "remote_ip_prefix": "0.0.0.0/0",
+         }
+    ]
+    return extended_default_rules
+
+
+def neutron_set_security_group_rules(security_group_name, security_group_rules_dict, user_neutron):
+    security_group = find_security_group(security_group_name, user_neutron)
+    security_group_id = security_group[u'id']
+    for sg_rule in security_group_rules_dict:
+        try:
+            rule_body = {"security_group_rule": {
+                "direction": sg_rule['direction'],
+                "port_range_min": sg_rule.get('port_range_min', None),
+                "ethertype": sg_rule.get("ethertype", "IPv4"),
+                "port_range_max": sg_rule.get('port_range_max', None),
+                "protocol": sg_rule.get("protocol", None),
+                "remote_group_id": security_group_id,
+                "security_group_id": security_group_id
+                 }
+            }
+            if 'remote_ip_prefix' in sg_rule:
+                rule_body['security_group_rule']['remote_ip_prefix'] = sg_rule['remote_ip_prefix']
+                rule_body['security_group_rule'].pop("remote_group_id")
+            user_neutron.create_security_group_rule(body=rule_body)
+        except Conflict:
+        # The rule has already in the sec_group
+            pass
+    return True
+
+def find_security_group(security_group_name, user_neutron):
+    security_groups = user_neutron.list_security_groups()[u'security_groups']
+    security_group = ''
+    for sg in security_groups:
+        if sg[u'name'] == security_group_name:
+            security_group = sg
+    if security_group != '':
+        return security_group
+    else:
+        raise Exception('Could not find any existing security group')
+
+
+def libcloud_set_security_group_rules(lc_driver, security_group, rules):
+    """
+    DEPRECATED: This legacy method was used to define security group rules as a 3/4-tuple
+    For a more up-to-date method using neutron instead of libcloud, see neutron_set_security_group_rules.
+    """
     for rule_tuple in rules:
         if len(rule_tuple) == 3:
             (ip_protocol, from_port, to_port) = rule_tuple
@@ -1378,13 +1472,22 @@ def set_security_group_rules(lc_driver, security_group, rules):
             raise
     return security_group
 
-def get_or_create_security_group(lc_driver, security_group_name):
-    sgroup_list = lc_driver.ex_list_security_groups()
-    security_group = [sgroup for sgroup in sgroup_list if sgroup.name == security_group_name]
+
+def get_or_create_security_group(security_group_name, user_neutron):
+    security_group_list = user_neutron.list_security_groups()[u'security_groups']
+    security_group = [sgroup for sgroup in security_group_list if sgroup[u'name'] == security_group_name]
+
+    #sgroup_list = lc_driver.ex_list_security_groups()
+    #security_group = [sgroup for sgroup in sgroup_list if sgroup.name == security_group_name]
     if len(security_group) > 0:
         security_group = security_group[0]
     else:
-        security_group = lc_driver.ex_create_security_group(security_group_name,'Security Group created by Atmosphere')
+        body = {"security_group": {
+            "name": security_group_name,
+            "description": "Security Group created by Atmosphere"
+             }
+        }
+        security_group = user_neutron.create_security_group(body=body)
 
     if security_group is None:
        raise Exception("Could not find or create security group")
@@ -1456,6 +1559,40 @@ def _to_network_driver(core_identity):
     if provider_type == 'mock':
          return AtmosphereMockNetworkManager.create_manager(core_identity)
     return AtmosphereNetworkManager.create_manager(core_identity)
+
+
+def _to_user_driver(core_identity):
+    all_creds = core_identity.get_all_credentials()
+    project_name = core_identity.project_name()
+    domain_name = all_creds.get('domain_name', 'default')
+    auth_url = all_creds.get('auth_url')
+    if '/v' not in auth_url:  # Add /v3 if no version specified in auth_url
+        auth_url += '/v3'
+    if 'ex_force_auth_token' in all_creds:
+        auth_token = all_creds['ex_force_auth_token']
+        (auth, sess, token) = _token_to_keystone_scoped_project(
+            auth_url, auth_token,
+            project_name, domain_name)
+        user_driver = UserManager(auth_url=auth_url,
+                                  auth_token=auth_token,
+                                  project_name=project_name,
+                                  domain_name=domain_name,
+                                  session=sess,
+                                  version="v3")
+    else:
+        username = all_creds['key']
+        password = all_creds['secret']
+        (auth, sess, token) = _connect_to_keystone_v3(
+            auth_url, username, password,
+            project_name, domain_name)
+        user_driver = UserManager(auth_url=auth_url,
+                                  username=username,
+                                  password=password,
+                                  project_name=project_name,
+                                  domain_name=domain_name,
+                                  session=sess,
+                                  version="v3")
+    return user_driver
 
 
 def user_network_init(core_identity):
@@ -1590,6 +1727,7 @@ def _extra_openstack_args(core_identity, ex_metadata={}):
         # FIXME: In a new PR, allow user to select the keypair for launching
         user_key = user_keys[0]
         ex_keyname = user_key.name
+    security_group_name = core_identity.provider.get_config("network", "security_group_name", "default")
     return {"ex_metadata": ex_metadata, "ex_keyname": ex_keyname}
 
 

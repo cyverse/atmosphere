@@ -60,7 +60,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
         return serializer.data
 
     def get_image(self, obj):
-        if obj.source.is_volume():
+        if not obj.source.is_machine():
             return {}
         image_uuid = obj.application_uuid()
         image = Image.objects.get(uuid=image_uuid)
@@ -74,7 +74,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
         return obj.ip_address
 
     def get_version(self, obj):
-        if obj.source.is_volume():
+        if not obj.source.is_machine():
             return {}
         version = obj.source.providermachine.application_version
         serializer = ImageVersionSummarySerializer(

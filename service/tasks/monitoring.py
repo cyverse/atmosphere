@@ -13,12 +13,11 @@ from core.query import (
 from core.models.group import Group
 from core.models.size import Size, convert_esh_size
 from core.models.volume import Volume, convert_esh_volume
-from core.models.instance import convert_esh_instance
+from core.models.instance import Instance, convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import convert_glance_image, get_or_create_provider_machine, ProviderMachine, ProviderMachineMembership
 from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
-from core.models.event_table import EventTable
 from core.models.application_version import ApplicationVersion
 from core.models import Allocation, Credential, IdentityMembership
 
@@ -30,9 +29,7 @@ from service.monitoring import (
     _cleanup_missing_instances,
     _get_instance_owner_map,
     _get_identity_from_tenant_name,
-    allocation_source_overage_enforcement
-)
-from service.monitoring import user_over_allocation_enforcement
+    allocation_source_overage_enforcement_for)
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
 from service.exceptions import TimeoutError
@@ -502,24 +499,6 @@ def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
     identity_list = Identity.objects.filter(id__in=all_identities)
     return identity_list
 
-def update_membership(application, shared_identities):
-    """
-    For machine in application/version:
-        Get list of current users
-        For "super-set" list of identities:
-            if identity exists on provider && identity NOT in current user list:
-                account_driver.add_user(identity.name)
-    """
-    db_identity_membership = identity.identity_memberships.all().distinct()
-    for db_identity_member in db_identity_membership:
-        # For each group who holds this identity:
-        #   grant them access to the now-private App, Version & Machine
-        db_group = db_identity_member.member
-        ApplicationMembership.objects.get_or_create(
-            application=application, group=db_group)
-        celery_logger.info("Added Application, Version, and Machine Membership to Group: %s" % (db_group,))
-    return application
-
 
 def make_machines_public(application, account_drivers={}, dry_run=False):
     """
@@ -585,37 +564,35 @@ def monitor_instances():
         monitor_instances_for.apply_async(args=[p.id])
 
 
-@task(name="enforce_allocation_overage")
-def enforce_allocation_overage(allocation_source_name):
+@task(name="monitor_allocation_sources")
+def monitor_allocation_sources(usernames=()):
     """
-    Update instances for each active provider.
+    Monitor allocation sources, if a snapshot shows that all compute has been used, then enforce as necessary
     """
-    allocation_source = AllocationSource.objects.get(name=allocation_source_name)
-    user_instances_enforced = allocation_source_overage_enforcement(allocation_source)
+    allocation_sources = AllocationSource.objects.all()
+    for allocation_source in allocation_sources.order_by('name'):
+        for user in allocation_source.all_users:
+            if usernames and user.username not in usernames:
+                celery_logger.info("Skipping User %s - not in the list" % user.username)
+                continue
+            over_allocation = allocation_source.is_over_allocation(user)
+            if not over_allocation:
+                continue
+            allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source.name, user))
 
-    #NOT IN USE
 
-    # EventTable.create_event(
-    #     name="allocation_source_threshold_enforced",
-    #     entity_id=allocation_source.name,
-    #     payload=new_payload)
-    return user_instances_enforced
-
-@task(name="monitor_instance_allocations")
-def monitor_instance_allocations():
-    """
-    Update instances for each active provider.
-    """
-    if settings.USE_ALLOCATION_SOURCE:
-        celery_logger.info("Skipping the old method of monitoring instance allocations")
-        return False
-    for p in Provider.get_active():
-        monitor_instances_for.apply_async(args=[p.id], kwargs={'check_allocations':True})
+@task(name="allocation_source_overage_enforcement_for_user")
+def allocation_source_overage_enforcement_for_user(allocation_source, user):
+    user_instances = []
+    for identity in user.current_identities:
+        affected_instances = allocation_source_overage_enforcement_for(allocation_source, user, identity)
+        user_instances.extend(affected_instances)
+    return user_instances
 
 
 @task(name="monitor_instances_for")
 def monitor_instances_for(provider_id, users=None,
-                          print_logs=False, check_allocations=False, start_date=None, end_date=None):
+                          print_logs=False, start_date=None, end_date=None):
     """
     Run the set of tasks related to monitoring instances for a provider.
     Optionally, provide a list of usernames to monitor
@@ -663,10 +640,6 @@ def monitor_instances_for(provider_id, users=None,
         core_instances = _cleanup_missing_instances(
             identity,
             core_running_instances)
-        if check_allocations:
-            allocation_result = user_over_allocation_enforcement(
-                provider, username,
-                print_logs, start_date, end_date)
     if print_logs:
         _exit_stdout_logging(console_handler)
     return seen_instances

@@ -51,6 +51,9 @@ router.register(r'instances', views.InstanceViewSet, base_name='instance')
 router.register(r'instance_actions',
     views.InstanceActionViewSet,
     base_name='instanceaction')
+router.register(r'instance_allocation_source',
+                views.InstanceAllocationSourceViewSet,
+                base_name='instance-allocation-source')
 router.register(r'instance_histories',
     views.InstanceStatusHistoryViewSet,
     base_name='instancestatushistory')
@@ -73,6 +76,7 @@ router.register(
     base_name='providermachine')
 router.register(r'provider_types', views.ProviderTypeViewSet, base_name='providertype')
 router.register(r'quotas', views.QuotaViewSet)
+router.register(r'renewal_strategy',views.RenewalStrategyViewSet, base_name='renewalstrategy')
 router.register(r'resource_requests', views.ResourceRequestViewSet)
 router.register(r'reporting', views.ReportingViewSet, base_name='reporting')
 router.register(r'sizes', views.SizeViewSet)
@@ -81,6 +85,7 @@ router.register(r'tags', views.TagViewSet)
 router.register(r'token_update', views.TokenUpdateViewSet, base_name='token_update')
 router.register(r'tokens', views.TokenViewSet, base_name='token')
 router.register(r'users', views.UserViewSet)
+router.register(r'user_allocation_sources', views.UserAllocationSourceViewSet, base_name='user-allocation-source')
 router.register(r'groups', views.GroupViewSet, base_name='group')
 router.register(r'volumes', views.VolumeViewSet, base_name='volume')
 router.register(r'ssh_keys', views.SSHKeyViewSet, base_name='ssh_key')
@@ -90,4 +95,12 @@ router.register(r'deploy_version', base_views.DeployVersionViewSet,
                 base_name='version-deploy')
 
 api_v2_urls = router.urls
+uuid_match = '[a-zA-Z0-9-]+'
+
+#NOTE: To include APIViews, add to the list below
+api_views_urls = [
+    url(r'web_tokens/(?P<pk>%s)' % uuid_match,
+        views.WebTokenView.as_view()),
+]
+api_v2_urls.extend(api_views_urls)
 urlpatterns = [url(r'^', include(api_v2_urls))]

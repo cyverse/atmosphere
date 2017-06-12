@@ -20,6 +20,7 @@ from .instance_action import InstanceActionSerializer
 from .instance_tag import InstanceTagSerializer
 from .instance_history import InstanceStatusHistorySerializer
 from .instance import InstanceSerializer
+from .instance_allocation_source import InstanceAllocationSourceSerializer
 from .license import LicenseSerializer
 from .link import ExternalLinkSerializer
 from .maintenance_record import MaintenanceRecordSerializer
@@ -34,6 +35,7 @@ from .provider import (ProviderSerializer, ProviderTypeSerializer,
 from .provider_credential import ProviderCredentialSerializer
 from .provider_machine import ProviderMachineSerializer
 from .quota import QuotaSerializer, AllocationSerializer
+from .renewal_strategy import RenewalStrategySerializer
 from .resource_request import (
     ResourceRequestSerializer, UserResourceRequestSerializer)
 from .reporting import InstanceReportingSerializer
@@ -43,4 +45,5 @@ from .status_type import StatusTypeSerializer
 from .tag import TagSerializer
 from .token import TokenSerializer
 from .user import AdminUserSerializer, UserSerializer
+from .user_allocation_source import UserAllocationSourceSerializer
 from .volume import VolumeSerializer, UpdateVolumeSerializer

@@ -1,0 +1,23 @@
+[Unit]
+Description=Celery periodic task scheduler
+Requires=network.target
+After=network.target
+
+[Service]
+Type=forking
+User=root
+Group=root
+PIDFile=/var/run/celerybeat.pid
+EnvironmentFile=/etc/default/celeryd
+WorkingDirectory=/opt/dev/atmosphere
+ExecStart=/bin/sh -c '${CELERY_BIN} beat \
+  --app=${CELERY_APP}                    \
+  --schedule=django_celery_beat.schedulers.DatabaseScheduler \
+  --logfile ${CELERYBEAT_LOG_FILE}       \
+  --workdir=${CELERYBEAT_CHDIR}          \
+  --detach                               \
+  --pidfile=${CELERYBEAT_PID_FILE}'
+ExecStop=/usr/bin/pkill ${CELERYBEAT_PID_FILE}
+
+[Install]
+WantedBy=multi-user.target

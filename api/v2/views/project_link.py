@@ -1,10 +1,10 @@
 from core.models import ProjectExternalLink
 
 from api.v2.serializers.details import ProjectExternalLinkSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 
 
-class ProjectExternalLinkViewSet(AuthViewSet):
+class ProjectExternalLinkViewSet(AuthModelViewSet):
 
     """
     API endpoint that allows link actions to be viewed or edited.

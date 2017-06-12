@@ -4,10 +4,10 @@ from django.utils import timezone
 from core.models import ProjectApplication, Provider, Application
 
 from api.v2.serializers.details import ProjectApplicationSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 
 
-class ProjectApplicationViewSet(AuthViewSet):
+class ProjectApplicationViewSet(AuthModelViewSet):
 
     """
     API endpoint that allows application actions to be viewed or edited.

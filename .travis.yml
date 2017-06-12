@@ -31,5 +31,7 @@
 
   script:
     - cp ./variables.ini.dist ./variables.ini
+    - patch variables.ini variables_for_testing.ini.patch
     - ./configure
-    - python manage.py test
+    - python manage.py test --keepdb
+    - python manage.py behave --keepdb

@@ -2,6 +2,7 @@
 from .account import AccountViewSet
 from .allocation import AllocationViewSet
 from .allocation_source import AllocationSourceViewSet
+from .allocation_source_command import AllocationSourceCommandViewSet
 from .boot_script import BootScriptViewSet
 from .base import BaseRequestViewSet
 from .credential import CredentialViewSet
@@ -20,6 +21,7 @@ from .image_version_boot_script import ImageVersionBootScriptViewSet
 from .image_version_membership import ImageVersionMembershipViewSet
 from .image_version_license import ImageVersionLicenseViewSet
 from .instance import InstanceViewSet
+from .instance_allocation_source import InstanceAllocationSourceViewSet
 from .instance_tag import InstanceTagViewSet
 from .instance_history import InstanceStatusHistoryViewSet
 from .instance_action import InstanceActionViewSet
@@ -37,6 +39,7 @@ from .provider import ProviderViewSet
 from .provider_machine import ProviderMachineViewSet
 from .provider_type import ProviderTypeViewSet
 from .quota import QuotaViewSet
+from .renewal_strategy import RenewalStrategyViewSet
 from .resource_request import ResourceRequestViewSet
 from .reporting import ReportingViewSet
 from .size import SizeViewSet
@@ -46,7 +49,9 @@ from .emulate import TokenEmulateViewSet, SessionEmulateViewSet
 from .tag import TagViewSet
 from .token import TokenViewSet
 from .token_update import TokenUpdateViewSet
+from .web_token import WebTokenView
 from .user import UserViewSet
+from .user_allocation_source import UserAllocationSourceViewSet
 from .volume import VolumeViewSet
 from .metric import MetricViewSet
 from .ssh_key import SSHKeyViewSet

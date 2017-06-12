@@ -612,10 +612,16 @@ def get_chain_from_build(
     """
     wait_active_task = wait_for_instance.s(
         instance.id, driverCls, provider, identity, "active")
+    has_secret = core_identity.get_credential('secret') is not None
+    if not has_secret:
+        add_security_group = add_security_group_task.si(driverCls, provider, core_identity, instance.id)
+        wait_active_task.link(add_security_group)
     start_chain = wait_active_task
     network_start = get_chain_from_active_no_ip(
         driverCls, provider, identity, instance, core_identity, username=username,
         password=password, redeploy=redeploy, deploy=deploy)
+    if not has_secret:
+        add_security_group.link(network_start)
     start_chain.link(network_start)
     return start_chain
 
@@ -1217,6 +1223,30 @@ def check_web_desktop_task(driverCls, provider, identity,
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
         check_web_desktop_task.retry(exc=exc)
+
+
+@task(name="add_security_group_task",
+      max_retries = 5,
+      default_retry_delay=10)
+def add_security_group_task(driverCls, provider, core_identity,
+                            instance_alias, *args, **kwargs):
+    """
+    Assign the security group to the instance using the OpenStack Nova API
+    """
+    from service.instance import _to_user_driver
+    user_driver = _to_user_driver(core_identity)
+    user_nova = user_driver.nova
+    try:
+        server_instance = user_nova.servers.get(instance_alias)
+    except:
+        raise Exception("Cannot find the instance")
+    try:
+        security_group_name = core_identity.provider.get_config("network", "security_group_name", "default")
+        server_instance.add_security_group(security_group_name)
+    except:
+        raise Exception("Cannot add the security group to the instance usng nova")
+    return True
+
 
 
 @task(name="check_process_task",

@@ -62,7 +62,10 @@ PERIODIC_TASKS = [
     #JETSTREAM_SPECIFIC PERIODIC TASKS
     "report_allocations_to_tas",
     "update_snapshot",
-    "monitor_jetstream_allocation_sources"
+    "monitor_jetstream_allocation_sources",
+    #ALLOCATION SOURCES - PERIODIC TASKS
+    "update_snapshot_cyverse",
+    "allocation_threshold_check",
 ]
 SHORT_TASKS = [
     "wait_for_instance",
