@@ -63,7 +63,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
         if not obj.source.is_machine():
             return {}
         image_uuid = obj.application_uuid()
-        image = Image.objects.get(uuid=image_uuid)
+        image = Image.objects.filter(uuid=image_uuid).first()
         serializer = ImageSummarySerializer(image, context=self.context)
         return serializer.data
 

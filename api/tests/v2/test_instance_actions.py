@@ -41,7 +41,10 @@ class InstanceActionTests(APITestCase):
                 instance=self.active_instance,
                 start_date=start_date + delta_time*3)
 
-        self.view = InstanceViewSet.as_view({'post': 'actions'})
+        self.view = InstanceViewSet.as_view({
+            'get': 'actions',
+            'post': 'actions'
+        })
         self.url = reverse('api:v2:instance-list')
         self.url += "/" + str(self.active_instance.provider_alias) + "/actions"
         self.mock_driver = get_esh_driver(self.user_identity)
@@ -67,6 +70,23 @@ class InstanceActionTests(APITestCase):
                 start_date=start_date_second + delta_time*3)
         self.mock_driver_second = get_esh_driver(self.user_identity)
         self.mock_driver.add_core_instance(self.active_instance_second)
+
+    def test_get_instance_action_count_for_active_instance(self):
+        factory = APIRequestFactory()
+        request = factory.get(self.url)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
+        self.assertEquals(response.status_code, 200)
+        actions = response.data
+        self.assertEquals(len(actions), 8)
+        for action_name in [
+                "Stop", "Suspend",
+                "Terminate", "Shelve",
+                "Reboot", "Hard Reboot",
+                "Resize", "Imaging"]:
+            self.assertTrue(
+                any(a for a in actions if action_name == a.get('key'))
+            )
 
     # For resize, I will add a size in InstanceStatusHistory. for stop, we don't have to have
     def test_stop_instance_action(self):

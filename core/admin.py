@@ -644,6 +644,10 @@ class GroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'uuid',)
     list_filter = ['name', ]
 
+@admin.register(models.ProviderInstanceAction)
+class ProviderInstanceActionAdmin(admin.ModelAdmin):
+    list_filter = ['provider',]
+
 
 @admin.register(models.EmailTemplate)
 class EmailTemplateAdmin(admin.ModelAdmin):
@@ -677,4 +681,3 @@ class HelpLinkAdmin(admin.ModelAdmin):
 admin.site.register(models.ApplicationThreshold)
 admin.site.register(models.Credential)
 admin.site.register(models.ProviderType)
-admin.site.register(models.ProviderInstanceAction)

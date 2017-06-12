@@ -66,6 +66,26 @@ def print_debug():
     celery_logger.debug(log_str)
 
 
+@task(name="revert_resize", max_retries=2, default_retry_delay=15)
+def revert_resize(driverCls, provider, identity, instance_alias):
+    """
+    Confirm the resize of 'instance_alias'
+    """
+    from service import instance as instance_service
+    try:
+        celery_logger.debug("revert_resize task started at %s." % datetime.now())
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_alias)
+        if not instance:
+            celery_logger.debug("Instance has been teminated: %s." % instance_id)
+            return False, None
+        result = driver.revert_resize_instance(instance)
+        celery_logger.debug("revert_resize task finished at %s." % datetime.now())
+        return True, result
+    except Exception as exc:
+        celery_logger.exception(exc)
+        revert_resize.retry(exc=exc)
+
 @task(name="complete_resize", max_retries=2, default_retry_delay=15)
 def complete_resize(driverCls, provider, identity, instance_alias,
                     core_provider_uuid, core_identity_uuid, user):
@@ -626,6 +646,50 @@ def get_chain_from_build(
     return start_chain
 
 
+def get_resize_redeploy_chain(esh_driver, esh_instance, core_identity_uuid):
+    """
+    Use this function to wait for 'verify resize', then attempt to run a deployment.
+     - Once completed, the user is expected to 'confirm_resize'
+    """
+    core_identity = Identity.objects.get(uuid=core_identity_uuid)
+    username = core_identity.created_by.username
+    driverCls = esh_driver.__class__
+    provider = esh_driver.provider
+    identity = esh_driver.identity
+    task_one = wait_for_instance.s(
+        esh_instance.id, driverCls, provider, identity, "verify_resize")
+    task_two = deploy_ready_test.si(
+        driverCls, provider, identity, esh_instance.id)
+    task_one.link(task_two)
+    complete_task = complete_resize.si(
+        esh_driver.__class__, esh_driver.provider,
+        esh_driver.identity, esh_instance.id,
+        core_identity.provider.uuid, core_identity.uuid, core_identity.created_by)
+    revert_task = revert_resize.si(
+        esh_driver.__class__, esh_driver.provider,
+        esh_driver.identity, esh_instance.id)
+    task_two.link(complete_task)
+    task_two.link_error(revert_task)
+    return task_one
+
+
+def get_resize_nodeploy_chain(esh_driver, esh_instance, core_identity_uuid):
+    """
+    Use this function to Immediately confirm the resize when instance hits 'verify_resize'
+    """
+    core_identity = Identity.objects.get(uuid=core_identity_uuid)
+
+    task_one = wait_for_instance.s(
+        esh_instance.id, esh_driver.__class__, esh_driver.provider,
+        esh_driver.identity, "verify_resize")
+    task_two = complete_resize.si(
+        esh_driver.__class__, esh_driver.provider,
+        esh_driver.identity, esh_instance.id,
+        core_identity.provider.uuid, core_identity.uuid, core_identity.created_by)
+    task_one.link(task_two)
+    return task_one
+
+
 def print_chain(start_task, idx=0):
     #FINAL case
     count = idx + 1
@@ -1051,6 +1115,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
         deploy_ready_test.retry(exc=exc)
+    # Complete
 
 
 @task(name="_deploy_instance_for_user",
