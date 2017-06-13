@@ -16,6 +16,7 @@ from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
 from rtwo.exceptions import LibcloudBadResponseError
 from rtwo.driver import OSDriver
 from rtwo.drivers.openstack_user import UserManager
+from rtwo.drivers.common import _token_to_keystone_scoped_project
 from service.driver import AtmosphereNetworkManager
 from service.mock import AtmosphereMockDriver, AtmosphereMockNetworkManager
 from rtwo.models.machine import Machine
