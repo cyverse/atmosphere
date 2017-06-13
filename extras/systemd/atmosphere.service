@@ -1,5 +1,5 @@
 [Unit]
-Description=The workflow associated with running atmosphere as a service
+Description=CyVerse Atmosphere: uwsgi, nginx
 Documentation=https://github.com/cyverse/atmosphere/blob/master/README.md
 Requires=uwsgi.service nginx.service
 After=uwsgi.service nginx.service

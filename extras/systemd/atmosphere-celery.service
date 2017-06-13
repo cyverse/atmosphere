@@ -1,5 +1,5 @@
 [Unit]
-Description=The workflow associated with running atmosphere as a service
+Description=CyVerse Atmosphere Full: celery, celerybeat, uwsgi, nginx
 Documentation=https://github.com/cyverse/atmosphere/blob/master/README.md
 Requires=celeryd.service celerybeat.service uwsgi.service nginx.service
 After=celeryd.service celerybeat.service uwsgi.service nginx.service
