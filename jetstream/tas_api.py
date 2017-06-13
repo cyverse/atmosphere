@@ -1,6 +1,7 @@
 import requests
 
 from django.conf import settings
+from memoize import memoize
 
 from .exceptions import TASAPIException
 
@@ -21,6 +22,7 @@ def tacc_api_post(url, post_data, username=None, password=None):
     return resp
 
 
+@memoize(timeout=300)
 def tacc_api_get(url, username=None, password=None):
     if not username:
         username = settings.TACC_API_USER
