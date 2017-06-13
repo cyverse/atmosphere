@@ -1,14 +1,14 @@
 [Unit]
 Description=The workflow associated with running atmosphere as a service
 Documentation=https://github.com/cyverse/atmosphere/blob/master/README.md
-Requires=uwsgi.service nginx.service
-After=uwsgi.service nginx.service
+Requires=celeryd.service celerybeat.service uwsgi.service nginx.service
+After=celeryd.service celerybeat.service uwsgi.service nginx.service
 Wants=redis-server.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStop=/bin/systemctl stop uwsgi nginx
+ExecStop=/bin/systemctl stop uwsgi nginx celeryd celerybeat
 
 [Install]
 WantedBy=multi-user.target
