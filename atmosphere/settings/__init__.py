@@ -75,6 +75,7 @@ INSTALLED_APPS = (
     'rest_framework.authtoken',
     'django_filters',
     'django_celery_beat',
+    'memoize',
 
     'corsheaders',
     # 3rd party apps (Development Only)

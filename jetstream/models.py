@@ -52,11 +52,9 @@ class TASAllocationReport(models.Model):
                 driver = TASAPIDriver(BETA_TACC_API_URL, BETA_TACC_API_USER, BETA_TACC_API_PASS)
             else:
                 driver = TASAPIDriver()
-            success = driver.report_project_allocation(
-                self.id, self.username,
-		self.project_name, float(self.compute_used),
-                self.start_date, self.end_date,
-                self.queue_name, self.scheduler_id)
+            success = driver.report_project_allocation(self.id, self.username, self.project_name,
+                                                       float(self.compute_used), self.start_date, self.end_date,
+                                                       self.queue_name, self.scheduler_id)
             self.success = True if success else False
             if self.success:
                 self.report_date = timezone.now()
