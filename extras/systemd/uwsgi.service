@@ -6,6 +6,8 @@ After=syslog.target
 Type=forking
 User=www-data
 Group=www-data
+Environment="UWSGI_DEB_CONFNAME="
+Environment="UWSGI_DEB_CONFNAMESPACE="
 ExecStart=/bin/sh -c '/opt/env/atmo/bin/uwsgi    \
   --ini /usr/share/uwsgi/conf/default.ini        \
   --ini /etc/uwsgi/apps-enabled/atmosphere.ini   \
