@@ -180,7 +180,14 @@ ALLOCATIONS_CELERYBEAT_SCHEDULE = {
         # Every 15 minutes
         "schedule": timedelta(minutes=15),
         "options" : {"expires": 15 * 60,"time_limit": 15 * 60}
-  }
+  },
+  "monitor_allocation_sources":{
+	"task":"monitor_allocation_sources",
+        # Every 15 minutes
+        "schedule": timedelta(minutes=15),
+        "options" : {"expires": 15 * 60,"time_limit": 15 * 60}
+  },
+
 }
 CELERYBEAT_SCHEDULE.update(ALLOCATIONS_CELERYBEAT_SCHEDULE)
 {% endif %}
