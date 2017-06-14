@@ -6,9 +6,9 @@ Wants=redis-server.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/systemctl start uwsgi nginx celeryd celerybeat
-ExecStop=/bin/systemctl stop uwsgi nginx celeryd celerybeat
-ExecReload=/bin/systemctl restart uwsgi nginx celeryd celerybeat
+ExecStart=/bin/systemctl start uwsgi nginx celeryd celerybeat flower
+ExecStop=/bin/systemctl stop uwsgi nginx celeryd celerybeat flower
+ExecReload=/bin/systemctl restart uwsgi nginx celeryd celerybeat flower
 
 [Install]
 WantedBy=multi-user.target

@@ -1,7 +1,6 @@
 [Unit]
 Description=CyVerse Atmosphere: uwsgi, nginx
 Documentation=https://github.com/cyverse/atmosphere/blob/master/README.md
-Wants=redis-server.service
 
 [Service]
 Type=oneshot
