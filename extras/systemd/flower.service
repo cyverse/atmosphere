@@ -2,7 +2,6 @@
 Description=Flower Service
 Requires=network.target
 After=network.target
-BindsTo=celeryd.service
 
 [Service]
 Type=forking
@@ -23,7 +22,7 @@ ExecStart=/bin/sh -c '${FLOWER_BIN}          \
   --oauth2_secret=${OAUTH2_CLIENT_SECRET}      \
   --oauth2_redirect_uri=${OAUTH2_REDIRECT_URI} \
   --auth_provider=flower.views.auth.GoogleAuth2LoginHandler &'
-ExecStop=/bin/sh -c "/bin/kill `ps aux | grep [f]lower | awk '{print $2}'`"
+ExecStop=/bin/sh -c "/bin/kill -2 `ps aux | grep [f]lower | awk '{print $2}'`"
 
 [Install]
 WantedBy=multi-user.target
