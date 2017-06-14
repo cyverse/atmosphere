@@ -1,14 +1,14 @@
 [Unit]
 Description=CyVerse Atmosphere: uwsgi, nginx
 Documentation=https://github.com/cyverse/atmosphere/blob/master/README.md
-Requires=uwsgi.service nginx.service
-After=uwsgi.service nginx.service
 Wants=redis-server.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+ExecStart=/bin/systemctl start uwsgi nginx
 ExecStop=/bin/systemctl stop uwsgi nginx
+ExecReload=/bin/systemctl restart uwsgi nginx
 
 [Install]
 WantedBy=multi-user.target
