@@ -11,7 +11,7 @@ systemctl stop <service_name>
 systemctl restart <service_name>
 ```
 
-#### `atmosphere-celery.service`
+#### `atmosphere-full.service`
 This service starts all of Atmosphere, including `uwsgi`, `nignx`, `celeryd`, `celerybeat`, `flower`, and `redis`.
 
 On stop and restart, it stops/restarts all except for `redis`.
@@ -21,7 +21,7 @@ This service starts `nginx` and `uwsgi` for Atmosphere. It will also stop and re
 
 This service can still be used to if Atmosphere was originally started by `atmopshere-celery.service`:
 
-`systemctl start atmosphere-celery`
+`systemctl start atmosphere-full`
 
 If you want to restart only `nginx` and `uwsgi`:
 
@@ -46,4 +46,4 @@ Restart only `celeryd` : `systemctl restart celeryd`
 
 Restart only `flower` : `systemctl restart flower`
 
-End it all : `systemctl stop atmosphere-celery redis-server`
+End it all : `systemctl stop atmosphere-full redis-server`
