@@ -62,6 +62,7 @@ DATABASE_HOST = localhost # remote.postgres-server.com
 DATABASE_PORT = 5432
 DATABASE_CONN_MAX_AGE = 60 # in seconds
 DJANGO_DEBUG =  True # Boolean required
+DJANGO_DEBUG_TOOLBAR =  False # Boolean required
 ENFORCING =  False # Boolean required #NOTE: DO NOT SET TO TRUE UNLESS YOU ARE PRODUCTION!
 SSLSERVER =  False # Boolean required
 DJANGO_TEMPLATE_DEBUG =  True # Boolean required
