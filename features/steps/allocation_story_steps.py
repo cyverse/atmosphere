@@ -2,23 +2,20 @@ import uuid
 from datetime import timedelta
 
 from behave import *
-from business_rules import run_all
 from dateutil.parser import parse
 from dateutil.rrule import rrule, HOURLY
 from django.test import modify_settings
 from django.test.client import Client
 from django.utils import timezone
-from cyverse_allocation.tasks import update_snapshot_cyverse
 
 from api.tests.factories import (
     InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
     ProviderMachineFactory, IdentityFactory, ProviderFactory, UserFactory)
 from core.models import (
     AllocationSourceSnapshot, AllocationSource, Instance, Size,
-    ProviderMachine, InstanceStatusHistory, AtmosphereUser)
+    ProviderMachine, InstanceStatusHistory, AtmosphereUser, EventTable, InstanceAllocationSourceSnapshot)
 from core.models.allocation_source import total_usage
-from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVariables, CyverseTestRenewalActions, \
-    cyverse_rules
+from cyverse_allocation.tasks import update_snapshot_cyverse, renew_allocation_sources
 
 
 ######## Story Implementation ##########
@@ -88,7 +85,8 @@ def step_impl(context):
 
 @when('User launch Instance')
 def step_impl(context):
-    context.instance = {}
+    if not hasattr(context, 'instance'):
+        context.instance = {}
     for row in context.table:
         user = AtmosphereUser.objects.get(username=row['username'])
         try:
@@ -136,7 +134,8 @@ def step_impl(context):
     current_time = context.current_time
     for row in context.table:
         allocation_source = AllocationSource.objects.filter(
-            uuid=context.allocation_sources[row['allocation_source_id']]).last()
+            name=context.allocation_sources_name[row['allocation_source_id']]).last()
+
         start_date = current_time if str(row['report start date']) == 'current' else parse(
             str(row['report start date']))
         end_date = start_date + timedelta(days=int(row['number of days']))
@@ -148,21 +147,109 @@ def step_impl(context):
             # update AllocationSourceSnapshot with the current compute_used
             if prev_time:
                 update_snapshot_cyverse(end_date=current_time)
-            prev_time=current_time
+            prev_time = current_time
+
+        context.time_at_the_end_of_calculation_check = current_time
 
         compute_used_total = 0
         for user in allocation_source.all_users:
             compute_used_total += total_usage(user.username, start_date=start_date,
-                                              end_date=end_date, allocation_source_name=allocation_source.name)
+                                              end_date=end_date, allocation_source_name=context.allocation_sources_name[
+                    row['allocation_source_id']])
 
         compute_allowed = AllocationSourceSnapshot.objects.filter(
             allocation_source=allocation_source).last().compute_allowed
         compute_used_from_snapshot = AllocationSourceSnapshot.objects.filter(
             allocation_source=allocation_source).last().compute_used
-        assert float(row['total compute used']) == compute_used_total
+        assert float(row['total compute used']) == float(compute_used_from_snapshot)
         assert float(row['current compute used']) == float(compute_used_from_snapshot)
         assert float(row['current compute allowed']) == float(compute_allowed)
         # assert (float(compute_allowed) - float(compute_used_from_snapshot)) == float(row['compute remaining'])
+
+
+# Alternate Story Step Implementation
+
+@when('User launch Instance and no statushistory is created')
+def step_impl(context):
+    context.instance = {}
+    context.instance_history_args = {}
+    for row in context.table:
+        user = AtmosphereUser.objects.get(username=row['username'])
+        try:
+            time_created = context.current_time if str(row['start_date']) == 'current' else parse(
+                str(row['start_date']))
+        except Exception as e:
+            raise Exception('Parsing the start date caused an error %s' % (e))
+        instance, status = launch_instance(user, time_created, int(row["cpu"]), before=True)
+        provider_alias = instance.provider_alias
+        assert provider_alias is not None
+        context.instance[row['instance_id']] = provider_alias
+        context.instance_history_args[row['instance_id']] = {'instance': instance, 'provider': instance.provider,
+                                                             'status': status, 'cpu': int(row["cpu"])}
+
+
+@when('Instance Allocation Source Changed Event is fired BEFORE statushistory is created')
+def step_impl(context):
+    for row in context.table:
+        payload = {}
+        payload['allocation_source_name'] = context.allocation_sources_name[row["allocation_source_id"]]
+        payload['instance_id'] = str(context.instance[row['instance_id']])
+
+        name = 'instance_allocation_source_changed'
+        ts = context.current_time
+        entity_id = str(row["username"])
+
+        event = EventTable(name=name, payload=payload, timestamp=ts, entity_id=entity_id)
+        event.save()
+
+        # test the obj was created
+        obj = InstanceAllocationSourceSnapshot.objects.filter(
+            allocation_source__name=payload['allocation_source_name'],
+            instance__provider_alias=payload['instance_id'])
+
+        assert (len(obj) == 1)
+
+        # create status history
+        args = context.instance_history_args[row['instance_id']]
+        time_created = ts + timedelta(seconds=3)
+        launch_instance_history(args['instance'], args['cpu'], args['provider'], args['status'], time_created)
+
+
+# Tests for one off renewal event
+
+@then('Compute Allowed is increased for Allocation Source')
+def step_impl(context):
+    for row in context.table:
+        allocation_source_name = context.allocation_sources_name[row['allocation_source_id']]
+        new_compute_allowed = int(row['new_compute_allowed'])
+
+        payload = {}
+        payload['allocation_source_name'] = allocation_source_name
+        payload['compute_allowed'] = new_compute_allowed
+        name = 'allocation_source_compute_allowed_changed'
+        ts = context.time_at_the_end_of_calculation_check
+
+        event = EventTable(name=name, entity_id=allocation_source_name, payload=payload, timestamp=ts)
+        event.save()
+
+        assert AllocationSource.objects.get(name=allocation_source_name).compute_allowed == new_compute_allowed
+
+
+@then('One off Renewal task is run without rules engine')
+def step_impl(context):
+    time = context.time_at_the_end_of_calculation_check
+    renew_allocation_sources(current_time=time)
+
+    for row in context.table:
+        allocation_source = AllocationSource.objects.filter(
+            name=context.allocation_sources_name[row['allocation_source_id']]).last()
+
+        renewal_event = EventTable.objects.filter(name='allocation_source_created_or_renewed',
+                                                  payload__allocation_source_name=allocation_source.name,
+                                                  timestamp=time)
+        assert len(renewal_event) > 0
+        assert float(allocation_source.snapshot.compute_used)==float(row['current compute used'])
+        assert float(allocation_source.snapshot.compute_allowed) == float(row['current compute allowed'])
 
 
 # @when('Users added to allocation source launch instance (at the same time)')
@@ -226,7 +313,7 @@ def step_impl(context):
 
 ########### Helpers ###############
 
-def launch_instance(user, time_created, cpu):
+def launch_instance(user, time_created, cpu, before=False):
     # context.user is admin and regular user
     provider = ProviderFactory.create()
     from core.models import IdentityMembership, Identity
@@ -254,6 +341,13 @@ def launch_instance(user, time_created, cpu):
         created_by_identity=user_identity,
         start_date=time_created)
 
+    if not before:
+        return launch_instance_history(instance_state, cpu, provider, status, time_created)
+
+    return instance_state, status
+
+
+def launch_instance_history(instance_state, cpu, provider, status, time_created):
     size = Size(alias=uuid.uuid4(), name='small', provider=provider, cpu=cpu, disk=1, root=1, mem=1)
     size.save()
     InstanceHistoryFactory.create(

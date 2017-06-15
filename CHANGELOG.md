@@ -1,3 +1,18 @@
+## [Yampy-Yellowlegs](https://github.com/cyverse/atmosphere/milestone/12?closed=1) (as of 6/12/2017)
+
+Improvements:
+ - Improvements related to the new Allocation Source model introduced in Xenops
+ - Support for "Special allocations"
+
+
+Bugfixes:
+ - Time-sync issues caused the API to perform unexpectedly, fixed by adjusting only_current
+ - Multiple bugs fixed related to the new Allocation Source model introduced in Xenops
+
+Internal:
+ - Move web_desktop functionality to Atmosphere from Troposphere
+ - New script created to help migrate an entire application to a new provider
+
 ## [Xylotomous-Xenops](https://github.com/cyverse/atmosphere/milestone/11?closed=1) (as of 5/2/2017)
  
 Improvements:

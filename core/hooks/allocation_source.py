@@ -335,6 +335,15 @@ def listen_for_allocation_source_created_or_renewed(sender, instance, created, *
             defaults={'compute_allowed': compute_allowed}
         )
 
+        allocation_source = AllocationSource.objects.get(name=allocation_source_name)
+
+        AllocationSourceSnapshot.objects.update_or_create(
+            allocation_source=allocation_source,
+            defaults={"compute_allowed": compute_allowed,
+                      "global_burn_rate": 0,
+                      "compute_used": 0.0,
+                      "updated": event.timestamp})
+
     logger.info('object_updated: %s, created: %s' % (object_updated, created,))
 
 
