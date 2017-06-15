@@ -1,4 +1,3 @@
-import logging
 import uuid
 from django.conf import settings
 from django.db import IntegrityError
@@ -11,7 +10,7 @@ from .tas_api import tacc_api_post, tacc_api_get
 from core.models import EventTable
 from core.models.allocation_source import AllocationSource, UserAllocationSource
 
-logger = logging.getLogger(__name__)
+from threepio import logger
 
 
 class TASAPIDriver(object):
@@ -129,9 +128,9 @@ class TASAPIDriver(object):
         }
         path = '/v1/jobs'
         url_match = self.tacc_api + path
-        #logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
+        # logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
         resp = tacc_api_post(url_match, post_data, self.tacc_username, self.tacc_password)
-        #logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
+        # logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
         try:
             data = resp.json()
             #logger.debug("TAS_RESP - Data: %s" % data)

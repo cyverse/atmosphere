@@ -9,7 +9,7 @@
 amqp==2.1.4               # via kombu
 ansible==2.3.0.0          # via subspace
 apache-libcloud==0.20.1
-appdirs==1.4.3            # via os-client-config, setuptools
+appdirs==1.4.3            # via os-client-config
 asn1crypto==0.22.0        # via cryptography
 babel==2.3.4              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-neutronclient, python-novaclient, python-openstackclient
 backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud, tornado
@@ -19,7 +19,7 @@ caslib.py==2.2.2          # via django-cyverse-auth
 celery==4.0.2
 certifi==2017.1.23        # via tornado
 cffi==1.10.0              # via cryptography
-chromogenic==0.4.7
+chromogenic==0.4.10
 cliff==2.4.0              # via osc-lib, python-neutronclient, python-openstackclient
 cmd2==0.7.0               # via cliff
 contextlib2==0.5.4        # via raven
@@ -31,6 +31,7 @@ django-celery-beat==1.0.1
 django-cors-headers==0.12.0
 django-cyverse-auth==1.0.13
 django-filter==1.0.1
+django-memoize==2.1.0
 django-redis-cache==0.13.0
 django-sslserver==0.19
 django==1.10.6
@@ -75,7 +76,7 @@ oslo.config==3.23.0       # via python-keystoneclient
 oslo.i18n==3.14.0         # via osc-lib, oslo.config, oslo.utils, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient
 oslo.serialization==2.17.0  # via python-keystoneclient, python-neutronclient, python-novaclient
 oslo.utils==3.23.0        # via osc-lib, oslo.serialization, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient
-packaging==16.8           # via cryptography, setuptools
+packaging==16.8           # via cryptography
 pandas==0.19.2
 paramiko==2.1.2           # via ansible, fabric
 pbr==2.0.0                # via cliff, debtcollector, keystoneauth1, openstacksdk, osc-lib, oslo.i18n, oslo.serialization, oslo.utils, positional, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, requestsexceptions, rtwo, stevedore
@@ -93,8 +94,6 @@ pyparsing==2.2.0          # via cliff, cmd2, oslo.utils, packaging
 python-cinderclient==1.9.0  # via python-openstackclient, rtwo
 python-dateutil==2.6.0
 python-glanceclient==2.5.0  # via python-openstackclient, rtwo
-# python-irodsclient commented out until https://github.com/irods/python-irodsclient/pull/67 and https://github.com/cyverse/rtwo/pull/10 are merged
-# python-irodsclient==0.4.0  # via rtwo
 python-keystoneclient==3.6.0  # via django-cyverse-auth, python-glanceclient, python-openstackclient, rtwo
 python-ldap==2.4.19
 python-logstash==0.4.5
@@ -113,7 +112,7 @@ rfive==0.2.0              # via rtwo
 rsa==3.4.2                # via oauth2client
 rtwo==0.5.10
 simplejson==3.10.0        # via osc-lib, python-cinderclient, python-neutronclient, python-novaclient
-six==1.10.0               # via cliff, cmd2, cryptography, debtcollector, djangorestframework-csv, keystoneauth1, oauth2client, openstacksdk, osc-lib, oslo.config, oslo.i18n, oslo.serialization, oslo.utils, packaging, pyopenssl, python-cinderclient, python-dateutil, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-swiftclient, setuptools, stevedore, warlock
+six==1.10.0               # via cliff, cmd2, cryptography, debtcollector, djangorestframework-csv, keystoneauth1, oauth2client, openstacksdk, osc-lib, oslo.config, oslo.i18n, oslo.serialization, oslo.utils, packaging, pyopenssl, python-cinderclient, python-dateutil, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-swiftclient, stevedore, warlock
 stevedore==1.21.0         # via cliff, keystoneauth1, openstacksdk, osc-lib, oslo.config, python-keystoneclient
 subspace==0.4.1
 threepio==0.2.0

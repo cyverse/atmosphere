@@ -6,6 +6,7 @@ import uuid
 
 from django.db import migrations
 from django.db.models.signals import post_save
+from django.conf import settings
 
 from core.hooks.allocation_source import (
     listen_for_instance_allocation_changes,
@@ -73,6 +74,10 @@ def _assign_instance_allocation_source(allocation_source_name, username, instanc
 
 
 def create_and_assign_allocationsource(apps, schema_editor):
+    JETSTREAM_INSTALLED = apps.is_installed('jetstream')
+    if JETSTREAM_INSTALLED:
+        print "Jetstream installed -- Skipping migration 0084...",
+        return
     AllocationSourceTable = apps.get_model('core', 'AllocationSource')
     UserAllocationSourceTable = apps.get_model('core', 'UserAllocationSource')
     InstanceAllocationSourceTable = apps.get_model('core', 'InstanceAllocationSourceSnapshot')
