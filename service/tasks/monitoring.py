@@ -590,8 +590,13 @@ def monitor_allocation_sources(usernames=()):
 def allocation_source_overage_enforcement_for_user(allocation_source, user):
     user_instances = []
     for identity in user.current_identities:
-        affected_instances = allocation_source_overage_enforcement_for(allocation_source, user, identity)
-        user_instances.extend(affected_instances)
+        try:
+            affected_instances = allocation_source_overage_enforcement_for(allocation_source, user, identity)
+            user_instances.extend(affected_instances)
+        except Exception:
+            celery_logger.exception(
+                'allocation_source_overage_enforcement_for allocation_source: %s, user: %s, and identity: %s',
+                allocation_source, user, identity)
     return user_instances
 
 
