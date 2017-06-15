@@ -27,11 +27,12 @@
 
   before_script:
     - psql -c "CREATE USER atmosphere_db_user WITH PASSWORD 'atmosphere_db_pass' CREATEDB;" -U postgres
-    - psql -c "CREATE DATABASE atmosphere WITH OWNER atmosphere_db_user;" -U postgres
-
-  script:
+    - psql -c "CREATE DATABASE atmosphere_db WITH OWNER atmosphere_db_user;" -U postgres
     - cp ./variables.ini.dist ./variables.ini
     - patch variables.ini variables_for_testing.ini.patch
     - ./configure
+
+  script:
     - python manage.py test --keepdb
     - python manage.py behave --keepdb
+    - ./manage.py  makemigrations --check

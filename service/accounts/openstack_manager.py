@@ -13,6 +13,8 @@ from django.db.models import ObjectDoesNotExist
 from rtwo.exceptions import NovaOverLimit, KeystoneUnauthorized
 from rtwo.exceptions import NeutronClientException, GlanceClientException
 from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_glance_by_auth
+
+from core.models import AllocationSource
 from service.exceptions import AccountCreationConflict
 from keystoneauth1.exceptions.http import Unauthorized as KeystoneauthUnauthorized
 from requests.exceptions import ConnectionError
@@ -230,11 +232,16 @@ class AccountDriver(BaseAccountDriver):
 
         try:
             allocation_source_name = username
-            # Create Allocation Source for User
-            self._create_allocation_source(allocation_source_name)
-            # Add User to Allocation Source
-            self._assign_user_allocation_source(allocation_source_name,username)
-
+            # Check if allocation source exists
+            source = AllocationSource.objects.filter(name=username)
+            if not source:
+                logger.debug('No Allocation Source with name %s found. Creating a new Allocation Source...', allocation_source_name)
+                # Create Allocation Source for User
+                self._create_allocation_source(allocation_source_name)
+                # Add User to Allocation Source
+                self._assign_user_allocation_source(allocation_source_name,username)
+            else:
+                logger.debug('Allocation Source with name %s exists. Skipping creation step...' , allocation_source_name)
         except Exception as e:
 
             logger.exception("Encountered error creating/assigning Allocation Source to User - %s" % e)
@@ -1390,7 +1397,7 @@ class AccountDriver(BaseAccountDriver):
         os_args.pop("tenant_name", None)
         return os_args
 
-    def _create_allocation_source(allocation_source_name):
+    def _create_allocation_source(self,allocation_source_name):
         payload = {}
         payload['uuid'] = str(uuid.uuid4())
         payload['allocation_source_name'] = allocation_source_name
@@ -1405,7 +1412,7 @@ class AccountDriver(BaseAccountDriver):
 
         event.save()
 
-    def _assign_user_allocation_source(allocation_source_name, username):
+    def _assign_user_allocation_source(self,allocation_source_name, username):
         payload = {}
         payload['allocation_source_name'] = allocation_source_name
 
