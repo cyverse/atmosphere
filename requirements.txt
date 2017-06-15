@@ -101,7 +101,7 @@ python-logstash==0.4.5
 python-neutronclient==6.0.0  # via rtwo
 python-novaclient==6.0.0  # via python-openstackclient, rtwo
 python-openstackclient==3.3.0  # via rtwo
-python-swiftclient==3.1.0  # via rtwo
+python-swiftclient==3.3.0  # via rtwo
 pytz==2016.2
 pyyaml==3.12              # via ansible, cliff, djangorestframework-yaml, os-client-config
 raven==6.0.0
