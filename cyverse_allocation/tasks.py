@@ -1,9 +1,9 @@
-import logging
-
 from business_rules import run_all
 from celery.decorators import task
 from django.conf import settings
 from django.utils import timezone
+from django.utils.timezone import datetime
+from threepio import celery_logger as logger
 
 from core.models import EventTable
 from core.models.allocation_source import (
@@ -12,10 +12,9 @@ from core.models.allocation_source import (
 )
 from core.models.allocation_source import total_usage
 from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVariables, CyverseTestRenewalActions, \
-    cyverse_rules
+    cyverse_rules, renewal_strategies
 
-from threepio import celery_logger as logger
-from django.utils.timezone import datetime
+
 # logger = logging.getLogger(__name__)
 
 
@@ -60,6 +59,7 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
     logger.debug("update_snapshot_cyverse task finished at %s." % datetime.now())
     allocation_threshold_check.apply_async()
 
+
 @task(name="allocation_threshold_check")
 def allocation_threshold_check():
     logger.debug("allocation_threshold_check task started at %s." % datetime.now())
@@ -95,3 +95,49 @@ def allocation_threshold_check():
                     entity_id=payload['allocation_source_name'])
                 break
     logger.debug("allocation_threshold_check task finished at %s." % datetime.now())
+
+
+# Renew all allocation sources or a specific renewal strategy without waiting for rules engine
+def renew_allocation_sources(renewal_strategy=False, current_time=False):
+    current_time = timezone.now() if not current_time else current_time
+
+    for strategy, args in renewal_strategies.iteritems():
+
+        if renewal_strategy and (str(renewal_strategy) != str(strategy)):
+            continue
+        compute_allowed = args['compute_allowed']
+        for allocation_source in AllocationSource.objects.filter(renewal_strategy=str(strategy)):
+            renew_allocation_source_for(compute_allowed, allocation_source, current_time)
+
+
+def renew_allocation_source_for(compute_allowed, allocation_source, current_time):
+    source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=allocation_source)
+    if not source_snapshot:
+        raise Exception('Allocation Source %s cannot be renewed because no snapshot is available' % (
+            allocation_source.name))
+    source_snapshot = source_snapshot.last()
+
+    # carryover logic
+    # remaining_compute = 0 if source_snapshot.compute_allowed - source_snapshot.compute_used < 0 else source_snapshot.compute_allowed - source_snapshot.compute_used
+    # total_compute_allowed = float(remaining_compute + compute_allowed)
+
+    snapshot_compute_allowed = float(source_snapshot.compute_allowed)
+    total_compute_allowed = compute_allowed if snapshot_compute_allowed <= compute_allowed else snapshot_compute_allowed
+
+    # fire renewal event
+
+    renewal_strategy = allocation_source.renewal_strategy
+    allocation_source_name = allocation_source.name
+    allocation_source_uuid = allocation_source.uuid
+
+    payload = {
+        "uuid": str(allocation_source_uuid),
+        "renewal_strategy": renewal_strategy,
+        "allocation_source_name": allocation_source_name,
+        "compute_allowed": total_compute_allowed
+    }
+
+    EventTable.objects.create(name='allocation_source_created_or_renewed',
+                              payload=payload,
+                              entity_id=allocation_source_name,
+                              timestamp=current_time)

@@ -33,7 +33,7 @@ Pillow==2.5.3
 PyJWT==1.4.0
 
 python-logstash==0.4.5
-
+django-memoize
 #Theirs
 psycopg2==2.5.4
 python-ldap==2.4.19
