@@ -185,12 +185,10 @@ def _execute_provider_action(identity, user, instance, action_name):
         elif action_name == 'Terminate':
             destroy_instance(user, identity.uuid, instance)
         else:
-            raise Exception("Encountered Unknown Action Named %s" % action)
+            raise Exception("Encountered Unknown Action Named %s" % action_name)
     except ObjectDoesNotExist:
         # This may be unreachable when null,blank = True
-        logger.debug(
-            "Provider %s - 'Do Nothing' for Over Allocation" %
-            provider)
+        logger.debug("Provider %s - 'Do Nothing' for Over Allocation" % identity.provider)
         return
 
 
@@ -494,6 +492,8 @@ def allocation_source_overage_enforcement_for(allocation_source, user, identity)
 
 
 def execute_provider_action(user, driver, identity, instance, action):
+    logger.debug('execute_provider_action - user: %s, driver: %s, identity: %s, instance: %s, action: %s',
+                 user, driver, identity, instance, action)
     try:
         if driver._is_active_instance(instance):
             # Suspend active instances, update the task in the DB
@@ -518,9 +518,14 @@ def execute_provider_action(user, driver, identity, instance, action):
                 identity.uuid,
                 user)
             return core_instance
+        else:
+            logger.debug('_is_active_instance is False, so not calling _execute_provider_action for instance %s',
+                         instance)
     except Exception as e:
         # Raise ANY exception that doesn't say
         # 'This instance is already in the requested VM state'
         # NOTE: This is OpenStack specific
+        logger.debug('execute_provider_action - exception: %s', e)
         if 'in vm_state' not in e.message:
+            logger.exception('execute_provider_action failed')
             raise
