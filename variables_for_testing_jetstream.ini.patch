@@ -1,0 +1,11 @@
+75c75,78
+< TESTING =  False # Boolean required
+---
+> TESTING =  True # Boolean required
+> TEST_RUNNER_USER = # Nothing
+> TEST_RUNNER_PASS = # Nothing
+> DJANGO_JENKINS = False
+78c81
+< USE_JETSTREAM_PLUGIN =  False # Boolean required
+---
+> USE_JETSTREAM_PLUGIN =  True # Boolean required

@@ -1,3 +1,4 @@
+@skip-if-cyverse
 Feature: Testing create_report task after user deleted from allocation source
 
   Scenario Outline: testing create_reports task
