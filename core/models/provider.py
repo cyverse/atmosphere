@@ -98,6 +98,24 @@ class Provider(models.Model):
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
 
+    def to_jsonfile(self):
+        identity = self.accountprovider_set.first().identity
+        username = identity.get_credential('key')
+        password = identity.get_credential('secret')
+        projectName = identity.project_name()
+        return {
+            'admin': {
+                "username": username,
+                "password": password,
+                "tenant": projectName
+            },
+            "credential": self.get_credentials(),
+            "provider": {
+                      "public": self.public,
+                      },
+            "cloud_config": self.cloud_config
+        }
+
     def clean(self):
         """
         Don't allow 'non-terminal' InstanceAction
