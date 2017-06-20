@@ -574,24 +574,37 @@ def monitor_allocation_sources(usernames=()):
     """
     Monitor allocation sources, if a snapshot shows that all compute has been used, then enforce as necessary
     """
+    celery_logger.debug('monitor_allocation_sources - usernames: %s', usernames)
     allocation_sources = AllocationSource.objects.all()
     for allocation_source in allocation_sources.order_by('name'):
-        for user in allocation_source.all_users:
+        celery_logger.debug('monitor_allocation_sources - allocation_source: %s', allocation_source)
+        for user in allocation_source.all_users.order_by('username'):
+            celery_logger.debug('monitor_allocation_sources - user: %s', user)
             if usernames and user.username not in usernames:
                 celery_logger.info("Skipping User %s - not in the list" % user.username)
                 continue
             over_allocation = allocation_source.is_over_allocation(user)
+            celery_logger.debug('monitor_allocation_sources - user: %s, over_allocation: %s', user, over_allocation)
             if not over_allocation:
                 continue
-            allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source.name, user))
+            celery_logger.debug('monitor_allocation_sources - Going to enforce on user user: %s', user)
+            allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source, user))
 
 
 @task(name="allocation_source_overage_enforcement_for_user")
 def allocation_source_overage_enforcement_for_user(allocation_source, user):
+    celery_logger.debug('allocation_source_overage_enforcement_for_user - allocation_source: %s, user: %s',
+                        allocation_source, user)
     user_instances = []
     for identity in user.current_identities:
-        affected_instances = allocation_source_overage_enforcement_for(allocation_source, user, identity)
-        user_instances.extend(affected_instances)
+        try:
+            celery_logger.debug('allocation_source_overage_enforcement_for_user - identity: %s', identity)
+            affected_instances = allocation_source_overage_enforcement_for(allocation_source, user, identity)
+            user_instances.extend(affected_instances)
+        except Exception:
+            celery_logger.exception(
+                'allocation_source_overage_enforcement_for allocation_source: %s, user: %s, and identity: %s',
+                allocation_source, user, identity)
     return user_instances
 
 
