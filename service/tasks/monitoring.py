@@ -587,7 +587,8 @@ def monitor_allocation_sources(usernames=()):
             celery_logger.debug('monitor_allocation_sources - user: %s, over_allocation: %s', user, over_allocation)
             if not over_allocation:
                 continue
-            allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source.name, user))
+            celery_logger.debug('monitor_allocation_sources - Going to enforce on user user: %s', user)
+            allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source, user))
 
 
 @task(name="allocation_source_overage_enforcement_for_user")
