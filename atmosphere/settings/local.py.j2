@@ -155,39 +155,44 @@ CELERYBEAT_SCHEDULE["{{task_key}}"]["{{task_opt}}"] = {{task_opt_value}}
 {% if USE_JETSTREAM_PLUGIN %}
 ALLOCATION_SOURCE_WARNINGS = [10, 25, 50, 75, 90]
 JETSTREAM_CELERYBEAT_SCHEDULE = {
-  "report_allocations_to_tas":{
-        "task":"report_allocations_to_tas",
-        "schedule" : timedelta(minutes=60),
-        "options" : {"expires": 30 * 60,"time_limit": 30 * 60}
+    "report_allocations_to_tas": {
+        "task": "report_allocations_to_tas",
+        "schedule": timedelta(minutes=60),
+        "options": {"expires": 30 * 60, "time_limit": 30 * 60}
     },
-  "update_snapshot":{
-	"task":"update_snapshot",
-        "schedule":timedelta(minutes=30),
-	"options" : {"expires":20*60 , "time_limit":20*60}
+    "update_snapshot": {
+        "task": "update_snapshot",
+        "schedule": timedelta(minutes=30),
+        "options": {"expires": 20 * 60, "time_limit": 20 * 60}
     },
-  "monitor_jetstream_allocation_sources":{
-	"task":"monitor_jetstream_allocation_sources",
+    "monitor_jetstream_allocation_sources": {
+        "task": "monitor_jetstream_allocation_sources",
         # Every 60 minutes, no longer than 45 minutes
         "schedule": crontab(minute="*/60"),
-        "options" : {"expires": 45 * 60,"time_limit": 45 * 60}
-  }
+        "options": {"expires": 45 * 60, "time_limit": 45 * 60}
+    },
+    "monitor_allocation_sources": {
+        "task": "monitor_allocation_sources",
+        # Every 15 minutes
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 15 * 60, "time_limit": 15 * 60}
+    }
 }
 CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
 {% else %}
 ALLOCATIONS_CELERYBEAT_SCHEDULE = {
-  "update_snapshot_cyverse":{
-	"task":"update_snapshot_cyverse",
+    "update_snapshot_cyverse": {
+        "task": "update_snapshot_cyverse",
         # Every 15 minutes
         "schedule": timedelta(minutes=15),
-        "options" : {"expires": 15 * 60,"time_limit": 15 * 60}
-  },
-  "monitor_allocation_sources":{
-	"task":"monitor_allocation_sources",
+        "options": {"expires": 15 * 60, "time_limit": 15 * 60}
+    },
+    "monitor_allocation_sources": {
+        "task": "monitor_allocation_sources",
         # Every 15 minutes
         "schedule": timedelta(minutes=15),
-        "options" : {"expires": 15 * 60,"time_limit": 15 * 60}
-  },
-
+        "options": {"expires": 15 * 60, "time_limit": 15 * 60}
+    },
 }
 CELERYBEAT_SCHEDULE.update(ALLOCATIONS_CELERYBEAT_SCHEDULE)
 {% endif %}
