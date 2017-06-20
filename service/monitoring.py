@@ -468,10 +468,14 @@ def filter_allocation_source_instances(allocation_source, user, esh_instances):
 
 
 def allocation_source_overage_enforcement_for(allocation_source, user, identity):
+    logger.debug("allocation_source_overage_enforcement_for - allocation_source: %s, user: %s, identity: %s",
+                 allocation_source, user, identity)
     provider = identity.provider
     action = provider.over_allocation_action
+    logger.debug("allocation_source_overage_enforcement_for - provider.over_allocation_action: %s",
+                 provider.over_allocation_action)
     if not action:
-        logger.debug("No 'over_allocation_action' provided for %s" % provider)
+        logger.debug("No 'over_allocation_action' provided for %s", provider)
         return []  # Over_allocation was not attempted
     if not settings.ENFORCING:
         logger.info("Settings dictate that ENFORCING = False. Returning..")
