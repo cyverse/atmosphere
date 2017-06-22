@@ -6,6 +6,9 @@ import argparse
 import libcloud.security
 
 import django
+
+import core.models
+
 django.setup()
 
 from core.models import AtmosphereUser as User
@@ -49,7 +52,6 @@ def main():
             print "%d\t%s" % (p.id, p.location)
         return
 
-    users = None
     if args.provider_id and not args.provider:
         print "WARNING: --provider-id has been *DEPRECATED*! Use --provider instead!"
         args.provider = args.provider_id
@@ -69,29 +71,31 @@ def main():
     if not args.users:
         if not args.rebuild:
             print "Retrieving all 'atmo-user' members in LDAP."
-            users = get_members('atmo-user')
+            usernames = get_members('atmo-user')
         else:
             print "Rebuilding all existing users."
-            users = get_usernames(provider)
+            usernames = get_usernames(provider)
     else:
-        users = args.users.split(",")
-    return create_accounts(acct_driver, provider, users,
-                           args.rebuild, args.admin)
+        usernames = args.users.split(",")
+    return create_accounts(acct_driver, provider, usernames, args.rebuild, args.admin)
 
 
-def create_accounts(acct_driver, provider, users, rebuild=False, admin=False):
+def create_accounts(acct_driver, provider, usernames, rebuild=False, admin=False):
     added = 0
-    for user in users:
+    for username in usernames:
         # Then add the Openstack Identity
         try:
             id_exists = Identity.objects.filter(
-                created_by__username__iexact=user,
+                created_by__username__iexact=username,
                 provider=provider)
             if id_exists:
                 if not rebuild:
                     continue
-                print "%s Exists -- Attempting an account rebuild" % user
-            new_identity = acct_driver.create_account(user, max_quota=admin)
+                print "%s Exists -- Attempting an account rebuild" % username
+            user, group = core.models.Group.create_usergroup(username=username, group_name=username)
+            logger.debug('user: %s, group: %s', user, group)
+
+            new_identity = acct_driver.create_account(username, max_quota=admin)
             # After identity is created, be sure to select one of the
             # `public_routers` in provider to be given
             # to the identity as a `router_name`
@@ -101,13 +105,13 @@ def create_accounts(acct_driver, provider, users, rebuild=False, admin=False):
                 replace=True)
             added += 1
             if admin:
-                make_admin(user)
-                print "%s added as admin." % (user)
+                make_admin(username)
+                print "%s added as admin." % (username)
             else:
-                print "%s added." % (user)
+                print "%s added." % (username)
         except Exception as e:
             logger.exception("Problem creating account")
-            print "Problem adding %s." % (user)
+            print "Problem adding %s." % (username)
             logger.exception(e)
             print e.message
     print "Total users added:%s" % (added)
