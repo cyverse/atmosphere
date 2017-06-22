@@ -7,10 +7,9 @@ import libcloud.security
 
 import django
 
-import core.models
-
 django.setup()
 
+import core.models
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
 
@@ -40,6 +39,8 @@ def main():
                         help="List of provider names and IDs")
     parser.add_argument("--rebuild", action="store_true",
                         help="Rebuild all accounts that are in the provider")
+    parser.add_argument("--group",
+                        help="LDAP group of usernames to import.")
     parser.add_argument("--users",
                         help="LDAP usernames to import. (comma separated list with no spaces)")
     parser.add_argument("--admin", action="store_true",
@@ -68,15 +69,18 @@ def main():
         print "Could not create the account Driver for this Provider."\
               " Check the configuration of this identity:%s" % account_provider
         raise
-    if not args.users:
+    if args.group:
+        print "Retrieving all '%s' members in LDAP." % args.group
+        usernames = get_members(args.group)
+    elif args.users:
+        usernames = args.users.split(",")
+    else: # if not args.users
         if not args.rebuild:
             print "Retrieving all 'atmo-user' members in LDAP."
             usernames = get_members('atmo-user')
         else:
             print "Rebuilding all existing users."
             usernames = get_usernames(provider)
-    else:
-        usernames = args.users.split(",")
     return create_accounts(acct_driver, provider, usernames, args.rebuild, args.admin)
 
 
