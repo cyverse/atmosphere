@@ -3,6 +3,10 @@
   sudo: required
   dist: trusty
 
+  # Use an older version of trusty until quirks are figured out.
+  # https://blog.travis-ci.com/2017-06-21-trusty-updates-2017-Q2-launch
+  group: deprecated-2017Q2
+
   language: python
   python:
     - 2.7
