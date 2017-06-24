@@ -27,8 +27,8 @@
     - sudo pg_lsclusters # For testing purposes
 
   install:
-    - pip install -U pip
-    - pip install pip-tools # Necessary for ./travis/check_properly_generated_requirements.sh
+    # setuptools and pip-tools are necessary for ./travis/check_properly_generated_requirements.sh
+    - pip install -U pip setuptools pip-tools
     - pip install -r dev_requirements.txt
 
   before_script:
