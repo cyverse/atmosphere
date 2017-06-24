@@ -3,6 +3,10 @@
   sudo: required
   dist: trusty
 
+  # Use an older version of trusty until quirks are figured out.
+  # https://blog.travis-ci.com/2017-06-21-trusty-updates-2017-Q2-launch
+  group: deprecated-2017Q2
+
   language: python
   python:
     - 2.7
@@ -23,7 +27,9 @@
     - sudo pg_lsclusters # For testing purposes
 
   install:
-    - pip install -r requirements.txt -r dev_requirements.txt
+    - pip install -U pip
+    - pip install pip-tools # Necessary for ./travis/check_properly_generated_requirements.sh
+    - pip install -r dev_requirements.txt
 
   before_script:
     - psql -c "CREATE USER atmosphere_db_user WITH PASSWORD 'atmosphere_db_pass' CREATEDB;" -U postgres
@@ -33,6 +39,7 @@
     - ./configure
 
   script:
+    - ./travis/check_properly_generated_requirements.sh
     - python manage.py test --keepdb
     - python manage.py behave --keepdb
     - ./manage.py  makemigrations --check
