@@ -16,7 +16,7 @@ def _get_payload(resource_request):
     if not resource_request.membership:
         return
     q = resource_request.membership.identity.quota
-    payload = {
+    q_payload = {
             "cpu": q.cpu,
             "memory": q.memory,
             "storage": q.storage,
@@ -26,7 +26,14 @@ def _get_payload(resource_request):
             "floating_ip_count": q.floating_ip_count,
             "port_count": q.port_count
         }
-    return payload
+    timestamp = resource_request.end_date if resource_request.end_date else resource_request.start_date
+    event_payload = {
+        "quota": q_payload,
+        "resource_request": resource_request.id,
+        "resource_request_approved_by": "",
+        "timestamp": timestamp.isoformat().split("+")[0]+"Z"  # Expected format - Modified ISO8601: '2017-06-13T20:35:29Z'
+    }
+    return event_payload
 
 
 def write_quota_events(apps, schema_editor):

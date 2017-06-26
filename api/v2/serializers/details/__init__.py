@@ -10,7 +10,7 @@ from .image_version import ImageVersionSerializer
 from .image_version_boot_script import ImageVersionBootScriptSerializer
 from .image_version_membership import ImageVersionMembershipSerializer
 from .image_version_license import ImageVersionLicenseSerializer
-from .identity import IdentitySerializer
+from .identity import IdentitySerializer, UpdateIdentitySerializer
 from .identity_membership import IdentityMembershipSerializer
 from .image import ImageSerializer
 from .image_metric import ImageMetricSerializer

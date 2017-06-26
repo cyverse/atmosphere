@@ -8,7 +8,6 @@ from api.v2.serializers.details import ResourceRequestSerializer,\
 from api.v2.views.base import BaseRequestViewSet
 from api.pagination import OptionalPagination
 from core import tasks
-from service.tasks import admin as admin_task
 
 
 class ResourceRequestViewSet(BaseRequestViewSet):

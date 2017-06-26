@@ -8,7 +8,7 @@ from core.models import (Identity, Quota)
 
 
 # Call this to fire the 'quota_assigned' event
-def set_quota_assigned(core_identity, quota, resource_request_id, approved_by, timestamp=None):
+def set_quota_assigned(core_identity, quota, resource_request_id, approved_by, updated_at=None):
     from core.models import EventTable
 
     if not core_identity:
@@ -19,8 +19,9 @@ def set_quota_assigned(core_identity, quota, resource_request_id, approved_by, t
         raise Exception("Missing resource request ID")
     if not approved_by:
         raise Exception("Missing resource request approval user")
-    if not timestamp:
-        timestamp = timezone.now()
+    if not updated_at:
+        updated_at = timezone.now()
+    timestamp = _to_timestamp(updated_at)
     entity_id = core_identity.created_by.username
     q_payload = quota.to_payload()
     event_payload = {
@@ -34,6 +35,9 @@ def set_quota_assigned(core_identity, quota, resource_request_id, approved_by, t
         entity_id=entity_id,
         payload=event_payload)
     return event
+
+def _to_timestamp(datetime):
+    return datetime.isoformat().split('+')[0]+"Z"
 
 
 # EVENT FIRED WHEN QUOTA IS ASSIGNED TO AN IDENTITY
