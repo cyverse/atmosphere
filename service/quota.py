@@ -103,10 +103,12 @@ def check_over_storage_quota(
         return False
 
 
-def set_provider_quota(identity_uuid, limit_dict=None):
+def set_provider_quota(identity_uuid, quota=None, limit_dict=None):
     """
     """
     identity = Identity.objects.get(uuid=identity_uuid)
+    if not quota:
+        quota = identity.quota
     if not identity.credential_set.all():
         # NOTE: This special-case is here to prevent 'new identities'
         # that have not included a set of credentials from

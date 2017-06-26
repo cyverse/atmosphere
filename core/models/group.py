@@ -239,19 +239,6 @@ class IdentityMembership(models.Model):
         }
         return quota_dict
 
-    def save(self, *args, **kwargs):
-        """
-        Whenever an IdentityMembership changes, update the provider
-        specific quota too.
-        """
-        super(IdentityMembership, self).save(*args, **kwargs)
-        try:
-            from service.tasks.admin import set_provider_quota
-            set_provider_quota.apply_async(args=[str(self.identity.uuid)])
-        except Exception as ex:
-            logger.warn("Unable to update service.quota.set_provider_quota.")
-            raise
-
     def is_member(self, user):
         """
         Return whether the group in this identity-membership

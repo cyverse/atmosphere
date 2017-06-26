@@ -23,6 +23,7 @@ from core.hooks.allocation_source import (
     listen_for_allocation_source_removed,
     listen_for_instance_allocation_removed
 )
+from core.hooks.quota import listen_for_quota_assigned
 from threepio import logger
 
 

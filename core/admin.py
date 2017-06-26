@@ -11,7 +11,6 @@ from api.v2.views import AllocationSourceViewSet, UserAllocationSourceViewSet
 from core import email
 from core import models
 from core import tasks
-from service.tasks import admin as admin_task
 
 
 def private_object(modeladmin, request, queryset):
@@ -394,6 +393,18 @@ class IdentityAdmin(admin.ModelAdmin):
     list_display = ("created_by", "provider", "_credential_info")
     search_fields = ["created_by__username"]
     list_filter = ["provider__location"]
+    readonly_fields = ['quota', 'created_by', 'provider']
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_readonly_fields(self, request, obj=None):
+        return list(self.readonly_fields) + \
+               [field.name for field in obj._meta.fields] + \
+               [field.name for field in obj._meta.many_to_many]
 
     def _credential_info(self, obj):
         return_text = ""
@@ -404,12 +415,6 @@ class IdentityAdmin(admin.ModelAdmin):
 
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Credentials'
-
-    def save_model(self, request, obj, form, changed):
-        obj.save()
-        identity = obj
-        admin_task.set_provider_quota.apply_async(
-            args=[str(identity.uuid)])
 
 
 class UserProfileInline(admin.StackedInline):

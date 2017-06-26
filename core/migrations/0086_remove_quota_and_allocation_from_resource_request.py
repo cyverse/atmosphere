@@ -3,6 +3,49 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
+from django.db.models import Q
+
+
+def _get_identity_uuid(resource_request):
+    if resource_request.membership:
+        return str(resource_request.membership.identity.uuid)
+    return
+
+
+def _get_payload(resource_request):
+    if not resource_request.membership:
+        return
+    q = resource_request.membership.identity.quota
+    payload = {
+            "cpu": q.cpu,
+            "memory": q.memory,
+            "storage": q.storage,
+            "instance_count": q.instance_count,
+            "snapshot_count": q.snapshot_count,
+            "storage_count": q.storage_count,
+            "floating_ip_count": q.floating_ip_count,
+            "port_count": q.port_count
+        }
+    return payload
+
+
+def write_quota_events(apps, schema_editor):
+    ResourceRequest = apps.get_model('core', 'ResourceRequest')
+    EventTable = apps.get_model('core', 'EventTable')
+    query = ~Q(status__name='pending')
+    query &= ~Q(status__name='failed')
+    for rrequest in ResourceRequest.objects.filter(query):
+        entity_id = _get_identity_uuid(rrequest)
+        new_payload = _get_payload(rrequest)
+        if not entity_id or not new_payload:
+            print "Warning: Incomplete ResourceRequest %s will not be recorded to EventTable" % rrequest
+            continue
+        print "Creating new event: %s\tPayload: %s" % ("quota_assigned", new_payload)
+        EventTable.objects.create(
+            name="quota_assigned",
+            entity_id=entity_id,
+            payload=new_payload)
+    return
 
 
 class Migration(migrations.Migration):
@@ -12,6 +55,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(
+            write_quota_events,
+            reverse_code=migrations.RunPython.noop),
         migrations.RemoveField(
             model_name='resourcerequest',
             name='allocation',
