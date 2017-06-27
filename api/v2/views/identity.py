@@ -7,10 +7,7 @@ import django_filters
 from core.models import Identity, Group, Quota, AtmosphereUser
 from core.query import only_current_provider
 
-from api.v2.serializers.details import (
-    IdentitySerializer,
-    UpdateIdentitySerializer
-)
+from api.v2.serializers.details import (IdentitySerializer)
 from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.exceptions import failure_response
@@ -76,8 +73,6 @@ class IdentityViewSet(MultipleFieldLookup, AuthModelViewSet):
         return idents.filter(only_current_provider())
 
     def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return UpdateIdentitySerializer
         return IdentitySerializer
 
     def update(self, request, pk=None, partial=False):

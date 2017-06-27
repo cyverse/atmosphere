@@ -66,7 +66,14 @@ class AuthModelViewSet(ModelViewSet):
                           ApiAuthRequired,)
 
 
-class AdminAuthViewSet(AuthModelViewSet):
+class AdminViewSet(AuthViewSet):
+    permission_classes = (InMaintenance,
+                          CloudAdminRequired,
+                          EnabledUserRequired,
+                          ApiAuthRequired,)
+
+
+class AdminModelViewSet(AuthModelViewSet):
     permission_classes = (InMaintenance,
                           CloudAdminRequired,
                           EnabledUserRequired,

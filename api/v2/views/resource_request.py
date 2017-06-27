@@ -7,7 +7,6 @@ from api.v2.serializers.details import ResourceRequestSerializer,\
     UserResourceRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
 from api.pagination import OptionalPagination
-from core import tasks
 
 
 class ResourceRequestViewSet(BaseRequestViewSet):

@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.models import Group as DjangoGroup
@@ -7,11 +8,10 @@ from django.contrib.sessions.models import Session as DjangoSession
 from django.utils import timezone
 from threepio import logger
 
-from api.v2.views import AllocationSourceViewSet, UserAllocationSourceViewSet
 from core import email
 from core import models
 from core import tasks
-
+from core.events.serializers.quota_assigned import QuotaAssignedSerializer
 
 def private_object(modeladmin, request, queryset):
     queryset.update(private=True)
@@ -88,6 +88,7 @@ class AllocationSourceAdmin(admin.ModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
+        from api.v2.views import AllocationSourceViewSet, UserAllocationSourceViewSet
         request.data = {"renewal_strategy": obj.renewal_strategy,
                         "name": obj.name,
                         "compute_allowed": obj.compute_allowed}
@@ -387,24 +388,39 @@ class CredentialInline(admin.TabularInline):
     extra = 1
 
 
+class IdentityAdminForm(forms.ModelForm):
+    def clean(self):
+        quota = self.cleaned_data['quota']
+        core_identity = self.instance
+        data = {
+            'quota': quota.id,
+            'identity': core_identity.id,
+            'update_method': 'admin'}
+        event_serializer = QuotaAssignedSerializer(data=data)
+        if not event_serializer.is_valid():
+            raise forms.ValidationError(
+                "Validation of EventSerializer failed with: %s"
+                % event_serializer.errors)
+        try:
+            event_serializer.save()
+        except Exception as exc:
+            logger.exception("Unexpected error occurred during Event save")
+            raise forms.ValidationError(
+                "Unexpected error occurred during Event save: %s. See logs for details."
+                % exc)
+
+    class Meta:
+        model = models.Identity
+        exclude = []
+
+
 @admin.register(models.Identity)
 class IdentityAdmin(admin.ModelAdmin):
     inlines = [CredentialInline, ]
     list_display = ("created_by", "provider", "_credential_info")
     search_fields = ["created_by__username"]
     list_filter = ["provider__location"]
-    readonly_fields = ['quota', 'created_by', 'provider']
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def get_readonly_fields(self, request, obj=None):
-        return list(self.readonly_fields) + \
-               [field.name for field in obj._meta.fields] + \
-               [field.name for field in obj._meta.many_to_many]
+    form = IdentityAdminForm
 
     def _credential_info(self, obj):
         return_text = ""
@@ -415,6 +431,7 @@ class IdentityAdmin(admin.ModelAdmin):
 
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Credentials'
+
 
 
 class UserProfileInline(admin.StackedInline):

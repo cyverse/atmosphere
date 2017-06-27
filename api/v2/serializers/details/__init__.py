@@ -10,7 +10,7 @@ from .image_version import ImageVersionSerializer
 from .image_version_boot_script import ImageVersionBootScriptSerializer
 from .image_version_membership import ImageVersionMembershipSerializer
 from .image_version_license import ImageVersionLicenseSerializer
-from .identity import IdentitySerializer, UpdateIdentitySerializer
+from .identity import IdentitySerializer
 from .identity_membership import IdentityMembershipSerializer
 from .image import ImageSerializer
 from .image_metric import ImageMetricSerializer
@@ -38,6 +38,8 @@ from .quota import QuotaSerializer, AllocationSerializer
 from .renewal_strategy import RenewalStrategySerializer
 from .resource_request import (
     ResourceRequestSerializer, UserResourceRequestSerializer)
+from .resource_request_actions import (
+    ResourceRequest_UpdateQuotaSerializer)
 from .reporting import InstanceReportingSerializer
 from .size import SizeSerializer
 from .ssh_key import SSHKeySerializer

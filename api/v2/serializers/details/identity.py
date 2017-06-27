@@ -1,6 +1,8 @@
-from core.models import Group, Identity, Quota
-from core.hooks.quota import set_quota_assigned
 from rest_framework import serializers
+
+from threepio import logger
+
+from core.models import Identity, Quota
 from api.v2.serializers.summaries import (
     QuotaSummarySerializer,
     CredentialSummarySerializer,
@@ -10,7 +12,7 @@ from api.v2.serializers.summaries import (
     GroupSummarySerializer
 )
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
-from api.v2.serializers.fields.base import ModelRelatedField
+from core.events.serializers.quota_assigned import QuotaAssignedSerializer
 
 
 class IdentitySerializer(serializers.HyperlinkedModelSerializer):
@@ -28,6 +30,25 @@ class IdentitySerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:identity-detail',
     )
+
+    def update(self, core_identity, validated_data):
+        quota_id = validated_data.get('quota')
+        quota = Quota.objects.get(id=quota_id)
+        data = {'quota': quota.id, 'identity': core_identity.id}
+        event_serializer = QuotaAssignedSerializer(data=data)
+        if not event_serializer.is_valid():
+            raise serializers.ValidationError(
+                "Validation of EventSerializer failed with: %s"
+                % event_serializer.errors)
+        try:
+            event_serializer.save()
+        except Exception as exc:
+            logger.exception("Unexpected error occurred during Event save")
+            raise serializers.ValidationError(
+                "Unexpected error occurred during Event save: %s" % exc)
+        # Synchronous call to EventTable -> Set Quota for Identity's CloudProvider -> Save the Quota to Identity
+        identity = Identity.objects.get(uuid=core_identity.uuid)
+        return identity
 
     def get_usage(self, identity):
         return -1
@@ -64,37 +85,3 @@ class IdentitySerializer(serializers.HyperlinkedModelSerializer):
                   'provider',
                   'members',
                   'user')
-
-
-class UpdateIdentitySerializer(IdentitySerializer):
-    approved_by = serializers.CharField(write_only=True)
-    resource_request = serializers.UUIDField(write_only=True)
-    provider = ProviderSummarySerializer(read_only=True)
-    user = UserSummarySerializer(source='created_by', read_only=True)
-
-    def update(self, core_identity, validated_data):
-        # NOTE: Quota is the _only_ value that can be updated in Identity.
-        quota_id = validated_data.get('quota')
-        if 'id' in validated_data.get('quota'):
-            quota_id = validated_data.get('quota').get('id')
-        resource_request_id = validated_data.get('resource_request')
-        approved_by = validated_data.get('approved_by')
-        quota = Quota.objects.get(id=quota_id)
-        set_quota_assigned(core_identity, quota, resource_request_id, approved_by)
-        # Synchronous call to EventTable -> Set Quota in the Cloud -> Update the Quota for Identity
-        identity = Identity.objects.get(uuid=core_identity.uuid)
-        return identity
-
-    class Meta:
-        model = Identity
-        fields = (
-            'id',
-            'uuid',
-            'url',
-            'quota',
-            'allocation',
-            'usage',
-            'provider',
-            'user',
-            'approved_by',
-            'resource_request')
