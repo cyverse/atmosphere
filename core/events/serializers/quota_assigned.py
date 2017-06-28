@@ -8,6 +8,7 @@ from core.models import (
 from core.serializers.fields import ModelRelatedField
 
 
+#TODO: If these classes get used elsewhere, move to common location.
 class AtmosphereUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = AtmosphereUser
@@ -28,7 +29,7 @@ class IdentitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Identity
         fields = ("uuid", "created_by", "provider")
-
+#END-TODO:
 
 class EventSerializer(serializers.Serializer):
     """

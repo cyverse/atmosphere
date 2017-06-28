@@ -40,16 +40,23 @@ def listen_for_quota_assigned(sender, instance, created, **kwargs):
     if event.name != 'quota_assigned':
         return
     logger.info('quota_assigned: %s' % event.__dict__)
-    identity_uuid = event.entity_id
-    identity = Identity.objects.get(uuid=identity_uuid)
-    payload = event.payload
-    quota_values = payload['quota']
 
-    quota, created = Quota.objects.get_or_create(
+    username = event.entity_id
+    payload = event.payload
+
+    quota_values = payload['quota']
+    identity_uuid = payload['identity']
+    identity = Identity.objects.get(uuid=identity_uuid)
+
+    created = False
+    quota = Quota.objects.filter(
         **quota_values
-    )
+    ).order_by('pk').first()
+    if not quota:
+        quota = Quota.objects.create(**quota_values)
+        created = True
     logger.info('Quota retrieved: %s, created: %s', quota, created)
-    set_provider_quota(identity, quota=quota)
+    set_provider_quota(str(identity.uuid), quota=quota)
     logger.info("Set the quota for cloud provider to match: %s", identity)
     identity = Identity.objects.get(uuid=identity_uuid)
     identity.quota = quota

@@ -20,6 +20,7 @@ class ResourceRequest_UpdateQuotaSerializer(serializers.Serializer):
         serializer_class=QuotaSummarySerializer,
         style={'base_template': 'input.html'})
     identity = ModelRelatedField(
+        lookup_field='uuid',
         queryset=Identity.objects.all(),
         serializer_class=IdentitySummarySerializer,
         style={'base_template': 'input.html'})
