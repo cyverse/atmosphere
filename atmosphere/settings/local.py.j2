@@ -500,3 +500,10 @@ WEB_DESKTOP = {
         'SALT': '{{ WEB_DESKTOP_FP_SALT }}'
     }
 }
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/var/tmp/django_cache',
+    }
+}
