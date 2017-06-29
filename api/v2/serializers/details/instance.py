@@ -10,10 +10,10 @@ from api.v2.serializers.summaries import (
     UserSummarySerializer,
     ProviderSummarySerializer,
     SizeSummarySerializer,
-    ImageSummarySerializer,
     ImageVersionSummarySerializer,
     BootScriptSummarySerializer
 )
+from api.v2.serializers.summaries.image import ImageSuperSummarySerializer
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
@@ -64,7 +64,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             return {}
         image_uuid = obj.application_uuid()
         image = Image.objects.get(uuid=image_uuid)
-        serializer = ImageSummarySerializer(image, context=self.context)
+        serializer = ImageSuperSummarySerializer(image, context=self.context)
         return serializer.data
 
     def get_ip_address(self, obj):

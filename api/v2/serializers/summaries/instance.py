@@ -2,7 +2,7 @@ from core.models import Instance, Application as Image
 from rest_framework import serializers
 from .identity import IdentitySummarySerializer
 from .size import SizeSummarySerializer
-from .image import ImageSummarySerializer
+from .image import ImageSuperSummarySerializer
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
@@ -33,7 +33,7 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
             return {}
         image_uuid = obj.application_uuid()
         image = Image.objects.get(uuid=image_uuid)
-        serializer = ImageSummarySerializer(image, context=self.context)
+        serializer = ImageSuperSummarySerializer(image, context=self.context)
         return serializer.data
 
     class Meta:
