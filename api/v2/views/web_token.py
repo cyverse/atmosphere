@@ -8,7 +8,7 @@ import base64
 import requests
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from itsdangerous import URLSafeTimedSerializer
 from rest_framework import status
 from rest_framework.generics import RetrieveAPIView
@@ -34,54 +34,44 @@ class WebTokenView(RetrieveAPIView):
         """
         Retrieve a signed token for a web desktop view.
         """
-        instance_id = pk
         if not request.user.is_authenticated():
-            logger.info("not authenticated: \nrequest:\n %s" % request)
             raise PermissionDenied
 
-        logger.info("user is authenticated, well done.")
-        instance = self.get_queryset().filter(provider_alias=instance_id).first()
+        client = request.query_params.get('client')
+        valid_guac = client == "guacamole" and settings.GUACAMOLE_ENABLED
+        valid_webdesktop = client == "web_desktop"
+        if not (valid_guac or valid_webdesktop):
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                'Invalid or missing "client" query paramater')
+
+        instance = self.get_queryset().filter(provider_alias=pk).first()
         if not instance:
-            logger.info("Instance %s not found" % instance_id)
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                'Instance %s not found / no longer exists' % (instance_id,))
-        ip_address = instance.ip_address
-        logger.info("ip_address: %s" % ip_address)
+                'Instance %s not found / no longer exists' % pk)
 
         token = None
-        client = self.request.query_params.get('client', 'vnc')
-        payload = {
-            'token': '',
-            'token_url': '',
-        }
+        token_url = None
         try:
-            redirect = self.request.query_params.get('redirect', False)
             if client == 'guacamole':
-                protocol = self.request.query_params.get('protocol', 'vnc')
-                token, api_token_url = self.guacamole_token(request, ip_address, protocol, redirect)
+                token, token_url = self.guacamole_token(instance.ip_address)
             else:
-                token = self.web_desktop_token(request, ip_address)
-                proxy_password = 'display'
-                api_token_url = '%s?token=%s&password=%s' % (
-                    settings.WEB_DESKTOP['redirect']['PROXY_URL'],
-                    token, proxy_password)
-            payload['token'] = token
-            payload['token_url'] = api_token_url
-        except Exception as exc:
-            payload['error'] = exc.message
-            payload['status'] = 403
-        if redirect:
-            response = HttpResponseRedirect(api_token_url)
-            if client == 'vnc':
-                response.set_cookie('original_referer', request.META['HTTP_REFERER'],
-                    domain=settings.WEB_DESKTOP['redirect']['COOKIE_DOMAIN'])
-            logger.info("redirect response to %s", api_token_url)
-            return response
-        response = Response(payload)
-        return response
+                token, token_url = self.web_desktop_token(instance.ip_address)
+        except:
+            logger.exception("Atmosphere failed to retrieve web token")
+            return HttpResponse(
+                "Atmosphere failed to retrieve web token",
+                status=500)
 
-    def guacamole_token(self, request, ip_address, protocol, redirect=False):
+        return Response({
+            'token': token,
+            'token_url': token_url
+        })
+
+    def guacamole_token(self, ip_address):
+        request = self.request
+        protocol = request.query_params.get('protocol', 'vnc')
         guac_server = settings.GUACAMOLE['SERVER_URL']
         guac_secret = settings.GUACAMOLE['SECRET_KEY']
         # Create UUID for connection ID
@@ -131,41 +121,21 @@ class WebTokenView(RetrieveAPIView):
         response = requests.post(guac_server + '/api/tokens', data=request_string)
         logger.info("Response status from server: %s" % (response.status_code))
 
-        if response.status_code == 403:
-            logger.warn("Guacamole did not accept the authentication.\nResponse content:\n%s" % (json.loads(response.content)))
-            return HttpResponse(
-                "<h1>Error 403</h1><br/>Guacamole server did not accept authentication.",
-                status=403)
+        # Raise exceptions for HTTP errors
+        response.raise_for_status()
 
         token = json.loads(response.content)['authToken']
-        api_token_url = guac_server + '/#/client/' + base64_conn_id + '?token=' + token
-        return token, api_token_url
+        token_url = guac_server + '/#/client/' + base64_conn_id + '?token=' + token
+        return token, token_url
 
-    def web_desktop_token(self, request, ip_address):
-        # NOTE: Lets say you wanted an _extra level of security_
-        #       if you need to 'tie in' to Atmosphere API, this code
-        #       below would be helpful in phoning home for verification.
-        # auth_token = request.session.get('token')
-        # if not auth_token:
-        #     auth_token = request.META['HTTP_AUTHORIZATION']
-        # if not auth_token:
-        #     return failure_response(
-        #         status.HTTP_501_NOT_IMPLEMENTED,
-        #         "Token could not be determined! If you can reproduce this, please file an issue!")
-        # SIGNER = Signer(
-        #     settings.WEB_DESKTOP['fingerprint']['SECRET_KEY'],
-        #     salt=settings.WEB_DESKTOP['fingerprint']['SALT'])
-        # token_fingerprint = SIGNER.get_signature(auth_token)
-
+    def web_desktop_token(self, ip_address):
         signed_serializer = URLSafeTimedSerializer(
             settings.WEB_DESKTOP['signing']['SECRET_KEY'],
             salt=settings.WEB_DESKTOP['signing']['SALT'])
 
-        token = signed_serializer.dumps([
-            ip_address,
-            # auth_token,
-            # token_fingerprint,
-            # settings.SERVER_URL,
-            ])
-        #Future-FIXME: Now that guacamole requires web_token & additional information for the redirect, should we return the api_token_url here, too?
-        return token
+        token = signed_serializer.dumps([ip_address])
+
+        token_url = '%s?token=%s&password=display' % \
+            (settings.WEB_DESKTOP['redirect']['PROXY_URL'], token)
+
+        return token, token_url
