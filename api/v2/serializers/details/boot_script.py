@@ -34,6 +34,7 @@ class StrategyCharField(serializers.CharField):
 class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
     created_by = serializers.SlugRelatedField(
         slug_field='username', queryset=AtmosphereUser.objects.all(),
+        required=False
     )
     text = serializers.CharField(source='script_text')
     strategy = StrategyCharField(source='run_every_deploy')
@@ -44,19 +45,6 @@ class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:bootscript-detail',
     )
-
-    def is_valid(self, raise_exception=False):
-        """
-        """
-        raw_type = self.initial_data.get("type", "")
-        if raw_type:
-            raw_type = raw_type.lower()
-        if 'raw text' in raw_type:
-            ScriptType.objects.get_or_create(name="Raw Text")
-        elif 'url' in raw_type:
-            ScriptType.objects.get_or_create(name="URL")
-        return super(BootScriptSerializer, self).is_valid(
-                raise_exception=raise_exception)
 
     def create(self, validated_data):
         if 'created_by' not in validated_data:
