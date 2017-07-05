@@ -3,6 +3,23 @@
 
 Atmosphere addresses the growing needs for highly configurable and customized computational resources to support research efforts in plant sciences. Atmosphere is an integrative, private, self-service cloud computing platform designed to provide easy access to preconfigured, frequently used analysis routines, relevant algorithms, and data sets in an available-on-demand environment designed to accommodate computationally and data-intensive bioinformatics tasks.
 
+## Installation
+
+Install the required python packages
+```
+pip install -r requirements.txt
+```
+
+A separate environment is provided for developers
+```
+pip install -r dev_requirements.txt
+```
+
+The `*requirements.txt` files are generated using
+[pip-tools](https://github.com/jazzband/pip-tools). See
+[REQUIREMENTS.md](REQUIREMENTS.md) for instructions on using pip-tools and
+upgrading packages in Atmosphere.
+
 ## Some Features
 
 + A powerful web client for management and administration of virtual machines
