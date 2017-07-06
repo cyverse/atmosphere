@@ -239,15 +239,15 @@ class Provider(models.Model):
         if not router_distribution:
             router_distribution = self.get_router_distribution()
         minimum = -1
-        minimum_key = None
-        for key, count in router_distribution.items():
+        router_name = None
+        for rtr_name, count in router_distribution.items():
             if minimum == -1:
                 minimum = count
-                minimum_key = key
+                router_name = rtr_name
             elif count < minimum:
                 minimum = count
-                minimum_key = key
-        return minimum_key
+                router_name = rtr_name
+        return router_name
 
     def get_router_distribution(self, router_count_map={}):
         """

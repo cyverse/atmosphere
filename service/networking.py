@@ -13,7 +13,6 @@ from rtwo.exceptions import NeutronClientException, NeutronNotFound
 from atmosphere import settings
 from threepio import logger
 
-
 def topology_list():
     return [
         ExternalNetwork,
@@ -327,6 +326,13 @@ class ExternalRouter(GenericNetworkTopology):
         router_name = identity.get_credential('router_name')
         if not router_name:
             router_name = identity.provider.get_credential('router_name')
+        if not router_name:
+            router_name = identity.provider.select_router()
+            from core.models import Credential
+            Credential.objects.get_or_create(
+                identity=identity,
+                key='router_name',
+                value=router_name)
         if not router_name:
             raise Exception("Unknown Router - Identity %s is missing 'router_name' " % identity)
         self.external_router_name = router_name

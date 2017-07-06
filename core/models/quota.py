@@ -245,8 +245,8 @@ def has_port_count_quota(identity, driver, quota, new_size=0, raise_exc=True):
     except Exception as exc:
         logger.warn("Could not verify quota due to failed call to network_driver.list_ports() - %s" % exc)
         return True
-
-    fixed_ips = [port for port in port_list if 'compute:' in port['device_owner']]
+    project_id = network_driver.get_tenant_id()
+    fixed_ips = [port for port in port_list if 'compute:' in port['device_owner'] and port['project_id'] == project_id]
     total_size = new_size
     total_size += len(fixed_ips)
     if total_size <= quota.port_count:
