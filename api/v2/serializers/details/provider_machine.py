@@ -14,6 +14,7 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     version = ImageVersionSummarySerializer(source='application_version')
     image = ImageSummarySerializer(source='application')
     created_by = UserSummarySerializer(source='instance_source.created_by')
+    size_gb = serializers.ReadOnlyField(source='instance_source.size_gb')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date',
                                          allow_null=True)
@@ -30,7 +31,7 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ProviderMachine
         fields = ('id', 'uuid', 'url', 'provider', 'image',
-                  'licenses', 'members', 'version',
+                  'licenses', 'members', 'version', 'size_gb',
                   'created_by', 'start_date', 'end_date')
 
     def update(self, instance, validated_data):

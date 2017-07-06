@@ -884,10 +884,10 @@ def launch_instance(user, identity_uuid,
 
     esh_driver = get_cached_driver(identity=identity)
 
-    # May raise Exception("Size not available")
-    size = check_size(esh_driver, size_alias, provider)
     # May raise Exception("Volume/Machine not available")
     boot_source = get_boot_source(user.username, identity_uuid, source_alias)
+    # May raise Exception("Size not available")
+    size = check_size(esh_driver, size_alias, provider, boot_source)
 
     # Raise any other exceptions before launching here
     _pre_launch_validation(
@@ -1201,11 +1201,20 @@ def generate_uuid4():
 ################################
 
 
-def check_size(esh_driver, size_alias, provider):
+def validate_size_fits_boot_source(esh_size, boot_source):
+    disk_size = esh_size.disk
+    if disk_size == 0 or boot_source.size_gb == 0:
+        return
+    if boot_source.size_gb > disk_size:
+        raise SizeNotAvailable("Size Not Available. Disk is %s but image requires at least %s" % (disk_size, boot_source.size_gb))
+
+def check_size(esh_driver, size_alias, provider, boot_source):
     try:
         esh_size = esh_driver.get_size(size_alias)
         if not convert_esh_size(esh_size, provider.uuid).active():
             raise SizeNotAvailable()
+        if boot_source.is_machine():
+            validate_size_fits_boot_source(esh_size, boot_source)
         return esh_size
     except LibcloudBadResponseError as bad_response:
         return _parse_libcloud_error(provider, bad_response)
