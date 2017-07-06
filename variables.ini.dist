@@ -20,6 +20,7 @@ SERVER_URL = # www.my-website.com
 [uwsgi.ini]
 LOCAL_DEV =  False # Boolean required
 PATH_TO_ATMOSPHERE = # /path/to/atmosphere
+NUM_PROCESSES = # 16, number of uWSGI processes
 UWSGI_USER = # www-data
 UWSGI_GROUP = # www-data
 UWSGI_LOG_PATH = # /var/log/uwsgi/atmosphere_uwsgi.log
