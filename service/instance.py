@@ -668,36 +668,10 @@ def destroy_instance(user, core_identity_uuid, instance_alias):
         core_identity_uuid, instance_alias)
     if not success and esh_instance:
         raise Exception("Instance could not be destroyed")
-    elif esh_instance:
-        os_cleanup_networking(core_identity_uuid)
-        core_instance = end_date_instance(
-            user, esh_instance, core_identity_uuid)
-        return core_instance
-    else:
-        # Edge case - If you attempt to delete more than once...
-        core_instance = find_instance(instance_alias)
-        return core_instance
-
-
-def end_date_instance(user, esh_instance, core_identity_uuid):
-    # Retrieve the 'hopefully now deleted' instance and end date it.
-    identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
-    esh_driver = get_cached_driver(identity=identity)
-    try:
-        core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             identity.provider.uuid,
-                                             identity.uuid,
-                                             user)
-        #NOTE: We may want to ensure instances are *actually* terminated prior to end dating them.
-        if core_instance:
-            core_instance.end_date_all()
-        return core_instance
-    except (socket_error, ConnectionFailure):
-        logger.exception("connection failure during destroy instance")
-        return None
-    except LibcloudInvalidCredsError:
-        logger.exception("LibcloudInvalidCredsError during destroy instance")
-        return None
+    os_cleanup_networking(core_identity_uuid)
+    core_instance = find_instance(instance_alias)
+    core_instance.end_date_all()
+    return core_instance
 
 
 def os_cleanup_networking(core_identity_uuid):
