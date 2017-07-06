@@ -179,6 +179,7 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
     }
 }
 CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
+ALLOCATION_SOURCE_PLUGINS = ['jetstream.plugins.allocation_source.JetstreamAllocationSourcePlugin',]
 {% else %}
 ALLOCATIONS_CELERYBEAT_SCHEDULE = {
     "update_snapshot_cyverse": {
@@ -200,6 +201,7 @@ ALLOCATIONS_CELERYBEAT_SCHEDULE = {
     },
 }
 CELERYBEAT_SCHEDULE.update(ALLOCATIONS_CELERYBEAT_SCHEDULE)
+ALLOCATION_SOURCE_PLUGINS = ['cyverse_allocation.plugins.allocation_source.FlexibleAllocationSourcePlugin',]
 {% endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL | default("logging.INFO") }}
