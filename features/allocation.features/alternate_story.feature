@@ -41,7 +41,7 @@ Feature: Testing an Alternate story
     And User instance runs for some days
     | username     | instance_id  | days  | status       |
     | amitj        |      1       |   1   | active       |
-    | julainp      |      2       |   1   | active       |
+    | julianp      |      2       |   1   | active       |
 
     ## NOTE: Currently, the rules engine is set to renew in every 3 days. After every renewal the compute used is reset and remaining compute is carried over
 
@@ -54,8 +54,9 @@ Feature: Testing an Alternate story
     | allocation_source_id | new_compute_allowed |
     |          1           |    400              |
 
-    # test that one off renewal task does not reset EVERY allocation source to the original compute allowed value
+    # test that one off renewal task does reset EVERY allocation source to the original compute allowed value
+    # This is new behavior
     And One off Renewal task is run without rules engine
     | current compute used | current compute allowed | allocation_source_id |
-    | 0                    | 400                     | 1                    |
+    | 0                    | 168                     | 1                    |
     | 0                    | 168                     | 2                    |

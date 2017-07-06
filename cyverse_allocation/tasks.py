@@ -98,6 +98,7 @@ def allocation_threshold_check():
 
 
 # Renew all allocation sources or a specific renewal strategy without waiting for rules engine
+@task(name="renew_allocation_sources")
 def renew_allocation_sources(renewal_strategy=False, current_time=False):
     current_time = timezone.now() if not current_time else current_time
 
@@ -111,21 +112,6 @@ def renew_allocation_sources(renewal_strategy=False, current_time=False):
 
 
 def renew_allocation_source_for(compute_allowed, allocation_source, current_time):
-    source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=allocation_source)
-    if not source_snapshot:
-        raise Exception('Allocation Source %s cannot be renewed because no snapshot is available' % (
-            allocation_source.name))
-    source_snapshot = source_snapshot.last()
-
-    # carryover logic
-    # remaining_compute = 0 if source_snapshot.compute_allowed - source_snapshot.compute_used < 0 else source_snapshot.compute_allowed - source_snapshot.compute_used
-    # total_compute_allowed = float(remaining_compute + compute_allowed)
-
-    snapshot_compute_allowed = float(source_snapshot.compute_allowed)
-    total_compute_allowed = compute_allowed if snapshot_compute_allowed <= compute_allowed else snapshot_compute_allowed
-
-    # fire renewal event
-
     renewal_strategy = allocation_source.renewal_strategy
     allocation_source_name = allocation_source.name
     allocation_source_uuid = allocation_source.uuid
@@ -134,7 +120,7 @@ def renew_allocation_source_for(compute_allowed, allocation_source, current_time
         "uuid": str(allocation_source_uuid),
         "renewal_strategy": renewal_strategy,
         "allocation_source_name": allocation_source_name,
-        "compute_allowed": total_compute_allowed
+        "compute_allowed": compute_allowed
     }
 
     EventTable.objects.create(name='allocation_source_created_or_renewed',
