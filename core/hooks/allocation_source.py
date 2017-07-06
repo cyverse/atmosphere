@@ -320,6 +320,7 @@ def listen_for_allocation_source_created_or_renewed(sender, instance, created, *
         )
 
         allocation_source = get_allocation_source_object(payload['uuid'])
+        assert isinstance(allocation_source, AllocationSource)
 
         AllocationSourceSnapshot.objects.update_or_create(
             allocation_source=allocation_source,
@@ -328,6 +329,9 @@ def listen_for_allocation_source_created_or_renewed(sender, instance, created, *
                       "compute_used": 0.0,
                       "updated": event.timestamp})
 
+        for user_allocation_snapshot in allocation_source.user_allocation_snapshots.all():
+            user_allocation_snapshot.compute_used = 0.0
+            user_allocation_snapshot.save()
     else:
         # Jetstream
         object_updated, created = AllocationSource.objects.update_or_create(
