@@ -34,6 +34,7 @@ class StrategyCharField(serializers.CharField):
 class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
     created_by = serializers.SlugRelatedField(
         slug_field='username', queryset=AtmosphereUser.objects.all(),
+        required=False
     )
     text = serializers.CharField(source='script_text')
     strategy = StrategyCharField(source='run_every_deploy')
