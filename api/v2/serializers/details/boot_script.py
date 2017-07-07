@@ -55,15 +55,13 @@ class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
             ScriptType.objects.get_or_create(name="Raw Text")
         elif 'url' in raw_type:
             ScriptType.objects.get_or_create(name="URL")
-        return super(BootScriptSerializer, self).is_valid(
-                raise_exception=raise_exception)
 
-    def create(self, validated_data):
-        if 'created_by' not in validated_data:
+        if 'created_by' not in self.initial_data:
             request = self.context.get('request')
             if request and request.user:
-                validated_data['created_by'] = request.user
-        return super(BootScriptSerializer, self).create(validated_data)
+                self.initial_data['created_by'] = request.user
+        return super(BootScriptSerializer, self).is_valid(
+                raise_exception=raise_exception)
 
     class Meta:
         model = BootScript
