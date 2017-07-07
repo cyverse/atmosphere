@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file requirements.txt requirements.in
 #
--e git+https://github.com/steve-gregory/billiard.git#egg=billiard
+-e git+https://github.com/celery/celery.git@master#egg=celery
 -e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient
 amqp==2.1.4               # via kombu
 ansible==2.3.0.0          # via subspace
@@ -13,10 +13,10 @@ appdirs==1.4.3            # via os-client-config
 asn1crypto==0.22.0        # via cryptography
 babel==2.3.4              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-neutronclient, python-novaclient, python-openstackclient
 backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud, tornado
+billiard==3.5.0.2
 boto==2.39.0              # via chromogenic
 business-rules==1.0.1
 caslib.py==2.2.2          # via django-cyverse-auth
-celery==4.0.2
 certifi==2017.1.23        # via tornado
 cffi==1.10.0              # via cryptography
 chromogenic==0.4.10
@@ -60,7 +60,7 @@ jsonpointer==1.10         # via jsonpatch
 jsonschema==2.6.0         # via warlock
 jwt.py==0.1.0             # via django-cyverse-auth
 keystoneauth1==2.19.0     # via django-cyverse-auth, openstacksdk, os-client-config, osc-lib, python-cinderclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient
-kombu==4.0.2              # via celery
+kombu==4.0.2
 markupsafe==1.0           # via jinja2
 monotonic==1.3            # via oslo.utils
 msgpack-python==0.4.8     # via oslo.serialization
