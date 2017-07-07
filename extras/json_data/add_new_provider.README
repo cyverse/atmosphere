@@ -1,4 +1,3 @@
-The JSON File provided is a *sample* to show cloud operators how to fill out
-the file prior to passing into `./scripts/add_new_provider.py`. Some things to note:
-- The number of Security Rules required is likely going to be **LARGER** than whats in the file.
-- The hostname (for IP lookups) is specific to iPlant
+The Files in this directory can help you configure your cloud with minimal hassle.
+Feel free to copy one of these files or use them directly by passing `--from-json extras/json_data/...`
+to `./scripts/add_new_provider.py`

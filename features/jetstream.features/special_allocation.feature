@@ -1,3 +1,4 @@
+@skip-if-cyverse
 Feature: Special Allocations
   Test special (_sub_) allocations
 

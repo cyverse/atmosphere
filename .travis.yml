@@ -3,9 +3,19 @@
   sudo: required
   dist: trusty
 
+  # Use an older version of trusty until quirks are figured out.
+  # https://blog.travis-ci.com/2017-06-21-trusty-updates-2017-Q2-launch
+  group: deprecated-2017Q2
+
+  cache: pip
+
   language: python
   python:
     - 2.7
+
+  env:
+    - DISTRIBUTION=cyverse
+    - DISTRIBUTION=jetstream
 
   services:
     - postgresql
@@ -23,16 +33,19 @@
     - sudo pg_lsclusters # For testing purposes
 
   install:
-    - pip install -r requirements.txt -r dev_requirements.txt
+    # setuptools and pip-tools are necessary for ./travis/check_properly_generated_requirements.sh
+    - pip install -U pip setuptools pip-tools
+    - pip install -r dev_requirements.txt
 
   before_script:
     - psql -c "CREATE USER atmosphere_db_user WITH PASSWORD 'atmosphere_db_pass' CREATEDB;" -U postgres
     - psql -c "CREATE DATABASE atmosphere_db WITH OWNER atmosphere_db_user;" -U postgres
     - cp ./variables.ini.dist ./variables.ini
-    - patch variables.ini variables_for_testing.ini.patch
+    - patch variables.ini variables_for_testing_${DISTRIBUTION}.ini.patch
     - ./configure
 
   script:
+    - ./travis/check_properly_generated_requirements.sh
     - python manage.py test --keepdb
-    - python manage.py behave --keepdb
-    - ./manage.py  makemigrations --check
+    - python manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION}
+    - python manage.py makemigrations --check
