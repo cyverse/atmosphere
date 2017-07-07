@@ -150,7 +150,7 @@ requestsexceptions==1.2.0
 rfc3986==0.4.1
 rfive==0.2.0
 rsa==3.4.2
-rtwo==0.5.10
+rtwo==0.5.11
 scandir==1.5              # via pathlib2
 selenium==3.4.1           # via splinter
 simplegeneric==0.8.1      # via ipython
