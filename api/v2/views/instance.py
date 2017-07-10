@@ -264,6 +264,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                                 status=status.HTTP_400_BAD_REQUEST)
             instance.change_allocation_source(user_source.allocation_source)
 
+        if data.has_key('name') and data['name']:
+            instance.name = data['name']
+            instance.save()
+
         serialized_instance = InstanceSerializer(
                 instance, context={'request': self.request})
 
