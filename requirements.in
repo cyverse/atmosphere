@@ -1,4 +1,4 @@
--e git+https://github.com/steve-gregory/billiard.git#egg=billiard # TEMPORARY
+-e git+https://github.com/celery/celery.git@master#egg=celery # until next celery release
 -e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient  # Temporary until https://github.com/irods/python-irodsclient/pull/67 is merged
 business_rules
 Django==1.10.6

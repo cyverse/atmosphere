@@ -2,6 +2,7 @@
 """
 Routes for api v1 endpoints
 """
+import django.views.decorators.cache
 from django.conf.urls import url
 
 from rest_framework.urlpatterns import format_suffix_patterns
@@ -111,7 +112,7 @@ urlpatterns = format_suffix_patterns([
         '(?P<instance_id>%s)/action$' % uuid_match,
         views.InstanceAction.as_view(), name='instance-action'),
     url(identity_specific + r'/instance/(?P<instance_id>%s)$' % uuid_match,
-        views.Instance.as_view(), name='instance-detail'),
+        django.views.decorators.cache.cache_page(60 * 1)(views.Instance.as_view()), name='instance-detail'),
     url(identity_specific + r'/instance$',
         views.InstanceList.as_view(), name='instance-list'),
 

@@ -138,8 +138,10 @@ class DeviceBusyException(ServiceException):
 
 class SizeNotAvailable(ServiceException):
 
-    def __init__(self):
-        self.message = "Size Not Available."
+    def __init__(self, message):
+        if not message:
+            message = "Size Not Available."
+        self.message = message
         super(SizeNotAvailable, self).__init__()
 
     def __str__(self):

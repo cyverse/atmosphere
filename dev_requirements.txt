@@ -4,9 +4,9 @@
 #
 #    pip-compile --output-file dev_requirements.txt requirements.txt dev_requirements.in
 #
--e git+https://github.com/steve-gregory/billiard.git#egg=billiard
+-e git+https://github.com/celery/celery.git@master#egg=celery
 -e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient
-amqp==2.1.4
+amqp>=2.1.4,<3.0
 ansible==2.3.0.0
 apache-libcloud==0.20.1
 appdirs==1.4.3
@@ -17,10 +17,10 @@ backports.ssl-match-hostname==3.5.0.1
 behave-django==0.5.0
 behave==1.2.5
 behaving==1.5.6
+billiard>=3.5.0.2,<3.6.0  # via celery
 boto==2.39.0
 business-rules==1.0.1
 caslib.py==2.2.2
-celery==4.0.2
 certifi==2017.1.23
 cffi==1.10.0
 chromogenic==0.4.10
@@ -83,7 +83,7 @@ jsonpointer==1.10
 jsonschema==2.6.0
 jwt.py==0.1.0
 keystoneauth1==2.19.0
-kombu==4.0.2
+kombu>=4.0.2,<5.0         # via celery
 markupsafe==1.0
 mccabe==0.6.1             # via flake8
 mock==1.0.1

@@ -1,13 +1,29 @@
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
+import django_filters
 
-from core.models import Group, Size, Provider
+from core.models import Group, Size, Provider, ProviderMachine
 from core.query import only_current, only_current_provider
 
 from api.v2.serializers.details import SizeSerializer
 from api.v2.views.base import AuthReadOnlyViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
+class SizeFilter(django_filters.FilterSet):
+    provider_machine__id = django_filters.filters.CharFilter(method='filter_provider_machine')
+
+    def filter_provider_machine(self, qs, name, value):
+        selected_machine = ProviderMachine.objects.filter(
+            Q(id=value)
+            | Q(instance_source__identifier=value)).first()
+        size_threshold = selected_machine.instance_source.size_gb
+        return qs.filter(
+            Q(disk=0)
+            | Q(disk__gt=size_threshold))
+
+    class Meta:
+        model = Size
+        fields = ['provider__id', 'provider_machine__id']
 
 class SizeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     """
@@ -17,7 +33,7 @@ class SizeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     queryset = Size.objects.all().order_by('-disk','-cpu','-mem')
     serializer_class = SizeSerializer
     ordering = ("disk", "cpu", "mem", "root", "name")
-    filter_fields = ('provider__id',)
+    filter_class = SizeFilter
 
     def get_queryset(self):
         """

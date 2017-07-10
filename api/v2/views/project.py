@@ -58,8 +58,11 @@ class ProjectViewSet(MultipleFieldLookup, AuthModelViewSet):
         Filter projects by current user.
         """
         user = self.request.user
-        return Project.objects.filter(only_current(),
+        qs = Project.objects.filter(only_current(),
                                       owner__name=user.username)
+        qs = qs.select_related('owner')\
+            .prefetch_related('applications', 'instances', 'volumes', 'links')
+        return qs
 
     @detail_route()
     def instances(self, *args, **kwargs):

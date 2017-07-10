@@ -179,6 +179,7 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
     }
 }
 CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
+ALLOCATION_SOURCE_PLUGINS = ['jetstream.plugins.allocation_source.JetstreamAllocationSourcePlugin',]
 {% else %}
 ALLOCATIONS_CELERYBEAT_SCHEDULE = {
     "update_snapshot_cyverse": {
@@ -193,8 +194,14 @@ ALLOCATIONS_CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=15),
         "options": {"expires": 15 * 60, "time_limit": 15 * 60}
     },
+    "renew_allocation_sources": {
+        "task": "renew_allocation_sources",
+        "schedule": crontab(0, 0, day_of_month='1'),
+        "options": {"expires": 15 * 60, "time_limit": 15 * 60}
+    },
 }
 CELERYBEAT_SCHEDULE.update(ALLOCATIONS_CELERYBEAT_SCHEDULE)
+ALLOCATION_SOURCE_PLUGINS = ['cyverse_allocation.plugins.allocation_source.FlexibleAllocationSourcePlugin',]
 {% endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL | default("logging.INFO") }}
@@ -247,7 +254,7 @@ DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
-ENABLE_IMAGE_VALIDATION = True
+ENABLE_IMAGE_VALIDATION = False  # TODO: Fix validation and make configurable feature-flag
 
 # Configure authentication plugin
 AUTHENTICATION = {
@@ -485,6 +492,13 @@ EXPIRATION_PLUGINS = [
 ]
 {%- endif %}
 
+# Support for Guacamole
+GUACAMOLE_ENABLED = {{ GUACAMOLE_ENABLED }}
+GUACAMOLE = {
+    'SECRET_KEY': '{{ GUACAMOLE_SECRET_KEY }}',
+    'SERVER_URL': '{{ GUACAMOLE_SERVER_URL }}'
+}
+
 # Support for Web Desktop
 WEB_DESKTOP_INCLUDE_LINK = {{ WEB_DESKTOP_INCLUDE_LINK }}
 
@@ -496,5 +510,16 @@ WEB_DESKTOP = {
     'fingerprint': {
         'SECRET_KEY': '{{ WEB_DESKTOP_FP_SECRET_KEY }}',
         'SALT': '{{ WEB_DESKTOP_FP_SALT }}'
+    },
+    'redirect': {
+        'ENABLED': WEB_DESKTOP_INCLUDE_LINK,
+        'PROXY_URL': '{{ WEB_DESKTOP_PROXY_URL }}'
+    }
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/var/tmp/django_cache',
     }
 }
