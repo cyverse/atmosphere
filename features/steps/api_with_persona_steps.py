@@ -78,12 +78,58 @@ def i_log_in(context):
                 }
         ):
             login_result = client.login(username=context.persona['username'], password=context.persona['password'])
+            context.persona['login_result'] = login_result
             context.test.assertTrue(login_result)
             if 'user' not in context.persona:
                 import core.models
                 context.persona['user'] = core.models.AtmosphereUser.objects.get_by_natural_key(
                     context.persona['username'])
                 assert context.persona['user'].username == context.persona['username']
+
+
+@step('I try to log in with valid XSEDE project required')
+def i_log_in_with_valid_xsede_project_required(context):
+    """
+    :type context: behave.runner.Context
+    """
+    assert context.persona
+    client = rest_framework.test.APIClient()
+    context.persona['client'] = client
+    is_tas_up = True
+    if hasattr(context.scenario, '_row') and context.scenario._row:
+        example = dict(zip(context.scenario._row.headings, context.scenario._row.cells))
+        is_tas_up = example.get('is_tas_up', 'Yes') == 'Yes'
+    with django.test.override_settings(
+            AUTHENTICATION_BACKENDS=['django_cyverse_auth.authBackends.MockLoginBackend'],
+            ALWAYS_AUTH_USER=context.persona['username'],
+            DEFAULT_QUOTA_PLUGINS=['jetstream.plugins.quota.default_quota.JetstreamSpecialAllocationQuota'],
+            VALIDATION_PLUGINS=['jetstream.plugins.auth.validation.XsedeProjectRequired']
+    ):
+        with mock.patch.multiple('jetstream.allocation',
+                                 tacc_api_post=mock.DEFAULT,
+                                 tacc_api_get=mock.DEFAULT,
+                                 ) as mock_methods:
+            mock_methods['tacc_api_post'].side_effect = jetstream.tests.tas_api_mock_utils._make_mock_tacc_api_post(
+                context, is_tas_up)
+            mock_methods['tacc_api_get'].side_effect = jetstream.tests.tas_api_mock_utils._make_mock_tacc_api_get(
+                context, is_tas_up)
+            login_result = client.login(username=context.persona['username'], password=context.persona['password'])
+            context.persona['login_result'] = login_result
+
+
+@step('the login attempt should fail')
+def login_should_fail(context):
+    context.test.assertFalse(context.persona['login_result'])
+    context.persona.pop('user', None)
+
+
+@step('the login attempt should succeed')
+def login_should_succeed(context):
+    context.test.assertTrue(context.persona['login_result'])
+    import core.models
+    context.persona['user'] = core.models.AtmosphereUser.objects.get_by_natural_key(
+        context.persona['username'])
+    assert context.persona['user'].username == context.persona['username']
 
 
 @step('I get my allocation sources from the API I should see')

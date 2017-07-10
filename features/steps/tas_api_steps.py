@@ -1,15 +1,19 @@
+import collections
 import copy
 import datetime
 import json
 from decimal import Decimal
 
-import collections
+import django
+import django.test
 import mock
 from behave import *
 
 import api.tests.factories
+import jetstream
 import jetstream.allocation as jetstream_allocation
-from jetstream.tests.tas_api_mock_utils import _make_mock_tacc_api_post, _make_mock_tacc_api_get
+from jetstream.tests.tas_api_mock_utils import _make_mock_tacc_api_post, _make_mock_tacc_api_get, \
+    reset_mock_tas_fixtures
 
 
 @given(u'the following Atmosphere users')
@@ -42,6 +46,8 @@ def we_clear_the_local_cache(context):
     context.test.assertListEqual(jetstream_allocation.TASAPIDriver.user_project_list, [])
     context.test.assertListEqual(jetstream_allocation.TASAPIDriver.project_list, [])
     context.test.assertListEqual(jetstream_allocation.TASAPIDriver.allocation_list, [])
+
+    reset_mock_tas_fixtures(context)
 
 
 @given(u'the following XSEDE to TACC username mappings')
@@ -259,3 +265,115 @@ def should_have_following_events(context, event_name=None):
     print('\n'.join(actual_events_rows))
     context.test.maxDiff = None
     context.test.assertListEqual(expected_events, events)
+
+
+@step("we set up the TAS API failover scenario example")
+def setup_tas_api_failover_scenario(context):
+    example = dict(zip(context.scenario._row.headings, context.scenario._row.cells))
+
+    if example['has_tas_account'] == 'Yes':
+        context.execute_steps(u'''
+            Given the following XSEDE to TACC username mappings
+              | xsede_username  | tacc_username  |
+              | {user}          | tacc_{user}    |
+        '''.format(**example))
+    else:
+        context.execute_steps(u'''
+            Given the following XSEDE to TACC username mappings
+              | xsede_username  | tacc_username  |
+        ''')
+
+    if example['has_valid_allocation'] == 'Yes':
+        context.execute_steps(u'''
+            Given the following TAS projects
+              | id      | chargeCode |
+              | {index} | TG_{user}  |
+            And the following TAS allocations
+              | id      | projectId | project   | computeAllocated | computeUsed | start                | end                  | status | resource  |
+              | {index} | {index}   | TG_{user} | 1000000          | 781768.01   | 2016-01-01T06:00:00Z | 2017-06-30T05:00:00Z | Active | Jetstream |
+            And the following TACC usernames for TAS projects
+              | project   | tacc_usernames |
+              | TG_{user} | tacc_{user}    |
+        '''.format(**example))
+    else:
+        context.execute_steps(u'''
+            Given the following TAS projects
+              | id      | chargeCode |
+            And the following TAS allocations
+              | id      | projectId | project   | computeAllocated | computeUsed | start                | end                  | status | resource  |
+            And the following TACC usernames for TAS projects
+              | project   | tacc_usernames |
+        '''.format(**example))
+
+
+@step("the user should be valid - {user_is_valid}")
+def step_impl(context, user_is_valid):
+    """
+    :type context: behave.runner.Context
+    :type user_is_valid: str
+    """
+    import core.models
+    context.test.assertIn(user_is_valid, ['Yes', 'No'])
+    assert context.persona
+    context.test.assertIn('user', context.persona)
+    user = context.persona['user']
+    context.test.assertIsInstance(user, core.models.AtmosphereUser)
+    example = dict(zip(context.scenario._row.headings, context.scenario._row.cells))
+    is_tas_up = example.get('is_tas_up', 'Yes') == 'Yes'
+    overridden_validation_plugins = ['jetstream.plugins.auth.validation.XsedeProjectRequired']
+
+    with mock.patch.multiple('jetstream.allocation',
+                             tacc_api_post=mock.DEFAULT,
+                             tacc_api_get=mock.DEFAULT,
+                             ) as mock_methods:
+        mock_methods['tacc_api_post'].side_effect = jetstream.tests.tas_api_mock_utils._make_mock_tacc_api_post(
+            context, is_tas_up)
+        mock_methods['tacc_api_get'].side_effect = jetstream.tests.tas_api_mock_utils._make_mock_tacc_api_get(
+            context, is_tas_up)
+        with django.test.override_settings(
+                VALIDATION_PLUGINS=overridden_validation_plugins
+        ):
+            import core.plugins
+            core.plugins.ValidationPluginManager.list_of_classes = getattr(django.conf.settings, 'VALIDATION_PLUGINS',
+                                                                           [])
+            context.test.assertListEqual(core.plugins.ValidationPluginManager.list_of_classes,
+                                         overridden_validation_plugins)
+            try:
+                if user_is_valid == 'Yes':
+                    context.test.assertTrue(user.is_valid())
+                elif user_is_valid == 'No':
+                    context.test.assertFalse(user.is_valid())
+            except Exception as e:
+                print('Ruh-roh. {}'.format(e))
+                raise
+    print('Done')
+
+
+@step("we ensure local allocation is created or deleted")
+def step_impl(context):
+    """
+    :type context: behave.runner.Context
+    :type has_local_allocation: str
+    """
+    assert context.persona
+    context.test.assertIn('user', context.persona)
+    user = context.persona['user']
+    import core.models
+    context.test.assertIsInstance(user, core.models.AtmosphereUser)
+    active_allocation_count = core.models.UserAllocationSource.objects.filter(user=user).count()
+    example = dict(zip(context.scenario._row.headings, context.scenario._row.cells))
+    has_local_allocation = example.get('has_local_allocation', 'Yes')
+    if has_local_allocation == 'No':
+        core.models.UserAllocationSource.objects.filter(user=user).delete()
+        return
+
+    if active_allocation_count > 0:
+        return
+
+    allocation_source = api.tests.factories.AllocationSourceFactory.create(name='TG-ALT_{}'.format(user.username),
+                                                                           compute_allowed=3000)
+    context.test.assertIsInstance(allocation_source, core.models.AllocationSource)
+
+    user_allocation_source = api.tests.factories.UserAllocationSourceFactory.create(user=user,
+                                                                                    allocation_source=allocation_source)
+    context.test.assertIsInstance(user_allocation_source, core.models.UserAllocationSource)
