@@ -32,7 +32,7 @@ pip-sync dev_requirements.txt
 pip-compile -o requirements.txt requirements.in
 
 # Generate new development requirements (depends on previous command!!)
-pip-compile -o dev_requirements.txt  dev_requirements.in requirements.txt
+pip-compile -o dev_requirements.txt dev_requirements.in requirements.txt
 ```
 
 **NOTE:** If you forget how a requirements file is generated, the instructions
@@ -76,7 +76,7 @@ generated requirements.
 
 Your second command is actually more like:
 ```
-$ pip-compile -o requirements.txt requirements.txt requirements.in
+$ pip-compile -o requirements.txt requirements.in
 ```
 
 So pip-compile actually uses your existing requirements to guide how it
