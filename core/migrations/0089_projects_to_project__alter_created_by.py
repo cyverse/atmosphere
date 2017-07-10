@@ -24,7 +24,7 @@ def move_projects_to_project(apps,schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0086_set_project_leaders_and_authors'),
+        ('core', '0088_set_project_leaders_and_authors'),
     ]
 
     operations = [

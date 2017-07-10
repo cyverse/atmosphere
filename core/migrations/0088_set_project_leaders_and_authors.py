@@ -31,7 +31,7 @@ def promote_project_leaders(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0085_project__created_by_and_leadership_to_group_membership'),
+        ('core', '0087_project__created_by_and_leadership_to_group_membership'),
     ]
 
     operations = [
