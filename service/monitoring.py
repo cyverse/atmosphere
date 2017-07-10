@@ -82,14 +82,14 @@ def _convert_tenant_id_to_names(instances, tenants):
 
 
 def _get_identity_from_tenant_name(provider, username):
+    # FIXME: This needs to be `username, tenant_name` because the `project_name` no longer has to match the `username` 
     try:
         # NOTE: I could see this being a problem when 'user1' and 'user2' use
         # TODO: Ideally we would be able to extract some more information
         #      when we move away from explicit user-groups.
         credential = Credential.objects.get(
-            key='ex_project_name', value=username,
-            identity__provider=provider,
-            identity__created_by__username=username)
+            Q(key='ex_project_name'), value=username,
+            identity__provider=provider)
         identity = credential.identity
         return identity
     except Credential.MultipleObjectsReturned:
@@ -97,8 +97,7 @@ def _get_identity_from_tenant_name(provider, username):
                     % (username, provider))
         credential = Credential.objects.filter(
             key='ex_project_name', value=username,
-            identity__provider=provider,
-            identity__created_by__username=username)[0]
+            identity__provider=provider)[0]
         identity = credential.identity
         return identity
     except Credential.DoesNotExist:
@@ -354,13 +353,13 @@ def check_over_allocation(username, identity_uuid,
 
 def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
-    group = user.group_set.filter(name=user.username).first()
-    if not group:
-        logger.warn("WARNING: User %s does not have a group named %s" % (user, user.username))
-        return None
+    logger.warn(
+        "DEPRECATION WARNING: Identities do not control allocation anymore. This will no longer return values.")
+    return None
+    group_ids = user.memberships.values_list('group__id', flat=True)
     try:
         membership = IdentityMembership.objects.get(
-            identity__uuid=identity_uuid, member=group)
+            identity__uuid=identity_uuid, member__in=group_ids)
     except IdentityMembership.DoesNotExist:
         logger.warn(
             "WARNING: User %s does not"
@@ -448,7 +447,21 @@ def _get_strategy(identity):
         return None
 
 
-def filter_allocation_source_instances(allocation_source, user, esh_instances):
+def allocation_source_overage_enforcement(allocation_source):
+    all_user_instances = {}
+    for user in allocation_source.all_users:
+        all_user_instances[user.username] = []
+        #TODO: determine how this will work with project-sharing (i.e. that we aren't issue-ing multiple suspend/stop/etc. for shared instances
+        for identity in Identity.shared_with_user(user):
+            affected_instances = allocation_source_overage_enforcement_for(
+                    allocation_source, user, identity)
+            user_instances = all_user_instances[user.username]
+            user_instances.extend(affected_instances)
+            all_user_instances[user.username] = user_instances
+    return all_user_instances
+
+
+def filter_allocation_source_instances(allocation_source, esh_instances):
     as_instances = []
     for inst in esh_instances:
         core_instance = CoreInstance.objects.filter(created_by=user, provider_alias=inst.id).first()

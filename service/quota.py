@@ -32,9 +32,11 @@ def check_over_instance_quota(
 
     return or raise exc
     """
-    membership = IdentityMembership.objects.get(
+    memberships_available = IdentityMembership.objects.filter(
         identity__uuid=identity_uuid,
-        member__name=username)
+        member__memberships__user__username=username)
+    if memberships_available:
+        membership = memberships_available.first()
     identity = membership.identity
     quota = identity.quota
     driver = get_cached_driver(identity=identity)
@@ -73,8 +75,11 @@ def check_over_storage_quota(
     return False if ValidationError occurs and raise_exc=False
     By default, allow ValidationError to raise.
     """
-    membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
-                                                member__name=username)
+    memberships_available = IdentityMembership.objects.filter(
+        identity__uuid=identity_uuid,
+        member__memberships__user__username=username)
+    if memberships_available:
+        membership = memberships_available.first()
     identity = membership.identity
     quota = identity.quota
     driver = get_cached_driver(identity=identity)

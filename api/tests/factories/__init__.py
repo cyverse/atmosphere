@@ -18,4 +18,3 @@ from .provider_machine_factory import ProviderMachineFactory, InstanceSourceFact
 from .platform_type_factory import PlatformTypeFactory
 from .size_factory import SizeFactory
 from .allocation_source_factory import AllocationSourceFactory, UserAllocationSourceFactory
-

@@ -2,6 +2,20 @@ from django.db.models import Q
 from django.utils import timezone
 
 
+def provider_contains_credential(key, value):
+    return (
+        Q(providercredential__key=key) &
+        Q(providercredential__value=value)
+    )
+
+
+def contains_credential(key, value):
+    return (
+        Q(credential__key=key) &
+        Q(credential__value=value)
+    )
+
+
 def inactive_versions():
     return (
         # Contains at least one version without an end-date OR
@@ -260,7 +274,8 @@ def _query_membership_for_user(user):
     """
     if not user:
         return None
-    return Q(group__id__in=user.group_set.values('id'))
+    return Q(group__id__in=user.group_ids())
+
 
 def images_shared_with_user(user):
     """

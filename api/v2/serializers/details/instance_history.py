@@ -21,7 +21,7 @@ class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
         style={'base_template': 'input.html'})
     size = SizeRelatedField(queryset=Size.objects.none())
     provider = ProviderSummarySerializer(
-        source='instance.provider_machine.provider')
+        source='instance.get_provider')
     image = ImageSummarySerializer(
         source='instance.provider_machine.application_version.application')
     total_hours = serializers.SerializerMethodField()
@@ -31,9 +31,12 @@ class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
         view_name='api:v2:instancestatushistory-detail',
     )
 
-    def get_total_hours(self, obj):
-        hours = obj.get_total_hours()
-        return hours
+    def get_total_hours(self, instance_history):
+        instance = instance_history.instance
+        if not instance.allocation_source\
+                or not instance.allocation_source.snapshot:
+            return -1
+        return instance.allocation_source.snapshot.compute_used
 
     class Meta:
         model = InstanceStatusHistory

@@ -13,7 +13,7 @@ from threepio import logger
 
 from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource, update_instance_source_size
-from core.models.application import create_application, get_application, verify_app_uuid
+from core.models.application import create_application, get_application, verify_app_uuid, Application
 from core.models.application_version import (
         ApplicationVersion,
         create_app_version,
