@@ -5,7 +5,6 @@
 #    pip-compile --output-file dev_requirements.txt requirements.txt dev_requirements.in
 #
 -e git+https://github.com/steve-gregory/billiard.git#egg=billiard
--e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient
 amqp==2.1.4
 ansible==2.3.0.0
 apache-libcloud==0.20.1
@@ -134,6 +133,7 @@ pyparsing==2.2.0
 python-cinderclient==1.9.0
 python-dateutil==2.6.0
 python-glanceclient==2.5.0
+python-irodsclient==0.6.0
 python-keystoneclient==3.6.0
 python-ldap==2.4.19
 python-logstash==0.4.5
