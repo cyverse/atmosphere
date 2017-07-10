@@ -68,7 +68,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         qs = qs.select_related("created_by")\
             .select_related('created_by_identity')\
             .select_related('source')\
-            .prefetch_related('projects')
+            .select_related('project')
         return qs
 
     @detail_route(methods=['post'])

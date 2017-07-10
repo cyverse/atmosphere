@@ -58,8 +58,15 @@ class VolumeViewSet(MultipleFieldLookup, AuthModelViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        base_qs = Volume.shared_with_user(user)
-        return base_qs.filter(only_current_source())
+        qs = Volume.shared_with_user(user)
+        if 'archived' not in self.request.query_params:
+            qs = qs.filter(only_current_source())
+        qs = qs\
+            .select_related('instance_source')\
+            .select_related("instance_source__created_by")\
+            .select_related('instance_source__created_by_identity')\
+            .select_related('project')
+        return qs
 
     @detail_route(methods=['post'])
     def update_metadata(self, request, pk=None):
