@@ -74,19 +74,25 @@ Considerations when using iRODS transfer:
 max_tries = 3  # Maximum number of times to attempt downloading and uploading image data
 
 
-def main():
-    args = _parse_args()
-    logging.info("Running application_to_provider with the following arguments:\n{0}".format(str(args)))
+def main(application_id,
+         destination_provider_id,
+         source_provider_id=None,
+         ignore_missing_owner=False,
+         ignore_missing_members=False,
+         clean=False,
+         persist_local_cache=False,
+         irods_conn_str=None,
+         irods_src_coll=None,
+         irods_dst_coll=None
+         ):
 
-    irods_args = (args.irods_conn, args.irods_src_coll, args.irods_dst_coll)
-    if args.clean and any(irods_args):
+    irods_args = (irods_conn_str, irods_src_coll, irods_dst_coll)
+    if clean and any(irods_args):
         raise Exception("--clean cannot be used with iRODS transfer mode")
     if any(irods_args):
         irods = True
-        if all(irods_args) and args.source_provider_id:
-            irods_conn = _parse_irods_conn(args.irods_conn)
-            irods_src_coll = args.irods_src_coll
-            irods_dst_coll = args.irods_dst_coll
+        if all(irods_args) and source_provider_id:
+            irods_conn = _parse_irods_conn(irods_conn_str)
         else:
             raise Exception("If using iRODS transfer then --source-provider-id, --irods-conn, --irods-src-coll, and "
                             "--irods-dst-coll must all be defined")
@@ -94,14 +100,12 @@ def main():
         irods = False
         irods_conn = irods_src_coll = irods_dst_coll = None
 
-    persist_local_cache = True if args.persist_local_cache else False
-
-    if args.source_provider_id == args.destination_provider_id:
+    if source_provider_id == destination_provider_id:
         raise Exception("Source provider cannot be the same as destination provider")
-    app = core.models.Application.objects.get(id=args.application_id)
-    dprov = core.models.Provider.objects.get(id=args.destination_provider_id)
-    if args.source_provider_id:
-        sprov = core.models.Provider.objects.get(id=args.source_provider_id)
+    app = core.models.Application.objects.get(id=application_id)
+    dprov = core.models.Provider.objects.get(id=destination_provider_id)
+    if source_provider_id:
+        sprov = core.models.Provider.objects.get(id=source_provider_id)
     else:
         sprov = None
 
@@ -119,7 +123,7 @@ def main():
     try:
         dprov_app_owner_uuid = dprov_acct_driver.get_project(app_creator_uname, raise_exception=True).id
     except AttributeError:
-        if args.ignore_missing_owner:
+        if ignore_missing_owner:
             dprov_app_owner_uuid = dprov_atmo_admin_uuid
         else:
             raise Exception("Application owner missing from destination provider, run with "
@@ -139,7 +143,7 @@ def main():
                 if member_proj_uuid not in dprov_app_members_uuids:
                     dprov_app_members_uuids.append(member_proj_uuid)
             except AttributeError:
-                if not args.ignore_missing_members:
+                if not ignore_missing_members:
                     raise Exception("Application member missing from destination provider, run with "
                                     "--ignore-missing-members to suppress this error")
         logging.debug("Private app member UUIDs on destination provider: {0}".format(str(dprov_app_members_uuids)))
@@ -299,7 +303,7 @@ def main():
         # Populate image data in destination provider if needed
         migrate_or_verify_image_data(sprov_img_uuid, sprov_glance_client, dprov_glance_client, local_path,
                                      persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll,
-                                     clean=True if args.clean else False)
+                                     clean=True if clean else False)
         # If AMI-based image, populate image data in destination provider if needed
         if ami:
             migrate_or_verify_image_data(sprov_aki_glance_image.id, sprov_glance_client, dprov_glance_client,
@@ -551,7 +555,18 @@ if __name__ == "__main__":
     logging.getLogger().addHandler(output)
     # Todo should we use a particular logger?
     try:
-        main()
+        args = _parse_args()
+        logging.info("Running application_to_provider with the following arguments:\n{0}".format(str(args)))
+        main(args.application_id,
+             args.destination_provider_id,
+             args.source_provider_id,
+             args.ignore_missing_owner,
+             args.ignore_missing_members,
+             args.clean,
+             args.persist_local_cache,
+             args.irods_conn_str,
+             args.irods_src_coll,
+             args.irods_dst_coll)
     except Exception as e:
         logging.exception(e)
         raise
