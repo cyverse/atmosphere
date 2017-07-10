@@ -65,6 +65,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         if 'archived' not in self.request.query_params:
             qs = qs.filter(only_current())
         logger.info("DEBUG- User %s querying for instances, available IDs are:%s" % (user, qs.values_list('id',flat=True)))
+        qs = qs.select_related("created_by")\
+            .select_related('created_by_identity')\
+            .select_related('source')\
+            .prefetch_related('projects')
         return qs
 
     @detail_route(methods=['post'])

@@ -238,10 +238,17 @@ def _set_compute_quota(user_quota, identity):
     admin_driver = ad.admin_driver
     #FIXME: Remove 'use_tenant_id' when legacy clouds are no-longer in use.
     try:
+        result = admin_driver._connection.ex_update_quota(tenant_id, compute_values, use_tenant_id=use_tenant_id)
+    except Exception:
+        logger.exception("Could not set a user-quota, trying to set tenant-quota")
+        raise
+    #FIXME: For jetstream, return result here.
+    #       For CyVerse old clouds, run the top method. don't use try/except.
+    try:
         result = admin_driver._connection.ex_update_quota_for_user(
             tenant_id, ks_user.id, compute_values, use_tenant_id=use_tenant_id)
     except Exception:
         logger.exception("Could not set a user-quota, trying to set tenant-quota")
-        result = admin_driver._connection.ex_update_quota(tenant_id, compute_values, use_tenant_id=use_tenant_id)
+        raise
     logger.info("Updated quota for %s to %s" % (username, result))
     return result

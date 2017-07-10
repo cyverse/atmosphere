@@ -64,6 +64,46 @@ class DefaultQuotaPluginManager(PluginManager):
         return _default_quota
 
 
+class AllocationSourcePluginManager(PluginManager):
+    """
+    Provide a plugin to create more complicated rules for default quotas
+    """
+    list_of_classes = getattr(settings, 'ALLOCATION_SOURCE_PLUGINS', [])
+    plugin_required = True  # For now...
+
+    @classmethod
+    def ensure_user_allocation_sources(cls, user, provider=None):
+        """Load each Allocation Source Plugin and call `plugin.ensure_user_allocation_source(user)`
+
+        Depending on the plugin this may create allocation sources if they don't already exist.
+        :param user: The user to check
+        :type user: core.models.AtmosphereUser
+        :param provider: The provider (optional, not used by all plugins)
+        :type provider: core.models.Provider
+        :return: Whether the user has valid allocation sources
+        :rtype: bool
+        """
+        _has_valid_allocation_sources = False
+        for AllocationSourcePlugin in cls.load_plugins(cls.list_of_classes):
+            plugin = AllocationSourcePlugin()
+            try:
+                inspect.getcallargs(
+                    getattr(plugin, 'ensure_user_allocation_source'),
+                    user=user, provider=provider)
+            except AttributeError:
+                logger.info(
+                    "Allocation Source plugin %s missing method 'ensure_user_allocation_source'",
+                    AllocationSourcePlugin)
+            except TypeError:
+                logger.info(
+                    "Allocation Source plugin %s does not accept kwargs `user` & `provider`",
+                    AllocationSourcePlugin)
+            _has_valid_allocation_sources = plugin.ensure_user_allocation_source(user=user, provider=provider)
+            if _has_valid_allocation_sources:
+                return _has_valid_allocation_sources
+        return _has_valid_allocation_sources
+
+
 class ValidationPluginManager(PluginManager):
     """
     At least one plugin is required to test user validation.

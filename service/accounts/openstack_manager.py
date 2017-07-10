@@ -4,17 +4,15 @@ UserManager:
 """
 import time
 import string
-import uuid
 from urlparse import urlparse
-
-from django.db.models import Max
 
 from django.db.models import ObjectDoesNotExist
 from rtwo.exceptions import NovaOverLimit, KeystoneUnauthorized
 from rtwo.exceptions import NeutronClientException, GlanceClientException
 from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_glance_by_auth
 
-from core.models import AllocationSource
+import core.models
+import core.plugins
 from service.exceptions import AccountCreationConflict
 from keystoneauth1.exceptions.http import Unauthorized as KeystoneauthUnauthorized
 from requests.exceptions import ConnectionError
@@ -29,13 +27,11 @@ from chromogenic.drivers.openstack import ImageManager
 from atmosphere import settings
 
 from core.models.identity import Identity
-from core.models.event_table import EventTable
 
 from service.accounts.base import BaseAccountDriver
-from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
+from service.networking import get_topology_cls, ExternalRouter, _get_unique_id
 from service.exceptions import TimeoutError
 
-from atmosphere.settings.secrets import SECRET_SEED
 from atmosphere.settings import DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
 
 
@@ -217,6 +213,16 @@ class AccountDriver(BaseAccountDriver):
                             " cannot create identity. For account creation use"
                             " build_account()")
 
+        try:
+            # Don't try to create an identity on the provider if the AtmosphereUser does not exist.
+            user = core.models.AtmosphereUser.objects.get_by_natural_key(username)
+            assert isinstance(user, core.models.AtmosphereUser)
+            assert user.username == username
+        except Exception as e:
+            logger.exception('Do not create an account on for username "%s" because the user does not exist', username)
+            raise AccountCreationConflict(
+                'AccountDriver tried to create an account for ({}), but {}'.format(username, e))
+
         if username in self.core_provider.list_admin_names():
             return
         try:
@@ -231,24 +237,14 @@ class AccountDriver(BaseAccountDriver):
                 % (username, ))
 
         try:
-            allocation_source_name = username
-            # Check if allocation source exists
-            source = AllocationSource.objects.filter(name=username)
-            if not source:
-                logger.debug('No Allocation Source with name %s found. Creating a new Allocation Source...', allocation_source_name)
-                # Create Allocation Source for User
-                self._create_allocation_source(allocation_source_name)
-                # Add User to Allocation Source
-                self._assign_user_allocation_source(allocation_source_name,username)
-            else:
-                logger.debug('Allocation Source with name %s exists. Skipping creation step...' , allocation_source_name)
+            has_allocations = core.plugins.AllocationSourcePluginManager.ensure_user_allocation_sources(user)
+            if not has_allocations:
+                raise ValueError('User "{}" has no valid allocations'.format(user))
         except Exception as e:
-
-            logger.exception("Encountered error creating/assigning Allocation Source to User - %s" % e)
+            logger.exception('Encountered error while ensuring user has valid Allocation Sources: "%s"', user)
             raise AccountCreationConflict(
-                "AccountDriver is trying to create an account, (%s)"
-                "but there is a problem creating and assigning Allocation Source to the user. "
-                % (username,))
+                'AccountDriver is trying to create an account: {} '
+                'but while ensuring user has valid Allocation Sources there was a problem: {}'.format(user, e))
 
         ident = self.create_identity(username, password,
                                      project.name,
@@ -1396,30 +1392,3 @@ class AccountDriver(BaseAccountDriver):
         os_args.pop("ex_tenant_name", None)
         os_args.pop("tenant_name", None)
         return os_args
-
-    def _create_allocation_source(self,allocation_source_name):
-        payload = {}
-        payload['uuid'] = str(uuid.uuid4())
-        payload['allocation_source_name'] = allocation_source_name
-        payload['compute_allowed'] = 168
-        payload['renewal_strategy'] = "default"
-
-        event = EventTable(
-            name='allocation_source_created_or_renewed',
-            entity_id=allocation_source_name,
-            payload=payload
-        )
-
-        event.save()
-
-    def _assign_user_allocation_source(self,allocation_source_name, username):
-        payload = {}
-        payload['allocation_source_name'] = allocation_source_name
-
-        event = EventTable(
-            name='user_allocation_source_created',
-            entity_id=username,
-            payload=payload
-        )
-
-        event.save()
