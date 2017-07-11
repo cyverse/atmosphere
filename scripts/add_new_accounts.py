@@ -86,7 +86,7 @@ def main():
 
 def create_accounts(acct_driver, provider, usernames, rebuild=False, admin=False):
     added = 0
-    for username in usernames:
+    for username in sorted(usernames):
         # Then add the Openstack Identity
         try:
             id_exists = Identity.objects.filter(
