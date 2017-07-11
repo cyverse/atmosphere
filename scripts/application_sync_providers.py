@@ -15,9 +15,13 @@ from a master Provider to one or more replica Providers.
 """
 
 
-def main(master_provider_id, replica_provider_ids):
-    import pprint
-    pprint.pprint(args)
+def main(master_provider_id, replica_provider_ids, dry_run=False):
+
+    if dry_run:
+        import pprint
+        pprint.pprint(args)
+        dry_run_output = []
+
     # Sanity checking
     for id in replica_provider_ids:
         if id == master_provider_id:
@@ -46,19 +50,25 @@ def main(master_provider_id, replica_provider_ids):
                             if prov_machine.instance_source.provider == replica_prov:
                                 replica_prov_has_app_version = True
                         if not replica_prov_has_app_version:
-                            application_to_provider.main(
-                                app.id,
-                                replica_prov.id,
-                                source_provider_id=master_provider_id,
-                                ignore_missing_owner=True,
-                                ignore_missing_members=True
-                            )
+                            if not dry_run:
+                                application_to_provider.main(
+                                    app.id,
+                                    replica_prov.id,
+                                    source_provider_id=master_provider_id,
+                                    ignore_missing_owner=True,
+                                    ignore_missing_members=True
+                                )
+                            else:
+                                dry_run_output.append("Sync application ID {0} to replica provider {1}".format(app.id, replica_prov.id))
 
+    if dry_run:
+        print(set(dry_run_output))
 
 def _parse_args():
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("master_provider_id", type=int, help="Master provider ID")
     parser.add_argument("replica_provider_id", type=int, nargs='+', help="Replica provider ID")
+    parser.add_argument("dry_run", action="store_true", help="Don't make changes, only print what would be synced")
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -71,7 +81,7 @@ if __name__ == "__main__":
     try:
         args = _parse_args()
         logging.info("Running application_sync_providers with the following arguments:\n{0}".format(str(args)))
-        main(args.master_provider_id, args.replica_provider_id)
+        main(args.master_provider_id, args.replica_provider_id, args.dry_run)
     except Exception as e:
         logging.exception(e)
         raise
