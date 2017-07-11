@@ -68,7 +68,7 @@ def _parse_args():
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("master_provider_id", type=int, help="Master provider ID")
     parser.add_argument("replica_provider_id", type=int, nargs='+', help="Replica provider ID")
-    parser.add_argument("dry_run", action="store_true", help="Don't make changes, only print what would be synced")
+    parser.add_argument("--dry_run", action="store_true", help="Don't make changes, only print what would be synced")
     return parser.parse_args()
 
 if __name__ == "__main__":
