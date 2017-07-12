@@ -44,6 +44,7 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
             for key in irods_collections.keys():
                 irods_path = irods_collections[key]
                 assert(type(irods_path) == unicode and len(irods_path) > 1 and irods_path[0] == "/")
+            assert(master_provider_id in irods_collections.keys())
         else:
             raise Exception("If using iRODS transfer then irods_conn and irods_collections must be defined")
 
@@ -105,7 +106,7 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
                                 logging.info("Synced application {0} to provider {1}".format(app, replica_prov))
                             else:
                                 # Dry run
-                                if irods_collections and replica_prov.id in irods_collections.keys():
+                                if irods_collections and (replica_prov.id in irods_collections.keys()):
                                     dry_run_output.append(
                                         "Sync application ID {0} to replica provider {1} using iRODS transfer --"
                                         "source collection: {2} destination collection: {3}".format(
