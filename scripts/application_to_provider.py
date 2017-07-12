@@ -100,13 +100,13 @@ def _parse_args():
                              "attempt. (Local cache is always deleted after successful upload). "
                              "May consume a lot of disk space.")
     parser.add_argument("--irods-conn",
-                        type=str,
+                        type=str, metavar="irods://user:password@host:port/zone",
                         help="iRODS connection string in the form of irods://user:password@host:port/zone")
     parser.add_argument("--irods-src-coll",
-                        type=str,
+                        type=str, metavar="/myzone/foo",
                         help="Path to collection for iRODS images on source provider")
     parser.add_argument("--irods-dst-coll",
-                        type=str,
+                        type=str, metavar="/myzone/bar",
                         help="Path to collection for iRODS images on destination provider")
     args = parser.parse_args()
     return args
