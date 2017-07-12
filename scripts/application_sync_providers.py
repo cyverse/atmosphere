@@ -102,9 +102,22 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
                                         ignore_missing_owner=True,
                                         ignore_missing_members=True
                                     )
-                                logging.info("Migrated application {0} to provider {1}".format(app, replica_prov))
+                                logging.info("Synced application {0} to provider {1}".format(app, replica_prov))
                             else:
-                                dry_run_output.append("Sync application ID {0} to replica provider {1}".format(app.id, replica_prov.id))
+                                # Dry run
+                                if irods_collections and replica_prov.id in irods_collections.keys:
+                                    dry_run_output.append(
+                                        "Sync application ID {0} to replica provider {1} using iRODS transfer --"
+                                        "source collection: {2} destination collection: {3}".format(
+                                            app.id,
+                                            replica_prov.id,
+                                            irods_collections[master_prov.id],
+                                            irods_collections[replica_prov.id]
+                                            ))
+                                else:
+                                    dry_run_output.append(
+                                        "Sync application ID {0} to replica provider {1}".format(app.id,
+                                                                                                 replica_prov.id))
 
     if dry_run:
         pprint.pprint(set(dry_run_output))
