@@ -74,6 +74,44 @@ Considerations when using iRODS transfer:
 max_tries = 3  # Maximum number of times to attempt downloading and uploading image data
 
 
+def _parse_args():
+    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("application_id", type=int, help="Application ID to be migrated")
+    parser.add_argument("destination_provider_id", type=int, help="Destination provider ID")
+    parser.add_argument("--source-provider-id",
+                        type=int,
+                        help="Migrate image from source provider with this ID (else a source provider will be chosen "
+                             "automatically")
+    parser.add_argument("--ignore-missing-owner",
+                        action="store_true",
+                        help="Transfer image if application owner has no identity on destination provider (owner will "
+                             "be set to Atmosphere admin role")
+    parser.add_argument("--ignore-missing-members",
+                        action="store_true",
+                        help="Transfer image if application is private and member(s) have no identity on destination "
+                             "provider")
+    parser.add_argument("--clean",
+                        action="store_true",
+                        help="Use Chromogenic library to remove undesired state from images which were created from "
+                             "Atmosphere(1) instances (cannot be used with iRODS transfer)")
+    parser.add_argument("--persist-local-cache",
+                        action="store_true",
+                        help="If image download succeeds but upload fails, keep local cached copy for subsequent "
+                             "attempt. (Local cache is always deleted after successful upload). "
+                             "May consume a lot of disk space.")
+    parser.add_argument("--irods-conn",
+                        type=str,
+                        help="iRODS connection string in the form of irods://user:password@host:port/zone")
+    parser.add_argument("--irods-src-coll",
+                        type=str,
+                        help="Path to collection for iRODS images on source provider")
+    parser.add_argument("--irods-dst-coll",
+                        type=str,
+                        help="Path to collection for iRODS images on destination provider")
+    args = parser.parse_args()
+    return args
+
+
 def main(application_id,
          destination_provider_id,
          source_provider_id=None,
@@ -507,44 +545,6 @@ def _parse_irods_conn(irods_conn_str):
     u = urlparse.urlparse(irods_conn_str)
     irods_conn = {"username": u.username, "password": u.password, "host": u.hostname, "port": u.port, "zone": u.path[1:]}
     return irods_conn
-
-
-def _parse_args():
-    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("application_id", type=int, help="Application ID to be migrated")
-    parser.add_argument("destination_provider_id", type=int, help="Destination provider ID")
-    parser.add_argument("--source-provider-id",
-                        type=int,
-                        help="Migrate image from source provider with this ID (else a source provider will be chosen "
-                             "automatically")
-    parser.add_argument("--ignore-missing-owner",
-                        action="store_true",
-                        help="Transfer image if application owner has no identity on destination provider (owner will "
-                             "be set to Atmosphere admin role")
-    parser.add_argument("--ignore-missing-members",
-                        action="store_true",
-                        help="Transfer image if application is private and member(s) have no identity on destination "
-                             "provider")
-    parser.add_argument("--clean",
-                        action="store_true",
-                        help="Use Chromogenic library to remove undesired state from images which were created from "
-                             "Atmosphere(1) instances (cannot be used with iRODS transfer)")
-    parser.add_argument("--persist-local-cache",
-                        action="store_true",
-                        help="If image download succeeds but upload fails, keep local cached copy for subsequent "
-                             "attempt. (Local cache is always deleted after successful upload). "
-                             "May consume a lot of disk space.")
-    parser.add_argument("--irods-conn",
-                        type=str,
-                        help="iRODS connection string in the form of irods://user:password@host:port/zone")
-    parser.add_argument("--irods-src-coll",
-                        type=str,
-                        help="Path to collection for iRODS images on source provider")
-    parser.add_argument("--irods-dst-coll",
-                        type=str,
-                        help="Path to collection for iRODS images on destination provider")
-    args = parser.parse_args()
-    return args
 
 
 if __name__ == "__main__":
