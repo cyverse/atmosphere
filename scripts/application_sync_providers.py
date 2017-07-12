@@ -28,9 +28,10 @@ def _parse_args():
     parser.add_argument("--irods-conn", type=str, metavar="irods://user:password@host:port/zone",
                         help="iRODS connection string in the form of irods://user:password@host:port/zone")
     # https://stackoverflow.com/questions/18608812/accepting-a-dictionary-as-an-argument-with-argparse-and-python
-    parser.add_argument("--irods-collections", type=json.loads, metavar="{'1': '/myzone/foo', '2': '/myzone/bar'}",
+    parser.add_argument("--irods-collections", type=json.loads,
+                        metavar="'{\"1\": \"/myzone/foo\", \"2\": \"/myzone/bar\"}'",
                         help="JSON associating mapping each provider ID to an iRODS collection containing images, e.g."
-                        "\"{'1': '/myzone/foo', '2': '/myzone/bar'}\"")
+                        "'{\"1\": \"/myzone/foo\", \"2\": \"/myzone/bar\"}'")
     parser.add_argument("--dry-run", action="store_true", help="Don't make changes, only print what would be synced")
     return parser.parse_args()
 
@@ -42,7 +43,7 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
         if all([irods_conn, irods_collections]):
             for key in irods_collections.keys():
                 irods_path = irods_collections[key]
-                assert(type(irods_path) == str and len(irods_path) > 1 and irods_path[0] == "/")
+                assert(type(irods_path) == unicode and len(irods_path) > 1 and irods_path[0] == "/")
         else:
             raise Exception("If using iRODS transfer then irods_conn and irods_collections must be defined")
 
