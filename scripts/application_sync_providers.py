@@ -38,6 +38,11 @@ def _parse_args():
 
 def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=None, irods_collections=None):
 
+    # Convert provider IDs from unicode objects to integers
+    # https://stackoverflow.com/questions/21193682/convert-a-string-key-to-int-in-a-dictionary
+    if irods_collections:
+        irods_collections = {int(k): v for k, v in irods_collections.items()}
+
     # Sanity checking
     if any([irods_conn, irods_collections]):
         if all([irods_conn, irods_collections]):
