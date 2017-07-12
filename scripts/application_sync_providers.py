@@ -11,7 +11,8 @@ import core.models
 
 description = """
 This script performs a one-way synchronization of Applications (a.k.a. images)
-from a master Provider to one or more replica Providers. Only synchronizes non-end-dated Applications and ApplicationVersions.
+from a master Provider to one or more replica Providers. Only synchronizes
+non-end-dated Applications and ApplicationVersions.
 
 If --irods-conn and --irods-collections are defined, then iRODS transfer mode
 will be used for each provider ID defined in the --irods-collections JSON.
@@ -30,7 +31,7 @@ def _parse_args():
     # https://stackoverflow.com/questions/18608812/accepting-a-dictionary-as-an-argument-with-argparse-and-python
     parser.add_argument("--irods-collections", type=json.loads,
                         metavar="'{\"1\": \"/myzone/foo\", \"2\": \"/myzone/bar\"}'",
-                        help="JSON associating mapping each provider ID to an iRODS collection containing images, e.g."
+                        help="JSON associating mapping each provider ID to an iRODS collection containing images, e.g. "
                         "'{\"1\": \"/myzone/foo\", \"2\": \"/myzone/bar\"}'")
     parser.add_argument("--dry-run", action="store_true", help="Don't make changes, only print what would be synced")
     return parser.parse_args()
@@ -113,7 +114,7 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
                                 # Dry run
                                 if irods_collections and (replica_prov.id in irods_collections.keys()):
                                     dry_run_output.append(
-                                        "Sync application ID {0} to replica provider {1} using iRODS transfer --"
+                                        "Sync application ID {0} to replica provider {1} using iRODS transfer -- "
                                         "source collection: {2} destination collection: {3}".format(
                                             app.id,
                                             replica_prov.id,
