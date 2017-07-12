@@ -40,7 +40,7 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
     # Sanity checking
     if any([irods_conn, irods_collections]):
         if all([irods_conn, irods_collections]):
-            for key in irods_collections.keys:
+            for key in irods_collections.keys():
                 irods_path = irods_collections[key]
                 assert(type(irods_path) == str and len(irods_path) > 1 and irods_path[0] == "/")
         else:
@@ -64,7 +64,7 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
     # Iterate through each ApplicationVersion of all applications
     # WAY too much nested indentation here
     for app in core.models.Application.objects.filter(end_date__isnull=True):
-        logging.info("Processing application {0}".format(app))
+        logging.debug("Processing application {0}".format(app))
         for av in app.active_versions():
 
             av_prov_machines = av.active_machines()
