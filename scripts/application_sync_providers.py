@@ -6,13 +6,12 @@ import logging
 import sys
 
 import application_to_provider
-# Needed?
-# import django; django.setup()
+import django; django.setup()
 import core.models
 
 description = """
 This script performs a one-way synchronization of Applications (a.k.a. images)
-from a master Provider to one or more replica Providers.
+from a master Provider to one or more replica Providers. Only synchronizes non-end-dated Applications and ApplicationVersions.
 
 If --irods-conn and --irods-collections are defined, then iRODS transfer mode
 will be used for each provider ID defined in the --irods-collections JSON.
@@ -64,9 +63,9 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
 
     # Iterate through each ApplicationVersion of all applications
     # WAY too much nested indentation here
-    for app in core.models.Application.objects.all():
+    for app in core.models.Application.objects.filter(end_date__isnull=True):
         logging.info("Processing application {0}".format(app))
-        for av in app.all_versions:
+        for av in app.active_versions:
 
             av_prov_machines = av.active_machines()
             for prov_machine in av_prov_machines:
