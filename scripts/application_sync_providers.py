@@ -39,8 +39,8 @@ def _parse_args():
 def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=None, irods_collections=None):
 
     # Sanity checking
-    if any(irods_conn, irods_collections):
-        if all(irods_conn, irods_collections):
+    if any([irods_conn, irods_collections]):
+        if all([irods_conn, irods_collections]):
             for key in irods_collections.keys:
                 irods_path = irods_collections[key]
                 assert(type(irods_path) == str and len(irods_path) > 1 and irods_path[0] == "/")
