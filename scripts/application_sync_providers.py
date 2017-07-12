@@ -65,7 +65,7 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
     # WAY too much nested indentation here
     for app in core.models.Application.objects.filter(end_date__isnull=True):
         logging.info("Processing application {0}".format(app))
-        for av in app.active_versions:
+        for av in app.active_versions():
 
             av_prov_machines = av.active_machines()
             for prov_machine in av_prov_machines:
