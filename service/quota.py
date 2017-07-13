@@ -123,7 +123,7 @@ def set_provider_quota(identity_uuid, quota=None, limit_dict=None):
     # see _get_hard_limits or pass in {'ram': ### (GB), 'cpu': ### (Cores)}
     # _limit_user_quota(user_quota, identity, limit_dict=limit_dict)
 
-    return set_openstack_quota(identity)
+    return set_openstack_quota(identity, user_quota=quota)
 
 
 def _get_hard_limits(identity):
