@@ -34,8 +34,8 @@ requirements and caveats apply as detailed in application_to_provider.py.
 
 def _parse_args():
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("master_provider_id", type=int, help="Master provider ID (only one!)")
-    parser.add_argument("replica_provider_id", type=int, nargs='+', help="Replica provider ID (one or more)")
+    parser.add_argument("master_provider_id", type=int, help="Master provider ID")
+    parser.add_argument("replica_provider_id", type=int, nargs='+', help="Replica provider ID(s)")
     parser.add_argument("--irods-conn", type=str, metavar="irods://user:password@host:port/zone",
                         help="iRODS connection string in the form of irods://user:password@host:port/zone")
     # https://stackoverflow.com/questions/18608812/accepting-a-dictionary-as-an-argument-with-argparse-and-python
