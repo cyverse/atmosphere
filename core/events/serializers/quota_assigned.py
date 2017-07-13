@@ -96,25 +96,15 @@ class QuotaAssignedSerializer(EventSerializer):
 
 
 class QuotaAssignedByResourceRequestSerializer(QuotaAssignedSerializer):
-    resource_request = serializers.IntegerField()
+    resource_request = serializers.PrimaryKeyRelatedField(
+        queryset=ResourceRequest.objects.all())
     approved_by = ModelRelatedField(
         lookup_field='username',
         queryset=AtmosphereUser.objects.all(),
         serializer_class=AtmosphereUserSerializer,
         style={'base_template': 'input.html'})
 
-    def validate_approved_by(self, test_value):
-        if not AtmosphereUser.objects.filter(username=test_value).exists():
-            raise serializers.ValidationError("Approved by username (%s) does not exist" % test_value)
-        return test_value
-
-    def validate_resource_request(self, test_value):
-        if not ResourceRequest.objects.filter(id=test_value).exists():
-            raise serializers.ValidationError("Resource request ID (%s) does not exist" % test_value)
-        return test_value
-
     def save(self):
-        # Properly structure the event data as a payload
         serialized_data = self.validated_data
         return_data = self.data
         entity_id = serialized_data['identity'].created_by.username
