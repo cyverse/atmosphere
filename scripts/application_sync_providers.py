@@ -41,7 +41,7 @@ def _parse_args():
     # https://stackoverflow.com/questions/18608812/accepting-a-dictionary-as-an-argument-with-argparse-and-python
     parser.add_argument("--irods-collections", type=json.loads,
                         metavar="'{\"1\": \"/myzone/foo\", \"2\": \"/myzone/bar\"}'",
-                        help="JSON associating mapping each provider ID to an iRODS collection containing images, e.g. "
+                        help="JSON mapping each provider ID to an iRODS collection containing images, e.g. "
                         "'{\"1\": \"/myzone/foo\", \"2\": \"/myzone/bar\"}'")
     parser.add_argument("--dry-run", action="store_true", help="Don't make changes, only print what would be synced")
     parser.add_argument("--limit-app-ids", type=int, nargs="+", metavar="APP_ID",
