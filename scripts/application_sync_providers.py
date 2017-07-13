@@ -90,7 +90,7 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
                         if not replica_prov_has_app_version:
                             logging.info("Migrating application {0} to provider {1}".format(app, replica_prov))
                             if not dry_run:
-                                if irods_collections and replica_prov.id in irods_collections.keys:
+                                if irods_collections and replica_prov.id in irods_collections.keys():
                                     application_to_provider.main(
                                         app.id,
                                         replica_prov.id,
