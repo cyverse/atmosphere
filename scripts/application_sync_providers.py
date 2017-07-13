@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import sys
+import pprint
 
 import application_to_provider
 import django; django.setup()
@@ -61,8 +62,6 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
         raise Exception("No duplicate replica providers allowed")
 
     if dry_run:
-        import pprint
-        pprint.pprint(args)
         dry_run_output = []
 
     # Resolve providers
@@ -70,64 +69,80 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
     replica_provs = [core.models.Provider.objects.get(id=replica_id) for replica_id in replica_provider_ids]
 
     # Iterate through each ApplicationVersion of all applications
-    # WAY too much nested indentation here
     for app in core.models.Application.objects.filter(end_date__isnull=True):
         logging.debug("Processing application {0}".format(app))
+        replicate_app = False
         for av in app.active_versions():
-
-            av_prov_machines = av.active_machines()
-            for prov_machine in av_prov_machines:
+            for pm in av.active_machines():
                 # If ApplicationVersion is available on master provider, replicate it as needed
-                if prov_machine.instance_source.provider == master_prov:
-                    logging.debug("ApplicationVersion available on master provider, analyzing replica providers")
-                    for replica_prov in replica_provs:
-                        # Only replicate if replica provider is missing the ApplicationVersion
-                        replica_prov_has_app_version = False
-                        # TODO don't reuse variable name
-                        for prov_machine in av_prov_machines:
-                            if prov_machine.instance_source.provider == replica_prov:
-                                replica_prov_has_app_version = True
-                        if not replica_prov_has_app_version:
-                            logging.info("Migrating application {0} to provider {1}".format(app, replica_prov))
-                            if not dry_run:
-                                if irods_collections and replica_prov.id in irods_collections.keys():
-                                    application_to_provider.main(
-                                        app.id,
-                                        replica_prov.id,
-                                        source_provider_id=master_prov.id,
-                                        ignore_missing_owner=True,
-                                        ignore_missing_members=True,
-                                        irods_conn_str=irods_conn,
-                                        irods_src_coll=irods_collections[master_prov.id],
-                                        irods_dst_coll=irods_collections[replica_prov.id]
-                                    )
-                                else:
-                                    application_to_provider.main(
-                                        app.id,
-                                        replica_prov.id,
-                                        source_provider_id=master_provider_id,
-                                        ignore_missing_owner=True,
-                                        ignore_missing_members=True
-                                    )
-                                logging.info("Synced application {0} to provider {1}".format(app, replica_prov))
-                            else:
-                                # Dry run
-                                if irods_collections and (replica_prov.id in irods_collections.keys()):
-                                    dry_run_output.append(
-                                        "Sync application ID {0} to replica provider {1} using iRODS transfer -- "
-                                        "source collection: {2} destination collection: {3}".format(
-                                            app.id,
-                                            replica_prov.id,
-                                            irods_collections[master_prov.id],
-                                            irods_collections[replica_prov.id]
-                                            ))
-                                else:
-                                    dry_run_output.append(
-                                        "Sync application ID {0} to replica provider {1}".format(app.id,
-                                                                                                 replica_prov.id))
+                if pm.instance_source.provider == master_prov:
+                    replicate_app = True
+
+        if replicate_app:
+            logging.debug("Replicating application {0} as needed".format(app))
+            for replica_prov in replica_provs:
+                if not _app_complete_on_provider(app, replica_prov):
+                    logging.info("Migrating application {0} to provider {1}".format(app, replica_prov))
+                    if not dry_run:
+                        if irods_collections and replica_prov.id in irods_collections.keys():
+                            application_to_provider.main(
+                                app.id,
+                                replica_prov.id,
+                                source_provider_id=master_prov.id,
+                                ignore_missing_owner=True,
+                                ignore_missing_members=True,
+                                irods_conn_str=irods_conn,
+                                irods_src_coll=irods_collections[master_prov.id],
+                                irods_dst_coll=irods_collections[replica_prov.id]
+                            )
+                        else:
+                            application_to_provider.main(
+                                app.id,
+                                replica_prov.id,
+                                source_provider_id=master_provider_id,
+                                ignore_missing_owner=True,
+                                ignore_missing_members=True
+                            )
+                        logging.info("Migrated application {0} to provider {1}".format(app, replica_prov))
+                    else:
+                        # Dry run
+                        if irods_collections and (replica_prov.id in irods_collections.keys()):
+                            dry_run_output.append(
+                                "Sync application ID {0} to replica provider {1} using iRODS transfer -- "
+                                "source collection: {2} destination collection: {3}".format(
+                                    app.id,
+                                    replica_prov.id,
+                                    irods_collections[master_prov.id],
+                                    irods_collections[replica_prov.id]
+                                    ))
+                        else:
+                            dry_run_output.append(
+                                "Sync application ID {0} to replica provider {1}".format(app.id,
+                                                                                         replica_prov.id))
 
     if dry_run:
         pprint.pprint(set(dry_run_output))
+
+
+def _app_complete_on_provider(application, provider):
+    """
+    Determines if an Application is completely available on a Provider, i.e. all active ApplicationVersions have a
+    ProviderMachine + InstanceSource on given Provider.
+
+    Args:
+        application: Application object
+        provider: Provider object
+
+    Returns: boolean
+    """
+    for av in application.active_versions():
+        av_on_prov = False
+        for prov_machine in av.active_machines():
+            if prov_machine.instance_source.provider == provider:
+                av_on_prov = True
+        if not av_on_prov:
+            return False
+    return True
 
 
 if __name__ == "__main__":
