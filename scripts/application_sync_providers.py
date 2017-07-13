@@ -13,7 +13,16 @@ import core.models
 description = """
 This script performs a one-way synchronization of Applications (a.k.a. images)
 from a master Provider to one or more replica Providers. Only synchronizes
-non-end-dated Applications and ApplicationVersions.
+active (i.e. non-end-dated) Applications and ApplicationVersions.
+
+For each Application known to Atmosphere(2), if there is at least one
+ApplicationVersion with a ProviderMachine + InstanceSource on the master
+Provider, then that Application is considered for replication.
+
+For each replica Provider given, if the replica Provider does not have a
+ProviderMachine + InstanceSource for every ApplicationVersion of an
+Application considered for replication, then application_to_provider is run
+to migrate that Application to the replica Provider.
 
 If --irods-conn and --irods-collections are defined, then iRODS transfer mode
 will be used for each provider ID defined in the --irods-collections JSON.
@@ -35,10 +44,14 @@ def _parse_args():
                         help="JSON associating mapping each provider ID to an iRODS collection containing images, e.g. "
                         "'{\"1\": \"/myzone/foo\", \"2\": \"/myzone/bar\"}'")
     parser.add_argument("--dry-run", action="store_true", help="Don't make changes, only print what would be synced")
+    parser.add_argument("--limit-app-ids", type=int, nargs="+", metavar="APP_ID",
+                        help="Limit synchronization to this space-separated list of application IDs "
+                             "(used for testing purposes)")
     return parser.parse_args()
 
 
-def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=None, irods_collections=None):
+def main(master_provider_id, replica_provider_ids,
+         limit_app_ids=False, dry_run=False, irods_conn=None, irods_collections=None):
 
     # Convert provider IDs from unicode objects to integers
     # https://stackoverflow.com/questions/21193682/convert-a-string-key-to-int-in-a-dictionary
@@ -61,15 +74,16 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
     if len(replica_provider_ids) > len(set(replica_provider_ids)):
         raise Exception("No duplicate replica providers allowed")
 
-    if dry_run:
-        dry_run_output = []
-
     # Resolve providers
     master_prov = core.models.Provider.objects.get(id=master_provider_id)
     replica_provs = [core.models.Provider.objects.get(id=replica_id) for replica_id in replica_provider_ids]
 
-    # Iterate through each ApplicationVersion of all applications
-    for app in core.models.Application.objects.filter(end_date__isnull=True):
+    if limit_app_ids:
+        apps = core.models.Application.objects.filter(end_date__isnull=True).filter(pk__in=limit_app_ids)
+    else:
+        apps = core.models.Application.objects.filter(end_date__isnull=True)
+
+    for app in apps:
         logging.debug("Processing application {0}".format(app))
         replicate_app = False
         for av in app.active_versions():
@@ -107,7 +121,7 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
                     else:
                         # Dry run
                         if irods_collections and (replica_prov.id in irods_collections.keys()):
-                            dry_run_output.append(
+                            print(
                                 "Sync application ID {0} to replica provider {1} using iRODS transfer -- "
                                 "source collection: {2} destination collection: {3}".format(
                                     app.id,
@@ -116,12 +130,9 @@ def main(master_provider_id, replica_provider_ids, dry_run=False, irods_conn=Non
                                     irods_collections[replica_prov.id]
                                     ))
                         else:
-                            dry_run_output.append(
+                            print(
                                 "Sync application ID {0} to replica provider {1}".format(app.id,
                                                                                          replica_prov.id))
-
-    if dry_run:
-        pprint.pprint(set(dry_run_output))
 
 
 def _app_complete_on_provider(application, provider):
@@ -157,6 +168,7 @@ if __name__ == "__main__":
         logging.info("Running application_sync_providers with the following arguments:\n{0}".format(str(args)))
         main(args.master_provider_id,
              args.replica_provider_id,
+             args.limit_app_ids,
              args.dry_run,
              args.irods_conn,
              args.irods_collections)
