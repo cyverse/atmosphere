@@ -47,21 +47,14 @@ class ResourceRequest_UpdateQuotaSerializer(serializers.Serializer):
             'resource_request': resource_request.id, 'approved_by': user.username
         }
         event_serializer = QuotaAssignedByResourceRequestSerializer(data=data)
-        if not event_serializer.is_valid():
-            raise serializers.ValidationError(
-                "Validation of EventSerializer failed with: %s"
-                % event_serializer.errors)
-        try:
-            event_serializer.save()
-        except Exception as exc:
-            logger.exception("Unexpected error occurred during Event save")
-            raise serializers.ValidationError(
-                "Unexpected error occurred during Event save: %s" % exc)
+        event_serializer.is_valid(raise_exception=True)
+
         # Synchronous call to EventTable -> Set Quota for Identity's CloudProvider -> Save the Quota to Identity
-        identity = Identity.objects.get(uuid=core_identity.uuid)
-        quota = identity.quota
-        serialized_payload = {'identity': identity,
-                'resource_request': resource_request,
-                'approved_by': user,
-                'quota': quota}
-        return serialized_payload
+        event_serializer.save()
+
+        return {
+            'identity': identity,
+            'resource_request': resource_request,
+            'approved_by': user,
+            'quota': quota
+        }
