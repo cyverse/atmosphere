@@ -41,10 +41,12 @@ class ResourceRequest_UpdateQuotaSerializer(serializers.Serializer):
         quota = validated_data.get('quota')
         user = validated_data.get('approved_by')
         resource_request = validated_data.get('resource_request')
-        core_identity = validated_data.get('identity')
+        identity = validated_data.get('identity')
         data = {
-            'quota': quota.id, 'identity': core_identity.id, 
-            'resource_request': resource_request.id, 'approved_by': user.username
+            'identity': identity.id,
+            'resource_request': resource_request.id,
+            'approved_by': user.username,
+            'quota': quota.id
         }
         event_serializer = QuotaAssignedByResourceRequestSerializer(data=data)
         event_serializer.is_valid(raise_exception=True)
