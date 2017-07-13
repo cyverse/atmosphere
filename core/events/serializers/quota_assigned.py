@@ -8,7 +8,7 @@ from core.models import (
 from core.serializers.fields import ModelRelatedField
 
 
-#TODO: If these classes get used elsewhere, move to common location.
+# TODO: If these classes get used elsewhere, move to common location.
 class AtmosphereUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = AtmosphereUser
@@ -29,7 +29,8 @@ class IdentitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Identity
         fields = ("uuid", "created_by", "provider")
-#END-TODO:
+# END-TODO:
+
 
 class EventSerializer(serializers.Serializer):
     """
@@ -116,9 +117,9 @@ class QuotaAssignedByResourceRequestSerializer(QuotaAssignedSerializer):
             'identity': return_data['identity']['uuid'],
             'timestamp': return_data['timestamp']
         }
-        # Create the event in EventTable
+
         event = EventTable.create_event(
-            name="quota_assigned",
-            entity_id=entity_id,
-            payload=event_payload)
+                name="quota_assigned",
+                entity_id=entity_id,
+                payload=event_payload)
         return event

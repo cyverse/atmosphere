@@ -1,5 +1,3 @@
-from django.conf import settings
-from django.utils import timezone
 from threepio import logger
 
 from core.models import (Identity, Quota)
@@ -35,13 +33,11 @@ def listen_for_quota_assigned(sender, instance, created, **kwargs):
            - assign the quota to the Identity
         """
     event = instance
-    from core.models import EventTable
     from service.quota import set_provider_quota
     if event.name != 'quota_assigned':
         return
     logger.info('quota_assigned: %s' % event.__dict__)
 
-    username = event.entity_id
     payload = event.payload
 
     quota_values = payload['quota']
@@ -62,4 +58,3 @@ def listen_for_quota_assigned(sender, instance, created, **kwargs):
     identity.quota = quota
     identity.save()
     logger.info("DB set identity to match quota: %s", identity)
-    return

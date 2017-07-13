@@ -230,7 +230,7 @@ def _set_compute_quota(user_quota, identity):
     }
     creds = identity.get_all_credentials()
     use_tenant_id = False
-    if creds.get('ex_force_auth_version','2.0_password') == "2.0_password":
+    if creds.get('ex_force_auth_version', '2.0_password') == "2.0_password":
         compute_values.pop('instances')
         use_tenant_id = True
 
@@ -239,21 +239,18 @@ def _set_compute_quota(user_quota, identity):
     driver = get_cached_driver(identity=identity)
     username = driver._connection.key
     tenant_id = driver._connection._get_tenant_id()
-    tenant_name = identity.project_name()
     ad = get_account_driver(identity.provider, raise_exception=True)
     ks_user = ad.get_user(username)
     admin_driver = ad.admin_driver
-
-
     creds = identity.get_all_credentials()
-    if creds.get('ex_force_auth_version','2.0_password') != "2.0_password":
-        #FIXME: Remove 'use_tenant_id' when legacy clouds are no-longer in use.
+    if creds.get('ex_force_auth_version', '2.0_password') != "2.0_password":
+        # FIXME: Remove 'use_tenant_id' when legacy clouds are no-longer in use.
         try:
             result = admin_driver._connection.ex_update_quota(tenant_id, compute_values, use_tenant_id=use_tenant_id)
         except Exception:
             logger.exception("Could not set a user-quota, trying to set tenant-quota")
             raise
-        #FIXME: For jetstream, return result here.
+        # FIXME: For jetstream, return result here.
     # For CyVerse old clouds, run the top method. don't use try/except.
     try:
         result = admin_driver._connection.ex_update_quota_for_user(

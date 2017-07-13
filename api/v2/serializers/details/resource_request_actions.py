@@ -1,14 +1,11 @@
 from rest_framework import serializers
 
-from threepio import logger
-
 from core.models import (
     AtmosphereUser, Identity,
     Quota, ResourceRequest)
 from core.serializers.fields import ModelRelatedField
 from core.events.serializers.quota_assigned import QuotaAssignedByResourceRequestSerializer
 
-from api.v2.views.base import AdminModelViewSet
 from api.v2.serializers.summaries import (
     UserSummarySerializer, IdentitySummarySerializer,
     QuotaSummarySerializer)
