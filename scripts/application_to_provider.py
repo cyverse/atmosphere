@@ -559,14 +559,14 @@ if __name__ == "__main__":
         logging.info("Running application_to_provider with the following arguments:\n{0}".format(str(args)))
         main(args.application_id,
              args.destination_provider_id,
-             args.source_provider_id,
-             args.ignore_missing_owner,
-             args.ignore_missing_members,
-             args.clean,
-             args.persist_local_cache,
-             args.irods_conn_str,
-             args.irods_src_coll,
-             args.irods_dst_coll)
+             source_provider_id=args.source_provider_id,
+             ignore_missing_owner=args.ignore_missing_owner,
+             ignore_missing_members=args.ignore_missing_members,
+             clean=args.clean,
+             persist_local_cache=args.persist_local_cache,
+             irods_conn_str=args.irods_conn,
+             irods_src_coll=args.irods_src_coll,
+             irods_dst_coll=args.irods_dst_coll)
     except Exception as e:
         logging.exception(e)
         raise
