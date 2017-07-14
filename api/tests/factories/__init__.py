@@ -2,8 +2,8 @@ from .tag_factory import TagFactory
 from .user_factory import UserFactory, AnonymousUserFactory
 from .provider_factory import ProviderFactory
 from .group_factory import GroupFactory
+from .group_membership_factory import GroupMembershipFactory
 from .project_factory import ProjectFactory
-from .project_instance_factory import ProjectInstanceFactory
 from .identity_factory import IdentityFactory
 from .identity_membership_factory import IdentityMembershipFactory
 from .image_factory import ImageFactory
