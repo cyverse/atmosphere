@@ -93,7 +93,7 @@ def main():
 def run_create_accounts(acct_driver, provider, usernames, rebuild=False, admin=False):
     user_total = 0
     identity_total = 0
-    for username in usernames:
+    for username in sorted(usernames):
         new_identities = AccountCreationPluginManager.create_accounts(provider, username, force=rebuild)
         if new_identities:
             count = len(new_identities)

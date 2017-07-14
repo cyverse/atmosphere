@@ -7,4 +7,4 @@ cd $HOME
 . $VIRTUAL/bin/activate
 echo $PATH
 echo $PYTHONPATH
-$HOME/scripts/add_new_accounts.py --provider 4
+$HOME/scripts/add_new_accounts.py --provider 7

@@ -460,6 +460,7 @@ class AccountDriver(BaseAccountDriver):
             clients = self.get_openstack_clients(username, password, project_name)
             osdk = clients["openstack_sdk"]
             keypairs = [kp for kp in osdk.compute.keypairs()]
+        #FIXME: This isn't working for CyVerse Cloud.
         for kp in keypairs:
             if kp.name == keyname:
                 if kp.public_key != public_key:

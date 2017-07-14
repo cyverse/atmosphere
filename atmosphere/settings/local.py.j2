@@ -194,11 +194,6 @@ ALLOCATIONS_CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=15),
         "options": {"expires": 15 * 60, "time_limit": 15 * 60}
     },
-    "renew_allocation_sources": {
-        "task": "renew_allocation_sources",
-        "schedule": crontab(0, 0, day_of_month='1'),
-        "options": {"expires": 15 * 60, "time_limit": 15 * 60}
-    },
 }
 CELERYBEAT_SCHEDULE.update(ALLOCATIONS_CELERYBEAT_SCHEDULE)
 ALLOCATION_SOURCE_PLUGINS = ['cyverse_allocation.plugins.allocation_source.FlexibleAllocationSourcePlugin',]
