@@ -126,7 +126,7 @@ class InstanceTests(APITestCase):
 
         url = reverse('api:v2:instance-detail', args=(self.active_instance.provider_alias,))
         response = client.get(url)
-        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.status_code, 200, "Non-200 response returned: (%s) %s" % (response.status_code, response.data))
         data = response.data
         self.assertEquals(data['status'], 'active')
         self.assertEquals(data['activity'], '')

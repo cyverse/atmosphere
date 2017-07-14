@@ -67,8 +67,8 @@ router.register(r'platform_types', views.PlatformTypeViewSet)
 router.register(r'projects', views.ProjectViewSet)
 router.register(r'project_links', views.ProjectExternalLinkViewSet, base_name='projectlinks')
 router.register(r'project_images', views.ProjectApplicationViewSet)
-router.register(r'project_instances', views.ProjectInstanceViewSet)
-router.register(r'project_volumes', views.ProjectVolumeViewSet)
+router.register(r'project_instances', views.ProjectInstanceViewSet, base_name='projectinstances')
+router.register(r'project_volumes', views.ProjectVolumeViewSet, base_name='projectvolumes')
 router.register(r'providers', views.ProviderViewSet)
 router.register(
     r'provider_machines',
