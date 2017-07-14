@@ -29,6 +29,10 @@ will be used for each provider ID defined in the --irods-collections JSON.
 Pure Glance API will be used to transfer image data for any providers not
 defined in --irods-collections. When using iRODS Transfer, the same
 requirements and caveats apply as detailed in application_to_provider.py.
+
+NOTE that --limit-app-ids cannot be the last argument before the positional
+arguments; otherwise argparse will get confused and complain about "too few
+arguments"
 """
 
 
@@ -122,7 +126,7 @@ def main(master_provider_id, replica_provider_ids,
                         if irods_collections and (replica_prov.id in irods_collections.keys()):
                             print(
                                 "Sync application ID {0} to replica provider {1} using iRODS transfer -- "
-                                "source collection: {2} destination collection: {3}".format(
+                                "source collection {2} -- destination collection {3}".format(
                                     app.id,
                                     replica_prov.id,
                                     irods_collections[master_prov.id],
