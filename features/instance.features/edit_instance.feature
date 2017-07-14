@@ -76,7 +76,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": -1,
+      "usage": 0.0,
       "start_date": "2017-02-16T07:00:00Z",
       "status": "active",
       "shell": false,
