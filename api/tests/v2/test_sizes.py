@@ -42,6 +42,7 @@ class GetSizeListTests(APITestCase):
         force_authenticate(self.request, user=self.user)
         response = self.view(self.request)
         data = response.data.get('results')[0]
+        self.assertTrue(data, "No results retrieved.")
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(data), 13, "Number of fields does not match")
         self.assertEquals(data['id'], self.size.id)

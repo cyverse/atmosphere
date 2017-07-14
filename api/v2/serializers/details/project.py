@@ -33,7 +33,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field="name",
         queryset=Group.objects.all(),
         serializer_class=GroupSummarySerializer,
-        style={'base_template': 'input.html'}, required=False)
+        style={'base_template': 'input.html'})
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:project-detail',
     )
