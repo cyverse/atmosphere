@@ -53,7 +53,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": 0.0,
+      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
       "status": "active",
       "shell": false,
@@ -61,7 +61,7 @@ Feature: Launching & editing of an instance
       "end_date": null,
       "scripts": [],
       "ip_address": null,
-      "projects": [],
+      "project": null,
       "name": "Instance in active",
       "allocation_source": null,
       "activity": ""
@@ -76,7 +76,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": 0.0,
+      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
       "status": "active",
       "shell": false,
@@ -84,7 +84,7 @@ Feature: Launching & editing of an instance
       "end_date": null,
       "scripts": [],
       "ip_address": null,
-      "projects": [],
+      "project": null,
       "name": "Instance in active",
       "activity": ""
     }
@@ -147,7 +147,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": 0.0,
+      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
       "status": "active",
       "shell": false,
@@ -155,7 +155,7 @@ Feature: Launching & editing of an instance
       "end_date": null,
       "scripts": [],
       "ip_address": null,
-      "projects": [],
+      "project": null,
       "name": "Instance in active",
       "allocation_source": null,
       "activity": ""
@@ -167,7 +167,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": 0.0,
+      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
       "status": "active",
       "shell": false,
@@ -175,7 +175,7 @@ Feature: Launching & editing of an instance
       "end_date": null,
       "scripts": [],
       "ip_address": null,
-      "projects": [],
+      "project": null,
       "name": "My New Instance Name",
       "activity": ""
     }
@@ -185,7 +185,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": 0.0,
+      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
       "status": "active",
       "shell": false,
@@ -193,7 +193,7 @@ Feature: Launching & editing of an instance
       "end_date": null,
       "scripts": [],
       "ip_address": null,
-      "projects": [],
+      "project": null,
       "name": "My New Instance Name",
       "activity": ""
     }
