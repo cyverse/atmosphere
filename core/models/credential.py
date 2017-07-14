@@ -27,6 +27,9 @@ class ProviderCredential(models.Model):
     value = models.CharField(max_length=256)
     provider = models.ForeignKey(Provider)
 
+    def clean_value(self):
+        return "*****"
+
     def __unicode__(self):
         return "%s:%s" % (self.key, self.value)
 
@@ -55,6 +58,11 @@ class Credential(models.Model):
             'key': self.key,
             'value': self.value,
         }
+
+    def clean_value(self):
+        if self.key in ['secret', 'password']:
+            return "********"
+        return self.value
 
     def __unicode__(self):
         return "%s:%s" % (self.key, self.value)

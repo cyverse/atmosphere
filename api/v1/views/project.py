@@ -50,12 +50,8 @@ class ProjectInstanceExchange(APIView):
                 % (instance_id),
                 status=status.HTTP_400_BAD_REQUEST)
         instance = instance[0]
-        existing_projects = instance.projects.all()
-        if existing_projects:
-            for proj in existing_projects:
-                proj.remove_object(instance)
-
-        project.add_object(instance)
+        instance.project = project
+        instance.save()
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return response
 
@@ -72,7 +68,8 @@ class ProjectInstanceExchange(APIView):
                         % (instance_id, project.id),
             return Response(error_str, status=status.HTTP_400_BAD_REQUEST)
         instance = instance[0]
-        project.remove_object(instance)
+        instance.project = None
+        instance.save()
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return response
 

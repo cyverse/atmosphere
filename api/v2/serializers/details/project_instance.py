@@ -1,4 +1,4 @@
-from core.models import ProjectInstance, Project, Instance
+from core.models import Project, Instance
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from api.v2.serializers.summaries import ProjectSummarySerializer
@@ -27,24 +27,19 @@ class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
         return serializer.data
 
 
-class ProjectInstanceSerializer(serializers.HyperlinkedModelSerializer):
+class ProjectInstanceSerializer(serializers.ModelSerializer):
     project = ProjectRelatedField(queryset=Project.objects.none())
-    instance = InstanceRelatedField(queryset=Instance.objects.none())
-    url = serializers.HyperlinkedIdentityField(
-        view_name='api:v2:projectinstance-detail',
-    )
+    instance = InstanceRelatedField(source="pk", queryset=Instance.objects.none())
+    # Could not fix 'ImproperlyConfiguredError'
+    # url = serializers.HyperlinkedIdentityField(
+    #     lookup_field="id",
+    #     view_name='api:v2:projectinstance-retrieve',
+    # )
 
     class Meta:
-        model = ProjectInstance
-        validators = [
-            UniqueTogetherValidator(
-                queryset=ProjectInstance.objects.all(),
-                fields=('project', 'instance')
-                ),
-        ]
+        model = Instance
         fields = (
             'id',
-            'url',
             'project',
             'instance'
         )

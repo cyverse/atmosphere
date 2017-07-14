@@ -32,7 +32,7 @@ class VolumeFilter(django_filters.FilterSet):
 
     class Meta:
         model = Volume
-        fields = ['min_size', 'max_size', 'projects']
+        fields = ['min_size', 'max_size', 'project']
 
 
 class VolumeViewSet(MultipleFieldLookup, AuthModelViewSet):
@@ -58,10 +58,15 @@ class VolumeViewSet(MultipleFieldLookup, AuthModelViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        identity_ids = user.current_identities.values_list('id',flat=True)
-        return Volume.objects.filter(
-            only_current_source(),
-            instance_source__created_by_identity__in=identity_ids)
+        qs = Volume.shared_with_user(user)
+        if 'archived' not in self.request.query_params:
+            qs = qs.filter(only_current_source())
+        qs = qs\
+            .select_related('instance_source')\
+            .select_related("instance_source__created_by")\
+            .select_related('instance_source__created_by_identity')\
+            .select_related('project')
+        return qs
 
     @detail_route(methods=['post'])
     def update_metadata(self, request, pk=None):

@@ -2,6 +2,7 @@ from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
 
+
 cwd_path = os.path.dirname(os.path.dirname(__file__))
 os.environ.setdefault('PYTHONPATH', cwd_path)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'atmosphere.settings')
