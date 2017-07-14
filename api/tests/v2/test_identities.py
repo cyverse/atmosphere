@@ -2,8 +2,7 @@ from rest_framework.test import APITestCase, APIRequestFactory, force_authentica
 from api.v2.views import IdentityViewSet as ViewSet
 from api.tests.factories import UserFactory, AnonymousUserFactory,\
     IdentityFactory, ProviderFactory, GroupFactory,\
-    IdentityMembershipFactory, QuotaFactory, AllocationFactory,\
-    LeadershipFactory
+    IdentityMembershipFactory, QuotaFactory, AllocationFactory
 from django.core.urlresolvers import reverse
 from core.models import Identity
 
@@ -15,10 +14,6 @@ class GetListTests(APITestCase):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
         self.group = GroupFactory.create(name=self.user.username)
-        self.leadership = LeadershipFactory.create(
-            user=self.user,
-            group=self.group
-            )
         self.staff_user = UserFactory.create(is_staff=True)
 
         self.provider = ProviderFactory.create()
@@ -76,10 +71,6 @@ class GetDetailTests(APITestCase):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
         self.group = GroupFactory.create(name=self.user.username)
-        self.leadership = LeadershipFactory.create(
-            user=self.user,
-            group=self.group
-            )
         self.staff_user = UserFactory.create(is_staff=True)
 
         self.provider = ProviderFactory.create()

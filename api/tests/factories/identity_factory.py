@@ -4,7 +4,6 @@ from .user_factory import UserFactory
 from .group_factory import GroupFactory
 from .quota_factory import QuotaFactory
 from .provider_factory import ProviderFactory
-from .leadership_factory import LeadershipFactory
 from .identity_membership_factory import IdentityMembershipFactory
 
 
@@ -16,7 +15,6 @@ class IdentityFactory(factory.DjangoModelFactory):
             created_by = UserFactory.create()
         if not group:
             group = GroupFactory.create(name=created_by.username)
-        LeadershipFactory(user=created_by, group=group)
         if not provider:
             provider = ProviderFactory.create()
         if not quota:

@@ -8,7 +8,7 @@ from rest_framework.test import APITestCase, APIRequestFactory, force_authentica
 from api.tests.factories import (
     GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
     ImageFactory, ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory, IdentityFactory,
-    ProviderFactory, IdentityMembershipFactory, ProjectFactory, ProjectInstanceFactory, LeadershipFactory)
+    ProviderFactory, IdentityMembershipFactory, ProjectFactory, ProjectInstanceFactory)
 
 from api.v2.views import ProjectInstanceViewSet
 from core.models import AtmosphereUser, Group
@@ -23,10 +23,6 @@ class GetProjectInstanceListTests(APITestCase):
             provider=self.provider)
         self.group = Group.objects.get(name=self.user)
         self.project = ProjectFactory.create(owner=self.group)
-        self.leadership = LeadershipFactory.create(
-            user=self.user,
-            group=self.group
-        )
         self.machine = ProviderMachineFactory.create_provider_machine(self.user, self.user_identity)
         self.active_instance = InstanceFactory.create(name="Instance in active",
                                    provider_alias=uuid.uuid4(),
