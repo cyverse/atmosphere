@@ -7,7 +7,9 @@ import sys
 import pprint
 
 import application_to_provider
-import django; django.setup()
+import django;
+
+django.setup()
 import core.models
 
 description = """
@@ -58,7 +60,6 @@ def _parse_args():
 
 def main(master_provider_id, replica_provider_ids,
          glance_client_versions=None, dry_run=False, limit_app_ids=False, irods_conn=None, irods_collections=None):
-
     # Convert provider IDs from unicode objects to integers
     # https://stackoverflow.com/questions/21193682/convert-a-string-key-to-int-in-a-dictionary
     if irods_collections:
@@ -69,8 +70,8 @@ def main(master_provider_id, replica_provider_ids,
         if all([irods_conn, irods_collections]):
             for key in irods_collections.keys():
                 irods_path = irods_collections[key]
-                assert(type(irods_path) == unicode and len(irods_path) > 1 and irods_path[0] == "/")
-            assert(master_provider_id in irods_collections.keys())
+                assert (type(irods_path) == unicode and len(irods_path) > 1 and irods_path[0] == "/")
+            assert (master_provider_id in irods_collections.keys())
         else:
             raise Exception("If using iRODS transfer then irods_conn and irods_collections must be defined")
 
@@ -119,8 +120,10 @@ def main(master_provider_id, replica_provider_ids,
                             irods_conn_str=irods_conn_str,
                             irods_src_coll=irods_src_coll,
                             irods_dst_coll=irods_dst_coll,
-                            src_glance_client_version=glance_client_versions.get(master_prov.id),
+                            src_glance_client_version=glance_client_versions.get(master_prov.id)
+                            if glance_client_versions else None,
                             dst_glance_client_version=glance_client_versions.get(replica_prov.id)
+                            if glance_client_versions else None
                         )
                         logging.info("Migrated application {0} to provider {1}".format(app, replica_prov))
                     else:
@@ -133,7 +136,7 @@ def main(master_provider_id, replica_provider_ids,
                                     replica_prov.id,
                                     irods_collections[master_prov.id],
                                     irods_collections[replica_prov.id]
-                                    ))
+                                ))
                         else:
                             print(
                                 "Sync application ID {0} to replica provider {1}".format(app.id,
