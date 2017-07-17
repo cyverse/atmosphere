@@ -156,21 +156,22 @@ def main(application_id,
     else:
         sprov = None
 
-    dprov_keystone_client = service.driver.get_account_driver(dprov, raise_exception=True)
+    dprov_acct_driver = service.driver.get_account_driver(dprov, raise_exception=True)
     if dst_glance_client_version:
+        dprov_keystone_client = dprov_acct_driver.image_manager.keystone
         dprov_glance_client = _connect_to_glance(dprov_keystone_client, version=dst_glance_client_version)
     else:
-        dprov_glance_client = dprov_keystone_client.image_manager.glance
+        dprov_glance_client = dprov_acct_driver.image_manager.glance
 
     dprov_atmo_admin_uname = dprov.admin.project_name()
-    dprov_atmo_admin_uuid = dprov_keystone_client.get_project(dprov_atmo_admin_uname).id
+    dprov_atmo_admin_uuid = dprov_acct_driver.get_project(dprov_atmo_admin_uname).id
 
     # Get application-specific metadata from Atmosphere(2) and resolve identifiers on destination provider
 
     # Get application owner UUID in destination provider
     app_creator_uname = app.created_by_identity.project_name()
     try:
-        dprov_app_owner_uuid = dprov_keystone_client.get_project(app_creator_uname, raise_exception=True).id
+        dprov_app_owner_uuid = dprov_acct_driver.get_project(app_creator_uname, raise_exception=True).id
     except AttributeError:
         if ignore_missing_owner:
             dprov_app_owner_uuid = dprov_atmo_admin_uuid

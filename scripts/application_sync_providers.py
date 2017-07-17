@@ -44,7 +44,7 @@ def _parse_args():
     parser.add_argument("replica_provider_id", type=int, nargs='+', help="Replica provider ID(s)")
     # https://stackoverflow.com/questions/18608812/accepting-a-dictionary-as-an-argument-with-argparse-and-python
     parser.add_argument("--glance-client-versions", type=json.loads,
-                        metavar='{\"1\": \"2\", \"2\": \"1\"}',
+                        metavar='{\"1\": 2, \"2\": 1}',
                         help="JSON specifying Glance client version for each provider ID")
     parser.add_argument("--dry-run", action="store_true", help="Don't make changes, only print what would be synced")
     parser.add_argument("--limit-app-ids", type=int, nargs="+", metavar="APP_ID",
