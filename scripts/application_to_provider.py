@@ -91,6 +91,9 @@ def _parse_args():
                         action="store_true",
                         help="Transfer image if application is private and member(s) have no identity on destination "
                              "provider")
+    parser.add_argument("--migrate-end-dated-versions",
+                        action="store_true",
+                        help="Migrate all ApplicationVersions, even those that have been end dated")
     parser.add_argument("--clean",
                         action="store_true",
                         help="Use Chromogenic library to remove undesired state from images which were created from "
@@ -124,6 +127,7 @@ def main(application_id,
          source_provider_id=None,
          ignore_missing_owner=False,
          ignore_missing_members=False,
+         migrate_end_dated_versions=False,
          clean=False,
          persist_local_cache=False,
          src_glance_client_version=None,
@@ -203,7 +207,11 @@ def main(application_id,
     logging.info("Application tags: {0}".format(str(app_tags)))
 
     # Loop for each ApplicationVersion of the specified Application
-    for app_version in app.all_versions:
+    if migrate_end_dated_versions:
+        versions = app.all_versions
+    else:
+        versions = app.active_versions
+    for app_version in versions:
         logging.info("Processing ApplicationVersion {0}".format(str(app_version)))
 
         # Choose/verify source provider
@@ -599,6 +607,7 @@ if __name__ == "__main__":
              source_provider_id=args.source_provider_id,
              ignore_missing_owner=args.ignore_missing_owner,
              ignore_missing_members=args.ignore_missing_members,
+             migrate_end_dated_versions=args.migrate_end_dated_versions,
              clean=args.clean,
              persist_local_cache=args.persist_local_cache,
              src_glance_client_version=args.src_glance_client_version,
