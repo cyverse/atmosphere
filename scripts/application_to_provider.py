@@ -449,19 +449,19 @@ def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client,
     src_img = src_glance_client.images.get(img_uuid)
     dst_img = dst_glance_client.images.get(img_uuid)
 
-    if dst_img.get("status") == "queued":
+    if dst_img.status == "queued":
         if irods:
             migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid)
         else:
             migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache,
                                       clean=clean)
-    elif dst_img.get("status") == "active":
+    elif dst_img.status == "active":
         if irods:
-            if src_img.get("size") != dst_img.get("size"):
+            if src_img.size != dst_img.size:
                 logging.warn("Warning: image data already present on destination provider but size does not match; "
                              "this may be OK if image was previously migrated with --clean")
         else:
-            if src_img.get("checksum") != dst_img.get("checksum"):
+            if src_img.checksum != dst_img.checksum:
                 logging.warn("Warning: image data already present on destination provider but checksum does not "
                              "match; this may be OK if image was previously migrated with --clean, or if iRODS "
                              "transfer was previously used to migrate image")
