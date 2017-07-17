@@ -40,21 +40,24 @@ def _parse_args():
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("master_provider_id", type=int, help="Master provider ID")
     parser.add_argument("replica_provider_id", type=int, nargs='+', help="Replica provider ID(s)")
-    parser.add_argument("--irods-conn", type=str, metavar="irods://user:password@host:port/zone",
-                        help="iRODS connection string in the form of irods://user:password@host:port/zone")
     # https://stackoverflow.com/questions/18608812/accepting-a-dictionary-as-an-argument-with-argparse-and-python
-    parser.add_argument("--irods-collections", type=json.loads,
-                        metavar="'{\"1\": \"/myzone/foo\", \"2\": \"/myzone/bar\"}'",
-                        help="JSON mapping each provider ID to an iRODS collection containing images")
+    parser.add_argument("--glance-client-versions", type=json.loads,
+                        metavar='{\"1\": \"2\", \"2\": \"1\"}',
+                        help="JSON specifying Glance client version for each provider ID")
     parser.add_argument("--dry-run", action="store_true", help="Don't make changes, only print what would be synced")
     parser.add_argument("--limit-app-ids", type=int, nargs="+", metavar="APP_ID",
                         help="Limit synchronization to this space-separated list of application IDs "
                              "(used for testing purposes)")
+    parser.add_argument("--irods-conn", type=str, metavar="irods://user:password@host:port/zone",
+                        help="iRODS connection string in the form of irods://user:password@host:port/zone")
+    parser.add_argument("--irods-collections", type=json.loads,
+                        metavar="'{\"1\": \"/myzone/foo\", \"2\": \"/myzone/bar\"}'",
+                        help="JSON mapping each provider ID to an iRODS collection containing images")
     return parser.parse_args()
 
 
 def main(master_provider_id, replica_provider_ids,
-         limit_app_ids=False, dry_run=False, irods_conn=None, irods_collections=None):
+         glance_client_versions=None, dry_run=False, limit_app_ids=False, irods_conn=None, irods_collections=None):
 
     # Convert provider IDs from unicode objects to integers
     # https://stackoverflow.com/questions/21193682/convert-a-string-key-to-int-in-a-dictionary
@@ -102,24 +105,23 @@ def main(master_provider_id, replica_provider_ids,
                     logging.info("Migrating application {0} to provider {1}".format(app, replica_prov))
                     if not dry_run:
                         if irods_collections and replica_prov.id in irods_collections.keys():
-                            application_to_provider.main(
-                                app.id,
-                                replica_prov.id,
-                                source_provider_id=master_prov.id,
-                                ignore_missing_owner=True,
-                                ignore_missing_members=True,
-                                irods_conn_str=irods_conn,
-                                irods_src_coll=irods_collections[master_prov.id],
-                                irods_dst_coll=irods_collections[replica_prov.id]
-                            )
+                            irods_conn_str = irods_conn
+                            irods_src_coll = irods_collections[master_prov.id]
+                            irods_dst_coll = irods_collections[replica_prov.id]
                         else:
-                            application_to_provider.main(
-                                app.id,
-                                replica_prov.id,
-                                source_provider_id=master_provider_id,
-                                ignore_missing_owner=True,
-                                ignore_missing_members=True
-                            )
+                            irods_conn_str = irods_src_coll = irods_dst_coll = None
+                        application_to_provider.main(
+                            app.id,
+                            replica_prov.id,
+                            source_provider_id=master_prov.id,
+                            ignore_missing_owner=True,
+                            ignore_missing_members=True,
+                            irods_conn_str=irods_conn_str,
+                            irods_src_coll=irods_src_coll,
+                            irods_dst_coll=irods_dst_coll,
+                            src_glance_client_version=glance_client_versions.get(master_prov.id),
+                            dst_glance_client_version=glance_client_versions.get(replica_prov.id)
+                        )
                         logging.info("Migrated application {0} to provider {1}".format(app, replica_prov))
                     else:
                         # Dry run
@@ -171,10 +173,11 @@ if __name__ == "__main__":
         logging.info("Running application_sync_providers with the following arguments:\n{0}".format(str(args)))
         main(args.master_provider_id,
              args.replica_provider_id,
-             args.limit_app_ids,
-             args.dry_run,
-             args.irods_conn,
-             args.irods_collections)
+             glance_client_versions=args.glance_client_versions,
+             dry_run=args.dry_run,
+             limit_app_ids=args.limit_app_ids,
+             irods_conn=args.irods_conn,
+             irods_collections=args.irods_collections)
     except Exception as e:
         logging.exception(e)
         raise

@@ -16,6 +16,7 @@ import django; django.setup()
 import core.models
 import service.driver
 from chromogenic.clean import mount_and_clean
+from rtwo.drivers.common import _connect_to_glance
 from atmosphere.settings import secrets
 
 description = """
@@ -99,6 +100,12 @@ def _parse_args():
                         help="If image download succeeds but upload fails, keep local cached copy for subsequent "
                              "attempt. (Local cache is always deleted after successful upload). "
                              "May consume a lot of disk space.")
+    parser.add_argument("--src-glance-client-version",
+                        type=int,
+                        help="Glance client version to use for source provider")
+    parser.add_argument("--dst-glance-client-version",
+                        type=int,
+                        help="Glance client version to use for destination provider")
     parser.add_argument("--irods-conn",
                         type=str, metavar="irods://user:password@host:port/zone",
                         help="iRODS connection string in the form of irods://user:password@host:port/zone")
@@ -119,9 +126,11 @@ def main(application_id,
          ignore_missing_members=False,
          clean=False,
          persist_local_cache=False,
+         src_glance_client_version=None,
+         dst_glance_client_version=None,
          irods_conn_str=None,
          irods_src_coll=None,
-         irods_dst_coll=None
+         irods_dst_coll=None,
          ):
 
     irods_args = (irods_conn_str, irods_src_coll, irods_dst_coll)
@@ -147,19 +156,21 @@ def main(application_id,
     else:
         sprov = None
 
-    dprov_acct_driver = service.driver.get_account_driver(dprov, raise_exception=True)
-    dprov_img_mgr = dprov_acct_driver.image_manager
-    dprov_glance_client = dprov_img_mgr.glance
+    dprov_keystone_client = service.driver.get_account_driver(dprov, raise_exception=True)
+    if dst_glance_client_version:
+        dprov_glance_client = _connect_to_glance(dprov_keystone_client, version=dst_glance_client_version)
+    else:
+        dprov_glance_client = dprov_keystone_client.image_manager.glance
 
     dprov_atmo_admin_uname = dprov.admin.project_name()
-    dprov_atmo_admin_uuid = dprov_acct_driver.get_project(dprov_atmo_admin_uname).id
+    dprov_atmo_admin_uuid = dprov_keystone_client.get_project(dprov_atmo_admin_uname).id
 
     # Get application-specific metadata from Atmosphere(2) and resolve identifiers on destination provider
 
     # Get application owner UUID in destination provider
     app_creator_uname = app.created_by_identity.project_name()
     try:
-        dprov_app_owner_uuid = dprov_acct_driver.get_project(app_creator_uname, raise_exception=True).id
+        dprov_app_owner_uuid = dprov_keystone_client.get_project(app_creator_uname, raise_exception=True).id
     except AttributeError:
         if ignore_missing_owner:
             dprov_app_owner_uuid = dprov_atmo_admin_uuid
@@ -176,7 +187,7 @@ def main(application_id,
         for membership in app.get_members():
             member_name = membership.group.name
             try:
-                member_proj_uuid = dprov_acct_driver.get_project(member_name).id
+                member_proj_uuid = dprov_keystone_client.get_project(member_name).id
                 # This avoids duplicates when there is both an ApplicationMembership and a ProviderMachineMembership
                 if member_proj_uuid not in dprov_app_members_uuids:
                     dprov_app_members_uuids.append(member_proj_uuid)
@@ -219,9 +230,12 @@ def main(application_id,
 
         # Get access to source provider
         sprov_img_uuid = sprov_instance_source.identifier
-        sprov_acct_driver = service.driver.get_account_driver(sprov, raise_exception=True)
-        sprov_img_mgr = sprov_acct_driver.image_manager
-        sprov_glance_client = sprov_img_mgr.glance
+
+        sprov_keystone_client = service.driver.get_account_driver(sprov, raise_exception=True)
+        if src_glance_client_version:
+            sprov_glance_client = _connect_to_glance(sprov_keystone_client, version=src_glance_client_version)
+        else:
+            sprov_glance_client = sprov_keystone_client.image_manager.glance
 
         # Get source image metadata from Glance, and determine if image is AMI-based
         sprov_glance_image = sprov_glance_client.images.get(sprov_img_uuid)
@@ -564,6 +578,8 @@ if __name__ == "__main__":
              ignore_missing_members=args.ignore_missing_members,
              clean=args.clean,
              persist_local_cache=args.persist_local_cache,
+             src_glance_client_version=args.src_glance_client_version,
+             dst_glance_client_version=args.dst_glance_client_version,
              irods_conn_str=args.irods_conn,
              irods_src_coll=args.irods_src_coll,
              irods_dst_coll=args.irods_dst_coll)
