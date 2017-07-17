@@ -192,7 +192,7 @@ def main(application_id,
         for membership in app.get_members():
             member_name = membership.group.name
             try:
-                member_proj_uuid = dprov_keystone_client.get_project(member_name).id
+                member_proj_uuid = dprov_acct_driver.get_project(member_name).id
                 # This avoids duplicates when there is both an ApplicationMembership and a ProviderMachineMembership
                 if member_proj_uuid not in dprov_app_members_uuids:
                     dprov_app_members_uuids.append(member_proj_uuid)
