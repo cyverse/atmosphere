@@ -208,9 +208,9 @@ def main(application_id,
 
     # Loop for each ApplicationVersion of the specified Application
     if migrate_end_dated_versions:
-        versions = app.all_versions
+        versions = app.all_versions()
     else:
-        versions = app.active_versions
+        versions = app.active_versions()
     for app_version in versions:
         logging.info("Processing ApplicationVersion {0}".format(str(app_version)))
 
