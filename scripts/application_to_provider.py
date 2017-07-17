@@ -302,7 +302,7 @@ def main(application_id,
                                               name=app.name,
                                               container_format="ami" if ami else sprov_glance_image.container_format,
                                               disk_format="ami" if ami else sprov_glance_image.disk_format,
-                                              visibility="private" if app.private else "public",
+                                              is_public=False if app.private else True,
                                               owner=dprov_app_owner_uuid,
                                               properties=dict(
                                                   tags=app_tags,
