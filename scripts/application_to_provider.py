@@ -297,27 +297,49 @@ def main(application_id,
             dprov_machine.save()
 
         # Populate image metadata (this is always done)
-        dprov_glance_client.images.update(dprov_glance_image.id,
-                                          name=app.name,
-                                          container_format="ami" if ami else sprov_glance_image.container_format,
-                                          disk_format="ami" if ami else sprov_glance_image.disk_format,
-                                          # We are using old Glance client
-                                          # https://wiki.openstack.org/wiki/Glance-v2-community-image-visibility-design
-                                          visibility="private" if app.private else "public",
-                                          owner=dprov_app_owner_uuid,
-                                          tags=app_tags,
-                                          application_name=app.name,
-                                          application_version=app_version.name,
-                                          application_description=app.description,
-                                          application_owner=app_creator_uname,
-                                          application_tags=json.dumps(app_tags),
-                                          application_uuid=str(app.uuid),
-                                          # Todo min_disk? min_ram? Do we care?
-                                          )
-        if ami:
+        if dst_glance_client_version == 1:
             dprov_glance_client.images.update(dprov_glance_image.id,
-                                              kernel_id=sprov_glance_image.kernel_id,
-                                              ramdisk_id=sprov_glance_image.ramdisk_id)
+                                              name=app.name,
+                                              container_format="ami" if ami else sprov_glance_image.container_format,
+                                              disk_format="ami" if ami else sprov_glance_image.disk_format,
+                                              visibility="private" if app.private else "public",
+                                              owner=dprov_app_owner_uuid,
+                                              tags=app_tags,
+                                              properties=dict(
+                                                  application_name=app.name,
+                                                  application_version=app_version.name,
+                                                  application_description=app.description,
+                                                  application_owner=app_creator_uname,
+                                                  application_tags=json.dumps(app_tags),
+                                                  application_uuid=str(app.uuid))
+                                                  # Todo min_disk? min_ram? Do we care?
+                                              )
+            if ami:
+                dprov_glance_client.images.update(dprov_glance_image.id,
+                                                  properties=dict(
+                                                      kernel_id=sprov_glance_image.kernel_id,
+                                                      ramdisk_id=sprov_glance_image.ramdisk_id)
+                                                  )
+        else:
+            dprov_glance_client.images.update(dprov_glance_image.id,
+                                              name=app.name,
+                                              container_format="ami" if ami else sprov_glance_image.container_format,
+                                              disk_format="ami" if ami else sprov_glance_image.disk_format,
+                                              visibility="private" if app.private else "public",
+                                              owner=dprov_app_owner_uuid,
+                                              tags=app_tags,
+                                              application_name=app.name,
+                                              application_version=app_version.name,
+                                              application_description=app.description,
+                                              application_owner=app_creator_uname,
+                                              application_tags=json.dumps(app_tags),
+                                              application_uuid=str(app.uuid),
+                                              # Todo min_disk? min_ram? Do we care?
+                                              )
+            if ami:
+                dprov_glance_client.images.update(dprov_glance_image.id,
+                                                  kernel_id=sprov_glance_image.kernel_id,
+                                                  ramdisk_id=sprov_glance_image.ramdisk_id)
         logging.info("Populated Glance image metadata: {0}"
                      .format(str(dprov_glance_client.images.get(dprov_glance_image.id))))
 
