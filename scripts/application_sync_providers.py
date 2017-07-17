@@ -120,9 +120,9 @@ def main(master_provider_id, replica_provider_ids,
                             irods_conn_str=irods_conn_str,
                             irods_src_coll=irods_src_coll,
                             irods_dst_coll=irods_dst_coll,
-                            src_glance_client_version=glance_client_versions.get(master_prov.id)
+                            src_glance_client_version=glance_client_versions.get(str(master_prov.id))
                             if glance_client_versions else None,
-                            dst_glance_client_version=glance_client_versions.get(replica_prov.id)
+                            dst_glance_client_version=glance_client_versions.get(str(replica_prov.id))
                             if glance_client_versions else None
                         )
                         logging.info("Migrated application {0} to provider {1}".format(app, replica_prov))
