@@ -32,6 +32,7 @@ from core.models.size import (
 from core.models.tag import Tag
 from core.models.managers import ActiveInstancesManager
 from atmosphere import settings
+from service.mock import MockInstance
 
 class Instance(models.Model):
     """
@@ -427,7 +428,7 @@ class Instance(models.Model):
         return status_name
 
     def esh_status(self):
-        if self.esh:
+        if self.esh and type(self.esh) != MockInstance:
             return self.esh.get_status()
         last_history = self.get_last_history()
         if last_history:
@@ -595,6 +596,7 @@ OPENSTACK_TASK_STATUS_MAP = {
     'spawning': 'build',
     # Atmosphere Task-specific lines
     'networking': 'networking',
+    'redeploying': 'redeploy',
     'deploying': 'deploying',
     'running_boot_script': 'deploying',
     'deploy_error': 'deploy_error',

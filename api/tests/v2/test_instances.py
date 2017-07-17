@@ -8,7 +8,7 @@ from rest_framework.test import APIClient
 
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from api.tests.factories import (
-    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
+    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory, SizeFactory,
     ImageFactory, ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
     IdentityMembershipFactory, QuotaFactory)
 from api.v2.views import InstanceViewSet
@@ -62,6 +62,7 @@ class InstanceTests(APITestCase):
         networking = InstanceStatusFactory.create(name='networking')
         deploying = InstanceStatusFactory.create(name='deploying')
         deploy_error = InstanceStatusFactory.create(name='deploy_error')
+
         InstanceHistoryFactory.create(
                 status=deploy_error,
                 activity="",

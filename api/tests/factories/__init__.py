@@ -8,7 +8,7 @@ from .identity_factory import IdentityFactory
 from .identity_membership_factory import IdentityMembershipFactory
 from .image_factory import ImageFactory
 from .instance_factory import InstanceFactory
-from .instance_history_factory import InstanceHistoryFactory, InstanceStatusFactory, InstanceSizeFactory
+from .instance_history_factory import InstanceHistoryFactory, InstanceStatusFactory
 from .version_factory import ApplicationVersionFactory
 from .quota_factory import QuotaFactory
 from .allocation_factory import AllocationFactory
