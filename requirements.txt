@@ -11,7 +11,7 @@ ansible==2.3.1.0          # via subspace
 apache-libcloud==0.20.1
 appdirs==1.4.3            # via os-client-config
 asn1crypto==0.22.0        # via cryptography
-Babel==2.3.4              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
+babel==2.3.4              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
 backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud, tornado
 bcrypt==3.1.3             # via paramiko
 boto==2.39.0              # via chromogenic
@@ -36,7 +36,7 @@ django-filter==1.0.1
 django-memoize==2.1.0
 django-redis-cache==0.13.0
 django-sslserver==0.19
-Django==1.10.6            # via django-cors-headers, django-memoize, django-sslserver
+django==1.10.6
 djangorestframework-csv==2.0.0
 djangorestframework-jsonp==1.0.2
 djangorestframework-xml==1.3.0
@@ -63,7 +63,7 @@ jsonschema==2.6.0         # via warlock
 jwt.py==0.1.0             # via django-cyverse-auth
 keystoneauth1==2.21.0     # via django-cyverse-auth, openstacksdk, os-client-config, osc-lib, python-cinderclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
 kombu==4.0.2              # via celery
-MarkupSafe==1.0           # via jinja2
+markupsafe==1.0           # via jinja2
 monotonic==1.3            # via oslo.log, oslo.utils
 msgpack-python==0.4.8     # via oslo.serialization
 netaddr==0.7.19           # via oslo.config, oslo.utils, python-neutronclient
@@ -84,7 +84,7 @@ paramiko==2.2.1           # via ansible, fabric
 pbr==3.1.1                # via cliff, debtcollector, keystoneauth1, openstacksdk, osc-lib, oslo.context, oslo.i18n, oslo.log, oslo.serialization, oslo.utils, positional, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient, rtwo, stevedore
 Pillow==2.5.3
 positional==1.1.1         # via keystoneauth1, oslo.context, python-keystoneclient
-PrettyTable==0.7.2        # via cliff, python-cinderclient, python-glanceclient, python-novaclient
+prettytable==0.7.2        # via cliff, python-cinderclient, python-glanceclient, python-novaclient
 psycopg2==2.5.4
 pyasn1-modules==0.0.9     # via oauth2client
 pyasn1==0.2.3             # via oauth2client, paramiko, pyasn1-modules, rsa
@@ -93,7 +93,7 @@ pycrypto==2.6.1           # via ansible, jwt.py
 pyinotify==0.9.6          # via oslo.log
 PyJWT==1.4.0
 pynacl==1.1.2             # via paramiko
-pyOpenSSL==17.1.0         # via requests
+pyopenssl==17.1.0         # via requests
 pyparsing==2.2.0          # via cliff, cmd2, oslo.utils
 pyperclip==1.5.27         # via cmd2
 python-cinderclient==1.9.0  # via python-openstackclient, rtwo
@@ -108,7 +108,7 @@ python-openstackclient==3.3.0  # via python-saharaclient, rtwo
 python-saharaclient==1.2.0  # via rtwo
 python-swiftclient==3.3.0  # via rtwo
 pytz==2016.2
-PyYAML==3.12              # via ansible, cliff, djangorestframework-yaml, os-client-config, oslo.config
+pyyaml==3.12              # via ansible, cliff, djangorestframework-yaml, os-client-config, oslo.config
 raven==6.1.0
 redis==2.10.5
 requests[security]==2.18.1
