@@ -16,6 +16,9 @@ class AllocationSourceTests(APITestCase, APISanityTestCase):
     url_route = 'api:v2:allocationsource'
 
     def setUp(self):
+        self.list_view = ViewSet.as_view({'get': 'list'})
+        self.detailed_view = ViewSet.as_view({'get': 'retrieve'})
+
         self.anonymous_user = AnonymousUserFactory()
         self.user_without_sources = UserFactory.create(username='test-username')
         self.user_with_sources = UserFactory.create(username='test-username-with-sources')

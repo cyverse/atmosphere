@@ -20,6 +20,8 @@ class InstanceTests(APITestCase, APISanityTestCase):
     url_route = 'api:v2:instance'
 
     def setUp(self):
+        self.list_view = InstanceViewSet.as_view({'get': 'list'})
+        self.detailed_view = InstanceViewSet.as_view({'get': 'retrieve'})
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create(username='test-username')
         self.admin_user = UserFactory.create(username='admin', is_superuser=True, is_staff=True)

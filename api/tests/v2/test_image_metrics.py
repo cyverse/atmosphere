@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from rest_framework.test import APITestCase
+from api.v2.views import ImageMetricViewSet as ViewSet
 from api.tests.factories import (
     UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
     ProviderMachineFactory, IdentityFactory, ProviderFactory
@@ -20,6 +21,9 @@ class ImageMetricsTest(APITestCase, APISanityTestCase):
     url_route = 'api:v2:applicationmetric'
 
     def setUp(self):
+        self.list_view = ViewSet.as_view({'get': 'list'})
+        self.detailed_view = ViewSet.as_view({'get': 'retrieve'})
+
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create(username='test-username')
         self.staff_user = UserFactory.create(username='test-staffuser', is_staff=True, is_superuser=True)
