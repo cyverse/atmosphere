@@ -302,7 +302,7 @@ def create_active_instance(context):
                                                                  start_date=django.utils.timezone.now())
 
     active_status = api.tests.factories.InstanceStatusFactory.create(name='active')
-    single_cpu_size = api.tests.factories.InstanceSizeFactory.create(
+    single_cpu_size = api.tests.factories.SizeFactory.create(
         name='single_cpu_size',
         provider=provider,
         cpu=1,

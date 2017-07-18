@@ -62,7 +62,7 @@ Feature: Enforcing allocation usage on Jetstream
       | entity_id | name | payload | timestamp |
 
 
-  @wip
+  @skip-if-cyverse
   Scenario: Test basic enforcing
     Given "Admin" as the persona
     When I set "username" to "admin"
