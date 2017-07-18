@@ -111,21 +111,25 @@ def main(master_provider_id, replica_provider_ids,
                             irods_dst_coll = irods_collections[replica_prov.id]
                         else:
                             irods_conn_str = irods_src_coll = irods_dst_coll = None
-                        application_to_provider.main(
-                            app.id,
-                            replica_prov.id,
-                            source_provider_id=master_prov.id,
-                            ignore_missing_owner=True,
-                            ignore_missing_members=True,
-                            irods_conn_str=irods_conn_str,
-                            irods_src_coll=irods_src_coll,
-                            irods_dst_coll=irods_dst_coll,
-                            src_glance_client_version=glance_client_versions.get(str(master_prov.id))
-                            if glance_client_versions else None,
-                            dst_glance_client_version=glance_client_versions.get(str(replica_prov.id))
-                            if glance_client_versions else None
-                        )
-                        logging.info("Migrated application {0} to provider {1}".format(app, replica_prov))
+                        try:
+                            application_to_provider.main(
+                                app.id,
+                                replica_prov.id,
+                                source_provider_id=master_prov.id,
+                                ignore_missing_owner=True,
+                                ignore_missing_members=True,
+                                irods_conn_str=irods_conn_str,
+                                irods_src_coll=irods_src_coll,
+                                irods_dst_coll=irods_dst_coll,
+                                src_glance_client_version=glance_client_versions.get(str(master_prov.id))
+                                if glance_client_versions else None,
+                                dst_glance_client_version=glance_client_versions.get(str(replica_prov.id))
+                                if glance_client_versions else None
+                            )
+                            logging.info("Migrated application {0} to provider {1}".format(app, replica_prov))
+                        except Exception as e:
+                            logging.error("Encountered exception while running application_to_provider:")
+                            logging.exception(e)
                     else:
                         # Dry run
                         if irods_collections and (replica_prov.id in irods_collections.keys()):
