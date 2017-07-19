@@ -384,6 +384,9 @@ def _handle_preconditions(mapping):
                                'found in %s: \n\t- %s \n' % (file_path,
                                                     '\n\t- '.join(ud_vars))))
                 success = False
+        except Exception as exc:
+            messages.append(('e','Unexpected error encountered during configuration of file: %s\n\t%s' % (file_path, exc)))
+            success = False
         except TemplateNotFound:
             messages.append(('e','Template not found: %s' % (file_path)))
             success = False

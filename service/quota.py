@@ -32,9 +32,11 @@ def check_over_instance_quota(
 
     return or raise exc
     """
-    membership = IdentityMembership.objects.get(
+    memberships_available = IdentityMembership.objects.filter(
         identity__uuid=identity_uuid,
-        member__name=username)
+        member__memberships__user__username=username)
+    if memberships_available:
+        membership = memberships_available.first()
     identity = membership.identity
     quota = identity.quota
     driver = get_cached_driver(identity=identity)
@@ -73,8 +75,11 @@ def check_over_storage_quota(
     return False if ValidationError occurs and raise_exc=False
     By default, allow ValidationError to raise.
     """
-    membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
-                                                member__name=username)
+    memberships_available = IdentityMembership.objects.filter(
+        identity__uuid=identity_uuid,
+        member__memberships__user__username=username)
+    if memberships_available:
+        membership = memberships_available.first()
     identity = membership.identity
     quota = identity.quota
     driver = get_cached_driver(identity=identity)
@@ -236,12 +241,23 @@ def _set_compute_quota(user_quota, identity):
     ad = get_account_driver(identity.provider)
     ks_user = ad.get_user(username)
     admin_driver = ad.admin_driver
-    #FIXME: Remove 'use_tenant_id' when legacy clouds are no-longer in use.
+
+
+    creds = identity.get_all_credentials()
+    if creds.get('ex_force_auth_version','2.0_password') != "2.0_password":
+        #FIXME: Remove 'use_tenant_id' when legacy clouds are no-longer in use.
+        try:
+            result = admin_driver._connection.ex_update_quota(tenant_id, compute_values, use_tenant_id=use_tenant_id)
+        except Exception:
+            logger.exception("Could not set a user-quota, trying to set tenant-quota")
+            raise
+        #FIXME: For jetstream, return result here.
+    # For CyVerse old clouds, run the top method. don't use try/except.
     try:
         result = admin_driver._connection.ex_update_quota_for_user(
             tenant_id, ks_user.id, compute_values, use_tenant_id=use_tenant_id)
     except Exception:
         logger.exception("Could not set a user-quota, trying to set tenant-quota")
-        result = admin_driver._connection.ex_update_quota(tenant_id, compute_values, use_tenant_id=use_tenant_id)
+        raise
     logger.info("Updated quota for %s to %s" % (username, result))
     return result

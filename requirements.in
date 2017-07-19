@@ -1,4 +1,4 @@
--e git+https://github.com/steve-gregory/billiard.git#egg=billiard # TEMPORARY
+-e git+https://github.com/steve-gregory/billiard.git#egg=billiard
 -e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient  # Temporary until https://github.com/irods/python-irodsclient/pull/67 is merged
 business_rules
 Django==1.10.6
@@ -9,6 +9,7 @@ djangorestframework-jsonp==1.0.2
 djangorestframework-xml==1.3.0
 djangorestframework-yaml==1.0.3
 djangorestframework-csv
+celery
 numpy
 pandas
 xlsxwriter
@@ -26,7 +27,7 @@ flower==0.9.1
 gevent==1.0.1
 
 apache-libcloud==0.20.1
-requests[security]==2.11.1
+requests[security]==2.18.1
 python-dateutil
 pytz==2016.2
 Pillow==2.5.3

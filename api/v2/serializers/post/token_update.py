@@ -1,5 +1,5 @@
 from core.models import (
-    AtmosphereUser, Identity, Provider
+    AtmosphereUser, Identity, Provider, Group
 )
 from core.query import contains_credential
 from service.driver import get_esh_driver
@@ -12,6 +12,7 @@ class TokenUpdateSerializer(serializers.ModelSerializer):
     """
     """
     # Flags
+    atmosphere_username = serializers.CharField(write_only=True, required=False)
     username = serializers.CharField(write_only=True)
     token = serializers.CharField(write_only=True)
     project_name = serializers.CharField(write_only=True)
@@ -28,9 +29,22 @@ class TokenUpdateSerializer(serializers.ModelSerializer):
         return validated_data
 
     def create(self, validated_data):
-        identity = self._find_identity_match(validated_data['provider'], validated_data['username'], validated_data['project_name'])
+        username = validated_data['username']
+        atmosphere_username = validated_data.get(
+            'atmosphere_user', username)
+        identity = self._find_identity_match(validated_data['provider'], username, validated_data['project_name'])
+        user = AtmosphereUser.objects.filter(username=atmosphere_username).first()
+        if not user:
+                raise serializers.ValidationError(
+                    "User %s does not exist and should be created before token update." % atmosphere_username)
+        group = Group.objects.filter(name=atmosphere_username).first()
+        if not group:
+                raise serializers.ValidationError(
+                    "Group %s does not exist and should be created before token update." % atmosphere_username)
+
+        provider_uuid = validated_data['provider']
         if not identity:
-            identity = self._create_identity(validated_data['provider'], validated_data['username'], validated_data['project_name'], validated_data['token'])
+            identity = self._create_identity(provider_uuid, user, group, username, validated_data['project_name'], validated_data['token'])
             return identity
 
         token_cred = identity.credential_set.filter(key='ex_force_auth_token').first()
@@ -56,15 +70,21 @@ class TokenUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                         "Driver could not be created: %s" % exc)
 
-    def _create_identity(self, provider_uuid, username, project_name, token):
+    def _create_identity(self, provider_uuid, user, group, username, project_name, token):
         try:
             provider = Provider.objects.get(uuid=provider_uuid)
         except Provider.DoesNotExist:
             raise serializers.ValidationError("Provider %s is invalid" % provider)
-        identity = Identity.create_identity(
-            username, provider.location,
-            cred_key=username, cred_ex_project_name=project_name, cred_ex_force_auth_token=token)
-        # FIXME: In a different PR re-work quota to sync with the values in OpenStack. otherwise the value assigned (default) will differ from the users _actual_ quota in openstack.
+        credentials = {
+            "cred_key": username,
+            "cred_ex_project_name": project_name,
+            "cred_ex_force_auth_token": token
+        }
+        quota = None
+        # FIXME: In a different PR re-work quota to sync based on the values in OpenStack.
+        # otherwise the value assigned (default) will differ from the users _actual_ quota in openstack and artificially limit the account.
+        identity = Identity._create_identity(
+            user, group, provider, quota, credentials)
         self.validate_token_with_driver(provider_uuid, username, project_name, token)
         return identity
 
@@ -99,5 +119,6 @@ class TokenUpdateSerializer(serializers.ModelSerializer):
             'identity_uuid',
             'username',
             'project_name',
-            'token'
+            'token',
+            'atmosphere_username'
         )

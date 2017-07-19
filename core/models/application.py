@@ -112,6 +112,20 @@ class Application(models.Model):
         )
         return shared_images
 
+    @staticmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        ownership_query = Q(created_by=user)
+        project_query = Q(projects__owner__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(projects__owner__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(projects__owner__memberships__is_leader=True)
+        membership_query = Q(created_by__memberships__group__user=user)
+        return Application.objects.filter(membership_query | project_query | ownership_query).distinct()
+
     @classmethod
     def admin_apps(cls, user):
         """
@@ -129,8 +143,7 @@ class Application(models.Model):
         is_public = Q(private=False)
         if not user or isinstance(user, AnonymousUser):
             # Images that are not endated and are public
-            return Application.objects.filter(
-                query.only_current_apps() & is_public,
+            return Application.objects.filter(query.only_current_apps() & is_public,
                 versions__machines__instance_source__provider__public=True).distinct()
         if not isinstance(user, AtmosphereUser):
             raise Exception("Expected user to be of type AtmosphereUser"
@@ -401,11 +414,11 @@ def _get_app_by_uuid(identifier, app_uuid):
         logger.exception(e)
 
 
-def _username_lookup(provider_uuid, username):
+def _user_identity_lookup(provider_uuid, username):
     try:
-        return Identity.objects.get(
+        return Identity.objects.filter(
             provider__uuid=provider_uuid,
-            created_by__username=username)
+            created_by__username=username).first()
     except Identity.DoesNotExist:
         return None
 
@@ -454,7 +467,7 @@ def create_application(
     if not description:
         description = "Imported Application - %s" % name
     if created_by:
-        created_by_identity = _username_lookup(
+        created_by_identity = _user_identity_lookup(
             provider_uuid,
             created_by.username)
     if not created_by_identity:

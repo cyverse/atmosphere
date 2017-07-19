@@ -54,6 +54,8 @@ def emulate_request(request, username=None):
         if 'emulator' not in request.session:
             original_emulator = request.session['username']
             request.session['emulator'] = original_emulator
+            logger.info("Returning user %s - Emulated as user %s - to api profile "
+                        % (original_emulator, username))
         if 'emulator_token' not in request.session:
             original_token = request.session['token']
             request.session['emulator_token'] = original_token
@@ -63,8 +65,6 @@ def emulate_request(request, username=None):
         request.session['username'] = username
         request.session['token'] = token.key
         request.session.save()
-        logger.info("Returning user %s - Emulated as user %s - to api profile "
-                    % (original_emulator, username))
         logger.info(request.session.__dict__)
         logger.info(request.user)
         return HttpResponseRedirect(settings.REDIRECT_URL + "/api/v1/profile")

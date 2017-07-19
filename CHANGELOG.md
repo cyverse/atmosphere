@@ -1,3 +1,26 @@
+## [Zesty-Zapdos](https://github.com/cyverse/atmosphere/milestone/13?closed=1) (as of 7/17/2017)
+
+Improvements:
+ - Disable instance sizes if the hosting image has a disk size thats larger than what is allowed.
+   - Update the size attribute during monitoring of images
+ - Releasing a new SSH client and VNC client -- Guacamole
+   - Provide a simple API endpoint that allows new clients to decide on the functionality and return to Troposphere.
+
+Bugfixes:
+ - Instances end dated at the point in time when deletion occurs in the API, rather than by request.
+ - Fixed an error that caused legacy clouds to fail with "project_id" KeyError
+ - Fixed an error that caused the wrong 'type' of quota value to be set on legacy and new clouds.
+
+Internal:
+ - Invalid host headers disabled at nginx
+ - Improvements to travis.yml to help improve the QOL working on the codebase.
+ - Documentation on generating requirements in atmosphere
+ - Improve the onboarding process for new cloud providers by including sample cloud_config
+ - Prepare for Ubuntu 16.04 support with systemd scripts
+ - Include script for generating instance reporting
+ - Include script for replication of an application to a provider
+
+
 ## [Yampy-Yellowlegs](https://github.com/cyverse/atmosphere/milestone/12?closed=1) (as of 6/12/2017)
 
 Improvements:

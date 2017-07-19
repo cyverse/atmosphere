@@ -443,7 +443,7 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
         context['adminform'].form.fields[
             'identity'].queryset = user.identity_set.all()
         context['adminform'].form.fields[
-            'member'].queryset = user.group_set.all()
+            'member'].queryset = user.memberships.all()
         return super(
             IdentityMembershipAdmin,
             self).render_change_form(

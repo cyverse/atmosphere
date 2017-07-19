@@ -575,7 +575,7 @@ def resource_request_email(request, username, quota, reason, options={}):
     user = User.objects.get(username=username)
     membership = IdentityMembership.objects.get(
         identity=user.select_identity(),
-        member__in=user.group_set.all())
+        member__in=user.memberships.values_list('group__id',flat=True))
     admin_url = reverse('admin:core_identitymembership_change',
                         args=(membership.id,))
 

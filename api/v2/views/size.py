@@ -1,13 +1,29 @@
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
+import django_filters
 
-from core.models import Group, Size, Provider
+from core.models import Group, Size, Provider, ProviderMachine
 from core.query import only_current, only_current_provider
 
 from api.v2.serializers.details import SizeSerializer
 from api.v2.views.base import AuthReadOnlyViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
+class SizeFilter(django_filters.FilterSet):
+    provider_machine__id = django_filters.filters.CharFilter(method='filter_provider_machine')
+
+    def filter_provider_machine(self, qs, name, value):
+        selected_machine = ProviderMachine.objects.filter(
+            Q(id=value)
+            | Q(instance_source__identifier=value)).first()
+        size_threshold = selected_machine.instance_source.size_gb
+        return qs.filter(
+            Q(disk=0)
+            | Q(disk__gt=size_threshold))
+
+    class Meta:
+        model = Size
+        fields = ['provider__id', 'provider_machine__id']
 
 class SizeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     """
@@ -17,7 +33,7 @@ class SizeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     queryset = Size.objects.all().order_by('-disk','-cpu','-mem')
     serializer_class = SizeSerializer
     ordering = ("disk", "cpu", "mem", "root", "name")
-    filter_fields = ('provider__id',)
+    filter_class = SizeFilter
 
     def get_queryset(self):
         """
@@ -26,21 +42,16 @@ class SizeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
         request_user = self.request.user
         # Switch based on user's ClassType
         if isinstance(request_user, AnonymousUser):
-            provider_ids = Provider.objects.filter(only_current(), active=True).values_list('id',flat=True)
+            providers = Provider.objects.filter(only_current(), active=True)
         else:
-            try:
-                group = Group.objects.get(name=request_user.username)
-            except Group.DoesNotExist:
-                return Size.objects.none()
-            provider_ids = group.identities.filter(
-                only_current_provider(),
-                provider__active=True).values_list('provider', flat=True)
+            providers = request_user.current_providers
 
         # Switch based on query
         if 'archived' in self.request.query_params:
             filtered_sizes = Size.objects.filter(
-                provider__id__in=provider_ids)
+                provider__in=providers)
         else:
             filtered_sizes = Size.objects.filter(
-                only_current(), provider__id__in=provider_ids)
+                only_current(),
+                provider__in=providers)
         return filtered_sizes.filter(~Q(alias='N/A'))

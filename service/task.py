@@ -58,7 +58,7 @@ def add_floating_ip_task(driver, instance, *args, **kwargs):
 
 def destroy_instance_task(user, instance, identity_uuid, *args, **kwargs):
     if not instance:
-        raise InstanceDoesNotExist(instance_id=identity_uuid)
+        raise InstanceDoesNotExist(instance_id=instance.alias)
     return destroy_instance.delay(
         instance.alias, user, identity_uuid, *args, **kwargs)
 

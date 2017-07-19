@@ -86,7 +86,6 @@ def start_machine_imaging(machine_request, delay=False):
     Builds up a machine imaging task using core.models.machine_request
     delay - If true, wait until task is completed before returning
     """
-
     new_status, _ = StatusType.objects.get_or_create(name="started")
     machine_request.status = new_status
     machine_request.save()
@@ -114,7 +113,7 @@ def start_machine_imaging(machine_request, delay=False):
     # Assume we are starting from the beginning.
     init_task = imaging_task
     # Task 2 = Process the machine request
-    if 'processing' in original_status:
+    if 'processing' == original_status:
         # If processing, start here..
         image_id = original_status.replace("processing - ", "")
         logger.info("Start with processing:%s" % image_id)
@@ -131,9 +130,10 @@ def start_machine_imaging(machine_request, delay=False):
     # NOTE: si == Ignore the result of the last task.
     email_task = imaging_complete.si(machine_request.id)
     email_task.link_error(imaging_error_task)
-
     if getattr(settings, 'ENABLE_IMAGE_VALIDATION', True):
         init_task = enable_image_validation(machine_request, init_task, email_task, original_status, imaging_error_task)
+    elif 'validating' == original_status:  # Imaging is complete if ENABLE_IMAGE_VALIDATION is false
+        init_task = email_task
     else:
         process_task.link(email_task)
 
@@ -155,7 +155,7 @@ def enable_image_validation(machine_request, init_task, final_task, original_sta
     # Task 3 = Validate the new image by launching an instance
     admin_ident = machine_request.new_admin_identity()
     admin_driver = get_admin_driver(machine_request.new_machine_provider)
-    if 'validating' in original_status:
+    if 'validating' == original_status:
         image_id = machine_request.new_machine.identifier
         celery_logger.info("Start with validating:%s" % image_id)
         # If validating, seed the image_id and start here..
@@ -306,6 +306,10 @@ def process_request(new_image_id, machine_request_id):
 
 @task(name='validate_new_image', queue="imaging", ignore_result=False)
 def validate_new_image(image_id, machine_request_id):
+    if not getattr(settings, 'ENABLE_IMAGE_VALIDATION', True):
+        celery_logger.warn(
+            "Skip validation: ENABLE_IMAGE_VALIDATION is False")
+        return True
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     new_status, _ = StatusType.objects.get_or_create(name="validating")
     machine_request.status = new_status

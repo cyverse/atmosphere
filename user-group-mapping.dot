@@ -1,0 +1,47 @@
+digraph graphname{
+
+                User [label="AtmosphereUser"]
+                Group
+
+                Project
+
+                Identity
+                Credential
+                Provider
+                ProviderCredential
+
+                Application
+                Version
+                Machine [label="Provider Machine"]
+                Volume
+                InstanceSource
+                Instance
+
+                User->Application [label="Owner"] // edge T->P
+                Group->Project [label="Owner"]
+
+                User->Group [label="GroupMembership", fontcolor=darkgreen, dir="both"] // edge T->P
+                Group->Instance [label="InstanceMembership", fontcolor=darkgreen, dir="both"]
+                Group->Provider [label="ProviderMembership", fontcolor=darkgreen, dir="both"]
+                Group->Identity [label="IdentityMembership", fontcolor=darkgreen, dir="both"]
+                Group->Machine [label="MachineMembership", fontcolor=darkgreen, dir="both"]
+                Group->Version [label="VersionMembership", fontcolor=darkgreen, dir="both"]
+                Group->Application [label="ApplicationMembership", fontcolor=darkgreen, dir="both"]
+
+                ProviderCredential->Provider
+                Provider->Identity
+                Credential->Identity
+                Identity->Instance [label="Created by"]
+                Identity->Volume [label="Created by"]
+                Identity->Machine [label="Created by"]
+
+                Project->Application [label="ProjectApplication", fontcolor=darkgreen, dir="both"]
+                Project->Instance [label="ProjectInstance", fontcolor=darkgreen, dir="both"]
+                Project->Volume [label="ProjectVolume", fontcolor=darkgreen, dir="both"]
+
+                Instance->InstanceSource
+                InstanceSource->Volume
+                InstanceSource->Machine
+                Machine->Version
+                Version->Application
+}

@@ -29,10 +29,9 @@ class ProviderList(AuthAPIView):
         """
         Authentication Required, list of Providers on your account.
         """
-        username = request.user.username
-        group = Group.objects.get(name=username)
+        user = request.user
         try:
-            providers = group.current_providers.order_by('id')
+            providers = user.current_providers.order_by('id')
         except CoreProvider.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
@@ -54,10 +53,9 @@ class Provider(APIView):
         """
         Authentication Required, return specific provider.
         """
-        username = request.user.username
-        group = Group.objects.get(name=username)
+        user = request.user
         try:
-            provider = group.current_providers.get(
+            provider = user.current_providers.get(
                 uuid=provider_uuid)
         except CoreProvider.DoesNotExist:
             return failure_response(
