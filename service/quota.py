@@ -85,7 +85,7 @@ def check_over_storage_quota(
     driver = get_cached_driver(identity=identity)
 
     # FIXME: I don't believe that 'snapshot' size and 'volume' size share
-    # the same quota, so for now we ignore 'snapshot-size', 
+    # the same quota, so for now we ignore 'snapshot-size',
     # and only care that value is 0 or >1
     new_snapshot = 1 if new_snapshot_size > 0 else 0
 
@@ -238,7 +238,7 @@ def _set_compute_quota(user_quota, identity):
     username = driver._connection.key
     tenant_id = driver._connection._get_tenant_id()
     tenant_name = identity.project_name()
-    ad = get_account_driver(identity.provider)
+    ad = get_account_driver(identity.provider, raise_exception=True)
     ks_user = ad.get_user(username)
     admin_driver = ad.admin_driver
 
