@@ -114,6 +114,9 @@ class WebTokenView(RetrieveAPIView):
                           + '&guac.sftp-directory=/home/' + atmo_username
                           + '&guac.enable-sftp=true')
 
+        if protocol == "ssh":
+            request_string += "guac.color-scheme=white-black"
+
         # Send request to Guacamole backend and record the result
         response = requests.post(guac_server + '/api/tokens', data=request_string)
         logger.info("Response status from server: %s" % (response.status_code))
