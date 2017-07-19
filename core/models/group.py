@@ -254,9 +254,11 @@ class IdentityMembership(models.Model):
 
     def is_member(self, user):
         """
-        Return whether the given user a member of the identity
+        Return whether the group in this identity-membership
+        allows access to _user_
         """
-        return [user.id in self.memberships.values_list('user', flat=True)]
+        group = self.member
+        return user.id in group.memberships.values_list('user', flat=True)
 
     def __unicode__(self):
         return "%s can use identity %s" % (self.member, self.identity)
