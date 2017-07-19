@@ -1,4 +1,5 @@
 -e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient  # Temporary until https://github.com/irods/python-irodsclient/pull/67 is merged
+-e git+https://github.com/cyverse/celery.git#egg=celery  # Temporary until celery >4.0.2 is released
 business_rules
 Django==1.10.6
 django-cors-headers==0.12.0
@@ -19,14 +20,14 @@ redis==2.10.5
 eventlet==0.18.4
 
 Jinja2==2.8.1
-celery>=4.0,<5.0
 django-celery-beat
+billiard==3.5.0.3  # Required by celery
 flower==0.9.1
 
 gevent==1.0.1
 
 apache-libcloud==0.20.1
-requests[security]==2.11.1
+requests[security]==2.18.1
 python-dateutil
 pytz==2016.2
 Pillow==2.5.3
