@@ -6,14 +6,15 @@
 #
 -e git+https://github.com/cyverse/celery.git#egg=celery
 -e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient
-amqp==2.1.4
-ansible==2.3.0.0
+amqp==2.2.1
+ansible==2.3.1.0
 apache-libcloud==0.20.1
 appdirs==1.4.3
 asn1crypto==0.22.0
 babel==2.3.4
 backports.shutil-get-terminal-size==1.0.0  # via ipython
 backports.ssl-match-hostname==3.5.0.1
+bcrypt==3.1.3
 behave-django==0.5.0
 behave==1.2.5
 behaving==1.5.6
@@ -24,22 +25,22 @@ caslib.py==2.2.2
 certifi==2017.4.17
 cffi==1.10.0
 chardet==3.0.4
-chromogenic==0.4.10
+chromogenic==0.4.13
 click==6.7                # via pip-tools
-cliff==2.4.0
-cmd2==0.7.0
+cliff==2.8.0
+cmd2==0.7.5
 colorama==0.3.3
 configparser==3.5.0       # via flake8
-contextlib2==0.5.4
+contextlib2==0.5.5
 coverage==4.3.4
-cryptography==1.8.1
-debtcollector==1.12.0
+cryptography==2.0
+debtcollector==1.17.0
 decorator==4.0.11         # via ipython, traitlets
 defusedxml==0.5.0
-deprecation==1.0
+deprecation==1.0.1
 django-celery-beat==1.0.1
 django-cors-headers==0.12.0
-django-cyverse-auth==1.0.13
+django-cyverse-auth==1.0.15
 django-debug-toolbar==1.7
 django-filter==1.0.1
 django-jenkins==0.19.0
@@ -64,7 +65,7 @@ flower==0.9.1
 freezegun==0.3.8
 funcsigs==1.0.2
 functools32==3.2.3.post2
-futures==3.0.5
+futures==3.1.1
 gevent==1.0.1
 gitdb==0.6.4              # via gitpython
 gitpython==1.0.1
@@ -79,60 +80,64 @@ iso8601==0.1.11
 itsdangerous==0.24
 jinja2==2.8.1
 json-delta==2.0
-jsonpatch==1.15
+jsonpatch==1.16
 jsonpointer==1.10
 jsonschema==2.6.0
 jwt.py==0.1.0
-keystoneauth1==2.19.0
-kombu==4.0.2
+keystoneauth1==2.21.0
+kombu==4.1.0
 markupsafe==1.0
 mccabe==0.6.1             # via flake8
 mock==1.0.1
 monotonic==1.3
 msgpack-python==0.4.8
 netaddr==0.7.19
-netifaces==0.10.5
+netifaces==0.10.6
 newrelic==2.64.0.48
 nose==1.3.7               # via django-nose
-numpy==1.12.0
-oauth2client==4.0.0
-openstacksdk==0.9.14
-os-client-config==1.26.0
-osc-lib==1.3.0
-oslo.config==3.23.0
-oslo.i18n==3.14.0
-oslo.serialization==2.17.0
-oslo.utils==3.23.0
-packaging==16.8
-pandas==0.19.2
-paramiko==2.1.2
+numpy==1.13.1
+oauth2client==4.1.2
+openstacksdk==0.9.17
+os-client-config==1.28.0
+osc-lib==1.7.0
+oslo.config==4.10.0
+oslo.context==2.17.0
+oslo.i18n==3.17.0
+oslo.log==3.30.0
+oslo.serialization==2.20.0
+oslo.utils==3.28.0
+pandas==0.20.3
+paramiko==2.2.1
 parse-type==0.3.4         # via behave
 parse==1.8.0              # via behave, behaving, parse-type
 pathlib2==2.2.1           # via ipython, pickleshare
 pathlib==1.0.1
-pbr==2.0.0
+pbr==3.1.1
 pep8==1.7.0
 pexpect==4.2.1            # via ipython
 pickleshare==0.7.4        # via ipython
 pillow==2.5.3
-pip-tools==1.8.0
+pip-tools==1.9.0
 positional==1.1.1
 prettytable==0.7.2
 prompt-toolkit==1.0.13    # via ipython
 psycopg2==2.5.4
 ptyprocess==0.5.1         # via pexpect
-pyasn1-modules==0.0.8
+pyasn1-modules==0.0.9
 pyasn1==0.2.3
 pycodestyle==2.3.1        # via flake8
-pycparser==2.17
+pycparser==2.18
 pycrypto==2.6.1
 pyflakes==1.5.0           # via flake8
 pygments==2.2.0           # via ipython
+pyinotify==0.9.6
 pyjwt==1.4.0
-pyopenssl==16.2.0
+pynacl==1.1.2
+pyopenssl==17.2.0
 pyparsing==2.2.0
+pyperclip==1.5.27
 python-cinderclient==1.9.0
-python-dateutil==2.6.0
+python-dateutil==2.6.1
 python-glanceclient==2.5.0
 python-keystoneclient==3.6.0
 python-ldap==2.4.19
@@ -140,26 +145,27 @@ python-logstash==0.4.5
 python-neutronclient==6.0.0
 python-novaclient==6.0.0
 python-openstackclient==3.3.0
-python-swiftclient==3.1.0
+python-saharaclient==1.2.0
+python-swiftclient==3.3.0
 pytz==2016.2
 pyyaml==3.12
-raven==6.0.0
+raven==6.1.0
 redis==2.10.5
 requests[security]==2.18.1
-requestsexceptions==1.2.0
-rfc3986==0.4.1
+requestsexceptions==1.3.0
+rfc3986==1.1.0
 rfive==0.2.0
 rsa==3.4.2
-rtwo==0.5.10
+rtwo==0.5.12
 scandir==1.5              # via pathlib2
 selenium==3.4.1           # via splinter
 simplegeneric==0.8.1      # via ipython
-simplejson==3.10.0
+simplejson==3.11.1
 six==1.10.0
 smmap==0.9.0              # via gitdb
 splinter==0.7.5           # via behaving
 sqlparse==0.2.3           # via django-debug-toolbar
-stevedore==1.21.0
+stevedore==1.25.0
 subspace==0.4.1
 threepio==0.2.0
 tornado==4.2.0
@@ -168,9 +174,9 @@ unicodecsv==0.14.1
 urllib3==1.21.1
 uwsgi==2.0.13
 vcrpy==1.10.5
-vine==1.1.3
+vine==1.1.4
 warlock==1.2.0
 wcwidth==0.1.7            # via prompt-toolkit
 wheel==0.29.0
 wrapt==1.10.10
-xlsxwriter==0.9.6
+xlsxwriter==0.9.8
