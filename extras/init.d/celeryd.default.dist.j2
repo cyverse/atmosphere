@@ -38,6 +38,9 @@ CELERYD_OPTS="$CELERYD_OPTS -Q:imaging imaging -c:imaging 1 -O:imaging fair"
 
 CELERYD_OPTS="$CELERYD_OPTS -Q:celery_periodic periodic -c:celery_periodic 3 -O:celery_periodic fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:email email -c:email 1 -O:email fair"
+
+# The format of the CELERYD_ULIMIT variable is something like "-n <max_open_files>"
+CELERYD_ULIMIT="-n 65536"
 {% else %}
 #############
 # Development Settings (Single-Node!)
