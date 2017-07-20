@@ -17,11 +17,11 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 def generate_report(username, start_date, end_date, provider_ids, file_location):
     reporting_url = reverse('api:v2:reporting-list')
-    reporting_url += "?format=xlsx&start_date=2017-01-01&end_date=2017-07-01"
+    reporting_url += "?format=xlsx&start_date={}&end_date={}".format(start_date, end_date)
     for provider_id in provider_ids:
         reporting_url += "&provider_id="+provider_id
     view = ReportingViewSet.as_view({'get': 'list'})
-    user = AtmosphereUser.objects.get(username='sgregory')
+    user = AtmosphereUser.objects.get(username=username)
     factory = APIRequestFactory()
     request = factory.get(reporting_url)
     request.environ['SERVER_NAME'] = settings.SERVER_URL.replace("https://", "")
