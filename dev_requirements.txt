@@ -4,7 +4,6 @@
 #
 #    pip-compile --output-file dev_requirements.txt requirements.txt dev_requirements.in
 #
--e git+https://github.com/steve-gregory/billiard.git#egg=billiard
 -e git+https://github.com/c-mart/python-irodsclient.git@data-object-copy#egg=python-irodsclient
 amqp==2.2.1
 ansible==2.3.1.0
