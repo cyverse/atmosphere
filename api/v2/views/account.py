@@ -3,10 +3,10 @@ from django.contrib.auth.models import AnonymousUser
 from core.models import Identity
 
 from api.v2.serializers.post import AccountSerializer
-from api.v2.views.base import AdminAuthViewSet
+from api.v2.views.base import AdminModelViewSet
 
 
-class AccountViewSet(AdminAuthViewSet):
+class AccountViewSet(AdminModelViewSet):
     """
     API endpoint that allows providers to be viewed or edited.
     """

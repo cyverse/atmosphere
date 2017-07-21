@@ -103,4 +103,18 @@ api_views_urls = [
         views.WebTokenView.as_view()),
 ]
 api_v2_urls.extend(api_views_urls)
-urlpatterns = [url(r'^', include(api_v2_urls))]
+
+# ACTIONS url routes...
+action_router = routers.DefaultRouter(trailing_slash=False)
+action_router.register(r'resource_request_update_quota', views.ResourceRequest_UpdateQuotaViewSet, base_name='resource_request_update_quota')
+
+api_v2_action_urls = action_router.urls
+
+# api_v2_action_urls = [
+#     url(r'resource_request_update_quota', views.ResourceRequest_UpdateQuotaViewSet.as_view({'post':'create'}))
+# ]
+
+urlpatterns = [
+    url(r'^', include(api_v2_urls)),
+    url(r'^actions/', include(api_v2_action_urls)),
+    ]

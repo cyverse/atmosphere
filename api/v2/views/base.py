@@ -66,7 +66,14 @@ class AuthModelViewSet(ModelViewSet):
                           ApiAuthRequired,)
 
 
-class AdminAuthViewSet(AuthModelViewSet):
+class AdminViewSet(AuthViewSet):
+    permission_classes = (InMaintenance,
+                          CloudAdminRequired,
+                          EnabledUserRequired,
+                          ApiAuthRequired,)
+
+
+class AdminModelViewSet(AuthModelViewSet):
     permission_classes = (InMaintenance,
                           CloudAdminRequired,
                           EnabledUserRequired,
@@ -118,6 +125,8 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
             "%s should include a `model` attribute."
             % self.__class__.__name__
         )
+        #FIXME: Require an additional flag to show a staff user all objects.
+        # Otherwise, staff users are advsersely affected//cannot see the same as "normal users"
         if self.request.user.is_staff:
             return self.model.objects.all().order_by('-start_date')
         return self.model.objects.filter(created_by=self.request.user).order_by('-start_date')
