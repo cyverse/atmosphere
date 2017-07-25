@@ -17,7 +17,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 def generate_report(username, start_date, end_date, provider_ids, name, file_location):
     reporting_url = reverse('api:v2:reporting-list')
-    reporting_url += "?format=xlsx&start_date=%s&end_date=%s" % (start_date, end_date)
+    reporting_url += "?format=xlsx&start_date={}&end_date={}".format(start_date, end_date)
     if name:
         reporting_url +="&name=%s" % (name,)
     for provider_id in provider_ids:
