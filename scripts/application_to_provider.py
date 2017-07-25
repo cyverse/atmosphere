@@ -83,6 +83,9 @@ def _parse_args():
                         type=int,
                         help="Migrate image from source provider with this ID (else a source provider will be chosen "
                              "automatically")
+    parser.add_argument("--metadata-only",
+                        action="store_true",
+                        help="Only migrate/update image metadata, not image data")
     parser.add_argument("--ignore-missing-owner",
                         action="store_true",
                         help="Transfer image if application owner has no identity on destination provider (owner will "
@@ -125,6 +128,7 @@ def _parse_args():
 def main(application_id,
          destination_provider_id,
          source_provider_id=None,
+         metadata_only=False,
          ignore_missing_owner=False,
          ignore_missing_members=False,
          migrate_end_dated_versions=False,
@@ -381,22 +385,23 @@ def main(application_id,
                                               owner=dprov_atmo_admin_uuid,
                                               )
 
-        local_storage_dir = secrets.LOCAL_STORAGE if os.path.exists(secrets.LOCAL_STORAGE) else "/tmp"
-        local_path = os.path.join(local_storage_dir, sprov_img_uuid)
+        if not metadata_only:
+            local_storage_dir = secrets.LOCAL_STORAGE if os.path.exists(secrets.LOCAL_STORAGE) else "/tmp"
+            local_path = os.path.join(local_storage_dir, sprov_img_uuid)
 
-        # Populate image data in destination provider if needed
-        migrate_or_verify_image_data(sprov_img_uuid, sprov_glance_client, dprov_glance_client, local_path,
-                                     persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll,
-                                     clean=True if clean else False,
-                                     dst_glance_client_version=dst_glance_client_version)
-        # If AMI-based image, populate image data in destination provider if needed
-        if ami:
-            migrate_or_verify_image_data(sprov_aki_glance_image.id, sprov_glance_client, dprov_glance_client,
-                                         local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
-                                         irods_dst_coll, dst_glance_client_version=dst_glance_client_version)
-            migrate_or_verify_image_data(sprov_ari_glance_image.id, sprov_glance_client, dprov_glance_client,
-                                         local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
-                                         irods_dst_coll, dst_glance_client_version=dst_glance_client_version)
+            # Populate image data in destination provider if needed
+            migrate_or_verify_image_data(sprov_img_uuid, sprov_glance_client, dprov_glance_client, local_path,
+                                         persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll,
+                                         clean=True if clean else False,
+                                         dst_glance_client_version=dst_glance_client_version)
+            # If AMI-based image, populate image data in destination provider if needed
+            if ami:
+                migrate_or_verify_image_data(sprov_aki_glance_image.id, sprov_glance_client, dprov_glance_client,
+                                             local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
+                                             irods_dst_coll, dst_glance_client_version=dst_glance_client_version)
+                migrate_or_verify_image_data(sprov_ari_glance_image.id, sprov_glance_client, dprov_glance_client,
+                                             local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
+                                             irods_dst_coll, dst_glance_client_version=dst_glance_client_version)
 
 
 def file_md5(path):
@@ -612,6 +617,7 @@ if __name__ == "__main__":
         main(args.application_id,
              args.destination_provider_id,
              source_provider_id=args.source_provider_id,
+             metadata_only=args.metadata_only,
              ignore_missing_owner=args.ignore_missing_owner,
              ignore_missing_members=args.ignore_missing_members,
              migrate_end_dated_versions=args.migrate_end_dated_versions,
