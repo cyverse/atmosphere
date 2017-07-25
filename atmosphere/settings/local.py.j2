@@ -411,7 +411,14 @@ INSTALLED_APPS += (
 INSTALLED_APPS += (
     'debug_toolbar',
 )
-SHOW_TOOLBAR_CALLBACK = True
+
+#
+# Read more about this config option here:
+# http://django-debug-toolbar.readthedocs.io/en/latest/configuration.html#debug-toolbar-config
+#
+DEBUG_TOOLBAR_CONFIG = {
+    "SHOW_TOOLBAR_CALLBACK": (lambda request: True),
+}
 MIDDLEWARE_CLASSES += (
     #For profile/debugging
     'debug_toolbar.middleware.DebugToolbarMiddleware',
