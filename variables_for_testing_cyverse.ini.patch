@@ -1,0 +1,7 @@
+75c75,78
+< TESTING =  False # Boolean required
+---
+> TESTING =  True # Boolean required
+> TEST_RUNNER_USER = # Nothing
+> TEST_RUNNER_PASS = # Nothing
+> DJANGO_JENKINS = False

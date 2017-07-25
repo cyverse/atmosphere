@@ -2,11 +2,11 @@ from rest_framework.test import APITestCase, APIRequestFactory, force_authentica
 from api.v2.views import IdentityViewSet as ViewSet
 from api.tests.factories import UserFactory, AnonymousUserFactory,\
     IdentityFactory, ProviderFactory, GroupFactory,\
-    IdentityMembershipFactory, QuotaFactory, AllocationFactory,\
-    LeadershipFactory
+    IdentityMembershipFactory, QuotaFactory, AllocationFactory
 from django.core.urlresolvers import reverse
 from core.models import Identity
 
+EXPECTED_FIELD_COUNT = 12
 
 class GetListTests(APITestCase):
 
@@ -15,10 +15,6 @@ class GetListTests(APITestCase):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
         self.group = GroupFactory.create(name=self.user.username)
-        self.leadership = LeadershipFactory.create(
-            user=self.user,
-            group=self.group
-            )
         self.staff_user = UserFactory.create(is_staff=True)
 
         self.provider = ProviderFactory.create()
@@ -57,16 +53,22 @@ class GetListTests(APITestCase):
     def test_response_contains_expected_fields(self):
         force_authenticate(self.request, user=self.user)
         response = self.view(self.request)
-        data = response.data.get('results')[0]
+        data = response.data.get('results')
+        self.assertTrue(data, "Response contained no results")
+        identity_data = data[0]
 
-        self.assertEquals(len(data), 8, "The number of arguments has changed for GET /identity")
-        self.assertIn('id', data)
-        self.assertIn('uuid', data)
-        self.assertIn('url', data)
-        self.assertIn('quota', data)
-        self.assertIn('allocation', data)
-        self.assertIn('provider', data)
-        self.assertIn('user', data)
+        self.assertEquals(len(identity_data), EXPECTED_FIELD_COUNT, "The number of arguments has changed for GET /identity (%s!=%s)" % (len(identity_data), EXPECTED_FIELD_COUNT))
+        self.assertIn('id', identity_data)
+        self.assertIn('uuid', identity_data)
+        self.assertIn('url', identity_data)
+        self.assertIn('quota', identity_data)
+        self.assertIn('allocation', identity_data)
+        self.assertIn('provider', identity_data)
+        self.assertIn('user', identity_data)
+        self.assertIn('key', identity_data)
+        self.assertIn('credentials', identity_data)
+        self.assertIn('is_leader', identity_data)
+        self.assertIn('members', identity_data)
 
 
 class GetDetailTests(APITestCase):
@@ -76,10 +78,6 @@ class GetDetailTests(APITestCase):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
         self.group = GroupFactory.create(name=self.user.username)
-        self.leadership = LeadershipFactory.create(
-            user=self.user,
-            group=self.group
-            )
         self.staff_user = UserFactory.create(is_staff=True)
 
         self.provider = ProviderFactory.create()
@@ -115,7 +113,10 @@ class GetDetailTests(APITestCase):
         response = self.view(self.request, pk=self.identity.id)
         data = response.data
 
-        self.assertEquals(len(data), 8, "The number of arguments has changed for GET /identity/:identityID")
+        self.assertEquals(
+            len(data), EXPECTED_FIELD_COUNT,
+            "The number of arguments has changed for GET /identity/%s (%s!=%s)" % (self.identity.id, len(data), EXPECTED_FIELD_COUNT)
+        )
         self.assertIn('id', data)
         self.assertIn('uuid', data)
         self.assertIn('url', data)
@@ -123,6 +124,10 @@ class GetDetailTests(APITestCase):
         self.assertIn('allocation', data)
         self.assertIn('provider', data)
         self.assertIn('user', data)
+        self.assertIn('key', data)
+        self.assertIn('credentials', data)
+        self.assertIn('is_leader', data)
+        self.assertIn('members', data)
 
 
 class CreateTests(APITestCase):

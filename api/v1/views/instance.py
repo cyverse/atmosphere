@@ -33,8 +33,9 @@ from service.instance import (
     launch_instance)
 from service.tasks.driver import update_metadata
 
-from api import failure_response, invalid_creds,\
-    connection_failure, malformed_response
+from api.exceptions import (
+    failure_response, member_action_forbidden,
+    invalid_creds, connection_failure, malformed_response)
 from api.decorators import emulate_user
 from api.exceptions import (
     inactive_provider, size_not_available, mount_failed, over_quota,
@@ -111,10 +112,8 @@ class InstanceList(AuthAPIView):
                 e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        identity = Identity.objects.get(uuid=identity_uuid)
-        # Probably redundant
-        if not user.can_use_identity(identity.id):
-            return invalid_creds(provider_uuid, identity_uuid)
+        identity = Identity.shared_with_user(user).get(uuid=identity_uuid)
+
         try:
             esh_instance_list = get_cached_instances(identity=identity)
         except LibcloudBadResponseError:
@@ -155,6 +154,10 @@ class InstanceList(AuthAPIView):
         missing_keys = valid_post_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
+        identity = Identity.shared_with_user(user, is_leader=True).filter(uuid=identity_uuid).first()
+        if not identity:
+            failure_msg = "User %s does not have permission to POST with this identity. Promote user to leader or use a different Identity." % (user,)
+            return failure_response(status.HTTP_403_FORBIDDEN, failure_msg)
         # Pass these as args
         size_alias = data.pop("size_alias")
         allocation_source_uuid = data.pop("allocation_source_uuid",None)
@@ -468,6 +471,9 @@ class InstanceAction(AuthAPIView):
         identity = Identity.objects.get(uuid=identity_uuid)
         action = action_params['action']
         try:
+            if not can_use_instance(user, instance_id, leader_required=True):
+                return member_action_forbidden(user.username, "Instance", instance_id)
+
             result_obj = run_instance_action(user, identity, instance_id, action, action_params)
             result_obj = _further_process_result(request, action, result_obj)
             api_response = {
@@ -555,6 +561,8 @@ class Instance(AuthAPIView):
         # Cleared provider testing -- ready for driver prep.
         try:
             esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
+            if not esh_driver:
+                return invalid_creds(provider_uuid, identity_uuid)
             logger.info("InstanceQuery Looking for %s" % instance_id)
             esh_instance = esh_driver.get_instance(instance_id)
             logger.info("InstanceQuery Found instance %s" % esh_instance)
@@ -600,6 +608,8 @@ class Instance(AuthAPIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
+        if not can_use_instance(user, instance_id, leader_required=True):
+            return member_action_forbidden(user.username, instance_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except (socket_error, ConnectionFailure):
@@ -651,6 +661,8 @@ class Instance(AuthAPIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
+        if not can_use_instance(user, instance_id, leader_required=True):
+            return member_action_forbidden(user.username, instance_id)
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except (socket_error, ConnectionFailure):
@@ -703,6 +715,10 @@ class Instance(AuthAPIView):
         esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
+
+        if not can_use_instance(user, instance_id, leader_required=True):
+            return member_action_forbidden(user.username, instance_id)
+
         try:
             esh_instance = esh_driver.get_instance(instance_id)
         except (socket_error, ConnectionFailure):
@@ -722,12 +738,6 @@ class Instance(AuthAPIView):
                 identity=Identity.objects.get(uuid=identity_uuid))
 
             existing_instance = esh_driver.get_instance(instance_id)
-            if existing_instance:
-                # Instance will be deleted soon...
-                esh_instance = existing_instance
-                if esh_instance.extra\
-                   and 'task' not in esh_instance.extra:
-                    esh_instance.extra['task'] = 'queueing delete'
         except VolumeAttachConflict as exc:
             message = exc.message
             return failure_response(status.HTTP_409_CONFLICT, message)
@@ -746,13 +756,19 @@ class Instance(AuthAPIView):
                                     str(exc.message))
 
         try:
-            core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                                 provider_uuid, identity_uuid,
-                                                 user)
-            if core_instance:
-                core_instance.end_date_all()
-            else:
+            if existing_instance:
+                # Instance will be deleted soon...
+                esh_instance = existing_instance
+                if esh_instance.extra\
+                   and 'task' not in esh_instance.extra:
+                    esh_instance.extra['task'] = 'queueing delete'
+                core_instance = convert_esh_instance(esh_driver, esh_instance,
+                                                     provider_uuid, identity_uuid,
+                                                     user)
+            if not core_instance:
                 logger.warn("Unable to find core instance %s." % (instance_id))
+                core_instance = CoreInstance.objects.filter(
+                    provider_alias=instance_id).first()
             serialized_data = InstanceSerializer(
                 core_instance,
                 context={"request": request}).data
@@ -885,6 +901,18 @@ def valid_post_data(data):
     return [key for key in required
             if key not in data or
             (isinstance(data[key], str) and len(data[key]) > 0)]
+
+
+def can_use_instance(user, instance_id, leader_required=False):
+    """
+    determine if the user is allowed to act on this instance.
+    Optionally, if leadership is required, test for it.
+    """
+    if leader_required:
+        instance_qs = CoreInstance.shared_with_user(user, is_leader=True)
+    else:
+        instance_qs = CoreInstance.shared_with_user(user)
+    return instance_qs.filter(provider_alias=instance_id).exists()
 
 
 def keys_not_found(missing_keys):

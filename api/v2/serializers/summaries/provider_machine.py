@@ -12,11 +12,15 @@ class ProviderMachineSummarySerializer(serializers.HyperlinkedModelSerializer):
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date')
     uuid = serializers.ReadOnlyField(source='instance_source.identifier')
+    size_gb = serializers.ReadOnlyField(source='instance_source.size_gb')
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:providermachine-detail',
         uuid_field='identifier',
     )
+
     class Meta:
         model = ProviderMachine
-        fields = ('id', 'uuid', 'url', 'provider', 'version', 'owner',
-                  'start_date', 'end_date')
+        fields = (
+            'id', 'uuid', 'url',
+            'provider', 'version', 'owner',
+            'size_gb', 'start_date', 'end_date')

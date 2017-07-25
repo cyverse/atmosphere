@@ -6,18 +6,19 @@ from core.models import IdentityMembership, Group
 from core.query import only_active_provider_memberships
 
 from api.v2.serializers.details import IdentityMembershipSerializer
-from api.v2.views.base import AdminAuthViewSet
+from api.v2.views.base import AdminModelViewSet
 
 
 class IdentityMembershipFilter(django_filters.FilterSet):
     provider_id = django_filters.CharFilter('identity__provider__id')
     username = django_filters.CharFilter(
         'identity__created_by__username', lookup_expr='icontains')
+
     class Meta:
         model = IdentityMembership
         fields = ['provider_id', 'username']
 
-class IdentityMembershipViewSet(AdminAuthViewSet):
+class IdentityMembershipViewSet(AdminModelViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.

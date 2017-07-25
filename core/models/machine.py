@@ -12,8 +12,8 @@ from django.conf import settings
 from threepio import logger
 
 from core.models.abstract import BaseSource
-from core.models.instance_source import InstanceSource
-from core.models.application import create_application, get_application, verify_app_uuid
+from core.models.instance_source import InstanceSource, update_instance_source_size
+from core.models.application import create_application, get_application, verify_app_uuid, Application
 from core.models.application_version import (
         ApplicationVersion,
         create_app_version,
@@ -253,9 +253,10 @@ def convert_glance_image(glance_image, provider_uuid, owner=None):
     application_name = machine_name  # Future: application_name will partition at the 'Application Version separator'.. and pass the version_name to create_version
     provider_machine = get_provider_machine(image_id, provider_uuid)
     if provider_machine:
+        update_instance_source_size(provider_machine.instance_source, glance_image.get('size'))
         return (provider_machine, False)
     app_kwargs = collect_image_metadata(glance_image)
-    if owner and hasattr(owner,'name'):
+    if owner and hasattr(owner, 'name'):
         owner_name = owner.name
     else:
         owner_name = glance_image.get('application_owner')
@@ -293,6 +294,7 @@ def convert_glance_image(glance_image, provider_uuid, owner=None):
     provider_machine = create_provider_machine(
         image_id, provider_uuid,
         app, **machine_kwargs)
+    update_instance_source_size(provider_machine.instance_source, glance_image.get('size'))
     return (provider_machine, True)
 
 
@@ -529,6 +531,9 @@ def _load_machine(esh_machine, provider_uuid):
     # and load (or possibly create) the provider machine
     provider_machine = get_or_create_provider_machine(
         alias, name, provider_uuid, app=app)
+    lc_machine = esh_machine._image
+    image_size = lc_machine.extra.get('image_size')
+    update_instance_source_size(provider_machine.instance_source, image_size)
     return provider_machine
 
 

@@ -45,6 +45,7 @@ class Instance(models.Model):
     """
     esh = None
     name = models.CharField(max_length=256)
+    project = models.ForeignKey("Project", null=True, blank=True, related_name='instances')
     # TODO: CreateUUIDfield that is *not* provider_alias?
     # token is used to help instance 'phone home' to server post-deployment.
     token = models.CharField(max_length=36, blank=True, null=True)
@@ -78,11 +79,26 @@ class Instance(models.Model):
     def provider(self):
         return self.source.provider
 
-    @classmethod
-    def for_user(self, user):
-        identity_ids = user.current_identities.values_list('id', flat=True)
-        qs = Instance.objects.filter(created_by_identity__in=identity_ids)
-        return qs
+    @property
+    def project_owner(self):
+        project = self.project
+        if not project:
+            return None
+        return project.owner
+
+    @staticmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        ownership_query = Q(created_by=user)
+        project_query = Q(project__owner__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(project__owner__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(project__owner__memberships__is_leader=True)
+        membership_query = Q(created_by__memberships__group__user=user)
+        return Instance.objects.filter(membership_query | project_query | ownership_query).distinct()
 
     def get_total_hours(self):
         from service.monitoring import _get_allocation_result
@@ -94,14 +110,6 @@ class Instance(models.Model):
         total_hours = result.total_runtime().total_seconds()/3600.0
         hours = round(total_hours, 2)
         return hours
-
-    def get_projects(self, user):
-        # TODO: Replace with 'only_current'
-        projects = self.projects.filter(
-            Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            owner=user,
-        )
-        return projects
 
     def get_first_history(self):
         """
@@ -444,6 +452,11 @@ class Instance(models.Model):
             return activity
         else:
             return "Unknown"
+
+    def get_provider(self):
+        if not self.source:
+            return
+        return self.source.provider
 
     def get_size(self):
         return self.get_last_history().size

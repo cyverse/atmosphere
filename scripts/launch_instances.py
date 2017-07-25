@@ -12,7 +12,7 @@ import libcloud.security
 
 from django.db.models import Count, Q
 from core.models import AtmosphereUser as User
-from core.models import Provider, ProviderMachine, Size, InstanceSource
+from core.models import Provider, ProviderMachine, Size, InstanceSource, AllocationSource
 from core.query import only_current, only_current_source
 
 from service.instance import launch_instance
@@ -184,7 +184,8 @@ def launch(user, name_prefix, provider, machines, size,
            host, skip_deploy, count):
     ident = user.identity_set.get(provider_id=provider.id)
     instances = []
-    kwargs = {}
+    allocation_source = AllocationSource.objects.get(name__exact=user.username)
+    kwargs = {'allocation_source': allocation_source}
     if host:
         kwargs['ex_availability_zone'] = host
     machine_count = 0

@@ -82,14 +82,14 @@ def _convert_tenant_id_to_names(instances, tenants):
 
 
 def _get_identity_from_tenant_name(provider, username):
+    # FIXME: This needs to be `username, tenant_name` because the `project_name` no longer has to match the `username` 
     try:
         # NOTE: I could see this being a problem when 'user1' and 'user2' use
         # TODO: Ideally we would be able to extract some more information
         #      when we move away from explicit user-groups.
         credential = Credential.objects.get(
-            key='ex_project_name', value=username,
-            identity__provider=provider,
-            identity__created_by__username=username)
+            Q(key='ex_project_name'), value=username,
+            identity__provider=provider)
         identity = credential.identity
         return identity
     except Credential.MultipleObjectsReturned:
@@ -97,8 +97,7 @@ def _get_identity_from_tenant_name(provider, username):
                     % (username, provider))
         credential = Credential.objects.filter(
             key='ex_project_name', value=username,
-            identity__provider=provider,
-            identity__created_by__username=username)[0]
+            identity__provider=provider)[0]
         identity = credential.identity
         return identity
     except Credential.DoesNotExist:
@@ -185,12 +184,10 @@ def _execute_provider_action(identity, user, instance, action_name):
         elif action_name == 'Terminate':
             destroy_instance(user, identity.uuid, instance)
         else:
-            raise Exception("Encountered Unknown Action Named %s" % action)
+            raise Exception("Encountered Unknown Action Named %s" % action_name)
     except ObjectDoesNotExist:
         # This may be unreachable when null,blank = True
-        logger.debug(
-            "Provider %s - 'Do Nothing' for Over Allocation" %
-            provider)
+        logger.debug("Provider %s - 'Do Nothing' for Over Allocation" % identity.provider)
         return
 
 
@@ -356,13 +353,13 @@ def check_over_allocation(username, identity_uuid,
 
 def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
-    group = user.group_set.filter(name=user.username).first()
-    if not group:
-        logger.warn("WARNING: User %s does not have a group named %s" % (user, user.username))
-        return None
+    logger.warn(
+        "DEPRECATION WARNING: Identities do not control allocation anymore. This will no longer return values.")
+    return None
+    group_ids = user.memberships.values_list('group__id', flat=True)
     try:
         membership = IdentityMembership.objects.get(
-            identity__uuid=identity_uuid, member=group)
+            identity__uuid=identity_uuid, member__in=group_ids)
     except IdentityMembership.DoesNotExist:
         logger.warn(
             "WARNING: User %s does not"
@@ -450,7 +447,21 @@ def _get_strategy(identity):
         return None
 
 
-def filter_allocation_source_instances(allocation_source, user, esh_instances):
+def allocation_source_overage_enforcement(allocation_source):
+    all_user_instances = {}
+    for user in allocation_source.all_users:
+        all_user_instances[user.username] = []
+        #TODO: determine how this will work with project-sharing (i.e. that we aren't issue-ing multiple suspend/stop/etc. for shared instances
+        for identity in Identity.shared_with_user(user):
+            affected_instances = allocation_source_overage_enforcement_for(
+                    allocation_source, user, identity)
+            user_instances = all_user_instances[user.username]
+            user_instances.extend(affected_instances)
+            all_user_instances[user.username] = user_instances
+    return all_user_instances
+
+
+def filter_allocation_source_instances(allocation_source, esh_instances):
     as_instances = []
     for inst in esh_instances:
         core_instance = CoreInstance.objects.filter(created_by=user, provider_alias=inst.id).first()
@@ -470,10 +481,14 @@ def filter_allocation_source_instances(allocation_source, user, esh_instances):
 
 
 def allocation_source_overage_enforcement_for(allocation_source, user, identity):
+    logger.debug("allocation_source_overage_enforcement_for - allocation_source: %s, user: %s, identity: %s",
+                 allocation_source, user, identity)
     provider = identity.provider
     action = provider.over_allocation_action
+    logger.debug("allocation_source_overage_enforcement_for - provider.over_allocation_action: %s",
+                 provider.over_allocation_action)
     if not action:
-        logger.debug("No 'over_allocation_action' provided for %s" % provider)
+        logger.debug("No 'over_allocation_action' provided for %s", provider)
         return []  # Over_allocation was not attempted
     if not settings.ENFORCING:
         logger.info("Settings dictate that ENFORCING = False. Returning..")
@@ -494,6 +509,8 @@ def allocation_source_overage_enforcement_for(allocation_source, user, identity)
 
 
 def execute_provider_action(user, driver, identity, instance, action):
+    logger.debug('execute_provider_action - user: %s, driver: %s, identity: %s, instance: %s, action: %s',
+                 user, driver, identity, instance, action)
     try:
         if driver._is_active_instance(instance):
             # Suspend active instances, update the task in the DB
@@ -518,9 +535,14 @@ def execute_provider_action(user, driver, identity, instance, action):
                 identity.uuid,
                 user)
             return core_instance
+        else:
+            logger.debug('_is_active_instance is False, so not calling _execute_provider_action for instance %s',
+                         instance)
     except Exception as e:
         # Raise ANY exception that doesn't say
         # 'This instance is already in the requested VM state'
         # NOTE: This is OpenStack specific
+        logger.debug('execute_provider_action - exception: %s', e)
         if 'in vm_state' not in e.message:
+            logger.exception('execute_provider_action failed')
             raise

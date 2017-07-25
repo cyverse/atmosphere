@@ -1,12 +1,25 @@
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ValidationError
 from core.models import Project, Group
+from rest_framework import filters
+
 from core.query import only_current
 
-from api.v2.serializers.details import ProjectSerializer,\
+from api.v2.serializers.details import ProjectSerializer, \
     VolumeSerializer, InstanceSerializer
 from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
+
+import django_filters
+
+
+class ProjectFilter(filters.FilterSet):
+    identity_id = django_filters.CharFilter('owner__identity_memberships__identity__id')
+    identity_uuid = django_filters.CharFilter('owner__identity_memberships__identity__uuid')
+
+    class Meta:
+        model = Project
+        fields = ["identity_id", "identity_uuid"]
 
 
 class ProjectViewSet(MultipleFieldLookup, AuthModelViewSet):
@@ -18,6 +31,7 @@ class ProjectViewSet(MultipleFieldLookup, AuthModelViewSet):
     lookup_fields = ("id", "uuid")
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
+    filter_class = ProjectFilter
 
     def perform_destroy(self, serializer):
         project = self.get_object()
@@ -47,19 +61,24 @@ class ProjectViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        try:
-            group = Group.objects.get(name=user.username)
-        except Group.DoesNotExist:
-            raise ValidationError("Group for %s does not exist." % user.username)
-        serializer.save(owner=group)
+        group = serializer.validated_data['owner']
+        if not group.user_set.filter(id=user.id).exists():
+            raise ValidationError(
+                "%s is not a member of group %s"
+                % (user.username, group.name))
+        serializer.save()
 
     def get_queryset(self):
         """
         Filter projects by current user.
         """
         user = self.request.user
-        return Project.objects.filter(only_current(),
-                                      owner__name=user.username)
+        group_names = user.memberships.values_list('group__name', flat=True)
+        qs = Project.objects.filter(only_current(),
+                                    owner__name__in=group_names)
+        qs = qs.select_related('owner')\
+            .prefetch_related('applications', 'instances', 'volumes', 'links')
+        return qs
 
     @detail_route()
     def instances(self, *args, **kwargs):

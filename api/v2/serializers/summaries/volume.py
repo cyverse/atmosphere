@@ -13,6 +13,10 @@ class VolumeSummarySerializer(serializers.HyperlinkedModelSerializer):
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date')
     uuid = serializers.CharField(source='instance_source.identifier')
+    user = serializers.SlugRelatedField(
+        slug_field="username",
+        source='instance_source.created_by',
+        read_only=True)
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:volume-detail',
         uuid_field='identifier',
@@ -25,6 +29,7 @@ class VolumeSummarySerializer(serializers.HyperlinkedModelSerializer):
             'url',
             'name',
             'size',
+            'user',
             'identity',
             'provider',
             'start_date',

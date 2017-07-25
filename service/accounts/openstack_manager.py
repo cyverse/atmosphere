@@ -4,17 +4,23 @@ UserManager:
 """
 import time
 import string
-import uuid
 from urlparse import urlparse
-
-from django.db.models import Max
 
 from django.db.models import ObjectDoesNotExist
 from rtwo.exceptions import NovaOverLimit, KeystoneUnauthorized
+
+#FIXME: Add this exception to rtwo before merge.
+try:
+    from keystoneclient.exceptions import NotFound as KeystoneNotFound
+except:
+    class KeystoneNotFound(Exception):
+        pass
+
 from rtwo.exceptions import NeutronClientException, GlanceClientException
 from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_glance_by_auth
 
-from core.models import AllocationSource
+import core.models
+import core.plugins
 from service.exceptions import AccountCreationConflict
 from keystoneauth1.exceptions.http import Unauthorized as KeystoneauthUnauthorized
 from requests.exceptions import ConnectionError
@@ -28,14 +34,14 @@ from chromogenic.drivers.openstack import ImageManager
 
 from atmosphere import settings
 
+from core.query import contains_credential
+from core.models import GroupMembership
 from core.models.identity import Identity
-from core.models.event_table import EventTable
 
 from service.accounts.base import BaseAccountDriver
-from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
+from service.networking import get_topology_cls, ExternalRouter, _get_unique_id
 from service.exceptions import TimeoutError
 
-from atmosphere.settings.secrets import SECRET_SEED
 from atmosphere.settings import DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
 
 
@@ -206,8 +212,8 @@ class AccountDriver(BaseAccountDriver):
             value = default_value
         return value
 
-    def create_account(self, username, password=None, project_name=None,
-                       role_name=None, quota=None, max_quota=False):
+    def create_account(self, account_user, group_name, username, password=None, project_name=None,
+                       role_name=None, quota=None, is_leader=False, max_quota=False):
         """
         Create (And Update "latest changes") to an account
 
@@ -216,6 +222,15 @@ class AccountDriver(BaseAccountDriver):
             raise Exception("AccountDriver not initialized by provider,"
                             " cannot create identity. For account creation use"
                             " build_account()")
+
+        try:
+            # Don't try to create an identity on the provider if the AtmosphereUser does not exist.
+            user = core.models.AtmosphereUser.objects.get_by_natural_key(account_user)
+            assert isinstance(user, core.models.AtmosphereUser)
+        except Exception as e:
+            logger.exception('Do not create an account on for username "%s" because the user does not exist', account_user)
+            raise AccountCreationConflict(
+                'AccountDriver tried to create an account for ({}), but {}'.format(account_user, e))
 
         if username in self.core_provider.list_admin_names():
             return
@@ -231,29 +246,21 @@ class AccountDriver(BaseAccountDriver):
                 % (username, ))
 
         try:
-            allocation_source_name = username
-            # Check if allocation source exists
-            source = AllocationSource.objects.filter(name=username)
-            if not source:
-                logger.debug('No Allocation Source with name %s found. Creating a new Allocation Source...', allocation_source_name)
-                # Create Allocation Source for User
-                self._create_allocation_source(allocation_source_name)
-                # Add User to Allocation Source
-                self._assign_user_allocation_source(allocation_source_name,username)
-            else:
-                logger.debug('Allocation Source with name %s exists. Skipping creation step...' , allocation_source_name)
+            has_allocations = core.plugins.AllocationSourcePluginManager.ensure_user_allocation_sources(user)
+            if not has_allocations:
+                raise ValueError('User "{}" has no valid allocations'.format(user))
         except Exception as e:
-
-            logger.exception("Encountered error creating/assigning Allocation Source to User - %s" % e)
+            logger.exception('Encountered error while ensuring user has valid Allocation Sources: "%s"', user)
             raise AccountCreationConflict(
-                "AccountDriver is trying to create an account, (%s)"
-                "but there is a problem creating and assigning Allocation Source to the user. "
-                % (username,))
+                'AccountDriver is trying to create an account: {} '
+                'but while ensuring user has valid Allocation Sources there was a problem: {}'.format(user, e))
 
-        ident = self.create_identity(username, password,
-                                     project.name,
-                                     quota=quota,
-                                     max_quota=max_quota)
+        ident = self.create_identity(
+                account_user, group_name,
+                username, password, project.name,
+                quota=quota,
+                max_quota=max_quota,
+                is_leader=is_leader)
         return ident
 
     def build_account(self, username, password,
@@ -453,6 +460,7 @@ class AccountDriver(BaseAccountDriver):
             clients = self.get_openstack_clients(username, password, project_name)
             osdk = clients["openstack_sdk"]
             keypairs = [kp for kp in osdk.compute.keypairs()]
+        #FIXME: This isn't working for CyVerse Cloud.
         for kp in keypairs:
             if kp.name == keyname:
                 if kp.public_key != public_key:
@@ -568,17 +576,17 @@ class AccountDriver(BaseAccountDriver):
                 missing_creds.append(c)
         return missing_creds
 
-    def create_identity(self, username, password, project_name,
-                        quota=None, max_quota=False, account_admin=False):
+    def create_identity(self, account_user, group_name, username, password, project_name,
+                        quota=None, max_quota=False, account_admin=False, is_leader=False):
 
         if not self.core_provider:
             raise Exception("AccountDriver not initialized by provider, "
                             "cannot create identity")
-        identity = Identity.create_identity(
-            username, self.core_provider.location,
+        identity = Identity.build_account(
+            account_user, group_name, username, self.core_provider.location,
             quota=quota,
             # Flags..
-            max_quota=max_quota, account_admin=account_admin,
+            max_quota=max_quota, account_admin=account_admin, is_leader=is_leader,
             # Pass in credentials with cred_ namespace
             cred_key=username, cred_secret=password,
             cred_ex_tenant_name=project_name,
@@ -587,18 +595,9 @@ class AccountDriver(BaseAccountDriver):
         # Return the identity
         return identity
 
-    def rebuild_project_network(self, username, project_name,
-                                dns_nameservers=[]):
-        self.network_manager.delete_project_network(username, project_name)
-        net_args = self._base_network_creds()
-        self.network_manager.create_project_network(
-            username,
-            self.hashpass(username),
-            project_name,
-            get_unique_number=_get_unique_id,
-            dns_nameservers=dns_nameservers,
-            **net_args)
-        return True
+    def rebuild_project_network(self, identity, delete_options={}):
+        self.delete_user_network(identity, delete_options)
+        return self.create_user_network(identity)
 
     def delete_security_group(self, identity):
         identity_creds = self.parse_identity(identity)
@@ -725,21 +724,39 @@ class AccountDriver(BaseAccountDriver):
         network_strategy.post_create_hook(network_resources)
         return network_resources
 
-    # Useful methods called from above..
-    def delete_account(self, username, projectname):
-        self.os_delete_account(username, projectname)
-        Identity.delete_identity(username, self.core_provider.location)
+    def delete_account(self, identity, account_user, group_name, **kwargs):
+        self.os_delete_account(identity)
+        #NOTE: This might be *too* destructive, may change this classmethod
+        return Identity.destroy_account(account_user, self.core_provider.location)
 
-    def os_delete_account(self, username, projectname):
+    def delete_all_roles(self, username, project_name):
+        project = self.user_manager.get_project(project_name)
+        if hasattr(project, 'remove_user'):
+            return self.user_manager.delete_all_roles(username, project_name)
+        user = self.user_manager.get_user(username)
+        roles_assigned = self.user_manager.keystone.role_assignments.list(project=project)
+        #FIXME: This doesn't work yet.
+        for ra in roles_assigned:
+            try:
+                self.user_manager.keystone.roles.revoke(
+                    ra.role['id'], user=user.id, project=project.id)
+            except KeystoneNotFound:
+                pass
+        return roles_assigned
+
+    def os_delete_account(self, identity):
+        username = identity.get_credential('key')
+        projectname = identity.project_name()
         project = self.user_manager.get_project(projectname)
 
         # 1. Network cleanup
         if project:
-            self.network_manager.delete_project_network(username, projectname)
+            self.delete_user_network(identity)
             # 2. Role cleanup (Admin too)
-            self.user_manager.delete_all_roles(username, projectname)
-            adminuser = self.user_manager.keystone.username
-            self.user_manager.delete_all_roles(adminuser, projectname)
+
+            self.delete_all_roles(username, projectname)
+            adminuser = self.get_admin_username()
+            self.delete_all_roles(adminuser, projectname)
             # 3. Project cleanup
             self.user_manager.delete_project(projectname)
         # 4. User cleanup
@@ -789,6 +806,9 @@ class AccountDriver(BaseAccountDriver):
         secret_salt = str(cloud_pass).translate(None, string.punctuation)
         password = crypt.crypt(username, secret_salt)
         return password
+
+    def get_admin_username(self):
+        return self.user_manager.keystone.username
 
     def get_project_name_for(self, username):
         """
@@ -1396,30 +1416,3 @@ class AccountDriver(BaseAccountDriver):
         os_args.pop("ex_tenant_name", None)
         os_args.pop("tenant_name", None)
         return os_args
-
-    def _create_allocation_source(self,allocation_source_name):
-        payload = {}
-        payload['uuid'] = str(uuid.uuid4())
-        payload['allocation_source_name'] = allocation_source_name
-        payload['compute_allowed'] = 168
-        payload['renewal_strategy'] = "default"
-
-        event = EventTable(
-            name='allocation_source_created_or_renewed',
-            entity_id=allocation_source_name,
-            payload=payload
-        )
-
-        event.save()
-
-    def _assign_user_allocation_source(self,allocation_source_name, username):
-        payload = {}
-        payload['allocation_source_name'] = allocation_source_name
-
-        event = EventTable(
-            name='user_allocation_source_created',
-            entity_id=username,
-            payload=payload
-        )
-
-        event.save()

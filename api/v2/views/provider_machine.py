@@ -111,7 +111,7 @@ class ProviderMachineViewSet(MultipleFieldLookup, OwnerUpdateViewSet):
             # Showing non-end dated, public ProviderMachines
             shared_set = ProviderMachine.objects.filter(
                 only_current_source(),
-                members__in=request_user.group_set.values('id'))
+                members__id__in=request_user.memberships.values_list('group__id', flat=True))
             # NOTE: Showing 'my pms' EVEN if they are end-dated.
             my_set = ProviderMachine.objects.filter(user_provider_machine_set(request_user))
             if request_user.is_staff:

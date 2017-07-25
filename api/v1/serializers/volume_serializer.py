@@ -1,7 +1,6 @@
 from core.models.volume import Volume
 from rest_framework import serializers
 from .cleaned_identity_serializer import CleanedIdentitySerializer
-from .projects_field import ProjectsField
 from .get_context_user import get_context_user
 
 
@@ -18,7 +17,7 @@ class VolumeSerializer(serializers.ModelSerializer):
     alias = serializers.ReadOnlyField(source='instance_source.identifier')
     start_date = serializers.ReadOnlyField(source='instance_source.start_date')
     end_date = serializers.ReadOnlyField(source='instance_source.end_date')
-    projects = ProjectsField()
+    project = serializers.ReadOnlyField(source='project.id')  # FIXME: TEST THIS WORKS AS EXPECTED
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)

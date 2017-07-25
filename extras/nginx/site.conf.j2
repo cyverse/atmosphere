@@ -50,6 +50,15 @@ server {
         text/css
         text/plain;
 
+    # Deny illegal Host headers
+    if ($host !~* ^({{ SERVER_URL }})$ ) {
+        return 444;
+        # 444 == No Response (Nginx):
+        # returns no information to the client
+        # and closes the connection
+        # (useful as a deterrent for malware)
+    }
+
     include /etc/nginx/uwsgi_params;
 
     include locations/*.conf;

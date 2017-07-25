@@ -1,10 +1,9 @@
 from django.db import models
 
-from threepio import logger
-
 from core.models import AtmosphereUser
 
 from uuid import uuid4
+
 
 class SSHKey(models.Model):
 
@@ -17,9 +16,17 @@ class SSHKey(models.Model):
         return "%s - %s Key:%s" %\
             (self.atmo_user, self.name, self.pub_key)
 
+    @staticmethod
+    def keys_for_group(group):
+        """
+        TODO: include leadership in the filter
+        """
+        return SSHKey.objects.filter(atmo_user__memberships__group=group)
+
     class Meta:
         db_table = "ssh_key"
         app_label = "core"
+
 
 def get_user_ssh_keys(username):
     user = AtmosphereUser.objects.get(username=username)

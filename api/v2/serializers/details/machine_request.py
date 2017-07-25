@@ -7,7 +7,6 @@ from core.models import (
     AtmosphereUser as User,
     IdentityMembership
 )
-from core.models.status_type import StatusType
 
 from api.v2.serializers.summaries import (
     AllocationSummarySerializer,
@@ -21,11 +20,11 @@ from api.v2.serializers.summaries import (
     ProviderSummarySerializer,
     ProviderMachineSummarySerializer,
     QuotaSummarySerializer,
-    UserSummarySerializer,
-    StatusTypeSummarySerializer
+    UserSummarySerializer
 )
 from api.v2.serializers.fields import (
-    ProviderMachineRelatedField, ModelRelatedField)
+    ProviderMachineRelatedField, ModelRelatedField, IdentityRelatedField, StatusTypeRelatedField
+)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from api.validators import NoSpecialCharacters
 
@@ -54,71 +53,17 @@ class ProviderRelatedField(serializers.RelatedField):
 
     def get_queryset(self):
         return Provider.objects.all()
-    
+
     def to_representation(self, value):
         provider = Provider.objects.get(id=value.id)
         serializer = ProviderSummarySerializer(provider, context=self.context)
         return serializer.data
 
 
-class IdentityRelatedField(serializers.RelatedField):
-
-    def get_queryset(self):
-        return Identity.objects.all()
-
-    def to_representation(self, value):
-        identity = Identity.objects.get(pk=value.pk)
-        serializer = IdentitySummarySerializer(identity, context=self.context)
-        return serializer.data
-
-    def to_internal_value(self, data):
-        queryset = self.get_queryset()
-        if isinstance(data, dict):
-            identity = data.get("id", None)
-        else:
-            identity = data
-        try:
-            return queryset.get(id=identity)
-        except:
-            raise exceptions.ValidationError(
-                "Identity with id '%s' does not exist."
-                % identity
-            )
-
-
-class StatusTypeRelatedField(serializers.RelatedField):
-
-    def get_queryset(self):
-        return StatusType.objects.all()
-
-    def to_representation(self, value):
-        status_type = StatusType.objects.get(pk=value.pk)
-        serializer = StatusTypeSummarySerializer(
-            status_type,
-            context=self.context)
-        return serializer.data
-
-    def to_internal_value(self, data):
-        queryset = self.get_queryset()
-        if isinstance(data, dict):
-            identity = data.get("id", None)
-        else:
-            identity = data
-
-        try:
-            return queryset.get(id=identity)
-        except:
-            raise exceptions.ValidationError(
-                "StatusType with id '%s' does not exist."
-                % identity
-            )
-
-
 class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
 
     uuid = serializers.CharField(read_only=True)
-    identity = IdentityRelatedField(source='membership.identity',
-                                    queryset=Identity.objects.none())
+    identity = IdentityRelatedField(source='membership.identity')
     # This is a *STAFF EXCLUSIVE* serializer. These are the values that make it that way:
     admin_message = serializers.CharField(read_only=True)
     parent_machine = ModelRelatedField(
@@ -132,9 +77,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         queryset=Instance.objects.all(),
         serializer_class=InstanceSummarySerializer,
         style={'base_template': 'input.html'})
-    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
-                                    allow_null=True,
-                                    required=False)
+    status = StatusTypeRelatedField(allow_null=True, required=False)
     old_status = serializers.CharField(required = False)
 
     new_application_visibility = serializers.CharField()
@@ -237,9 +180,7 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         style={'base_template': 'input.html'})
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
-    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
-                                    allow_null=True,
-                                    required=False)
+    status = StatusTypeRelatedField(allow_null=True, required=False)
     old_status = serializers.CharField(source='clean_old_status', required=False)
 
     new_application_visibility = serializers.CharField()
