@@ -23,7 +23,7 @@ from django_cyverse_auth.protocol import ldap
 
 from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
-from core.models import Provider, Identity, Instance, SSHKey
+from core.models import Provider, Identity, Instance, SSHKey, AtmosphereUser
 
 from service.exceptions import AnsibleDeployException
 
@@ -58,7 +58,7 @@ def ansible_deployment(
         extra_vars.update({
             "TIMEZONE": time_zone,
         })
-    shared_users = User.users_for_instance(instance_id).values_list('username', flat=True)
+    shared_users = AtmosphereUser.users_for_instance(instance_id).values_list('username', flat=True)
     if not shared_users:
         shared_users = [username]
     if username not in shared_users:

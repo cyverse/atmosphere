@@ -572,13 +572,11 @@ class MachineRequestAdmin(admin.ModelAdmin):
 @admin.register(models.InstanceStatusHistory)
 class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
-                     "instance__source__identifier",
-                     "instance__provider_alias", "status__name"]
-    list_display = ["instance_alias", "machine_alias", "instance_owner", "instance_ip_address", "status", "start_date",
-                    "end_date"]
+                     "instance__provider_alias"]
+    list_display = ["status", "start_date",
+                    "end_date", "instance_alias", "instance_owner"]
     list_filter = ["instance__source__provider__location",
-                   "status__name",
-                   "instance__created_by__username"]
+                   "status__name"]
     ordering = ('-start_date',)
 
     def instance_owner(self, model):
