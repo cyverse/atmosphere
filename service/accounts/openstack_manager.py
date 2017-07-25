@@ -1152,12 +1152,12 @@ class AccountDriver(BaseAccountDriver):
 
     def get_neutron_client(self, all_creds):
         net_creds = self._build_network_creds(all_creds)
-        neutron = self.network_manager.new_connection(**net_creds)
+        neutron, _ = self.network_manager.new_connection(**net_creds)
         return neutron
 
     def get_user_clients(self, all_creds):
         user_creds = self._build_user_creds(all_creds)
-        (keystone, nova, swift) = self.user_manager.new_connection(
+        (keystone, nova, swift, glance) = self.user_manager.new_connection(
             **user_creds)
         return {
             "keystone": keystone,
