@@ -1,9 +1,10 @@
-from core.models import Volume
+from core.models import (Volume, Project)
 from rest_framework import serializers
 from api.v2.serializers.fields.base import ModelRelatedField, InstanceSourceHyperlinkedIdentityField
 from api.v2.serializers.summaries import (
     IdentitySummarySerializer,
     ProviderSummarySerializer,
+    ProjectSummarySerializer,
     UserSummarySerializer
 )
 from core.models import Identity, Provider
@@ -28,7 +29,10 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSummarySerializer(source='instance_source.created_by',
                                  read_only=True)
 
-    projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    project = ModelRelatedField(
+        queryset=Project.objects.all(),
+        serializer_class=ProjectSummarySerializer,
+        style={'base_template': 'input.html'})
     uuid = serializers.CharField(source='instance_source.identifier',
                                  read_only=True)
     # NOTE: this is still using ID instead of UUID -- due to abstract classes and use of getattr in L271 of rest_framework/relations.py, this is a 'kink' that has not been worked out yet.
@@ -48,7 +52,7 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
             'identity',
             'user',
             'provider',
-            'projects',
+            'project',
             'size',
             'url',
             'start_date',
@@ -65,8 +69,12 @@ class VolumeSerializer(serializers.HyperlinkedModelSerializer):
 class UpdateVolumeSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=False)
     description = serializers.CharField(required=False)
+    project = ModelRelatedField(
+        queryset=Project.objects.all(),
+        serializer_class=ProjectSummarySerializer,
+        style={'base_template': 'input.html'})
 
     class Meta:
         model = Volume
         view_name = 'api:v2:volume-detail'
-        fields = ('name', 'description')
+        fields = ('name', 'description', 'project')

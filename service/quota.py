@@ -32,9 +32,11 @@ def check_over_instance_quota(
 
     return or raise exc
     """
-    membership = IdentityMembership.objects.get(
+    memberships_available = IdentityMembership.objects.filter(
         identity__uuid=identity_uuid,
-        member__name=username)
+        member__memberships__user__username=username)
+    if memberships_available:
+        membership = memberships_available.first()
     identity = membership.identity
     quota = identity.quota
     driver = get_cached_driver(identity=identity)
@@ -73,14 +75,17 @@ def check_over_storage_quota(
     return False if ValidationError occurs and raise_exc=False
     By default, allow ValidationError to raise.
     """
-    membership = IdentityMembership.objects.get(identity__uuid=identity_uuid,
-                                                member__name=username)
+    memberships_available = IdentityMembership.objects.filter(
+        identity__uuid=identity_uuid,
+        member__memberships__user__username=username)
+    if memberships_available:
+        membership = memberships_available.first()
     identity = membership.identity
     quota = identity.quota
     driver = get_cached_driver(identity=identity)
 
     # FIXME: I don't believe that 'snapshot' size and 'volume' size share
-    # the same quota, so for now we ignore 'snapshot-size', 
+    # the same quota, so for now we ignore 'snapshot-size',
     # and only care that value is 0 or >1
     new_snapshot = 1 if new_snapshot_size > 0 else 0
 
@@ -98,10 +103,12 @@ def check_over_storage_quota(
         return False
 
 
-def set_provider_quota(identity_uuid, limit_dict=None):
+def set_provider_quota(identity_uuid, quota=None, limit_dict=None):
     """
     """
     identity = Identity.objects.get(uuid=identity_uuid)
+    if not quota:
+        quota = identity.quota
     if not identity.credential_set.all():
         # NOTE: This special-case is here to prevent 'new identities'
         # that have not included a set of credentials from
@@ -116,7 +123,7 @@ def set_provider_quota(identity_uuid, limit_dict=None):
     # see _get_hard_limits or pass in {'ram': ### (GB), 'cpu': ### (Cores)}
     # _limit_user_quota(user_quota, identity, limit_dict=limit_dict)
 
-    return set_openstack_quota(identity)
+    return set_openstack_quota(identity, user_quota=quota)
 
 
 def _get_hard_limits(identity):
@@ -223,7 +230,7 @@ def _set_compute_quota(user_quota, identity):
     }
     creds = identity.get_all_credentials()
     use_tenant_id = False
-    if creds.get('ex_force_auth_version','2.0_password') == "2.0_password":
+    if creds.get('ex_force_auth_version', '2.0_password') == "2.0_password":
         compute_values.pop('instances')
         use_tenant_id = True
 
@@ -232,16 +239,24 @@ def _set_compute_quota(user_quota, identity):
     driver = get_cached_driver(identity=identity)
     username = driver._connection.key
     tenant_id = driver._connection._get_tenant_id()
-    tenant_name = identity.project_name()
-    ad = get_account_driver(identity.provider)
+    ad = get_account_driver(identity.provider, raise_exception=True)
     ks_user = ad.get_user(username)
     admin_driver = ad.admin_driver
-    #FIXME: Remove 'use_tenant_id' when legacy clouds are no-longer in use.
+    creds = identity.get_all_credentials()
+    if creds.get('ex_force_auth_version', '2.0_password') != "2.0_password":
+        # FIXME: Remove 'use_tenant_id' when legacy clouds are no-longer in use.
+        try:
+            result = admin_driver._connection.ex_update_quota(tenant_id, compute_values, use_tenant_id=use_tenant_id)
+        except Exception:
+            logger.exception("Could not set a user-quota, trying to set tenant-quota")
+            raise
+        # FIXME: For jetstream, return result here.
+    # For CyVerse old clouds, run the top method. don't use try/except.
     try:
         result = admin_driver._connection.ex_update_quota_for_user(
             tenant_id, ks_user.id, compute_values, use_tenant_id=use_tenant_id)
     except Exception:
         logger.exception("Could not set a user-quota, trying to set tenant-quota")
-        result = admin_driver._connection.ex_update_quota(tenant_id, compute_values, use_tenant_id=use_tenant_id)
+        raise
     logger.info("Updated quota for %s to %s" % (username, result))
     return result

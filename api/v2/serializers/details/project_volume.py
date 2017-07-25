@@ -1,4 +1,4 @@
-from core.models import ProjectVolume, Project, Volume
+from core.models import Project, Volume
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from api.v2.serializers.summaries import ProjectSummarySerializer
@@ -29,22 +29,16 @@ class VolumeRelatedField(serializers.PrimaryKeyRelatedField):
 
 class ProjectVolumeSerializer(serializers.HyperlinkedModelSerializer):
     project = ProjectRelatedField(queryset=Project.objects.none())
-    volume = VolumeRelatedField(queryset=Volume.objects.none())
-    url = serializers.HyperlinkedIdentityField(
-        view_name='api:v2:projectvolume-detail',
-    )
+    volume = VolumeRelatedField(source="pk", queryset=Volume.objects.none())
+    # Could not fix 'ImproperlyConfiguredError'
+    # url = serializers.HyperlinkedIdentityField(
+    #     view_name='api:v2:projectvolume-detail',
+    # )
 
     class Meta:
-        model = ProjectVolume
-        validators = [
-            UniqueTogetherValidator(
-                queryset=ProjectVolume.objects.all(),
-                fields=('project', 'volume')
-                ),
-        ]
+        model = Volume
         fields = (
             'id',
-            'url',
             'project',
             'volume'
         )

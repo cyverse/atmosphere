@@ -20,7 +20,7 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError("Request user was not found")
         allocation_source = AllocationSource.for_user(user=user).filter(
             name=allocation_source_name).first()
-        instance = Instance.for_user(user=user).filter(provider_alias=instance_id).first()
+        instance = Instance.shared_with_user(user).filter(provider_alias=instance_id).first()
         if not allocation_source:
             raise serializers.ValidationError(
                 "AllocationSource with name=%s DoesNotExist"

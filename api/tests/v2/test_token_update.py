@@ -1,13 +1,15 @@
 from django.core.urlresolvers import reverse
 from django.test import modify_settings
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
-from api.tests.factories import UserFactory, AnonymousUserFactory, ProviderFactory
+from api.tests.factories import UserFactory, AnonymousUserFactory, ProviderFactory, GroupFactory
 from api.v2.views import TokenUpdateViewSet, IdentityViewSet, CredentialViewSet
 
 class TokenUpdateTests(APITestCase):
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
+        self.group = GroupFactory.create(name=self.user.username)
+        self.group.user_set.add(self.user)
         self.provider = ProviderFactory.create(location="mock location", type__name="mock")
         self.view = TokenUpdateViewSet.as_view({'post': 'create'})
         self.identity_view = IdentityViewSet.as_view({'get': 'retrieve'})
@@ -46,7 +48,10 @@ class TokenUpdateTests(APITestCase):
         request = factory.post(url, data)
         force_authenticate(request, user=self.user)
         response = self.view(request)
-        self.assertEquals(response.status_code, 201)
+        self.assertEquals(
+            response.status_code, 201,
+            "Response did not result in a 201-created: (%s) %s"
+            % (response.status_code, response.data))
         data = response.data
         self.assertTrue('identity_uuid' in data)
         identity_uuid = data['identity_uuid']

@@ -4,6 +4,9 @@ from django.db import models
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
+from core.hooks.quota import (
+    listen_for_quota_assigned
+)
 from core.hooks.allocation_source import (
     listen_before_allocation_snapshot_changes,
     listen_for_allocation_snapshot_changes,
@@ -13,10 +16,6 @@ from core.hooks.allocation_source import (
     listen_for_allocation_source_created_or_renewed,
     listen_for_user_allocation_source_deleted,
     listen_for_user_allocation_source_created,
-    #listen_for_allocation_source_created,
-    #listen_for_user_allocation_source_assigned,
-    #listen_for_user_allocation_source_removed,
-    #listen_for_allocation_source_renewed,
     listen_for_allocation_source_renewal_strategy_changed,
     listen_for_allocation_source_name_changed,
     listen_for_allocation_source_compute_allowed_changed,
@@ -67,6 +66,7 @@ def listen_for_changes(sender, instance, created, **kwargs):
     """
     return None
 
+
 # Instantiate the hooks:
 post_save.connect(listen_for_allocation_threshold_met, sender=EventTable)
 post_save.connect(listen_for_instance_allocation_changes, sender=EventTable)
@@ -75,13 +75,10 @@ post_save.connect(listen_for_allocation_source_compute_allowed_changed, sender=E
 post_save.connect(listen_for_user_allocation_source_created, sender=EventTable)
 post_save.connect(listen_for_user_allocation_source_deleted, sender=EventTable)
 pre_save.connect(listen_before_allocation_snapshot_changes, sender=EventTable)
-#post_save.connect(listen_for_user_allocation_source_assigned, sender=EventTable)
-#post_save.connect(listen_for_user_allocation_source_removed, sender=EventTable)
 post_save.connect(listen_for_instance_allocation_removed, sender=EventTable)
 post_save.connect(listen_for_allocation_snapshot_changes, sender=EventTable)
 post_save.connect(listen_for_user_snapshot_changes, sender=EventTable)
-#post_save.connect(listen_for_allocation_source_renewed, sender=EventTable)
 post_save.connect(listen_for_allocation_source_renewal_strategy_changed, sender=EventTable)
-#post_save.connect(listen_for_allocation_source_created, sender=EventTable)
 post_save.connect(listen_for_allocation_source_name_changed, sender=EventTable)
-post_save.connect(listen_for_allocation_source_removed,sender=EventTable)
+post_save.connect(listen_for_allocation_source_removed, sender=EventTable)
+post_save.connect(listen_for_quota_assigned, sender=EventTable)

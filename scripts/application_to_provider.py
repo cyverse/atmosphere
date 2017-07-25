@@ -239,12 +239,12 @@ def main(application_id,
 
         # Get access to source provider
         sprov_img_uuid = sprov_instance_source.identifier
-
-        sprov_keystone_client = service.driver.get_account_driver(sprov, raise_exception=True)
         if src_glance_client_version:
+            sprov_keystone_client = service.driver.get_account_driver(sprov, raise_exception=True)
             sprov_glance_client = _connect_to_glance(sprov_keystone_client, version=src_glance_client_version)
         else:
             sprov_glance_client = sprov_keystone_client.image_manager.glance
+        sprov_glance_client = _get_glance_client(sprov)
 
         # Get source image metadata from Glance, and determine if image is AMI-based
         sprov_glance_image = sprov_glance_client.images.get(sprov_img_uuid)
@@ -396,6 +396,15 @@ def main(application_id,
             migrate_or_verify_image_data(sprov_ari_glance_image.id, sprov_glance_client, dprov_glance_client,
                                          local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
                                          irods_dst_coll, dst_glance_client_version=dst_glance_client_version)
+
+
+def _get_glance_client(provider):
+    """
+    Given a Provider object, returns a Glance client object for that provider
+    """
+    acct_driver = service.driver.get_account_driver(provider, raise_exception=True)
+    img_mgr = acct_driver.image_manager
+    return img_mgr.glance
 
 
 def file_md5(path):

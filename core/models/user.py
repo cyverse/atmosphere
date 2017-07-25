@@ -1,4 +1,5 @@
 import uuid
+from hashlib import md5
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager
 from django.core import validators
@@ -8,7 +9,8 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
-from core.plugins import ValidationPluginManager, ExpirationPluginManager, DefaultQuotaPluginManager
+from core.plugins import ValidationPluginManager, ExpirationPluginManager, DefaultQuotaPluginManager, AccountCreationPluginManager
+from core.query import only_current
 from core.exceptions import InvalidUser
 from threepio import logger
 from django.utils.translation import ugettext_lazy as _
@@ -86,6 +88,16 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         send_mail(subject, message, from_email, [self.email], **kwargs)
     # END-rip.
 
+    @staticmethod
+    def users_for_instance(instance_id, leader_only=False):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        instance_query = Q(memberships__group__projects__instances__provider_alias=instance_id)
+        if leader_only == True:
+            instance_query &= Q(memberships__is_leader=True)
+        return AtmosphereUser.objects.filter(instance_query).distinct()
+
     def is_admin(self):
         if self.is_superuser or self.is_staff:
             return True
@@ -99,7 +111,7 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         return p_qs
 
     def group_ids(self):
-        return self.group_set.values_list('id', flat=True)
+        return self.memberships.values_list('group__id', flat=True)
 
     def provider_ids(self):
         return self.identity_set.values_list('provider', flat=True)
@@ -135,29 +147,30 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
             (not self.end_date or self.end_date > now_time)
 
     @property
-    def current_providers(self):
-        from core.models import Provider
-        all_providers = Provider.objects.none()
-        for group in self.group_set.all():
-            all_providers |= Provider.objects.filter(id__in=group.current_identities.values_list('provider', flat=True))
-        return all_providers
-
-    @property
     def current_identities(self):
         from core.models import Identity
         all_identities = Identity.objects.none()
-        for group in self.group_set.all():
-            all_identities |= group.current_identities.all()
+        for membership in self.memberships.select_related('group'):
+            group = membership.group
+            all_identities |= Identity.objects.filter(id__in=group.current_identities.values_list('id', flat=True))
+        all_identities |= Identity.objects.filter(created_by=self).distinct()
         return all_identities
 
-    @classmethod
-    def for_allocation_source(cls, allocation_source_name):
-        from core.models import UserAllocationSource
-        user_ids = UserAllocationSource.objects.filter(allocation_source__name=allocation_source_name).values_list('user',flat=True)
-        return AtmosphereUser.objects.filter(id__in=user_ids)
+    @property
+    def current_providers(self):
+        from core.models import Provider
+        all_providers = Provider.objects.none()
+        for membership in self.memberships.select_related('group'):
+            group = membership.group
+            all_providers |= Provider.objects.filter(id__in=group.current_identities.values_list('provider', flat=True))
+        all_providers |= Provider.objects.filter(cloud_admin=self)
+        return all_providers
 
-    def can_use_identity(self, identity_id):
-        return self.current_identities.filter(id=identity_id).count() > 0
+    @classmethod
+    def for_allocation_source(cls, allocation_source_id):
+        from core.models import UserAllocationSource
+        user_ids = UserAllocationSource.objects.filter(allocation_source__source_id=allocation_source_id).values_list('user',flat=True)
+        return AtmosphereUser.objects.filter(id__in=user_ids)
 
     def select_identity(self):
         """
@@ -173,14 +186,15 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
             if self.selected_identity:
                 self.save()
                 return self.selected_identity
-
         from core.models import IdentityMembership
 
-        for group in self.group_set.all():
-            membership = IdentityMembership.get_membership_for(group.name)
-            if not membership:
+        for membership in self.memberships.select_related('group'):
+            group = membership.group
+            id_memberships = IdentityMembership.get_membership_for(group.name)
+            if not id_memberships:
                 continue
-            self.selected_identity = membership.identity
+            #TODO: this can now be *a list of members* -- just pick first for now.
+            self.selected_identity = id_memberships.first().identity
             if self.selected_identity and self.selected_identity.is_active():
                 logger.debug("Selected Identity:%s" % self.selected_identity)
                 self.save()
@@ -216,95 +230,70 @@ post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)
 # USER METHODS HERE
 
 
-def get_default_provider(username):
-    """
-    Return default provider given
-    """
-    try:
-        from core.models.group import get_user_group
-        from core.models.provider import Provider
-        group = get_user_group(username)
-        provider_ids = group.current_identities.values_list(
-            'provider',
-            flat=True)
-        provider = Provider.objects.filter(
-            id__in=provider_ids,
-            type__name="OpenStack")
-        if provider:
-            logger.debug("get_default_provider selected a new "
-                         "Provider for %s: %s" % (username, provider))
-            provider = provider[0]
-        else:
-            logger.error("get_default_provider could not find a new "
-                         "Provider for %s" % (username,))
-            return None
-        return provider
-    except Exception as e:
-        logger.exception("get_default_provider encountered an error "
-                         "for %s" % (username,))
-        return None
-
-
 def get_default_identity(username, provider=None):
     """
     Return the default identity given to the user-group for provider.
     """
     try:
-        from core.models.group import get_user_group
-        group = get_user_group(username)
-        if not group or not group.current_identities.all().count():
-            if settings.AUTO_CREATE_NEW_ACCOUNTS:
-                new_identities = create_new_accounts(username, selected_provider=provider)
-                if not new_identities:
-                    logger.error("%s has no identities. Functionality will be severely limited." % username)
-                    return None
-                return new_identities[0]
-            else:
-                return None
-        identities = group.current_identities.all()
+        filter_query = {}
         if provider:
-            if provider.is_active():
-                identities = identities.filter(provider=provider)
-                return identities[0]
-            else:
-                logger.error("Provider provided for "
-                             "get_default_identity is inactive.")
-                raise "Inactive Provider provided for get_default_identity "
-        else:
-            default_provider = get_default_provider(username)
-            default_identity = group.current_identities.filter(
-                provider=default_provider)
-            if not default_identity:
-                logger.error("User %s has no identities on Provider %s" % (username, default_provider))
-                raise Exception("No Identities on Provider %s for %s" % (default_provider, username))
-            #Passing
-            default_identity = default_identity[0]
-            logger.debug(
-                "default_identity set to %s " %
-                default_identity)
-            return default_identity
+            filter_query['provider'] = provider
+        from core.models.group import GroupMembership
+        memberships = GroupMembership.objects.filter(user__username=username).prefetch_related('group')
+        for membership in memberships:
+            group = membership.group
+            identities = group.current_identities.filter(
+                    **filter_query)
+            if group and identities.count() > 0:
+                default_identity = identities.first()
+                logger.debug(
+                    "default_identity set to %s " %
+                    default_identity)
+                return default_identity
+        # No identities found for any group
+        if settings.AUTO_CREATE_NEW_ACCOUNTS:
+            new_identities = create_new_accounts(username, selected_provider=provider)
+            if new_identities:
+                return new_identities[0]
+            logger.error("%s has no identities. Functionality will be severely limited." % username)
+            return None
     except Exception as e:
         logger.exception(e)
         return None
 
-def create_new_accounts(username, selected_provider=None):
+
+def _get_providers(username, selected_provider=None):
+    from core.models import Provider
     user = AtmosphereUser.objects.get(username=username)
     if not user.is_valid():
         raise InvalidUser("The account %s is not yet valid." % username)
 
-    providers = get_available_providers()
-    identities = []
+    public_providers = Provider.objects.filter(only_current(), active=True, public=True)
+
+    providers = user.current_providers.filter(only_current(), active=True)
     if not providers:
-        logger.error("No currently active providers")
-        return identities
-    if selected_provider and selected_provider not in providers:
+        providers = public_providers
+    else:
+        providers |= public_providers
+    if selected_provider and providers and selected_provider not in providers:
         logger.error("The provider %s is NOT in the list of currently active providers. Account will not be created" % selected_provider)
-        return identities
+        return (user, providers.none())
+
+    return (user, providers)
+
+
+def create_new_accounts(username, selected_provider=None):
+    identities = []
+    (user, providers) = _get_providers(username, selected_provider)
     for provider in providers:
-        new_identity = create_new_account_for(provider, user)
-        if new_identity:
-            identities.append(new_identity)
+        try:
+            new_identities = AccountCreationPluginManager.create_accounts(provider, username)
+            if new_identities:
+                identities.extend(new_identities)
+        except ValueError as err:
+            logger.warn(err)
     return identities
+
 
 def create_new_account_for(provider, user):
     from service.exceptions import AccountCreationConflict
@@ -325,8 +314,8 @@ def create_new_account_for(provider, user):
         logger.exception("Could *NOT* Create NEW account for %s" % user.username)
         return None
 
+
 def get_available_providers():
     from core.models.provider import Provider
-    from core.query import only_current
     available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
     return available_providers

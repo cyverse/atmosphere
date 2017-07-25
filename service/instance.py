@@ -19,6 +19,9 @@ from rtwo.drivers.openstack_user import UserManager
 from rtwo.drivers.common import _token_to_keystone_scoped_project
 from service.driver import AtmosphereNetworkManager
 from service.mock import AtmosphereMockDriver, AtmosphereMockNetworkManager
+
+from rtwo.drivers.common import _connect_to_keystone_v3, _token_to_keystone_scoped_project
+from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
@@ -669,36 +672,10 @@ def destroy_instance(user, core_identity_uuid, instance_alias):
         core_identity_uuid, instance_alias)
     if not success and esh_instance:
         raise Exception("Instance could not be destroyed")
-    elif esh_instance:
-        os_cleanup_networking(core_identity_uuid)
-        core_instance = end_date_instance(
-            user, esh_instance, core_identity_uuid)
-        return core_instance
-    else:
-        # Edge case - If you attempt to delete more than once...
-        core_instance = find_instance(instance_alias)
-        return core_instance
-
-
-def end_date_instance(user, esh_instance, core_identity_uuid):
-    # Retrieve the 'hopefully now deleted' instance and end date it.
-    identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
-    esh_driver = get_cached_driver(identity=identity)
-    try:
-        core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             identity.provider.uuid,
-                                             identity.uuid,
-                                             user)
-        #NOTE: We may want to ensure instances are *actually* terminated prior to end dating them.
-        if core_instance:
-            core_instance.end_date_all()
-        return core_instance
-    except (socket_error, ConnectionFailure):
-        logger.exception("connection failure during destroy instance")
-        return None
-    except LibcloudInvalidCredsError:
-        logger.exception("LibcloudInvalidCredsError during destroy instance")
-        return None
+    os_cleanup_networking(core_identity_uuid)
+    core_instance = find_instance(instance_alias)
+    core_instance.end_date_all()
+    return core_instance
 
 
 def os_cleanup_networking(core_identity_uuid):
@@ -885,10 +862,10 @@ def launch_instance(user, identity_uuid,
 
     esh_driver = get_cached_driver(identity=identity)
 
-    # May raise Exception("Size not available")
-    size = check_size(esh_driver, size_alias, provider)
     # May raise Exception("Volume/Machine not available")
     boot_source = get_boot_source(user.username, identity_uuid, source_alias)
+    # May raise Exception("Size not available")
+    size = check_size(esh_driver, size_alias, provider, boot_source)
 
     # Raise any other exceptions before launching here
     _pre_launch_validation(
@@ -1202,11 +1179,20 @@ def generate_uuid4():
 ################################
 
 
-def check_size(esh_driver, size_alias, provider):
+def validate_size_fits_boot_source(esh_size, boot_source):
+    disk_size = esh_size.disk
+    if disk_size == 0 or boot_source.size_gb == 0:
+        return
+    if boot_source.size_gb > disk_size:
+        raise SizeNotAvailable("Size Not Available. Disk is %s but image requires at least %s" % (disk_size, boot_source.size_gb))
+
+def check_size(esh_driver, size_alias, provider, boot_source):
     try:
         esh_size = esh_driver.get_size(size_alias)
         if not convert_esh_size(esh_size, provider.uuid).active():
             raise SizeNotAvailable()
+        if boot_source.is_machine():
+            validate_size_fits_boot_source(esh_size, boot_source)
         return esh_size
     except LibcloudBadResponseError as bad_response:
         return _parse_libcloud_error(provider, bad_response)

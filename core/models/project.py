@@ -1,5 +1,6 @@
 from uuid import uuid4
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from core.models.application import Application
 from core.models.link import ExternalLink
@@ -25,16 +26,24 @@ class Project(models.Model):
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     owner = models.ForeignKey(Group, related_name="projects")
+    created_by = models.ForeignKey('AtmosphereUser', related_name="projects")
     applications = models.ManyToManyField(Application, related_name="projects",
                                           blank=True)
-    # FIXME: Instances + Volumes are *NOT* MANYTOMANY
-    instances = models.ManyToManyField(Instance, related_name="projects",
-                                       blank=True)
-    # FIXME: Instances + Volumes are *NOT* MANYTOMANY
-    volumes = models.ManyToManyField(Volume, related_name="projects",
-                                     blank=True)
     links = models.ManyToManyField(ExternalLink, related_name="projects",
                                           blank=True)
+
+    @staticmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        owner_query = Q(created_by=user)
+        leadership_query = Q(owner__memberships__user=user)
+        if is_leader == False:
+            leadership_query &= Q(owner__memberships__is_leader=False)
+        elif is_leader == True:
+            leadership_query &= Q(owner__memberships__is_leader=True)
+        return Project.objects.filter(owner_query | leadership_query)
 
     def active_volumes(self):
         return self.volumes.model.active_volumes.filter(
@@ -43,6 +52,23 @@ class Project(models.Model):
     def active_instances(self):
         return self.instances.model.active_instances.filter(
             pk__in=self.instances.values_list("id"))
+
+    def has_shared_resources(self, current_user=None):
+        if not current_user:
+            current_user = self.created_by
+        has_shared_volumes = self.active_volumes().filter(~Q(instance_source__created_by=current_user)).count() > 0
+        has_shared_instances = self.active_instances().filter(~Q(created_by=current_user)).count() > 0
+        return has_shared_volumes or has_shared_instances
+
+    def get_users(self):
+        return self.owner.user_set.all()
+
+    def get_leaders(self):
+        from core.models import AtmosphereUser
+        leaders = self.owner.get_leaders()
+        if not leaders:
+            leaders = AtmosphereUser.objects.filter(username=self.created_by.username)
+        return leaders
 
     def __unicode__(self):
         return "Name:%s Owner:%s" \
@@ -62,6 +88,10 @@ class Project(models.Model):
         Use this function to move A single object
         to Project X
         """
+        if hasattr(related_obj, 'project'):
+            related_obj.project = None
+            related_obj.save()
+            return
         return related_obj.projects.remove(self)
 
     def add_object(self, related_obj):
@@ -73,11 +103,13 @@ class Project(models.Model):
         if isinstance(related_obj, Instance):
             instance = related_obj
             self._test_project_ownership(instance.created_by)
-            new_join = ProjectInstance(project=self, instance=instance)
+            instance.project = self
+            instance.save()
         elif isinstance(related_obj, Volume):
             volume = related_obj
             self._test_project_ownership(volume.instance_source.created_by)
-            new_join = ProjectVolume(project=self, volume=volume)
+            volume.project = self
+            volume.save()
         elif isinstance(related_obj, Application):
             application = related_obj
             self._test_project_ownership(application.created_by)

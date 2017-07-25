@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import json
 import time
 import unittest
 import uuid
@@ -136,6 +137,8 @@ def get_allocation_sources_from_api(context):
 
     context.test.maxDiff = None
     context.test.assertItemsEqual(expected_allocation_sources, api_allocation_sources)
+    # For debugging, use `assertListEqual` below if `assertItemsEqual` above is not clear
+    # context.test.assertListEqual(expected_allocation_sources, api_allocation_sources)
 
 
 @step('we create an allocation source through the API')
@@ -327,6 +330,15 @@ def set_key_to_persona_var_and_attribute(context, key, persona_var, attribute=No
         context.persona[key] = context.persona[persona_var]
 
 
+@step(u'I set "{key}" to key "{other_key}" of "{persona_var}"')
+def set_key_to_key_of_persona_var(context, key, persona_var, other_key):
+    assert context.persona
+    context.test.assertIn(persona_var, context.persona)
+    context.test.assertIsInstance(context.persona[persona_var], dict)
+    context.test.assertIn(other_key, context.persona[persona_var])
+    context.persona[key] = context.persona[persona_var][other_key]
+
+
 @step('I set "{key}" to allocation source with name "{allocation_source_name}"')
 def set_key_to_persona_var_and_attribute(context, key, allocation_source_name):
     assert context.persona is not None, u'no persona is setup'
@@ -366,6 +378,18 @@ def assign_allocation_source_to_active_instance(context, allocation_source_name)
     context.persona['response'] = response
 
 
+@when('I change the name of the active instance to "{new_instance_name}"')
+def change_name_of_active_instance(context, new_instance_name):
+    assert context.persona
+    active_instance = context.persona['active_instance']
+    client = context.persona['client']
+    response = client.patch('/api/v2/instances/{}'.format(active_instance.id),
+                           {
+                               'name': new_instance_name
+                           })
+    context.persona['response'] = response
+
+
 @step('the API response code is {response_code:d}')
 def api_response_code_is(context, response_code):
     assert context.persona
@@ -373,8 +397,52 @@ def api_response_code_is(context, response_code):
     context.test.assertEqual(context.persona['response'].status_code, response_code)
 
 
+@step("the API response contains")
+def api_response_contains(context):
+    assert context.persona
+    context.test.assertIn('response', context.persona)
+    response = context.persona['response']
+    expected_response = json.loads(context.text)
+    context.test.assertDictContainsSubset(expected_response, response.data)
+
+
+@step(u'"{key}" contains')
+def dict_variable_contains(context, key):
+    assert context.persona
+    context.test.assertIn(key, context.persona)
+    value = context.persona[key]
+    context.test.assertIsInstance(value, dict)
+    expected_value = json.loads(context.text)
+    context.test.assertDictContainsSubset(expected_value, value)
+
+
 @step('a dummy browser')
 def dummy_browser(context):
     context.single_browser = True
     context.browser = 'dummy'
     context.is_connected = True
+
+
+@step('we ensure that the user has an allocation source')
+def ensure_user_has_allocation_source(context):
+    """
+    :type context: behave.runner.Context
+    """
+    assert context.persona
+    context.test.assertIn('user', context.persona)
+    user = context.persona['user']
+    import core.models
+    context.test.assertIsInstance(user, core.models.AtmosphereUser)
+    import core.plugins
+    has_allocations = core.plugins.AllocationSourcePluginManager.ensure_user_allocation_sources(user)
+    context.test.assertTrue(has_allocations)
+
+
+@when('we update CyVerse snapshots')
+def update_cyverse_snapshots(context):
+    """
+    TODO: Combine with `we update snapshots`, and make it a `AllocationSourcePlugin` function
+    :type context: behave.runner.Context
+    """
+    import cyverse_allocation.tasks
+    cyverse_allocation.tasks.update_snapshot_cyverse()

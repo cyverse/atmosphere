@@ -179,6 +179,7 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
     }
 }
 CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
+ALLOCATION_SOURCE_PLUGINS = ['jetstream.plugins.allocation_source.JetstreamAllocationSourcePlugin',]
 {% else %}
 ALLOCATIONS_CELERYBEAT_SCHEDULE = {
     "update_snapshot_cyverse": {
@@ -195,6 +196,7 @@ ALLOCATIONS_CELERYBEAT_SCHEDULE = {
     },
 }
 CELERYBEAT_SCHEDULE.update(ALLOCATIONS_CELERYBEAT_SCHEDULE)
+ALLOCATION_SOURCE_PLUGINS = ['cyverse_allocation.plugins.allocation_source.FlexibleAllocationSourcePlugin',]
 {% endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL | default("logging.INFO") }}
@@ -247,7 +249,8 @@ DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
-ENABLE_IMAGE_VALIDATION = True
+ENABLE_IMAGE_VALIDATION = {{ ENABLE_IMAGE_VALIDATION | default(False) }}
+ENABLE_PROJECT_SHARING = {{ ENABLE_PROJECT_SHARING | default(False) }}
 
 # Configure authentication plugin
 AUTHENTICATION = {
@@ -440,6 +443,11 @@ TACC_API_USER = ''
 TACC_API_PASS = ''
 TACC_API_URL = ''
 {% endif %}
+
+######
+# Atmosphere Plugin Settings
+######
+
 # Validation Plugins:
 # These plugins will be checked, in order, until one passes
 # If all validation plugins fail, user will be "kicked out" of the API.
@@ -456,6 +464,30 @@ VALIDATION_PLUGINS = [
     #'atmosphere.plugins.auth.validation.LDAPGroupRequired',
     'atmosphere.plugins.auth.validation.AlwaysAllow',
 ]
+{%- endif %}
+
+# Account Creation Plugins:
+# At least one plugin is required to create accounts for new users.
+# Each plugin will be executed, in order, and allowed to create accounts when a user enters atmosphere.
+{%- if ACCOUNT_CREATION_PLUGINS %}
+ACCOUNT_CREATION_PLUGINS = {{ ACCOUNT_CREATION_PLUGINS }}
+{%- else %}
+# Default creation plugin: UserGroup
+ACCOUNT_CREATION_PLUGINS = [
+    "atmosphere.plugins.accounts.creation.UserGroup",
+    # Alternative creation plugins:
+    #"atmosphere.plugins.accounts.creation.XsedeGroup",
+    #"atmosphere.plugins.accounts.creation.GrouperPlugin",
+]
+{%- endif %}
+
+{%- if GROUPER_API and GROUPER_SEARCH_USER %}
+GROUPER_API = "{{ GROUPER_API }}"
+GROUPER_SEARCH_USER = "{{ GROUPER_SEARCH_USER }}"
+{%- else %}
+
+GROUPER_API = ""
+GROUPER_SEARCH_USER = ""
 {%- endif %}
 
 {%- if SENTRY_ENABLED %}
@@ -485,6 +517,13 @@ EXPIRATION_PLUGINS = [
 ]
 {%- endif %}
 
+# Support for Guacamole
+GUACAMOLE_ENABLED = {{ GUACAMOLE_ENABLED }}
+GUACAMOLE = {
+    'SECRET_KEY': '{{ GUACAMOLE_SECRET_KEY }}',
+    'SERVER_URL': '{{ GUACAMOLE_SERVER_URL }}'
+}
+
 # Support for Web Desktop
 WEB_DESKTOP_INCLUDE_LINK = {{ WEB_DESKTOP_INCLUDE_LINK }}
 
@@ -496,5 +535,16 @@ WEB_DESKTOP = {
     'fingerprint': {
         'SECRET_KEY': '{{ WEB_DESKTOP_FP_SECRET_KEY }}',
         'SALT': '{{ WEB_DESKTOP_FP_SALT }}'
+    },
+    'redirect': {
+        'ENABLED': WEB_DESKTOP_INCLUDE_LINK,
+        'PROXY_URL': '{{ WEB_DESKTOP_PROXY_URL }}'
+    }
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/var/tmp/django_cache',
     }
 }
