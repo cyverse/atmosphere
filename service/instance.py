@@ -118,12 +118,21 @@ def resize_instance(esh_driver, esh_instance, size_alias,
                     provider_uuid, identity_uuid, user):
     _permission_to_act(identity_uuid, "Resize")
     size = esh_driver.get_size(size_alias)
-    redeploy_task = resize_and_redeploy(
-        esh_driver,
-        esh_instance,
-        identity_uuid)
-    esh_driver.resize_instance(esh_instance, size)
-    redeploy_task.apply_async()
+    from service.tasks.driver import get_resize_redeploy_chain, get_resize_nodeploy_chain
+    if settings.ATMOSPHERE_INSTANCE_DEPLOYMENT:
+        resize_redeploy_task = get_resize_redeploy_chain(
+            esh_driver,
+            esh_instance,
+            identity_uuid)
+        esh_driver.resize_instance(esh_instance, size)
+        resize_redeploy_task.apply_async()
+    else:
+        complete_resize_task = get_resize_nodeploy_chain(
+            esh_driver,
+            esh_instance,
+            identity_uuid)
+        esh_driver.resize_instance(esh_instance, size)
+        complete_resize_task.apply_async()
     # Write build state for new size
     update_status(
         esh_driver,
@@ -185,7 +194,7 @@ def start_instance(esh_driver, esh_instance,
     if restore_ip and type(esh_driver) != AtmosphereMockDriver:
         restore_network(esh_driver, esh_instance, identity_uuid)
         deploy_task = restore_ip_chain(
-            esh_driver, esh_instance, redeploy=True,
+            esh_driver, esh_instance, redeploy=settings.ATMOSPHERE_INSTANCE_DEPLOYMENT,
             # NOTE: after removing FIXME, This
             # parameter can be removed as well
             core_identity_uuid=identity_uuid)
@@ -302,24 +311,6 @@ def restore_network(esh_driver, esh_instance, identity_uuid):
     return network
 
 
-def restore_instance_port(esh_driver, esh_instance):
-    """
-    This can be ignored when we move to vxlan..
-
-    For a given instance, retrieve the network-name and
-    convert it to a network-id
-    """
-    try:
-        import libvirt
-    except ImportError:
-        raise Exception(
-            "Cannot restore instance port without libvirt. To Install:"
-            " apt-get install python-libvirt\n"
-            " cp /usr/lib/python2.7/dist-packages/*libvirt* "
-            "/virtualenv/lib/python2.7/site-packages\n")
-    conn = libvirt.openReadOnly()
-
-
 def _extract_network_metadata(network_manager, esh_instance, node_network):
     try:
         network_name = node_network.keys()[0]
@@ -361,38 +352,16 @@ def _get_network_id(esh_driver, esh_instance):
 # Celery Chain-Starters and Tasks
 
 
-def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
-    """
-    TODO: Remove this and use the 'deploy_init' tasks already written instead!
-          -Steve 2/2015
-    Use this function to kick off the async task when you ONLY want to deploy
-    (No add fixed, No add floating)
-    """
-    from service.tasks.driver import deploy_init_to
-    from service.tasks.driver import wait_for_instance, complete_resize
-    from service.deploy import deploy_test
-    touch_script = deploy_test()
-    core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
-
-    task_one = wait_for_instance.s(
-        esh_instance.id, esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, "verify_resize")
-    raise Exception("Programmer -- Fix this method based on the TODO")
-    # task_two = deploy_script.si(
-    #     esh_driver.__class__, esh_driver.provider,
-    #     esh_driver.identity, esh_instance.id, touch_script)
-    task_three = complete_resize.si(
-        esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, esh_instance.id,
-        core_identity.provider.id, core_identity.id, core_identity.created_by)
-    task_four = deploy_init_to.si(
-        esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, esh_instance.id, core_identity, redeploy=True)
-    # Link em all together!
-    task_one.link(task_two)
-    task_two.link(task_three)
-    task_three.link(task_four)
-    return task_one
+def _get_redeploy_chain(core_identity, esh_driver, esh_instance, username, force_redeploy=False):
+    from service.tasks.driver import get_idempotent_deploy_chain
+    if force_redeploy or esh_instance.extra.get('metadata').get(
+            'tmp_status',
+            None) == "":
+        esh_instance.extra['metadata']['tmp_status'] = "initializing"
+    deploy_chain = get_idempotent_deploy_chain(
+        esh_driver.__class__, esh_driver.provider, esh_driver.identity,
+        esh_instance, core_identity, username)
+    return deploy_chain
 
 
 def redeploy_instance(
@@ -408,14 +377,10 @@ def redeploy_instance(
 
     NOTE: Not used by API. See redeploy_init.
     """
-    from service.tasks.driver import get_idempotent_deploy_chain
-    if force_redeploy or esh_instance.extra.get('metadata').get(
-            'tmp_status',
-            None) == "":
-        esh_instance.extra['metadata']['tmp_status'] = "initializing"
-    deploy_chain = get_idempotent_deploy_chain(
-        esh_driver.__class__, esh_driver.provider, esh_driver.identity,
-        esh_instance, core_identity, username)
+    if not settings.ATMOSPHERE_INSTANCE_DEPLOYMENT:
+        logger.warn("ATMOSPHERE_INSTANCE_DEPLOYMENT is False - Skip redeploy for %s" % core_identity)
+        return
+    deploy_chain = _get_redeploy_chain(core_identity, esh_driver, esh_instance, username, force_redeploy=force_redeploy)
     return deploy_chain.apply_async()
 
 
@@ -425,6 +390,9 @@ def redeploy_init(esh_driver, esh_instance, core_identity):
     (No add fixed, No add floating)
     """
     from service.tasks.driver import deploy_init_to
+    if not settings.ATMOSPHERE_INSTANCE_DEPLOYMENT:
+        logger.warn("ATMOSPHERE_INSTANCE_DEPLOYMENT is False - Skip redeploy for %s" % core_identity)
+        return
     if type(esh_driver) == AtmosphereMockDriver:
         return
     logger.info("Add floating IP and Deploy")
@@ -565,7 +533,7 @@ def resume_instance(esh_driver, esh_instance,
     size = _get_size(esh_driver, esh_instance)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
-        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=settings.ATMOSPHERE_INSTANCE_DEPLOYMENT,
                                        # NOTE: after removing FIXME, This
                                        # parameter can be removed as well
                                        core_identity_uuid=identity_uuid)
@@ -625,7 +593,7 @@ def unshelve_instance(esh_driver, esh_instance,
     admin_capacity_check(provider_uuid, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
-        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=settings.ATMOSPHERE_INSTANCE_DEPLOYMENT,
                                        # NOTE: after removing FIXME, This
                                        # parameter can be removed as well
                                        core_identity_uuid=identity_uuid)
@@ -1139,8 +1107,9 @@ def _complete_launch_instance(
     # FIXME: Remove duplicate line below, this happens inside convert_esh_instance
     _first_update(driver, identity, core_instance, instance)
     # call async task to deploy to instance.
-    task.deploy_init_task(driver, instance, identity, user.username,
-                          password, token, deploy=deploy)
+    if settings.ATMOSPHERE_INSTANCE_DEPLOYMENT:
+        task.deploy_init_task(driver, instance, identity, user.username,
+                              password, token, deploy=deploy)
     # Invalidate and return
     invalidate_cached_instances(identity=identity)
     return core_instance
@@ -2005,7 +1974,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     identity_uuid = identity.uuid
     logger.info("User %s has initiated instance action %s to be executed on Instance %s" % (user, action_type, instance_id))
     if 'resize' == action_type:
-        size_alias = action_params.get('size', '')
+        size_alias = action_params.get('resize_size', '')
         if isinstance(size_alias, int):
             size_alias = str(size_alias)
         result_obj = resize_instance(

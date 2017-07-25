@@ -102,6 +102,7 @@ DEFAULT_IP_LOOKUP = # 'iplant_hostname'
 DEFAULT_PASSWORD_UPDATE = # 'keystone_password_update', 'openstack_sdk_password_update'
 INSTANCE_HOSTNAMING_DOMAIN = # iplantcollaborative.org
 INSTANCE_HOSTNAMING_FORMAT = # vm%(three)s-%(four)s.%(domain)s
+ATMOSPHERE_INSTANCE_DEPLOYMENT = True
 DEPLOYMENT_KEYPAIR_NAME = # keypair name inject by atmo-ansible during instance deploy
 EXPIRATION_PLUGINS = ["atmosphere.plugins.auth.validation.NeverExpire"] # list of plugins
 VALIDATION_PLUGINS = ["atmosphere.plugins.auth.validation.AlwaysAllow"] # list of plugins
