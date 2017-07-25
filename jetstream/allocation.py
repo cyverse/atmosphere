@@ -4,7 +4,7 @@ from django.db import IntegrityError
 from django.utils import timezone
 from dateutil.parser import parse
 
-from .exceptions import TASAPIException
+from .exceptions import TASAPIException, NoTaccUserForXsedeException, NoAccountForUsernameException
 #FIXME: Next iteration, move this into the driver.
 from .tas_api import tacc_api_post, tacc_api_get
 from core.models import EventTable
@@ -51,16 +51,21 @@ class TASAPIDriver(object):
             self.project_list = self._get_all_projects()
         return self.project_list
 
-    def get_tacc_username(self, user):
+    def get_tacc_username(self, user, raise_exception=False):
         if self.username_map.get(user.username):
             return self.username_map[user.username]
-
+        tacc_user = None
         try:
             tacc_user = self._xsede_to_tacc_username(
                 user.username)
-        except:
-            logger.info("User: %s has no tacc username" % user.username)
-            tacc_user = None
+        except NoTaccUserForXsedeException:
+            logger.exception('User: %s has no TACC username', user.username)
+            if raise_exception:
+                raise
+        except TASAPIException:
+            logger.exception('Some exception happened while getting TACC username for user: %s', user.username)
+            if raise_exception:
+                raise
         else:
             self.username_map[user.username] = tacc_user
         return tacc_user
@@ -98,9 +103,12 @@ class TASAPIDriver(object):
         url_match = self.tacc_api + path
         resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
         try:
-            if data['status'] != 'success':
-                raise TASAPIException(
-                    "NO valid username found for %s" % xsede_username)
+            status = data.get('status')
+            message = data.get('message')
+            if status == 'error' and message == 'No user found for XSEDE username {}'.format(xsede_username):
+                raise NoTaccUserForXsedeException('No valid username found for %s' % xsede_username)
+            if status == 'error':
+                raise TASAPIException('Error while getting username for %s' % xsede_username)
             tacc_username = data['result']
             return tacc_username
         except ValueError as exc:
@@ -245,13 +253,13 @@ class TASAPIDriver(object):
                         user_allocations.append( (project, allocation) )
             return user_allocations
         except ValueError as exc:
+            logger.exception('JSON Decode error')
             if raise_exception:
                 raise TASAPIException("JSON Decode error -- %s" % exc)
-            logger.info( exc)
-        except Exception as exc:
+        except Exception:
+            logger.exception('Something went wrong while getting user allocations')
             if raise_exception:
                 raise
-            logger.info( exc)
         return None
 
 
@@ -299,12 +307,11 @@ def get_or_create_allocation_source(api_allocation):
 
 
 def find_user_allocation_source_for(driver, user):
-    tacc_user = driver.get_tacc_username(user)
+    tacc_user = driver.get_tacc_username(user, raise_exception=True)
     # allocations = driver.find_allocations_for(tacc_user)
-    if not tacc_user:
-        return []
-
     project_allocations = driver.get_user_allocations(tacc_user)
+    if project_allocations is None:
+        return None
     allocations = [pa[1] for pa in project_allocations]  # 2-tuples: (project, allocation)
     return allocations
 
@@ -355,6 +362,9 @@ def fill_user_allocation_source_for(driver, user):
     from core.models import AtmosphereUser
     assert isinstance(user, AtmosphereUser)
     allocation_list = find_user_allocation_source_for(driver, user)
+    if allocation_list is None:
+        logger.info("find_user_allocation_source_for %s is None, so stop and don't delete allocations" % user.username)
+        return
     allocation_resources = []
     user_allocation_sources = []
     old_user_allocation_sources = list(UserAllocationSource.objects.filter(user=user).order_by(
@@ -457,6 +467,11 @@ def _validate_tas_data(data):
             "Expected json object including "
             "a 'status' key and a 'result' key. - "
             "Received: %s" % data)
+    message = data.get('message', '') or ''
+    if message.startswith('No account was found with username'):
+        raise NoAccountForUsernameException(data)
+    if message.startswith('No user found for XSEDE username'):
+        raise NoTaccUserForXsedeException(data)
     if data['status'] != 'success':
         raise TASAPIException(
             "API is returning an unexpected status %s - "

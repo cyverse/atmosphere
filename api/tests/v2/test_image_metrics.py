@@ -7,16 +7,23 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from rest_framework.test import APITestCase
+from api.v2.views import ImageMetricViewSet as ViewSet
 from api.tests.factories import (
     UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
     ProviderMachineFactory, IdentityFactory, ProviderFactory
 )
+from .base import APISanityTestCase
 
 from core.metrics.application import get_application_metrics
 
 
-class InstanceTests(APITestCase):
+class ImageMetricsTest(APITestCase, APISanityTestCase):
+    url_route = 'api:v2:applicationmetric'
+
     def setUp(self):
+        self.list_view = ViewSet.as_view({'get': 'list'})
+        self.detailed_view = ViewSet.as_view({'get': 'retrieve'})
+
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create(username='test-username')
         self.staff_user = UserFactory.create(username='test-staffuser', is_staff=True, is_superuser=True)
@@ -157,13 +164,13 @@ class InstanceTests(APITestCase):
         client = APIClient()
         client.force_authenticate(user=self.user)
 
-        list_url = reverse('api:v2:applicationmetric-list')
+        list_url = reverse(self.url_route+'-list')
         list_response = client.get(list_url)
         self.assertEquals(list_response.status_code, 200)
         list_data = list_response.data['results']
         self.assertEquals(list_data, [])
 
-        url = reverse('api:v2:applicationmetric-detail', args=(self.application.uuid,))
+        url = reverse(self.url_route+'-detail', args=(self.application.uuid,))
         response = client.get(url)
         self.assertEquals(response.status_code, 404)
 
@@ -173,7 +180,7 @@ class InstanceTests(APITestCase):
         client.force_authenticate(user=self.staff_user)
         expected_metrics = {'active': 1, 'total': 4}
 
-        url = reverse('api:v2:applicationmetric-detail', args=(self.application.uuid,))
+        url = reverse(self.url_route+'-detail', args=(self.application.uuid,))
         response = client.get(url)
         self.assertEquals(response.status_code, 200)
         data = response.data

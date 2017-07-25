@@ -228,7 +228,11 @@ class ReportingViewSet(AuthModelViewSet):
         query_params = self.request.query_params
         query = self.get_filter_query(query_params)
 
-        queryset = instances_qs.filter(query)
+        queryset = instances_qs.select_related(
+                'source'
+            ).prefetch_related(
+            'source__providermachine__application_version__application',
+        ).filter(query)
         return queryset
 
     @staticmethod
@@ -247,6 +251,8 @@ class ReportingViewSet(AuthModelViewSet):
         if 'end_date' in query_params:
             end_date = parse(query_params['end_date']).replace(tzinfo=pytz.utc)
             query &= Q(start_date__lt=end_date)
+        if 'name' in query_params:
+            query &= Q(source__providermachine__application_version__application__name__icontains=query_params['name'])
         if 'username' in query_params:
             query &= Q(created_by__username=query_params['username'])
         if 'source_alias' in query_params:

@@ -15,7 +15,7 @@ class EventFilter(django_filters.FilterSet):
 class EventViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
-    API endpoint that allows scripts to be viewed or edited.
+    API endpoint that allows EventTable rows to be viewed or edited.
     """
 
     queryset = EventTable.objects.none()

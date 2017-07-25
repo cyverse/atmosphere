@@ -94,6 +94,17 @@ class Quota(models.Model):
             (self.floating_ip_count, self.port_count)
         return str_builder
 
+    def to_payload(self):
+        clean_dict = self.to_dict()
+        clean_dict.pop('id')
+        clean_dict.pop('uuid')
+        return clean_dict
+
+    def to_dict(self):
+        full_dict = self.__dict__
+        full_dict.pop('_state')
+        return
+
     @classmethod
     def max_quota(self, by_type='cpu'):
         """

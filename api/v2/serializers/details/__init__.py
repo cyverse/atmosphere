@@ -38,6 +38,8 @@ from .quota import QuotaSerializer, AllocationSerializer
 from .renewal_strategy import RenewalStrategySerializer
 from .resource_request import (
     ResourceRequestSerializer, UserResourceRequestSerializer)
+from .resource_request_actions import (
+    ResourceRequest_UpdateQuotaSerializer)
 from .reporting import InstanceReportingSerializer
 from .size import SizeSerializer
 from .ssh_key import SSHKeySerializer

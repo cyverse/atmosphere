@@ -10,7 +10,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0084_create_and_assign_allocationsource_to_users'),
+        ('core', '0001_initial'),
     ]
 
     operations = [

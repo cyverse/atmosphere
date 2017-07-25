@@ -84,8 +84,6 @@ def main():
         else:
             print "Rebuilding all existing users."
             usernames = get_usernames(provider)
-    else:
-        usernames = args.users.split(",")
     return run_create_accounts(acct_driver, provider, usernames,
                                args.rebuild, args.admin)
 

@@ -1,80 +1,21 @@
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from api.v2.views import IdentityViewSet as ViewSet
+from .base import APISanityTestCase
 from api.tests.factories import UserFactory, AnonymousUserFactory,\
     IdentityFactory, ProviderFactory, GroupFactory,\
     IdentityMembershipFactory, QuotaFactory, AllocationFactory
 from django.core.urlresolvers import reverse
-from core.models import Identity
+
 
 EXPECTED_FIELD_COUNT = 12
 
-class GetListTests(APITestCase):
+
+class IdentityTests(APITestCase, APISanityTestCase):
+    url_route = 'api:v2:identity'
 
     def setUp(self):
-        self.view = ViewSet.as_view({'get': 'list'})
-        self.anonymous_user = AnonymousUserFactory()
-        self.user = UserFactory.create()
-        self.group = GroupFactory.create(name=self.user.username)
-        self.staff_user = UserFactory.create(is_staff=True)
-
-        self.provider = ProviderFactory.create()
-        self.quota = QuotaFactory.create()
-        self.identity = IdentityFactory.create(
-            provider=self.provider,
-	    quota=self.quota,
-            created_by=self.user)
-        self.allocation = AllocationFactory.create()
-        IdentityMembershipFactory.create(
-            member=self.group,
-            identity=self.identity
-        )
-
-        factory = APIRequestFactory()
-        url = reverse('api:v2:identity-list')
-        self.request = factory.get(url)
-        force_authenticate(self.request, user=self.user)
-        self.response = self.view(self.request)
-
-    def test_is_not_public(self):
-        force_authenticate(self.request, user=self.anonymous_user)
-        response = self.view(self.request)
-        self.assertEquals(response.status_code, 403)
-
-    def test_is_visible_to_authenticated_user(self):
-        force_authenticate(self.request, user=self.user)
-        response = self.view(self.request)
-        self.assertEquals(response.status_code, 200)
-
-    def test_response_is_paginated(self):
-        response = self.response
-        self.assertIn('count', response.data)
-        self.assertIn('results', response.data)
-
-    def test_response_contains_expected_fields(self):
-        force_authenticate(self.request, user=self.user)
-        response = self.view(self.request)
-        data = response.data.get('results')
-        self.assertTrue(data, "Response contained no results")
-        identity_data = data[0]
-
-        self.assertEquals(len(identity_data), EXPECTED_FIELD_COUNT, "The number of arguments has changed for GET /identity (%s!=%s)" % (len(identity_data), EXPECTED_FIELD_COUNT))
-        self.assertIn('id', identity_data)
-        self.assertIn('uuid', identity_data)
-        self.assertIn('url', identity_data)
-        self.assertIn('quota', identity_data)
-        self.assertIn('allocation', identity_data)
-        self.assertIn('provider', identity_data)
-        self.assertIn('user', identity_data)
-        self.assertIn('key', identity_data)
-        self.assertIn('credentials', identity_data)
-        self.assertIn('is_leader', identity_data)
-        self.assertIn('members', identity_data)
-
-
-class GetDetailTests(APITestCase):
-
-    def setUp(self):
-        self.view = ViewSet.as_view({'get': 'retrieve'})
+        self.list_view = ViewSet.as_view({'get': 'list'})
+        self.detailed_view = ViewSet.as_view({'get': 'retrieve'})
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
         self.group = GroupFactory.create(name=self.user.username)
@@ -93,29 +34,64 @@ class GetDetailTests(APITestCase):
         )
 
         factory = APIRequestFactory()
-        url = reverse('api:v2:identity-detail', args=(self.identity.id,))
-        self.request = factory.get(url)
-        force_authenticate(self.request, user=self.user)
-        self.response = self.view(self.request, pk=self.identity.id)
+        detail_url = reverse('api:v2:identity-detail', args=(self.identity.id,))
+        self.detail_request = factory.get(detail_url)
+
+        list_url = reverse('api:v2:identity-list')
+        self.list_request = factory.get(list_url)
 
     def test_is_not_public(self):
-        force_authenticate(self.request, user=self.anonymous_user)
-        response = self.view(self.request, pk=self.identity.id)
+        force_authenticate(self.list_request, user=self.anonymous_user)
+        response = self.list_view(self.list_request)
         self.assertEquals(response.status_code, 403)
 
     def test_is_visible_to_authenticated_user(self):
-        force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, pk=self.identity.id)
+        force_authenticate(self.list_request, user=self.user)
+        response = self.list_view(self.list_request)
         self.assertEquals(response.status_code, 200)
 
-    def test_response_contains_expected_fields(self):
-        force_authenticate(self.request, user=self.user)
-        response = self.view(self.request, pk=self.identity.id)
+    def test_list_response_contains_expected_fields(self):
+        force_authenticate(self.list_request, user=self.user)
+        response = self.list_view(self.list_request)
+        data = response.data.get('results')
+        self.assertTrue(data, "Response contained no results")
+        identity_data = data[0]
+
+        self.assertEquals(
+            len(identity_data), EXPECTED_FIELD_COUNT,
+            "The number of arguments has changed for GET /identity (%s!=%s)"
+            % (len(identity_data), EXPECTED_FIELD_COUNT))
+        self.assertIn('id', identity_data)
+        self.assertIn('uuid', identity_data)
+        self.assertIn('url', identity_data)
+        self.assertIn('quota', identity_data)
+        self.assertIn('allocation', identity_data)
+        self.assertIn('provider', identity_data)
+        self.assertIn('user', identity_data)
+        self.assertIn('key', identity_data)
+        self.assertIn('credentials', identity_data)
+        self.assertIn('is_leader', identity_data)
+        self.assertIn('members', identity_data)
+
+    def test_detail_is_not_public(self):
+        force_authenticate(self.detail_request, user=self.anonymous_user)
+        response = self.detailed_view(self.detail_request, pk=self.identity.id)
+        self.assertEquals(response.status_code, 403)
+
+    def test_detail_is_visible_to_authenticated_user(self):
+        force_authenticate(self.detail_request, user=self.user)
+        response = self.detailed_view(self.detail_request, pk=self.identity.id)
+        self.assertEquals(response.status_code, 200)
+
+    def test_detail_response_contains_expected_fields(self):
+        force_authenticate(self.detail_request, user=self.user)
+        response = self.detailed_view(self.detail_request, pk=self.identity.id)
         data = response.data
 
         self.assertEquals(
             len(data), EXPECTED_FIELD_COUNT,
-            "The number of arguments has changed for GET /identity/%s (%s!=%s)" % (self.identity.id, len(data), EXPECTED_FIELD_COUNT)
+            "The number of arguments has changed for GET /identity/%s (%s!=%s)"
+            % (self.identity.id, len(data), EXPECTED_FIELD_COUNT)
         )
         self.assertIn('id', data)
         self.assertIn('uuid', data)
@@ -129,20 +105,11 @@ class GetDetailTests(APITestCase):
         self.assertIn('is_leader', data)
         self.assertIn('members', data)
 
-
-class CreateTests(APITestCase):
-
-    def test_endpoint_does_not_exist(self):
+    def test_create_does_not_exist(self):
         self.assertTrue('post' not in ViewSet.http_method_names)
 
-
-class UpdateTests(APITestCase):
-
-    def test_endpoint_does_not_exist(self):
+    def test_update_does_not_exist(self):
         self.assertTrue('put' not in ViewSet.http_method_names)
 
-
-class DeleteTests(APITestCase):
-
-    def test_endpoint_does_not_exist(self):
+    def test_delete_does_not_exist(self):
         self.assertTrue('delete' not in ViewSet.http_method_names)

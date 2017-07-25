@@ -1,7 +1,7 @@
 from jetstream import exceptions as jetstream_exceptions
 
 
-def _make_mock_tacc_api_post(context):
+def _make_mock_tacc_api_post(context, is_tas_up=True):
     def _mock_tacc_api_post(*args, **kwargs):
         raise NotImplementedError
 
@@ -33,7 +33,13 @@ def _get_user_projects(context, url):
     return data
 
 
-def _make_mock_tacc_api_get(context):
+def _make_mock_tacc_api_get(context, is_tas_up=True):
+    def _mock_tacc_api_get_down(*args, **kwargs):
+        raise jetstream_exceptions.TASAPIException('503 Service Unavailable')
+
+    if not is_tas_up:
+        return _mock_tacc_api_get_down
+
     def _mock_tacc_api_get(*args, **kwargs):
         url = args[0]
         assert isinstance(url, basestring)
@@ -50,3 +56,9 @@ def _make_mock_tacc_api_get(context):
         return None, data
 
     return _mock_tacc_api_get
+
+
+def reset_mock_tas_fixtures(context):
+    context.xsede_to_tacc_username_mapping = {}
+    context.tacc_username_to_tas_project_mapping = {}
+    context.tas_projects = []

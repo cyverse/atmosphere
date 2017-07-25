@@ -567,7 +567,7 @@ def get_idempotent_deploy_chain(
             core_identity,
             username=username,
             redeploy=False)
-    elif tmp_status in ['deploying', 'deploy_error']:
+    elif tmp_status in ['', 'redeploying', 'deploying', 'deploy_error']:
         celery_logger.info(
             "Instance %s contains the 'deploying' metadata - Redeploy will include deploy ONLY!." %
             instance.id)
@@ -581,7 +581,7 @@ def get_idempotent_deploy_chain(
             redeploy=False)
     else:
         raise Exception(
-            "Instance has a tmp_status that is NOT: [initializing, networking, deploying] - %s" %
+            "Instance has a tmp_status that is NOT: [initializing, networking, deploying, redeploying] - %s" %
             tmp_status)
     return start_task
 

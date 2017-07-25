@@ -15,9 +15,11 @@ from api.v2.views import ReportingViewSet
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 
-def generate_report(username, start_date, end_date, provider_ids, file_location):
+def generate_report(username, start_date, end_date, provider_ids, name, file_location):
     reporting_url = reverse('api:v2:reporting-list')
     reporting_url += "?format=xlsx&start_date={}&end_date={}".format(start_date, end_date)
+    if name:
+        reporting_url +="&name=%s" % (name,)
     for provider_id in provider_ids:
         reporting_url += "&provider_id="+provider_id
     view = ReportingViewSet.as_view({'get': 'list'})
@@ -45,6 +47,8 @@ def main():
                         help="List of provider names and IDs")
     parser.add_argument("--username", required=True,
                         help="Username to query the API with (Must be a staff user)")
+    parser.add_argument("--name",
+                        help="Application name to query API with (case-insensitive 'contains' search)")
     parser.add_argument("--start-date", required=True,
                         help="Formatted start date (YYYY-MM-DD) required to query the API")
     parser.add_argument("--end-date", required=True,
@@ -61,7 +65,7 @@ def main():
 
     try:
         provider_ids = args.provider_ids.split(",")
-        generate_report(args.username, args.start_date, args.end_date, provider_ids, args.file_location)
+        generate_report(args.username, args.start_date, args.end_date, provider_ids, args.name, args.file_location)
         print "Report completed: %s" % (args.file_location,)
     except Exception as exc:
         print "Failed to generate report: %s" % exc

@@ -8,14 +8,21 @@ from api.tests.factories import (
     UserFactory, AnonymousUserFactory, IdentityFactory, ProviderFactory, AllocationSourceFactory,
     UserAllocationSourceFactory
 )
+from .base import APISanityTestCase
 from api.v2.views import AllocationSourceViewSet as ViewSet
 
 
-class AllocationSourceTests(APITestCase):
+class AllocationSourceTests(APITestCase, APISanityTestCase):
+    url_route = 'api:v2:allocationsource'
+
     def setUp(self):
+        self.list_view = ViewSet.as_view({'get': 'list'})
+        self.detailed_view = ViewSet.as_view({'get': 'retrieve'})
+
         self.anonymous_user = AnonymousUserFactory()
         self.user_without_sources = UserFactory.create(username='test-username')
         self.user_with_sources = UserFactory.create(username='test-username-with-sources')
+        self.user = self.user_with_sources
         self.provider = ProviderFactory.create()
         self.user_identity = IdentityFactory.create_identity(
             created_by=self.user_without_sources,
