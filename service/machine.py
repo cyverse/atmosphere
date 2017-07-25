@@ -381,8 +381,12 @@ def sync_cloud_access(accounts, img, project_names=None):
     # Any names who aren't already on the image should be added
     # Find names who are marked as 'sharing' on DB but not on OpenStack
     for project_name in project_names:
-        group_name = project_name  # FIXME: This code should be changed when user-group-project associations change.
-        group = models.Group.objects.get(name=group_name)
+        # FIXME: Remove .strip() when 'bug' has been fixed
+        group_name = project_name.strip()  # FIXME: This code should be changed when user-group-project associations change.
+        try:
+            group = models.Group.objects.get(name=group_name)
+        except:
+            raise Exception("Invalid group name: %s" % group_name)
         for identity_membership in group.identitymembership_set.all():
             if identity_membership.identity.provider != accounts.core_provider:
                 logger.debug("Skipped %s -- Wrong provider" % identity_membership.identity)
