@@ -113,7 +113,7 @@ def start_machine_imaging(machine_request, delay=False):
     # Assume we are starting from the beginning.
     init_task = imaging_task
     # Task 2 = Process the machine request
-    if 'processing' == original_status:
+    if 'processing - ' in original_status:
         # If processing, start here..
         image_id = original_status.replace("processing - ", "")
         logger.info("Start with processing:%s" % image_id)
