@@ -891,10 +891,12 @@ class AccountDriver(BaseAccountDriver):
         return self.admin_driver.list_all_instances(**kwargs)
 
     def list_all_images(self, **kwargs):
-        return self.image_manager.list_images(**kwargs)
+        all_images = self.image_manager.list_images(**kwargs)
+        return all_images
 
     def list_all_snapshots(self, **kwargs):
-        return [img for img in self.list_all_images(**kwargs) if 'snapshot' in img.get('image_type','image').lower()]
+        return [img for img in self.list_all_images(**kwargs)
+                if 'snapshot' in img.get('image_type', 'image').lower()]
 
     def get_project_by_id(self, project_id):
         return self.user_manager.get_project_by_id(project_id)
