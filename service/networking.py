@@ -9,9 +9,11 @@ For more information, see docs/NETWORKING.md
 import random
 
 from rtwo.exceptions import NeutronClientException, NeutronNotFound
+from service.driver import get_account_driver
 
 from atmosphere import settings
 from threepio import logger
+
 
 def topology_list():
     return [
@@ -25,6 +27,7 @@ def _generate_ssh_kwargs(timeout=120):
     kwargs.update({'ssh_key': settings.ATMOSPHERE_PRIVATE_KEYFILE})
     kwargs.update({'timeout': timeout})
     return kwargs
+
 
 def _get_unique_id(userid):
     if 'django_cyverse_auth.authBackends.LDAPLoginBackend' in \
@@ -114,7 +117,7 @@ class GenericNetworkTopology(object):
         """
         raise NotImplementedError
 
-    def create(self, username=None, dns_nameservers=None):
+    def create(self, username=None, subnet_pool_id=None, dns_nameservers=None):
         """
         Delegates creation behavior to child classes
         """
@@ -134,6 +137,13 @@ class GenericNetworkTopology(object):
         """
         pass
 
+    def get_subnet_pool(self, subnet_pool_name_or_id):
+        if self.network_driver:
+            use_neutron = self.network_driver.neutron
+        else:
+            use_neutron = self.user_neutron
+        return use_neutron.find_resource('subnetpool', subnet_pool_name_or_id)
+
     def get_or_create_network(self):
         network_name = "%s-net" % self.prefix
         if self.network_driver:
@@ -147,6 +157,7 @@ class GenericNetworkTopology(object):
             self, network_id, username,
             ip_version=4,
             dns_nameservers=[],
+            subnet_pool_id=None,
             get_unique_number=_get_unique_id,
             get_cidr=get_default_subnet):
         """
@@ -161,6 +172,11 @@ class GenericNetworkTopology(object):
         inc = 0
         MAX_SUBNET = 4064
         new_cidr = None
+        if subnet_pool_id:
+            return self.network_driver.create_subnet(self.user_neutron, subnet_name,
+                                                network_id, ip_version,
+                                                dns_nameservers=dns_nameservers,
+                                                subnet_pool_id=subnet_pool_id)
         while not success and inc < MAX_SUBNET:
             try:
                 new_cidr = get_cidr(username, inc, get_unique_number)
@@ -190,7 +206,7 @@ class GenericNetworkTopology(object):
                 if not get_unique_number:
                     logger.warn("No get_unique_number method "
                                 "provided for user: %s" % username)
-            except Exception as e:
+            except Exception:
                 logger.exception("Unable to create subnet for user: %s" % username)
                 if not get_unique_number:
                     logger.warn("No get_unique_number method "
@@ -219,7 +235,7 @@ class GenericNetworkTopology(object):
             interface = self.network_driver.remove_router_interface(
                 self.network_driver.neutron, router_name, subnet_name)
         except NeutronNotFound:
-            #This is OKAY!
+            # This is OKAY!
             return None
         except:
             raise
@@ -284,10 +300,17 @@ class ExternalNetwork(GenericNetworkTopology):
         self.delete_router()
         self.delete_subnet()
 
-    def create(self, username=None, dns_nameservers=None):
-        network = self.get_or_create_network()  #NOTE: This also might be wrong.
+    def create(self, username=None, subnet_pool_id=None, dns_nameservers=None):
+        network = self.get_or_create_network()
+        subnet_pool_id = None
+        if subnet_pool_id:
+            subnet_pool = self.get_subnet_pool(subnet_pool_id)
+            if not subnet_pool:
+                raise Exception("Subnet pool '%s' missing" % subnet_pool_id)
+            subnet_pool_id = subnet_pool['id']
         subnet = self.get_or_create_user_subnet(
             network['id'], username,
+            subnet_pool_id=subnet_pool_id,
             dns_nameservers=dns_nameservers)
         router = self.get_or_create_router()
         gateway = self.get_or_create_router_gateway(router, network)
@@ -323,6 +346,13 @@ class ExternalRouter(GenericNetworkTopology):
     name = "External Router Topology"
 
     def __init__(self, identity, network_driver, neutron):
+        self.account_driver = get_account_driver(identity.provider)
+        if not self.account_driver:
+            raise Exception(
+                "ConfigError: Cannot use ExternalRouter topology without an "
+                "AccountDriver. Please add an AccountProvider linked to an "
+                "Identity who has the 'admin' role on Openstack "
+                "_or_ use ExternalNetworkTopology to continue")
         router_name = identity.get_credential('router_name')
         if not router_name:
             router_name = identity.provider.get_credential('router_name')
@@ -346,10 +376,17 @@ class ExternalRouter(GenericNetworkTopology):
             raise Exception("Identity %s has not been assigned a 'router_name'" % core_identity)
         return True
 
-    def create(self, username=None, dns_nameservers=None):
+    def create(self, username=None, subnet_pool_id=None, dns_nameservers=None):
         network = self.get_or_create_network()
+        subnet_pool_id = None
+        if subnet_pool_id:
+            subnet_pool = self.get_subnet_pool(subnet_pool_id)
+            if not subnet_pool:
+                raise Exception("Subnet pool '%s' missing" % subnet_pool_id)
+            subnet_pool_id = subnet_pool['id']
         subnet = self.get_or_create_user_subnet(
             network['id'], username,
+            subnet_pool_id=subnet_pool_id,
             dns_nameservers=dns_nameservers)
         router = self.get_or_create_router()
         gateway = self.get_or_create_router_gateway(router, network)
@@ -363,6 +400,14 @@ class ExternalRouter(GenericNetworkTopology):
         }
         return network_resources
 
+    def get_or_create_router_interface(self, router, subnet):
+        interface_name = '%s-router-intf' % self.prefix
+        network_driver = self.account_driver.network_manager
+        interface = network_driver.add_router_interface(
+            router, subnet, interface_name)
+        return interface
+
+
     def delete(self, skip_network=False):
         self.delete_router_interface()
         self.delete_subnet()
@@ -375,17 +420,27 @@ class ExternalRouter(GenericNetworkTopology):
             self.user_neutron,
             network_name)
 
-    def delete_router_interface(self):
-        return super(ExternalRouter, self).delete_router_interface(
-            router_name=self.external_router_name)  # strategy choice
+    def delete_router_interface(self, router_name="", subnet_name=""):
+        router_name = self.external_router_name  # strategy choice
+        subnet_name = subnet_name or "%s-subnet" % self.prefix
+        try:
+            network_driver = self.account_driver.network_manager  # strategy choice
+            interface = network_driver.remove_router_interface(
+                network_driver.neutron, router_name, subnet_name)
+        except NeutronNotFound:
+            #This is OKAY!
+            return None
+        except:
+            raise
+        return interface
 
     def get_or_create_router(self):
         router_name = self.external_router_name  # strategy choice
-        public_router = self.network_driver.find_router(router_name)
+        network_driver = self.account_driver.network_manager  # strategy choice
+        public_router = network_driver.find_router(router_name)
         if not public_router:
             raise Exception("Default public router %s was not found." % self.external_router_name)
         return public_router[0]
-
 
     def get_or_create_router_gateway(self, router, network):
         return None

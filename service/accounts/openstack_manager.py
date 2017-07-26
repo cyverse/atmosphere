@@ -633,11 +633,12 @@ class AccountDriver(BaseAccountDriver):
         return network_strategy
 
     def dns_nameservers_for(self, identity):
-        dns_nameservers = [
+        dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
+        db_dns_nameservers = [
             dns_server.ip_address for dns_server
             in identity.provider.dns_server_ips.order_by('order')
         ]
-        return dns_nameservers
+        return [set(db_dns_nameservers + dns_nameservers)]
 
     def delete_user_network(self, identity, options={}):
         """
@@ -708,19 +709,21 @@ class AccountDriver(BaseAccountDriver):
         #       when we already have "non-prefixed" resources might be tough.
         #       to avoid conflicts with production boxes, we will not implement
         #       the prefixing portion now.
-        #prefix_name = "atmo_%s" % (identity_creds["tenant_name"],)
-        prefix_name = "%s" % (identity_creds["tenant_name"],)
+        # prefix_name = "atmo_%s" % (identity_creds["tenant_name"],)
         neutron = self.get_openstack_client(identity, 'neutron')
         dns_nameservers = self.dns_nameservers_for(identity)
         topology_name = self.get_config('network', 'topology', None)
+        subnet_pool_id = self.get_config('network', 'subnet_pool_id', None)
         if not topology_name:
             logger.error(
                 "Network topology not selected -- "
                 "Will attempt to use the last known default: ExternalRouter.")
         network_strategy = self.initialize_network_strategy(
             topology_name, identity, self.network_manager, neutron)
+
+        network_strategy.validate(identity)
         network_resources = network_strategy.create(
-            username=username, dns_nameservers=dns_nameservers)
+            username=username, subnet_pool_id=subnet_pool_id, dns_nameservers=dns_nameservers)
         network_strategy.post_create_hook(network_resources)
         return network_resources
 
