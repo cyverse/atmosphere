@@ -33,8 +33,9 @@ class MaintenanceRecordList(AuthOptionalAPIView):
         records = CoreMaintenanceRecord.objects.none()
         active_records = query.get('active', 'false').lower() == "true"
         if user and not isinstance(user, AnonymousUser):
-            groups = user.group_set.all()
-            for group in groups:
+            memberships = user.memberships.select_related('group')
+            for membership in memberships:
+                group = membership.group
                 providers = group.current_providers.all()
                 for p in providers:
                     if active_records:

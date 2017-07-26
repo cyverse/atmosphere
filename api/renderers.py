@@ -16,7 +16,8 @@ class PandasExcelRenderer(CSVRenderer):
     format = 'xlsx'
 
     def render(self, data, media_type=None, renderer_context={}):
-        filename = renderer_context.get('filename', 'workbook.xlsx')
+        filename = renderer_context.get('filename', 'excel_workbook.xlsx')
+        drf_response = renderer_context.get('response', None)
         # Hard-coded headers_ordering required to force an explicit ordering, otherwise headers are sorted by key-name
         headers_ordering = renderer_context.get('headers_ordering', None)
         table_gen = self.tablize(data, header=headers_ordering)
@@ -36,8 +37,7 @@ class PandasExcelRenderer(CSVRenderer):
         sio.seek(0)
         workbook = sio.getvalue()
         response = StreamingHttpResponse(workbook, content_type='application/vnd.ms-excel')
-        #FIXME: This doesn't... actually.. work. Filename == pathname.
-        response['Content-Disposition'] = 'attachment; filename="%s"' % filename
+        drf_response['Content-Disposition'] = 'attachment; filename="%s"' % filename
         return response
 
 

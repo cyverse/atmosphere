@@ -23,7 +23,7 @@ from django_cyverse_auth.protocol import ldap
 
 from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
-from core.models import Provider, Identity
+from core.models import Provider, Identity, Instance, SSHKey, AtmosphereUser
 
 from service.exceptions import AnsibleDeployException
 
@@ -31,12 +31,14 @@ from service.exceptions import AnsibleDeployException
 def ansible_deployment(
     instance_ip, username, instance_id, playbooks_dir,
     limit_playbooks=[], limit_hosts={}, extra_vars={},
-    raise_exception=True):
+    raise_exception=True, **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     """
     if not check_ansible():
         return []
+    # Expecting to be path-relative to the playbook path, so use basename
+    limit_playbooks = [os.path.basename(filepath) for filepath in limit_playbooks]
     logger = create_instance_logger(
         deploy_logger,
         instance_ip,
@@ -45,7 +47,10 @@ def ansible_deployment(
     hostname = build_host_name(instance_id, instance_ip)
     configure_ansible()
     if not limit_hosts:
-        limit_hosts = {"hostname": hostname, "ip": instance_ip}
+        if hostname:
+            limit_hosts = hostname
+        else:
+            limit_hosts = instance_ip
     host_file = settings.ANSIBLE_HOST_FILE
     identity = Identity.find_instance(instance_id)
     if identity:
@@ -53,12 +58,20 @@ def ansible_deployment(
         extra_vars.update({
             "TIMEZONE": time_zone,
         })
+    shared_users = AtmosphereUser.users_for_instance(instance_id).values_list('username', flat=True)
+    if not shared_users:
+        shared_users = [username]
+    if username not in shared_users:
+        shared_users.append(username)
+    extra_vars.update({
+        "SHARED_USERS": shared_users,
+    })
     extra_vars.update({
         "ATMOUSERNAME": username,
     })
     pbs = execute_playbooks(
         playbooks_dir, host_file, extra_vars, limit_hosts,
-        logger=logger, limit_playbooks=limit_playbooks)
+        logger=logger, limit_playbooks=limit_playbooks, **runner_opts)
     if raise_exception:
         raise_playbook_errors(pbs, instance_ip, hostname)
     return pbs
@@ -76,8 +89,45 @@ def ready_to_deploy(instance_ip, username, instance_id):
         limit_playbooks=['check_networking.yml'])
 
 
+def deploy_mount_volume(instance_ip, username, instance_id,
+        device, mount_location=None, device_type='ext4'):
+    """
+    Use service.ansible to mount volume to an instance.
+    """
+    extra_vars = {
+        "VOLUME_DEVICE": device,
+        "VOLUME_MOUNT_LOCATION": mount_location,
+        "VOLUME_DEVICE_TYPE": device_type,
+    }
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'utils')
+    limit_playbooks = ['mount_volume.yml']
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=limit_playbooks,
+        extra_vars=extra_vars)
+
+
+def deploy_check_volume(instance_ip, username, instance_id,
+        device, device_type='ext4'):
+    """
+    Use ansible to check if an attached volume has run mkfs.
+    """
+    extra_vars = {
+        "VOLUME_DEVICE": device,
+        "VOLUME_DEVICE_TYPE": device_type,
+    }
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'utils')
+    limit_playbooks = ['check_volume.yml']
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=limit_playbooks,
+        extra_vars=extra_vars)
+
+
 def instance_deploy(instance_ip, username, instance_id,
-		    limit_playbooks=[]):
+		    limit_playbooks=[], **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     """
@@ -90,16 +140,27 @@ def instance_deploy(instance_ip, username, instance_id,
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
         limit_playbooks=limit_playbooks,
-        extra_vars=extra_vars)
+        extra_vars=extra_vars, **runner_opts)
 
 
 def user_deploy(instance_ip, username, instance_id):
     """
     Use service.ansible to deploy to an instance.
+    #NOTE: This method will _NOT_ work if you do not run instance deployment *FIRST*!
+    # In order to add user-ssh keys to root, you will need root access to the VM that is *not* configured in this playbook.
     """
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
     playbooks_dir = os.path.join(playbooks_dir, 'user_deploy')
-    user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
+    #TODO: 'User-selectable 'SSH strategy' for instances?
+    # Example 'user only' strategy:
+    # user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
+    # Example 'all members'  strategy:
+    instance = Instance.objects.get(provider_alias=instance_id)
+    if not instance.project:
+        raise Exception("Expected this instance to have a project, found None: %s" % instance)
+    group = instance.project.owner
+    group_ssh_keys = SSHKey.keys_for_group(group)
+    user_keys = [k.pub_key for k in group_ssh_keys]
     extra_vars = {
         "USERSSHKEYS": user_keys
     }
@@ -165,16 +226,16 @@ def _one_runner_all_playbook_execution(
     runner = Runner.factory(
             host_file,
             playbook_dir,
-            run_data=extra_vars,
+            extra_vars=extra_vars,
             limit_hosts=my_limit,
             logger=logger,
             limit_playbooks=limit_playbooks,
+            private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
             # Use atmosphere settings
             group_vars_map={
                 filename: os.path.join(
                     settings.ANSIBLE_GROUP_VARS_DIR, filename)
-                for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
-            private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
+                    for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
             **runner_opts)
     if runner.playbooks == []:
         msg = "Playbook directory has no playbooks: %s" \
@@ -194,7 +255,7 @@ def _one_runner_one_playbook_execution(
     runners = [Runner.factory(
             host_file,
             os.path.join(playbook_dir, playbook_path),
-            run_data=extra_vars,
+            extra_vars=extra_vars,
             limit_hosts=my_limit,
             logger=logger,
             limit_playbooks=limit_playbooks,
@@ -202,7 +263,7 @@ def _one_runner_one_playbook_execution(
             group_vars_map={
                 filename: os.path.join(
                     settings.ANSIBLE_GROUP_VARS_DIR, filename)
-                for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
+                    for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
             private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
             **runner_opts)
         for playbook_path in os.listdir(playbook_dir)
@@ -348,10 +409,10 @@ def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
         if not allow_failures and pb.stats.failures:
             if hostname in pb.stats.failures:
                 error_message += playbook_error_message(
-                    pb.stats.failures[hostname], "Failures")
+                    pb.stats.failures[hostname], "failed")
             elif instance_ip in pb.stats.failures:
                 error_message += playbook_error_message(
-                    pb.stats.failures[instance_ip], "Failures")
+                    pb.stats.failures[instance_ip], "failed")
     if error_message:
         msg = error_message[:-2] + str(pb.stats.processed_playbooks.get(hostname,{}))
         raise AnsibleDeployException(msg)
@@ -399,19 +460,11 @@ def check_process(proc_name):
         % (proc_name,))
 
 
-def check_volume(device):
-    return ScriptDeployment("tune2fs -l %s" % (device),
-                            name="./deploy_check_volume.sh")
-
-
-def mkfs_volume(device):
-    return ScriptDeployment("mkfs.ext3 -F %s" % (device),
-                            name="./deploy_mkfs_volume.sh")
-
-
 def umount_volume(mount_location):
     return ScriptDeployment("mounts=`mount | grep '%s' | cut -d' ' -f3`; "
                             "for mount in $mounts; do umount %s; done;"
+                            "/bin/sed -i \"/vd[c-z]/d\" /etc/fstab;"  # should work for most
+                            "/bin/sed -i \"/vol_[b-z]/d\" /etc/fstab;"  # should catch any lingerers
                             % (mount_location, mount_location),
                             name="./deploy_umount_volume.sh")
 

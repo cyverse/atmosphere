@@ -133,3 +133,10 @@ def over_allocation(allocation_exception):
     return failure_response(
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         allocation_exception.message)
+
+
+def member_action_forbidden(username, object_type, object_id):
+    message = "User %s does not have permission to act on %s %s. Make sure that you are a Leader of the Project that %s %s resides in." % (username, object_type, object_id, object_type, object_id)
+    return failure_response(
+        status.HTTP_403_FORBIDDEN,
+        message)

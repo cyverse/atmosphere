@@ -1,15 +1,16 @@
-import logging
-
+import uuid
 from django.conf import settings
+from django.db import IntegrityError
 from django.utils import timezone
 from dateutil.parser import parse
 
-from .exceptions import TASAPIException
+from .exceptions import TASAPIException, NoTaccUserForXsedeException, NoAccountForUsernameException
 #FIXME: Next iteration, move this into the driver.
-from .api import tacc_api_post, tacc_api_get
+from .tas_api import tacc_api_post, tacc_api_get
+from core.models import EventTable
 from core.models.allocation_source import AllocationSource, UserAllocationSource
 
-logger = logging.getLogger(__name__)
+from threepio import logger
 
 
 class TASAPIDriver(object):
@@ -50,17 +51,23 @@ class TASAPIDriver(object):
             self.project_list = self._get_all_projects()
         return self.project_list
 
-    def get_tacc_username(self, user):
+    def get_tacc_username(self, user, raise_exception=False):
         if self.username_map.get(user.username):
             return self.username_map[user.username]
-
+        tacc_user = None
         try:
             tacc_user = self._xsede_to_tacc_username(
                 user.username)
-        except:
-            logger.info("User: %s has no tacc username" % user.username)
-            tacc_user = user.username
-        self.username_map[user.username] = tacc_user
+        except NoTaccUserForXsedeException:
+            logger.exception('User: %s has no TACC username', user.username)
+            if raise_exception:
+                raise
+        except TASAPIException:
+            logger.exception('Some exception happened while getting TACC username for user: %s', user.username)
+            if raise_exception:
+                raise
+        else:
+            self.username_map[user.username] = tacc_user
         return tacc_user
 
     def find_projects_for(self, tacc_username):
@@ -96,9 +103,12 @@ class TASAPIDriver(object):
         url_match = self.tacc_api + path
         resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
         try:
-            if data['status'] != 'success':
-                raise TASAPIException(
-                    "NO valid username found for %s" % xsede_username)
+            status = data.get('status')
+            message = data.get('message')
+            if status == 'error' and message == 'No user found for XSEDE username {}'.format(xsede_username):
+                raise NoTaccUserForXsedeException('No valid username found for %s' % xsede_username)
+            if status == 'error':
+                raise TASAPIException('Error while getting username for %s' % xsede_username)
             tacc_username = data['result']
             return tacc_username
         except ValueError as exc:
@@ -126,12 +136,12 @@ class TASAPIDriver(object):
         }
         path = '/v1/jobs'
         url_match = self.tacc_api + path
-        logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
+        # logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
         resp = tacc_api_post(url_match, post_data, self.tacc_username, self.tacc_password)
-        logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
+        # logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
         try:
             data = resp.json()
-            logger.debug("TAS_RESP - Data: %s" % data)
+            #logger.debug("TAS_RESP - Data: %s" % data)
             resp_status = data['status']
         except ValueError:
             exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (report_id, resp.text,))
@@ -145,14 +155,14 @@ class TASAPIDriver(object):
     
         return data
 
-    def get_allocation_project_id(self, allocation_id):
-        allocation = self.get_allocation(allocation_id)
+    def get_allocation_project_id(self, allocation_name):
+        allocation = self.get_allocation(allocation_name)
         if not allocation:
             return
         return allocation['projectId']
 
-    def get_allocation_project_name(self, allocation_id):
-        allocation = self.get_allocation(allocation_id)
+    def get_allocation_project_name(self, allocation_name):
+        allocation = self.get_allocation(allocation_name)
         if not allocation:
             return
         return allocation['project']
@@ -167,12 +177,12 @@ class TASAPIDriver(object):
             return filtered_list[0]
         return None
 
-    def get_allocation(self, allocation_id):
+    def get_allocation(self, allocation_name):
         filtered_list = [
             a for a in self.get_all_allocations()
-            if str(a['id']) == str(allocation_id)]
+            if str(a['project']) == str(allocation_name)]
         if len(filtered_list) > 1:
-            logger.error(">1 value found for allocation %s" % allocation_id)
+            logger.error(">1 value found for allocation %s" % allocation_name)
         if filtered_list:
             return filtered_list[0]
         return None
@@ -219,16 +229,16 @@ class TASAPIDriver(object):
         except ValueError as exc:
             if raise_exception:
                 raise TASAPIException("JSON Decode error -- %s" % exc)
-            logger.info( exc)
+            logger.info(exc)
         except Exception as exc:
             if raise_exception:
                 raise
-            logger.info( exc)
+            logger.info(exc)
         return user_names
 
     
 
-    def get_user_allocations(self, username, raise_exception=True):
+    def get_user_allocations(self, username, include_expired=False, raise_exception=True):
         path = '/v1/projects/username/%s' % username
         url_match = self.tacc_api + path
         resp, data = tacc_api_get(url_match, self.tacc_username, self.tacc_password)
@@ -237,24 +247,24 @@ class TASAPIDriver(object):
             _validate_tas_data(data)
             projects = data['result']
             for project in projects:
-                allocations = project['allocations']
-                for allocation in allocations:
+                api_allocations = project['allocations'] if include_expired else select_valid_allocations(project['allocations'])
+                for allocation in api_allocations:
                     if allocation['resource'] == self.resource_name:
                         user_allocations.append( (project, allocation) )
             return user_allocations
         except ValueError as exc:
+            logger.exception('JSON Decode error')
             if raise_exception:
                 raise TASAPIException("JSON Decode error -- %s" % exc)
-            logger.info( exc)
-        except Exception as exc:
+        except Exception:
+            logger.exception('Something went wrong while getting user allocations')
             if raise_exception:
                 raise
-            logger.info( exc)
         return None
 
 
 
-def get_or_create_allocation_source(api_allocation, update_source=False):
+def get_or_create_allocation_source(api_allocation):
     try:
         source_name = "%s" % (api_allocation['project'],)
         source_id = api_allocation['id']
@@ -262,41 +272,57 @@ def get_or_create_allocation_source(api_allocation, update_source=False):
     except (TypeError, KeyError, ValueError):
         raise TASAPIException("Malformed API Allocation - Missing keys in dict: %s" % api_allocation)
 
+    payload = {
+        'allocation_source_name': source_name,
+        'compute_allowed': compute_allowed,
+        'start_date':api_allocation['start'],
+        'end_date':api_allocation['end']
+    }
+
     try:
-        source = AllocationSource.objects.get(
-            source_id=source_id
-        )
-        if update_source:
-            if compute_allowed != source.compute_allowed:
-                #FIXME: Here would be a *great* place to create a new event to "ignore" all previous allocation_source_`threshold_met/threshold_enforced`
-                source.compute_allowed = compute_allowed
-            source.name = source_name
-            source.save()
-        return source, False
-    except AllocationSource.DoesNotExist:
-        source = AllocationSource.objects.create(
-            name=source_name,
-            compute_allowed=compute_allowed,
-            source_id=source_id
-        )
-        return source, True
+        created_event_key = 'sn=%s,si=%s,ev=%s,dc=jetstream,dc=atmosphere' % (
+            source_name, source_id, 'allocation_source_created_or_renewed')
+        created_event_uuid = uuid.uuid5(uuid.NAMESPACE_X500, str(created_event_key))
+        created_event = EventTable.objects.create(name='allocation_source_created_or_renewed',
+                                                  uuid=created_event_uuid,
+                                                  payload=payload)
+        assert isinstance(created_event, EventTable)
+    except IntegrityError as e:
+        # This is totally fine. No really. This should fail if it already exists and we should ignore it.
+        pass
+
+    try:
+        compute_event_key = 'ca=%s,sn=%s,si=%s,ev=%s,dc=jetstream,dc=atmosphere' % (
+            compute_allowed, source_name, source_id, 'allocation_source_compute_allowed_changed')
+        compute_event_uuid = uuid.uuid5(uuid.NAMESPACE_X500, str(compute_event_key))
+        compute_allowed_event = EventTable.objects.create(
+            name='allocation_source_compute_allowed_changed', uuid=compute_event_uuid, payload=payload)
+        assert isinstance(compute_allowed_event, EventTable)
+    except IntegrityError as e:
+        # This is totally fine. No really. This should fail if it already exists and we should ignore it.
+        pass
+
+    source = AllocationSource.objects.get(name__iexact=source_name)
+    return source
 
 
 def find_user_allocation_source_for(driver, user):
-    tacc_user = driver.get_tacc_username(user)
-    allocations = driver.find_allocations_for(tacc_user)
+    tacc_user = driver.get_tacc_username(user, raise_exception=True)
+    # allocations = driver.find_allocations_for(tacc_user)
+    project_allocations = driver.get_user_allocations(tacc_user)
+    if project_allocations is None:
+        return None
+    allocations = [pa[1] for pa in project_allocations]  # 2-tuples: (project, allocation)
     return allocations
 
 
-def fill_allocation_sources(force_update=False):
+def fill_allocation_sources():
     driver = TASAPIDriver()
     allocations = driver.get_all_allocations()
     create_list = []
     for api_allocation in allocations:
-        obj, created = get_or_create_allocation_source(
-            api_allocation, update_source=force_update)
-        if created:
-            create_list.append(obj)
+        obj = get_or_create_allocation_source(api_allocation)
+        create_list.append(obj)
     return len(create_list)
 
 
@@ -308,6 +334,9 @@ def collect_users_without_allocation(driver):
     missing = []
     for user in AtmosphereUser.objects.order_by('username'):
         tacc_user = driver.get_tacc_username(user)
+        if not tacc_user:
+            missing.append(user)
+            continue
         user_allocations = driver.get_user_allocations(
             tacc_user, raise_exception=False)
         if not user_allocations:
@@ -320,35 +349,112 @@ def fill_user_allocation_sources():
     driver = TASAPIDriver()
     allocation_resources = {}
     for user in AtmosphereUser.objects.order_by('username'):
-        resources = fill_user_allocation_source_for(driver, user)
+        try:
+            resources = fill_user_allocation_source_for(driver, user)
+        except Exception as exc:
+            logger.exception("Error filling user allocation source for %s" % user)
+            resources = []
         allocation_resources[user.username] = resources
     return allocation_resources
 
-def fill_user_allocation_source_for(driver, user, force_update=True):
+
+def fill_user_allocation_source_for(driver, user):
+    from core.models import AtmosphereUser
+    assert isinstance(user, AtmosphereUser)
     allocation_list = find_user_allocation_source_for(driver, user)
+    if allocation_list is None:
+        logger.info("find_user_allocation_source_for %s is None, so stop and don't delete allocations" % user.username)
+        return
     allocation_resources = []
+    user_allocation_sources = []
+    old_user_allocation_sources = list(UserAllocationSource.objects.filter(user=user).order_by(
+        'allocation_source__name').all())
+
     for api_allocation in allocation_list:
-        allocation_source, _ = get_or_create_allocation_source(
-            api_allocation, update_source=force_update)
-        resource, _ = UserAllocationSource.objects.get_or_create(
-            allocation_source=allocation_source,
-            user=user)
+        allocation_source = get_or_create_allocation_source(api_allocation)
         allocation_resources.append(allocation_source)
+        user_allocation_source = get_or_create_user_allocation_source(user, allocation_source)
+        user_allocation_sources.append(user_allocation_source)
+
+    canonical_source_names = [source.name for source in allocation_resources]
+    for user_allocation_source in old_user_allocation_sources:
+        if user_allocation_source.allocation_source.name not in canonical_source_names:
+            delete_user_allocation_source(user, user_allocation_source.allocation_source)
     return allocation_resources
 
-def select_valid_allocation(allocation_list):
+
+def delete_user_allocation_source(user, allocation_source):
+    from core.models import AtmosphereUser
+    assert isinstance(user, AtmosphereUser)
+    assert isinstance(allocation_source, AllocationSource)
+    payload = {
+        'allocation_source_name': allocation_source.name
+    }
+
+    created_event = EventTable.objects.create(name='user_allocation_source_deleted',
+                                              entity_id=user.username,
+                                              payload=payload)
+    assert isinstance(created_event, EventTable)
+
+
+def get_or_create_user_allocation_source(user, allocation_source):
+    from core.models import AtmosphereUser
+    assert isinstance(user, AtmosphereUser)
+    assert isinstance(allocation_source, AllocationSource)
+
+    user_allocation_source = UserAllocationSource.objects.filter(user=user, allocation_source=allocation_source)
+
+    if not user_allocation_source:
+        payload = {
+            'allocation_source_name': allocation_source.name
+        }
+
+        created_event = EventTable.objects.create(name='user_allocation_source_created',
+                                                  entity_id=user.username,
+                                                  payload=payload)
+        assert isinstance(created_event, EventTable)
+        user_allocation_source = UserAllocationSource.objects.get(user=user, allocation_source=allocation_source)
+    else:
+        user_allocation_source = user_allocation_source.last()
+
+    return user_allocation_source
+
+
+def select_valid_allocations(allocation_list):
     now = timezone.now()
+    allocations = []
     for allocation in allocation_list:
+        allocation_status = allocation['status']
+        if allocation_status.lower() != 'active':
+           #logger.debug("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+           continue
         start_timestamp = allocation['start']
         end_timestamp = allocation['end']
-        status = allocation['status']
         start_date = parse(start_timestamp)
         end_date = parse(end_timestamp)
         if start_date >= now or end_date <= now:
-           logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
+           #logger.debug("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
            continue
+        allocations.append(allocation)
+    return allocations
+
+
+def select_valid_allocation(allocation_list):
+    """
+    #FIXME: In a future commit, merge select_valid_allocations.
+    """
+    now = timezone.now()
+    for allocation in allocation_list:
+        status = allocation['status']
         if status.lower() != 'active':
-           logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+           #logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+           continue
+        start_timestamp = allocation['start']
+        end_timestamp = allocation['end']
+        start_date = parse(start_timestamp)
+        end_date = parse(end_timestamp)
+        if start_date >= now or end_date <= now:
+           #logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
            continue
         return allocation
     return None
@@ -361,6 +467,11 @@ def _validate_tas_data(data):
             "Expected json object including "
             "a 'status' key and a 'result' key. - "
             "Received: %s" % data)
+    message = data.get('message', '') or ''
+    if message.startswith('No account was found with username'):
+        raise NoAccountForUsernameException(data)
+    if message.startswith('No user found for XSEDE username'):
+        raise NoTaccUserForXsedeException(data)
     if data['status'] != 'success':
         raise TASAPIException(
             "API is returning an unexpected status %s - "

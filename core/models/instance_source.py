@@ -22,6 +22,7 @@ class InstanceSource(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     provider = models.ForeignKey(Provider)
     identifier = models.CharField(max_length=256)
+    size_bytes = models.DecimalField(max_digits=14, decimal_places=0, default=0)
     created_by = models.ForeignKey(User, blank=True, null=True,
                                    related_name="source_set")
     created_by_identity = models.ForeignKey(Identity, blank=True, null=True)
@@ -75,6 +76,14 @@ class InstanceSource(models.Model):
             *InstanceSource._current_source_query_args())
 
     @property
+    def size_mb(self):
+        return self.size_bytes/1024**2
+
+    @property
+    def size_gb(self):
+        return self.size_bytes/1024**3
+
+    @property
     def current_source(self):
         source = getattr(
             self,
@@ -86,6 +95,15 @@ class InstanceSource(models.Model):
         if not source:
             raise SourceNotFound("A source could not be found for %s." % self)
         return source
+
+    @property
+    def get_source_class(self):
+        if self.is_machine():
+            return self.machine
+        elif self.is_volume():
+            return self.volume
+        elif self.is_snapshot():
+            return self.volume
 
     @property
     def source_type(self):
@@ -146,3 +164,12 @@ class InstanceSource(models.Model):
         db_table = "instance_source"
         app_label = "core"
         unique_together = ('provider', 'identifier')
+
+
+def update_instance_source_size(instance_source, image_size_in_bytes):
+    if not image_size_in_bytes:
+        return
+    if instance_source.size_bytes == image_size_in_bytes:
+        return
+    instance_source.size_bytes = image_size_in_bytes
+    instance_source.save()

@@ -1,9 +1,11 @@
+
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+
 from core.models import (
     BootScript, Identity, Instance, InstanceSource,
     Provider, ProviderMachine, Project, UserAllocationSource,
     Size, Volume)
-from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from api.v2.serializers.fields.base import ReprSlugRelatedField
 
 class InstanceSerializer(serializers.ModelSerializer):
@@ -23,7 +25,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     name = serializers.CharField()
     project = serializers.SlugRelatedField(
         source="projects", slug_field="uuid", queryset=Project.objects.all(),
-        required=False, allow_null=True)
+        required=True)
     scripts = serializers.SlugRelatedField(
         slug_field="uuid", queryset=BootScript.objects.all(),
         many=True, required=False)
@@ -34,7 +36,7 @@ class InstanceSerializer(serializers.ModelSerializer):
     # Optional kwargs to be inluded
     deploy = serializers.BooleanField(default=True)
     extra = serializers.DictField(required=False)
-    # Note: When CyVerse uses the allocation_source, remove 'required=False'
+    # FIXME: When CyVerse uses the allocation_source, remove 'required=False' -- Additionally, should this be a UUID field instead?
     allocation_source_id = serializers.CharField(write_only=True, required=False)
 
     def to_internal_value(self, data):
@@ -57,12 +59,11 @@ class InstanceSerializer(serializers.ModelSerializer):
         source_queryset = self.fields['source_alias'].queryset
 
         allocation_source_id = data.get('allocation_source_id')
-        #NOTE: When CyVerse uses the allocation_source feature, remove 'and 'jetstream' in settings.INSTALLED_APPS'
-        if not allocation_source_id and 'jetstream' in settings.INSTALLED_APPS:
+        if not allocation_source_id:
             raise ValidationError({
                 'allocation_source_id': 'This field is required.'
             })
-        allocation_source = allocation_source_queryset.filter(allocation_source__source_id=allocation_source_id)
+        allocation_source = allocation_source_queryset.filter(allocation_source__uuid=allocation_source_id)
         if not allocation_source:
             raise ValidationError({
                 'allocation_source_id': 'Value %s did not match a allocation_source.' % allocation_source_id

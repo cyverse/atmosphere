@@ -25,6 +25,7 @@ class ProviderInstanceActionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProviderInstanceAction
+        fields = "__all__"
 
 
 class PATCH_ProviderInstanceActionSerializer(ProviderInstanceActionSerializer):

@@ -1,0 +1,10 @@
+digraph graphname{
+    rankdir="LR";
+    Application
+    ApplicationVersion
+    Machine [label="Provider Machine"]
+    InstanceSource
+    Machine->InstanceSource
+    ApplicationVersion->Machine [label="Has many"]
+    Application->ApplicationVersion [label="Has many"]
+}

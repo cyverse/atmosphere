@@ -12,8 +12,8 @@ SECRETS_MODULE = secrets
 globals().update(vars(sys.modules['atmosphere.settings']))
 
 # Debug Mode
-DEBUG = {{ DJANGO_DEBUG }}
-SEND_EMAILS = {{ not DJANGO_DEBUG }}
+DEBUG = {{ DJANGO_DEBUG | default(True) }}
+SEND_EMAILS = {{ not DJANGO_DEBUG | default(False) }}
 
 {% if DJANGO_TEMPLATE_DEBUG -%}
 template_backends = filter(lambda t:
@@ -155,29 +155,53 @@ CELERYBEAT_SCHEDULE["{{task_key}}"]["{{task_opt}}"] = {{task_opt_value}}
 {% if USE_JETSTREAM_PLUGIN %}
 ALLOCATION_SOURCE_WARNINGS = [10, 25, 50, 75, 90]
 JETSTREAM_CELERYBEAT_SCHEDULE = {
-  "report_allocations_to_tas":{
-        "task":"report_allocations_to_tas",
-        "schedule" : timedelta(minutes=60),
-        "options" : {"expires": 30 * 60,"time_limit": 30 * 60}
+    "report_allocations_to_tas": {
+        "task": "report_allocations_to_tas",
+        "schedule": timedelta(minutes=60),
+        "options": {"expires": 30 * 60, "time_limit": 30 * 60}
     },
-  "update_snapshot":{
-	"task":"update_snapshot",
-        "schedule":timedelta(minutes=30),
-	"options" : {"expires":20*60 , "time_limit":20*60}
+    "update_snapshot": {
+        "task": "update_snapshot",
+        "schedule": timedelta(minutes=30),
+        "options": {"expires": 20 * 60, "time_limit": 20 * 60}
     },
-  "monitor_jetstream_allocation_sources":{
-	"task":"monitor_jetstream_allocation_sources",
+    "monitor_jetstream_allocation_sources": {
+        "task": "monitor_jetstream_allocation_sources",
+        # Every 60 minutes, no longer than 45 minutes
+        "schedule": crontab(minute="*/60"),
+        "options": {"expires": 45 * 60, "time_limit": 45 * 60}
+    },
+    "monitor_allocation_sources": {
+        "task": "monitor_allocation_sources",
         # Every 15 minutes
-        "schedule": crontab(minute="*/15"),
-        "options" : {"expires": 10 * 60,"time_limit": 10 * 60}
-  }
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 15 * 60, "time_limit": 15 * 60}
+    }
 }
 CELERYBEAT_SCHEDULE.update(JETSTREAM_CELERYBEAT_SCHEDULE)
+ALLOCATION_SOURCE_PLUGINS = ['jetstream.plugins.allocation_source.JetstreamAllocationSourcePlugin',]
+{% else %}
+ALLOCATIONS_CELERYBEAT_SCHEDULE = {
+    "update_snapshot_cyverse": {
+        "task": "update_snapshot_cyverse",
+        # Every 15 minutes
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 15 * 60, "time_limit": 15 * 60}
+    },
+    "monitor_allocation_sources": {
+        "task": "monitor_allocation_sources",
+        # Every 15 minutes
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 15 * 60, "time_limit": 15 * 60}
+    },
+}
+CELERYBEAT_SCHEDULE.update(ALLOCATIONS_CELERYBEAT_SCHEDULE)
+ALLOCATION_SOURCE_PLUGINS = ['cyverse_allocation.plugins.allocation_source.FlexibleAllocationSourcePlugin',]
 {% endif %}
 # Logging
-LOGGING_LEVEL = {{ LOGGING_LEVEL }}
+LOGGING_LEVEL = {{ LOGGING_LEVEL | default("logging.INFO") }}
 # Logging level for dependencies.
-DEP_LOGGING_LEVEL = {{ LOGGING_DEP_LEVEL }}
+DEP_LOGGING_LEVEL = {{ LOGGING_DEP_LEVEL | default("logging.WARN") }}
 
 
 PROJECT_ROOT = os.path.abspath(
@@ -224,10 +248,9 @@ DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 
 # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
-{% if USE_ALLOCATION_SOURCE %}
-USE_ALLOCATION_SOURCE = True
-{% endif %}
 
+ENABLE_IMAGE_VALIDATION = {{ ENABLE_IMAGE_VALIDATION | default(False) }}
+ENABLE_PROJECT_SHARING = {{ ENABLE_PROJECT_SHARING | default(False) }}
 
 # Configure authentication plugin
 AUTHENTICATION = {
@@ -251,7 +274,6 @@ AUTHENTICATION = {
     "OAUTH_CLIENT_KEY": '{{ OAUTH_CLIENT_KEY }}',
     "OAUTH_CLIENT_SECRET": '{{ OAUTH_CLIENT_SECRET }}',
     "OAUTH_CLIENT_CALLBACK":  SERVER_URL + '/oauth2.0/callbackAuthorize',
-    "OAUTH_ISSUE_USER": '{{ OAUTH_ISSUE_USER}}',
 
     #LDAP
     "LDAP_SERVER": '{{ LDAP_SERVER }}',
@@ -384,6 +406,39 @@ INSTALLED_APPS += (
     'sslserver',
 )
 {% endif %}
+{% if DJANGO_DEBUG_TOOLBAR %}
+# Include django-debug-toolbar
+INSTALLED_APPS += (
+    'debug_toolbar',
+)
+
+#
+# Read more about this config option here:
+# http://django-debug-toolbar.readthedocs.io/en/latest/configuration.html#debug-toolbar-config
+#
+DEBUG_TOOLBAR_CONFIG = {
+    "SHOW_TOOLBAR_CALLBACK": (lambda request: True),
+}
+MIDDLEWARE_CLASSES += (
+    #For profile/debugging
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+)
+DEBUG_TOOLBAR_PANELS = [
+    'debug_toolbar.panels.versions.VersionsPanel',
+    'debug_toolbar.panels.timer.TimerPanel',
+    # 'debug_toolbar.panels.settings.SettingsPanel',
+    # 'debug_toolbar.panels.headers.HeadersPanel',
+    'debug_toolbar.panels.request.RequestPanel',
+    'debug_toolbar.panels.sql.SQLPanel',
+    # 'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+    # 'debug_toolbar.panels.templates.TemplatesPanel',
+    'debug_toolbar.panels.cache.CachePanel',
+    'debug_toolbar.panels.signals.SignalsPanel',
+    'debug_toolbar.panels.logging.LoggingPanel',
+    # 'debug_toolbar.panels.redirects.RedirectsPanel',
+    'debug_toolbar.panels.profiling.ProfilingPanel',
+]
+{% endif %}
 
 {% if USE_JETSTREAM_PLUGIN %}
 INSTALLED_APPS += (
@@ -392,6 +447,26 @@ INSTALLED_APPS += (
 TACC_API_USER = '{{ TACC_API_USER }}'
 TACC_API_PASS = '{{ TACC_API_PASS }}'
 TACC_API_URL = '{{ TACC_API_URL }}'
+# Uncomment this DEFAULT_QUOTA_PLUGINS line to use the JetstreamSpecialAllocationQuota plugin
+DEFAULT_QUOTA_PLUGINS = [
+    'jetstream.plugins.quota.default_quota.JetstreamSpecialAllocationQuota',
+]
+# TODO: Load special allocation sources from variables.ini
+SPECIAL_ALLOCATION_SOURCES = {
+    'TG-ASC160018': {
+        'compute_allowed': 1000,
+        'default_quota': {
+            'cpu': 2,
+            'memory': 128,
+            'storage': 10,
+            'storage_count': 1,
+            'instance_count': 1,
+            'snapshot_count': 1,
+            'floating_ip_count': -1,
+            'port_count': -1,
+        }
+    }
+}
 {% else %}
 # Uncomment and add values to TACC_API if you intend to use the jetstream plugin
 # INSTALLED_APPS += (
@@ -401,6 +476,11 @@ TACC_API_USER = ''
 TACC_API_PASS = ''
 TACC_API_URL = ''
 {% endif %}
+
+######
+# Atmosphere Plugin Settings
+######
+
 # Validation Plugins:
 # These plugins will be checked, in order, until one passes
 # If all validation plugins fail, user will be "kicked out" of the API.
@@ -418,3 +498,86 @@ VALIDATION_PLUGINS = [
     'atmosphere.plugins.auth.validation.AlwaysAllow',
 ]
 {%- endif %}
+
+# Account Creation Plugins:
+# At least one plugin is required to create accounts for new users.
+# Each plugin will be executed, in order, and allowed to create accounts when a user enters atmosphere.
+{%- if ACCOUNT_CREATION_PLUGINS %}
+ACCOUNT_CREATION_PLUGINS = {{ ACCOUNT_CREATION_PLUGINS }}
+{%- else %}
+# Default creation plugin: UserGroup
+ACCOUNT_CREATION_PLUGINS = [
+    "atmosphere.plugins.accounts.creation.UserGroup",
+    # Alternative creation plugins:
+    #"atmosphere.plugins.accounts.creation.XsedeGroup",
+    #"atmosphere.plugins.accounts.creation.GrouperPlugin",
+]
+{%- endif %}
+
+{%- if GROUPER_API and GROUPER_SEARCH_USER %}
+GROUPER_API = "{{ GROUPER_API }}"
+GROUPER_SEARCH_USER = "{{ GROUPER_SEARCH_USER }}"
+{%- else %}
+
+GROUPER_API = ""
+GROUPER_SEARCH_USER = ""
+{%- endif %}
+
+{%- if SENTRY_ENABLED %}
+import raven
+
+INSTALLED_APPS += (
+    'raven.contrib.django.raven_compat',
+)
+
+SENTRY_DSN = '{{ SENTRY_DSN }}'
+try:
+    SENTRY_RELEASE = raven.fetch_git_sha(os.path.dirname(os.pardir))
+except raven.exceptions.InvalidGitRepository:
+    SENTRY_RELEASE = "59f830c9ee5b58d549ea597b9e6dfd098fb2c5e6"
+{%- endif %}
+
+{%- if EXPIRATION_PLUGINS %}
+EXPIRATION_PLUGINS = [
+{%- for plugin in EXPIRATION_PLUGINS %}
+  "{{ plugin }}",
+{%- endfor %}
+]
+{%- else %}
+EXPIRATION_PLUGINS = [
+    # 'atmosphere.plugins.auth.expiration.LDAPPasswordExpired',
+    'atmosphere.plugins.auth.expiration.NeverExpire',
+]
+{%- endif %}
+
+# Support for Guacamole
+GUACAMOLE_ENABLED = {{ GUACAMOLE_ENABLED }}
+GUACAMOLE = {
+    'SECRET_KEY': '{{ GUACAMOLE_SECRET_KEY }}',
+    'SERVER_URL': '{{ GUACAMOLE_SERVER_URL }}'
+}
+
+# Support for Web Desktop
+WEB_DESKTOP_INCLUDE_LINK = {{ WEB_DESKTOP_INCLUDE_LINK }}
+
+WEB_DESKTOP = {
+    'signing': {
+        'SECRET_KEY': '{{ WEB_DESKTOP_SIGNING_SECRET_KEY }}',
+        'SALT': '{{ WEB_DESKTOP_SIGNING_SALT }}'
+    },
+    'fingerprint': {
+        'SECRET_KEY': '{{ WEB_DESKTOP_FP_SECRET_KEY }}',
+        'SALT': '{{ WEB_DESKTOP_FP_SALT }}'
+    },
+    'redirect': {
+        'ENABLED': WEB_DESKTOP_INCLUDE_LINK,
+        'PROXY_URL': '{{ WEB_DESKTOP_PROXY_URL }}'
+    }
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/var/tmp/django_cache',
+    }
+}

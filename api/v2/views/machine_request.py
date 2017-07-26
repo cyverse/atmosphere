@@ -35,16 +35,37 @@ class MachineRequestViewSet(BaseRequestViewSet):
     ordering_fields = ('start_date', 'end_date', 'new_machine_owner__username')
     ordering = ('-start_date',)
 
+    def get_serializer_class(self):
+        """
+        Return the `serializer_class` or `admin_serializer_class`
+        given the users privileges.
+        """
+        assert self.admin_serializer_class is not None, (
+            "%s should include an `admin_serializer_class` attribute."
+            % self.__class__.__name__
+        )
+        # NOTE: Special case! If we are querying for 'user-facing-view' _as a staff user_ we will see something different than normal users. This line will keep consistency, but is admittedly fragile.
+        # A better solution would be to _include_ ?admin=true or some other queryparam when the admin_serializer_class is desired _or_ splitting into two endpoints.
+        if self.request.query_params.get('new_machine_owner__username','') != '':
+            return self.serializer_class
+
+        http_method = self.request._request.method
+        if http_method != 'POST' and self.request.user.is_staff:
+            return self.admin_serializer_class
+        return self.serializer_class
+
     def get_queryset(self):
         request_user = self.request.user
         if 'active' in self.request.query_params:
             all_active = MachineRequest.objects.filter(
                 (
-                    ~Q(status__name='closed') |
+                    ~Q(status__name__in=['closed', 'completed', 'denied']) |
                     Q(start_date__gt=timezone.now() - timedelta(days=7))
                 )
             )
-            if request_user.is_staff:
+            # NOTE: Special case! If we are querying for 'user-facing-view' _as a staff user_ we will get back all the results rather than only our own. This line will keep consistency, but is admittedly fragile.
+            # A better solution would be to _include_ ?admin=true or some other queryparam when the entire machine-request-list is desired _or_ splitting into two endpoints.
+            if self.request.query_params.get('new_machine_owner__username','') == '' and request_user.is_staff:
                 return all_active.order_by('-start_date')
             return all_active.filter(
                 created_by=request_user
@@ -97,7 +118,8 @@ class MachineRequestViewSet(BaseRequestViewSet):
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
         parent_machine = serializer.validated_data['instance'].provider_machine
-        access_list = serializer.initial_data.get("access_list") or []
+        access_list_usernames = serializer.initial_data.get("access_list") or ""
+        access_list = access_list_usernames.split(",")
         visibility = serializer.initial_data.get("new_application_visibility") 
         new_provider = self._get_new_provider()
         if  visibility in ["select", "private"]:

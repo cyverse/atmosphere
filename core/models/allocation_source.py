@@ -3,16 +3,60 @@ from django.db import models
 from django.utils import timezone
 from threepio import logger
 from pprint import pprint
+from uuid import uuid4
 
 class AllocationSource(models.Model):
-    name = models.CharField(max_length=255)
-    source_id = models.CharField(max_length=255)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
+    name = models.CharField(max_length=255, unique=True)
     compute_allowed = models.IntegerField()
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField(null=True, blank=True)
+    renewal_strategy = models.CharField(max_length=255, default="default")
 
     @classmethod
     def for_user(cls, user):
         source_ids = UserAllocationSource.objects.filter(user=user).values_list('allocation_source', flat=True)
         return AllocationSource.objects.filter(id__in=source_ids)
+
+    def get_instance_ids(self):
+        return self.instanceallocationsourcesnapshot_set.all().values_list('instance__provider_alias', flat=True)
+
+    def is_over_allocation(self, user=None):
+        """Return whether the allocation source `compute_used` is over the `compute_allowed`.
+
+        :return: bool
+        :rtype: bool
+        """
+        return self.time_remaining(user) < 0
+
+    def time_remaining(self, user=None):
+        """
+        Returns the remaining compute_allowed,
+
+        user: If passed in *and* allocation source is 'special', calculate remaining time based on user snapshots.
+
+        Will return a negative number if 'over allocation', when `compute_used` is larger than `compute_allowed`.
+        :return: decimal.Decimal
+        :rtype: decimal.Decimal
+        """
+        # Handling the 'SPECIAL_ALLOCATION_SOURCES'
+        time_shared_allocations = getattr(settings, 'SPECIAL_ALLOCATION_SOURCES', {})
+        if user and self.name in time_shared_allocations.keys():
+            try:
+                compute_allowed = time_shared_allocations[self.name]['compute_allowed']
+            except:
+                raise Exception(
+                    "The structure of settings.SPECIAL_ALLOCATION_SOURCES "
+                    "has changed! Verify your settings are correct and/or "
+                    "change the lines of code above.")
+            last_snapshot = self.user_allocation_snapshots.get(user=user)
+        else:
+            compute_allowed = self.compute_allowed
+            last_snapshot = self.snapshot
+        compute_used = last_snapshot.compute_used if last_snapshot else 0
+        remaining_compute = compute_allowed - compute_used
+        return remaining_compute
+
 
     @property
     def compute_used_updated(self):
@@ -44,7 +88,7 @@ class AllocationSource(models.Model):
 
     def __unicode__(self):
         return "%s (ID:%s, Compute Allowed:%s)" %\
-            (self.name, self.source_id,
+            (self.name, self.uuid,
              self.compute_allowed)
 
 
@@ -61,7 +105,8 @@ class UserAllocationSource(models.Model):
           It is presumed that this table will be *MAINTAINED* regularly via periodic task.
     """
 
-    user = models.ForeignKey("AtmosphereUser")
+    user = models.ForeignKey("AtmosphereUser", related_name="user_allocation_sources")
+    # FIXME: this will not return a QuerySet of AtmosphereUser, it will return a QuerySet of UserAllocationSource.. (Rename related_name?)
     allocation_source = models.ForeignKey(AllocationSource, related_name="users")
 
     def __unicode__(self):
@@ -72,6 +117,7 @@ class UserAllocationSource(models.Model):
     class Meta:
         db_table = 'user_allocation_source'
         app_label = 'core'
+        unique_together = ('user', 'allocation_source')
 
 
 class UserAllocationSnapshot(models.Model):
@@ -111,9 +157,11 @@ class InstanceAllocationSourceSnapshot(models.Model):
 class AllocationSourceSnapshot(models.Model):
     allocation_source = models.OneToOneField(AllocationSource, related_name="snapshot")
     updated = models.DateTimeField(auto_now=True)
+    last_renewed = models.DateTimeField(default=timezone.now)
     # all fields are stored in DecimalField to allow for partial hour calculation
     global_burn_rate = models.DecimalField(max_digits=19, decimal_places=3)
     compute_used = models.DecimalField(max_digits=19, decimal_places=3)
+    compute_allowed = models.DecimalField(max_digits=19, decimal_places=3, default=0)
 
     def __unicode__(self):
         return "%s (Used:%s, Burn Rate:%s Updated on:%s)" %\
@@ -149,3 +197,10 @@ def total_usage(username, start_date, allocation_source_name=None,end_date=None,
                         % (username, allocation_source_name, burn_rate_total))
         return [compute_used_total, burn_rate_total]
     return compute_used_total
+
+
+def get_allocation_source_object(source_id):
+    if not source_id:
+        raise Exception('No source_id provided in _get_allocation_source_object method')
+
+    return AllocationSource.objects.filter(uuid=source_id).last()

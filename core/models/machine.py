@@ -2,18 +2,19 @@
   Machine models for atmosphere.
 """
 from hashlib import md5
-import json
+import json, ast
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist as DoesNotExist
 from django.conf import settings
 from threepio import logger
 
 from core.models.abstract import BaseSource
-from core.models.instance_source import InstanceSource
-from core.models.application import create_application, get_application, verify_app_uuid
+from core.models.instance_source import InstanceSource, update_instance_source_size
+from core.models.application import create_application, get_application, verify_app_uuid, Application
 from core.models.application_version import (
         ApplicationVersion,
         create_app_version,
@@ -236,7 +237,7 @@ def collect_image_metadata(glance_image):
         if verify_app_uuid(glance_image.get('application_uuid'), glance_image.id):
             app_kwargs['uuid'] = glance_image.get('application_uuid')
             app_kwargs['description'] = glance_image.get('application_description')#TODO: Verify that _LINE_BREAK_ is fixed
-            app_kwargs['tags'] = glance_image.get('application_tags')
+            app_kwargs['tags'] = ast.literal_eval(glance_image.get('application_tags'))
         elif is_replicated_version(glance_image.id):
             app_kwargs = replicate_app_kwargs(glance_image.id)
     except AttributeError as exc:
@@ -285,9 +286,10 @@ def convert_glance_image(glance_image, provider_uuid, owner=None):
     application_name = machine_name  # Future: application_name will partition at the 'Application Version separator'.. and pass the version_name to create_version
     provider_machine = get_provider_machine(image_id, provider_uuid)
     if provider_machine:
+        update_instance_source_size(provider_machine.instance_source, glance_image.get('size'))
         return (provider_machine, False)
     app_kwargs = collect_image_metadata(glance_image)
-    if owner and hasattr(owner,'name'):
+    if owner and hasattr(owner, 'name'):
         owner_name = owner.name
     else:
         owner_name = glance_image.get('application_owner')
@@ -325,6 +327,7 @@ def convert_glance_image(glance_image, provider_uuid, owner=None):
     provider_machine = create_provider_machine(
         image_id, provider_uuid,
         app, **machine_kwargs)
+    update_instance_source_size(provider_machine.instance_source, glance_image.get('size'))
     return (provider_machine, True)
 
 
@@ -560,6 +563,9 @@ def _load_machine(esh_machine, provider_uuid):
     # and load (or possibly create) the provider machine
     provider_machine = get_or_create_provider_machine(
         alias, name, provider_uuid, app=app)
+    lc_machine = esh_machine._image
+    image_size = lc_machine.extra.get('image_size')
+    update_instance_source_size(provider_machine.instance_source, image_size)
     return provider_machine
 
 

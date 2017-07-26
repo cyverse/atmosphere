@@ -38,6 +38,9 @@ CELERYD_OPTS="$CELERYD_OPTS -Q:imaging imaging -c:imaging 1 -O:imaging fair"
 
 CELERYD_OPTS="$CELERYD_OPTS -Q:celery_periodic periodic -c:celery_periodic 3 -O:celery_periodic fair"
 CELERYD_OPTS="$CELERYD_OPTS -Q:email email -c:email 1 -O:email fair"
+
+# The format of the CELERYD_ULIMIT variable is something like "-n <max_open_files>"
+CELERYD_ULIMIT="-n 65536"
 {% else %}
 #############
 # Development Settings (Single-Node!)
@@ -125,7 +128,7 @@ CELERY_FLOWER_OPTS="--certfile=$TLS_CERT_FILE --keyfile=$TLS_KEY_FILE --port=844
 
 CELERYBEAT_CHDIR="{{ ATMOSPHERE_LOCATION }}"
 # Extra arguments to celerybeat
-CELERYBEAT_OPTS="--schedule=djcelery.schedulers.DatabaseScheduler"
+CELERYBEAT_OPTS="--schedule=django_celery_beat.schedulers.DatabaseScheduler"
 
 #Where to log and store process id
 CELERYBEAT_LOG_FILE="/var/log/celery/celerybeat.log"

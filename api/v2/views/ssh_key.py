@@ -1,10 +1,10 @@
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.serializers.details import SSHKeySerializer
 
 from core.models import SSHKey
 
 
-class SSHKeyViewSet(AuthViewSet):
+class SSHKeyViewSet(AuthModelViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.

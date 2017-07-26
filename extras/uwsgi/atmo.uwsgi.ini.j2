@@ -2,12 +2,13 @@
 check-static = {{ PATH_TO_ATMOSPHERE }}
 chdir = {{ PATH_TO_ATMOSPHERE }}
 home = {{ VIRTUALENV_PATH }}
-module = atmosphere.wsgi
+module = atmosphere.wsgi:application
+env = DJANGO_SETTINGS_MODULE=atmosphere.settings
 master = true
 socket = /tmp/atmosphere.sock
 thunder-lock = true
 enable-threads = true
-processes = 16
+processes = {{ NUM_PROCESSES }}
 uid = {{ UWSGI_USER }}
 gid = {{ UWSGI_GROUP }}
 buffer-size = 8192

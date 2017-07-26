@@ -1,0 +1,23 @@
+[Unit]
+Description=uWSGI
+After=syslog.target
+
+[Service]
+Type=forking
+User=www-data
+Group=www-data
+Environment="UWSGI_DEB_CONFNAMESPACE=app"
+ExecStart=/bin/sh -c 'UWSGI_DEB_CONFNAME=atmosphere \
+  /opt/env/atmo/bin/uwsgi                        \
+  --ini /usr/share/uwsgi/conf/default.ini        \
+  --ini /etc/uwsgi/apps-enabled/atmosphere.ini   \
+  --daemonize /var/log/uwsgi/app/atmosphere.log; \
+  UWSGI_DEB_CONFNAME=troposphere                 \
+  /opt/env/atmo/bin/uwsgi                        \
+  --ini /usr/share/uwsgi/conf/default.ini        \
+  --ini /etc/uwsgi/apps-enabled/troposphere.ini  \
+  --daemonize /var/log/uwsgi/app/troposphere.log'
+ExecStop=/bin/sh -c "/opt/env/atmo/bin/uwsgi --stop /var/run/uwsgi/app/atmosphere/pid && /opt/env/atmo/bin/uwsgi --stop /var/run/uwsgi/app/troposphere/pid"
+
+[Install]
+WantedBy=multi-user.target

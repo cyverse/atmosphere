@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from core.models import AllocationSource
 from django.db.models.signals import post_save
 
 from .allocation import TASAPIDriver, fill_user_allocation_source_for
@@ -11,10 +12,13 @@ def update_user_allocation_sources(sender, instance, created, **kwargs):
     driver = TASAPIDriver()
     fill_user_allocation_source_for(driver, user)
 
-#FIXME: Re-add this when you have access to the XSede API
+#FIXME: Re-add this when you have access to the XSede API **AND**
+#       ONLY RUN IF you are ENFORCING=True
 #post_save.connect(update_user_allocation_sources, sender=AUTH_USER_MODEL)
 
 # Create your models here.
+
+
 class TASAllocationReport(models.Model):
     """
     Keep track of each Allocation Report that is sent to TACC.API
@@ -34,6 +38,9 @@ class TASAllocationReport(models.Model):
     report_date = models.DateTimeField(blank=True, null=True)
     success = models.BooleanField(default=False)
 
+    class Meta:
+        app_label = 'jetstream'
+
     def send(self, use_beta=False):
         if not self.id:
             raise Exception("ERROR -- This report should be *saved* before you send it!")
@@ -45,11 +52,9 @@ class TASAllocationReport(models.Model):
                 driver = TASAPIDriver(BETA_TACC_API_URL, BETA_TACC_API_USER, BETA_TACC_API_PASS)
             else:
                 driver = TASAPIDriver()
-            success = driver.report_project_allocation(
-                self.id, self.username,
-		self.project_name, float(self.compute_used),
-                self.start_date, self.end_date,
-                self.queue_name, self.scheduler_id)
+            success = driver.report_project_allocation(self.id, self.username, self.project_name,
+                                                       float(self.compute_used), self.start_date, self.end_date,
+                                                       self.queue_name, self.scheduler_id)
             self.success = True if success else False
             if self.success:
                 self.report_date = timezone.now()

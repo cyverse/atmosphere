@@ -16,6 +16,20 @@ class InstanceStatus(models.Model):
     """
     Used to enumerate the types of actions
     (I.e. Stopped, Suspended, Active, Deleted)
+
+    FIXME: (Idea) -- adding a new field, is_final_state
+    Example of 'is_final_state' status for Openstack:
+        - active
+          suspended
+          shutoff
+          error
+          deleted
+          unknown
+    Example of 'is_final_state = False' status for Openstack:
+        - networking
+          deploying
+          deploy_error
+
     """
     name = models.CharField(max_length=128)
 
@@ -32,10 +46,12 @@ class InstanceStatusHistory(models.Model):
     """
     Used to keep track of each change in instance status
     (Useful for time management)
+
+    #FIXME: we might want to handle `InstanceStatus` + `activity` in a different way.
     """
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     instance = models.ForeignKey("Instance")
-    size = models.ForeignKey("Size", null=True, blank=True)
+    size = models.ForeignKey("Size")
     status = models.ForeignKey(InstanceStatus)
     activity = models.CharField(max_length=36, null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
@@ -193,6 +209,11 @@ class InstanceStatusHistory(models.Model):
             all_history = all_history.filter(end_date__lt=end_date)
         return all_history
 
+    def force_end_date(self, now_time=None):
+        if not now_time:
+            now_time = timezone.now()
+        return self.end_date if self.end_date else now_time
+
     def __unicode__(self):
         return "%s (FROM:%s TO:%s)" % (self.status,
                                        self.start_date,
@@ -203,7 +224,8 @@ class InstanceStatusHistory(models.Model):
         Use this function to determine whether or not a specific instance
         status history should be considered 'active'
         """
-        if self.status.name == 'active':
+        # Running is legacy
+        if self.status.name == 'active' or self.status.name == 'running':
             return True
         else:
             return False

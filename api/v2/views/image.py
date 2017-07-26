@@ -71,6 +71,20 @@ class BookmarkedFilterBackend(filters.BaseFilterBackend):
         return queryset
 
 
+class FeaturedFilterBackend(filters.BaseFilterBackend):
+    """
+    Filter bookmarks when 'favorited' is set
+    """
+    def filter_queryset(self, request, queryset, view):
+        request_params = request.query_params
+        featured = request_params.get('featured')
+        if isinstance(featured, basestring) and featured.lower() == 'true'\
+                or isinstance(featured, bool) and featured:
+            return queryset.filter(tags__name__iexact="featured")
+
+        return queryset
+
+
 class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
 
     """
@@ -84,12 +98,13 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
                           permissions.ApplicationMemberOrReadOnly)
 
     serializer_class = ImageSerializer
-    filter_backends = (filters.DjangoFilterBackend, filters.SearchFilter, BookmarkedFilterBackend)
+    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend, filters.SearchFilter, FeaturedFilterBackend, BookmarkedFilterBackend)
     filter_class = ImageFilter
     search_fields = ('id', 'name', 'versions__change_log', 'tags__name',
                      'tags__description', 'created_by__username',
                      'versions__machines__instance_source__identifier',
                      'versions__machines__instance_source__provider__location')
+    ordering = ('-end_date', '-start_date')
 
     def get_queryset(self):
         request_user = self.request.user

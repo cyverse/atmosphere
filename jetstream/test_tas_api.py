@@ -1,10 +1,10 @@
 import json
 
+import freezegun
 import vcr
-from django.test import TestCase
-from django.conf import settings
-from mock import Mock
+from django.test import TestCase, override_settings, modify_settings
 
+from api.tests.factories import UserFactory
 from test_utils.cassette_utils import assert_cassette_playback_length, scrub_host_name
 
 my_vcr = vcr.VCR(
@@ -16,21 +16,21 @@ my_vcr = vcr.VCR(
 )
 
 
+@modify_settings(INSTALLED_APPS={
+    'append': 'jetstream',
+})
+@override_settings(TACC_API_URL='https://localhost/api-test')
 class TestJetstream(TestCase):
     """Tests for Jetstream allocation source API"""
-
-    def setUp(self):
-        if 'jetstream' not in settings.INSTALLED_APPS:
-            self.skipTest('jetstream not in settings.INSTALLED_APPS')
 
     @my_vcr.use_cassette()
     def test_validate_account(self, cassette):
         """Test for a valid account based on the business logic assigned by Jetstream"""
         from jetstream.plugins.auth.validation import XsedeProjectRequired
         jetstream_auth_plugin = XsedeProjectRequired()
-        mock_user = Mock()
-        mock_user.username = 'sgregory'
-        is_jetstream_valid = jetstream_auth_plugin.validate_user(mock_user)
+        user = UserFactory.create(username='sgregory')
+        with freezegun.freeze_time('2016-09-15T05:00:00Z'):
+            is_jetstream_valid = jetstream_auth_plugin.validate_user(user)
         self.assertTrue(is_jetstream_valid)
         assert_cassette_playback_length(cassette, 2)
 
@@ -71,4 +71,21 @@ class TestJetstream(TestCase):
         self.assertEquals(projects[0], result[0])
         self.assertEquals(projects[-1], result[-1])
 
+        assert_cassette_playback_length(cassette, 1)
+
+    @my_vcr.use_cassette()
+    def test_get_tacc_username_api_problem(self, cassette):
+        """Make sure we don't return the Atmosphere username when we have trouble connecting to the TAS API.
+        It should fail.
+
+        TODO: Figure out how to handle it gracefully.
+        """
+        from jetstream.allocation import TASAPIDriver
+        tas_driver = TASAPIDriver()
+        tas_driver.clear_cache()
+        self.assertDictEqual(tas_driver.username_map, {})
+        user = UserFactory.create(username='jfischer')
+        tacc_username = tas_driver.get_tacc_username(user)
+        self.assertIsNone(tacc_username)
+        self.assertDictEqual(tas_driver.username_map, {})
         assert_cassette_playback_length(cassette, 1)

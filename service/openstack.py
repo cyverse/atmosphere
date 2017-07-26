@@ -69,6 +69,7 @@ def _make_unsafe(safe_str):
 def glance_update_machine_metadata(provider_machine, metadata={}):
     update_method = ""
     base_source = provider_machine.instance_source
+    provider = base_source.provider
     base_app = provider_machine.application
     version = provider_machine.application_version
     identifier = base_source.identifier
@@ -87,7 +88,8 @@ def glance_update_machine_metadata(provider_machine, metadata={}):
             "The method for 'introspecting an image' has changed!"
             " Ask a programmer to fix this!")
     overrides = {
-        "application_uuid": base_app.uuid,
+        "application_version": str(version.name),
+        "application_uuid": str(base_app.uuid),
         "application_name": _make_safe(base_app.name),
         "application_owner": base_app.created_by.username,
         "application_tags": json.dumps(

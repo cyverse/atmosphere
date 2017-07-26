@@ -1,0 +1,51 @@
+---
+  # travis.yml for Django
+  sudo: required
+  dist: trusty
+
+  # Use an older version of trusty until quirks are figured out.
+  # https://blog.travis-ci.com/2017-06-21-trusty-updates-2017-Q2-launch
+  group: deprecated-2017Q2
+
+  cache: pip
+
+  language: python
+  python:
+    - 2.7
+
+  env:
+    - DISTRIBUTION=cyverse
+    - DISTRIBUTION=jetstream
+
+  services:
+    - postgresql
+    - redis-server
+
+  addons:
+    postgresql: "9.6"
+
+  before_install:
+    - export DJANGO_SETTINGS_MODULE=atmosphere.settings
+    - sudo pg_dropcluster --stop 9.2 main
+    - sudo pg_dropcluster --stop 9.3 main
+    - sudo pg_dropcluster --stop 9.4 main
+    - sudo pg_dropcluster --stop 9.5 main
+    - sudo pg_lsclusters # For testing purposes
+
+  install:
+    # setuptools and pip-tools are necessary for ./travis/check_properly_generated_requirements.sh
+    - pip install -U pip setuptools pip-tools
+    - pip install -r dev_requirements.txt
+
+  before_script:
+    - psql -c "CREATE USER atmosphere_db_user WITH PASSWORD 'atmosphere_db_pass' CREATEDB;" -U postgres
+    - psql -c "CREATE DATABASE atmosphere_db WITH OWNER atmosphere_db_user;" -U postgres
+    - cp ./variables.ini.dist ./variables.ini
+    - patch variables.ini variables_for_testing_${DISTRIBUTION}.ini.patch
+    - ./configure
+
+  script:
+    - ./travis/check_properly_generated_requirements.sh
+    - python manage.py test --keepdb
+    - python manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION}
+    - python manage.py makemigrations --dry-run --check

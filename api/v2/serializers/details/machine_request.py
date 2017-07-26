@@ -7,7 +7,6 @@ from core.models import (
     AtmosphereUser as User,
     IdentityMembership
 )
-from core.models.status_type import StatusType
 
 from api.v2.serializers.summaries import (
     AllocationSummarySerializer,
@@ -21,11 +20,11 @@ from api.v2.serializers.summaries import (
     ProviderSummarySerializer,
     ProviderMachineSummarySerializer,
     QuotaSummarySerializer,
-    UserSummarySerializer,
-    StatusTypeSummarySerializer
+    UserSummarySerializer
 )
 from api.v2.serializers.fields import (
-    ProviderMachineRelatedField, ModelRelatedField)
+    ProviderMachineRelatedField, ModelRelatedField, IdentityRelatedField, StatusTypeRelatedField
+)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from api.validators import NoSpecialCharacters
 
@@ -54,71 +53,17 @@ class ProviderRelatedField(serializers.RelatedField):
 
     def get_queryset(self):
         return Provider.objects.all()
-    
+
     def to_representation(self, value):
         provider = Provider.objects.get(id=value.id)
         serializer = ProviderSummarySerializer(provider, context=self.context)
         return serializer.data
 
 
-class IdentityRelatedField(serializers.RelatedField):
-
-    def get_queryset(self):
-        return Identity.objects.all()
-
-    def to_representation(self, value):
-        identity = Identity.objects.get(pk=value.pk)
-        serializer = IdentitySummarySerializer(identity, context=self.context)
-        return serializer.data
-
-    def to_internal_value(self, data):
-        queryset = self.get_queryset()
-        if isinstance(data, dict):
-            identity = data.get("id", None)
-        else:
-            identity = data
-        try:
-            return queryset.get(id=identity)
-        except:
-            raise exceptions.ValidationError(
-                "Identity with id '%s' does not exist."
-                % identity
-            )
-
-
-class StatusTypeRelatedField(serializers.RelatedField):
-
-    def get_queryset(self):
-        return StatusType.objects.all()
-
-    def to_representation(self, value):
-        status_type = StatusType.objects.get(pk=value.pk)
-        serializer = StatusTypeSummarySerializer(
-            status_type,
-            context=self.context)
-        return serializer.data
-
-    def to_internal_value(self, data):
-        queryset = self.get_queryset()
-        if isinstance(data, dict):
-            identity = data.get("id", None)
-        else:
-            identity = data
-
-        try:
-            return queryset.get(id=identity)
-        except:
-            raise exceptions.ValidationError(
-                "StatusType with id '%s' does not exist."
-                % identity
-            )
-
-
 class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
 
     uuid = serializers.CharField(read_only=True)
-    identity = IdentityRelatedField(source='membership.identity',
-                                    queryset=Identity.objects.none())
+    identity = IdentityRelatedField(source='membership.identity')
     # This is a *STAFF EXCLUSIVE* serializer. These are the values that make it that way:
     admin_message = serializers.CharField(read_only=True)
     parent_machine = ModelRelatedField(
@@ -132,9 +77,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         queryset=Instance.objects.all(),
         serializer_class=InstanceSummarySerializer,
         style={'base_template': 'input.html'})
-    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
-                                    allow_null=True,
-                                    required=False)
+    status = StatusTypeRelatedField(allow_null=True, required=False)
     old_status = serializers.CharField(required = False)
 
     new_application_visibility = serializers.CharField()
@@ -235,10 +178,10 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         queryset=Instance.objects.all(),
         serializer_class=InstanceSummarySerializer,
         style={'base_template': 'input.html'})
-    status = StatusTypeRelatedField(queryset=StatusType.objects.none(),
-                                    allow_null=True,
-                                    required=False)
-    old_status = serializers.CharField(required = False)
+    start_date = serializers.DateTimeField(read_only=True)
+    end_date = serializers.DateTimeField(read_only=True)
+    status = StatusTypeRelatedField(allow_null=True, required=False)
+    old_status = serializers.CharField(source='clean_old_status', required=False)
 
     new_application_visibility = serializers.CharField()
     new_application_version = ImageVersionSummarySerializer(read_only=True)
@@ -278,6 +221,11 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         serializer_class=ProviderSummarySerializer,
         style={'base_template':'input.html'},
         required=False)
+    new_machine = ModelRelatedField(
+        required = False,
+        queryset = ProviderMachine.objects.all(),
+        serializer_class = ProviderMachineSummarySerializer,
+        style = {'base_template':'input.html'})
     # Absent: new_machine_owner -- determined by User submission
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:machinerequest-detail',
@@ -291,12 +239,13 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'id',
             'uuid',
             'url',
+            'start_date',
+            'end_date',
             'admin_message',
             'instance',
             'status',
             'old_status',
             'new_application_visibility',
-            'new_application_version',
             'new_application_name',
             'new_application_description',
             'access_list',
@@ -314,4 +263,6 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'new_version_scripts',
             'new_version_membership',
             'new_machine_provider',
+            'new_application_version',
+            'new_machine',
         )

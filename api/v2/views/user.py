@@ -4,7 +4,7 @@ from core.models import AtmosphereUser
 from api.permissions import ApiAuthRequired, CloudAdminRequired,\
     InMaintenance
 from api.v2.serializers.details import UserSerializer, AdminUserSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 from rest_framework.filters import SearchFilter
@@ -52,7 +52,7 @@ class MinLengthRequiredSearchFilter(SearchFilter):
         fields = ["username", "email"]
 
 
-class UserViewSet(MultipleFieldLookup, AuthViewSet):
+class UserViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows users to be viewed or edited.

@@ -8,17 +8,16 @@ from django.utils import timezone
 from celery.decorators import task
 
 from core.query import (
-    only_current, only_current_source,
+    contains_credential, only_current, only_current_source,
     source_in_range, inactive_versions)
 from core.models.group import Group
 from core.models.size import Size, convert_esh_size
 from core.models.volume import Volume, convert_esh_volume
-from core.models.instance import convert_esh_instance
+from core.models.instance import Instance, convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import convert_glance_image, get_or_create_provider_machine, ProviderMachine, ProviderMachineMembership
 from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
-from core.models.event_table import EventTable
 from core.models.application_version import ApplicationVersion
 from core.models import Allocation, Credential, IdentityMembership
 
@@ -30,12 +29,13 @@ from service.monitoring import (
     _cleanup_missing_instances,
     _get_instance_owner_map,
     _get_identity_from_tenant_name,
-    allocation_source_overage_enforcement
-)
-from service.monitoring import user_over_allocation_enforcement
+    allocation_source_overage_enforcement_for)
 from service.driver import get_account_driver
 from service.cache import get_cached_driver
+from service.exceptions import TimeoutError
+from rtwo.models.size import OSSize
 from rtwo.exceptions import GlanceConflict, GlanceForbidden
+from libcloud.common.exceptions import BaseHTTPError
 
 from threepio import celery_logger
 
@@ -157,7 +157,7 @@ def monitor_machines():
 
 
 @task(name="monitor_machines_for")
-def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
+def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_run=False):
     """
     Run the set of tasks related to monitoring machines for a provider.
     Optionally, provide a list of usernames to monitor
@@ -172,8 +172,15 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         console_handler = _init_stdout_logging()
 
     account_driver = get_account_driver(provider)
-    cloud_machines = account_driver.list_all_images()
+    #Bail out if account driver is invalid
+    if not account_driver:
+        _exit_stdout_logging(console_handler)
+        return []
 
+    cloud_machines = account_driver.list_all_images()
+    if limit_machines:
+        cloud_machines = [cm for cm in cloud_machines if cm.id in limit_machines]
+    db_machines = []
     # ASSERT: All non-end-dated machines in the DB can be found in the cloud
     # if you do not believe this is the case, you should call 'prune_machines_for'
     for cloud_machine in cloud_machines:
@@ -182,6 +189,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
         owner_project = _get_owner(account_driver, cloud_machine)
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
         (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid, owner_project)
+        db_machines.append(db_machine)
         #STEP 2: For any private cloud_machine, convert the 'shared users' as known by cloud
         update_image_membership(account_driver, cloud_machine, db_machine)
 
@@ -196,7 +204,7 @@ def monitor_machines_for(provider_id, print_logs=False, dry_run=False):
 
     if print_logs:
         _exit_stdout_logging(console_handler)
-    return
+    return db_machines
 
 def _get_owner(accounts, cloud_machine):
     """
@@ -268,8 +276,11 @@ def distribute_image_membership(account_driver, cloud_machine, provider):
     group_ids = ProviderMachineMembership.objects.filter(provider_machine=pm).values_list('group', flat=True)
     groups = Group.objects.filter(id__in=group_ids)
     for group in groups:
-        update_cloud_membership_for_machine(pm, group)
-
+        try:
+            celery_logger.info("Add %s to cloud membership for %s" % (group, pm))
+            update_cloud_membership_for_machine(pm, group)
+        except TimeoutError:
+            celery_logger.warn("Failed to add cloud membership for %s - Operation timed out" % group)
 
 def update_image_membership(account_driver, cloud_machine, db_machine):
     """
@@ -281,7 +292,15 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     image_owner = cloud_machine.get('application_owner','')
     #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
     shared_group_names = [image_owner]
-    shared_projects = account_driver.shared_images_for(cloud_machine.id)
+    shared_projects = account_driver.shared_images_for(cloud_machine.id, None)
+    has_machine_request = db_machine.application_version.machinerequest_set.first()
+    if has_machine_request and has_machine_request.status.name == 'completed':
+        provider = has_machine_request.new_machine_provider
+        identifier = has_machine_request.new_machine.identifier
+        main_account_driver = get_account_driver(provider)
+        shared_projects_from_main =  main_account_driver.shared_images_for(identifier, None)
+        shared_group_names.extend(p.name for p in shared_projects_from_main if p)
+
     shared_group_names.extend(p.name for p in shared_projects if p)
     groups = Group.objects.filter(name__in=shared_group_names)
     if not groups:
@@ -486,24 +505,6 @@ def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
     identity_list = Identity.objects.filter(id__in=all_identities)
     return identity_list
 
-def update_membership(application, shared_identities):
-    """
-    For machine in application/version:
-        Get list of current users
-        For "super-set" list of identities:
-            if identity exists on provider && identity NOT in current user list:
-                account_driver.add_user(identity.name)
-    """
-    db_identity_membership = identity.identity_memberships.all().distinct()
-    for db_identity_member in db_identity_membership:
-        # For each group who holds this identity:
-        #   grant them access to the now-private App, Version & Machine
-        db_group = db_identity_member.member
-        ApplicationMembership.objects.get_or_create(
-            application=application, group=db_group)
-        celery_logger.info("Added Application, Version, and Machine Membership to Group: %s" % (db_group,))
-    return application
-
 
 def make_machines_public(application, account_drivers={}, dry_run=False):
     """
@@ -532,6 +533,34 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
         application.save()
 
 
+@task(name="monitor_resources")
+def monitor_resources():
+    """
+    Update instances for each active provider.
+    """
+    for p in Provider.get_active():
+        monitor_resources_for.apply_async(args=[p.id])
+
+
+@task(name="monitor_resources_for")
+def monitor_resources_for(provider_id, users=None, print_logs=False):
+    """
+    Run the set of tasks related to monitoring all cloud resources for a provider.
+    """
+    resources = {}
+    sizes = monitor_sizes_for(provider_id, print_logs=print_logs)
+    volumes = monitor_volumes_for(provider_id, print_logs=print_logs)
+    machines = monitor_machines_for(provider_id, print_logs=print_logs)
+    instances = monitor_instances_for(provider_id, users=users, print_logs=print_logs)
+    resources.update({
+        'instances': instances,
+        'machines': machines,
+        'sizes': sizes,
+        'volumes': volumes,
+    })
+    return resources
+
+
 @task(name="monitor_instances")
 def monitor_instances():
     """
@@ -541,34 +570,48 @@ def monitor_instances():
         monitor_instances_for.apply_async(args=[p.id])
 
 
-@task(name="enforce_allocation_overage")
-def enforce_allocation_overage(allocation_source_id):
+@task(name="monitor_allocation_sources")
+def monitor_allocation_sources(usernames=()):
     """
-    Update instances for each active provider.
+    Monitor allocation sources, if a snapshot shows that all compute has been used, then enforce as necessary
     """
-    allocation_source = AllocationSource.objects.get(source_id=allocation_source_id)
-    user_instances_enforced = allocation_source_overage_enforcement(allocation_source)
-    EventTable.create_event(
-        name="allocation_source_threshold_enforced",
-        entity_id=source.source_id,
-        payload=new_payload)
-    return user_instances_enforced
+    celery_logger.debug('monitor_allocation_sources - usernames: %s', usernames)
+    allocation_sources = AllocationSource.objects.all()
+    for allocation_source in allocation_sources.order_by('name'):
+        celery_logger.debug('monitor_allocation_sources - allocation_source: %s', allocation_source)
+        for user in allocation_source.all_users.order_by('username'):
+            celery_logger.debug('monitor_allocation_sources - user: %s', user)
+            if usernames and user.username not in usernames:
+                celery_logger.info("Skipping User %s - not in the list" % user.username)
+                continue
+            over_allocation = allocation_source.is_over_allocation(user)
+            celery_logger.debug('monitor_allocation_sources - user: %s, over_allocation: %s', user, over_allocation)
+            if not over_allocation:
+                continue
+            celery_logger.debug('monitor_allocation_sources - Going to enforce on user user: %s', user)
+            allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source, user))
 
-@task(name="monitor_instance_allocations")
-def monitor_instance_allocations():
-    """
-    Update instances for each active provider.
-    """
-    if settings.USE_ALLOCATION_SOURCE:
-        celery_logger.info("Skipping the old method of monitoring instance allocations")
-        return False
-    for p in Provider.get_active():
-        monitor_instances_for.apply_async(args=[p.id], kwargs={'check_allocations':True})
+
+@task(name="allocation_source_overage_enforcement_for_user")
+def allocation_source_overage_enforcement_for_user(allocation_source, user):
+    celery_logger.debug('allocation_source_overage_enforcement_for_user - allocation_source: %s, user: %s',
+                        allocation_source, user)
+    user_instances = []
+    for identity in user.current_identities:
+        try:
+            celery_logger.debug('allocation_source_overage_enforcement_for_user - identity: %s', identity)
+            affected_instances = allocation_source_overage_enforcement_for(allocation_source, user, identity)
+            user_instances.extend(affected_instances)
+        except Exception:
+            celery_logger.exception(
+                'allocation_source_overage_enforcement_for allocation_source: %s, user: %s, and identity: %s',
+                allocation_source, user, identity)
+    return user_instances
 
 
 @task(name="monitor_instances_for")
 def monitor_instances_for(provider_id, users=None,
-                          print_logs=False, check_allocations=False, start_date=None, end_date=None):
+                          print_logs=False, start_date=None, end_date=None):
     """
     Run the set of tasks related to monitoring instances for a provider.
     Optionally, provide a list of usernames to monitor
@@ -580,21 +623,18 @@ def monitor_instances_for(provider_id, users=None,
     # For now, lets just ignore everything that isn't openstack.
     if 'openstack' not in provider.type.name.lower():
         return
-
     instance_map = _get_instance_owner_map(provider, users=users)
 
     if print_logs:
         console_handler = _init_stdout_logging()
-
+    seen_instances = []
     # DEVNOTE: Potential slowdown running multiple functions
     # Break this out when instance-caching is enabled
-    running_total = 0
     if not settings.ENFORCING:
         celery_logger.debug('Settings dictate allocations are NOT enforced')
-    for username in sorted(instance_map.keys()):
-        running_instances = instance_map[username]
-        running_total += len(running_instances)
-        identity = _get_identity_from_tenant_name(provider, username)
+    for tenant_name in sorted(instance_map.keys()):
+        running_instances = instance_map[tenant_name]
+        identity = _get_identity_from_tenant_name(provider, tenant_name)
         if identity and running_instances:
             try:
                 driver = get_cached_driver(identity=identity)
@@ -605,10 +645,11 @@ def monitor_instances_for(provider_id, users=None,
                         identity.provider.uuid,
                         identity.uuid,
                         identity.created_by) for inst in running_instances]
+                seen_instances.extend(core_running_instances)
             except Exception as exc:
                 celery_logger.exception(
                     "Could not convert running instances for %s" %
-                    username)
+                    tenant_name)
                 continue
         else:
             # No running instances.
@@ -617,13 +658,9 @@ def monitor_instances_for(provider_id, users=None,
         core_instances = _cleanup_missing_instances(
             identity,
             core_running_instances)
-        if check_allocations:
-            allocation_result = user_over_allocation_enforcement(
-                provider, username,
-                print_logs, start_date, end_date)
     if print_logs:
         _exit_stdout_logging(console_handler)
-    return running_total
+    return seen_instances
 
 
 @task(name="monitor_volumes")
@@ -660,15 +697,22 @@ def monitor_volumes_for(provider_id, print_logs=False):
         except ObjectDoesNotExist:
             tenant_id = cloud_volume.extra['object']['os-vol-tenant-attr:tenant_id']
             tenant = account_driver.get_project_by_id(tenant_id)
+            tenant_name = tenant.name if tenant else tenant_id
             try:
-                identity = Identity.objects.get(
-                    provider=provider, created_by__username=tenant.name)
+                if not tenant:
+                    celery_logger.warn("Warning: tenant_id %s found on volume %s, but did not exist from the account driver perspective.", tenant_id, cloud_volume)
+                    raise ObjectDoesNotExist()
+                identity = Identity.objects.filter(
+                    contains_credential('ex_project_name', tenant_name), provider=provider
+                ).first()
+                if not identity:
+                    raise ObjectDoesNotExist()
                 core_volume = convert_esh_volume(
                     cloud_volume,
                     provider.uuid, identity.uuid,
                     identity.created_by)
             except ObjectDoesNotExist:
-                celery_logger.info("Skipping Volume %s - Unknown Identity: %s-%s" % (cloud_volume.id, provider, tenant.name))
+                celery_logger.info("Skipping Volume %s - No Identity for: Provider:%s + Project Name:%s" % (cloud_volume.id, provider, tenant_name))
             pass
 
     now_time = timezone.now()
@@ -680,7 +724,9 @@ def monitor_volumes_for(provider_id, print_logs=False):
 
     if print_logs:
         _exit_stdout_logging(console_handler)
-
+    for vol in seen_volumes:
+        vol.esh = None
+    return seen_volumes
 
 @task(name="monitor_sizes")
 def monitor_sizes():
@@ -721,9 +767,28 @@ def monitor_sizes_for(provider_id, print_logs=False):
         size.end_date = now_time
         size.save()
 
+    # Find home for 'Unknown Size'
+    unknown_sizes = Size.objects.filter(provider=provider, name__contains='Unknown Size')
+    for size in unknown_sizes:
+        # Lookup sizes may not show up in 'list_sizes'
+        if size.alias == 'N/A':
+            continue  # This is a sentinal value added for a separate purpose.
+        try:
+            libcloud_size = admin_driver.get_size(size.alias, forced_lookup=True)
+        except BaseHTTPError as error:
+            if error.code == 404:
+                # The size may have been truly deleted
+                continue
+        if not libcloud_size:
+            continue
+        cloud_size = OSSize(libcloud_size)
+        core_size = convert_esh_size(cloud_size, provider.uuid)
+
     if print_logs:
         _exit_stdout_logging(console_handler)
-
+    for size in seen_sizes:
+        size.esh = None
+    return seen_sizes
 
 @task(name="monthly_allocation_reset")
 def monthly_allocation_reset():
@@ -852,9 +917,13 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
     return
 
 def _exit_stdout_logging(consolehandler):
+    if settings.DEBUG:
+        return
     celery_logger.removeHandler(consolehandler)
 
 def _init_stdout_logging(logger=None):
+    if settings.DEBUG:
+        return
     if not logger:
         logger = celery_logger
     import logging

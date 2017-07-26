@@ -12,7 +12,7 @@ import libcloud.security
 
 from django.db.models import Count, Q
 from core.models import AtmosphereUser as User
-from core.models import Provider, ProviderMachine, Size, InstanceSource
+from core.models import Provider, ProviderMachine, Size, InstanceSource, AllocationSource
 from core.query import only_current, only_current_source
 
 from service.instance import launch_instance
@@ -122,7 +122,7 @@ def handle_provider(args):
 
 def sort_most_used_machines(provider, limit=0, offset=0):
     results = ProviderMachine.objects.none()
-    query = InstanceSource.objects.filter(provider__id=4)\
+    query = InstanceSource.objects.filter(provider__id=provider.id)\
            .filter(providermachine__isnull=False)\
            .filter(instances__instancestatushistory__status__name='active').distinct()\
            .annotate(instance_count=Count('instances'))\
@@ -184,7 +184,8 @@ def launch(user, name_prefix, provider, machines, size,
            host, skip_deploy, count):
     ident = user.identity_set.get(provider_id=provider.id)
     instances = []
-    kwargs = {}
+    allocation_source = AllocationSource.objects.get(name__exact=user.username)
+    kwargs = {'allocation_source': allocation_source}
     if host:
         kwargs['ex_availability_zone'] = host
     machine_count = 0

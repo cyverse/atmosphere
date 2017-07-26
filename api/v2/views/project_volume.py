@@ -1,19 +1,19 @@
 from django.db.models import Q
 from django.utils import timezone
 
-from core.models import ProjectVolume
+from core.models import Volume
 
 from api.v2.serializers.details import ProjectVolumeSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 
 
-class ProjectVolumeViewSet(AuthViewSet):
+class ProjectVolumeViewSet(AuthModelViewSet):
 
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
 
-    queryset = ProjectVolume.objects.none()
+    queryset = Volume.objects.none()
     serializer_class = ProjectVolumeSerializer
     filter_fields = ('project__id',)
 
@@ -24,12 +24,12 @@ class ProjectVolumeViewSet(AuthViewSet):
         user = self.request.user
         now = timezone.now()
         # TODO: Refactor -- core.query
-        return ProjectVolume.objects.filter(
-            Q(volume__instance_source__end_date__gt=now)
-            | Q(volume__instance_source__end_date__isnull=True),
-            Q(volume__instance_source__provider__end_date__gt=now)
-            | Q(volume__instance_source__provider__end_date__isnull=True),
-            volume__instance_source__provider__active=True,
-            volume__instance_source__start_date__lt=now,
-            volume__instance_source__provider__start_date__lt=now,
+        return Volume.objects.filter(
+            Q(instance_source__end_date__gt=now)
+            | Q(instance_source__end_date__isnull=True),
+            Q(instance_source__provider__end_date__gt=now)
+            | Q(instance_source__provider__end_date__isnull=True),
+            instance_source__provider__active=True,
+            instance_source__start_date__lt=now,
+            instance_source__provider__start_date__lt=now,
             project__owner__user=user)

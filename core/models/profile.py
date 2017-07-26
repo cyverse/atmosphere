@@ -9,7 +9,7 @@ from hashlib import md5
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(AtmosphereUser, primary_key=True)
+    user = models.OneToOneField(AtmosphereUser, primary_key=True, unique=True)
     # Backend Profile attributes
     send_emails = models.BooleanField(default=True)
     quick_launch = models.BooleanField(default=True)

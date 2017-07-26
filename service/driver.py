@@ -13,7 +13,46 @@ from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
     OSProvider, MockProvider
 from rtwo.models.identity import AWSIdentity, EucaIdentity,\
     OSIdentity, MockIdentity
+from rtwo.models.instance import Instance
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver, MockDriver
+from rtwo.drivers.openstack_network import NetworkManager
+from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_keystone_v3, _token_to_keystone_scoped_project
+from service.mock import AtmosphereMockNetworkManager, AtmosphereMockDriver
+
+class AtmosphereNetworkManager(NetworkManager):
+
+    @staticmethod
+    def create_manager(core_identity):
+        all_creds = core_identity.get_all_credentials()
+        project_name = core_identity.project_name()
+        domain_name = all_creds.get('domain_name', 'default')
+        auth_url = all_creds.get('auth_url','')
+        if '/v' not in auth_url:  # Add /v3 if no version specified in auth_url
+            auth_url += '/v3'
+        if '/v2' in auth_url:  # Remove this when "Legacy cloud" support is removed
+            username = all_creds['key']
+            password = all_creds['secret']
+            auth_url = all_creds.pop('auth_url').replace("/tokens","")
+            network_driver = NetworkManager(
+                auth_url=auth_url,
+                username=username,
+                password=password,
+                tenant_name=project_name,
+                **all_creds)
+            return network_driver
+        elif 'ex_force_auth_token' in all_creds:
+            auth_token = all_creds['ex_force_auth_token']
+            (auth, sess, token) = _token_to_keystone_scoped_project(
+                auth_url, auth_token,
+                project_name, domain_name)
+        else:
+            username = all_creds.get('key','')
+            password = all_creds.get('secret','')
+            (auth, sess, token) = _connect_to_keystone_v3(
+                auth_url, username, password,
+                project_name, domain_name=domain_name)
+        network_driver = NetworkManager(session=sess)
+        return network_driver
 
 
 #TODO: Remove these ASAP -- Once we determine it will not be a problem.
@@ -125,7 +164,7 @@ ESH_MAP = {
     'mock': {
         'provider': MockProvider,
         'identity': MockIdentity,
-        'driver': MockDriver
+        'driver': AtmosphereMockDriver
     },
     'openstack': {
         'provider': OSProvider,
@@ -210,18 +249,15 @@ def prepare_driver(request, provider_uuid, identity_uuid,
     used return None.
     """
     try:
-        core_identity = CoreIdentity.objects.get(provider__uuid=provider_uuid,
-                                                 uuid=identity_uuid)
-        if core_identity in request.user.identity_set.all() or request.user.is_superuser:
-            return get_esh_driver(core_identity=core_identity)
-        else:
-            raise ValueError(
-                "User %s is NOT the owner of Identity UUID: %s" %
-                (request.user.username, core_identity.uuid))
+        core_identity = CoreIdentity.shared_with_user(request.user)\
+                .get(provider__uuid=provider_uuid, uuid=identity_uuid)
+        return get_esh_driver(core_identity=core_identity)
     except (CoreIdentity.DoesNotExist, ValueError):
         logger.exception("Unable to prepare driver.")
         if raise_exception:
-            raise
+            raise ValueError(
+                "User %s is NOT the owner of Identity UUID: %s" %
+                (request.user.username, core_identity.uuid))
         return None
 
 

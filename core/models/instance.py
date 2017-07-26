@@ -16,6 +16,7 @@ import pytz
 
 from rtwo.models.machine import MockMachine
 from rtwo.models.size import MockSize
+from rtwo.models.size import OSSize
 
 from threepio import logger
 
@@ -31,6 +32,7 @@ from core.models.size import (
 from core.models.tag import Tag
 from core.models.managers import ActiveInstancesManager
 from atmosphere import settings
+from service.mock import MockInstance
 
 class Instance(models.Model):
     """
@@ -44,6 +46,7 @@ class Instance(models.Model):
     """
     esh = None
     name = models.CharField(max_length=256)
+    project = models.ForeignKey("Project", null=True, blank=True, related_name='instances')
     # TODO: CreateUUIDfield that is *not* provider_alias?
     # token is used to help instance 'phone home' to server post-deployment.
     token = models.CharField(max_length=36, blank=True, null=True)
@@ -77,11 +80,26 @@ class Instance(models.Model):
     def provider(self):
         return self.source.provider
 
-    @classmethod
-    def for_user(self, user):
-        identity_ids = user.current_identities.values_list('id', flat=True)
-        qs = Instance.objects.filter(created_by_identity__in=identity_ids)
-        return qs
+    @property
+    def project_owner(self):
+        project = self.project
+        if not project:
+            return None
+        return project.owner
+
+    @staticmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        ownership_query = Q(created_by=user)
+        project_query = Q(project__owner__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(project__owner__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(project__owner__memberships__is_leader=True)
+        membership_query = Q(created_by__memberships__group__user=user)
+        return Instance.objects.filter(membership_query | project_query | ownership_query).distinct()
 
     def get_total_hours(self):
         from service.monitoring import _get_allocation_result
@@ -93,14 +111,6 @@ class Instance(models.Model):
         total_hours = result.total_runtime().total_seconds()/3600.0
         hours = round(total_hours, 2)
         return hours
-
-    def get_projects(self, user):
-        # TODO: Replace with 'only_current'
-        projects = self.projects.filter(
-            Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            owner=user,
-        )
-        return projects
 
     def get_first_history(self):
         """
@@ -115,6 +125,37 @@ class Instance(models.Model):
         except ObjectDoesNotExist:
             return None
 
+    def has_history(self, status_name):
+        """
+        Returns the newest InstanceStatusHistory
+        """
+        has_history = self.instancestatushistory_set.order_by(
+            '-start_date').filter(status__name=status_name).first()
+        if has_history:
+            return has_history
+        else:
+            return None
+
+    def show_history(self):
+        """
+        Starting from first known history, create a chain of known changes to the instance. Helpful for debugging/triage.
+        """
+        str_builder = ""
+        next_history = self.get_first_history()
+        while True:
+            if not next_history:
+                break
+            if str_builder != "":
+                str_builder += " -> "
+            str_builder += "%s on %s" % (next_history.status.name, next_history.start_date.strftime("%m/%d/%Y %H:%M:%S"))
+            try:
+                next_history = next_history.next()
+            except (LookupError, ValueError) as exc:
+                next_history = None
+        if self.end_date:
+            str_builder += " -> destroyed on %s" % (self.end_date.strftime("%m/%d/%Y %H:%M:%S"))
+        return str_builder
+
     def get_last_history(self):
         """
         Returns the newest InstanceStatusHistory
@@ -123,7 +164,7 @@ class Instance(models.Model):
         # TODO: Profile Option
         # except InstanceStatusHistory.DoesNotExist:
         # TODO: Profile current choice
-	#FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
+        # FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
         last_history = self.instancestatushistory_set.order_by(
             '-start_date').first()
         if last_history:
@@ -176,14 +217,14 @@ class Instance(models.Model):
         import traceback
         # 1. Get status name
         status_name = _get_status_name_for_provider(
-            self.provider_machine.provider,
+            self.source.provider,
             status_name,
             task,
             tmp_status)
         activity = self.esh_activity()
         # 2. Get the last history (or Build a new one if no other exists)
-        last_history = self.get_last_history()
-        if not last_history:
+        has_history = self.instancestatushistory_set.all().count()
+        if not has_history:
             last_history = InstanceStatusHistory.create_history(
                 status_name, self, size, start_date=self.start_date, activity=activity)
             last_history.save()
@@ -195,6 +236,7 @@ class Instance(models.Model):
                                               tmp_status))
             logger.debug("STATUSUPDATE - Traceback: %s"
                          % traceback.format_stack())
+        last_history = self.get_last_history()
         # 2. Size and name must match to continue using last history
         if last_history.status.name == status_name \
                 and last_history.size.id == size.id:
@@ -362,8 +404,31 @@ class Instance(models.Model):
             return self.esh.extra.get('fault', {})
         return {}
 
+    def api_status(self):
+        # Used by the v2 serializer - db only. no 'esh'
+        last_history = self.get_last_history()
+        if not last_history:
+            return "Unknown"
+        status_name = last_history.status.name
+        #NOTE: This handles the two 'atmosphere created' special-case status types, networking/deploying.
+        # If the last history is one of these states, return active
+        if status_name in ["networking","deploy_error","deploying"]:
+            return "active"
+        return status_name
+
+    def api_activity(self):
+        # Used by the v2 serializer - db only. no 'esh'
+        last_history = self.get_last_history()
+        if not last_history:
+            return ""
+        status_name = last_history.status.name
+        #FIXME: Using this, for now, in place of a better solution.descripted in core/models/instance_history.py:InstanceStatus
+        if status_name not in ["networking","deploy_error","deploying"]:
+            return ""
+        return status_name
+
     def esh_status(self):
-        if self.esh:
+        if self.esh and type(self.esh) != MockInstance:
             return self.esh.get_status()
         last_history = self.get_last_history()
         if last_history:
@@ -388,6 +453,11 @@ class Instance(models.Model):
             return activity
         else:
             return "Unknown"
+
+    def get_provider(self):
+        if not self.source:
+            return
+        return self.source.provider
 
     def get_size(self):
         return self.get_last_history().size
@@ -461,9 +531,8 @@ class Instance(models.Model):
 
     @property
     def allocation_source(self):
-        #FIXME: look up the current allocation source by "Scanning the event table" on this instance.
-        from core.models.allocation_source import \
-                InstanceAllocationSourceSnapshot as Snapshot
+        # FIXME: look up the current allocation source by "Scanning the event table" on this instance.
+        from core.models.allocation_source import InstanceAllocationSourceSnapshot as Snapshot
         snapshot = Snapshot.objects.filter(instance=self).first()
         return snapshot.allocation_source if snapshot else None
 
@@ -471,8 +540,6 @@ class Instance(models.Model):
         """
         Call this method when you want to issue a 'change_allocation_source' event to the database.
         """
-        if not settings.USE_ALLOCATION_SOURCE:
-            return
         from core.models.event_table import EventTable
         if not user:
             user = self.created_by
@@ -480,7 +547,7 @@ class Instance(models.Model):
         if not allocation_source:
             raise Exception("Allocation source must not be null")
         payload = {
-                'allocation_source_id': allocation_source.source_id,
+                'allocation_source_name': allocation_source.name,
                 'instance_id': self.provider_alias
         }
         return EventTable.create_event(
@@ -513,6 +580,10 @@ Useful utility methods for the Core Model..
 """
 OPENSTACK_TASK_STATUS_MAP = {
     # Terminate tasks
+    # Shelving tasks
+    'shelving': 'shelved',
+    'shelving_image_uploading': 'shelved',
+    'shelving_image_pending_upload': 'shelved',
     # Suspend tasks
     'resuming': 'build',
     'suspending': 'suspended',
@@ -525,6 +596,7 @@ OPENSTACK_TASK_STATUS_MAP = {
     'spawning': 'build',
     # Atmosphere Task-specific lines
     'networking': 'networking',
+    'redeploying': 'redeploy',
     'deploying': 'deploying',
     'running_boot_script': 'deploying',
     'deploy_error': 'deploy_error',
@@ -753,7 +825,7 @@ def convert_esh_instance(
         _update_core_instance(core_instance, ip_address, password)
     else:
         start_date = _find_esh_start_date(esh_instance)
-        logger.debug("Instance: %s" % instance_id)
+        logger.debug("Creating new CoreInstance: %s" % instance_id)
         core_source = convert_instance_source(
             esh_driver,
             esh_instance,
@@ -779,7 +851,6 @@ def convert_esh_instance(
     # Update the InstanceStatusHistory
     core_size = _esh_instance_size_to_core(esh_driver,
                                            esh_instance, provider_uuid)
-    # TODO: You are the mole!
     core_instance.update_history(
         esh_instance.extra['status'],
         core_size,
@@ -801,7 +872,8 @@ def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
         # so a lookup on the size is required to get accurate
         # information.
         # TODO: Switch to 'get_cached_size!'
-        new_size = esh_driver.get_size(esh_size.id)
+        lc_size = esh_driver.get_size(esh_size.id, forced_lookup=True)
+        new_size = OSSize(lc_size)
         if new_size:
             esh_size = new_size
     core_size = convert_esh_size(esh_size, provider_uuid)
@@ -876,5 +948,5 @@ def create_instance(
     else:
         logger.debug("New instance object - %s<%s>" %
                      (name, provider_alias,))
-    # NOTE: No instance_status_history here, because status is not passed
+    # FIXME: create instance_status_history here, pass in size & status to help
     return new_inst

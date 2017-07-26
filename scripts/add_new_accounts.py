@@ -2,14 +2,19 @@
 
 # DEPRECATION WARNING -- Will be removed in favor of periodic task (To facilitate auto-generation of `atmo-user` accounts)
 # and the use of the /v2/accounts API.
+# FIXME: Add 'account_user, group_name, is_leader' args to this script
 import argparse
 import libcloud.security
 
 import django
+
 django.setup()
 
+import core.models
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
+from core.query import contains_credential
+from core.plugins import ValidationPluginManager, ExpirationPluginManager, AccountCreationPluginManager
 
 from django_cyverse_auth.protocol.ldap import get_members
 from service.driver import get_account_driver
@@ -37,8 +42,10 @@ def main():
                         help="List of provider names and IDs")
     parser.add_argument("--rebuild", action="store_true",
                         help="Rebuild all accounts that are in the provider")
+    parser.add_argument("--group",
+                        help="LDAP group of usernames to import.")
     parser.add_argument("--users",
-                        help="LDAP usernames to import. (comma separated list with no spaces)")
+                        help="usernames to add to Atmosphere. (comma separated list with no spaces)")
     parser.add_argument("--admin", action="store_true",
                         help="Users addded as admin and staff users.")
     args = parser.parse_args()
@@ -49,7 +56,7 @@ def main():
             print "%d\t%s" % (p.id, p.location)
         return
 
-    users = None
+    usernames = []
     if args.provider_id and not args.provider:
         print "WARNING: --provider-id has been *DEPRECATED*! Use --provider instead!"
         args.provider = args.provider_id
@@ -58,7 +65,6 @@ def main():
     else:
         raise Exception("Missing required argument: --provider <id>. use --provider-list to get a list of provider ID+names")
     print "Using Provider: %s" % provider
-    type_name = provider.type.name.lower()
     try:
         acct_driver = get_account_driver(provider, raise_exception=True)
     except:
@@ -66,55 +72,39 @@ def main():
         print "Could not create the account Driver for this Provider."\
               " Check the configuration of this identity:%s" % account_provider
         raise
-    if not args.users:
+    if args.group:
+        print "Retrieving all '%s' members in LDAP." % args.group
+        usernames = get_members(args.group)
+    elif args.users:
+        usernames = args.users.split(",")
+    else: # if not args.users
         if not args.rebuild:
             print "Retrieving all 'atmo-user' members in LDAP."
-            users = get_members('atmo-user')
+            usernames = get_members('atmo-user')
         else:
             print "Rebuilding all existing users."
-            users = get_usernames(provider)
-    else:
-        users = args.users.split(",")
-    return create_accounts(acct_driver, provider, users,
-                           args.rebuild, args.admin)
+            usernames = get_usernames(provider)
+    return run_create_accounts(acct_driver, provider, usernames,
+                               args.rebuild, args.admin)
 
 
-def create_accounts(acct_driver, provider, users, rebuild=False, admin=False):
-    added = 0
-    for user in users:
-        # Then add the Openstack Identity
-        try:
-            id_exists = Identity.objects.filter(
-                created_by__username__iexact=user,
-                provider=provider)
-            if id_exists:
-                if not rebuild:
-                    continue
-                print "%s Exists -- Attempting an account rebuild" % user
-            new_identity = acct_driver.create_account(user, max_quota=admin)
-            # After identity is created, be sure to select one of the
-            # `public_routers` in provider to be given
-            # to the identity as a `router_name`
-            selected_router = provider.select_router()
-            Identity.update_credential(
-                new_identity, 'router_name', selected_router,
-                replace=True)
-            added += 1
-            if admin:
-                make_admin(user)
-                print "%s added as admin." % (user)
-            else:
-                print "%s added." % (user)
-        except Exception as e:
-            logger.exception("Problem creating account")
-            print "Problem adding %s." % (user)
-            logger.exception(e)
-            print e.message
-    print "Total users added:%s" % (added)
+def run_create_accounts(acct_driver, provider, usernames, rebuild=False, admin=False):
+    user_total = 0
+    identity_total = 0
+    for username in sorted(usernames):
+        new_identities = AccountCreationPluginManager.create_accounts(provider, username, force=rebuild)
+        if new_identities:
+            count = len(new_identities)
+            print "%s new identities identity_total for %s." % (count, username)
+            identity_total += count
+            user_total += 1
+        if admin:
+            make_admin(username)
+    print "%s Total identities identity_total for %s users" % (identity_total, user_total)
 
 
-def make_admin(user):
-    u = User.objects.get(username=user)
+def make_admin(username):
+    u = User.objects.get(username=username)
     u.is_superuser = True
     u.is_staff = True
     u.save()

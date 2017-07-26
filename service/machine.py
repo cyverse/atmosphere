@@ -59,6 +59,8 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
     NOTE: Current process accepts instance with source of 'Image' ONLY!
           VOLUMES CANNOT BE IMAGED until this function is updated!
     """
+    if not new_image_id:
+        raise Exception("Cannot process a request if new_image_id is None")
     # Based on original instance -- You'll need this:
     parent_mach = machine_request.instance.provider_machine
     parent_version = parent_mach.application_version
@@ -259,18 +261,24 @@ def update_cloud_membership_for_machine(provider_machine, group):
     if not admin_driver:
         raise NotImplemented("Admin Driver could not be created for %s" % prov)
     img = accounts.get_image(provider_machine.identifier)
-    projects = accounts.shared_images_for(img.id)
+    if img.visibility == 'public':
+       return
+    approved_projects = accounts.shared_images_for(img.id)
     for identity_membership in group.identitymembership_set.all():
         if identity_membership.identity.provider != prov:
             logger.debug("Skipped %s -- Wrong provider" % identity_membership.identity)
             continue
         # Get project name from the identity's credential-list
-        project_name = identity_membership.identity.get_credential('ex_project_name')
+        identity = identity_membership.identity
+        project_name = identity.get_credential('ex_project_name')
         project = accounts.get_project(project_name)
-        if project and project not in projects:
+        if not project:
+            logger.debug("Unknown Project: %s -- Does not exist" % project)
+            continue
+        elif project in approved_projects:
             logger.debug("Skipped Project: %s -- Already shared" % project)
             continue
-        accounts.share_image_with_project(img, project_name)
+        accounts.share_image_with_identity(img, identity)
 
 
 def update_db_membership_for_group(provider_machine, group):
@@ -310,7 +318,7 @@ def remove_membership(image_version, group):
         if not admin_driver:
             raise NotImplemented("Admin Driver could not be created for %s" % prov)
         img = accounts.get_image(provider_machine.identifier)
-        projects = accounts.shared_images_for(img.id)
+        approved_projects = accounts.shared_images_for(img.id)
         for identity_membership in group.identitymembership_set.all():
             if identity_membership.identity.provider != prov:
                 continue
@@ -318,7 +326,7 @@ def remove_membership(image_version, group):
             project_name = identity_membership.identity.get_credential(
                     'ex_project_name')
             project = accounts.get_project(project_name)
-            if project and project not in projects:
+            if project and project not in approved_projects:
                 continue
             # Perform a *DATABASE* remove first.
             models.ApplicationMembership.objects.filter(
@@ -347,9 +355,9 @@ def sync_machine_membership(accounts, glance_image, new_machine, tenant_list):
     This function will check that *all* tenants in 'tenant_list'
      have been added to OpenStack and DB-level access controls
     """
-    tenant_list = sync_cloud_access(accounts, glance_image, names=tenant_list)
+    tenant_list = sync_cloud_access(accounts, glance_image, project_names=tenant_list)
     # Make private on the DB level
-    make_private(accounts.image_manager,
+    return make_private(accounts.image_manager,
                  glance_image, new_machine, tenant_list)
 
 
@@ -367,22 +375,32 @@ def share_with_self(private_userlist, username):
     private_userlist.append(str(username))
     return private_userlist
 
-def sync_cloud_access(accounts, img, names=None):
-    shared_with = accounts.image_manager.shared_images_for(
-        image_id=img.id)
-    # Find tenants who are marked as 'sharing' on openstack but not on DB
-    # Or just in One-line..
-    projects = accounts.shared_images_for(img.id)
+def sync_cloud_access(accounts, img, project_names=None):
+    domain_id = accounts.credentials.get('domain_name', 'default')
+    approved_projects = accounts.shared_images_for(img.id)
     # Any names who aren't already on the image should be added
     # Find names who are marked as 'sharing' on DB but not on OpenStack
-    for name in names:
-        project = accounts.get_project(name)
-        if project and project not in projects:
-            print "Sharing image %s with project named %s" \
-                % (img.id, name)
-            accounts.image_manager.share_image(img, name)
-            projects.append(project)
-    return projects
+    for project_name in project_names:
+        # FIXME: Remove .strip() when 'bug' has been fixed
+        group_name = project_name.strip()  # FIXME: This code should be changed when user-group-project associations change.
+        try:
+            group = models.Group.objects.get(name=group_name)
+        except:
+            raise Exception("Invalid group name: %s" % group_name)
+        for identity_membership in group.identitymembership_set.all():
+            if identity_membership.identity.provider != accounts.core_provider:
+                logger.debug("Skipped %s -- Wrong provider" % identity_membership.identity)
+                continue
+            # Get project name from the identity's credential-list
+            identity = identity_membership.identity
+            project_name = identity.get_credential('ex_project_name')
+            project = accounts.get_project(project_name, domain_id=domain_id)
+            if not project or project in approved_projects:
+                logger.debug("Skipped Project: %s -- Already shared" % project)
+                continue
+            project = accounts.share_image_with_identity(img, identity)
+            approved_projects.append(project)
+    return approved_projects
 
 
 def make_private(image_manager, image, provider_machine, tenant_list=[]):
@@ -392,21 +410,21 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
         provider_machine.application.save()
     # Add all these people by default..
     owner = provider_machine.application.created_by
-    group_list = owner.group_set.all()
+    membership_list = owner.memberships.select_related('group')
     if tenant_list:
         # ASSERT: Groupnames == Usernames
-        tenant_list.extend([group.name for group in group_list])
+        tenant_list.extend([membership.group.name for membership in membership_list])
     else:
-        tenant_list = [group.name for group in group_list]
+        tenant_list = [membership.group.name for membership in membership_list]
     for tenant in tenant_list:
         if type(tenant) != unicode:
-            name = tenant.name
+            groupname = tenant.name
         else:
-            name = tenant
+            groupname = tenant
         try:
-            group = models.Group.objects.get(name=name)
+            group = models.Group.objects.get(name=groupname)
         except models.Group.DoesNotExist:
-            logger.warn("Group %s does not exist - Skipped sharing" % name)
+            logger.warn("Group %s does not exist - Skipped sharing" % groupname)
             pass
 
         obj, created = models.ApplicationMembership.objects.get_or_create(

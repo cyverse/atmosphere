@@ -51,3 +51,8 @@ clank
 *-extras/*
 secrets*
 scratch
+
+# Ignore Coverage files
+.coverage
+coverage.xml
+htmlcov/

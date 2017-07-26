@@ -107,6 +107,24 @@ class MachineRequest(BaseRequest):
         return cls.objects.filter(instance=instance,
                 status__name__in=UNRESOLVED_STATES).count() > 0
 
+    def _recover_from_error(self, status=None):
+        if not status:
+            status = self.old_status
+        # If old_status is empty and no value passed-in...
+        if not status:
+            return False, status
+        # Hide the 'error' message from view
+        if 'exception' in status.lower():
+            return True, status[
+                status.find("(") + 1:status.find(")")]
+        return False, status
+
+
+    @property
+    def clean_old_status(self):
+        return self._recover_from_error()[1]
+
+
     def clean(self):
         """
         Clean up machine requests before saving initial objects to allow
@@ -174,18 +192,20 @@ class MachineRequest(BaseRequest):
             or self.new_version_cpu_min > 0
 
     def migrate_access_to_membership_list(self, access_list):
+        #FIXME: We are granting 'user' access but *in reality* we *should* grant *group* access and avoid this possible over-step.
         for user in access_list:
             # 'User' -> User -> Group -> Membership
-            user_qs = User.objects.filter(username=user)
-            if not user_qs.exists():
+            user = User.objects.filter(username=user).first()
+            if not user:
                 logger.warn("WARNING: User %s does not have a user object" % user)
                 continue
-            usergroup_qs = user_qs[0].group_set.filter(name=user)
-            if not usergroup_qs:
+            memberships_qs = user.memberships.select_related('group')
+            if not memberships_qs:
                 logger.warn("WARNING: User %s does not have a group object" % user)
                 continue
-            group = usergroup_qs[0]
-            self.new_version_membership.add(group)
+            for membership in memberships_qs:
+                group = membership.group
+                self.new_version_membership.add(group)
 
     def _get_meta_name(self):
         """
@@ -279,6 +299,8 @@ class MachineRequest(BaseRequest):
         old_admin = old_provider.get_admin_identity().get_credentials()
         if 'ex_force_auth_version' not in old_creds:
             old_creds['ex_force_auth_version'] = '2.0_password'
+        if old_creds['ex_force_auth_version'] != '2.0_password' and 'domain_name' not in old_creds:
+            old_creds['domain_name'] = 'default'
         old_creds.update(old_admin)
 
         new_provider = self.new_machine_provider
@@ -290,8 +312,15 @@ class MachineRequest(BaseRequest):
                 new_creds['ex_force_auth_version'] = '2.0_password'
             new_admin = new_provider.get_admin_identity().get_credentials()
             new_creds.update(new_admin)
+        if new_creds.get('ex_force_auth_version','') != '2.0_password' and 'domain_name' not in new_creds:
+            new_creds['domain_name'] = 'default'
 
         return (old_creds, new_creds)
+
+    def on_update_status(self, latest_update):
+        self.old_status = "(imaging) %s" % latest_update
+        logger.info("Status update: %s" % self.old_status)
+        self.save()
 
     def prepare_manager(self):
         """
@@ -367,6 +396,7 @@ class MachineRequest(BaseRequest):
             # ASSUMPTION: the Creator's username == the LINUX username that was also created for them!
             #FIXME if the ASSUMPTION above changes!
             "created_by": self.instance.created_by.username,
+            "machine_request": self,
             "remove_image": True,
             "remove_local_image": True,
             "upload_image": True,

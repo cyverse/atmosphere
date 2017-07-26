@@ -70,6 +70,7 @@ class Provider(models.Model):
     Start date and end date are recorded for logging purposes
     """
     # CONSTANTS
+    # ALLOWED STATES - The states allowed when OverAllocation is hit by Instance.
     ALLOWED_STATES = [
         "Suspend",
         "Stop",
@@ -97,6 +98,24 @@ class Provider(models.Model):
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
 
+    def to_jsonfile(self):
+        identity = self.accountprovider_set.first().identity
+        username = identity.get_credential('key')
+        password = identity.get_credential('secret')
+        projectName = identity.project_name()
+        return {
+            'admin': {
+                "username": username,
+                "password": password,
+                "tenant": projectName
+            },
+            "credential": self.get_credentials(),
+            "provider": {
+                      "public": self.public,
+                      },
+            "cloud_config": self.cloud_config
+        }
+
     def clean(self):
         """
         Don't allow 'non-terminal' InstanceAction
@@ -109,6 +128,27 @@ class Provider(models.Model):
                 "Instance action %s is not in ALLOWED_STATES for "
                 "Over allocation action. ALLOWED_STATES=%s" %
                 (self.over_allocation_action.name, Provider.ALLOWED_STATES))
+
+    @staticmethod
+    def shared_with_group(group):
+        """
+        """
+        group_query = Q(identity__identity_memberships__member=group)
+        return Provider.objects.filter(group_query)
+
+    @staticmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        #ownership_query = Q(created_by=user)
+        project_query = Q(identity__identity_memberships__member__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(identity__identity_memberships__member__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(identity__identity_memberships__member__memberships__is_leader=True)
+        #return Provider.objects.filter(project_query | ownership_query)
+        return Provider.objects.filter(project_query)
 
     @classmethod
     def get_active(cls, provider_uuid=None, type_name=None):
@@ -220,15 +260,15 @@ class Provider(models.Model):
         if not router_distribution:
             router_distribution = self.get_router_distribution()
         minimum = -1
-        minimum_key = None
-        for key, count in router_distribution.items():
+        router_name = None
+        for rtr_name, count in router_distribution.items():
             if minimum == -1:
                 minimum = count
-                minimum_key = key
+                router_name = rtr_name
             elif count < minimum:
                 minimum = count
-                minimum_key = key
-        return minimum_key
+                router_name = rtr_name
+        return router_name
 
     def get_router_distribution(self, router_count_map={}):
         """
@@ -275,9 +315,9 @@ class Provider(models.Model):
         return AtmosphereUser.objects.filter(username__in=users_on_provider)
 
     def list_admin_names(self):
-        return self.accountprovider_set.values_list(
-            'identity__created_by__username',
-            flat=True)
+        from core.models import Credential
+        identity_ids = self.accountprovider_set.values_list('identity__id', flat=True)
+        return Credential.objects.filter(identity__id__in=identity_ids, key='key').values_list('value', flat=True)
 
     @property
     def admin(self):

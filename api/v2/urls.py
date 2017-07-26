@@ -16,7 +16,6 @@ router.register(
 router.register(r'allocation_sources', views.AllocationSourceViewSet)
 router.register(r'boot_scripts', views.BootScriptViewSet)
 router.register(r'credentials', views.CredentialViewSet)
-router.register(r'events', views.EventViewSet, base_name='event')
 router.register(r'email_template', views.EmailTemplateViewSet)
 router.register(r'email_feedback', views.FeedbackEmailViewSet, base_name='email-feedback')
 router.register(r'email_instance_report', views.InstanceSupportEmailViewSet, base_name='instance-email-support')
@@ -28,6 +27,7 @@ router.register(r'help_links', views.HelpLinkViewSet)
 router.register(r'identities', views.IdentityViewSet)
 router.register(r'identity_memberships', views.IdentityMembershipViewSet, base_name='identitymembership')
 router.register(r'images', views.ImageViewSet, base_name='application')
+router.register(r'image_metrics', views.ImageMetricViewSet, base_name='applicationmetric')
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
 router.register(r'image_tags', views.ImageTagViewSet)
 router.register(
@@ -50,6 +50,9 @@ router.register(r'instances', views.InstanceViewSet, base_name='instance')
 router.register(r'instance_actions',
     views.InstanceActionViewSet,
     base_name='instanceaction')
+router.register(r'instance_allocation_source',
+                views.InstanceAllocationSourceViewSet,
+                base_name='instance-allocation-source')
 router.register(r'instance_histories',
     views.InstanceStatusHistoryViewSet,
     base_name='instancestatushistory')
@@ -58,13 +61,13 @@ router.register(r'licenses', views.LicenseViewSet)
 router.register(r'links', views.ExternalLinkViewSet)
 router.register(r'machine_requests', views.MachineRequestViewSet)
 router.register(r'maintenance_records', views.MaintenanceRecordViewSet)
-router.register(r'metrics', views.MetricViewSet)
+router.register(r'metrics', views.MetricViewSet, base_name='metrics')
 router.register(r'platform_types', views.PlatformTypeViewSet)
 router.register(r'projects', views.ProjectViewSet)
 router.register(r'project_links', views.ProjectExternalLinkViewSet, base_name='projectlinks')
 router.register(r'project_images', views.ProjectApplicationViewSet)
-router.register(r'project_instances', views.ProjectInstanceViewSet)
-router.register(r'project_volumes', views.ProjectVolumeViewSet)
+router.register(r'project_instances', views.ProjectInstanceViewSet, base_name='projectinstances')
+router.register(r'project_volumes', views.ProjectVolumeViewSet, base_name='projectvolumes')
 router.register(r'providers', views.ProviderViewSet)
 router.register(
     r'provider_machines',
@@ -72,6 +75,7 @@ router.register(
     base_name='providermachine')
 router.register(r'provider_types', views.ProviderTypeViewSet, base_name='providertype')
 router.register(r'quotas', views.QuotaViewSet)
+router.register(r'renewal_strategy',views.RenewalStrategyViewSet, base_name='renewalstrategy')
 router.register(r'resource_requests', views.ResourceRequestViewSet)
 router.register(r'reporting', views.ReportingViewSet, base_name='reporting')
 router.register(r'sizes', views.SizeViewSet)
@@ -80,6 +84,7 @@ router.register(r'tags', views.TagViewSet)
 router.register(r'token_update', views.TokenUpdateViewSet, base_name='token_update')
 router.register(r'tokens', views.TokenViewSet, base_name='token')
 router.register(r'users', views.UserViewSet)
+router.register(r'user_allocation_sources', views.UserAllocationSourceViewSet, base_name='user-allocation-source')
 router.register(r'groups', views.GroupViewSet, base_name='group')
 router.register(r'volumes', views.VolumeViewSet, base_name='volume')
 router.register(r'ssh_keys', views.SSHKeyViewSet, base_name='ssh_key')
@@ -89,4 +94,26 @@ router.register(r'deploy_version', base_views.DeployVersionViewSet,
                 base_name='version-deploy')
 
 api_v2_urls = router.urls
-urlpatterns = [url(r'^', include(api_v2_urls))]
+uuid_match = '[a-zA-Z0-9-]+'
+
+#NOTE: To include APIViews, add to the list below
+api_views_urls = [
+    url(r'web_tokens/(?P<pk>%s)' % uuid_match,
+        views.WebTokenView.as_view()),
+]
+api_v2_urls.extend(api_views_urls)
+
+# ACTIONS url routes...
+action_router = routers.DefaultRouter(trailing_slash=False)
+action_router.register(r'resource_request_update_quota', views.ResourceRequest_UpdateQuotaViewSet, base_name='resource_request_update_quota')
+
+api_v2_action_urls = action_router.urls
+
+# api_v2_action_urls = [
+#     url(r'resource_request_update_quota', views.ResourceRequest_UpdateQuotaViewSet.as_view({'post':'create'}))
+# ]
+
+urlpatterns = [
+    url(r'^', include(api_v2_urls)),
+    url(r'^actions/', include(api_v2_action_urls)),
+    ]

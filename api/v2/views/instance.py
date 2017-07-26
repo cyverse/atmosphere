@@ -1,11 +1,11 @@
 from api.v2.serializers.details import InstanceSerializer, InstanceActionSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.v2.views.instance_action import InstanceActionViewSet
 
 from core.exceptions import ProviderNotActive
-from core.models import Instance, Identity, AllocationSource, EventTable
+from core.models import Instance, Identity, UserAllocationSource, Project, AllocationSource
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
 from core.models.instance_action import InstanceAction
@@ -36,7 +36,7 @@ from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 
 
-class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
+class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     API endpoint that allows providers to be viewed or edited.
@@ -44,7 +44,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
 
     queryset = Instance.objects.all()
     serializer_class = InstanceSerializer
-    filter_fields = ('created_by__id', 'projects')
+    filter_fields = ('created_by__id', 'project')
     lookup_fields = ("id", "provider_alias")
     http_method_names = ['get', 'put', 'patch', 'post',
                          'delete', 'head', 'options', 'trace']
@@ -61,10 +61,15 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         Filter projects by current user.
         """
         user = self.request.user
-        qs = Instance.for_user(user)
-        if 'archived' in self.request.query_params:
-            return qs
-        return qs.filter(only_current())
+        qs = Instance.shared_with_user(user)
+        if 'archived' not in self.request.query_params:
+            qs = qs.filter(only_current())
+        # logger.info("DEBUG- User %s querying for instances, available IDs are:%s" % (user, qs.values_list('id',flat=True)))
+        qs = qs.select_related("created_by")\
+            .select_related('created_by_identity')\
+            .select_related('source')\
+            .select_related('project')
+        return qs
 
     @detail_route(methods=['post'])
     def update_metadata(self, request, pk=None):
@@ -108,6 +113,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         identity = instance.created_by_identity
         action_params = request.data
         action = action_params.pop('action')
+        if type(action) == list:
+            action = action[0]
         try:
             result_obj = run_instance_action(user, identity, instance_id, action, action_params)
             api_response = {
@@ -143,12 +150,12 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             return failure_response(
                 status.HTTP_409_CONFLICT,
                 "The requested action %s is not available on this provider."
-                % action_params['action'])
+                % action)
         except ActionNotAllowed:
             return failure_response(
                 status.HTTP_409_CONFLICT,
                 "The requested action %s has been explicitly "
-                "disabled on this provider." % action_params['action'])
+                "disabled on this provider." % action)
         except Exception as exc:
             logger.exception("Exception occurred processing InstanceAction")
             message = exc.message
@@ -160,34 +167,37 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
                 status.HTTP_403_FORBIDDEN,
                 "The requested action %s encountered "
                 "an irrecoverable exception: %s"
-                % (action_params['action'], message))
+                % (action, message))
 
     def perform_destroy(self, instance):
         user = self.request.user
-        identity_uuid = instance.created_by_identity.uuid
+        identity_uuid = str(instance.created_by_identity.uuid)
         identity = Identity.objects.get(uuid=identity_uuid)
+        provider_uuid = str(identity.provider.uuid)
         try:
-            # Test that there is not an attached volume BEFORE we destroy
-            #NOTE: Although this is a task we are calling and waiting for response..
-            core_instance = destroy_instance(
-                user,
-                identity_uuid,
-                instance.provider_alias)
-            serialized_instance = InstanceSerializer(
-                core_instance, context={
+            # Test that there is not an attached volume and destroy is ASYNC
+            destroy_instance.delay(
+                instance.provider_alias, user, identity_uuid)
+            # NOTE: Task to delete has been queued, return 204
+            serializer = InstanceSerializer(
+                instance, context={
                     'request': self.request},
                 data={}, partial=True)
-            if not serialized_instance.is_valid():
-                return Response(serialized_instance.data,
+            if not serializer.is_valid():
+                return Response("Errors encountered during delete: %s" % serializer.errors,
                                 status=status.HTTP_400_BAD_REQUEST)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except VolumeAttachConflict as exc:
             message = exc.message
             return failure_response(status.HTTP_409_CONFLICT, message)
         except (socket_error, ConnectionFailure):
-            return connection_failure(identity)
+            return connection_failure(provider_uuid, identity_uuid)
         except LibcloudInvalidCredsError:
-            return invalid_creds(identity)
+            return invalid_creds(provider_uuid, identity_uuid)
+        except InstanceDoesNotExist as dne:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                'Instance %s no longer exists' % (dne.message,))
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
                              "Returning 409-CONFLICT")
@@ -202,8 +212,15 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         source_alias = data.get('source_alias')
         size_alias = data.get('size_alias')
         allocation_source_id = data.get('allocation_source_id')
+        project_uuid = data.get('project')
         if not name:
             error_map['name'] = "This field is required."
+        if not project_uuid:
+            error_map['project'] = "This field is required."
+            try:
+                user.all_projects().filter(uuid=project_uuid)
+            except ValueError:
+                error_map['project'] = "Properly formed hexadecimal UUID string required."
         if not identity_uuid:
             error_map['identity'] = "This field is required."
         if not source_alias:
@@ -227,6 +244,35 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
             raise Exception(error_map)
         return
 
+    # Caveat: update only accepts updates for the allocation_source field
+    def update(self, request, pk=None, partial=False):
+        if not pk:
+            return Response("Missing instance primary key",
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        data = request.data
+        instance = Instance.objects.get(id=pk)
+
+        if data.has_key("allocation_source") and \
+            data["allocation_source"].has_key("id"):
+            allocation_id = data["allocation_source"]["id"]
+            try:
+                user_source = UserAllocationSource.objects.get(user=request.user,
+                        allocation_source_id=allocation_id)
+            except UserAllocationSource.DoesNotExist:
+                return Response("Invalid allocation_source",
+                                status=status.HTTP_400_BAD_REQUEST)
+            instance.change_allocation_source(user_source.allocation_source)
+        serializer = InstanceSerializer(
+                instance, data=data,
+                partial=partial, context={'request': self.request})
+        if not serializer.is_valid():
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+        instance = serializer.save()
+        return Response(serializer.data,
+                status=status.HTTP_200_OK)
+
     def create(self, request):
         user = request.user
         data = request.data
@@ -246,12 +292,14 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
         allocation_source_id = data.get('allocation_source_id')
         boot_scripts = data.pop("scripts", [])
         deploy = data.get('deploy')
-        extra = data.get('extra')
+        project_uuid = data.get('project')
+        extra = data.get('extra', {})
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
-            allocation_source = AllocationSource.objects.get(source_id=allocation_source_id)
+            allocation_source = AllocationSource.objects.get(uuid=allocation_source_id)
             core_instance = launch_instance(
                 user, identity_uuid, size_alias, source_alias, name, deploy,
+                allocation_source=allocation_source,
                 **extra)
             # Faking a 'partial update of nothing' to allow call to 'is_valid'
             serialized_instance = InstanceSerializer(
@@ -261,6 +309,9 @@ class InstanceViewSet(MultipleFieldLookup, AuthViewSet):
                 return Response(serialized_instance.errors,
                                 status=status.HTTP_400_BAD_REQUEST)
             instance = serialized_instance.save()
+            project = Project.objects.get(uuid=project_uuid)
+            instance.project = project
+            instance.save()
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
             instance.change_allocation_source(allocation_source)

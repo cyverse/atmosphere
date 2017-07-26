@@ -4,19 +4,19 @@ import django_filters
 from core.models import ApplicationVersionMembership as ImageVersionMembership
 from service.machine import add_membership, remove_membership
 from api.v2.serializers.details import ImageVersionMembershipSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 class VersionFilter(django_filters.FilterSet):
-    version_id = django_filters.MethodFilter(action='filter_by_uuid')
-    created_by = django_filters.MethodFilter(action='filter_owner')
+    version_id = django_filters.CharFilter(method='filter_by_uuid')
+    created_by = django_filters.CharFilter(method='filter_owner')
 
-    def filter_owner(self, queryset, value):
+    def filter_owner(self, queryset, name, value):
         return queryset.filter(
             Q(image_version__created_by__username=value) |
             Q(image_version__application__created_by__username=value)
         )
-    def filter_by_uuid(self, queryset, value):
+    def filter_by_uuid(self, queryset, name, value):
         # NOTE: Remove this *HACK* once django_filters supports UUID as PK fields
         return queryset.filter(image_version__id=value)
 
@@ -25,7 +25,7 @@ class VersionFilter(django_filters.FilterSet):
         fields = ['version_id', 'created_by']
 
 
-class ImageVersionMembershipViewSet(AuthViewSet):
+class ImageVersionMembershipViewSet(AuthModelViewSet):
 
     """
     API endpoint that allows version tags to be viewed

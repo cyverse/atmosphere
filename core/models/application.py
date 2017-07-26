@@ -112,6 +112,20 @@ class Application(models.Model):
         )
         return shared_images
 
+    @staticmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        ownership_query = Q(created_by=user)
+        project_query = Q(projects__owner__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(projects__owner__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(projects__owner__memberships__is_leader=True)
+        membership_query = Q(created_by__memberships__group__user=user)
+        return Application.objects.filter(membership_query | project_query | ownership_query).distinct()
+
     @classmethod
     def admin_apps(cls, user):
         """
@@ -129,7 +143,8 @@ class Application(models.Model):
         is_public = Q(private=False)
         if not user or isinstance(user, AnonymousUser):
             # Images that are not endated and are public
-            return Application.objects.filter(query.only_current_apps() & is_public).distinct()
+            return Application.objects.filter(query.only_current_apps() & is_public,
+                versions__machines__instance_source__provider__public=True).distinct()
         if not isinstance(user, AtmosphereUser):
             raise Exception("Expected user to be of type AtmosphereUser"
                             " - Received %s" % type(user))
@@ -148,33 +163,16 @@ class Application(models.Model):
                      (query.images_shared_with_user(user) | is_public)))
         return queryset.distinct()
 
-    def get_metrics(self):
+    def _current_versions(self):
         """
-        Aggregate 'all-version' metrics
-        More specific metrics can be found at the version level
+        Return a list of current application versions.
+        NOTE: Defined as:
+                * The ApplicationVersion has not exceeded its end_date
         """
-        versions = self.versions.all()
-        version_map = {}
-        all_count = 0
-        all_total = timezone.timedelta(0)
-        all_avg = timezone.timedelta(0)
-        all_user_domain_map = {}
-        for version in versions:
-            version_metrics = version.get_metrics()
-            provider_metrics = version_metrics['providers']
-            for key,val in version_metrics['domains'].items():
-                count = all_user_domain_map.get(key,0)
-                count += val
-                all_user_domain_map[key] = count
-            all_avg += sum([prov['avg_time'] for prov in provider_metrics.values()], timezone.timedelta(0))
-            all_total += sum([prov['total'] for prov in provider_metrics.values()], timezone.timedelta(0))
-            all_count += sum([prov['count'] for prov in provider_metrics.values()])
-            version_map[version.name] = version_metrics
-        return {'versions': {
-            'avg_time': all_avg, 'total': all_total,
-            'count': all_count,'domains':all_user_domain_map
-            }
-        }
+        version_set = self.all_versions
+        active_versions = version_set.filter(
+            query.only_current())
+        return active_versions
 
     def _current_machines(self, request_user=None):
         """
@@ -416,11 +414,11 @@ def _get_app_by_uuid(identifier, app_uuid):
         logger.exception(e)
 
 
-def _username_lookup(provider_uuid, username):
+def _user_identity_lookup(provider_uuid, username):
     try:
-        return Identity.objects.get(
+        return Identity.objects.filter(
             provider__uuid=provider_uuid,
-            created_by__username=username)
+            created_by__username=username).first()
     except Identity.DoesNotExist:
         return None
 
@@ -469,7 +467,7 @@ def create_application(
     if not description:
         description = "Imported Application - %s" % name
     if created_by:
-        created_by_identity = _username_lookup(
+        created_by_identity = _user_identity_lookup(
             provider_uuid,
             created_by.username)
     if not created_by_identity:

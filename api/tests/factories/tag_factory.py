@@ -7,5 +7,5 @@ class TagFactory(factory.DjangoModelFactory):
     class Meta:
         model = Tag
 
-    name = 'tag-name'
+    name = factory.Sequence(lambda n: 'tag-name-%d' % n)
     description = 'Tag description'

@@ -6,7 +6,7 @@ from rest_framework import exceptions, status
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, ViewSet
 
 from core import exceptions as core_exceptions
 from core.models import IdentityMembership, CloudAdministrator
@@ -14,7 +14,7 @@ from core.models.status_type import StatusType
 
 from api.permissions import (
         ApiAuthOptional, ApiAuthRequired, EnabledUserRequired,
-        InMaintenance, CloudAdminRequired
+        InMaintenance, CloudAdminRequired, ProjectLeaderRequired
     )
 from api.v2.views.mixins import MultipleFieldLookup
 
@@ -49,7 +49,16 @@ def unresolved_requests_only(fn):
     return wrapper
 
 
-class AuthViewSet(ModelViewSet):
+class AuthViewSet(ViewSet):
+    http_method_names = ['get', 'put', 'patch', 'post',
+                         'delete', 'head', 'options', 'trace']
+    permission_classes = (InMaintenance,
+                          EnabledUserRequired,
+                          ApiAuthRequired,
+                          ProjectLeaderRequired)
+
+
+class AuthModelViewSet(ModelViewSet):
     http_method_names = ['get', 'put', 'patch', 'post',
                          'delete', 'head', 'options', 'trace']
     permission_classes = (InMaintenance,
@@ -57,7 +66,14 @@ class AuthViewSet(ModelViewSet):
                           ApiAuthRequired,)
 
 
-class AdminAuthViewSet(AuthViewSet):
+class AdminViewSet(AuthViewSet):
+    permission_classes = (InMaintenance,
+                          CloudAdminRequired,
+                          EnabledUserRequired,
+                          ApiAuthRequired,)
+
+
+class AdminModelViewSet(AuthModelViewSet):
     permission_classes = (InMaintenance,
                           CloudAdminRequired,
                           EnabledUserRequired,
@@ -76,7 +92,7 @@ class AuthReadOnlyViewSet(ReadOnlyModelViewSet):
                           ApiAuthOptional,)
 
 
-class OwnerUpdateViewSet(AuthViewSet):
+class OwnerUpdateViewSet(AuthModelViewSet):
     """
     Base class ViewSet to handle the case where a normal user should see 'GET'
     and an owner (or admin) should be allowed to PUT or PATCH
@@ -91,7 +107,7 @@ class OwnerUpdateViewSet(AuthViewSet):
                         " handled by the subclass of OwnerUpdateViewSet")
 
 
-class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
+class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
     Base class ViewSet to handle requests
@@ -109,6 +125,8 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthViewSet):
             "%s should include a `model` attribute."
             % self.__class__.__name__
         )
+        #FIXME: Require an additional flag to show a staff user all objects.
+        # Otherwise, staff users are advsersely affected//cannot see the same as "normal users"
         if self.request.user.is_staff:
             return self.model.objects.all().order_by('-start_date')
         return self.model.objects.filter(created_by=self.request.user).order_by('-start_date')

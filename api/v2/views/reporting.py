@@ -10,17 +10,18 @@ from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.settings import api_settings
 
-from api.renderers import PandasExcelRenderer
+from api.renderers import PandasExcelRenderer, CSVRenderer
 from api.v2.exceptions import failure_response
 from api.v2.serializers.details import InstanceReportingSerializer
-from api.v2.views.base import AuthViewSet
+from api.v2.views.base import AuthModelViewSet
 from core.models import Instance
 
 
-class ReportingViewSet(AuthViewSet):
-    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [PandasExcelRenderer, ]
+class ReportingViewSet(AuthModelViewSet):
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [PandasExcelRenderer, CSVRenderer]
     pagination_class = None
     serializer_class = InstanceReportingSerializer
+    queryset = Instance.objects.none()
     ordering_fields = ('id', 'start_date')
     http_method_names = ['get', 'head', 'options', 'trace']
 
@@ -34,12 +35,17 @@ class ReportingViewSet(AuthViewSet):
         """
         # Note: Additionally 'response' will also be added to the context,
         #       by the Response object.
+        request = getattr(self, 'request', None)
+        if request and 'filename' in request.query_params:
+            filename = request.query_params['filename']
+        else:
+            filename = 'instance_reporting.xlsx'
         return {
             'view': self,
             'args': getattr(self, 'args', ()),
             'kwargs': getattr(self, 'kwargs', {}),
-            'request': getattr(self, 'request', None),
-            'filename': 'reporting.xlsx',
+            'request': request,
+            'filename': filename,
             'excel_writer_hook': self.create_excel_file,
             'headers_ordering': ["id", "instance_id", "username", "staff_user", "provider", "start_date", "end_date",
                                  "image_name", "version_name", "size.active", "size.start_date", "size.end_date",
@@ -216,13 +222,17 @@ class ReportingViewSet(AuthViewSet):
         if request_user.is_staff or request_user.is_superuser:
             instances_qs = Instance.objects.all()
         elif request_user.is_authenticated():
-            instances_qs = Instance.for_user(request_user)
+            instances_qs = Instance.shared_with_user(request_user)
         else:
             raise exceptions.NotAuthenticated()
         query_params = self.request.query_params
         query = self.get_filter_query(query_params)
 
-        queryset = instances_qs.filter(query)
+        queryset = instances_qs.select_related(
+                'source'
+            ).prefetch_related(
+            'source__providermachine__application_version__application',
+        ).filter(query)
         return queryset
 
     @staticmethod
@@ -241,8 +251,14 @@ class ReportingViewSet(AuthViewSet):
         if 'end_date' in query_params:
             end_date = parse(query_params['end_date']).replace(tzinfo=pytz.utc)
             query &= Q(start_date__lt=end_date)
+        if 'name' in query_params:
+            query &= Q(source__providermachine__application_version__application__name__icontains=query_params['name'])
         if 'username' in query_params:
             query &= Q(created_by__username=query_params['username'])
+        if 'source_alias' in query_params:
+            query &= Q(source__identifier=query_params['source_alias'])
+        if 'status' in query_params:
+            query &= Q(instancestatushistory__status__name=query_params['status'])
 
         return query
 

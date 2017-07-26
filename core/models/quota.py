@@ -94,6 +94,17 @@ class Quota(models.Model):
             (self.floating_ip_count, self.port_count)
         return str_builder
 
+    def to_payload(self):
+        clean_dict = self.to_dict()
+        clean_dict.pop('id')
+        clean_dict.pop('uuid')
+        return clean_dict
+
+    def to_dict(self):
+        full_dict = self.__dict__
+        full_dict.pop('_state')
+        return
+
     @classmethod
     def max_quota(self, by_type='cpu'):
         """
@@ -245,8 +256,9 @@ def has_port_count_quota(identity, driver, quota, new_size=0, raise_exc=True):
     except Exception as exc:
         logger.warn("Could not verify quota due to failed call to network_driver.list_ports() - %s" % exc)
         return True
-
-    fixed_ips = [port for port in port_list if 'compute:' in port['device_owner']]
+    project_id = network_driver.get_tenant_id()
+    fixed_ips = [port for port in port_list if
+                 'compute:' in port['device_owner'] and port.get('project_id', project_id) == project_id]
     total_size = new_size
     total_size += len(fixed_ips)
     if total_size <= quota.port_count:

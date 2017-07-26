@@ -10,7 +10,7 @@ def load_plugin_class(plugin_path):
     return import_string(plugin_path)
 
 
-class PluginManager(object):
+class PluginListManager(object):
     plugin_required = False
     plugin_required_message = "At least one plugin is required."
 
@@ -21,17 +21,129 @@ class PluginManager(object):
         usually based on a list of strings in
         the local.py settings file.
         """
-        plugin_classes = []
+        plugin_class_list = []
         for plugin_path in list_of_classes:
             fn = load_plugin_class(plugin_path)
-            plugin_classes.append(fn)
-        if cls.plugin_required and not plugin_classes:
+            plugin_class_list.append(fn)
+        if cls.plugin_required and not plugin_class_list:
             raise ImproperlyConfigured(
                     cls.plugin_required_message)
-        return plugin_classes
+        return plugin_class_list
 
 
-class ValidationPluginManager(PluginManager):
+class DefaultQuotaPluginManager(PluginListManager):
+    """
+    Provide a plugin to create more complicated rules for default quotas
+    """
+    list_of_classes = getattr(settings, 'DEFAULT_QUOTA_PLUGINS', [])
+    plugin_required = False
+
+    @classmethod
+    def default_quota(cls, user, provider):
+        """
+        Load each Default Quota Plugin and call `plugin.get_default_quota(user, provider)`
+        """
+        _default_quota = None
+        for DefaultQuotaPlugin in cls.load_plugins(cls.list_of_classes):
+            plugin = DefaultQuotaPlugin()
+            try:
+                inspect.getcallargs(
+                    getattr(plugin, 'get_default_quota'),
+                    user=user, provider=provider)
+            except AttributeError:
+                logger.info(
+                    "Validation plugin %s missing method 'get_default_quota'"
+                    % DefaultQuotaPlugin)
+            except TypeError:
+                logger.info(
+                    "Validation plugin %s does not accept kwargs `user` & `provider`"
+                    % DefaultQuotaPlugin)
+            _default_quota = plugin.get_default_quota(user=user, provider=provider)
+            if _default_quota:
+                return _default_quota
+        return _default_quota
+
+
+class AllocationSourcePluginManager(PluginListManager):
+    """
+    Provide a plugin to create more complicated rules for default quotas
+    """
+    list_of_classes = getattr(settings, 'ALLOCATION_SOURCE_PLUGINS', [])
+    plugin_required = True  # For now...
+
+    @classmethod
+    def ensure_user_allocation_sources(cls, user, provider=None):
+        """Load each Allocation Source Plugin and call `plugin.ensure_user_allocation_source(user)`
+
+        Depending on the plugin this may create allocation sources if they don't already exist.
+        :param user: The user to check
+        :type user: core.models.AtmosphereUser
+        :param provider: The provider (optional, not used by all plugins)
+        :type provider: core.models.Provider
+        :return: Whether the user has valid allocation sources
+        :rtype: bool
+        """
+        _has_valid_allocation_sources = False
+        for AllocationSourcePlugin in cls.load_plugins(cls.list_of_classes):
+            plugin = AllocationSourcePlugin()
+            try:
+                inspect.getcallargs(
+                    getattr(plugin, 'ensure_user_allocation_source'),
+                    user=user, provider=provider)
+            except AttributeError:
+                logger.info(
+                    "Allocation Source plugin %s missing method 'ensure_user_allocation_source'",
+                    AllocationSourcePlugin)
+            except TypeError:
+                logger.info(
+                    "Allocation Source plugin %s does not accept kwargs `user` & `provider`",
+                    AllocationSourcePlugin)
+            _has_valid_allocation_sources = plugin.ensure_user_allocation_source(user=user, provider=provider)
+            if _has_valid_allocation_sources:
+                return _has_valid_allocation_sources
+        return _has_valid_allocation_sources
+
+
+class AccountCreationPluginManager(PluginListManager):
+    """
+    At least one plugin is required to create accounts for Atmosphere
+    A sample account creation plugin has been provided for you:
+    - atmosphere.plugins.accounts.creation.UserGroup
+
+    This plugin will be responsible for taking the input (Username and a Provider)
+    And expected to create: AtmosphereUser, Group, Credential+Identity (and associated dependencies, memberships)
+    """
+    list_of_classes = getattr(settings, 'ACCOUNT_CREATION_PLUGINS', [])
+    plugin_required = True
+    plugin_required_message = """No account creation backend has been defined.
+To restore 'basic' functionality, please set settings.ACCOUNT_CREATION_PLUGINS to:
+["atmosphere.plugins.accounts.creation.UserGroup",]"""
+
+    @classmethod
+    def create_accounts(cls, provider, username, force=False):
+        accounts = []
+        for AccountCreationPluginCls in cls.load_plugins(cls.list_of_classes):
+            plugin = AccountCreationPluginCls()
+            created = plugin.create_accounts(provider=provider, username=username, force=force)
+            if created:
+                accounts.extend(created)
+        return accounts
+
+    @classmethod
+    def delete_accounts(cls, provider, username):
+        """
+        Load the accountsCreationPlugin and call `plugin.delete_accounts(provider, username)`
+        """
+        accounts = []
+        for AccountCreationPluginCls in cls.load_plugins(cls.list_of_classes):
+            plugin = AccountCreationPluginCls()
+            deleted = plugin.delete_accounts(provider=provider, username=username)
+            if deleted:
+                accounts.extend(deleted)
+        return accounts
+
+
+class ValidationPluginManager(PluginListManager):
     """
     At least one plugin is required to test user validation.
     A sample validation plugin has been provided for you:
@@ -73,11 +185,11 @@ please set settings.VALIDATION_PLUGINS to:
         return _is_valid
 
 
-class ExpirationPluginManager(PluginManager):
+class ExpirationPluginManager(PluginListManager):
     """
     Plugins to test user expiration are not required.
     Use this if you wish to signal to Troposphere that a user has authenticated
-    succesfully but has been deemed "Expired" by an external service.
+    successfully but has been deemed "Expired" by an external service.
     This will not directly stop the user from accessing the Atmosphere APIs.
     For that, see ValidationPlugin
     """
@@ -102,7 +214,13 @@ class ExpirationPluginManager(PluginManager):
             except TypeError:
                 logger.info("Expiration plugin %s does not accept kwarg `user`"
                             % ExpirationPlugin)
-            _is_expired = plugin.is_expired(user=user)
+            try:
+                # TODO: Set a reasonable timeout but don't let it hold this indefinitely
+                _is_expired = plugin.is_expired(user=user)
+            except Exception as exc:
+                logger.info("Expiration plugin %s encountered an error: %s" % (ExpirationPlugin, exc))
+                _is_expired = True
+
             if _is_expired:
                 return True
         return _is_expired

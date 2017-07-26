@@ -7,6 +7,7 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }
 /var/log/celery/atmosphere-*.log {
     daily
@@ -16,6 +17,7 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }
 /var/log/celery/imaging.log {
     daily
@@ -25,6 +27,7 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }
 /var/log/celery/email.log {
     daily
@@ -34,6 +37,7 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }
 /var/log/celery/flower.log {
     daily
@@ -43,4 +47,5 @@
     delaycompress
     notifempty
     copytruncate
+    dateext
 }

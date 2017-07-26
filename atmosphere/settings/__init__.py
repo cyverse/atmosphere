@@ -2,7 +2,7 @@
 Settings for atmosphere project.
 
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 from datetime import timedelta
 from uuid import UUID
 import logging
@@ -23,7 +23,8 @@ DEBUG = True
 # Enforcing mode -- False, unless set otherwise. (ONLY ONE Production server should be set to 'ENFORCING'.)
 ENFORCING = False
 
-USE_ALLOCATION_SOURCE = False
+CHECK_THRESHOLD = False
+
 BLACKLIST_TAGS = ["Featured",]
 
 SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -73,6 +74,8 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
     'django_filters',
+    'django_celery_beat',
+    'memoize',
 
     'corsheaders',
     # 3rd party apps (Development Only)
@@ -86,6 +89,7 @@ INSTALLED_APPS = (
     # atmosphere apps
     'api',
     'allocation',
+    'cyverse_allocation',
     'service',
     'core',
 )
@@ -130,8 +134,6 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',
-    #For profile/debugging
-    #'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -402,7 +404,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',
     'DEFAULT_FILTER_BACKENDS': (
-        'rest_framework.filters.DjangoFilterBackend',
+        'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter'
     )
@@ -426,11 +428,20 @@ ELASTICSEARCH_HOST = SERVER_URL
 ELASTICSEARCH_PORT = 9200
 
 # Django-Celery secrets
-BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERYD_SEND_EVENTS = True
+
+CELERY_ACCEPT_CONTENT = ['pickle',]
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
+CELERY_EVENT_SERIALIZER = "pickle"
+
 # Related to Broker and ResultBackend
 REDIS_CONNECT_RETRY = True
 # General Celery Settings
+#
+CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
 CELERY_ENABLE_UTC = True
 CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TIMEZONE = TIME_ZONE
@@ -444,29 +455,6 @@ CELERYD_TASK_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
     "/%(processName)s [PID:%(process)d]"\
     " [%(task_name)s(%(task_id)s)] "\
     "@ %(pathname)s on %(lineno)d] %(message)s"
-# To use Manual Routing:
-# - 1. Create an Exchange,
-# - 2. Create a Queue,
-# - 3. Bind Queue to Exchange
-CELERY_QUEUES = (
-    Queue('default', Exchange('default'), routing_key='default'),
-    Queue('email', Exchange('default'), routing_key='email.sending'),
-    Queue('ssh_deploy', Exchange('deployment'), routing_key='long.deployment'),
-    Queue('fast_deploy', Exchange('deployment'), routing_key='short.deployment'),
-    Queue('imaging', Exchange('imaging'), routing_key='imaging'),
-    Queue('periodic', Exchange('periodic'), routing_key='periodic'),
-)
-CELERY_DEFAULT_QUEUE = 'default'
-CELERY_DEFAULT_ROUTING_KEY = "default"
-CELERY_DEFAULT_EXCHANGE = 'default'
-CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
-# NOTE: We are Using atmosphere's celery_router as an interim solution.
-CELERY_ROUTES = ('atmosphere.celery_router.CloudRouter', )
-# # Django-Celery Development settings
-# CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
-
-import djcelery
-djcelery.setup_loader()
 
 # Related to Celerybeat
 CELERYBEAT_CHDIR = PROJECT_ROOT
@@ -476,6 +464,12 @@ CELERYBEAT_SCHEDULE = {
         "task": "check_image_membership",
         "schedule": timedelta(minutes=60),
         "options": {"expires": 10 * 60, "time_limit": 2 * 60}
+    },
+    "generate_metrics": {
+        "task": "generate_metrics",
+        # Every day of the week @ 12am (Midnight)
+        "schedule": crontab(hour="0", minute="0", day_of_week="*"),
+        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
     },
     "prune_machines": {
         "task": "prune_machines",
@@ -514,12 +508,6 @@ CELERYBEAT_SCHEDULE = {
         "task": "clear_empty_ips",
         "schedule": timedelta(minutes=120),
         "options": {"expires": 60 * 60}
-    },
-    "monthly_allocation_reset": {
-        "task": "monthly_allocation_reset",
-        # Every month, first of the month.
-        "schedule": crontab(0, 0, day_of_month=1, month_of_year="*"),
-        "options": {"expires": 5 * 60, "time_limit": 5 * 60}
     },
     "remove_empty_networks": {
         "task": "remove_empty_networks",
@@ -575,3 +563,6 @@ def _get_method_for_string(method_str, the_globals=None):
     if not the_globals:
         the_globals = globals()
     return the_globals[method_str]
+
+# This will make sure the app is always imported when
+# Django starts so that shared_task will use this app.
