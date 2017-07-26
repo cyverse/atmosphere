@@ -242,13 +242,18 @@ def set_up_provider(context, provider_location):
 
 
 @step('we create an account for the current persona on provider "{provider_location}"')
-def create_account(context, provider_location):
+def create_jetstream_account(context, provider_location):
     """This does not use the factory
     
     We want to test the default quota plugin.
+
+    NOTE: At the moment this step only works with Jetstream and TAS API
     """
     assert context.persona
     import core.models
+    context.test.assertIn('jetstream', django.conf.settings.INSTALLED_APPS,
+                          'Step only works with Jetstream setup. '
+                          'Please use "we create an identity for the current persona ..."')
     provider = core.models.Provider.objects.get(location=provider_location)
     user = context.persona['user']
     with mock.patch('service.driver.get_account_driver', autospec=True) as mock_get_account_driver:

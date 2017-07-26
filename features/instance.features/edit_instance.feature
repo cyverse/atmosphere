@@ -1,3 +1,4 @@
+@skip-if-jetstream
 Feature: Launching & editing of an instance
 
   Background:
@@ -12,7 +13,6 @@ Feature: Launching & editing of an instance
     And we make the current identity the admin on provider "MockProvider"
 
 
-  @skip-if-jetstream
   Scenario: Launch instance and assign allocation source
     Given "user407" as the persona
     When I set "username" to "user407"
@@ -20,7 +20,7 @@ Feature: Launching & editing of an instance
     And we create a new user
     Given a current time of '2017-02-16T06:00:00Z' with tick = False
     When I log in
-    And we create an account for the current persona on provider "MockProvider"
+    And we create an identity for the current persona on provider "MockProvider"
     And we ensure that the user has an allocation source
     Then I should have the following quota on provider "MockProvider"
       | key               | value |
@@ -137,7 +137,7 @@ Feature: Launching & editing of an instance
     And we create a new user
     Given a current time of '2017-02-16T06:00:00Z' with tick = False
     When I log in
-    And we create an account for the current persona on provider "MockProvider"
+    And we create an identity for the current persona on provider "MockProvider"
     And we ensure that the user has an allocation source
     Given a current time of '2017-02-16T07:00:00Z' with tick = False
     When we create a provider machine for current persona
