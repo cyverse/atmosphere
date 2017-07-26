@@ -38,6 +38,10 @@ def ansible_deployment(
     if not check_ansible():
         return []
     # Expecting to be path-relative to the playbook path, so use basename
+    if type(limit_playbooks) == str:
+        limit_playbooks = limit_playbooks.split(",")
+    if type(limit_playbooks) != list:
+        raise Exception("Invalid 'limit_playbooks' argument (%s). Expected List" % limit_playbooks)
     limit_playbooks = [os.path.basename(filepath) for filepath in limit_playbooks]
     logger = create_instance_logger(
         deploy_logger,
