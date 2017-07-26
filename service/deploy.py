@@ -31,7 +31,7 @@ from service.exceptions import AnsibleDeployException
 def ansible_deployment(
     instance_ip, username, instance_id, playbooks_dir,
     limit_playbooks=[], limit_hosts={}, extra_vars={},
-    raise_exception=True, **runner_opts):
+    raise_exception=True, debug=False, **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     """
@@ -45,7 +45,7 @@ def ansible_deployment(
         username,
         instance_id)
     hostname = build_host_name(instance_id, instance_ip)
-    configure_ansible()
+    configure_ansible(debug=debug)
     if not limit_hosts:
         if hostname:
             limit_hosts = hostname
@@ -285,17 +285,17 @@ def check_ansible():
     return exists
 
 
-def configure_ansible():
+def configure_ansible(debug=False):
     """
     Configure ansible to work with service.ansible and subspace.
     """
     subspace.set_constants("HOST_KEY_CHECKING", False)
     subspace.set_constants(
         "DEFAULT_ROLES_PATH", settings.ANSIBLE_ROLES_PATH)
+    os.environ["ANSIBLE_DEBUG"] = "true" if debug else "false"
     if settings.ANSIBLE_CONFIG_FILE:
         os.environ["ANSIBLE_CONFIG"] = settings.ANSIBLE_CONFIG_FILE
         os.environ["PYTHONOPTIMIZE"] = "1" #NOTE: Required to run ansible2 + celery + prefork concurrency
-        #os.environ["ANSIBLE_DEBUG"] = "true"
         # Alternatively set this in ansible.cfg: debug = true
         subspace.constants.reload_config()
 
