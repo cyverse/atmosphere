@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import copy
 import json
 import logging
 import sys
@@ -177,7 +178,10 @@ if __name__ == "__main__":
     # Todo should we use a particular logger?
     try:
         args = _parse_args()
-        logging.info("Running application_sync_providers with the following arguments:\n{0}".format(str(args)))
+        # Redacting iRODS credentials from log output
+        args_for_log_output = vars(copy.copy(args))
+        args_for_log_output['irods_conn'] = '[redacted]'
+        logging.info("Running application_sync_providers with the following arguments:\n{0}".format(str(args_for_log_output)))
         main(args.master_provider_id,
              args.replica_provider_id,
              glance_client_versions=args.glance_client_versions,
