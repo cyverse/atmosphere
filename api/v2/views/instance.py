@@ -111,7 +111,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         instance_id = pk
         instance = find_instance(instance_id)
         identity = instance.created_by_identity
-        action_params = request.data
+        action_params = dict(request.data)
         action = action_params.pop('action')
         if type(action) == list:
             action = action[0]
