@@ -23,7 +23,7 @@ from django_cyverse_auth.protocol import ldap
 
 from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
-from core.models import Provider, Identity
+from core.models import Provider, Identity, Instance
 
 from service.exceptions import AnsibleDeployException
 
@@ -135,7 +135,7 @@ def instance_deploy(instance_ip, username, instance_id,
         extra_vars=extra_vars, **runner_opts)
 
 
-def user_deploy(instance_ip, username, instance_id):
+def user_deploy(instance_ip, username, instance_id, **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     #NOTE: This method will _NOT_ work if you do not run instance deployment *FIRST*!
@@ -144,12 +144,17 @@ def user_deploy(instance_ip, username, instance_id):
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
     playbooks_dir = os.path.join(playbooks_dir, 'user_deploy')
     user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
+    instance = Instance.objects.get(provider_alias=instance_id)
+    scripts = instance.scripts.all()  # TODO: determine if script should be run by passing in a 'first_deploy=True/False'
+
     extra_vars = {
-        "USERSSHKEYS": user_keys
+        "USERSSHKEYS": user_keys,
+        "SCRIPTS": [{"name": s.get_title_slug(), "text": s.get_text()} for s in scripts]
     }
+    #TODO: update atmo-user-boot-scripts to _also_ run SCRIPTS
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
-        extra_vars=extra_vars)
+        extra_vars=extra_vars, **runner_opts)
 
 
 def run_utility_playbooks(instance_ip, username, instance_id,
@@ -455,63 +460,3 @@ def umount_volume(mount_location):
 def lsof_location(mount_location):
     return ScriptDeployment("lsof | grep %s" % (mount_location),
                             name="./deploy_lsof_location.sh")
-
-
-def step_script(step):
-    script = str(step.script)
-    if not script.startswith("#!"):
-        script = "#! /usr/bin/env bash\n" + script
-    return ScriptDeployment(script, name="./" + step.get_script_name())
-
-def shell_lookup_helper(username):
-    zsh_user = False
-    ldap_info = ldap._search_ldap(username)
-    try:
-        ldap_info_dict = ldap_info[0][1]
-    except IndexError:
-        return False
-    for key in ldap_info_dict.iterkeys():
-        if key == "loginShell":
-            if 'zsh' in ldap_info_dict[key][0]:
-                zsh_user = True
-    return zsh_user
-
-
-def echo_test_script():
-    return ScriptDeployment(
-        'echo "Test deployment working @ %s"' % datetime.now(),
-        name="./deploy_echo.sh")
-
-
-def wrap_script(script_text, script_name):
-    """
-    NOTE: In current implementation, the script can only be executed, and not
-    logged.
-
-    Implementation v2:
-    * Write to file
-    * Chmod the file
-    * Execute and redirect output to stdout/stderr to logfile.
-    """
-    # logfile = "/var/log/atmo/post_boot_scripts.log"
-    # kludge: weirdness without the str cast...
-    script_text = str(script_text)
-    full_script_name = "./deploy_boot_script_%s.sh" % (slugify(script_name),)
-    return ScriptDeployment(
-        script_text, name=full_script_name)
-
-
-def inject_env_script(username):
-    """
-    This is the 'raw script' that will be used to prepare the environment.
-    TODO: Find a better home for this. Probably use ansible for this.
-    """
-    env_file = "$HOME/.bashrc"
-    template = "scripts/bash_inject_env.sh"
-    context = {
-        "username": username,
-        "env_file": env_file,
-    }
-    rendered_script = render_to_string(
-        template, context=Context(context))
-    return rendered_script
