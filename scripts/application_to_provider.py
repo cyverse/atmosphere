@@ -319,7 +319,7 @@ def main(application_id,
                                                   application_version=app_version.name,
                                                   # Glance v1 client throws exception on line breaks
                                                   application_description=app.description
-                                                      .replace('\r', '').replace('\n', ''),
+                                                      .replace('\r', '').replace('\n', ' -- '),
                                                   application_owner=app_creator_uname,
                                                   application_tags=json.dumps(app_tags),
                                                   application_uuid=str(app.uuid))
