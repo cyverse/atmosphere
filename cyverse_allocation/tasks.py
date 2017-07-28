@@ -50,7 +50,7 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
             total_burn_rate += burn_rate
         AllocationSourceSnapshot.objects.update_or_create(allocation_source=allocation_source,
                                                           defaults={'compute_used': total_compute_used,
-                                                                    'burn_rate': total_burn_rate})
+                                                                    'global_burn_rate': total_burn_rate})
 
         run_all(rule_list=cyverse_rules,
                 defined_variables=CyverseTestRenewalVariables(allocation_source, end_date, start_date),
