@@ -151,7 +151,6 @@ def user_deploy(instance_ip, username, instance_id, **runner_opts):
         "USERSSHKEYS": user_keys,
         "SCRIPTS": [{"name": s.get_title_slug(), "text": s.get_text()} for s in scripts]
     }
-    #TODO: update atmo-user-boot-scripts to _also_ run SCRIPTS
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
         extra_vars=extra_vars, **runner_opts)
