@@ -110,10 +110,9 @@ Feature: Launching & editing of an instance
     And we should have the following user allocation source snapshots
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user407             | user407           | 0.020        | 1.000     |
-    # TODO: Fix global_burn_rate
     When I get my allocation sources from the API I should see
       | name    | compute_allowed | start_date               | end_date | compute_used | global_burn_rate | updated                  | renewal_strategy | user_compute_used | user_burn_rate | user_snapshot_updated    |
-      | user407 | 168             | 2017-02-16 06:00:00+0000 | None     | 0.020        | 0.000            | 2017-02-16 07:02:00+0000 | default          | 0.020             | 1.000          | 2017-02-16 07:02:00+0000 |
+      | user407 | 168             | 2017-02-16 06:00:00+0000 | None     | 0.020        | 1.000            | 2017-02-16 07:02:00+0000 | default          | 0.020             | 1.000          | 2017-02-16 07:02:00+0000 |
     # Check usage after an hour
     Given a current time of '2017-02-16T08:00:00Z' with tick = False
     When we update CyVerse snapshots
@@ -124,10 +123,9 @@ Feature: Launching & editing of an instance
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user407             | user407           | 0.980        | 1.000     |
 
-    # TODO: Fix global_burn_rate
     When I get my allocation sources from the API I should see
       | name    | compute_allowed | start_date               | end_date | compute_used | global_burn_rate | updated                  | renewal_strategy | user_compute_used | user_burn_rate | user_snapshot_updated    |
-      | user407 | 168             | 2017-02-16 06:00:00+0000 | None     | 0.980        | 0.000            | 2017-02-16 08:00:00+0000 | default          | 0.980             | 1.000          | 2017-02-16 08:00:00+0000 |
+      | user407 | 168             | 2017-02-16 06:00:00+0000 | None     | 0.980        | 1.000            | 2017-02-16 08:00:00+0000 | default          | 0.980             | 1.000          | 2017-02-16 08:00:00+0000 |
 
 
   Scenario: Launch instance and edit name
