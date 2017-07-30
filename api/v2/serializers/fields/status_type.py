@@ -8,8 +8,7 @@ class StatusTypeRelatedField(serializers.RelatedField):
     def get_queryset(self):
         return StatusType.objects.all()
 
-    def to_representation(self, value):
-        status_type = StatusType.objects.get(pk=value.pk)
+    def to_representation(self, status_type):
         serializer = StatusTypeSummarySerializer(
             status_type,
             context=self.context)
