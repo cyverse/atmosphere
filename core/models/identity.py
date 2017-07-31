@@ -459,9 +459,6 @@ class Identity(models.Model):
         id_member = self.identity_memberships.all()[0]
         # See core/models/membership.py#IdentityMembership
         quota_dict = id_member.get_quota_dict()
-        allocation_dict = self.get_allocation_dict()
-        if allocation_dict:
-            quota_dict.update({"allocation": allocation_dict})
         return quota_dict
 
     def json(self):
