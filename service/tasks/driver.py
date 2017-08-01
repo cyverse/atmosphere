@@ -405,8 +405,13 @@ def user_deploy_failed(
         celery_logger.error(err_str)
         # Send deploy email
         _send_instance_email_with_failure(driverCls, provider, identity, instance_id, user.username, err_str)
-        # Update metadata on the instance
-        metadata = {'tmp_status': 'user_deploy_error'}
+        # Update metadata on the instance -- use the last 255 chars of traceback (Metadata limited)
+        limited_trace = str(traceback)[-255:]
+        metadata = {
+            'tmp_status': 'user_deploy_error',
+            'fault_message': str(exception_msg),
+            'fault_trace': limited_trace
+        }
         update_metadata.s(driverCls, provider, identity, instance_id,
                           metadata, replace_metadata=False).apply_async()
         celery_logger.debug("user_deploy_failed task finished at %s." % datetime.now())
@@ -434,8 +439,11 @@ def deploy_failed(
         celery_logger.error(err_str)
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
-
-        metadata = {'tmp_status': 'deploy_error'}
+        limited_trace = str(traceback)[-255:]
+        metadata = {
+            'tmp_status': 'deploy_error',
+            'fault_message': str(exception_msg),
+            'fault_trace': limited_trace}
         update_metadata.s(driverCls, provider, identity, instance.id,
                           metadata, replace_metadata=False).apply_async()
         # Send deploy email
@@ -567,7 +575,7 @@ def get_idempotent_deploy_chain(
             core_identity,
             username=username,
             redeploy=False)
-    elif tmp_status in ['', 'redeploying', 'deploying', 'deploy_error']:
+    elif tmp_status in ['', 'redeploying', 'deploying', 'deploy_error', 'user_deploy_error']:
         celery_logger.info(
             "Instance %s contains the 'deploying' metadata - Redeploy will include deploy ONLY!." %
             instance.id)
@@ -706,7 +714,11 @@ def get_chain_from_active_with_ip(
     # Start building a deploy chain
     deploy_meta_task = update_metadata.si(
         driverCls, provider, identity, instance.id,
-        {'tmp_status': 'deploying'})
+        {
+            'tmp_status': 'deploying',
+            'fault_message': "",
+            'fault_trace': ""
+        })
 
     deploy_task = _deploy_instance.si(
         driverCls, provider, identity, instance.id,
@@ -894,8 +906,6 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
 def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
-    # Note: Splitting preperation (Of the MultiScriptDeployment) and execution
-    # This makes it easier to output scripts for debugging of users.
     try:
         celery_logger.debug("_deploy_instance_for_user task started at %s." % datetime.now())
         # Check if instance still exists
@@ -907,11 +917,6 @@ def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
         if not instance.ip:
             celery_logger.debug("Instance IP address missing from : %s." % instance_id)
             raise Exception("Instance IP Missing? %s" % instance_id)
-        # NOTE: This is required to use ssh to connect.
-        # TODO: Is this still necessary? What about times when we want to use
-        # the adminPass? --Steve
-        celery_logger.info(instance.extra)
-        instance._node.extra['password'] = None
 
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
