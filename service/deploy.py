@@ -23,7 +23,7 @@ from django_cyverse_auth.protocol import ldap
 
 from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
-from core.models import Provider, Identity, Instance
+from core.models import Provider, Identity, Instance, SSHKey, AtmosphereUser
 
 from service.exceptions import AnsibleDeployException
 
@@ -31,13 +31,17 @@ from service.exceptions import AnsibleDeployException
 def ansible_deployment(
     instance_ip, username, instance_id, playbooks_dir,
     limit_playbooks=[], limit_hosts={}, extra_vars={},
-    raise_exception=True, **runner_opts):
+    raise_exception=True, debug=False, **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     """
     if not check_ansible():
         return []
     # Expecting to be path-relative to the playbook path, so use basename
+    if type(limit_playbooks) == str:
+        limit_playbooks = limit_playbooks.split(",")
+    if type(limit_playbooks) != list:
+        raise Exception("Invalid 'limit_playbooks' argument (%s). Expected List" % limit_playbooks)
     limit_playbooks = [os.path.basename(filepath) for filepath in limit_playbooks]
     logger = create_instance_logger(
         deploy_logger,
@@ -45,7 +49,7 @@ def ansible_deployment(
         username,
         instance_id)
     hostname = build_host_name(instance_id, instance_ip)
-    configure_ansible()
+    configure_ansible(debug=debug)
     if not limit_hosts:
         if hostname:
             limit_hosts = hostname
@@ -58,6 +62,14 @@ def ansible_deployment(
         extra_vars.update({
             "TIMEZONE": time_zone,
         })
+    shared_users = AtmosphereUser.users_for_instance(instance_id).values_list('username', flat=True)
+    if not shared_users:
+        shared_users = [username]
+    if username not in shared_users:
+        shared_users.append(username)
+    extra_vars.update({
+        "SHARED_USERS": shared_users,
+    })
     extra_vars.update({
         "ATMOUSERNAME": username,
     })
@@ -143,9 +155,19 @@ def user_deploy(instance_ip, username, instance_id, **runner_opts):
     """
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
     playbooks_dir = os.path.join(playbooks_dir, 'user_deploy')
-    user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
+
+    #TODO: 'User-selectable 'SSH strategy' for instances?
+    # Example 'user only' strategy:
+    # user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
     instance = Instance.objects.get(provider_alias=instance_id)
     scripts = instance.scripts.all()  # TODO: determine if script should be run by passing in a 'first_deploy=True/False'
+
+    # Example 'all members'  strategy:
+    if not instance.project:
+        raise Exception("Expected this instance to have a project, found None: %s" % instance)
+    group = instance.project.owner
+    group_ssh_keys = SSHKey.keys_for_group(group)
+    user_keys = [k.pub_key for k in group_ssh_keys]
 
     extra_vars = {
         "USERSSHKEYS": user_keys,
@@ -272,17 +294,17 @@ def check_ansible():
     return exists
 
 
-def configure_ansible():
+def configure_ansible(debug=False):
     """
     Configure ansible to work with service.ansible and subspace.
     """
     subspace.set_constants("HOST_KEY_CHECKING", False)
     subspace.set_constants(
         "DEFAULT_ROLES_PATH", settings.ANSIBLE_ROLES_PATH)
+    os.environ["ANSIBLE_DEBUG"] = "true" if debug else "false"
     if settings.ANSIBLE_CONFIG_FILE:
         os.environ["ANSIBLE_CONFIG"] = settings.ANSIBLE_CONFIG_FILE
         os.environ["PYTHONOPTIMIZE"] = "1" #NOTE: Required to run ansible2 + celery + prefork concurrency
-        #os.environ["ANSIBLE_DEBUG"] = "true"
         # Alternatively set this in ansible.cfg: debug = true
         subspace.constants.reload_config()
 

@@ -1,5 +1,5 @@
 from core.models import (
-    BootScript, Instance, Application as Image,
+    Project, BootScript, Instance, Application as Image,
     InstanceAllocationSourceSnapshot
 )
 from rest_framework import serializers
@@ -10,6 +10,8 @@ from api.v2.serializers.summaries import (
     UserSummarySerializer,
     ProviderSummarySerializer,
     SizeSummarySerializer,
+    ImageSummarySerializer,
+    ProjectSummarySerializer,
     ImageVersionSummarySerializer,
     BootScriptSummarySerializer
 )
@@ -23,7 +25,11 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     provider = ProviderSummarySerializer(source='created_by_identity.provider')
     status = serializers.CharField(source='api_status', read_only=True)
     activity = serializers.CharField(source='api_activity', read_only=True)
-    projects = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    project = ModelRelatedField(
+        queryset=Project.objects.all(),
+        serializer_class=ProjectSummarySerializer,
+        style={'base_template': 'input.html'})
+
     scripts = ModelRelatedField(
         many=True, required=False,
         queryset=BootScript.objects.all(),
@@ -52,7 +58,10 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
 
 
     def get_usage(self, instance):
-        return instance.get_total_hours()
+        if not instance.allocation_source\
+                or not instance.allocation_source.snapshot:
+            return -1
+        return instance.allocation_source.snapshot.compute_used
 
     def get_size(self, obj):
         size = obj.get_size()
@@ -103,7 +112,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'version',  # NOTE:Should replace image?
             'usage',
             'scripts',
-            'projects',
+            'project',
             'start_date',
             'end_date',
             'allocation_source',

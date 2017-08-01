@@ -44,7 +44,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     queryset = Instance.objects.all()
     serializer_class = InstanceSerializer
-    filter_fields = ('created_by__id', 'projects')
+    filter_fields = ('created_by__id', 'project')
     lookup_fields = ("id", "provider_alias")
     http_method_names = ['get', 'put', 'patch', 'post',
                          'delete', 'head', 'options', 'trace']
@@ -61,14 +61,14 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         Filter projects by current user.
         """
         user = self.request.user
-        qs = Instance.for_user(user)
+        qs = Instance.shared_with_user(user)
         if 'archived' not in self.request.query_params:
             qs = qs.filter(only_current())
-        logger.info("DEBUG- User %s querying for instances, available IDs are:%s" % (user, qs.values_list('id',flat=True)))
+        # logger.info("DEBUG- User %s querying for instances, available IDs are:%s" % (user, qs.values_list('id',flat=True)))
         qs = qs.select_related("created_by")\
             .select_related('created_by_identity')\
             .select_related('source')\
-            .prefetch_related('projects')
+            .select_related('project')
         return qs
 
     @detail_route(methods=['post'])
@@ -111,7 +111,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         instance_id = pk
         instance = find_instance(instance_id)
         identity = instance.created_by_identity
-        action_params = request.data
+        action_params = dict(request.data)
         action = action_params.pop('action')
         if type(action) == list:
             action = action[0]
@@ -263,15 +263,14 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 return Response("Invalid allocation_source",
                                 status=status.HTTP_400_BAD_REQUEST)
             instance.change_allocation_source(user_source.allocation_source)
-
-        if data.has_key('name') and data['name']:
-            instance.name = data['name']
-            instance.save()
-
-        serialized_instance = InstanceSerializer(
-                instance, context={'request': self.request})
-
-        return Response(serialized_instance.data,
+        serializer = InstanceSerializer(
+                instance, data=data,
+                partial=partial, context={'request': self.request})
+        if not serializer.is_valid():
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+        instance = serializer.save()
+        return Response(serializer.data,
                 status=status.HTTP_200_OK)
 
     def create(self, request):
@@ -311,7 +310,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                                 status=status.HTTP_400_BAD_REQUEST)
             instance = serialized_instance.save()
             project = Project.objects.get(uuid=project_uuid)
-            instance.projects.add(project)
+            instance.project = project
+            instance.save()
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
             instance.change_allocation_source(allocation_source)

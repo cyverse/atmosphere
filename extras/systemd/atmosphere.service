@@ -1,13 +1,13 @@
 [Unit]
-Description=The workflow associated with running atmosphere as a service
+Description=CyVerse Atmosphere: uwsgi, nginx
 Documentation=https://github.com/cyverse/atmosphere/blob/master/README.md
-Requires=celeryd.service celerybeat.service uwsgi.service nginx.service redis-server.service
-After=celeryd.service celerybeat.service uwsgi.service nginx.service redis-server.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStop=/bin/systemctl stop uwsgi nginx celeryd celerybeat redis-server
+ExecStart=/bin/systemctl start uwsgi nginx
+ExecStop=/bin/systemctl stop uwsgi nginx
+ExecReload=/bin/systemctl restart uwsgi nginx
 
 [Install]
 WantedBy=multi-user.target

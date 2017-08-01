@@ -1,3 +1,4 @@
+@skip-if-jetstream
 Feature: Launching & editing of an instance
 
   Background:
@@ -12,7 +13,6 @@ Feature: Launching & editing of an instance
     And we make the current identity the admin on provider "MockProvider"
 
 
-  @skip-if-jetstream
   Scenario: Launch instance and assign allocation source
     Given "user407" as the persona
     When I set "username" to "user407"
@@ -20,7 +20,7 @@ Feature: Launching & editing of an instance
     And we create a new user
     Given a current time of '2017-02-16T06:00:00Z' with tick = False
     When I log in
-    And we create an account for the current persona on provider "MockProvider"
+    And we create an identity for the current persona on provider "MockProvider"
     And we ensure that the user has an allocation source
     Then I should have the following quota on provider "MockProvider"
       | key               | value |
@@ -53,7 +53,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": 0.0,
+      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
       "status": "active",
       "shell": false,
@@ -61,7 +61,7 @@ Feature: Launching & editing of an instance
       "end_date": null,
       "scripts": [],
       "ip_address": null,
-      "projects": [],
+      "project": null,
       "name": "Instance in active",
       "allocation_source": null,
       "activity": ""
@@ -84,7 +84,7 @@ Feature: Launching & editing of an instance
       "end_date": null,
       "scripts": [],
       "ip_address": null,
-      "projects": [],
+      "project": null,
       "name": "Instance in active",
       "activity": ""
     }
@@ -110,10 +110,9 @@ Feature: Launching & editing of an instance
     And we should have the following user allocation source snapshots
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user407             | user407           | 0.020        | 1.000     |
-    # TODO: Fix global_burn_rate
     When I get my allocation sources from the API I should see
       | name    | compute_allowed | start_date               | end_date | compute_used | global_burn_rate | updated                  | renewal_strategy | user_compute_used | user_burn_rate | user_snapshot_updated    |
-      | user407 | 168             | 2017-02-16 06:00:00+0000 | None     | 0.020        | 0.000            | 2017-02-16 07:02:00+0000 | default          | 0.020             | 1.000          | 2017-02-16 07:02:00+0000 |
+      | user407 | 168             | 2017-02-16 06:00:00+0000 | None     | 0.020        | 1.000            | 2017-02-16 07:02:00+0000 | default          | 0.020             | 1.000          | 2017-02-16 07:02:00+0000 |
     # Check usage after an hour
     Given a current time of '2017-02-16T08:00:00Z' with tick = False
     When we update CyVerse snapshots
@@ -124,10 +123,9 @@ Feature: Launching & editing of an instance
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user407             | user407           | 0.980        | 1.000     |
 
-    # TODO: Fix global_burn_rate
     When I get my allocation sources from the API I should see
       | name    | compute_allowed | start_date               | end_date | compute_used | global_burn_rate | updated                  | renewal_strategy | user_compute_used | user_burn_rate | user_snapshot_updated    |
-      | user407 | 168             | 2017-02-16 06:00:00+0000 | None     | 0.980        | 0.000            | 2017-02-16 08:00:00+0000 | default          | 0.980             | 1.000          | 2017-02-16 08:00:00+0000 |
+      | user407 | 168             | 2017-02-16 06:00:00+0000 | None     | 0.980        | 1.000            | 2017-02-16 08:00:00+0000 | default          | 0.980             | 1.000          | 2017-02-16 08:00:00+0000 |
 
 
   Scenario: Launch instance and edit name
@@ -137,7 +135,7 @@ Feature: Launching & editing of an instance
     And we create a new user
     Given a current time of '2017-02-16T06:00:00Z' with tick = False
     When I log in
-    And we create an account for the current persona on provider "MockProvider"
+    And we create an identity for the current persona on provider "MockProvider"
     And we ensure that the user has an allocation source
     Given a current time of '2017-02-16T07:00:00Z' with tick = False
     When we create a provider machine for current persona
@@ -147,7 +145,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": 0.0,
+      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
       "status": "active",
       "shell": false,
@@ -155,7 +153,7 @@ Feature: Launching & editing of an instance
       "end_date": null,
       "scripts": [],
       "ip_address": null,
-      "projects": [],
+      "project": null,
       "name": "Instance in active",
       "allocation_source": null,
       "activity": ""
@@ -167,7 +165,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": 0.0,
+      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
       "status": "active",
       "shell": false,
@@ -175,7 +173,7 @@ Feature: Launching & editing of an instance
       "end_date": null,
       "scripts": [],
       "ip_address": null,
-      "projects": [],
+      "project": null,
       "name": "My New Instance Name",
       "activity": ""
     }
@@ -185,7 +183,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": 0.0,
+      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
       "status": "active",
       "shell": false,
@@ -193,7 +191,7 @@ Feature: Launching & editing of an instance
       "end_date": null,
       "scripts": [],
       "ip_address": null,
-      "projects": [],
+      "project": null,
       "name": "My New Instance Name",
       "activity": ""
     }

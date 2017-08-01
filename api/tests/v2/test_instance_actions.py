@@ -33,10 +33,12 @@ class InstanceActionTests(APITestCase):
             created_by=self.user,
             created_by_identity=self.user_identity,
             start_date=start_date)
+        self.size_small = SizeFactory.create(provider=self.provider, cpu=2, disk=20, root=0, mem=128)
         self.status_active = InstanceStatusFactory.create(name='active')
         delta_time = timezone.timedelta(minutes=2)
         InstanceHistoryFactory.create(
                 status=self.status_active,
+                size=self.size_small,
                 activity="",
                 instance=self.active_instance,
                 start_date=start_date + delta_time*3)
@@ -55,17 +57,15 @@ class InstanceActionTests(APITestCase):
             created_by=self.user,
             created_by_identity=self.user_identity,
             start_date=start_date_second)
-        self.status_active_second = InstanceStatusFactory.create(name='active')
         delta_time = timezone.timedelta(minutes=2)
         self.size_small = SizeFactory.create(provider=self.provider, cpu=2, disk=20, root=0, mem=128)
         self.size_large = SizeFactory.create(provider=self.provider, cpu=4, disk=40, root=0, mem=256)
         InstanceHistoryFactory.create(
-                status=self.status_active_second,
+                status=self.status_active,
                 size=self.size_small,
                 activity="",
                 instance=self.active_instance_second,
                 start_date=start_date_second + delta_time*3)
-        self.mock_driver_second = get_esh_driver(self.user_identity)
         self.mock_driver.add_core_instance(self.active_instance_second)
 
     # For resize, I will add a size in InstanceStatusHistory. for stop, we don't have to have
@@ -81,7 +81,8 @@ class InstanceActionTests(APITestCase):
         force_authenticate(request, user=self.user)
         response = self.view(request, str(self.active_instance.provider_alias))
         data = response.data.get('result')
-        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.status_code, 200,
+            "Expected a 200, received %s: %s" % (response.status_code, response.data) )
         self.assertEquals('success', data)
 
     def test_start_instance_action(self):
@@ -133,7 +134,8 @@ class InstanceActionTests(APITestCase):
         request = factory.post(self.url, data)
         force_authenticate(request, user=self.user)
         response = self.view(request, str(self.active_instance.provider_alias))
-        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.status_code, 200,
+            "Expected a 200, received %s: %s" % (response.status_code, response.data) )
         data = response.data.get('result')
         self.assertEquals('success', data)
 '''

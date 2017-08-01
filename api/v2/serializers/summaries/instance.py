@@ -8,7 +8,8 @@ from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
     identity = IdentitySummarySerializer(source='created_by_identity')
-    user = serializers.PrimaryKeyRelatedField(
+    user = serializers.SlugRelatedField(
+        slug_field="username",
         source='created_by',
         read_only=True)
     provider = serializers.PrimaryKeyRelatedField(

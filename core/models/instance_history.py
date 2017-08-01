@@ -51,7 +51,7 @@ class InstanceStatusHistory(models.Model):
     """
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     instance = models.ForeignKey("Instance")
-    size = models.ForeignKey("Size", null=True, blank=True)
+    size = models.ForeignKey("Size")
     status = models.ForeignKey(InstanceStatus)
     activity = models.CharField(max_length=36, null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)

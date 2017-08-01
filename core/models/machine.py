@@ -4,6 +4,7 @@
 from hashlib import md5
 import json, ast
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -13,7 +14,7 @@ from threepio import logger
 
 from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource, update_instance_source_size
-from core.models.application import create_application, get_application, verify_app_uuid
+from core.models.application import create_application, get_application, verify_app_uuid, Application
 from core.models.application_version import (
         ApplicationVersion,
         create_app_version,
@@ -56,6 +57,38 @@ class ProviderMachine(BaseSource):
         return ProviderMachine.objects.filter(
             instance_source__identifier=identifier,
             instance_source__provider=provider).count()
+
+    @classmethod
+    def _split_cloud_name(cls, machine_name):
+        version_sep = settings.APPLICATION_VERSION_SEPARATOR
+        if version_sep in machine_name:
+            split_list = machine_name.split(version_sep)
+
+        if len(split_list) == 1:
+            logger.warn(
+                "Version separator(%s) was not found: %s"
+                % (version_sep, machine_name))
+            split_list = [split_list[0].trim(), '']
+
+        if len(split_list) > 2:
+            logger.warn(
+                "Version separator(%s) is ambiguous: %s"
+                % (version_sep, machine_name))
+            version_parts = machine_name.rpartition(version_sep)
+            split_list = [version_parts[0].trim(), version_parts[2].trim()]
+        return split_list
+
+    def generated_name(self):
+        application = self.application
+        version = self.application_version
+        if not application:
+            raise ValueError("Application is None")
+        if not version:
+            raise ValueError("Version is None")
+        return "%s %s%s" % (
+            application.name,
+            settings.APPLICATION_VERSION_SEPARATOR,
+            version.name)
 
     def is_owner(self, atmo_user):
         return (self.application_version.created_by == atmo_user or
@@ -299,7 +332,8 @@ def convert_glance_image(glance_image, provider_uuid, owner=None):
 
 
 def get_or_create_provider_machine(image_id, machine_name,
-                                   provider_uuid, app=None, version=None):
+                                   provider_uuid, app=None, version=None,
+                                   version_name="1.0"):
     """
     Guaranteed Return of ProviderMachine.
     1. Load provider machine from DB
@@ -321,10 +355,8 @@ def get_or_create_provider_machine(image_id, machine_name,
 
     if not version:
         version = get_version_for_machine(provider_uuid, image_id, fuzzy=True)
-    if not version:
-        version = create_app_version(app, "1.0", provider_machine_id=image_id)
-    #TODO: fuzzy=True returns a list, but call comes through as a .get()?
-    #      this line will cover that edge-case.
+        if not version:
+            version = create_app_version(app, version_name, provider_machine_id=image_id)
     if type(version) in [models.QuerySet, list]:
         version = version[0]
 
@@ -378,16 +410,16 @@ def update_application_owner(application, identity):
         print "Removed access to %s for %s" % (image_id, old_tenant_name)
 
 
-def provider_machine_update_hook(new_machine, provider_uuid, identifier):
+def read_cloud_machine_hook(new_machine, provider_uuid, identifier):
     """
     RULES:
     #1. READ operations ONLY!
     #2. FROM Cloud --> ProviderMachine ONLY!
     """
-    from service.openstack import glance_update_machine
+    from service.openstack import glance_read_machine
     provider = Provider.objects.get(uuid=provider_uuid)
     if provider.get_type_name().lower() == 'openstack':
-        glance_update_machine(new_machine)
+        glance_read_machine(new_machine)
     else:
         logger.warn(
             "machine data for %s is likely incomplete."
@@ -426,7 +458,7 @@ def create_provider_machine(identifier, provider_uuid, app,
         instance_source=source,
         application_version=version,
     )
-    provider_machine_update_hook(provider_machine, provider_uuid, identifier)
+    read_cloud_machine_hook(provider_machine, provider_uuid, identifier)
     logger.info("New ProviderMachine created: %s" % provider_machine)
     add_to_cache(provider_machine)
     return provider_machine

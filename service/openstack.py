@@ -17,9 +17,11 @@ def glance_write_machine(provider_machine):
     base_source = provider_machine.instance_source
     provider = base_source.provider
     base_app = provider_machine.application
+    version = provider_machine.application_version
     identifier = base_source.identifier
     accounts = get_account_driver(provider)
     g_image = glance_image_for(provider.uuid, identifier)
+    app_version_bundle_name = provider_machine.generated_name()
     if not g_image:
         return
     if hasattr(g_image, 'properties'):
@@ -34,27 +36,27 @@ def glance_write_machine(provider_machine):
             " Ask a programmer to fix this!")
     # Do any updating that makes sense... Name. Metadata..
     overrides = {
-        "application_version": str(provider_machine.application_version.name),
         "application_uuid": str(base_app.uuid),
         "application_name": _make_safe(base_app.name),
         "application_owner": base_app.created_by.username,
         "application_tags": json.dumps(
             [_make_safe(tag.name) for tag in base_app.tags.all()]),
-        "application_description": _make_safe(base_app.description)
+        "application_description": _make_safe(base_app.description),
+        "version_name": str(version.name),
+        "version_changelog": str(version.change_log)
     }
     if update_method == 'v2':
         extras = {
-            'name': base_app.name,
             'properties': overrides
         }
+        extras['name'] = app_version_bundle_name
         props.update(extras)
         g_image.update(props)
     else:
-        overrides['name'] = base_app.name
+        overrides['name'] = app_version_bundle_name
         accounts.image_manager.glance.images.update(
             g_image.id, **overrides)
     return True
-    
 
 
 def _make_safe(unsafe_str):
@@ -64,12 +66,12 @@ def _make_safe(unsafe_str):
 def _make_unsafe(safe_str):
     return safe_str.replace("_LINE_BREAK_", "\n")
 
-
 def glance_update_machine_metadata(provider_machine, metadata={}):
     update_method = ""
     base_source = provider_machine.instance_source
     provider = base_source.provider
     base_app = provider_machine.application
+    version = provider_machine.application_version
     identifier = base_source.identifier
     accounts = get_account_driver(provider)
     g_image = glance_image_for(base_source.provider.uuid, identifier)
@@ -86,13 +88,16 @@ def glance_update_machine_metadata(provider_machine, metadata={}):
             "The method for 'introspecting an image' has changed!"
             " Ask a programmer to fix this!")
     overrides = {
-        "application_version": str(provider_machine.application_version.name),
+        "application_version": str(version.name),
         "application_uuid": str(base_app.uuid),
         "application_name": _make_safe(base_app.name),
         "application_owner": base_app.created_by.username,
         "application_tags": json.dumps(
             [_make_safe(tag.name) for tag in base_app.tags.all()]),
-        "application_description": _make_safe(base_app.description)}
+        "application_description": _make_safe(base_app.description),
+        "version_name": str(version.name),
+        "version_changelog": str(version.change_log)
+    }
     overrides.update(metadata)
 
     if update_method == 'v2':
@@ -106,7 +111,7 @@ def glance_update_machine_metadata(provider_machine, metadata={}):
 
 
 
-def glance_update_machine(new_machine):
+def glance_read_machine(new_machine):
     """
     The glance API contains MOAR information about the image then
     a call to 'list_machines()' on the OpenStack (Compute/Nova) Driver.

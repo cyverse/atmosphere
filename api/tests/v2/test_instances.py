@@ -8,15 +8,20 @@ from rest_framework.test import APIClient
 
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from api.tests.factories import (
-    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
+    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory, SizeFactory,
     ImageFactory, ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
     IdentityMembershipFactory, QuotaFactory)
+from .base import APISanityTestCase
 from api.v2.views import InstanceViewSet
 from core.models import AtmosphereUser
 
 
-class InstanceTests(APITestCase):
+class InstanceTests(APITestCase, APISanityTestCase):
+    url_route = 'api:v2:instance'
+
     def setUp(self):
+        self.list_view = InstanceViewSet.as_view({'get': 'list'})
+        self.detailed_view = InstanceViewSet.as_view({'get': 'retrieve'})
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create(username='test-username')
         self.admin_user = UserFactory.create(username='admin', is_superuser=True, is_staff=True)
@@ -62,6 +67,7 @@ class InstanceTests(APITestCase):
         networking = InstanceStatusFactory.create(name='networking')
         deploying = InstanceStatusFactory.create(name='deploying')
         deploy_error = InstanceStatusFactory.create(name='deploy_error')
+
         InstanceHistoryFactory.create(
                 status=deploy_error,
                 activity="",
@@ -88,7 +94,7 @@ class InstanceTests(APITestCase):
         client = APIClient()
         client.force_authenticate(user=self.user)
 
-        url = reverse('api:v2:instance-detail', args=(self.networking_instance.provider_alias,))
+        url = reverse(self.url_route+"-detail", args=(self.networking_instance.provider_alias,))
         response = client.get(url)
         self.assertEquals(response.status_code, 200)
         data = response.data
@@ -100,7 +106,7 @@ class InstanceTests(APITestCase):
         client = APIClient()
         client.force_authenticate(user=self.user)
 
-        url = reverse('api:v2:instance-detail', args=(self.deploying_instance.provider_alias,))
+        url = reverse(self.url_route+"-detail", args=(self.deploying_instance.provider_alias,))
         response = client.get(url)
         self.assertEquals(response.status_code, 200)
         data = response.data
@@ -112,7 +118,7 @@ class InstanceTests(APITestCase):
         client = APIClient()
         client.force_authenticate(user=self.user)
 
-        url = reverse('api:v2:instance-detail', args=(self.deploy_error_instance.provider_alias,))
+        url = reverse(self.url_route+"-detail", args=(self.deploy_error_instance.provider_alias,))
         response = client.get(url)
         self.assertEquals(response.status_code, 200)
         data = response.data
@@ -124,9 +130,9 @@ class InstanceTests(APITestCase):
         client = APIClient()
         client.force_authenticate(user=self.user)
 
-        url = reverse('api:v2:instance-detail', args=(self.active_instance.provider_alias,))
+        url = reverse(self.url_route+"-detail", args=(self.active_instance.provider_alias,))
         response = client.get(url)
-        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.status_code, 200, "Non-200 response returned: (%s) %s" % (response.status_code, response.data))
         data = response.data
         self.assertEquals(data['status'], 'active')
         self.assertEquals(data['activity'], '')

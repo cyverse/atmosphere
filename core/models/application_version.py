@@ -128,7 +128,7 @@ class ApplicationVersion(models.Model):
                 Q(created_by=request_user) |
                 Q(application__created_by=request_user) |
                 Q(machines__instance_source__created_by=request_user))
-            all_group_ids = request_user.group_set.values('id')
+            all_group_ids = request_user.memberships.values('group__id')
             # Showing non-end dated, shared ApplicationVersions
             shared_set = ApplicationVersion.objects.filter(
                 only_current(), only_current_machines_in_version(), Q(

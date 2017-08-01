@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 from django.contrib.auth.models import Group as DjangoGroup
@@ -7,12 +8,10 @@ from django.contrib.sessions.models import Session as DjangoSession
 from django.utils import timezone
 from threepio import logger
 
-from api.v2.views import AllocationSourceViewSet, UserAllocationSourceViewSet
 from core import email
 from core import models
 from core import tasks
-from service.tasks import admin as admin_task
-
+from core.events.serializers.quota_assigned import QuotaAssignedSerializer
 
 def private_object(modeladmin, request, queryset):
     queryset.update(private=True)
@@ -89,6 +88,7 @@ class AllocationSourceAdmin(admin.ModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
+        from api.v2.views import AllocationSourceViewSet, UserAllocationSourceViewSet
         request.data = {"renewal_strategy": obj.renewal_strategy,
                         "name": obj.name,
                         "compute_allowed": obj.compute_allowed}
@@ -388,12 +388,39 @@ class CredentialInline(admin.TabularInline):
     extra = 1
 
 
+class IdentityAdminForm(forms.ModelForm):
+    def clean(self):
+        quota = self.cleaned_data['quota']
+        core_identity = self.instance
+        data = {
+            'quota': quota.id,
+            'identity': core_identity.id,
+            'update_method': 'admin'}
+        event_serializer = QuotaAssignedSerializer(data=data)
+        if not event_serializer.is_valid():
+            raise forms.ValidationError(
+                "Validation of EventSerializer failed with: %s"
+                % event_serializer.errors)
+        try:
+            event_serializer.save()
+        except Exception as exc:
+            logger.exception("Unexpected error occurred during Event save")
+            raise forms.ValidationError(
+                "Unexpected error occurred during Event save: %s. See logs for details."
+                % exc)
+
+    class Meta:
+        model = models.Identity
+        exclude = []
+
+
 @admin.register(models.Identity)
 class IdentityAdmin(admin.ModelAdmin):
     inlines = [CredentialInline, ]
     list_display = ("created_by", "provider", "_credential_info")
     search_fields = ["created_by__username"]
     list_filter = ["provider__location"]
+    form = IdentityAdminForm
 
     def _credential_info(self, obj):
         return_text = ""
@@ -405,11 +432,6 @@ class IdentityAdmin(admin.ModelAdmin):
     _credential_info.allow_tags = True
     _credential_info.short_description = 'Credentials'
 
-    def save_model(self, request, obj, form, changed):
-        obj.save()
-        identity = obj
-        admin_task.set_provider_quota.apply_async(
-            args=[str(identity.uuid)])
 
 
 class UserProfileInline(admin.StackedInline):
@@ -443,7 +465,7 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
         context['adminform'].form.fields[
             'identity'].queryset = user.identity_set.all()
         context['adminform'].form.fields[
-            'member'].queryset = user.group_set.all()
+            'member'].queryset = user.memberships.all()
         return super(
             IdentityMembershipAdmin,
             self).render_change_form(
@@ -550,13 +572,11 @@ class MachineRequestAdmin(admin.ModelAdmin):
 @admin.register(models.InstanceStatusHistory)
 class InstanceStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ["instance__created_by__username",
-                     "instance__source__identifier",
-                     "instance__provider_alias", "status__name"]
-    list_display = ["instance_alias", "machine_alias", "instance_owner", "instance_ip_address", "status", "start_date",
-                    "end_date"]
+                     "instance__provider_alias"]
+    list_display = ["status", "start_date",
+                    "end_date", "instance_alias", "instance_owner"]
     list_filter = ["instance__source__provider__location",
-                   "status__name",
-                   "instance__created_by__username"]
+                   "status__name"]
     ordering = ('-start_date',)
 
     def instance_owner(self, model):
@@ -606,8 +626,7 @@ class ResourceRequestAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'created_by', 'request', 'description',
                        'start_date', 'end_date')
     list_display = ("request", "status", "created_by", "start_date",
-                    "end_date", "allocation", "quota")
-
+                    "end_date")
     list_filter = ["status", "membership__identity__provider__location"]
     exclude = ("membership",)
 
@@ -619,23 +638,10 @@ class ResourceRequestAdmin(admin.ModelAdmin):
         obj.save()
 
         if obj.is_approved():
-            membership = obj.membership
-            identity = membership.identity
-            identity.quota = obj.quota or identity.quota
-            identity.save()
-            # Marked for deletion
-            membership.allocation = obj.allocation or membership.allocation
-            membership.save()
-
-            email_task = email.send_approved_resource_email(
+            email.send_approved_resource_email(
                 user=obj.created_by,
                 request=obj.request,
                 reason=obj.admin_message)
-
-            admin_task.set_provider_quota.apply_async(
-                args=[str(identity.uuid)],
-                link=[tasks.close_request.si(obj), email_task],
-                link_error=tasks.set_request_as_failed.si(obj))
 
 
 @admin.register(models.Group)

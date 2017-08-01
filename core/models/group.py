@@ -22,8 +22,9 @@ from core.models.quota import Quota
 from core.models.user import AtmosphereUser
 
 from core.query import (
-        only_active_memberships, only_active_provider, only_current_provider
+        only_current, only_active_memberships, only_active_provider, only_current_provider
     )
+
 
 class Group(DjangoGroup):
 
@@ -31,7 +32,6 @@ class Group(DjangoGroup):
     Extend the Django Group model to support 'membership'
     """
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    leaders = models.ManyToManyField('AtmosphereUser', through='Leadership')
     identities = models.ManyToManyField(Identity, through='IdentityMembership',
                                         blank=True)
     instances = models.ManyToManyField('Instance',
@@ -47,8 +47,36 @@ class Group(DjangoGroup):
         through='ProviderMachineMembership',
         blank=True)
 
+    def __unicode__(self):
+        return "AtmosphereGroup %s" % (self.name,)
+
     def is_leader(self, test_user):
-        return any(user for user in self.leaders.all() if user == test_user)
+        return any(user for user in self.leaders if user == test_user)
+
+    @property
+    def is_private(self):
+        """
+        For now, this is how we can verify if the group is 'private'.
+        Later, we might have to remove the property and include a 'context user'
+        so that we can determine the ownership (of the group, or that the name is a perfect match, etc.)
+        """
+        return self.memberships.filter(is_leader=True).count() == 1
+
+    @property
+    def leaders(self):
+        return self.memberships.filter(is_leader=True)
+
+    @property
+    def users(self):
+        return self.memberships.all()
+
+    def get_users(self):
+        user_ids = self.users.values_list('user__id', flat=True)
+        return AtmosphereUser.objects.filter(id__in=user_ids)
+
+    def get_leaders(self):
+        user_ids = self.leaders.values_list('user__id', flat=True)
+        return AtmosphereUser.objects.filter(id__in=user_ids)
 
     @property
     def identitymembership_set(self):
@@ -59,17 +87,17 @@ class Group(DjangoGroup):
     def current_identity_memberships(self):
         return self.identity_memberships.filter(only_active_memberships())
 
+    @staticmethod
+    def for_identity(identity_uuid):
+        return Group.objects.filter(identity_memberships__identity__uuid=identity_uuid)
+
     @property
     def current_identities(self):
-        identity_ids = self.identity_memberships.filter(
-                only_active_memberships()).values_list('identity',flat=True)
-        return Identity.objects.filter(only_current_provider(), only_active_provider(), id__in=identity_ids)
+        return Identity.shared_with_group(self).filter(only_current_provider(), only_active_provider())
 
     @property
     def current_providers(self):
-        provider_ids = self.identity_memberships.filter(
-                only_active_memberships()).values_list('identity__provider',flat=True)
-        return Provider.objects.filter(id__in=provider_ids)
+        return Provider.shared_with_group(self).filter(only_current(), active=True)
 
     @classmethod
     def check_membership(cls, test_user, membership_groups):
@@ -80,31 +108,28 @@ class Group(DjangoGroup):
         RETURNS:
           True/False - If any of the users groups grants membership access.
         """
-        return any(group for group
-                   in test_user.group_set.all() if group in membership_groups)
+        return any(membership.group for membership
+                   in test_user.memberships.all() if membership.group in membership_groups)
 
     @classmethod
     def check_access(cls, user, groupname):
-        try:
-            if not isinstance(user, AtmosphereUser):
-                user = AtmosphereUser.objects.get(username=user.username)
-            group = Group.objects.get(name=groupname)
-            return user in group.user_set.all()
-        except Group.DoesNotExist:
-            return False
+        group = Group.objects.filter(name=groupname).first()
+        return GroupMembership.objects.filter(user=user, group=group).exists()
 
     @classmethod
-    def create_usergroup(cls, username, group_name=None):
+    def create_usergroup(cls, username, group_name=None, is_leader=False):
         # TODO: ENFORCEMENT of lowercase-only usernames until cleared by mgmt.
         username = username.lower()
         if not group_name:
             group_name = username
         user = AtmosphereUser.objects.get_or_create(username=username)[0]
         group = Group.objects.get_or_create(name=group_name)[0]
-        if group not in user.groups.all():
-            user.groups.add(group)
-            user.save()
-        l = Leadership.objects.get_or_create(user=user, group=group)[0]
+        group.user_set.add(user)
+
+        member = GroupMembership.objects.get_or_create(user=user, group=group)[0]
+        if is_leader:
+            member.is_leader = True
+            member.save()
         return (user, group)
 
     def json(self):
@@ -118,13 +143,20 @@ class Group(DjangoGroup):
         app_label = 'core'
 
 
-class Leadership(models.Model):
+class GroupMembership(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    user = models.ForeignKey('AtmosphereUser')
-    group = models.ForeignKey(Group)
+    user = models.ForeignKey('AtmosphereUser', related_name='memberships')
+    group = models.ForeignKey(Group, related_name='memberships')
+    is_leader = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return "%s is a %s of %s"  % (
+            self.user,
+            "leader" if self.is_leader else "member",
+            self.group)
 
     class Meta:
-        db_table = 'group_leaders'
+        db_table = 'group_members'
         app_label = 'core'
 
 
@@ -153,10 +185,7 @@ class IdentityMembership(models.Model):
             group = Group.objects.get(name=groupname)
         except Group.DoesNotExist:
             logger.warn("Group %s does not exist" % groupname)
-        try:
-            return group.current_identity_memberships.first()
-        except IdentityMembership.DoesNotExist:
-            logger.warn("%s is not a member of any identities" % groupname)
+        return IdentityMembership.objects.filter(member=group)
 
     @property
     def quota(self):
@@ -210,24 +239,13 @@ class IdentityMembership(models.Model):
         }
         return quota_dict
 
-    def save(self, *args, **kwargs):
-        """
-        Whenever an IdentityMembership changes, update the provider
-        specific quota too.
-        """
-        super(IdentityMembership, self).save(*args, **kwargs)
-        try:
-            from service.tasks.admin import set_provider_quota
-            set_provider_quota.apply_async(args=[str(self.identity.uuid)])
-        except Exception as ex:
-            logger.warn("Unable to update service.quota.set_provider_quota.")
-            raise
-
     def is_member(self, user):
         """
-        Return whether the given user a member of the identity
+        Return whether the group in this identity-membership
+        allows access to _user_
         """
-        return self.member in user.group_set.all()
+        group = self.member
+        return user.id in group.memberships.values_list('user', flat=True)
 
     def __unicode__(self):
         return "%s can use identity %s" % (self.member, self.identity)

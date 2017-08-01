@@ -63,8 +63,11 @@ DATABASE_HOST = localhost # remote.postgres-server.com
 DATABASE_PORT = 5432
 DATABASE_CONN_MAX_AGE = 60 # in seconds
 DJANGO_DEBUG =  True # Boolean required
+DJANGO_DEBUG_TOOLBAR =  False # Boolean required
 ENFORCING =  False # Boolean required #NOTE: DO NOT SET TO TRUE UNLESS YOU ARE PRODUCTION!
 SSLSERVER =  False # Boolean required
+ENABLE_PROJECT_SHARING =  True # Boolean required
+ENABLE_IMAGE_VALIDATION =  True # Boolean required
 DJANGO_TEMPLATE_DEBUG =  True # Boolean required
 LOG_LIBCLOUD =  False # Boolean required
 LOGGING_LEVEL = logging.INFO # DEBUG, INFO, WARNING, ERROR
@@ -103,6 +106,8 @@ INSTANCE_HOSTNAMING_FORMAT = # vm%(three)s-%(four)s.%(domain)s
 DEPLOYMENT_KEYPAIR_NAME = # keypair name inject by atmo-ansible during instance deploy
 EXPIRATION_PLUGINS = ["atmosphere.plugins.auth.validation.NeverExpire"] # list of plugins
 VALIDATION_PLUGINS = ["atmosphere.plugins.auth.validation.AlwaysAllow"] # list of plugins
+ACCOUNT_CREATION_PLUGINS = ["atmosphere.plugins.accounts.creation.UserGroup"] # list of plugins
+
 SENTRY_ENABLED =  True # Boolean required or False
 SENTRY_DSN = # https://...@sentry.io/....
 
@@ -120,7 +125,11 @@ WEB_DESKTOP_PROXY_URL  =
 WEB_DESKTOP_PROXY_DOMAIN =
 WEB_DESKTOP_INCLUDE_LINK = False
 
-#NOTE: Jetstream Specific
+#NOTE: CyVerse specific plugin secrets
+GROUPER_API = ; ""
+GROUPER_SEARCH_USER = ; ""
+
+#NOTE: Jetstream Specific plugin secrets
 TACC_API_USER = # "tas-username"
 TACC_API_PASS = # "tas-password"
 TACC_API_URL  = # "/path to api/"

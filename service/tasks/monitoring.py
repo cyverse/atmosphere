@@ -8,7 +8,7 @@ from django.utils import timezone
 from celery.decorators import task
 
 from core.query import (
-    only_current, only_current_source,
+    contains_credential, only_current, only_current_source,
     source_in_range, inactive_versions)
 from core.models.group import Group
 from core.models.size import Size, convert_esh_size
@@ -331,7 +331,8 @@ def get_public_and_private_apps(provider):
         if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
             #celery_logger.debug("Skipping cloud machine %s" % cloud_machine)
             continue
-        db_machine = get_or_create_provider_machine(cloud_machine.id, cloud_machine.name, provider.uuid)
+        app_name, version_name = ProviderMachine._split_cloud_name(cloud_machine.name)
+        db_machine = get_or_create_provider_machine(cloud_machine.id, app_name, provider.uuid, version_name=version_name)
         db_version = db_machine.application_version
         db_application = db_version.application
 
@@ -622,7 +623,6 @@ def monitor_instances_for(provider_id, users=None,
     # For now, lets just ignore everything that isn't openstack.
     if 'openstack' not in provider.type.name.lower():
         return
-
     instance_map = _get_instance_owner_map(provider, users=users)
 
     if print_logs:
@@ -632,9 +632,9 @@ def monitor_instances_for(provider_id, users=None,
     # Break this out when instance-caching is enabled
     if not settings.ENFORCING:
         celery_logger.debug('Settings dictate allocations are NOT enforced')
-    for username in sorted(instance_map.keys()):
-        running_instances = instance_map[username]
-        identity = _get_identity_from_tenant_name(provider, username)
+    for tenant_name in sorted(instance_map.keys()):
+        running_instances = instance_map[tenant_name]
+        identity = _get_identity_from_tenant_name(provider, tenant_name)
         if identity and running_instances:
             try:
                 driver = get_cached_driver(identity=identity)
@@ -649,7 +649,7 @@ def monitor_instances_for(provider_id, users=None,
             except Exception as exc:
                 celery_logger.exception(
                     "Could not convert running instances for %s" %
-                    username)
+                    tenant_name)
                 continue
         else:
             # No running instances.
@@ -697,15 +697,22 @@ def monitor_volumes_for(provider_id, print_logs=False):
         except ObjectDoesNotExist:
             tenant_id = cloud_volume.extra['object']['os-vol-tenant-attr:tenant_id']
             tenant = account_driver.get_project_by_id(tenant_id)
+            tenant_name = tenant.name if tenant else tenant_id
             try:
-                identity = Identity.objects.get(
-                    provider=provider, created_by__username=tenant.name)
+                if not tenant:
+                    celery_logger.warn("Warning: tenant_id %s found on volume %s, but did not exist from the account driver perspective.", tenant_id, cloud_volume)
+                    raise ObjectDoesNotExist()
+                identity = Identity.objects.filter(
+                    contains_credential('ex_project_name', tenant_name), provider=provider
+                ).first()
+                if not identity:
+                    raise ObjectDoesNotExist()
                 core_volume = convert_esh_volume(
                     cloud_volume,
                     provider.uuid, identity.uuid,
                     identity.created_by)
             except ObjectDoesNotExist:
-                celery_logger.info("Skipping Volume %s - Unknown Identity: %s-%s" % (cloud_volume.id, provider, tenant.name))
+                celery_logger.info("Skipping Volume %s - No Identity for: Provider:%s + Project Name:%s" % (cloud_volume.id, provider, tenant_name))
             pass
 
     now_time = timezone.now()

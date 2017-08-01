@@ -134,8 +134,6 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',
-    #For profile/debugging
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -193,7 +191,7 @@ AUTHENTICATION_BACKENDS = (
 
 # django-cors-headers
 CORS_ORIGIN_ALLOW_ALL = True
-CORS_ORIGIN_WHITELIST = None
+CORS_ORIGIN_WHITELIST = []
 
 # ATMOSPHERE APP CONFIGS
 INSTANCE_SERVICE_URL = SERVER_URL + REDIRECT_URL + '/api/notification/'
@@ -245,11 +243,16 @@ DEFAULT_RULES = [
     ("TCP", 4200, 4200, u"129.114.104.5/32"),
     ("UDP", 4200, 4200, u"129.114.104.5/32")
 ]
-# Stops 500 errors when logs are missing.
-# NOTE: If the permissions are wrong, this won't help
+# ATMOSPHERE NAMING CONVENTIONS
+# NOTE: If these values are overriden often, make this configurable
+APPLICATION_VERSION_SEPARATOR = "v."
 
 
 def check_and_touch(file_path):
+    """
+    Stops 500 errors when logs are missing.
+    NOTE: If the permissions are wrong, this won't help
+    """
     if os.path.exists(file_path):
         return
     parent_dir = os.path.dirname(file_path)

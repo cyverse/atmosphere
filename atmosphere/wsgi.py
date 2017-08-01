@@ -36,6 +36,7 @@ if not logger:
     logger = logging.getLogger(__name__)
 
 if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
+    logger.info("[A]Plugin: New Relic setup started because NEW_RELIC_ENVIRONMENT is defined in local.py")
     try:
         import newrelic.agent
         newrelic.agent.initialize(
@@ -48,11 +49,6 @@ if hasattr(settings, "NEW_RELIC_ENVIRONMENT"):
     except Exception as bad_config:
         logger.warn("[A]Warning: newrelic not initialized..")
         logger.warn(bad_config)
-else:
-    logger.info("[A]Plugin: Skipping New Relic setup. NEW_RELIC_ENVIRONMENT not defined in local.py")
-
-#    root_dir,
-#    'logs/libcloud.log'))
 
 # This application object is used by any WSGI server configured to use this
 # file. This includes Django's development server, if the WSGI_APPLICATION

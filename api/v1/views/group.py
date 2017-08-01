@@ -45,7 +45,8 @@ class GroupList(AuthAPIView):
         Authentication Required, A list of all the user's groups.
         """
         user = request.user
-        all_groups = user.group_set.order_by('name')
+        all_memberships = user.memberships.select_related('group').order_by('group__name')
+        all_groups = [member.group for member in all_memberships]
         serialized_data = GroupSerializer(all_groups).data
         response = Response(serialized_data)
         return response
@@ -66,7 +67,7 @@ class Group(AuthAPIView):
         """
         logger.info(request.__dict__)
         user = request.user
-        group = user.group_set.get(name=groupname)
+        group = user.memberships.get(group__name=groupname).group
         serialized_data = GroupSerializer(group).data
         response = Response(serialized_data)
         return response

@@ -4,7 +4,6 @@ from core.models import Tag
 from rest_framework import serializers
 from .cleaned_identity_serializer import CleanedIdentitySerializer
 from .tag_related_field import TagRelatedField
-from .projects_field import ProjectsField
 from .boot_script_serializer import BootScriptSerializer
 from .get_context_user import get_context_user
 
@@ -43,7 +42,7 @@ class InstanceSerializer(serializers.ModelSerializer):
         required=False,
         many=True,
         queryset=Tag.objects.all())
-    projects = ProjectsField(required=False)
+    project = serializers.ReadOnlyField(source='project.id')
     scripts = BootScriptSerializer(many=True, required=False)
 
     def __init__(self, *args, **kwargs):

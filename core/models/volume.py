@@ -26,6 +26,7 @@ class Volume(BaseSource):
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
+    project = models.ForeignKey("Project", null=True, blank=True, related_name='volumes')
 
     objects = models.Manager()  # The default manager.
     active_volumes = ActiveVolumesManager()
@@ -54,11 +55,19 @@ class Volume(BaseSource):
         self.save()
         return self
 
-    def get_projects(self, user):
-        projects = self.projects.filter(
-            Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            owner=user)
-        return projects
+    @staticmethod
+    def shared_with_user(user, is_leader=None):
+        """
+        is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+        """
+        ownership_query = Q(instance_source__created_by=user)
+        project_query = Q(project__owner__memberships__user=user)
+        if is_leader == False:
+            project_query &= Q(project__owner__memberships__is_leader=False)
+        elif is_leader == True:
+            project_query &= Q(project__owner__memberships__is_leader=True)
+        membership_query = Q(instance_source__created_by__memberships__group__user=user)
+        return Volume.objects.filter(membership_query | project_query | ownership_query).distinct()
 
     def __unicode__(self):
         return "%s - %s" % (self.instance_source.identifier, self.name)

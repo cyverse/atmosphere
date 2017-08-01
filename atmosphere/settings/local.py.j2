@@ -249,7 +249,8 @@ DEPLOY_SERVER_URL = SERVER_URL.replace('https', 'http')
 # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
 
-ENABLE_IMAGE_VALIDATION = False  # TODO: Fix validation and make configurable feature-flag
+ENABLE_IMAGE_VALIDATION = {{ ENABLE_IMAGE_VALIDATION | default(False) }}
+ENABLE_PROJECT_SHARING = {{ ENABLE_PROJECT_SHARING | default(False) }}
 
 # Configure authentication plugin
 AUTHENTICATION = {
@@ -405,6 +406,39 @@ INSTALLED_APPS += (
     'sslserver',
 )
 {% endif %}
+{% if DJANGO_DEBUG_TOOLBAR %}
+# Include django-debug-toolbar
+INSTALLED_APPS += (
+    'debug_toolbar',
+)
+
+#
+# Read more about this config option here:
+# http://django-debug-toolbar.readthedocs.io/en/latest/configuration.html#debug-toolbar-config
+#
+DEBUG_TOOLBAR_CONFIG = {
+    "SHOW_TOOLBAR_CALLBACK": (lambda request: True),
+}
+MIDDLEWARE_CLASSES += (
+    #For profile/debugging
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+)
+DEBUG_TOOLBAR_PANELS = [
+    'debug_toolbar.panels.versions.VersionsPanel',
+    'debug_toolbar.panels.timer.TimerPanel',
+    # 'debug_toolbar.panels.settings.SettingsPanel',
+    # 'debug_toolbar.panels.headers.HeadersPanel',
+    'debug_toolbar.panels.request.RequestPanel',
+    'debug_toolbar.panels.sql.SQLPanel',
+    # 'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+    # 'debug_toolbar.panels.templates.TemplatesPanel',
+    'debug_toolbar.panels.cache.CachePanel',
+    'debug_toolbar.panels.signals.SignalsPanel',
+    'debug_toolbar.panels.logging.LoggingPanel',
+    # 'debug_toolbar.panels.redirects.RedirectsPanel',
+    'debug_toolbar.panels.profiling.ProfilingPanel',
+]
+{% endif %}
 
 {% if USE_JETSTREAM_PLUGIN %}
 INSTALLED_APPS += (
@@ -442,6 +476,11 @@ TACC_API_USER = ''
 TACC_API_PASS = ''
 TACC_API_URL = ''
 {% endif %}
+
+######
+# Atmosphere Plugin Settings
+######
+
 # Validation Plugins:
 # These plugins will be checked, in order, until one passes
 # If all validation plugins fail, user will be "kicked out" of the API.
@@ -458,6 +497,30 @@ VALIDATION_PLUGINS = [
     #'atmosphere.plugins.auth.validation.LDAPGroupRequired',
     'atmosphere.plugins.auth.validation.AlwaysAllow',
 ]
+{%- endif %}
+
+# Account Creation Plugins:
+# At least one plugin is required to create accounts for new users.
+# Each plugin will be executed, in order, and allowed to create accounts when a user enters atmosphere.
+{%- if ACCOUNT_CREATION_PLUGINS %}
+ACCOUNT_CREATION_PLUGINS = {{ ACCOUNT_CREATION_PLUGINS }}
+{%- else %}
+# Default creation plugin: UserGroup
+ACCOUNT_CREATION_PLUGINS = [
+    "atmosphere.plugins.accounts.creation.UserGroup",
+    # Alternative creation plugins:
+    #"atmosphere.plugins.accounts.creation.XsedeGroup",
+    #"atmosphere.plugins.accounts.creation.GrouperPlugin",
+]
+{%- endif %}
+
+{%- if GROUPER_API and GROUPER_SEARCH_USER %}
+GROUPER_API = "{{ GROUPER_API }}"
+GROUPER_SEARCH_USER = "{{ GROUPER_SEARCH_USER }}"
+{%- else %}
+
+GROUPER_API = ""
+GROUPER_SEARCH_USER = ""
 {%- endif %}
 
 {%- if SENTRY_ENABLED %}
