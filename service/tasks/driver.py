@@ -14,7 +14,7 @@ from celery.decorators import task
 from celery.task import current
 from celery.result import allow_join_result
 
-from rtwo.exceptions import LibcloudDeploymentError, LibcloudInvalidCredsError, LibcloudBadResponseError
+from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError
 
 #TODO: Internalize exception into RTwo
 from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
@@ -31,7 +31,7 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.deploy import (
-    inject_env_script, check_process, wrap_script,
+    check_process,
     instance_deploy, user_deploy,
     build_host_name,
     ready_to_deploy as ansible_ready_to_deploy,
@@ -732,9 +732,6 @@ def get_chain_from_active_with_ip(
         driverCls, provider, identity, instance.id, core_identity.created_by)
     email_task = _send_instance_email.si(
         driverCls, provider, identity, instance.id)
-    # JUST before we finish, check for boot_scripts_chain
-    boot_chain_start, boot_chain_end = _get_boot_script_chain(
-        driverCls, provider, identity, instance.id, core_identity)
 
 
     # (SUCCESS_)LINKS and ERROR_LINKS
@@ -756,12 +753,7 @@ def get_chain_from_active_with_ip(
     check_vnc_task.link(deploy_user_task)  # this line and below, user can create a failure.
     # ready -> metadata -> deployment..
 
-    if boot_chain_start and boot_chain_end:
-        # ..deployment -> scripts -> ..
-        deploy_user_task.link(boot_chain_start)
-        boot_chain_end.link(remove_status_chain)
-    else:
-        deploy_user_task.link(remove_status_chain)
+    deploy_user_task.link(remove_status_chain)
     # Final task at this point should be 'remove_status_chain'
 
     # Only send emails when 'redeploy=False'
@@ -769,151 +761,6 @@ def get_chain_from_active_with_ip(
         remove_status_chain.link(email_task)
     celery_logger.info("Deploy Chain : %s" % print_chain(start_chain, idx=0))
     return start_chain
-
-
-@task(name="deploy_boot_script",
-      default_retry_delay=32,
-      time_limit=30 * 60,  # 30minute hard-set time limit.
-      max_retries=10)
-def deploy_boot_script(driverCls, provider, identity, instance_id,
-                       script_text, script_name, **celery_task_args):
-    """
-    FIXME: how could we make this ansible-ized?
-    """
-    # Note: Splitting preperation (Of the MultiScriptDeployment) and execution
-    # This makes it easier to output scripts for debugging of users.
-    try:
-        celery_logger.debug("deploy_boot_script task started at %s." % datetime.now())
-        # Check if instance still exists
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_id)
-        if not instance:
-            celery_logger.debug("Instance has been teminated: %s." % instance_id)
-            return
-        # NOTE: This is required to use ssh to connect.
-        # TODO: Is this still necessary? What about times when we want to use
-        # the adminPass? --Steve
-        celery_logger.info(instance.extra)
-        instance._node.extra['password'] = None
-        new_script = wrap_script(script_text, script_name)
-    except (BaseException, Exception) as exc:
-        celery_logger.exception(exc)
-        deploy_boot_script.retry(exc=exc)
-
-    try:
-        kwargs = _generate_ssh_kwargs()
-        kwargs.update({'deploy': new_script})
-        driver.deploy_to(instance, **kwargs)
-        _update_status_log(instance, "Deploy Finished")
-        celery_logger.debug(
-            "deploy_boot_script task finished at %s." %
-            datetime.now())
-    except LibcloudDeploymentError as exc:
-        celery_logger.exception(exc)
-        full_script_output = _parse_script_output(new_script)
-        if isinstance(exc.value, NonZeroDeploymentException):
-            # The deployment was successful, but the return code on one or more
-            # steps is bad. Log the exception and do NOT try again!
-            raise NonZeroDeploymentException,\
-                "Boot Script reported a NonZeroDeployment:%s"\
-                % full_script_output,\
-                sys.exc_info()[2]
-        # TODO: Check if all exceptions thrown at this time
-        # fall in this category, and possibly don't retry if
-        # you hit the Exception block below this.
-        deploy_boot_script.retry(exc=exc)
-    except (BaseException, Exception) as exc:
-        celery_logger.exception(exc)
-        deploy_boot_script.retry(exc=exc)
-
-
-@task(name="boot_script_failed")
-def boot_script_failed(task_uuid, driverCls, provider, identity, instance_id,
-                       **celery_task_args):
-    try:
-        celery_logger.debug("boot_script_failed task started at %s." % datetime.now())
-        celery_logger.info("task_uuid=%s" % task_uuid)
-        result = app.AsyncResult(task_uuid)
-        with allow_join_result():
-            exc = result.get(propagate=False)
-        err_str = "BOOT SCRIPT ERROR::%s" % (result.traceback,)
-        celery_logger.error(err_str)
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_id)
-
-        metadata={'tmp_status': 'boot_script_error'}
-        update_metadata.s(driverCls, provider, identity, instance.id,
-                          metadata, replace_metadata=False).apply_async()
-        # TODO: Send 'boot script failed' email
-        celery_logger.debug(
-            "boot_script_failed task finished at %s." %
-            datetime.now())
-    except (BaseException, Exception) as exc:
-        celery_logger.warn(exc)
-        boot_script_failed.retry(exc=exc)
-
-
-def _get_boot_script_chain(
-        driverCls, provider, identity, instance_id,
-        core_identity, remove_status=False):
-    core_instance = Instance.objects.get(provider_alias=instance_id)
-    scripts = get_scripts_for_instance(core_instance)
-    first_task = end_task = None
-    if not scripts:
-        return first_task, end_task
-    script_zero = deploy_boot_script.si(
-            driverCls, provider, identity, instance_id,
-            inject_env_script(core_identity.created_by.username),
-            "Inject ENV variables")
-    total = len(scripts)
-    for idx, script in enumerate(scripts):
-        # Name the status
-        if total > 1:
-            script_text = "running_boot_script: #%s/%s" % (idx + 1, total)
-        else:
-            script_text = "running_boot_script"
-        # Update the status
-        init_script_status_task = update_metadata.si(
-            driverCls, provider, identity, instance_id,
-            {'tmp_status': script_text})
-        init_script_status_task.link_error(
-            boot_script_failed.s(driverCls, provider, identity, instance_id))
-
-        # Execute script
-        deploy_script_task = deploy_boot_script.si(
-            driverCls, provider, identity, instance_id,
-            script.get_text(), script.get_title_slug())
-        deploy_script_task.link_error(
-            user_deploy_failed.s(driverCls, provider, identity, instance_id, core_identity.created_by))
-
-        # Base case: First link
-        if idx == 0:
-            first_task = script_zero  # Always first
-            script_zero.link(init_script_status_task)  # Link first script after it
-            script_zero.link_error(
-                boot_script_failed.s(driverCls, provider, identity, instance_id))
-        else:
-	    # All other links: Add init to end_task (a deploy)
-            end_task.link(init_script_status_task)
-
-        init_script_status_task.link(deploy_script_task)
-
-        if idx == total - 1 and remove_status:
-            # Actions are slightly different if this is the final task
-            clear_script_status_task = update_metadata.si(
-                driverCls, provider, identity, instance_id,
-                {'tmp_status': ''})
-            deploy_script_task.link(clear_script_status_task)
-            clear_script_status_task.link_error(
-                boot_script_failed.s(
-                    driverCls,
-                    provider,
-                    identity,
-                    instance_id))
-            end_task = clear_script_status_task
-        else:
-            end_task = deploy_script_task
-    return first_task, end_task
 
 
 @task(name="destroy_instance",
@@ -1034,20 +881,6 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
         celery_logger.debug("deploy_ready_test task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
         deploy_ready_test.retry(exc=exc)
-    except LibcloudDeploymentError as exc:
-        celery_logger.exception(exc)
-        full_deploy_output = _parse_steps_output(msd)
-        if isinstance(exc.value, NonZeroDeploymentException):
-            # The deployment was successful, but the return code on one or more
-            # steps is bad. Log the exception and do NOT try again!
-            raise NonZeroDeploymentException,\
-                "One or more Script(s) reported a NonZeroDeployment:%s"\
-                % full_deploy_output,\
-                sys.exc_info()[2]
-        # TODO: Check if all exceptions thrown at this time
-        # fall in this category, and possibly don't retry if
-        # you hit the Exception block below this.
-        deploy_ready_test.retry(exc=exc)
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
         deploy_ready_test.retry(exc=exc)
@@ -1090,20 +923,6 @@ def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
         celery_logger.debug("_deploy_instance_for_user task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
         celery_logger.exception(exc)
-        _deploy_instance_for_user.retry(exc=exc)
-    except LibcloudDeploymentError as exc:
-        celery_logger.exception(exc)
-        full_deploy_output = _parse_steps_output(msd)
-        if isinstance(exc.value, NonZeroDeploymentException):
-            # The deployment was successful, but the return code on one or more
-            # steps is bad. Log the exception and do NOT try again!
-            raise NonZeroDeploymentException,\
-                "One or more Script(s) reported a NonZeroDeployment:%s"\
-                % full_deploy_output,\
-                sys.exc_info()[2]
-        # TODO: Check if all exceptions thrown at this time
-        # fall in this category, and possibly don't retry if
-        # you hit the Exception block below this.
         _deploy_instance_for_user.retry(exc=exc)
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
@@ -1167,23 +986,6 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
         _deploy_instance.retry(exc=exc)
-
-
-def _parse_steps_output(msd):
-    output = ""
-    length = len(msd.steps)
-    for idx, script in enumerate(msd.steps):
-        output += _parse_script_output(script, idx, length)
-
-
-def _parse_script_output(script, idx=1, length=1):
-    if settings.DEBUG:
-        debug_out = "Script:%s" % script.script
-    output = "\nBootScript %d/%d: "\
-        "%sExitCode:%s Output:%s Error:%s" %\
-        (idx + 1, length, debug_out if settings.DEBUG else "",
-             script.exit_status, script.stdout, script.stderr)
-    return output
 
 
 @task(name="check_web_desktop_task",
