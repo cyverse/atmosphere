@@ -7,7 +7,6 @@ from core.models import Instance
 
 from django.core.urlresolvers import reverse
 from django.db.models import ObjectDoesNotExist
-from django.template import Context
 from django.template.loader import render_to_string
 from django.utils import timezone as django_timezone
 
@@ -36,7 +35,7 @@ def send_email_template(subject, template, recipients, sender,
     """
     Return task to send an email using the template provided
     """
-    body = render_to_string(template, context=Context(context))
+    body = render_to_string(template, context=context)
     args = (subject, body, sender, recipients)
     kwargs = {
         "cc": cc,
@@ -367,7 +366,7 @@ def send_instance_email(username, instance_id, instance_name,
     }
     body = render_to_string(
         "core/email/instance_ready.html",
-        context=Context(context))
+        context=context)
     subject = 'Your Atmosphere Instance is Available'
     email_args = (username, subject, body)
     return email_from_admin(*email_args)
@@ -406,7 +405,7 @@ def send_allocation_usage_email(user, allocation_source, threshold, usage_percen
         "total_used": total_used,
         "actual": usage_percentage,
     }
-    body = render_to_string("core/email/allocation_warning.html", Context(context))
+    body = render_to_string("core/email/allocation_warning.html", context)
     from_name, from_email = atmo_daemon_address()
     subject = '(%s) Jetstream Allocation Usage Notice' % username
     return email_from_admin(user.username, subject, body)
@@ -427,7 +426,7 @@ def send_preemptive_deploy_failed_email(core_instance, message):
         "identifier": core_instance.source.providermachine.identifier,
         "details": message
     }
-    body = render_to_string("core/email/deploy_warning.html", Context(context))
+    body = render_to_string("core/email/deploy_warning.html", context)
     from_name, from_email = atmo_daemon_address()
     subject = '(%s) Preemptive Deploy Failure' % username
     return email_to_admin(subject, body, from_name, from_email,
@@ -451,7 +450,7 @@ def send_deploy_failed_email(core_instance, exception_str):
         "error": exception_str
     }
     body = render_to_string("core/email/deploy_failed.html",
-                            context=Context(context))
+                            context=context)
     from_name, from_email = atmo_daemon_address()
     subject = '(%s) Deploy Failed' % username
     return email_to_admin(subject, body, from_name, from_email,
@@ -479,7 +478,7 @@ def send_image_request_failed_email(machine_request, exception_str):
     }
     body = render_to_string(
         "core/email/imaging_failed.html",
-        context=Context(context))
+        context=context)
     subject = 'ERROR - Atmosphere Imaging Task has encountered an exception'
     return email_to_admin(subject, body, user.username, user_email,
                           cc_user=False)
@@ -502,7 +501,7 @@ def send_image_request_email(user, new_machine, name):
         "alias": name
     }
     body = render_to_string("core/email/imaging_success.html",
-                            context=Context(context))
+                            context=context)
     subject = 'Your Atmosphere Image is Complete'
     return email_from_admin(user.username, subject, body)
 
@@ -525,7 +524,7 @@ def send_new_provider_email(username, identity):
         "credentials": credential_list,
     }
     body = render_to_string("core/email/provider_email.html",
-                            context=Context(context))
+                            context=context)
     return email_from_admin(username, subject, body, html=True)
 
 
@@ -551,7 +550,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
         "support_email_footer": email_template.email_footer,
     }
     body = render_to_string("core/email/imaging_request.html",
-                            context=Context(context))
+                            context=context)
     # Send staff url if not approved
     if not auto_approve:
         namespace = "api:v2:machinerequest-detail"
@@ -560,7 +559,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
         context["approve"] = "%s/approve" % base_url
         context["deny"] = "%s/deny" % base_url
         staff_body = render_to_string("core/email/imaging_request_staff.html",
-                                      context=Context(context))
+                                      context=context)
         email_admin(request, subject, staff_body,
                     cc_user=False, request_tracker=True)
 
