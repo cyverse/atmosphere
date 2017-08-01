@@ -4,7 +4,6 @@ Deploy methods for Atmosphere
 import os
 import re
 
-from django.template import Context
 from django.template.loader import render_to_string
 from django.utils.text import slugify
 from django.utils.timezone import datetime

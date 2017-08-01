@@ -4,7 +4,6 @@ Atmosphere api email
 from rest_framework.response import Response
 from rest_framework import status
 from django.template.loader import render_to_string
-from django.template import Context
 
 from threepio import logger
 
@@ -50,7 +49,7 @@ class Feedback(AuthAPIView):
             "feedback": message
         }
         body = render_to_string("core/email/feedback.html",
-                                context=Context(context))
+                                context=context)
         email_success = email_admin(request, subject, body, request_tracker=True)
         if email_success:
             resp = {'result':

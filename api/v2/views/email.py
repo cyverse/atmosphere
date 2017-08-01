@@ -4,7 +4,6 @@
 
 from django.conf import settings
 from django.template.loader import render_to_string
-from django.template import Context
 
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
