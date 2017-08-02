@@ -15,7 +15,7 @@ from libcloud.common.exceptions import BaseHTTPError
 from threepio import logger
 
 from api.exceptions import (
-    failure_response, inactive_provider, member_action_forbidden
+    failure_response, inactive_provider
 )
 
 from core.exceptions import ProviderNotActive
@@ -510,8 +510,6 @@ class Volume(AuthAPIView):
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        if not can_use_volume(user, volume_id, leader_required=True):
-            return member_action_forbidden(user.username, "Volume", volume_id)
         try:
             esh_volume = esh_driver.get_volume(volume_id)
         except ConnectionFailure:

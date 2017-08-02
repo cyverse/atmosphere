@@ -633,7 +633,7 @@ class AccountDriver(BaseAccountDriver):
         return network_strategy
 
     def dns_nameservers_for(self, identity):
-        dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
+        dns_nameservers = identity.provider.get_config('network', 'dns_nameservers', [])
         db_dns_nameservers = [
             dns_server.ip_address for dns_server
             in identity.provider.dns_server_ips.order_by('order')
