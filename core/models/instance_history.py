@@ -164,23 +164,6 @@ class InstanceStatusHistory(models.Model):
         return extra
 
     @classmethod
-    def _build_extra(fault=None, deploy_fault_message=None, deploy_fault_trace=None):
-        extra = {}
-        if fault:
-            if type(fault) == dict:
-                extra['display_error'] = fault.get('message')
-                extra['traceback'] = fault.get('details')
-            else:
-                logger.warn("Invalid 'fault':(%s) expected dict", fault)
-        if deploy_fault_message and deploy_fault_trace:
-            extra['display_error'] = deploy_fault_message
-            extra['traceback'] = deploy_fault_trace
-        elif deploy_fault_message or deploy_fault_trace:
-            logger.warn("Invalid metadata: Expected 'deploy_fault_message'(%s) AND 'deploy_fault_trace'(%s), but received only one", deploy_fault_message, deploy_fault_trace)
-
-        return extra
-
-    @classmethod
     def create_history(cls, status_name, instance, size,
                        start_date=None, end_date=None, activity=None,
                        extra=None):
