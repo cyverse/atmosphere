@@ -9,7 +9,6 @@ from core.models import (
 )
 
 from api.v2.serializers.summaries import (
-    AllocationSummarySerializer,
     ImageVersionSummarySerializer,
     BootScriptSummarySerializer,
     IdentitySummarySerializer,

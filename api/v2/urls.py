@@ -9,10 +9,6 @@ from api.base import views as base_views
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'accounts', views.AccountViewSet, base_name='account')
-router.register(
-    r'allocations',
-    views.AllocationViewSet,
-    base_name='allocation')
 router.register(r'allocation_sources', views.AllocationSourceViewSet)
 router.register(r'boot_scripts', views.BootScriptViewSet)
 router.register(r'credentials', views.CredentialViewSet)

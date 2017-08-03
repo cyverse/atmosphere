@@ -180,11 +180,6 @@ urlpatterns = format_suffix_patterns([
     url(identity_specific + r'/profile$',
         views.Profile.as_view(), name='profile-detail'),
 
-    url(r'^allocation$',
-        views.AllocationList.as_view(), name='allocation-list'),
-    url(r'^allocation/(?P<quota_id>%s)$' % (id_match,),
-        views.AllocationDetail.as_view(), name='quota-detail'),
-
     url(r'^quota$',
         views.QuotaList.as_view(), name='quota-list'),
     url(r'^quota/(?P<quota_id>%s)$' % (id_match,),
@@ -207,10 +202,6 @@ urlpatterns = format_suffix_patterns([
     url(r'^license/(?P<license_id>%s)$' % uuid_match,
         views.License.as_view(),
         name='license-detail'),
-
-    url(r'^monitoring$',
-        views.MonitoringList.as_view(),
-        name='monitoring-list'),
 
     url(r'^cloud_admin_imaging_request$',
         views.CloudAdminImagingRequestList.as_view(),

@@ -1,3 +1,14 @@
+## [Ancient-Asteroid(v27)](https://github.com/cyverse/atmosphere/milestone/14?closed=1) (as of 8/3/2017)
+Bugfixes:
+  - Fixed an edge-case where InstanceSource exists, but Volume does not.
+  - /v1/project_serializer includes previously-missing value 'created_by'
+  - Remove unnecessary check for permissions on volume POST
+
+Deprecated:
+  - /api/v2/allocations has been removed
+  - identity.allocation, and quota.allocation have been removed
+
+
 ## [Zesty-Zapdos](https://github.com/cyverse/atmosphere/milestone/13?closed=1) (as of 7/17/2017)
 
 Improvements:

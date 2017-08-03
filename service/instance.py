@@ -20,7 +20,7 @@ from rtwo.drivers.common import _token_to_keystone_scoped_project
 from service.driver import AtmosphereNetworkManager
 from service.mock import AtmosphereMockDriver, AtmosphereMockNetworkManager
 
-from rtwo.drivers.common import _connect_to_keystone_v3, _token_to_keystone_scoped_project
+from rtwo.drivers.common import _connect_to_keystone_v3
 from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
