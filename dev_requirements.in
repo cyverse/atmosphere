@@ -14,6 +14,7 @@ ipython
 mock
 newrelic
 pep8
+prospector
 wheel
 vcrpy
 json_delta
