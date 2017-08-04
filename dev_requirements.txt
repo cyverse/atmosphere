@@ -9,8 +9,10 @@ ansible==2.3.1.0
 apache-libcloud==0.20.1
 appdirs==1.4.3
 asn1crypto==0.22.0
+astroid==1.5.3            # via pylint, pylint-celery, pylint-flask, pylint-plugin-utils, requirements-detector
 babel==2.3.4
 backports-abc==0.5
+backports.functools-lru-cache==1.4  # via astroid, pylint
 backports.shutil-get-terminal-size==1.0.0  # via ipython
 backports.ssl-match-hostname==3.5.0.1
 bcrypt==3.1.3
@@ -29,7 +31,7 @@ chromogenic==0.4.13
 cliff==2.8.0
 cmd2==0.7.5
 colorama==0.3.9
-configparser==3.5.0       # via flake8
+configparser==3.5.0       # via flake8, pylint
 contextlib2==0.5.5
 coverage==4.4.1
 cryptography==2.0.2
@@ -53,6 +55,7 @@ djangorestframework-jsonp==1.0.2
 djangorestframework-xml==1.3.0
 djangorestframework-yaml==1.0.3
 djangorestframework==3.6.3
+dodgy==0.1.9              # via prospector
 emoji==0.4.5
 enum-compat==0.0.2
 enum34==1.1.6
@@ -77,6 +80,7 @@ ipdb==0.10.3
 ipython-genutils==0.2.0   # via traitlets
 ipython==5.4.1
 iso8601==0.1.12
+isort==4.2.15             # via pylint
 itsdangerous==0.24
 jinja2==2.9.6
 json-delta==2.0
@@ -86,8 +90,9 @@ jsonschema==2.6.0
 jwt.py==0.1.0
 keystoneauth1==3.1.0
 kombu==4.1.0
+lazy-object-proxy==1.3.1  # via astroid
 markupsafe==1.0
-mccabe==0.6.1             # via flake8
+mccabe==0.6.1             # via flake8, prospector, pylint
 mock==2.0.0
 monotonic==1.3
 msgpack-python==0.4.8
@@ -114,6 +119,7 @@ parse==1.8.2              # via behave, behaving, parse-type
 pathlib2==2.3.0           # via ipython, pickleshare
 pathlib==1.0.1
 pbr==3.1.1
+pep8-naming==0.4.1        # via prospector
 pep8==1.7.0
 pexpect==4.2.1            # via ipython
 pickleshare==0.7.4        # via ipython
@@ -121,17 +127,25 @@ pillow==4.2.1
 positional==1.1.2
 prettytable==0.7.2
 prompt-toolkit==1.0.15    # via ipython
+prospector==0.12.7
 psycopg2==2.7.3
 ptyprocess==0.5.2         # via pexpect
 pyasn1-modules==0.0.10
 pyasn1==0.3.1
-pycodestyle==2.3.1        # via flake8
+pycodestyle==2.0.0        # via flake8, prospector
 pycparser==2.18
 pycrypto==2.6.1
-pyflakes==1.5.0           # via flake8
+pydocstyle==2.0.0         # via prospector
+pyflakes==1.5.0           # via flake8, prospector
 pygments==2.2.0           # via ipython
 pyinotify==0.9.6
 pyjwt==1.5.2
+pylint-celery==0.3        # via prospector
+pylint-common==0.2.5      # via prospector
+pylint-django==0.7.2      # via prospector
+pylint-flask==0.5         # via prospector
+pylint-plugin-utils==0.2.6  # via prospector, pylint-celery, pylint-common, pylint-django, pylint-flask
+pylint==1.7.2             # via prospector, pylint-celery, pylint-common, pylint-django, pylint-flask, pylint-plugin-utils
 pynacl==1.1.2
 pyopenssl==17.2.0
 pyparsing==2.2.0
@@ -154,17 +168,20 @@ raven==6.1.0
 redis==2.10.5
 requests[security]==2.18.2
 requestsexceptions==1.3.0
+requirements-detector==0.5.2  # via prospector
 rfc3986==1.1.0
 rfive==0.2.0
 rsa==3.4.2
 rtwo==0.5.12
 scandir==1.5              # via pathlib2
 selenium==3.4.3           # via splinter
+setoptconf==0.2.0         # via prospector
 simplegeneric==0.8.1      # via ipython
 simplejson==3.11.1
 singledispatch==3.4.0.3
 six==1.10.0
 smmap2==2.0.3             # via gitdb2
+snowballstemmer==1.2.1    # via pydocstyle
 splinter==0.7.5           # via behaving
 sqlparse==0.2.3           # via django-debug-toolbar
 stevedore==1.25.0
