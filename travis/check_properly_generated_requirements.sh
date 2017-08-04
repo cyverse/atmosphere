@@ -16,7 +16,7 @@
 function main {
 
     # Ensure that requirements.txt was generated properly
-    diff -I '^#' <(generate_requirements) requirements.txt &>/dev/null;
+    diff -I '^#' <(generate_requirements) requirements.txt;
 
     # If the expected didn't meet the actual
     if [[ $? -ne 0 ]]; then
@@ -25,7 +25,7 @@ function main {
     fi;
 
     # Ensure that dev_requirements.txt was generated properly
-    diff -I '^#' <(generate_dev_requirements) dev_requirements.txt &>/dev/null;
+    diff -I '^#' <(generate_dev_requirements) dev_requirements.txt;
 
     # If the expected didn't meet the actual
     if [[ $? -ne 0 ]]; then
