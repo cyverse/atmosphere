@@ -1,6 +1,7 @@
 from .tag_factory import TagFactory
 from .user_factory import UserFactory, AnonymousUserFactory
 from .provider_factory import ProviderFactory
+from .event_table_factory import EventTableFactory
 from .group_factory import GroupFactory
 from .group_membership_factory import GroupMembershipFactory
 from .project_factory import ProjectFactory
@@ -17,3 +18,4 @@ from .provider_machine_factory import ProviderMachineFactory, InstanceSourceFact
 from .platform_type_factory import PlatformTypeFactory
 from .size_factory import SizeFactory
 from .allocation_source_factory import AllocationSourceFactory, UserAllocationSourceFactory
+from .event_factory import EventTableFactory

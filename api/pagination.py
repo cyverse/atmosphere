@@ -24,7 +24,7 @@ def _get_count(queryset):
         return len(queryset)
 
 class StandardResultsSetPagination(PageNumberPagination):
-    max_page_size = 1000
+    max_page_size = 3000
     page_size = 100
     page_size_query_param = 'page_size'
 

@@ -29,9 +29,11 @@ from core.models.boot_script import get_scripts_for_instance
 from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
+from core.events.serializers.instance_playbook_history import _create_instance_playbook_history_event
 
 from service.deploy import (
     instance_deploy, user_deploy,
+    user_customization_deploy,
     build_host_name,
     ready_to_deploy as ansible_ready_to_deploy,
     run_utility_playbooks, execution_has_failures, execution_has_unreachable
@@ -1476,3 +1478,87 @@ def _cleanup_traceback(err_str):
     elif 'NonZeroDeploymentException' in err_str:
         err_str = err_str.partition("NonZeroDeploymentException:")[2].strip()
     return err_str
+
+def _get_atmosphere_known_facts(username, instance_id, instance_ip):
+    """
+    Note: This method (and the arguments it requires)
+    will change as we figure out _what is important to override/provide_
+    for a 'standard installation'.
+    Include values here if they fall into one of these categories:
+        - Atmosphere specific information
+        - Openstack specific information
+    """
+    atmosphere_known_facts = {
+        'instance_owner': username,
+        'instance_id': instance_id,
+        'instance_ip': instance_ip
+    }
+    return atmosphere_known_facts
+
+
+@task(name="_deploy_instance_playbook",
+      default_retry_delay=124,
+      soft_time_limit=32 * 60,  # 32 minute hard-set time limit.
+      max_retries=1
+      )
+def _deploy_instance_playbook(
+        driverCls, provider, identity, instance_id,
+        playbook_name, playbook_args={}, extra_vars={},
+        **celery_task_args):
+    """
+    This celery task will:
+    - Select `instance` from driver using provided arguments
+    - Execute `playbook_name` with optional `playbook_args` on `instance`
+    - Provide a default set of `playbook_args` based on Atmosphere/Openstack data
+    Future TODO:
+    - Update events on specific playbooks so users can "Know the status" of the operation(s)
+    """
+    event_kwargs = {
+        "instance": instance_id,
+        "playbook": playbook_name,
+        "arguments": playbook_args,
+        "status": "pending",
+        "message": ""
+    }
+    try:
+        celery_logger.debug("_deploy_instance_playbook task started at %s." % datetime.now())
+        _create_instance_playbook_history_event(**event_kwargs)
+        # Check if instance still exists
+        driver = get_driver(driverCls, provider, identity)
+        instance = driver.get_instance(instance_id)
+        if not instance:
+            celery_logger.debug("Instance has been teminated: %s." % instance_id)
+            return
+        if not instance.ip:
+            celery_logger.debug("Instance IP address missing from : %s." % instance_id)
+            raise Exception("Instance IP Missing? %s" % instance_id)
+    except (BaseException, Exception) as exc:
+        celery_logger.exception(exc)
+        _deploy_instance_playbook.retry(exc=exc)
+    try:
+        username = identity.user.username
+        atmosphere_facts = _get_atmosphere_known_facts(username, instance_id, instance.ip)
+        extra_vars.update(playbook_args)
+        extra_vars.update(atmosphere_facts)
+        _update_status_log(instance, "Ansible Started for %s." % instance.ip)
+        event_kwargs['status'] = 'running'
+        _create_instance_playbook_history_event(**event_kwargs)
+
+        user_customization_deploy(instance.ip, username, instance_id, playbook_name, extra_vars)
+
+        event_kwargs['status'] = 'completed'
+        _create_instance_playbook_history_event(**event_kwargs)
+        _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
+        celery_logger.debug("_deploy_instance_playbook task finished at %s." % datetime.now())
+    except AnsibleDeployException as exc:
+        event_kwargs['status'] = 'deploy_error'
+        event_kwargs['message'] = "Ansible Error: %s" % exc
+        _create_instance_playbook_history_event(**event_kwargs)
+        celery_logger.exception(exc)
+        _deploy_instance_playbook.retry(exc=exc)
+    except (BaseException, Exception) as exc:
+        event_kwargs['status'] = 'error'
+        event_kwargs['message'] = "%s" % exc
+        _create_instance_playbook_history_event(**event_kwargs)
+        celery_logger.exception(exc)
+        _deploy_instance_playbook.retry(exc=exc)

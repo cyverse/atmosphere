@@ -1,19 +1,19 @@
 from core.models import (
     Project, BootScript, Instance, Application as Image,
-    InstanceAllocationSourceSnapshot
+    InstanceAccess, InstanceAllocationSourceSnapshot
 )
 from rest_framework import serializers
 from api.v2.serializers.fields import ModelRelatedField
 from api.v2.serializers.details import AllocationSourceSerializer
 from api.v2.serializers.summaries import (
+    BootScriptSummarySerializer,
     IdentitySummarySerializer,
-    UserSummarySerializer,
+    ImageVersionSummarySerializer,
+    InstanceAccessSummarySerializer,
+    ProjectSummarySerializer,
     ProviderSummarySerializer,
     SizeSummarySerializer,
-    ImageSummarySerializer,
-    ProjectSummarySerializer,
-    ImageVersionSummarySerializer,
-    BootScriptSummarySerializer
+    UserSummarySerializer
 )
 from api.v2.serializers.summaries.image import ImageSuperSummarySerializer
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
@@ -40,6 +40,11 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     ip_address = serializers.SerializerMethodField()
     usage = serializers.SerializerMethodField()
     version = serializers.SerializerMethodField()
+    access_list = ModelRelatedField(
+        many=True, required=False,
+        queryset=InstanceAccess.objects.all(),
+        serializer_class=InstanceAccessSummarySerializer,
+        style={'base_template':'input.html'})
     allocation_source = serializers.SerializerMethodField()
     uuid = serializers.CharField(source='provider_alias')
     url = UUIDHyperlinkedIdentityField(
@@ -55,7 +60,6 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             return None
         serializer = AllocationSourceSerializer(snapshot.allocation_source, context=self.context)
         return serializer.data
-
 
     def get_usage(self, instance):
         if not instance.allocation_source\
@@ -91,6 +95,15 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             context=self.context)
         return serializer.data
 
+    def _get_request_user(self, raise_exception=True):
+        if 'request' in self.context:
+            return self.context['request'].user
+        elif 'user' in self.context:
+            return self.context['user']
+        elif raise_exception:
+            raise serializers.ValidationError("Expected 'request' or 'user' to be passed in via context for this serializer")
+        return None
+
     class Meta:
         model = Instance
         fields = (
@@ -116,4 +129,5 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'start_date',
             'end_date',
             'allocation_source',
+            'access_list',
         )

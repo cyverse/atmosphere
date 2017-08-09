@@ -11,5 +11,5 @@ class ProviderFactory(factory.DjangoModelFactory):
     class Meta:
         model = Provider
 
-    type = factory.SubFactory(ProviderTypeFactory)
+    type = factory.SubFactory(ProviderTypeFactory, name='mock')
     virtualization = factory.SubFactory(PlatformTypeFactory)

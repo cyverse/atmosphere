@@ -1,7 +1,7 @@
 from core.models import (
     InstanceAction, Provider, PlatformType, ProviderType)
 from rest_framework import serializers
-from api.v2.serializers.details.provider_credential import ProviderCredentialSerializer
+from .provider_credential import ProviderCredentialSerializer
 
 
 class ProviderSerializer(serializers.ModelSerializer):

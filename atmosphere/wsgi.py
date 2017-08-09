@@ -35,7 +35,7 @@ if not logger:
     import logging
     logger = logging.getLogger(__name__)
 
-if settings.NEW_RELIC_CONFIGURED:
+if getattr(settings, 'NEW_RELIC_CONFIGURED', False):
     logger.info("[A]Plugin: New Relic setup started because NEW_RELIC_ENVIRONMENT is defined in local.py")
     try:
         import newrelic.agent

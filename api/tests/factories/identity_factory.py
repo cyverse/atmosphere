@@ -3,12 +3,16 @@ from core.models import Identity
 from .user_factory import UserFactory
 from .group_factory import GroupFactory
 from .group_membership_factory import GroupMembershipFactory
-from .quota_factory import QuotaFactory
 from .provider_factory import ProviderFactory
+from .quota_factory import QuotaFactory
 from .identity_membership_factory import IdentityMembershipFactory
 
 
 class IdentityFactory(factory.DjangoModelFactory):
+
+    provider = factory.SubFactory(ProviderFactory)
+    quota = factory.SubFactory(QuotaFactory)
+    created_by = factory.SubFactory(UserFactory)
 
     @staticmethod
     def create_identity(created_by, group=None, provider=None, quota=None):

@@ -87,6 +87,12 @@ class Instance(models.Model):
             return None
         return project.owner
 
+    def access_shared_with(self):
+        return self.access_list.all()
+
+    def access_shared_with_user(self, username):
+        return self.access_list.filter(user__username=username).first()
+
     @staticmethod
     def shared_with_user(user, is_leader=None):
         """
@@ -99,7 +105,9 @@ class Instance(models.Model):
         elif is_leader == True:
             project_query &= Q(project__owner__memberships__is_leader=True)
         membership_query = Q(created_by__memberships__group__user=user)
-        return Instance.objects.filter(membership_query | project_query | ownership_query).distinct()
+        access_query = Q(access_list__user=user, access_list__status__name='approved')
+        # FIXME: This is where you query for instances in 'seriailzers/instance_access:list_access_for'
+        return Instance.objects.filter(membership_query | project_query | ownership_query | access_query).distinct()
 
     def get_total_hours(self):
         from service.monitoring import _get_allocation_result

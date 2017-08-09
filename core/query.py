@@ -203,13 +203,17 @@ def source_in_range(now_time=None):
         now_time = timezone.now()
     return _in_range()
 
-def only_current(now_time=None, restrict_start=False):
+
+def only_current(now_time=None, restrict_start=False, end_date='end_date'):
     """
     Filters in range using start_date and end_date.
     """
     if not now_time:
         now_time = timezone.now()
-    query = (Q(end_date=None) | Q(end_date__gt=now_time))
+    end_date__gt = end_date + "__gt"
+    query = (
+        Q(**{end_date: None}) |
+        Q(**{end_date__gt: now_time}))
     if restrict_start:
         query &= Q(start_date__lt=now_time)
     return query

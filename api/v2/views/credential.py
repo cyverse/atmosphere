@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
 
-from api.v2.serializers.details import CredentialSerializer
+from api.v2.serializers.post import CredentialSerializer
 from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.permissions import CanEditOrReadOnly

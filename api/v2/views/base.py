@@ -17,6 +17,7 @@ from api.permissions import (
         InMaintenance, CloudAdminRequired, ProjectLeaderRequired
     )
 from api.v2.views.mixins import MultipleFieldLookup
+from rest_framework.views import APIView
 
 
 def unresolved_requests_only(fn):
@@ -47,6 +48,12 @@ def unresolved_requests_only(fn):
         else:
             return fn(self, request, *args, **kwargs)
     return wrapper
+
+
+class AuthAPIView(APIView):
+    permission_classes = (ApiAuthRequired,
+                          InMaintenance,
+                          ProjectLeaderRequired)
 
 
 class AuthViewSet(ViewSet):

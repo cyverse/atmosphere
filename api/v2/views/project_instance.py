@@ -2,6 +2,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.models import Instance, Provider
+from core.query import only_current
 
 from api.v2.serializers.details import ProjectInstanceSerializer
 from api.v2.views.base import AuthModelViewSet
@@ -23,12 +24,6 @@ class ProjectInstanceViewSet(AuthModelViewSet):
         """
         user = self.request.user
         now = timezone.now()
-        instances = Instance.objects.filter(
-            Q(end_date__gt=now) |
-            Q(end_date__isnull=True),
-            start_date__lt=now,
-            project__owner__user=user)
-        active_provider_uuids = [ap.uuid for ap in Provider.get_active()]
-        return instances.filter(
-            pk__in=[i.id for i in instances
-                    if i.provider_uuid() in active_provider_uuids])
+        active_provider_ids = list(Provider.get_active().values_list('id', flat=True))  # Forces an evaluation
+        instances = Instance.shared_with_user(user).filter(created_by_identity__provider__id__in=active_provider_ids).filter(only_current(now))
+        return instances

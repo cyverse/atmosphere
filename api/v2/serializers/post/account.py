@@ -1,12 +1,14 @@
+from rest_framework import serializers
+from rtwo.exceptions import KeystoneUnauthorized
+
 from core.models import (
     AtmosphereUser, AccountProvider, Group, Identity, Provider, Quota
 )
 from core.query import only_current, contains_credential
-from api.v2.serializers.details.credential import CredentialSerializer
-from service.driver import get_esh_driver, get_account_driver
-from rtwo.exceptions import KeystoneUnauthorized
 
-from rest_framework import serializers
+from service.driver import get_esh_driver, get_account_driver
+
+from .credential import CredentialSerializer
 
 
 class AccountSerializer(serializers.Serializer):

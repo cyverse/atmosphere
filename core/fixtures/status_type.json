@@ -1,0 +1,72 @@
+[
+  {
+    "pk": 1,
+    "model": "core.statustype",
+    "fields": {
+        "name": "pending"
+    }
+  },
+  {
+    "pk": 2,
+    "model": "core.statustype",
+    "fields": {
+        "name": "rejected"
+    }
+  },
+  {
+    "pk": 3,
+    "model": "core.statustype",
+    "fields": {
+        "name": "approved"
+    }
+  },
+  {
+    "pk": 4,
+    "model": "core.statustype",
+    "fields": {
+        "name": "started"
+    }
+  },
+  {
+    "pk": 5,
+    "model": "core.statustype",
+    "fields": {
+        "name": "processing"
+    }
+  },
+  {
+    "pk": 6,
+    "model": "core.statustype",
+    "fields": {
+        "name": "validating"
+    }
+  },
+  {
+    "pk": 7,
+    "model": "core.statustype",
+    "fields": {
+        "name": "completed"
+    }
+  },
+  {
+    "pk": 8,
+    "model": "core.statustype",
+    "fields": {
+        "name":"denied"
+    }
+  },
+  {
+    "pk": 9,
+    "model": "core.statustype",
+    "fields": {
+        "name": "failed"
+    }
+  },
+  {
+    "pk": 10,
+    "model": "core.statustype",
+    "fields": {
+        "name": "cancelled"
+    }
+  }
+]

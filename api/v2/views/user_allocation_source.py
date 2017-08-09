@@ -39,7 +39,7 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
 
         if not request_data.items():
             return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Reuquest Data is missing")
+                                    "Request Data is missing")
 
         try:
             self._validate_data(request_user, request_data)
@@ -68,7 +68,7 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         request_data = request.data
         if not request_data.items():
             return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Reuquest Data is missing")
+                                    "Request Data is missing")
 
         try:
             self._validate_data(request_user, request_data, delete=True)

@@ -10,6 +10,11 @@ from django.db import models
 from django.utils import timezone
 
 
+"""
+Instance ModelManagers
+"""
+
+
 class ActiveInstancesManager(models.Manager):
 
     def get_queryset(self):
@@ -17,3 +22,18 @@ class ActiveInstancesManager(models.Manager):
         return super(
             ActiveInstancesManager,
             self) .get_queryset().filter(only_current_instances(now_time))
+
+
+"""
+EventTable ModelManagers
+"""
+
+
+class PlaybookHistoryManager(models.Manager):
+
+    def get_queryset(self):
+        queryset = super(
+            PlaybookHistoryManager,
+            self).get_queryset()
+        return queryset.filter(
+            name="instance_playbook_history_updated")

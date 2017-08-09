@@ -1,7 +1,6 @@
 # flake8: noqa
 from .allocation_source import AllocationSourceSerializer
 from .boot_script import BootScriptSerializer
-from .credential import CredentialSerializer
 from .email_template import EmailTemplateSerializer
 from .group import GroupSerializer
 from .help_link import HelpLinkSerializer
@@ -17,10 +16,13 @@ from .image_tag import ImageTagSerializer
 from .image_access_list import ImageAccessListSerializer
 from .image_bookmark import ImageBookmarkSerializer
 from .instance_action import InstanceActionSerializer
+from .instance_access import InstanceAccessSerializer, UserInstanceAccessSerializer
+from .instance_playbook import InstancePlaybookHistorySerializer, InstancePlaybookSnapshotSerializer
 from .instance_tag import InstanceTagSerializer
 from .instance_history import InstanceStatusHistorySerializer
 from .instance import InstanceSerializer
 from .instance_allocation_source import InstanceAllocationSourceSerializer
+from .instance_command import InstanceCommandSerializer
 from .license import LicenseSerializer
 from .link import ExternalLinkSerializer
 from .maintenance_record import MaintenanceRecordSerializer
@@ -33,7 +35,6 @@ from .project_instance import ProjectInstanceSerializer
 from .project_volume import ProjectVolumeSerializer
 from .provider import (ProviderSerializer, ProviderTypeSerializer,
                        PlatformTypeSerializer)
-from .provider_credential import ProviderCredentialSerializer
 from .provider_machine import ProviderMachineSerializer
 from .quota import QuotaSerializer
 from .renewal_strategy import RenewalStrategySerializer

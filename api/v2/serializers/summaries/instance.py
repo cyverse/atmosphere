@@ -1,9 +1,11 @@
-from core.models import Instance, Application as Image
 from rest_framework import serializers
+
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
+from core.models import Instance, Application as Image
+
 from .identity import IdentitySummarySerializer
 from .size import SizeSummarySerializer
 from .image import ImageSuperSummarySerializer
-from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
@@ -61,18 +63,19 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
 
 
 class InstanceSuperSummarySerializer(serializers.HyperlinkedModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(
+    user = serializers.SlugRelatedField(
+        slug_field="username",
         source='created_by',
         read_only=True)
     provider = serializers.PrimaryKeyRelatedField(
         source='created_by_identity.provider',
         read_only=True)
-    status = serializers.CharField(source='esh_status', read_only=True)
     uuid = serializers.CharField(source='provider_alias')
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:instance-detail',
         uuid_field='provider_alias'
     )
+
     class Meta:
         model = Instance
         fields = (
@@ -80,12 +83,8 @@ class InstanceSuperSummarySerializer(serializers.HyperlinkedModelSerializer):
             'uuid',
             'url',
             'name',
-            'status',
-            'ip_address',
-            'shell',
-            'vnc',
+            'provider_alias',
             'user',
             'provider',
-            'start_date',
             'end_date',
         )

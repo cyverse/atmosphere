@@ -1,11 +1,26 @@
 import factory
 import uuid
 from core.models import ProviderMachine, InstanceSource
+from .provider_factory import ProviderFactory
 from .version_factory import ApplicationVersionFactory
+from .user_factory import UserFactory
 from .image_factory import ImageFactory
 
 
+class InstanceSourceFactory(factory.DjangoModelFactory):
+    provider = factory.SubFactory(ProviderFactory)
+    created_by = factory.SubFactory(UserFactory)
+
+    class Meta:
+        model = InstanceSource
+
+    identifier = factory.Sequence(lambda n: uuid.uuid4())
+
+
 class ProviderMachineFactory(factory.DjangoModelFactory):
+
+    application_version = factory.SubFactory(ApplicationVersionFactory)
+    instance_source = factory.SubFactory(InstanceSourceFactory)
 
     @staticmethod
     def create_provider_machine(user, identity, application=None, version=None):
@@ -31,11 +46,3 @@ class ProviderMachineFactory(factory.DjangoModelFactory):
 
     class Meta:
         model = ProviderMachine
-
-
-class InstanceSourceFactory(factory.DjangoModelFactory):
-
-    class Meta:
-        model = InstanceSource
-
-    identifier = factory.Sequence(lambda n: uuid.uuid4())

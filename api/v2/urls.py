@@ -44,15 +44,29 @@ router.register(
     views.ImageVersionBootScriptViewSet,
     base_name='imageversion_bootscript')
 router.register(r'instances', views.InstanceViewSet, base_name='instance')
+router.register(r'instance_access',
+    views.InstanceAccessViewSet,
+    base_name='instanceaccess')
 router.register(r'instance_actions',
     views.InstanceActionViewSet,
     base_name='instanceaction')
+router.register(r'instance_commands',
+    views.InstanceCommandViewSet,
+    base_name='instance_command')
 router.register(r'instance_allocation_source',
                 views.InstanceAllocationSourceViewSet,
                 base_name='instance-allocation-source')
 router.register(r'instance_histories',
     views.InstanceStatusHistoryViewSet,
     base_name='instancestatushistory')
+router.register(
+    r'instance_playbooks',
+    views.InstancePlaybookViewSet,
+    base_name='instance_playbook')
+router.register(
+    r'instance_playbook_histories',
+    views.InstancePlaybookHistoryViewSet,
+    base_name='instance_playbook_history')
 router.register(r'instance_tags', views.InstanceTagViewSet)
 router.register(r'licenses', views.LicenseViewSet)
 router.register(r'links', views.ExternalLinkViewSet)

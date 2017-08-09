@@ -1,9 +1,11 @@
 import factory
 from core.models import ApplicationVersion
 from .image_factory import ImageFactory
+from .user_factory import UserFactory
 
 
 class ApplicationVersionFactory(factory.DjangoModelFactory):
+    created_by = factory.SubFactory(UserFactory)
 
     @staticmethod
     def create_version(user, identity, application=None):
