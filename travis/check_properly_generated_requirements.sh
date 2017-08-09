@@ -16,7 +16,7 @@
 function main {
 
     # Ensure that requirements.txt was generated properly
-    diff -I '^#' <(generate_requirements) requirements.txt &>/dev/null;
+    diff <(generate_requirements | normalize) <(normalize < requirements.txt);
 
     # If the expected didn't meet the actual
     if [[ $? -ne 0 ]]; then
@@ -25,7 +25,7 @@ function main {
     fi;
 
     # Ensure that dev_requirements.txt was generated properly
-    diff -I '^#' <(generate_dev_requirements) dev_requirements.txt &>/dev/null;
+    diff <(generate_dev_requirements | normalize) <(normalize < dev_requirements.txt);
 
     # If the expected didn't meet the actual
     if [[ $? -ne 0 ]]; then
@@ -34,6 +34,12 @@ function main {
     fi;
 
     echo_success_message;
+}
+
+# Normalize a requirements stream to just names and versions
+function normalize {
+    # Convert to lowercase, strip out whitespace and comments
+    tr [:upper:] [:lower:] | grep -oP '^[^ #]*'
 }
 
 function generate_requirements {
