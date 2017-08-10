@@ -638,7 +638,7 @@ class AccountDriver(BaseAccountDriver):
             dns_server.ip_address for dns_server
             in identity.provider.dns_server_ips.order_by('order')
         ]
-        return [set(db_dns_nameservers + dns_nameservers)]
+        return list(set(db_dns_nameservers + dns_nameservers))
 
     def delete_user_network(self, identity, options={}):
         """
