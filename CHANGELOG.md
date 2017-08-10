@@ -1,3 +1,26 @@
+## [Ancient-Asteroid(v27)](https://github.com/cyverse/atmosphere/milestone/14?closed=1) (as of 8/10/2017)
+Improvements:
+- Ansible will now deploy user-boot-scripts
+
+Bugfixes:
+- Fix broken emulation endpoint
+- Fixed a race-condition that would cause failures inside django-cyverse-auth
+- Cleanup formatting and variable definitions in project sharing feature
+- /v1/project_serializer includes previously-missing value 'created_by'
+- Remove unnecessary check for permissions on volume POST
+- Fix small edge-case where InstanceSource exists, but volume does not
+- Fix broken test-cases
+- Remove duplicated import
+
+Internal:
+- Squash migrations 0001-0084
+- Remove unused v2 Event API
+- Updated regression test-cases
+
+Deprecated:
+  - /api/v2/allocations has been removed
+  - identity.allocation, and quota.allocation have been removed
+
 ## [Zesty-Zapdos](https://github.com/cyverse/atmosphere/milestone/13?closed=1) (as of 7/17/2017)
 
 Improvements:

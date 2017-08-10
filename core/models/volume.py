@@ -187,7 +187,9 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid=None, user=None)
     try:
         source = InstanceSource.objects.get(
             identifier=identifier, provider__uuid=provider_uuid)
-        volume = source.volume
+        if not source.is_volume():
+            raise InstanceSource.DoesNotExist(
+                "InstanceSource exists, but does not have associated volume")
     except InstanceSource.DoesNotExist:
         if not identity_uuid:
             # Author of the Volume cannot be inferred without more details.
@@ -210,7 +212,7 @@ def create_volume(name, identifier, size, provider_uuid, identity_uuid,
     provider = Provider.objects.get(uuid=provider_uuid)
     identity = Identity.objects.get(uuid=identity_uuid)
 
-    source = InstanceSource.objects.create(
+    source, _ = InstanceSource.objects.get_or_create(
         identifier=identifier, provider=provider,
         created_by=creator, created_by_identity=identity)
 

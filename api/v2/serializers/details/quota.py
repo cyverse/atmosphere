@@ -1,4 +1,3 @@
-from core.models import Allocation
 from core.models import Quota
 
 from rest_framework import serializers
@@ -41,31 +40,3 @@ class QuotaSerializer(serializers.HyperlinkedModelSerializer):
             # networking
             'floating_ip_count', 'port_count',
             )
-
-
-class AllocationSerializer(serializers.HyperlinkedModelSerializer):
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:allocation-detail',
-    )
-
-    def validate_delta(self, value):
-        return self._is_integer('delta', value)
-
-    def validate_threshold(self, value):
-        return self._is_positive_int('threshold', value)
-
-    def _is_positive_int(self, key, value):
-        if type(value) != int or value < 1:
-            raise serializers.ValidationError(
-                "Value of %s should be >= 1" % key)
-        return value
-
-    def _is_integer(self, key, value):
-        if type(value) != int:
-            raise serializers.ValidationError(
-                "Value of %s should be an integer." % key)
-        return value
-
-    class Meta:
-        model = Allocation
-        fields = ('id', 'uuid', 'url', 'threshold', 'delta')

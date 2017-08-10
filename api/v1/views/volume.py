@@ -290,8 +290,6 @@ class VolumeList(AuthAPIView):
                 e.message)
         if not driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        if not can_use_volume(user, volume_id, leader_required=True):
-            return member_action_forbidden(user.username, "Volume", volume_id)
         data = request.data
         missing_keys = valid_volume_post_data(data)
         if missing_keys:

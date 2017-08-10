@@ -1,4 +1,4 @@
-from core.models.project import Project, Group
+from core.models import Project, Group, AtmosphereUser
 from core.query import only_current, only_current_source
 from rest_framework import serializers
 from .instance_serializer import InstanceSerializer
@@ -9,6 +9,9 @@ from .get_context_user import get_context_user
 class ProjectSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='uuid')
     # Edits to Writable fields..
+    created_by = serializers.SlugRelatedField(
+        slug_field='username',
+        queryset=AtmosphereUser.objects.all())
     owner = serializers.SlugRelatedField(
         slug_field='name',
         queryset=Group.objects.all())
@@ -32,7 +35,6 @@ class ProjectSerializer(serializers.ModelSerializer):
                                    instance_source__provider__active=True)]
 
     def __init__(self, *args, **kwargs):
-        user = get_context_user(self, kwargs)
         super(ProjectSerializer, self).__init__(*args, **kwargs)
 
     class Meta:
