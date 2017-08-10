@@ -103,14 +103,15 @@ def step_impl(context):
 def step_impl(context):
     for row in context.table:
         provider_alias = context.instance[row['instance_id']]
-        context.client.get('/api/v2/emulate_session/%s' % (row['username']))
-        source_id = context.allocation_sources[row['allocation_source_id']]
+        emulate_response = context.client.get('/api/v2/emulate_session/%s' % (row['username']))
+        context.test.assertEqual(emulate_response.status_code, 201)
         name = context.allocation_sources_name[row['allocation_source_id']]
         response = context.client.post('/api/v2/instance_allocation_source',
                                        {"instance_id": provider_alias,
                                         "allocation_source_name": name})
-        assert response.status_code == 201
-    context.client.get('/api/v2/emulate_session/lenards')
+        context.test.assertEqual(response.status_code, 201)
+    unemulate_response = context.client.get('/api/v2/emulate_session/lenards')
+    context.test.assertEqual(unemulate_response.status_code, 201)
 
 
 @when('User instance runs for some days')
