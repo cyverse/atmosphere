@@ -355,36 +355,36 @@ class Identity(models.Model):
         return self.created_by.username
 
     def get_key(self):
-        return self.openstack_key()
-
-    def openstack_key(self):
+        creds = self.get_credentials()
         return "Username: %s, Project:%s" % (
-            self.get_credential('key'),
-            self.project_name())
+            creds.get('key'),
+            self.project_name(creds=creds))
 
-    def project_name(self):
-        project_name = self.get_credential('ex_project_name')
-        if not project_name:
-            project_name = self.get_credential('ex_tenant_name')
-        if not project_name:
-            project_name = self.get_credential('project_name')
-        if not project_name:
-            project_name = self.get_credential('tenant_name')
-        if not project_name:
-            return ""
-        return project_name
+    def project_name(self, creds=None):
+        if creds is None:
+            creds = self.get_credentials()
+        return creds.get("ex_project_name", False) or \
+               creds.get("ex_tenant_name", False)  or \
+               creds.get("project_name", False)    or \
+               creds.get("tenant_name", False)     or \
+               ""
 
     def get_credential(self, key):
-        cred = self.credential_set.filter(key=key)
-        return cred[0].value if cred else None
+        for cred in self.credential_set.all():
+            if cred.key == key:
+                return cred.value
+        return None
 
     def get_credentials(self):
         cred_dict = {}
         for cred in self.credential_set.all():
             cred_dict[cred.key] = cred.value
+
         # Hotfix to avoid errors in rtwo+OpenStack
+        # Note: when this hotfix is removed, the creds dict can be removed
+        # from the keyword arguments of `project_name`.
         if 'ex_tenant_name' not in cred_dict:
-            cred_dict['ex_tenant_name'] = self.project_name()
+            cred_dict['ex_tenant_name'] = self.project_name(creds=cred_dict)
         return cred_dict
 
     def get_all_credentials(self):

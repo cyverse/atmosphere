@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from core.models import ResourceRequest
-from api.v2.serializers.summaries import UserSummarySerializer
-from api.v2.serializers.fields import (
-    IdentityRelatedField, StatusTypeRelatedField
+from api.v2.serializers.summaries import (
+    UserSummarySerializer, StatusTypeSummarySerializer
 )
+from api.v2.serializers.fields import IdentityRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
@@ -14,7 +14,7 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     )
     created_by = UserSummarySerializer(read_only=True)
     identity = IdentityRelatedField(source='membership.identity')
-    status = StatusTypeRelatedField(allow_null=True, required=False)
+    status = StatusTypeSummarySerializer(read_only=True)
 
     class Meta:
         model = ResourceRequest

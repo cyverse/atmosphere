@@ -7,9 +7,7 @@ class IdentityRelatedField(serializers.RelatedField):
     def get_queryset(self):
         return Identity.objects.all()
 
-    def to_representation(self, value):
-        queryset = self.get_queryset()
-        identity = queryset.get(pk=value.pk)
+    def to_representation(self, identity):
         serializer = IdentitySummarySerializer(identity, context=self.context)
         return serializer.data
 
