@@ -493,7 +493,7 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
             esh_driver.__class__,
             esh_driver.provider,
             esh_driver.identity,
-            str(core_identity.uuid),
+            str(core_identity_uuid),
             esh_instance.id)
         fixed_ip_task.link(floating_ip_task)
     return init_task
@@ -1294,7 +1294,7 @@ def _test_for_licensing(esh_machine, identity):
     application = app_version.application
     raise Exception(
         "Identity %s did not meet the requirements of the associated license on Application %s + Version %s" %
-        (application.name, app_version.name))
+        (identity, application.name, app_version.name))
 
 
 def check_allocation(username, allocation_source):

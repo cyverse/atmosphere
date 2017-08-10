@@ -113,7 +113,7 @@ class ProjectMemberRequired(permissions.BasePermission):
         else:
             return True
 
-    def test_link_permissions(user, link_id, is_leader=False):
+    def test_link_permissions(self, user, link_id, is_leader=False):
         link_kwargs = {}
         if type(link_id) == int:
             link_kwargs = {'id': link_id}
@@ -166,23 +166,24 @@ class ProjectMemberRequired(permissions.BasePermission):
             raise Exception("Unknown data - %s" % data)
 
 
-
 class ProjectLeaderRequired(ProjectMemberRequired):
     message = "The requested user is not a leader of the project."
+
     def test_project_permissions(self, user, request_method, project_id):
-        return self.test_project_permissions(user, request_method, project_id, is_leader=True)
+        return super(ProjectLeaderRequired, self).test_project_permissions(user, request_method, project_id,
+                                                                           is_leader=True)
 
     def test_link_permissions(self, user, link_id):
-        return self.test_link_permissions(user, link_id, is_leader=True)
+        return super(ProjectLeaderRequired, self).test_link_permissions(user, link_id, is_leader=True)
 
     def test_volume_permissions(self, user, volume_id):
-        return self.test_volume_permissions(user, volume_id, is_leader=True)
+        return super(ProjectLeaderRequired, self).test_volume_permissions(user, volume_id, is_leader=True)
 
     def test_identity_permissions(self, user, identity_id):
-        return self.test_identity_permissions(user, identity_id, is_leader=True)
+        return super(ProjectLeaderRequired, self).test_identity_permissions(user, identity_id, is_leader=True)
 
     def test_instance_permissions(self, user, instance_id):
-        return self.test_instance_permissions(user, instance_id, is_leader=True)
+        return super(ProjectLeaderRequired, self).test_instance_permissions(user, instance_id, is_leader=True)
 
 
 class ApiAuthRequired(permissions.BasePermission):

@@ -11,7 +11,7 @@ from rest_framework import status
 from uuid import uuid4
 from api import permissions
 from api.v2.serializers.details import TokenSerializer
-from django_cyverse_auth.models import create_token
+from django_cyverse_auth.models import get_or_create_token
 from atmosphere.settings import secrets
 from core.models import AtmosphereUser
 from threepio import logger
@@ -27,12 +27,12 @@ class TokenEmulateViewSet(ViewSet):
         # data = self.request.data
         username = kwargs.get('username')
         expireDate = timezone.now() + secrets.TOKEN_EXPIRY_TIME
-        new_token = create_token(
-                username,
-                token_key='EMULATED-'+str(uuid4()),
-                remote_ip=self.request.META['REMOTE_ADDR'],
-                token_expire=expireDate,
-                issuer="DRF-EmulatedToken-%s" % user.username)
+        new_token = get_or_create_token(
+            user,
+            token_key='EMULATED-' + str(uuid4()),
+            remote_ip=self.request.META['REMOTE_ADDR'],
+            token_expire=expireDate,
+            issuer="DRF-EmulatedToken-%s" % user.username)
         serialized_data = TokenSerializer(new_token, context={'request':self.request}).data
         return Response(serialized_data, status=status.HTTP_201_CREATED)
 
@@ -71,8 +71,8 @@ def emulate_session(request, username=None):
 
         logger.info("Emulate success, creating tokens for %s" % username)
         expireDate = timezone.now() + secrets.TOKEN_EXPIRY_TIME
-        token = create_token(
-            username,
+        token = get_or_create_token(
+            user,
             token_key='EMULATED-'+str(uuid4()),
             token_expire=expireDate,
             remote_ip=request.META['REMOTE_ADDR'],

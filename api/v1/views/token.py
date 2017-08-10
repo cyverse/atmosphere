@@ -8,7 +8,7 @@ from rest_framework import status
 from threepio import logger
 
 from atmosphere.settings import secrets
-from django_cyverse_auth.models import create_token
+from django_cyverse_auth.models import get_or_create_token
 
 from core.models import AtmosphereUser
 
@@ -32,7 +32,6 @@ class TokenEmulate(AuthAPIView):
         Create a new token in the database on behalf of 'username'
         Returns success 201 Created - Body is JSON and contains
         """
-        params = request.data
         user = request.user
         if not username:
             return Response("Username was not provided",
@@ -48,7 +47,7 @@ class TokenEmulate(AuthAPIView):
                             % username, status=status.HTTP_404_NOT_FOUND)
 
         # User is authenticated, username exists. Make a token for them.
-        token = create_token(username, issuer="DRF-EmulatedUser")
+        token = get_or_create_token(user, issuer="DRF-EmulatedUser")
         expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
         auth_json = {
             # Extra data passed only on emulation..
