@@ -113,7 +113,7 @@ class ProjectMemberRequired(permissions.BasePermission):
         else:
             return True
 
-    def test_link_permissions(user, link_id, is_leader=False):
+    def test_link_permissions(self, user, link_id, is_leader=False):
         link_kwargs = {}
         if type(link_id) == int:
             link_kwargs = {'id': link_id}
