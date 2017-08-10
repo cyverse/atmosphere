@@ -1,3 +1,4 @@
+
 business_rules
 colorama # used by ./configure
 django
@@ -8,7 +9,6 @@ djangorestframework-jsonp
 djangorestframework-xml
 djangorestframework-yaml
 djangorestframework-csv
-celery
 numpy
 pandas
 xlsxwriter
@@ -20,7 +20,7 @@ eventlet
 
 Jinja2
 django-celery-beat
-celery
+celery==4.0.2
 billiard
 flower
 

@@ -17,7 +17,7 @@ billiard==3.5.0.3
 boto==2.39.0              # via chromogenic
 business-rules==1.0.1
 caslib.py==2.2.2          # via django-cyverse-auth
-celery==4.1.0
+celery==4.0.2
 certifi==2017.7.27.1      # via requests, tornado
 cffi==1.10.0              # via bcrypt, cryptography, pynacl
 chardet==3.0.4            # via requests
@@ -58,7 +58,7 @@ idna==2.5                 # via cryptography, requests
 ipaddress==1.0.18         # via cryptography
 iso8601==0.1.12           # via keystoneauth1, oslo.utils, python-neutronclient, python-novaclient
 itsdangerous==0.24
-jinja2==2.9.6             # via ansible
+jinja2==2.9.6
 jsonpatch==1.16           # via openstacksdk, warlock
 jsonpointer==1.10         # via jsonpatch
 jsonschema==2.6.0         # via warlock

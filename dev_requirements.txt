@@ -21,7 +21,7 @@ billiard==3.5.0.3
 boto==2.39.0
 business-rules==1.0.1
 caslib.py==2.2.2
-celery==4.1.0
+celery==4.0.2
 certifi==2017.7.27.1
 cffi==1.10.0
 chardet==3.0.4
