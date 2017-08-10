@@ -493,7 +493,7 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
             esh_driver.__class__,
             esh_driver.provider,
             esh_driver.identity,
-            str(core_identity.uuid),
+            str(core_identity_uuid),
             esh_instance.id)
         fixed_ip_task.link(floating_ip_task)
     return init_task
