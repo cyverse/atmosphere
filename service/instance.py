@@ -1294,7 +1294,7 @@ def _test_for_licensing(esh_machine, identity):
     application = app_version.application
     raise Exception(
         "Identity %s did not meet the requirements of the associated license on Application %s + Version %s" %
-        (application.name, app_version.name))
+        (identity, application.name, app_version.name))
 
 
 def check_allocation(username, allocation_source):
