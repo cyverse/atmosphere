@@ -333,7 +333,7 @@ def build_host_name(instance_id, ip):
             raise ValueError(
                 "Invalid HOSTNAME_FORMAT: Expected string containing "
                 "at least one of the IP octets. Received: %s"
-                "(ex:'vm%(three)s-%(four)s.my_domain.com')"
+                "(ex:'vm%%(three)s-%%(four)s.my_domain.com')"
                 % hostname_format_str)
         return hostname_format_str % hostnaming_format_map
     except (KeyError, TypeError, ValueError):
