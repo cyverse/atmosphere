@@ -1,5 +1,4 @@
 # flake8: noqa
-from api.v1.views.allocation import AllocationDetail, AllocationList, MonitoringList
 from api.v1.views.cloud_admin import\
     CloudAdminImagingRequestList, CloudAdminImagingRequest,\
     CloudAdminAccountList, CloudAdminAccount,\

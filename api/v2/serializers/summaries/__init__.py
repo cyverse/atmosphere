@@ -1,5 +1,4 @@
 # flake8: noqa
-from .allocation import AllocationSummarySerializer
 from .group import GroupSummarySerializer
 from .identity import IdentitySummarySerializer
 from .image import ImageSummarySerializer

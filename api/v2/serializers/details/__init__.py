@@ -33,7 +33,7 @@ from .provider import (ProviderSerializer, ProviderTypeSerializer,
                        PlatformTypeSerializer)
 from .provider_credential import ProviderCredentialSerializer
 from .provider_machine import ProviderMachineSerializer
-from .quota import QuotaSerializer, AllocationSerializer
+from .quota import QuotaSerializer
 from .renewal_strategy import RenewalStrategySerializer
 from .resource_request import (
     ResourceRequestSerializer, UserResourceRequestSerializer)

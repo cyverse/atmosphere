@@ -37,8 +37,6 @@ from .provider_type_serializer import ProviderTypeSerializer
 from .tag_serializer import TagSerializer, TagSerializer_POST
 from .instance_status_history_serializer import (
     InstanceStatusHistorySerializer)
-from .allocation_serializer import (
-    AllocationSerializer, AllocationResultSerializer)
 from core.models.user import AtmosphereUser
 from .quota_serializer import QuotaSerializer
 from .identity_serializer import IdentitySerializer
@@ -61,5 +59,5 @@ __all__ = (
     VolumeSerializer, NoProjectSerializer,
     ProjectSerializer, ProviderSizeSerializer, ProviderTypeSerializer,
     TagSerializer, TagSerializer_POST, InstanceStatusHistorySerializer,
-    AllocationSerializer, AllocationResultSerializer, AtmosphereUser,
+    AtmosphereUser,
     QuotaSerializer, IdentitySerializer, TokenSerializer)

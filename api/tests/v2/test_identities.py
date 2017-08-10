@@ -3,11 +3,11 @@ from api.v2.views import IdentityViewSet as ViewSet
 from .base import APISanityTestCase
 from api.tests.factories import UserFactory, AnonymousUserFactory,\
     IdentityFactory, ProviderFactory, GroupFactory,\
-    IdentityMembershipFactory, QuotaFactory, AllocationFactory
+    IdentityMembershipFactory, QuotaFactory
 from django.core.urlresolvers import reverse
 
 
-EXPECTED_FIELD_COUNT = 12
+EXPECTED_FIELD_COUNT = 11
 
 
 class IdentityTests(APITestCase, APISanityTestCase):
@@ -27,7 +27,6 @@ class IdentityTests(APITestCase, APISanityTestCase):
             provider=self.provider,
             quota=self.quota,
             created_by=self.user)
-        self.allocation = AllocationFactory.create()
         IdentityMembershipFactory.create(
             member=self.group,
             identity=self.identity,
@@ -65,7 +64,6 @@ class IdentityTests(APITestCase, APISanityTestCase):
         self.assertIn('uuid', identity_data)
         self.assertIn('url', identity_data)
         self.assertIn('quota', identity_data)
-        self.assertIn('allocation', identity_data)
         self.assertIn('provider', identity_data)
         self.assertIn('user', identity_data)
         self.assertIn('key', identity_data)
@@ -97,7 +95,6 @@ class IdentityTests(APITestCase, APISanityTestCase):
         self.assertIn('uuid', data)
         self.assertIn('url', data)
         self.assertIn('quota', data)
-        self.assertIn('allocation', data)
         self.assertIn('provider', data)
         self.assertIn('user', data)
         self.assertIn('key', data)

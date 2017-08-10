@@ -6,7 +6,6 @@ from core.models import Identity, Quota
 from api.v2.serializers.summaries import (
     QuotaSummarySerializer,
     CredentialSummarySerializer,
-    AllocationSummarySerializer,
     UserSummarySerializer,
     ProviderSummarySerializer,
     GroupSummarySerializer
@@ -17,7 +16,6 @@ from core.events.serializers.quota_assigned import QuotaAssignedSerializer
 
 class IdentitySerializer(serializers.HyperlinkedModelSerializer):
     quota = QuotaSummarySerializer(source='get_quota')
-    allocation = AllocationSummarySerializer(source='get_allocation')
     usage = serializers.SerializerMethodField()
     credentials = CredentialSummarySerializer(many=True, source='credential_set')
     key = serializers.SerializerMethodField()
@@ -77,7 +75,6 @@ class IdentitySerializer(serializers.HyperlinkedModelSerializer):
                   'uuid',
                   'url',
                   'key',
-                  'allocation',
                   'quota',
                   'credentials',
                   'usage',
