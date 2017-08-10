@@ -142,8 +142,6 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             return size_not_available(snae)
         except (socket_error, ConnectionFailure):
             return connection_failure(identity)
-        except LibcloudInvalidCredsError:
-            return invalid_creds(identity)
         except VolumeMountConflict as vmc:
             return mount_failed(vmc)
         except NotImplemented:
