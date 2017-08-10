@@ -503,8 +503,6 @@ class InstanceAction(AuthAPIView):
             return size_not_available(snae)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        except LibcloudInvalidCredsError:
-            return invalid_creds(provider_uuid, identity_uuid)
         except VolumeMountConflict as vmc:
             return mount_failed(vmc)
         except NotImplemented:
