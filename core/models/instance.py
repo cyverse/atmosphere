@@ -181,7 +181,7 @@ class Instance(models.Model):
 
     def _build_first_history(self, status_name, size,
                              start_date, end_date=None, first_update=False, activity=None):
-	#FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
+        # FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
         from core.models import InstanceStatusHistory
         if not first_update and status_name not in [
                 'build',
@@ -210,7 +210,7 @@ class Instance(models.Model):
         else: end date previous history object, start new history object.
               return (True, new_history)
         """
-	#FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
+        # FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
         from core.models import InstanceStatusHistory
         import traceback
         # 1. Get status name
