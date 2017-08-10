@@ -754,6 +754,7 @@ class Instance(AuthAPIView):
                                     str(exc.message))
 
         try:
+            core_instance = None
             if existing_instance:
                 # Instance will be deleted soon...
                 esh_instance = existing_instance
