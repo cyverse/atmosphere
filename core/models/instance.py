@@ -187,9 +187,7 @@ class Instance(models.Model):
                 'build',
                 'pending',
                 'running']:
-            logger.info("First Update Unknown - Status name on instance \
-                        %s: %s - %s"
-                        % (self.provider_alias, status_name))
+            logger.info("First Update Unknown - Status name on instance %s: %s", self.provider_alias, status_name)
             # Instance state is 'unknown' from start of instance until now
             # NOTE: This is needed to prevent over-charging accounts
             status_name = 'unknown'
