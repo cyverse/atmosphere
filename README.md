@@ -38,6 +38,8 @@ python scripts/<name of script>
 
 ## Contributing
 
+See [HACKING.md](./HACKING.md).
+
 ### Coding Style
 - Use 4 space indentation
 - Limit lines to 79 characters
@@ -83,7 +85,7 @@ See LICENSE.txt for license information
 
 + **Edwin Skidmore <edwin@iplantcollaborative.org>**
 
-## Authors 
+## Authors
 
 The following individuals who have help/helped make :cloud: great appear in alphabetic order, by surname.
 

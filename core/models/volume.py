@@ -190,6 +190,7 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid=None, user=None)
         if not source.is_volume():
             raise InstanceSource.DoesNotExist(
                 "InstanceSource exists, but does not have associated volume")
+        volume = source.volume
     except InstanceSource.DoesNotExist:
         if not identity_uuid:
             # Author of the Volume cannot be inferred without more details.
