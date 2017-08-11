@@ -12,8 +12,10 @@ asn1crypto==0.22.0
 astroid==1.5.3            # via pylint, pylint-celery, pylint-flask, pylint-plugin-utils, requirements-detector
 babel==2.3.4
 backports-abc==0.5
+backports-abc==0.5
 backports.functools-lru-cache==1.4  # via astroid, pylint
 backports.shutil-get-terminal-size==1.0.0  # via ipython
+backports.ssl-match-hostname==3.5.0.1
 backports.ssl-match-hostname==3.5.0.1
 bcrypt==3.1.3
 behave-django==0.5.0
@@ -60,7 +62,7 @@ emoji==0.4.5
 enum-compat==0.0.2
 enum34==1.1.6
 eventlet==0.21.0
-fabric==1.10
+Fabric==1.10              # via rfive
 factory-boy==2.9.2
 faker==0.7.18             # via factory-boy
 flake8==3.4.1
@@ -132,7 +134,7 @@ psycopg2==2.7.3
 ptyprocess==0.5.2         # via pexpect
 pyasn1-modules==0.0.11
 pyasn1==0.3.2
-pycodestyle==2.3.1        # via flake8
+pycodestyle==2.0.0        # via flake8, prospector
 pycparser==2.18
 pycrypto==2.6.1
 pydocstyle==2.0.0         # via prospector
@@ -175,6 +177,7 @@ rsa==3.4.2
 rtwo==0.5.12
 scandir==1.5              # via pathlib2
 selenium==3.5.0           # via splinter
+setoptconf==0.2.0         # via prospector
 simplegeneric==0.8.1      # via ipython
 simplejson==3.11.1
 singledispatch==3.4.0.3
@@ -198,3 +201,6 @@ wcwidth==0.1.7            # via prompt-toolkit
 wheel==0.29.0
 wrapt==1.10.10
 xlsxwriter==0.9.8
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools                # via ansible, django-sslserver, ipdb, ipython, python-ldap
