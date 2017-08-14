@@ -47,7 +47,8 @@ class TokenEmulate(AuthAPIView):
                             % username, status=status.HTTP_404_NOT_FOUND)
 
         # User is authenticated, username exists. Make a token for them.
-        token = get_or_create_token(user, issuer="DRF-EmulatedUser")
+        user_to_emulate = AtmosphereUser.objects.get_by_natural_key(username)
+        token = get_or_create_token(user_to_emulate, issuer="DRF-EmulatedUser")
         expireTime = token.issuedTime + secrets.TOKEN_EXPIRY_TIME
         auth_json = {
             # Extra data passed only on emulation..
