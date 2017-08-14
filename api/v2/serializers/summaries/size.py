@@ -17,6 +17,7 @@ class SizeSummarySerializer(serializers.HyperlinkedModelSerializer):
             'name',
             'cpu',
             'disk',
+            'root',
             'mem',
             'active',
             'start_date',
