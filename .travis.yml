@@ -46,7 +46,6 @@
 
   script:
     - ./travis/check_properly_generated_requirements.sh
-    - ./travis/lint.sh
     - python manage.py test --keepdb
     - python manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION}
     - python manage.py makemigrations --dry-run --check
