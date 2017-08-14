@@ -27,7 +27,7 @@ def step_impl(context):
     context.amit.assign_allocation_source_to_user(context.allocation_source_1, timestamp=context.ts)
 
 @then('Amit should have the allocation source TestAllocationSource')
-def step_impl(context):
+def amit_should_have_the_allocation_source_testallocationsource(context):
     assert context.amit.is_allocation_source_assigned_to_user()
 
 

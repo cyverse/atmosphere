@@ -3,7 +3,6 @@ from rest_framework.response import Response
 
 from threepio import logger
 
-from core.query import only_current_provider
 from core.models.group import Group
 from core.models.identity import Identity as CoreIdentity
 

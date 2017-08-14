@@ -147,12 +147,12 @@ class TASAPIDriver(object):
             exc_message = ("Report %s produced an Invalid Response - Expected 'status' in the json response: %s" % (report_id, resp.text,))
             logger.exception(exc_message)
             raise ValueError(exc_message)
-    
+
         if resp_status != 'success' or resp.status_code != 200:
             exc_message = ("Report %s produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (report_id, resp.status_code, resp_status))
             logger.exception(exc_message)
             raise Exception(exc_message)
-    
+
         return data
 
     def get_allocation_project_id(self, allocation_name):
@@ -236,7 +236,7 @@ class TASAPIDriver(object):
             logger.info(exc)
         return user_names
 
-    
+
 
     def get_user_allocations(self, username, include_expired=False, raise_exception=True):
         path = '/v1/projects/username/%s' % username
@@ -426,15 +426,15 @@ def select_valid_allocations(allocation_list):
     for allocation in allocation_list:
         allocation_status = allocation['status']
         if allocation_status.lower() != 'active':
-           #logger.debug("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
-           continue
+            #logger.debug("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+            continue
         start_timestamp = allocation['start']
         end_timestamp = allocation['end']
         start_date = parse(start_timestamp)
         end_date = parse(end_timestamp)
         if start_date >= now or end_date <= now:
-           #logger.debug("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
-           continue
+            #logger.debug("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
+            continue
         allocations.append(allocation)
     return allocations
 
@@ -447,15 +447,15 @@ def select_valid_allocation(allocation_list):
     for allocation in allocation_list:
         status = allocation['status']
         if status.lower() != 'active':
-           #logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
-           continue
+            #logger.info("Skipping Allocation %s because its listed status is NOT 'active'" % allocation)
+            continue
         start_timestamp = allocation['start']
         end_timestamp = allocation['end']
         start_date = parse(start_timestamp)
         end_date = parse(end_timestamp)
         if start_date >= now or end_date <= now:
-           #logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
-           continue
+            #logger.info("Skipping Allocation %s because its dates are outside the range for timezone.now()" % allocation)
+            continue
         return allocation
     return None
 

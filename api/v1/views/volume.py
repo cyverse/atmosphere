@@ -15,7 +15,7 @@ from libcloud.common.exceptions import BaseHTTPError
 from threepio import logger
 
 from api.exceptions import (
-    failure_response, inactive_provider
+    failure_response, inactive_provider, member_action_forbidden
 )
 
 from core.exceptions import ProviderNotActive
@@ -195,6 +195,7 @@ class VolumeSnapshotDetail(AuthAPIView):
         """
         Destroys the volume and updates the DB
         """
+        user = request.user
         # Ensure volume exists
         try:
             esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
@@ -588,17 +589,6 @@ def valid_launch_data(data):
     Return any missing required post key names.
     """
     required = ['name', 'size']
-    return [key for key in required
-            # Key must exist and have a non-empty value.
-            if key not in data or
-            (isinstance(data[key], str) and len(data[key]) > 0)]
-
-
-def valid_snapshot_post_data(data):
-    """
-    Return any missing required post key names.
-    """
-    required = ['display_name', 'volume_id', 'size']
     return [key for key in required
             # Key must exist and have a non-empty value.
             if key not in data or

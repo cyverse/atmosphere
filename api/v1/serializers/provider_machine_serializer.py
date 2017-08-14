@@ -1,6 +1,5 @@
 from core.models.machine import ProviderMachine
 from core.models import Tag
-from core.models.instance_source import InstanceSource
 from rest_framework import serializers
 from .cleaned_identity_serializer import CleanedIdentitySerializer
 from .license_serializer import LicenseSerializer

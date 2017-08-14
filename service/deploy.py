@@ -129,8 +129,11 @@ def deploy_check_volume(instance_ip, username, instance_id,
         extra_vars=extra_vars)
 
 
-def instance_deploy(instance_ip, username, instance_id,
-		    limit_playbooks=[], **runner_opts):
+def instance_deploy(instance_ip,
+                    username,
+                    instance_id,
+                    limit_playbooks=[],
+                    **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     """
@@ -187,8 +190,12 @@ def run_utility_playbooks(instance_ip, username, instance_id,
     """
     playbooks_dir = os.path.join(settings.ANSIBLE_PLAYBOOKS_DIR, 'utils')
     return ansible_deployment(
-        instance_ip, username, instance_id, playbooks_dir, limit_playbooks,
-	 raise_exception=raise_exception)
+        instance_ip,
+        username,
+        instance_id,
+        playbooks_dir,
+        limit_playbooks,
+        raise_exception=raise_exception)
 
 
 def select_install_playbooks(install_action):
@@ -241,9 +248,9 @@ def _one_runner_all_playbook_execution(
             private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
             # Use atmosphere settings
             group_vars_map={
-                filename: os.path.join(
-                    settings.ANSIBLE_GROUP_VARS_DIR, filename)
-                    for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
+                filename: os.path.join(settings.ANSIBLE_GROUP_VARS_DIR, filename)
+                for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)
+            },
             **runner_opts)
     if runner.playbooks == []:
         msg = "Playbook directory has no playbooks: %s" \
@@ -269,9 +276,10 @@ def _one_runner_one_playbook_execution(
             limit_playbooks=limit_playbooks,
             # Use atmosphere settings
             group_vars_map={
-                filename: os.path.join(
-                    settings.ANSIBLE_GROUP_VARS_DIR, filename)
-                    for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)},
+                filename: os.path.join(settings.ANSIBLE_GROUP_VARS_DIR,
+                                       filename)
+                for filename in os.listdir(settings.ANSIBLE_GROUP_VARS_DIR)
+            },
             private_key_file=settings.ATMOSPHERE_PRIVATE_KEYFILE,
             **runner_opts)
         for playbook_path in os.listdir(playbook_dir)

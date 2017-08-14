@@ -79,7 +79,7 @@ def complete_resize(driverCls, provider, identity, instance_alias,
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_alias)
         if not instance:
-            celery_logger.debug("Instance has been teminated: %s." % instance_id)
+            celery_logger.debug("Instance has been teminated: %s." % instance_alias)
             return False, None
         result = instance_service.confirm_resize(
             driver, instance, core_provider_uuid, core_identity_uuid, user)
@@ -645,8 +645,8 @@ def print_chain(start_task, idx=0):
     #Recursive Case
     mystr = "%s" % signature
     next_tasks = start_task.options['link']
-    for task in next_tasks:
-        mystr += print_chain(task, idx+1)
+    for next in next_tasks:
+        mystr += print_chain(next, idx+1)
     return mystr
 
 def get_chain_from_active_no_ip(
@@ -984,7 +984,7 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
         if isinstance(exc.value, NonZeroDeploymentException):
             # The deployment was successful, but the return code on one or more
             # steps is bad. Log the exception and do NOT try again!
-            raise NonZeroDeploymentException,\
+            raise NonZeroDeploymentException(exc.message),\
                 "One or more Script(s) reported a NonZeroDeployment:%s"\
                 % full_deploy_output,\
                 sys.exc_info()[2]
@@ -997,9 +997,7 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
         _deploy_instance.retry(exc=exc)
 
 
-@task(name="check_web_desktop_task",
-      max_retries=4,
-      default_retry_delay=15)
+@task(name="check_web_desktop_task", max_retries=4, default_retry_delay=15)
 def check_web_desktop_task(driverCls, provider, identity,
                        instance_alias, *args, **kwargs):
     """

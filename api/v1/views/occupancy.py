@@ -2,8 +2,6 @@
 atmosphere service provider occupancy rest api.
 
 """
-from django.utils import timezone
-
 from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 

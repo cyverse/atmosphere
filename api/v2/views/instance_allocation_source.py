@@ -85,10 +85,10 @@ class InstanceAllocationSourceViewSet(AuthModelViewSet):
 
     def _validate_data(self, request_user, request_data):
 
-        if not 'instance_id' in request_data:
+        if 'instance_id' not in request_data:
             raise Exception('Missing Instance Provider Alias from request data ')
 
-        if not 'allocation_source_name' in request_data:
+        if 'allocation_source_name' not in request_data:
             raise Exception('Missing Allocation Source Source ID from request data ')
 
         self._for_validate_userallocationsource(request_user, request_data)

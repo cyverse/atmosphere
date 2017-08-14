@@ -1,7 +1,9 @@
 import uuid
 from datetime import timedelta
 
+# noinspection PyUnresolvedReferences
 from behave import *
+from behave import when, then, given, step
 from dateutil.parser import parse
 from dateutil.rrule import rrule, HOURLY
 from django.test import modify_settings
@@ -21,7 +23,7 @@ from cyverse_allocation.tasks import update_snapshot_cyverse, renew_allocation_s
 ######## Story Implementation ##########
 
 @given('one admin user and two regular users who can launch instances')
-def step_impl(context):
+def create_admin_and_two_regular_users(context):
     context.client = Client()
     user = UserFactory.create(username='lenards', is_staff=True, is_superuser=True)
     user.set_password('lenards')
@@ -40,7 +42,7 @@ def step_impl(context):
 
 
 @when('admin creates allocation source')
-def step_impl(context):
+def admin_create_allocation_source(context):
     context.allocation_sources = {}
     context.allocation_sources_name = {}
     context.current_time = timezone.now()
@@ -72,7 +74,7 @@ def step_impl(context):
 
 
 @when('Users are added to allocation source')
-def step_impl(context):
+def add_users_to_allocation(context):
     for row in context.table:
         source_id = context.allocation_sources[row['allocation_source_id']]
         name = context.allocation_sources_name[row['allocation_source_id']]
@@ -84,7 +86,7 @@ def step_impl(context):
 
 
 @when('User launch Instance')
-def step_impl(context):
+def launch_instance_for_user(context):
     if not hasattr(context, 'instance'):
         context.instance = {}
     for row in context.table:
@@ -100,7 +102,7 @@ def step_impl(context):
 
 
 @when('User adds instance to allocation source')
-def step_impl(context):
+def add_allocation_instance(context):
     for row in context.table:
         provider_alias = context.instance[row['instance_id']]
         emulate_response = context.client.get('/api/v2/emulate_session/%s' % (row['username']))
@@ -115,7 +117,7 @@ def step_impl(context):
 
 
 @when('User instance runs for some days')
-def step_impl(context):
+def instance_runs_for_some_days(context):
     for row in context.table:
         user = AtmosphereUser.objects.filter(username=row['username']).last()
         provider_alias = context.instance[row['instance_id']]
@@ -131,7 +133,7 @@ def step_impl(context):
 
 
 @then('calculate allocations used by allocation source after certain number of days')
-def step_impl(context):
+def calculate_allocations_used_by_allocation_source_after_certain_number_of_days(context):
     current_time = context.current_time
     for row in context.table:
         allocation_source = AllocationSource.objects.filter(
@@ -171,7 +173,7 @@ def step_impl(context):
 # Alternate Story Step Implementation
 
 @when('User launch Instance and no statushistory is created')
-def step_impl(context):
+def user_launch_Instance_and_no_statushistory_is_created(context):
     context.instance = {}
     context.instance_history_args = {}
     for row in context.table:
@@ -190,7 +192,7 @@ def step_impl(context):
 
 
 @when('Instance Allocation Source Changed Event is fired BEFORE statushistory is created')
-def step_impl(context):
+def instance_allocation_source_changed_event_is_fired_before_statushistory_is_created(context):
     for row in context.table:
         payload = {}
         payload['allocation_source_name'] = context.allocation_sources_name[row["allocation_source_id"]]
@@ -219,7 +221,7 @@ def step_impl(context):
 # Tests for one off renewal event
 
 @then('Compute Allowed is increased for Allocation Source')
-def step_impl(context):
+def compute_allowed_is_increased_for_allocation_source(context):
     for row in context.table:
         allocation_source_name = context.allocation_sources_name[row['allocation_source_id']]
         new_compute_allowed = int(row['new_compute_allowed'])
@@ -237,7 +239,7 @@ def step_impl(context):
 
 
 @then('One off Renewal task is run without rules engine')
-def step_impl(context):
+def one_off_renewal_task_is_run_without_rules_engine(context):
     time = context.time_at_the_end_of_calculation_check
     renew_allocation_sources(current_time=time)
 

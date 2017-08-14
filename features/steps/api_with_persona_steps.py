@@ -14,7 +14,9 @@ import django.urls
 import django.utils.timezone
 import mock
 import rest_framework.test
+# noinspection PyUnresolvedReferences
 from behave import *
+from behave import when, then, given, step
 
 import api.tests.factories
 import jetstream.tests.tas_api_mock_utils
@@ -63,7 +65,7 @@ def i_log_in(context):
 
 
 @step('I log in with valid XSEDE project required and default quota plugin enabled')
-def i_log_in(context):
+def i_log_in_with_valid_xsede_project_required_and_default_quota_plugin_enabled(context):
     """
     :type context: behave.runner.Context
     """
@@ -248,7 +250,7 @@ def set_up_provider(context, provider_location):
 @step('we create an account for the current persona on provider "{provider_location}"')
 def create_jetstream_account(context, provider_location):
     """This does not use the factory
-    
+
     We want to test the default quota plugin.
 
     NOTE: At the moment this step only works with Jetstream and TAS API
@@ -318,7 +320,7 @@ def should_have_quota_on_provider(context, provider_location):
 
 
 @step('we make the current identity the admin on provider "{provider_location}"')
-def create_identity(context, provider_location):
+def we_make_the_current_identity_the_admin_on_provider(context, provider_location):
     assert context.persona
     import core.models
     provider = core.models.Provider.objects.get(location=provider_location)
@@ -489,7 +491,7 @@ def set_key_to_key_of_persona_var(context, key, persona_var, other_key):
 
 
 @step('I set "{key}" to allocation source with name "{allocation_source_name}"')
-def set_key_to_persona_var_and_attribute(context, key, allocation_source_name):
+def set_key_to_persona_var_to_allocation(context, key, allocation_source_name):
     assert context.persona is not None, u'no persona is setup'
     import core.models
     allocation_source = core.models.AllocationSource.objects.get(name=allocation_source_name)

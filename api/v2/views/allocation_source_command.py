@@ -148,17 +148,16 @@ class AllocationSourceCommandViewSet(AuthViewSet):
         self._for_validate_renewal_strategy(request_data['renewal_strategy'])
 
 
-    def _change_renewal_strategy(self,request_data):
+    def _change_renewal_strategy(self, request_data):
         payload = {}
         payload['source_id'] = request_data['source_id']
         payload['renewal_strategy'] = request_data['renewal_strategy']
 
-        EventTable.create_event(
-            'allocation_source_renewal_strategy_changed',
-             payload,
-             payload['source_id'])
+        EventTable.create_event('allocation_source_renewal_strategy_changed',
+                                payload, payload['source_id'])
 
-        return AllocationSource.objects.filter(source_id=request_data['source_id']).last()
+        return AllocationSource.objects.filter(
+            source_id=request_data['source_id']).last()
 
     # Change Allocation Source Name
 

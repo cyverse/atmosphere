@@ -251,8 +251,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         data = request.data
         instance = Instance.objects.get(id=pk)
 
-        if data.has_key("allocation_source") and \
-            data["allocation_source"].has_key("id"):
+        if "allocation_source" in data and \
+                "id" in data["allocation_source"]:
             allocation_id = data["allocation_source"]["id"]
             try:
                 user_source = UserAllocationSource.objects.get(user=request.user,

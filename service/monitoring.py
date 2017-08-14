@@ -82,7 +82,7 @@ def _convert_tenant_id_to_names(instances, tenants):
 
 
 def _get_identity_from_tenant_name(provider, username):
-    # FIXME: This needs to be `username, tenant_name` because the `project_name` no longer has to match the `username` 
+    # FIXME: This needs to be `username, tenant_name` because the `project_name` no longer has to match the `username`
     try:
         # NOTE: I could see this being a problem when 'user1' and 'user2' use
         # TODO: Ideally we would be able to extract some more information

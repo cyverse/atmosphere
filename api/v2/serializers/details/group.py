@@ -75,7 +75,7 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         # Leaders are 'flagged' and users are not.
         if 'get_users' in validated_data and 'get_leaders' in validated_data:
             leaders = validated_data.get('get_leaders', [])
-            users = [user for user in validated_data.get('get_users',[]) if user not in leaders]
+            users = [u for u in validated_data.get('get_users',[]) if u not in leaders]
 
             # TODO: Efficient update? users and leaders might be added/removed..
             group.user_set.remove()
@@ -99,7 +99,7 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
 
         # Leaders are 'flagged' and users are not.
         leaders = group_kwargs.pop('get_leaders')
-        users = [user for user in group_kwargs.pop('get_users') if user not in leaders]
+        users = [u for u in group_kwargs.pop('get_users') if u not in leaders]
 
         new_group = Group.objects.create(**group_kwargs)
         self.update_group_membership(new_group, users, leaders)

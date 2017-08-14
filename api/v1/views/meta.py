@@ -2,9 +2,6 @@
 Atmosphere service meta rest api.
 
 """
-from datetime import datetime
-import time
-
 from rtwo.exceptions import LibcloudInvalidCredsError
 
 from rest_framework import status

@@ -14,6 +14,7 @@ ipdb
 ipython
 mock
 pep8
+prospector
 wheel
 vcrpy
 json_delta

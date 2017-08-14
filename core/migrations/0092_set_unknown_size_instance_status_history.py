@@ -7,29 +7,23 @@ from django.db import migrations
 
 def set_unknown_size_entries(apps, schema_editor):
     InstanceStatusHistory = apps.get_model("core", "InstanceStatusHistory")
+    Size = apps.get_model("core", "Size")
 
     for instance_history_entry in InstanceStatusHistory.objects.filter(size__isnull=True):
         provider = instance_history_entry.instance.created_by_identity.provider
-        unknown_size = get_unknown_for_provider(apps, provider)
+        unknown_size = Size.objects.filter(provider=provider, name__iexact='unknown').first()
+        if not unknown_size:
+            unknown_size = Size.objects.create(
+                alias="unknown",
+                name="Unknown Size",
+                provider=provider,
+                cpu=-1,
+                disk=-1,
+                root=-1,
+                mem=-1,
+            )
         instance_history_entry.size = unknown_size
         instance_history_entry.save()
-
-
-def get_unknown_for_provider(apps, provider):
-    Size = apps.get_model("core", "Size")
-    unknown_size = Size.objects.filter(provider=provider, name__iexact='unknown').first()
-    if not unknown_size:
-        unknown_size = Size.objects.create(
-            alias="unknown",
-            name="Unknown Size",
-            provider=provider,
-            cpu=-1,
-            disk=-1,
-            root=-1,
-            mem=-1,
-        )
-    return unknown_size
-
 
 class Migration(migrations.Migration):
 
