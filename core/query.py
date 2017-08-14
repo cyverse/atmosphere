@@ -58,7 +58,6 @@ def only_current_provider(now_time=None):
         now_time = timezone.now()
     return (Q(provider__end_date__isnull=True) |
             Q(provider__end_date__gt=now_time)) &\
-        Q(provider__active=True) &\
         Q(provider__start_date__lt=now_time)
 
 
@@ -71,8 +70,7 @@ def only_current_instances(now_time=None, restrict_start=False):
         An instance.source is active if the provider is active and un-end-dated.
         """
         return (Q(source__provider__end_date__isnull=True) |
-                Q(source__provider__end_date__gt=now_time)) &\
-            Q(source__provider__active=True)
+                Q(source__provider__end_date__gt=now_time))
 
     if not now_time:
         now_time = timezone.now()
@@ -175,10 +173,9 @@ def only_current_source(now_time=None):
     """
     Filters the current instance_sources.
     """
-    def _active_provider():
+    def current_provider():
         return (Q(instance_source__provider__end_date__isnull=True) |
-                Q(instance_source__provider__end_date__gt=now_time)) &\
-            Q(instance_source__provider__active=True)
+                Q(instance_source__provider__end_date__gt=now_time))
 
     def _in_range():
         return (Q(instance_source__end_date__isnull=True) |
@@ -187,7 +184,7 @@ def only_current_source(now_time=None):
 
     if not now_time:
         now_time = timezone.now()
-    return _in_range() & _active_provider()
+    return _in_range() & current_provider()
 
 
 def only_public_providers(now_time=None):

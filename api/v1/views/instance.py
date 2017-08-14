@@ -549,7 +549,7 @@ class Instance(AuthAPIView):
         #       all the things that are 'inactive'
         try:
             provider = Provider.objects.get(uuid=provider_uuid)
-            if not provider.is_active():
+            if not provider.is_current():
                 raise ProviderNotActive(provider)
         except Provider.DoesNotExist:
             return invalid_creds(provider_uuid, identity_uuid)

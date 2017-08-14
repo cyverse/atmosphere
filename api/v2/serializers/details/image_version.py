@@ -63,11 +63,11 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         """
         user = self.context['request'].user
 
-        filtered = obj.machines
+        filtered = obj.machines.filter(Q(instance_source__provider__active=True))
         if isinstance(user, AnonymousUser):
-            filtered = obj.machines.filter(Q(instance_source__provider__public=True))
+            filtered = filtered.filter(Q(instance_source__provider__public=True))
         elif not user.is_staff:
-            filtered = obj.machines.filter(Q(instance_source__provider_id__in=user.provider_ids()))
+            filtered = filtered.filter(Q(instance_source__provider_id__in=user.provider_ids()))
         serializer = ProviderMachineSummarySerializer(
            filtered,
            context=self.context,

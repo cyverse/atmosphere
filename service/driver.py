@@ -219,7 +219,7 @@ def get_esh_provider(core_provider, username=None):
 def get_esh_driver(core_identity, username=None, identity_kwargs={}, **kwargs):
     try:
         core_provider = core_identity.provider
-        if not core_provider.is_active():
+        if not core_provider.is_current():
             raise ProviderNotActive(core_identity.provider)
         esh_map = get_esh_map(core_provider)
         if not username:
