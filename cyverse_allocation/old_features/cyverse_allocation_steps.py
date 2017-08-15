@@ -1,12 +1,17 @@
-from behave import *
-from cyverse_allocation.spoof_instance import UserWorkflow,create_allocation_source,change_renewal_strategy
-from dateutil.parser import parse
 from datetime import timedelta
+
+# noinspection PyUnresolvedReferences
+from behave import *
+from behave import when, then, given
+from business_rules import run_all
+from dateutil.parser import parse
+
+from core.models.allocation_source import AllocationSourceSnapshot
 from core.models.allocation_source import total_usage
 from core.models.event_table import EventTable
-from core.models.allocation_source import AllocationSourceSnapshot
-from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVariables, CyverseTestRenewalActions,cyverse_rules
-from business_rules import run_all
+from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVariables, CyverseTestRenewalActions, \
+    cyverse_rules
+from cyverse_allocation.spoof_instance import UserWorkflow, create_allocation_source, change_renewal_strategy
 
 
 # run_all(rule_list=cyverse_rules,
@@ -17,14 +22,17 @@ from business_rules import run_all
 # scenario 1
 
 @given('we create a new user, Amit')
-def step_impl(context):
+def create_user_amit(context):
     context.amit = UserWorkflow()
 
+
 @when('we create and assign an allocation source TestAllocationSource with default renewal to Amit')
-def step_impl(context):
+def create_and_assign_allocation_source(context):
     context.ts = parse('2016-10-04T00:00+00:00')
-    context.allocation_source_1 = create_allocation_source(name='TestSource', compute_allowed=1000, timestamp=context.ts)
+    context.allocation_source_1 = create_allocation_source(name='TestSource', compute_allowed=1000,
+                                                           timestamp=context.ts)
     context.amit.assign_allocation_source_to_user(context.allocation_source_1, timestamp=context.ts)
+
 
 @then('Amit should have the allocation source TestAllocationSource')
 def amit_should_have_the_allocation_source_testallocationsource(context):
@@ -34,7 +42,7 @@ def amit_should_have_the_allocation_source_testallocationsource(context):
 # scenario 2
 
 @given('Amit creates an instance')
-def step_impl(context):
+def amit_creates_instance(context):
     # instance created after 10 minutes of assigning an allocation source
     context.execute_steps(
         u'''
@@ -44,25 +52,30 @@ def step_impl(context):
         ''')
     context.amit_instance_1 = context.amit.create_instance(start_date=context.ts)
 
+
 @when('Amits instance runs for 2 hours')
-def step_impl(context):
-    context.amit.create_instance_status_history(context.amit_instance_1, start_date=context.ts + timedelta(hours=2), status='suspend')
+def amit_runs_instance(context):
+    context.amit.create_instance_status_history(context.amit_instance_1, start_date=context.ts + timedelta(hours=2),
+                                                status='suspend')
+
 
 @then('the total usage on TestAllocationSource is 0 hours')
-def step_impl(context):
+def total_usage_is_zero(context):
     report_start_date = context.ts
     report_end_date = context.ts + timedelta(minutes=120)
-    tots = total_usage(context.amit.user.username, report_start_date, allocation_source_name=context.allocation_source_1.name,
-                end_date=report_end_date)
+    tots = total_usage(context.amit.user.username, report_start_date,
+                       allocation_source_name=context.allocation_source_1.name,
+                       end_date=report_end_date)
     print(tots)
-    assert total_usage(context.amit.user.username, report_start_date, allocation_source_name=context.allocation_source_1.name,
-                end_date=report_end_date)==0.0
+    assert total_usage(context.amit.user.username, report_start_date,
+                       allocation_source_name=context.allocation_source_1.name,
+                       end_date=report_end_date) == 0.0
 
 
 # scenario 3
 
 @given('Amit assigns instance to TestAllocationSource')
-def step_impl(context):
+def amit_assigns_instance(context):
     # instance created after 10 minutes of assigning an allocation source
     context.execute_steps(
         u'''
@@ -79,24 +92,27 @@ def step_impl(context):
                                                 start_date=context.ts + timedelta(hours=2),
                                                 status='active')
 
+
 @when('Amits instance runs for another 2 hours')
-def step_impl(context):
+def amit_runs_instance_another_two_hours(context):
     context.amit.create_instance_status_history(context.amit_instance_1,
                                                 start_date=context.ts + timedelta(hours=4),
                                                 status='suspended')
 
+
 @then('the total usage on TestAllocationSource is 2 hours')
-def step_impl(context):
+def total_user_is_two_hours(context):
     report_start_date = context.ts
     report_end_date = context.ts + timedelta(hours=4)
-    assert total_usage(context.amit.user.username, report_start_date, allocation_source_name=context.allocation_source_1.name,
-                end_date=report_end_date)==2.0
+    assert total_usage(context.amit.user.username, report_start_date,
+                       allocation_source_name=context.allocation_source_1.name,
+                       end_date=report_end_date) == 2.0
 
 
 # scenario 4
 
 @given('we create user, Julian and assign him to TestAllocationSource 1 hour after Amit is assigned')
-def step_impl(context):
+def create_user_julian(context):
     # instance created after 10 minutes of assigning an allocation source
     context.execute_steps(
         u'''
@@ -112,33 +128,36 @@ def step_impl(context):
         ''')
 
     context.julian = UserWorkflow()
-    context.julian.assign_allocation_source_to_user(context.allocation_source_1, timestamp=context.ts+timedelta(hours=1))
+    context.julian.assign_allocation_source_to_user(context.allocation_source_1,
+                                                    timestamp=context.ts + timedelta(hours=1))
 
 
 @when('Julian launches an instance on TestAllocationSource and runs it for 3 hours')
-def step_impl(context):
-    context.julian_instance_1 = context.julian.create_instance(start_date=context.ts+timedelta(hours=1))
+def julian_launches_instance(context):
+    context.julian_instance_1 = context.julian.create_instance(start_date=context.ts + timedelta(hours=1))
     context.julian.assign_allocation_source_to_instance(context.allocation_source_1, context.julian_instance_1,
-                                                      timestamp=context.ts + timedelta(hours=1))
+                                                        timestamp=context.ts + timedelta(hours=1))
     context.julian.create_instance_status_history(context.julian_instance_1,
-                                                start_date=context.ts + timedelta(hours=4),
-                                                status='suspended')
+                                                  start_date=context.ts + timedelta(hours=4),
+                                                  status='suspended')
 
 
 @then('the total usage on TestAllocationSource source is 5 hours')
-def step_impl(context):
+def total_usage_is_five_hours(context):
     report_start_date = context.ts
     report_end_date = context.ts + timedelta(hours=4)
-    tots = total_usage(context.julian.user.username, report_start_date, allocation_source_name=context.allocation_source_1.name,
-                end_date=report_end_date) + total_usage(context.amit.user.username, report_start_date, allocation_source_name=context.allocation_source_1.name,
-                end_date=report_end_date)
+    tots = total_usage(context.julian.user.username, report_start_date,
+                       allocation_source_name=context.allocation_source_1.name,
+                       end_date=report_end_date) + total_usage(context.amit.user.username, report_start_date,
+                                                               allocation_source_name=context.allocation_source_1.name,
+                                                               end_date=report_end_date)
     assert tots == 5.0
 
 
 # scenario 5
 
 @given('default settings')
-def step_impl(context):
+def default_settings(context):
     context.execute_steps(
         u'''
         Given we create a new user, Amit
@@ -155,25 +174,30 @@ def step_impl(context):
         then the total usage on TestAllocationSource source is 5 hours
         ''')
 
+
 @when('new allocation source DefaultAllocationSource is created with compute allowed 128')
-def step_impl(context):
-    context.allocation_source_2 = create_allocation_source(name='DefaultAllocationSource', compute_allowed=128,
+def new_allocation_source_created(context):
+    context.allocation_source_2 = create_allocation_source(name='DefaultAllocationSource',
+                                                           compute_allowed=128,
                                                            timestamp=context.ts)
 
+
 @then('allocation_source_created event is fired for DefaultAllocationSource')
-def step_impl(context):
-    context.query = EventTable.objects.filter(name='allocation_source_created', payload__name__exact='DefaultAllocationSource')
-    assert len(context.query)==1
+def allocation_source_created_event_fired(context):
+    context.query = EventTable.objects.filter(name='allocation_source_created',
+                                              payload__name__exact='DefaultAllocationSource')
+    assert len(context.query) == 1
+
 
 @then('renewal_strategy for allocation source is default')
-def step_impl(context):
-    assert context.query.last().payload['renewal_strategy']=='default'
+def renewal_strategy_is_default(context):
+    assert context.query.last().payload['renewal_strategy'] == 'default'
 
 
 # scenario 6
 
 @given('Amit is assigned to DefaultAllocationSource')
-def step_impl(context):
+def amit_is_assigned_to_default_allocation_source(context):
     context.execute_steps(
         u'''
         Given we create a new user, Amit
@@ -193,10 +217,11 @@ def step_impl(context):
         ''')
 
     context.amit.assign_allocation_source_to_user(context.allocation_source_2,
-                                                    timestamp=context.ts)
+                                                  timestamp=context.ts)
+
 
 @when('Amit runs an instance on DefaultAllocationSource for 3 days')
-def step_impl(context):
+def amit_runs_on_default_allocation_source(context):
     context.amit_instance_2 = context.amit.create_instance(start_date=context.ts)
     context.amit.assign_allocation_source_to_instance(context.allocation_source_2, context.amit_instance_2,
                                                       timestamp=context.ts)
@@ -207,45 +232,51 @@ def step_impl(context):
 
 
 @then('renewal event is fired after 1 month for DefaultAllocationSource')
-def step_impl(context):
+def renewal_event_is_fired_after_one_month(context):
     # after 1 month , AllocationSourceSnapshot is first updated.
 
     report_start_date = context.ts
     report_end_date = context.ts + timedelta(days=30)
     query = EventTable.objects.filter(name='allocation_source_renewed',
-                                              payload__name__exact='DefaultAllocationSource')
+                                      payload__name__exact='DefaultAllocationSource')
     assert len(query) == 0
-    source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).order_by('updated').last()
-    assert total_usage(context.amit.user.username, report_start_date, allocation_source_name=context.allocation_source_2.name,
-                end_date=report_end_date) == 72.0
-    source_snapshot.compute_used = total_usage(context.amit.user.username, report_start_date, allocation_source_name=context.allocation_source_2.name,
-                end_date=report_end_date)
+    source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).order_by(
+        'updated').last()
+    assert total_usage(context.amit.user.username, report_start_date,
+                       allocation_source_name=context.allocation_source_2.name,
+                       end_date=report_end_date) == 72.0
+    source_snapshot.compute_used = total_usage(context.amit.user.username, report_start_date,
+                                               allocation_source_name=context.allocation_source_2.name,
+                                               end_date=report_end_date)
     source_snapshot.updated = context.ts + timedelta(days=29)
     source_snapshot.save()
 
-    assert AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).order_by('updated').last().compute_used == 72.0
+    assert AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).order_by(
+        'updated').last().compute_used == 72.0
 
     # rules engine is explicitly run
 
     current_time = context.ts + timedelta(days=30)
     run_all(rule_list=cyverse_rules,
-    defined_variables=CyverseTestRenewalVariables(context.allocation_source_2,current_time),
-    defined_actions=CyverseTestRenewalActions(context.allocation_source_2,current_time),
-    )
+            defined_variables=CyverseTestRenewalVariables(context.allocation_source_2, current_time),
+            defined_actions=CyverseTestRenewalActions(context.allocation_source_2, current_time),
+            )
 
     query = EventTable.objects.filter(name='allocation_source_renewed', payload__name__exact='DefaultAllocationSource')
-    assert len(query)==1
+    assert len(query) == 1
+
 
 @then('compute_allowed on the 30th day is 184 after the carry over')
-def step_impl(context):
+def compute_allowed_on_thirtieth_day(context):
     source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=context.allocation_source_2).last()
     assert source_snapshot.compute_allowed == 284
 
 
-#Scenario 7
+# Scenario 7
 
-@given('DefaultAllocationSource changes its renewal strategy to bi-weekly and Julian is assigned to DefaultAllocationSource')
-def step_impl(context):
+@given(
+    'DefaultAllocationSource changes its renewal strategy to bi-weekly and Julian is assigned to DefaultAllocationSource')
+def default_allocation_source_changes_renewal_strategy(context):
     context.execute_steps(
         u'''
         Given we create a new user, Amit
@@ -264,15 +295,16 @@ def step_impl(context):
 
     new_renewal_strategy = "bi-weekly"
     assert len(EventTable.objects.filter(name='allocation_source_renewal_strategy_changed')) == 0
-    change_renewal_strategy(context.allocation_source_2, new_renewal_strategy, timestamp=context.ts + timedelta(days=30))
+    change_renewal_strategy(context.allocation_source_2, new_renewal_strategy,
+                            timestamp=context.ts + timedelta(days=30))
     assert len(EventTable.objects.filter(name='allocation_source_renewal_strategy_changed')) == 1
     context.julian.assign_allocation_source_to_user(context.allocation_source_2,
                                                     timestamp=context.ts + timedelta(days=30))
 
 
-@when('Amit runs an instance for 5 days before the first renewal and Julian launches a new instance and runs it for 4 days before the first renewal and 8 days before the second renewal on the DefaultAllocationSource')
-def step_impl(context):
-
+@when(
+    'Amit runs an instance for 5 days before the first renewal and Julian launches a new instance and runs it for 4 days before the first renewal and 8 days before the second renewal on the DefaultAllocationSource')
+def amit_runs_instance_for_five_days(context):
     # amit runs instance for 5 days before the first renewal
     context.amit.create_instance_status_history(context.amit_instance_2,
                                                 start_date=context.ts + timedelta(days=30),
@@ -300,10 +332,8 @@ def step_impl(context):
                                                   status='suspended')
 
 
-
 @then('renewal event is fired twice twice after every two weeks')
-def step_impl(context):
-
+def renewal_event_is_fired_twice(context):
     # after another 14 days , AllocationSourceSnapshot is updated.
 
     report_start_date = context.ts + timedelta(days=30)
@@ -315,13 +345,12 @@ def step_impl(context):
         'updated').last()
 
     amit_usage = total_usage(context.amit.user.username, report_start_date,
-                allocation_source_name=context.allocation_source_2.name,
-                end_date=report_end_date)
+                             allocation_source_name=context.allocation_source_2.name,
+                             end_date=report_end_date)
 
     julian_usage = total_usage(context.julian.user.username, report_start_date,
-                allocation_source_name=context.allocation_source_2.name,
-                end_date=report_end_date)
-
+                               allocation_source_name=context.allocation_source_2.name,
+                               end_date=report_end_date)
 
     assert amit_usage == 120.0
     assert julian_usage == 96.0
@@ -341,9 +370,7 @@ def step_impl(context):
             defined_actions=CyverseTestRenewalActions(context.allocation_source_2, current_time),
             )
 
-
     assert EventTable.objects.filter(name='allocation_source_renewed') == 2
-
 
     # after another 14 days , AllocationSourceSnapshot is updated.
 
@@ -382,6 +409,3 @@ def step_impl(context):
             )
 
     assert EventTable.objects.filter(name='allocation_source_renewed') == 3
-
-
-

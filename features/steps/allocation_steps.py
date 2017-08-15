@@ -1,6 +1,7 @@
 import json
 import uuid
 
+# noinspection PyUnresolvedReferences
 from behave import *
 from behave import when, then, given, step
 from decimal import Decimal
@@ -49,7 +50,7 @@ def create_user_with_username(context, username):
 
 
 @when('create_allocation_source command is fired')
-def step_impl(context):
+def create_allocation_source_command_fired(context):
     for row in context.table:
         context.response = context.client.post('/api/v2/allocation_sources',
                                                {"renewal_strategy": row['renewal strategy'],
@@ -58,7 +59,7 @@ def step_impl(context):
 
 
 @then('allocation source is created = {allocation_source_is_created}')
-def step_impl(context, allocation_source_is_created):
+def allocation_source_created(context, allocation_source_is_created):
     result = True if context.response.status_code == 201 else False
     assert result == _str2bool(allocation_source_is_created.lower())
 
@@ -66,7 +67,7 @@ def step_impl(context, allocation_source_is_created):
 # Change Renewal Event
 
 @given('An Allocation Source with renewal strategy')
-def step_impl(context):
+def allocation_source_with_renewal_strategy(context):
     for row in context.table:
         response = context.client.post('/api/v2/allocation_sources',
                                        {"renewal_strategy": row['renewal strategy'],
@@ -76,29 +77,29 @@ def step_impl(context):
 
 
 @when('change_renewal_strategy command is fired with {new_renewal_strategy}')
-def step_impl(context, new_renewal_strategy):
+def change_renewal_strategy_command_fired(context, new_renewal_strategy):
     # Django Client PATCH method requires json dumped data and Content-Type
     # otherwise it returns 415
-    context.response = context.client.patch('/api/v2/allocation_sources/%s' % (context.source_id),
+    context.response = context.client.patch('/api/v2/allocation_sources/%s' % context.source_id,
                                             json.dumps({"renewal_strategy": new_renewal_strategy}),
                                             content_type='application/json')
     context.new_renewal_strategy = new_renewal_strategy
 
 
 @then('renewal strategy is changed = {renewal_strategy_is_changed}')
-def step_impl(context, renewal_strategy_is_changed):
+def renewal_strategy_changed(context, renewal_strategy_is_changed):
     result = True if context.response.status_code == 200 else False
     if not result:
         assert result == _str2bool(renewal_strategy_is_changed.lower())
     else:
-        assert result == _str2bool(renewal_strategy_is_changed.lower()) and context.response.data[
-                                                                                'renewal_strategy'] == context.new_renewal_strategy
+        assert (result == _str2bool(renewal_strategy_is_changed.lower()) and context.response.data[
+            'renewal_strategy'] == context.new_renewal_strategy)
 
 
 # Change Allocation Source Name
 
 @given('An Allocation Source with name')
-def step_impl(context):
+def allocation_source_with_name(context):
     for row in context.table:
         response = context.client.post('/api/v2/allocation_sources',
                                        {"renewal_strategy": 'default',
@@ -109,14 +110,14 @@ def step_impl(context):
 
 
 @when('change_allocation_source_name command is fired with {new_name}')
-def step_impl(context, new_name):
-    context.response = context.client.patch('/api/v2/allocation_sources/%s' % (context.source_id),
+def change_allocation_source_name_command_fired(context, new_name):
+    context.response = context.client.patch('/api/v2/allocation_sources/%s' % context.source_id,
                                             json.dumps({"name": new_name}), content_type='application/json')
     context.new_name = new_name
 
 
 @then('name is changed = {name_is_changed}')
-def step_impl(context, name_is_changed):
+def name_is_changed_is(context, name_is_changed):
     result = True if context.response.status_code == 200 else False
     if not result:
         assert result == _str2bool(name_is_changed.lower())
@@ -129,7 +130,7 @@ def step_impl(context, name_is_changed):
 
 
 @given('Allocation Source with compute allowed and compute used')
-def step_impl(context):
+def allocation_source_with_compute_allowed(context):
     for row in context.table:
         response = context.client.post('/api/v2/allocation_sources',
                                        {"renewal_strategy": 'default',
@@ -149,8 +150,8 @@ def step_impl(context):
 
 
 @when('change_compute_allowed command is fired with {new_compute_allowed}')
-def step_impl(context, new_compute_allowed):
-    context.response = context.client.patch('/api/v2/allocation_sources/%s' % (context.source_id),
+def change_compute_allowed_command_fired(context, new_compute_allowed):
+    context.response = context.client.patch('/api/v2/allocation_sources/%s' % context.source_id,
                                             json.dumps({"compute_allowed": int(new_compute_allowed)}),
                                             content_type='application/json')
 
@@ -158,17 +159,17 @@ def step_impl(context, new_compute_allowed):
 
 
 @then('compute allowed is changed = {compute_allowed_is_changed}')
-def step_impl(context, compute_allowed_is_changed):
+def compute_allowed_changed(context, compute_allowed_is_changed):
     result = True if context.response.status_code == 200 else False
     if not result:
         assert result == _str2bool(compute_allowed_is_changed.lower())
     else:
-        assert result == _str2bool(compute_allowed_is_changed.lower()) and context.response.data[
-                                                                               'compute_allowed'] == context.new_compute_allowed
+        assert (result == _str2bool(compute_allowed_is_changed.lower()) and context.response.data[
+            'compute_allowed'] == context.new_compute_allowed)
 
 
 @given('Allocation Source')
-def step_impl(context):
+def give_allocation_source(context):
     for row in context.table:
         response = context.client.post('/api/v2/allocation_sources',
                                        {"renewal_strategy": row['renewal strategy'],
@@ -179,20 +180,20 @@ def step_impl(context):
 
 
 @when('User is assigned to the allocation source')
-def step_impl(context):
+def user_is_assigned_to_allocation_source(context):
     context.response = context.client.post('/api/v2/user_allocation_sources',
                                            {"username": context.user.username,
                                             "allocation_source_name": context.name})
 
 
 @then('User assignment = {user_is_assigned}')
-def step_impl(context, user_is_assigned):
+def user_assignment(context, user_is_assigned):
     result = True if context.response.status_code == 201 else False
     assert result == _str2bool(user_is_assigned.lower())
 
 
 @given('User assigned to Allocation Source')
-def step_impl(context):
+def user_assigned_to_allocation_source(context):
     for row in context.table:
         response = context.client.post('/api/v2/allocation_sources',
                                        {"renewal_strategy": row['renewal strategy'],
@@ -208,7 +209,7 @@ def step_impl(context):
 
 
 @when('User is removed from Allocation Source')
-def step_impl(context):
+def user_is_removed_from_allocation_source(context):
     context.response = context.client.delete('/api/v2/user_allocation_sources',
                                              json.dumps({"username": context.user.username,
                                                          "allocation_source_name": context.name}),
@@ -216,7 +217,7 @@ def step_impl(context):
 
 
 @then('User removal = {user_is_removed}')
-def step_impl(context, user_is_removed):
+def user_removal_is(context, user_is_removed):
     result = True if context.response.status_code == 200 else False
     assert result == _str2bool(user_is_removed.lower())
 
@@ -225,22 +226,22 @@ def step_impl(context, user_is_removed):
 
 
 @when('Allocation Source is removed')
-def step_impl(context):
-    context.response = context.client.delete('/api/v2/allocation_sources/%s' % (context.source_id),
+def allocation_source_removed(context):
+    context.response = context.client.delete('/api/v2/allocation_sources/%s' % context.source_id,
                                              content_type='application/json')
 
 
 @then('Allocation Source Removal = {allocation_source_is_removed}')
-def step_impl(context, allocation_source_is_removed):
+def allocation_source_removal_is(context, allocation_source_is_removed):
     result = True if context.response.status_code == 200 else False
     allocation_source = get_allocation_source_object(context.source_id)
     allocation_source_end_date = allocation_source.end_date
-    assert result == _str2bool(allocation_source_is_removed.lower()) and \
-           allocation_source_end_date is not None
+    assert (result == _str2bool(allocation_source_is_removed.lower()) and
+            allocation_source_end_date is not None)
 
 
 @given("Pre-initalizations")
-def step_impl(context):
+def pre_initializations(context):
     # context.user is admin and regular user
     provider = ProviderFactory.create()
     from core.models import IdentityMembership, Identity, ProviderMachine
@@ -251,7 +252,6 @@ def step_impl(context):
             provider=provider)
     else:
         user_identity = Identity.objects.all().last()
-    admin_identity = user_identity
 
     provider_machine = ProviderMachine.objects.all()
     if not provider_machine:
@@ -276,7 +276,7 @@ def step_impl(context):
 
 
 @when("User launches instance")
-def step_impl(context):
+def user_launches_instance(context):
     client = APIClient()
     client.force_authenticate(user=context.user)
 
@@ -287,7 +287,7 @@ def step_impl(context):
 
 
 @then("Instance is launched")
-def step_impl(context):
+def instance_is_launched(context):
     assert context.response.status_code == 200
     data = context.response.data
     assert data['status'] == 'active'
@@ -295,7 +295,7 @@ def step_impl(context):
 
 
 @given('User assigned to Allocation Source and User with an Instance')
-def step_impl(context):
+def user_assigned_to_allocation_source_and_user_with_instance(context):
     for row in context.table:
         context.execute_steps(u"""
                     given Pre-initalizations
@@ -314,7 +314,7 @@ def step_impl(context):
 
 
 @when('User assigns allocation source to instance')
-def step_impl(context):
+def user_assigns_allocation_source_to_instance(context):
     context.response = context.client.post('/api/v2/instance_allocation_source',
                                            {"instance_id": Instance.objects.all().last().provider_alias,
                                             "allocation_source_name": context.name
@@ -322,7 +322,7 @@ def step_impl(context):
 
 
 @then('Instance is assigned = {instance_is_assigned}')
-def step_impl(context, instance_is_assigned):
+def instance_is_assigned_is(context, instance_is_assigned):
     result = True if context.response.status_code == 201 else False
     assert result == _str2bool(instance_is_assigned.lower())
 
