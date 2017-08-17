@@ -18,6 +18,7 @@ class UserProfile(models.Model):
     default_size = models.CharField(max_length=255, default='m1.small')
     background = models.CharField(max_length=255, default='default')
     icon_set = models.CharField(max_length=255, default='default')
+    guacamole_color = models.CharField(max_length=15, default='default')
 
     def user_quota(self):
         identity = get_default_identity(self.user.username)
