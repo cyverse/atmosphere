@@ -443,7 +443,7 @@ def redeploy_instance(
     deploy_chain = get_idempotent_deploy_chain(
         esh_driver.__class__, esh_driver.provider, esh_driver.identity,
         esh_instance, core_identity, core_identity.created_by.username)
-    return deploy_chain.apply_async()
+    deploy_chain.apply_async()
 
 
 def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
