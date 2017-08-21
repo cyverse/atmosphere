@@ -25,7 +25,7 @@ class WebTokenView(RetrieveAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Instance.for_user(user)
+        qs = Instance.shared_with_user(user)
         if 'archived' in self.request.query_params:
             return qs
         return qs.filter(only_current())
