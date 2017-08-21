@@ -42,3 +42,8 @@ class ProjectVolumeSerializer(serializers.HyperlinkedModelSerializer):
             'project',
             'volume'
         )
+
+    def create(self, validated_data):
+        validated_data['pk'].project = validated_data['project']
+        validated_data['pk'].save()
+        return validated_data

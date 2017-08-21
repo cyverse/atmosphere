@@ -1,6 +1,8 @@
 """
 Driver factory (non-standard mock but useful for testing)
 """
+import collections
+import copy
 import uuid
 
 from threepio import logger
@@ -336,7 +338,15 @@ class AtmosphereMockDriver(MockDriver):
         return self.all_volumes
 
     def create_volume(self, *args, **kwargs):
-        raise NotImplementedError()
+        volume_args = copy.copy(kwargs)
+        volume_args.pop('max_attempts', None)
+        volume_args['id'] = volume_args.get('id', str(uuid.uuid4()))
+        volume_args['extra'] = volume_args.get('extra', {})
+        MockESHVolume = collections.namedtuple('MockESHVolume',
+                                               ['id', 'name', 'image', 'snapshot', 'metadata', 'size', 'extra'])
+        mock_volume = MockESHVolume(**volume_args)
+        self.all_volumes.append(mock_volume)
+        return True, mock_volume
 
     def destroy_volume(self, *args, **kwargs):
         raise NotImplementedError()
