@@ -289,7 +289,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         size_alias = data.get('size_alias')
         allocation_source_id = data.get('allocation_source_id')
         boot_scripts = data.pop("scripts", [])
-        deploy = data.get('deploy')
+        deploy = data.get('deploy', True)
         project_uuid = data.get('project')
         extra = data.get('extra', {})
         try:
