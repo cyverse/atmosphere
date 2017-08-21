@@ -42,7 +42,8 @@ uWSGI
 
 ## ours
 chromogenic
-django-cyverse-auth
+# This is required for the hotfix in django-cyverse-auth@62bd280129890025467513d1ed41a86fbc588dd3
+-e git+https://github.com/cyverse/django-cyverse-auth.git#egg=django-cyverse-auth
 threepio
 rtwo
 subspace
