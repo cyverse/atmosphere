@@ -4,7 +4,6 @@
 #
 #    pip-compile --output-file requirements.txt requirements.in
 #
--e git+https://github.com/cyverse/django-cyverse-auth.git#egg=django-cyverse-auth
 amqp==2.2.1               # via kombu
 ansible==2.3.2.0          # via subspace
 apache-libcloud==0.20.1
@@ -17,7 +16,7 @@ bcrypt==3.1.3             # via paramiko
 billiard==3.5.0.3
 boto==2.39.0              # via chromogenic
 business-rules==1.0.1
-caslib.py==2.2.2
+caslib.py==2.2.2          # via django-cyverse-auth
 celery==4.0.2
 certifi==2017.7.27.1      # via requests, tornado
 cffi==1.10.0              # via bcrypt, cryptography, pynacl
@@ -33,6 +32,7 @@ defusedxml==0.5.0         # via djangorestframework-xml
 deprecation==1.0.1        # via openstacksdk
 django-celery-beat==1.0.1
 django-cors-headers==2.1.0
+django-cyverse-auth==1.1.2
 django-filter==1.0.4
 django-memoize==2.1.0
 django-redis-cache==1.7.1
@@ -62,8 +62,8 @@ jinja2==2.9.6
 jsonpatch==1.16           # via openstacksdk, warlock
 jsonpointer==1.10         # via jsonpatch
 jsonschema==2.6.0         # via warlock
-jwt.py==0.1.0
-keystoneauth1==3.1.0      # via openstacksdk, os-client-config, osc-lib, python-cinderclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
+jwt.py==0.1.0             # via django-cyverse-auth
+keystoneauth1==3.1.0      # via django-cyverse-auth, openstacksdk, os-client-config, osc-lib, python-cinderclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
 kombu==4.1.0              # via celery
 markupsafe==1.0           # via jinja2
 monotonic==1.3            # via oslo.log, oslo.utils
@@ -71,7 +71,7 @@ msgpack-python==0.4.8     # via oslo.serialization
 netaddr==0.7.19           # via oslo.config, oslo.utils, python-neutronclient
 netifaces==0.10.6         # via oslo.utils
 numpy==1.13.1
-oauth2client==4.1.2
+oauth2client==4.1.2       # via django-cyverse-auth
 olefile==0.44             # via pillow
 openstacksdk==0.9.17      # via python-openstackclient
 os-client-config==1.28.0  # via openstacksdk, osc-lib, python-neutronclient
@@ -103,7 +103,7 @@ python-cinderclient==1.9.0  # via python-openstackclient, rtwo
 python-dateutil==2.6.1
 python-glanceclient==2.5.0  # via python-openstackclient, rtwo
 python-irodsclient==0.6.0  # via rtwo
-python-keystoneclient==3.6.0  # via python-glanceclient, python-openstackclient, rtwo
+python-keystoneclient==3.6.0  # via django-cyverse-auth, python-glanceclient, python-openstackclient, rtwo
 python-ldap==2.4.41
 python-logstash==0.4.6
 python-neutronclient==6.0.0  # via rtwo
