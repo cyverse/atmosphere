@@ -295,7 +295,7 @@ def send_approved_resource_email(user, request, reason):
     sender = email_address_str(from_name, from_email)
 
     return send_email_template(subject, template, recipients, sender,
-                               context=context, cc=[sender])
+                               context=context, cc=[sender], html=False)
 
 
 def send_denied_resource_email(user, request, reason):
@@ -319,7 +319,7 @@ def send_denied_resource_email(user, request, reason):
     sender = email_address_str(from_name, from_email)
 
     return send_email_template(subject, template, recipients, sender,
-                               context=context, cc=[sender])
+                               context=context, cc=[sender], html=False)
 
 
 def send_instance_email(username, instance_id, instance_name,
