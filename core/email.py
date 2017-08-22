@@ -42,7 +42,7 @@ def send_email_template(subject, template, recipients, sender,
         "fail_silently": silent,
         "html": html
     }
-    return send_email.si(*args, **kwargs)
+    return send_email.delay(*args, **kwargs)
 
 
 def email_address_str(name, email):
