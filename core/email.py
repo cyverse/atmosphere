@@ -578,11 +578,8 @@ def resource_request_email(request, username, quota, reason, options={}):
     admin_url = reverse('admin:core_identitymembership_change',
                         args=(membership.id,))
 
-    # TODO: To enable joseph's admin_url this will need to be uncommented
-    # See https://pods.iplantcollaborative.org/jira/browse/ATMO-1155
-    #
-    # if 'admin_url' in options:
-    #     admin_url = options['admin_url']
+    if 'admin_url' in options:
+        admin_url = options['admin_url']
 
     subject = "Atmosphere Resource Request - %s" % username
     context = {
