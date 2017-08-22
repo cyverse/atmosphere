@@ -42,7 +42,7 @@ def send_email_template(subject, template, recipients, sender,
         "fail_silently": silent,
         "html": html
     }
-    return send_email.si(*args, **kwargs)
+    return send_email.delay(*args, **kwargs)
 
 
 def email_address_str(name, email):
@@ -295,7 +295,7 @@ def send_approved_resource_email(user, request, reason):
     sender = email_address_str(from_name, from_email)
 
     return send_email_template(subject, template, recipients, sender,
-                               context=context, cc=[sender])
+                               context=context, cc=[sender], html=False)
 
 
 def send_denied_resource_email(user, request, reason):
@@ -319,7 +319,7 @@ def send_denied_resource_email(user, request, reason):
     sender = email_address_str(from_name, from_email)
 
     return send_email_template(subject, template, recipients, sender,
-                               context=context, cc=[sender])
+                               context=context, cc=[sender], html=False)
 
 
 def send_instance_email(username, instance_id, instance_name,
@@ -578,11 +578,8 @@ def resource_request_email(request, username, quota, reason, options={}):
     admin_url = reverse('admin:core_identitymembership_change',
                         args=(membership.id,))
 
-    # TODO: To enable joseph's admin_url this will need to be uncommented
-    # See https://pods.iplantcollaborative.org/jira/browse/ATMO-1155
-    #
-    # if 'admin_url' in options:
-    #     admin_url = options['admin_url']
+    if 'admin_url' in options:
+        admin_url = options['admin_url']
 
     subject = "Atmosphere Resource Request - %s" % username
     context = {
