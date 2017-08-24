@@ -107,7 +107,6 @@ def create_volume_or_fail(name, size, user, provider, identity,
         "size": size,
         "description": description,
         "instance_source": source,
-        "start_date": start_date
     }
     volume = Volume.objects.create(**kwargs)
     if project:

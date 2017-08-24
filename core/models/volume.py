@@ -135,6 +135,10 @@ class Volume(BaseSource):
         """
         return self.get_status()
 
+    def _has_history(self):
+        history_count = self.volumestatushistory_set.count()
+        return history_count > 0
+
     def _get_last_history(self):
         last_history = self.volumestatushistory_set.all()\
                                                    .order_by('-start_date')
@@ -153,8 +157,6 @@ class Volume(BaseSource):
 
     def _update_history(self):
         status = self.get_status()
-        device = self.get_device()
-        instance_alias = self.get_instance_alias()
         if status != VolumeStatus.UNKNOWN:
             last_history = self._get_last_history()
             # This is a living volume!
@@ -164,7 +166,10 @@ class Volume(BaseSource):
             if self._should_update(last_history):
                 with transaction.atomic():
                     try:
-                        new_history = VolumeStatusHistory.factory(self)
+                        start_date = None
+                        if not self._has_history():
+                            start_date = self.instance_source.start_date
+                        new_history = VolumeStatusHistory.factory(self, start_date=start_date)
                         if last_history:
                             last_history.end_date = new_history.start_date
                             last_history.save()
@@ -184,6 +189,7 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid=None, user=None)
     name = esh_volume.name
     size = esh_volume.size
     created_on = esh_volume.extra.get('createTime')
+    description = esh_volume.extra.get('description')
     try:
         source = InstanceSource.objects.get(
             identifier=identifier, provider__uuid=provider_uuid)
@@ -202,32 +208,30 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid=None, user=None)
             provider_uuid,
             identity_uuid,
             user,
-            created_on)
+            description=description,
+            created_on=created_on)
     volume.esh = esh_volume
     volume._update_history()
     return volume
 
 
-def create_volume(name, identifier, size, provider_uuid, identity_uuid,
-                  creator, description=None, created_on=None):
+def create_volume(name, identifier, size,
+                  provider_uuid, identity_uuid, creator,
+                  description=None, created_on=None):
     provider = Provider.objects.get(uuid=provider_uuid)
     identity = Identity.objects.get(uuid=identity_uuid)
 
-    source, _ = InstanceSource.objects.get_or_create(
+    defaults = {}
+    if created_on:
+        defaults['start_date'] = created_on
+    source, _ = InstanceSource.objects.update_or_create(
         identifier=identifier, provider=provider,
-        created_by=creator, created_by_identity=identity)
+        created_by=creator, created_by_identity=identity,
+        defaults=defaults)
 
     volume = Volume.objects.create(
         name=name, description=description, size=size, instance_source=source)
 
-    if created_on:
-        # Taking advantage of the ability to save string dates as datetime
-        # but we need to get the actual date time after we are done..
-        # NOTE: Why is this different than the method in convert_esh_instance
-        # NOTE: -Steve
-        volume.start_date = pytz.utc.localize(created_on)
-        volume.save()
-    volume = Volume.objects.get(id=volume.id)
     return volume
 
 
