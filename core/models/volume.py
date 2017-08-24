@@ -167,8 +167,9 @@ class Volume(BaseSource):
                 with transaction.atomic():
                     try:
                         start_date = None
-                        if not self._has_history():
-                            start_date = self.instance_source.start_date
+                        # FIXME: Handle this for jetstream/atmosphere in future release
+                        # if not self._has_history():
+                        #     start_date = self.instance_source.start_date
                         new_history = VolumeStatusHistory.factory(self, start_date=start_date)
                         if last_history:
                             last_history.end_date = new_history.start_date
@@ -222,8 +223,9 @@ def create_volume(name, identifier, size,
     identity = Identity.objects.get(uuid=identity_uuid)
 
     defaults = {}
-    if created_on:
-        defaults['start_date'] = created_on
+    # FIXME: Handle this for jetstream/atmosphere in future release
+    # if created_on:
+    #     defaults['start_date'] = created_on
     source, _ = InstanceSource.objects.update_or_create(
         identifier=identifier, provider=provider,
         created_by=creator, created_by_identity=identity,
