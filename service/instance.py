@@ -40,6 +40,7 @@ from core.models.size import convert_esh_size
 from core.models.machine import ProviderMachine
 from core.models.volume import convert_esh_volume
 from core.models.provider import AccountProvider, Provider, ProviderInstanceAction
+from core.exceptions import ProviderNotActive
 
 from atmosphere import settings
 from atmosphere.settings import secrets
@@ -443,7 +444,7 @@ def redeploy_instance(
     deploy_chain = get_idempotent_deploy_chain(
         esh_driver.__class__, esh_driver.provider, esh_driver.identity,
         esh_instance, core_identity, core_identity.created_by.username)
-    return deploy_chain.apply_async()
+    deploy_chain.apply_async()
 
 
 def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
@@ -859,6 +860,8 @@ def launch_instance(user, identity_uuid,
          "Request Received"))
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
     provider = identity.provider
+    if not provider.is_active():
+        raise ProviderNotActive(provider)
 
     esh_driver = get_cached_driver(identity=identity)
 

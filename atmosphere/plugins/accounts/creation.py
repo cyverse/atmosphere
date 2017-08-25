@@ -47,8 +47,8 @@ class AccountCreationPlugin(object):
                 project_name = credentials['project_name']
                 created_identities = self.find_accounts(provider, **credentials)
                 if created_identities and not force:
-                    logger.debug(
-                        "Accounts already created for %s on provider %s", username, provider)
+                    # logger.debug(
+                    #     "Accounts already created for %s on provider %s", username, provider)
                     identities |= created_identities
                     continue
                 logger.debug(

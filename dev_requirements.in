@@ -12,7 +12,6 @@ GitPython
 ipdb
 ipython
 mock
-newrelic
 pep8
 wheel
 vcrpy

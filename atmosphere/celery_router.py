@@ -47,7 +47,6 @@ IMAGING_TASKS = [
 ]
 PERIODIC_TASKS = [
     "monitor_instances", "monitor_instances_for",
-    "monitor_instance_allocations",
     "monitor_machines", "monitor_machines_for",
     "monitor_sizes", "monitor_sizes_for",
     "monitor_volumes", "monitor_volumes_for",
