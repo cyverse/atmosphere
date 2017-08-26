@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/cyverse/atmosphere.svg?branch=master)](https://travis-ci.org/cyverse/atmosphere)
 [![Coverage](https://coveralls.io/repos/github/cyverse/atmosphere/badge.svg?branch=master)](https://coveralls.io/github/cyverse/atmosphere?branch=master)
+[![Code Health](https://landscape.io/github/cyverse/atmosphere/master/landscape.svg?style=flat)](https://landscape.io/github/cyverse/atmosphere/master)
 
 Atmosphere addresses the growing needs for highly configurable and customized computational resources to support research efforts in plant sciences. Atmosphere is an integrative, private, self-service cloud computing platform designed to provide easy access to preconfigured, frequently used analysis routines, relevant algorithms, and data sets in an available-on-demand environment designed to accommodate computationally and data-intensive bioinformatics tasks.
 
