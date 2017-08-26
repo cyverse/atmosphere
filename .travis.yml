@@ -35,6 +35,7 @@
   install:
     # setuptools and pip-tools are necessary for ./travis/check_properly_generated_requirements.sh
     - pip install -U pip setuptools pip-tools
+    - pip install coveralls
     - pip install -r dev_requirements.txt
 
   before_script:
@@ -46,6 +47,9 @@
 
   script:
     - ./travis/check_properly_generated_requirements.sh
-    - python manage.py test --keepdb
-    - python manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION}
+    - coverage run manage.py test --keepdb --noinput --settings=atmosphere.settings
+    - coverage run --append manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION} --settings=atmosphere.settings
     - python manage.py makemigrations --dry-run --check
+
+  after_success:
+    coveralls
