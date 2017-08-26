@@ -86,22 +86,26 @@ See LICENSE.txt for license information
 
 ## Lead
 
-+ **Edwin Skidmore <edwin@iplantcollaborative.org>**
++ **Edwin Skidmore <edwin@cyverse.org>**
 
 ## Authors
 
 The following individuals who have help/helped make :cloud: great appear in alphabetic order, by surname.
 
-+ **Evan Briones <cloud-alum@iplantcollaborative.org>**
-+ **Tharon Carlson <tharon@iplantcollaborative.org>**
-+ **Joseph Garcia <cloud-alum@iplantcollaborative.org>**
-+ **Steven Gregory <sgregory@iplantcollaborative.org>**
-+ **Jason Hansen <cloud-alum@iplantcollaborative.org>**
-+ **Christopher James LaRose <cloud-alum@iplantcollaborative.org>**
-+ **Andrew Lenards <lenards@iplantcollaborative.org>**
-+ **Monica Lent <cloud-alum@iplantcollaborative.org>**
-+ **Andre Mercer <cloud-alum@iplantcollaborative.org>**
-+ **J. Matt Peterson <cloud-alum@iplantcollaborative.org>**
-+ **Julian Pistorius <julianp@iplantcollaborative.org>**
++ **Evan Briones <cloud-alum@cyverse.org>**
++ **Tharon Carlson <tharon@cyverse.org>**
++ **Joseph Garcia <cloud-alum@cyverse.org>**
++ **Steven Gregory <sgregory@cyverse.org>**
++ **Jason Hansen <cloud-alum@cyverse.org>**
++ **Christopher James LaRose <cloud-alum@cyverse.org>**
++ **Amit Juneja <cloud-alum@cyverse.org>**
++ **Andrew Lenards <lenards@cyverse.org>**
++ **Monica Lent <cloud-alum@cyverse.org>**
++ **Chris Martin <cmart@cyverse.org>**
++ **Calvin Mclean <calvinmclean@cyverse.org>**
++ **Andre Mercer <cloud-alum@cyverse.org>**
++ **Connor Osborn <connor@cyverse.org>**
++ **J. Matt Peterson <cloud-alum@cyverse.org>**
++ **Julian Pistorius <julianp@cyverse.org>**
 
 Where the cloud lives!
