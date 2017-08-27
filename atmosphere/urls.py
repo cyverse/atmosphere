@@ -8,6 +8,7 @@ from django.conf import settings
 from django.conf.urls import url, include
 from rest_framework.authtoken.views import ObtainAuthToken
 from api.auth import Authentication
+
 admin.autodiscover()
 
 urlpatterns = [
