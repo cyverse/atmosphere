@@ -234,7 +234,7 @@ class Application(models.Model):
         so the value must be flipped internally.
         """
         is_public = not is_private
-        self.update_images(visibility='public' if is_public else 'private')
+        self.update_images(visibility='public' if is_public else 'shared')
         self.private = is_private
         self.save()
 
