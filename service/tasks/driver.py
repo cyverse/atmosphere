@@ -18,6 +18,7 @@ from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError
 
 #TODO: Internalize exception into RTwo
 from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
+from rtwo.exceptions import LibcloudDeploymentError
 from neutronclient.common.exceptions import IpAddressGenerationFailureClient
 
 from threepio import celery_logger, status_logger, logger
@@ -971,7 +972,10 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
         _deploy_instance.retry(exc=exc)
     except LibcloudDeploymentError as exc:
         celery_logger.exception(exc)
-        full_deploy_output = _parse_steps_output(msd)
+        # TODO: Figure out where `_parse_steps_output` went and reproduce functionality
+        # See: https://github.com/cyverse/atmosphere/issues/491
+        # full_deploy_output = _parse_steps_output(msd)
+        full_deploy_output = '[Steps Omitted]'
         if isinstance(exc.value, NonZeroDeploymentException):
             # The deployment was successful, but the return code on one or more
             # steps is bad. Log the exception and do NOT try again!
