@@ -901,7 +901,7 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
     cloud_machine_is_public = cloud_machine.is_public if hasattr(cloud_machine,'is_public') else cloud_machine.get('visibility','') == 'public'
     if cloud_machine_is_public == True:
         celery_logger.info("Making Machine %s private" % cloud_machine.id)
-        account_driver.image_manager.glance.images.update(cloud_machine.id, visibility='private')
+        account_driver.image_manager.glance.images.update(cloud_machine.id, visibility='shared')
 
     celery_logger.info("Sharing image %s<%s>: %s with %s" % (cloud_machine.id, cloud_machine.name, identity.provider.location, tenant_name.value))
     if not dry_run:

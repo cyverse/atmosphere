@@ -216,7 +216,7 @@ def upload_privacy_data(machine_request, new_machine):
 
     if is_public:
         print "Marking image %s private" % img.id
-        accounts.image_manager.update_image(img, visibility='private')
+        accounts.image_manager.update_image(img, visibility='shared')
 
     accounts.clear_cache()
     admin_driver = accounts.admin_driver  # cache has been cleared
