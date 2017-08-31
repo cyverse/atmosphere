@@ -34,7 +34,8 @@
 
   install:
     # setuptools and pip-tools are necessary for ./travis/check_properly_generated_requirements.sh
-    - pip install -U pip setuptools pip-tools
+    - pip install -U pip setuptools
+    - pip install pip-tools==1.9.0
     - pip install coveralls
     - pip install -r dev_requirements.txt
 
