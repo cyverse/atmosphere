@@ -464,8 +464,8 @@ class IdentityMembershipAdmin(admin.ModelAdmin):
         user = identity_membership.identity.created_by
         context['adminform'].form.fields[
             'identity'].queryset = user.identity_set.all()
-        context['adminform'].form.fields[
-            'member'].queryset = user.memberships.all()
+        # context['adminform'].form.fields[
+        #     'member'].queryset = user.memberships.all()
         return super(
             IdentityMembershipAdmin,
             self).render_change_form(
