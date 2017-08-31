@@ -954,7 +954,6 @@ class Migration(migrations.Migration):
                 ('default_size', models.CharField(default=b'm1.small', max_length=255)),
                 ('background', models.CharField(default=b'default', max_length=255)),
                 ('icon_set', models.CharField(default=b'default', max_length=255)),
-                ('guacamole_color', models.CharField(default=b'default', max_length=15)),
             ],
             options={
                 'db_table': 'user_profile',
