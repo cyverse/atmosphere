@@ -1,3 +1,5 @@
+import pprint
+
 from business_rules import run_all
 from celery.decorators import task
 from django.conf import settings
@@ -6,16 +8,10 @@ from django.utils.timezone import datetime
 from threepio import celery_logger as logger
 
 from core.models import EventTable
-from core.models.allocation_source import (
-    AllocationSourceSnapshot,
-    AllocationSource, UserAllocationSnapshot
-)
-from core.models.allocation_source import total_usage
+from core.models.allocation_source import AllocationSourceSnapshot, AllocationSource, UserAllocationSnapshot, \
+    total_usage
 from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVariables, CyverseTestRenewalActions, \
     cyverse_rules, renewal_strategies
-
-
-# logger = logging.getLogger(__name__)
 
 
 @task(name="update_snapshot_cyverse")
@@ -98,7 +94,8 @@ def allocation_threshold_check():
 
 
 # Renew all allocation sources or a specific renewal strategy without waiting for rules engine
-def renew_allocation_sources(renewal_strategy=False, current_time=False):
+def renew_allocation_sources(renewal_strategy=False, current_time=False, ignore_current_compute_allowed=False,
+                             dry_run=False):
     current_time = timezone.now() if not current_time else current_time
 
     for strategy, args in renewal_strategies.iteritems():
@@ -107,22 +104,23 @@ def renew_allocation_sources(renewal_strategy=False, current_time=False):
             continue
         compute_allowed = args['compute_allowed']
         for allocation_source in AllocationSource.objects.filter(renewal_strategy=str(strategy)):
-            renew_allocation_source_for(compute_allowed, allocation_source, current_time)
+            renew_allocation_source_for(compute_allowed, allocation_source, current_time,
+                                        ignore_current_compute_allowed, dry_run)
 
 
-def renew_allocation_source_for(compute_allowed, allocation_source, current_time):
-    source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=allocation_source)
-    if not source_snapshot:
-        raise Exception('Allocation Source %s cannot be renewed because no snapshot is available' % (
-            allocation_source.name))
-    source_snapshot = source_snapshot.last()
-
+def renew_allocation_source_for(compute_allowed, allocation_source, current_time, ignore_current_compute_allowed=False,
+                                dry_run=False):
     # carryover logic
     # remaining_compute = 0 if source_snapshot.compute_allowed - source_snapshot.compute_used < 0 else source_snapshot.compute_allowed - source_snapshot.compute_used
     # total_compute_allowed = float(remaining_compute + compute_allowed)
 
-    snapshot_compute_allowed = float(source_snapshot.compute_allowed)
-    total_compute_allowed = compute_allowed if snapshot_compute_allowed <= compute_allowed else snapshot_compute_allowed
+    total_compute_allowed = compute_allowed
+    if not ignore_current_compute_allowed:
+        source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=allocation_source).last()
+        if source_snapshot:
+            snapshot_compute_allowed = float(source_snapshot.compute_allowed)
+            if snapshot_compute_allowed > compute_allowed:
+                total_compute_allowed = snapshot_compute_allowed
 
     # fire renewal event
 
@@ -137,7 +135,15 @@ def renew_allocation_source_for(compute_allowed, allocation_source, current_time
         "compute_allowed": total_compute_allowed
     }
 
-    EventTable.objects.create(name='allocation_source_created_or_renewed',
-                              payload=payload,
-                              entity_id=allocation_source_name,
-                              timestamp=current_time)
+    if dry_run:
+        dry_run_text = '''EventTable.objects.create(name='allocation_source_created_or_renewed',
+                              payload={},
+                              entity_id='{}',
+                              timestamp={})
+        '''.format(pprint.pformat(payload), allocation_source_name, current_time)
+        print(dry_run_text)
+    else:
+        EventTable.objects.create(name='allocation_source_created_or_renewed',
+                                  payload=payload,
+                                  entity_id=allocation_source_name,
+                                  timestamp=current_time)
