@@ -1,9 +1,12 @@
+import collections
 import datetime
 import decimal
 import json
 import time
 import unittest
 import uuid
+from unittest import TestCase
+from unittest.util import safe_repr
 
 import dateutil.parser
 import django.test
@@ -336,6 +339,99 @@ def create_provider_machine(context):
     context.persona['provider_machine'] = provider_machine
 
 
+@step('I get the projects via the API')
+def get_projects_api(context):
+    assert context.persona
+    client = context.persona['client']
+    url = '/api/v2/projects'
+    response = client.get(url)
+    context.persona['response'] = response
+
+
+@step('I create a project called "{project_name}" via the API')
+def create_project_api(context, project_name):
+    assert context.persona
+    client = context.persona['client']
+    user = context.persona['user']
+    from core.models import AtmosphereUser, Identity
+    assert isinstance(user, AtmosphereUser)
+    owner_group_name = user.username
+    url = '/api/v2/projects'
+    response = client.post(url,
+                           {
+                               'name': project_name,
+                               'description': project_name,
+                               'owner': owner_group_name
+                           })
+    context.persona['response'] = response
+
+
+@when('I create a volume with name "{volume_name}" and size {volume_size:d} using API')
+def create_volume_api(context, volume_name, volume_size):
+    assert context.persona
+    client = context.persona['client']
+    user_identity = context.persona['user_identity']
+    import core.models
+    context.test.assertIsInstance(user_identity, core.models.Identity)
+    context.test.assertIsInstance(user_identity.provider, core.models.Provider)
+    url = '/api/v1/provider/{}/identity/{}/volume'.format(user_identity.provider.uuid, user_identity.uuid)
+    post_data = {
+        'name': volume_name,
+        'size': volume_size
+    }
+    with mock.patch('service.volume.check_over_storage_quota', autospec=True) as mock_check_over_storage_quota:
+        mock_check_over_storage_quota.return_value = True
+        response = client.post(url, post_data, format='json')
+    context.persona['response'] = response
+
+
+@step('I get the volumes via the API')
+def get_volumes_api(context):
+    assert context.persona
+    client = context.persona['client']
+    user_identity = context.persona['user_identity']
+    import core.models
+    context.test.assertIsInstance(user_identity, core.models.Identity)
+    context.test.assertIsInstance(user_identity.provider, core.models.Provider)
+    url = '/api/v1/provider/{}/identity/{}/volume'.format(user_identity.provider.uuid, user_identity.uuid)
+    with mock.patch('service.volume.check_over_storage_quota', autospec=True) as mock_check_over_storage_quota:
+        mock_check_over_storage_quota.return_value = True
+        response = client.get(url)
+    context.persona['response'] = response
+
+
+@step('we get the project volumes via the API')
+def get_project_volumes_api(context):
+    assert context.persona
+    client = context.persona['client']
+    user_identity = context.persona['user_identity']
+    project_volume_id = context.persona['project_volume_id']
+    import core.models
+    context.test.assertIsInstance(user_identity, core.models.Identity)
+    context.test.assertIsInstance(user_identity.provider, core.models.Provider)
+    url = '/api/v2/project_volumes/{}'.format(project_volume_id)
+    response = client.get(url)
+    context.persona['response'] = response
+
+
+@when('I associate volume "{volume_id_var}" with project "{project_id_var}" via the API')
+def associate_volume_with_project(context, volume_id_var, project_id_var):
+    assert context.persona
+    client = context.persona['client']
+    user_identity = context.persona['user_identity']
+    import core.models
+    context.test.assertIsInstance(user_identity, core.models.Identity)
+    context.test.assertIsInstance(user_identity.provider, core.models.Provider)
+    url = '/api/v2/project_volumes'
+    volume_id = context.persona[volume_id_var]
+    project_id = context.persona[project_id_var]
+    post_data = {
+        'project': project_id,
+        'volume': volume_id
+    }
+    response = client.post(url, post_data, format='json')
+    context.persona['response'] = response
+
 @step('we create an active instance')
 def create_active_instance(context):
     assert context.persona
@@ -453,8 +549,103 @@ def api_response_contains(context):
     assert context.persona
     context.test.assertIn('response', context.persona)
     response = context.persona['response']
-    expected_response = json.loads(context.text)
-    context.test.assertDictContainsSubset(expected_response, response.data)
+
+    formatted_text = context.text % dict(context.persona)
+    expected_response = json.loads(formatted_text)
+
+    if isinstance(expected_response, collections.Sequence) and hasattr(expected_response, '__iter__'):
+        context.test.assertSequenceRecursive(expected_response, response.data)
+    else:
+        context.test.assertDictContainsSubsetRecursive(expected_response, response.data)
+
+
+def assertSequenceRecursive(self, expected, actual, depth=0, msg=None):
+    assert isinstance(self, TestCase)
+    missing = []
+    mismatched = []
+    self.assertIsInstance(expected, collections.Sequence)
+    self.assertIsInstance(actual, collections.Sequence)
+    self.assertEqual(len(expected), len(actual), msg='Lengths are different: {} vs {}'.format(expected, actual))
+    for expected_item, actual_item in zip(expected, actual):
+        if isinstance(actual_item, datetime.datetime):
+            actual_item = datetime.datetime.strftime(actual_item, '%Y-%m-%d %H:%M:%S%z')
+        if isinstance(expected_item, datetime.datetime):
+            expected_item = datetime.datetime.strftime(expected_item, '%Y-%m-%d %H:%M:%S%z')
+        if isinstance(actual_item, collections.Mapping):
+            missing_1, mismatched_1 = self.assertDictContainsSubsetRecursive(expected_item, actual_item,
+                                                                             depth=depth + 1)
+            missing.extend(missing_1)
+            mismatched.extend(mismatched_1)
+        elif isinstance(actual_item, collections.Sequence) and hasattr(actual_item, '__iter__'):
+            missing_1, mismatched_1 = self.assertSequenceRecursive(expected_item, actual_item, depth=depth + 1)
+            missing.extend(missing_1)
+            mismatched.extend(mismatched_1)
+        elif expected_item != actual_item:
+            mismatched.append('expected: %s, actual: %s' % (safe_repr(expected_item), safe_repr(actual_item)))
+
+    if depth > 0:
+        return missing, mismatched
+
+    if not (missing or mismatched):
+        return
+
+    standardMsg = ''
+    if missing:
+        standardMsg = 'Missing: %s' % ','.join(safe_repr(m) for m in
+                                               missing)
+    if mismatched:
+        if standardMsg:
+            standardMsg += '; '
+        standardMsg += 'Mismatched values: %s' % ','.join(mismatched)
+
+    self.fail(self._formatMessage(msg, standardMsg))
+
+
+def assertDictContainsSubsetRecursive(self, expected, actual, depth=0, msg=None):
+    assert isinstance(self, TestCase)
+    self.assertIsInstance(expected, collections.Mapping)
+    self.assertIsInstance(actual, collections.Mapping)
+    missing = []
+    mismatched = []
+    for key, value in expected.iteritems():
+        if isinstance(value, datetime.datetime):
+            value = datetime.datetime.strftime(value, '%Y-%m-%d %H:%M:%S%z')
+        if isinstance(actual[key], datetime.datetime):
+            actual[key] = datetime.datetime.strftime(actual[key], '%Y-%m-%d %H:%M:%S%z')
+        if key not in actual:
+            missing.append(key)
+        elif isinstance(actual[key], collections.Mapping):
+            missing_1, mismatched_1 = self.assertDictContainsSubsetRecursive(value, actual[key], depth=depth + 1)
+            missing.extend(missing_1)
+            mismatched.extend(mismatched_1)
+        elif isinstance(actual[key], collections.Sequence) and hasattr(actual[key], '__iter__'):
+            missing_1, mismatched_1 = self.assertSequenceRecursive(value, actual[key], depth=depth + 1)
+            missing.extend(missing_1)
+            mismatched.extend(mismatched_1)
+        elif value != actual[key]:
+            mismatched.append('%s, expected: %s, actual: %s' %
+                              (safe_repr(key), safe_repr(value),
+                               safe_repr(actual[key])))
+
+    if depth > 0:
+        return missing, mismatched
+
+    if not (missing or mismatched):
+        return
+
+    standardMsg = ''
+    if missing:
+        standardMsg = 'Missing: %s' % ','.join(safe_repr(m) for m in
+                                               missing)
+    if mismatched:
+        if standardMsg:
+            standardMsg += '; '
+        standardMsg += 'Mismatched values: %s' % ','.join(mismatched)
+
+    self.fail(self._formatMessage(msg, standardMsg))
+
+TestCase.assertSequenceRecursive = assertSequenceRecursive
+TestCase.assertDictContainsSubsetRecursive = assertDictContainsSubsetRecursive
 
 
 @step(u'"{key}" contains')

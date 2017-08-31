@@ -52,9 +52,11 @@ class InstanceLaunchConflict(ServiceException):
 
 
 class InstanceDoesNotExist(ServiceException):
+    message = "Instance does not exist"
 
-    def __init__(self, instance_id):
-        self.message = instance_id
+    def __init__(self, instance_id=None):
+        if instance_id:
+            self.message = instance_id
         self.status_code = 404
         super(InstanceDoesNotExist, self).__init__()
 

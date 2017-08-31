@@ -490,7 +490,7 @@ class InstanceAction(AuthAPIView):
         except InstanceDoesNotExist as dne:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                'Instance %s no longer exists' % (dne.message,))
+                'Instance %s no longer exists' % (instance_id,))
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except HypervisorCapacityError as hce:
@@ -549,7 +549,7 @@ class Instance(AuthAPIView):
         #       all the things that are 'inactive'
         try:
             provider = Provider.objects.get(uuid=provider_uuid)
-            if not provider.is_active():
+            if not provider.is_current():
                 raise ProviderNotActive(provider)
         except Provider.DoesNotExist:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -746,7 +746,7 @@ class Instance(AuthAPIView):
         except InstanceDoesNotExist as dne:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                'Instance %s no longer exists' % (dne.message,))
+                "Instance %s does not exist" % instance_id)
         except Exception as exc:
             logger.exception("Encountered a generic exception. "
                              "Returning 409-CONFLICT")

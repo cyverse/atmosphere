@@ -203,7 +203,25 @@ class Provider(models.Model):
     def get_type_name(self):
         return self.type.name
 
+    def is_current(self):
+        """
+        Is current when:
+        - No end date present
+        - End date is later than 'now'
+        """
+        now = timezone.now()
+        return (not self.end_date) or (self.end_date >= now)
+
     def is_active(self):
+        """
+        Is active when:
+        - No end date present OR end date is earlier than now
+        - active' == True
+
+        NOTE: Due to how the API handles end-dated providers
+        It is possible that `self.active` is True
+         and `self.is_active()` is False.
+        """
         if not self.active:
             return False
         if self.end_date:

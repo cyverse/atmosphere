@@ -126,5 +126,6 @@ class ProviderMachineViewSet(MultipleFieldLookup, OwnerUpdateViewSet):
             '-instance_source__start_date')
 
         if not isinstance(request_user, AnonymousUser):
-            queryset = queryset.filter(in_provider_list(request_user.current_providers))
+            launchable_providers = request_user.current_providers.filter(active=True)
+            queryset = queryset.filter(in_provider_list(launchable_providers))
         return queryset

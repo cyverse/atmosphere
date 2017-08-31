@@ -22,7 +22,7 @@ from core.models.quota import Quota
 from core.models.user import AtmosphereUser
 
 from core.query import (
-        only_current, only_active_memberships, only_active_provider, only_current_provider
+        only_current, only_active_memberships, only_current_provider
     )
 
 
@@ -93,7 +93,7 @@ class Group(DjangoGroup):
 
     @property
     def current_identities(self):
-        return Identity.shared_with_group(self).filter(only_current_provider(), only_active_provider())
+        return Identity.shared_with_group(self).filter(only_current_provider())
 
     @property
     def current_providers(self):
