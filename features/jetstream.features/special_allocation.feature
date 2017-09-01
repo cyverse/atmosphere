@@ -54,7 +54,6 @@ Feature: Special Allocations
       | 65186 | 29567     | TG-ASC160018 | 5000000          | 3000001.1   | 2017-01-22T06:00:00Z | 2018-01-21T06:00:00Z | Active   | Jetstream |
 
 
-
   Scenario: When a user logs in for the first time, and they only have access to the special allocation (`user110`)
     Given "Admin" as the persona
     When I set "username" to "admin"
@@ -96,6 +95,27 @@ Feature: Special Allocations
     When I get my allocation sources from the API I should see
       | name         | compute_allowed | start_date               | end_date | compute_used | global_burn_rate | updated                  | renewal_strategy | user_compute_used | user_burn_rate | user_snapshot_updated    |
       | TG-ASC160018 | 1000            | 2017-02-16 05:00:00+0000 | None     | 0.000        | 0.000            | 2017-02-16 05:00:00+0000 | default          | 0.000             | 0.000          | 2017-02-16 05:00:00+0000 |
+
+    When we increase compute used by 500 for the user on "TG-ASC160018"
+    Then we should have the following user allocation source snapshots
+      | atmosphere_username | allocation_source | compute_used | burn_rate |
+      | user110             | TG-ASC160018      | 500.0        | 0.000     |
+
+    When I get my allocation sources from the API I should see
+      | name         | compute_allowed | start_date               | end_date | compute_used | global_burn_rate | updated                  | renewal_strategy | user_compute_used | user_burn_rate | user_snapshot_updated    |
+      | TG-ASC160018 | 1000            | 2017-02-16 05:00:00+0000 | None     | 500.000      | 0.000            | 2017-02-16 05:00:00+0000 | default          | 500.000           | 0.000          | 2017-02-16 05:00:00+0000 |
+    And my time remaining on "TG-ASC160018" is 500
+    When the user allocation snapshot for "user110" and "TG-ASC160018" is deleted
+    Then we should have the following user allocation source snapshots
+      | atmosphere_username | allocation_source | compute_used | burn_rate |
+    And my time remaining on "TG-ASC160018" is -1
+    And I should be over my allocation on "TG-ASC160018"
+    And time remaining on allocation source "TG-ASC160018" is 1999998.9
+    And allocation source "TG-ASC160018" is not over allocation
+
+    When I get my allocation sources from the API I should see
+      | name         | compute_allowed | start_date               | end_date | compute_used | global_burn_rate | updated                  | renewal_strategy | user_compute_used | user_burn_rate | user_snapshot_updated |
+      | TG-ASC160018 | 1000            | 2017-02-16 05:00:00+0000 | None     | 0            | None             | 2017-02-16 05:00:00+0000 | default          | 0                 | None           | None                  |
 
 
   Scenario: When a user logs in for the first time, and they don't have access to the special allocation (`user108`)
