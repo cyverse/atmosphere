@@ -14,6 +14,7 @@ gid = {{ UWSGI_GROUP }}
 buffer-size = 8192
 {% if LOCAL_DEV -%}
 chmod-socket = 776
+python-autoreload = 1
 {% endif -%}
 vacuum = true
 max-requests = 10
