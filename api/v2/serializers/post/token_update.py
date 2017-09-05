@@ -84,8 +84,8 @@ class TokenUpdateSerializer(serializers.ModelSerializer):
         quota = None
         # FIXME: In a different PR re-work quota to sync based on the values in OpenStack.
         # otherwise the value assigned (default) will differ from the users _actual_ quota in openstack and artificially limit the account.
-        identity = Identity._create_identity(
-            user, group, provider, quota, credentials)
+        identity = Identity.build_account(
+            user.username, group.name, username, provider.location, quota, **credentials)
         self.validate_token_with_driver(provider_uuid, username, project_name, token)
         return identity
 

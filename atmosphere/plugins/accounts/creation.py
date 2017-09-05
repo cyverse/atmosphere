@@ -3,6 +3,7 @@ from jetstream.allocation import TASAPIDriver
 from cyverse.api import GrouperDriver
 from django_cyverse_auth.protocol.ldap import get_groups_for
 from django.conf import settings
+from service.exceptions import AccountCreationConflict
 
 class AccountCreationPlugin(object):
     """
@@ -15,9 +16,6 @@ class AccountCreationPlugin(object):
     The accounts are created based on those credentials
     and a list of new `core.models.Identity` are returned
     """
-
-    def get_credentials_list(self, provider, username):
-        raise NotImplementedError("See docs")
 
     # Useful methods called from above..
     def find_accounts(self, provider, account_user, group_name, username, project_name, **kwargs):
@@ -36,6 +34,56 @@ class AccountCreationPlugin(object):
             ).filter(
                 contains_credential('key', username)
             )
+
+
+class DirectOpenstackAccount(AccountCreationPlugin):
+    """
+    Use this Account Creation Plugin if you are using an
+    "Unmanaged atmosphere" and having users login directly
+    with username/password
+
+    In the current authentication flow for "direct logins":
+    - User will POST credentials to /auth, which is verified by Openstack
+    - On success, (if in troposphere), call /login to record the credentials in your browser session
+    - On success, call /token_update to create an openstack association using `username` and `token` (Does not save password)
+    - Based on this, Account Creation here should _lookup_ the identity thats been created above, and do any final associations
+
+    This plugin will simply verify that the above has been completed, and ensure an Allocation Source has been created.
+	    - To disable Allocation sources, set compute_allowed to -1
+    """
+    def create_accounts(self, provider, username, force=False):
+        from core.models import Identity
+        from core.plugins import AllocationSourcePluginManager
+        identities = Identity.objects.filter(provider=provider, created_by__username=username)
+        if not identities.count():
+            raise AccountCreationConflict("Expected an identity to have been created for %s on Provider %s during the /token_update method. Contact support for help!" % (username, provider))
+        for identity in identities:
+            user = identity.created_by
+            try:
+                has_allocations = AllocationSourcePluginManager.ensure_user_allocation_sources(user)
+                if not has_allocations:
+                    raise ValueError('User "{}" has no valid allocations'.format(user))
+            except Exception as e:
+                logger.exception('Encountered error while ensuring user has valid Allocation Sources: "%s"', user)
+                raise AccountCreationConflict(
+                    'AccountDriver is trying to create an account: {} '
+                    'but while ensuring user has valid Allocation Sources there was a problem: {}'.format(user, e))
+        return identities
+
+
+
+
+class AtmosphereAccountCreationPlugin(AccountCreationPlugin):
+    """
+    Use this Account Creation Plugin if
+     you are using a "Managed atmosphere" (The default case).
+     These plugins will expect username/project_name to be provided
+      - Will create an account on the Openstack provider
+      - Will associate the new account with the authenticated user
+    """
+
+    def get_credentials_list(self, provider, username):
+        raise NotImplementedError("See docs")
 
     def create_accounts(self, provider, username, force=False):
         from service.driver import get_account_driver
@@ -114,7 +162,7 @@ class AccountCreationPlugin(object):
         return identity_list
 
 
-class UserGroup(AccountCreationPlugin):
+class UserGroup(AtmosphereAccountCreationPlugin):
 
     def get_credentials_list(self, provider, username):
         """
@@ -132,7 +180,7 @@ class UserGroup(AccountCreationPlugin):
         return credentials_list
 
 
-class GrouperPlugin(AccountCreationPlugin):
+class GrouperPlugin(AtmosphereAccountCreationPlugin):
     """
     For CyVerse, AccountCreation respects the "Directory"
     between User and Group as described by Grouper.
@@ -165,7 +213,7 @@ class GrouperPlugin(AccountCreationPlugin):
         return credentials_list
 
 
-class LDAPMapper(AccountCreationPlugin):
+class LDAPMapper(AtmosphereAccountCreationPlugin):
     def get_credentials_list(self, provider, username):
         """
         For each provider:
@@ -186,7 +234,7 @@ class LDAPMapper(AccountCreationPlugin):
         return credentials_list
 
 
-class XsedeGroup(AccountCreationPlugin):
+class XsedeGroup(AtmosphereAccountCreationPlugin):
     """
     For Jetstream, AccountCreation respects the "Directory"
     between User and Project.
