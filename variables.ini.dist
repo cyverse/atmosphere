@@ -79,6 +79,7 @@ SELF_SIGNED_CERT =  False # Boolean required
 TESTING =  False # Boolean required
 #local.py - site configuration
 AUTO_CREATE_NEW_ACCOUNTS =  False # Boolean required
+AUTO_CREATE_NEW_PROJECTS =  False # Boolean required
 USE_JETSTREAM_PLUGIN =  False # Boolean required
 TIME_ZONE = # America/Phoenix
 SITE_NAME = # CyVerse

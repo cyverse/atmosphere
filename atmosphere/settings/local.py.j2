@@ -144,6 +144,11 @@ AUTO_CREATE_NEW_ACCOUNTS = True
 {%- else %}
 AUTO_CREATE_NEW_ACCOUNTS = False
 {%- endif %}
+{%- if AUTO_CREATE_NEW_PROJECTS %}
+AUTO_CREATE_NEW_PROJECTS = True
+{%- else %}
+AUTO_CREATE_NEW_PROJECTS = False
+{%- endif %}
 {%- if CELERYBEAT_SCHEDULE %}
 #CELERYBEAT_SCHEDULE OVERRIDES:
   {%- for task_key, schedule in CELERYBEAT_SCHEDULE.items() %}

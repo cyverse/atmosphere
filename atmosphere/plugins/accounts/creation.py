@@ -52,7 +52,7 @@ class DirectOpenstackAccount(AccountCreationPlugin):
 	    - To disable Allocation sources, set compute_allowed to -1
     """
     def create_accounts(self, provider, username, force=False):
-        from core.models import Identity
+        from core.models import Identity, Project
         from core.plugins import AllocationSourcePluginManager
         identities = Identity.objects.filter(provider=provider, created_by__username=username)
         if not identities.count():
@@ -68,6 +68,20 @@ class DirectOpenstackAccount(AccountCreationPlugin):
                 raise AccountCreationConflict(
                     'AccountDriver is trying to create an account: {} '
                     'but while ensuring user has valid Allocation Sources there was a problem: {}'.format(user, e))
+            if settings.AUTO_CREATE_NEW_PROJECTS:
+                project_name = identity.project_name()
+                projects = Project.objects.filter(created_by=user, name=project_name)
+                has_projects = projects.count() > 0
+                membership = user.memberships.first()
+                if not has_projects and membership:
+                    group = membership.group
+                    logger.info('Creating new project for %s: "%s"', user, project_name)
+                    project = Project.objects.create(
+                        name=project_name,
+                        created_by=user,
+                        owner=group,
+                        description="Auto-created project for %s" % project_name)
+
         return identities
 
 
