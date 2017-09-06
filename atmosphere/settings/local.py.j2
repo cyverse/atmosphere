@@ -203,6 +203,11 @@ ALLOCATIONS_CELERYBEAT_SCHEDULE = {
 CELERYBEAT_SCHEDULE.update(ALLOCATIONS_CELERYBEAT_SCHEDULE)
 ALLOCATION_SOURCE_PLUGINS = ['cyverse_allocation.plugins.allocation_source.FlexibleAllocationSourcePlugin',]
 {% endif %}
+{%- if ALLOCATION_SOURCE_COMPUTE_ALLOWED %}
+ALLOCATION_SOURCE_COMPUTE_ALLOWED = {{ ALLOCATION_SOURCE_COMPUTE_ALLOWED }}
+{%- else %}
+ALLOCATION_SOURCE_COMPUTE_ALLOWED = 1000
+{%- endif %}
 # Logging
 LOGGING_LEVEL = {{ LOGGING_LEVEL | default("logging.INFO") }}
 # Logging level for dependencies.

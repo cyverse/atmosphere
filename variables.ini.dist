@@ -80,6 +80,7 @@ TESTING =  False # Boolean required
 #local.py - site configuration
 AUTO_CREATE_NEW_ACCOUNTS =  False # Boolean required
 AUTO_CREATE_NEW_PROJECTS =  False # Boolean required
+ALLOCATION_SOURCE_COMPUTE_ALLOWED =  168 # Boolean required
 USE_JETSTREAM_PLUGIN =  False # Boolean required
 TIME_ZONE = # America/Phoenix
 SITE_NAME = # CyVerse
