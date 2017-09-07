@@ -127,6 +127,9 @@ STATIC_URL = '/static/'
 ATMOSPHERE_NAMESPACE_UUID = UUID("40227dff-dedf-469c-a9f8-1953a7372ac1")
 
 MIDDLEWARE_CLASSES = (
+    {% if ENABLE_DJANGO_PROMETHEUS %}
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    {% endif %}
     'corsheaders.middleware.CorsMiddleware',
     # corsheaders.middleware.CorsMiddleware Must be ahead of
     # configuration CommonMiddleware for an edge case.
@@ -139,6 +142,10 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'atmosphere.slash_middleware.RemoveSlashMiddleware',
     'atmosphere.slash_middleware.RemoveCSRFMiddleware',
+    {% if ENABLE_DJANGO_PROMETHEUS %}
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
+    {% endif %}
+
 )
 
 ROOT_URLCONF = 'atmosphere.urls'

@@ -35,6 +35,9 @@ PyJWT
 
 python-logstash
 django-memoize
+
+django-prometheus
+
 #Theirs
 psycopg2
 python-ldap

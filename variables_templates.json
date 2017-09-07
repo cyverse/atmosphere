@@ -26,6 +26,10 @@
           "extras/systemd/celeryd.default.dist.j2",
           "extras/systemd/celeryd.default"
         ],
+        "__init__.py": [
+          "atmosphere/settings/__init__.py.j2",
+          "atmosphere/settings/__init__.py"
+        ],
         "local.py": [
             "atmosphere/settings/local.py.j2",
             "atmosphere/settings/local.py"
