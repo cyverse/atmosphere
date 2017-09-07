@@ -6,14 +6,12 @@ from celery import chain
 
 from threepio import logger
 
-import service
-
 from service.exceptions import DeviceBusyException, VolumeMountConflict, InstanceDoesNotExist
 
 from service.tasks.driver import deploy_init_to, add_floating_ip
 from service.tasks.driver import destroy_instance
-from service.tasks.volume import attach_task, mount_task, check_volume_task
-from service.tasks.volume import detach_task, umount_task,\
+from service.tasks.volume import attach_task, mount_volume_task, check_volume_task
+from service.tasks.volume import detach_task, unmount_volume_task,\
     mount_failed
 from service.tasks.volume import update_volume_metadata, update_mount_location
 
@@ -28,6 +26,8 @@ def print_task_chain(start_link):
             print next_link.values()[1],
         next_link = next_link.options['link'][0]
         print "--> %s" % next_link.values()[1],
+
+# Instance-specific tasks
 
 
 def deploy_init_task(driver, instance, identity,
@@ -62,33 +62,59 @@ def destroy_instance_task(user, instance, identity_uuid, *args, **kwargs):
     return destroy_instance.delay(
         instance.alias, user, identity_uuid, *args, **kwargs)
 
+# Volume-specific task-callers
 
-def detach_volume_task(driver, instance_id, volume_id, *args, **kwargs):
+
+def attach_volume(core_identity, driver, instance_id, volume_id, device_location=None,
+                       mount_location=None, *args, **kwargs):
+    """
+    Attach (And mount, if possible) volume to instance
+    device_location and mount_location assumed if empty
+    """
+    logger.info("Attach: %s --> %s" % (volume_id, instance_id))
+    logger.info("device_location:%s, mount_location: %s"
+                % (device_location, mount_location))
     try:
-        detach_volume = detach_task.si(
+        init_task = attach_task.si(
+            driver.__class__, driver.provider, driver.identity,
+            instance_id, volume_id, device_location)
+        mount_chain = _get_mount_chain(core_identity, driver, instance_id, volume_id,
+                                       device_location, mount_location)
+        init_task.link(mount_chain)
+        print_task_chain(init_task)
+        init_task.apply_async()
+    except Exception as e:
+        raise VolumeMountConflict(instance_id, volume_id)
+    return mount_location
+
+
+def detach_volume(driver, instance_id, volume_id, *args, **kwargs):
+    try:
+        detach = detach_task.si(
             driver.__class__, driver.provider, driver.identity,
             instance_id, volume_id)
-        if not hasattr(driver, 'deploy_to'):
-            detach_volume.apply_async()
-            return (True, None)
         # Only attempt to umount if we have sh access
-        umount_chain = _get_umount_chain(
+        init_task = _get_umount_chain(
             driver,
             instance_id,
             volume_id,
-            detach_volume)
-        umount_chain.apply_async()
+            detach)
+        print_task_chain(init_task)
+        init_task.apply_async()
         return (True, None)
     except Exception as exc:
         return (False, exc.message)
 
 
-def unmount_volume_task(driver, instance_id, volume_id, *args, **kwargs):
+def unmount_volume(driver, instance_id, volume_id, *args, **kwargs):
+    """
+    This task-caller will:
+    - verify that volume is attached
+    - raise exceptions that can be handled _prior_ to running async tasks
+    - create an async "task chain" and execute if all pre-conditions are met.
+    """
     try:
         logger.info("UN-Mount ONLY: %s --> %s" % (volume_id, instance_id))
-        if not hasattr(driver, 'deploy_to'):
-            raise Exception("Cannot mount "
-                            "-- Driver does not have a deploy_to method")
         # Only attempt to umount if we have sh access
         vol = driver.get_volume(volume_id)
         if not driver._connection.ex_volume_attached_to_instance(
@@ -97,27 +123,26 @@ def unmount_volume_task(driver, instance_id, volume_id, *args, **kwargs):
             raise VolumeMountConflict("Cannot unmount volume %s "
                                       "-- Not attached to instance %s"
                                       % (volume_id, instance_id))
-        umount_chain = _get_umount_chain(driver, instance_id, volume_id)
-        umount_chain.apply_async()
+        unmount_chain = _get_umount_chain(driver, instance_id, volume_id)
+        unmount_chain.apply_async()
         return (True, None)
     except Exception as exc:
         logger.exception("Exception occurred creating the unmount task")
         return (False, exc.message)
 
 
-def mount_volume_task(core_identity, driver, instance_id, volume_id, device=None,
+def mount_volume(core_identity, driver, instance_id, volume_id, device=None,
                       mount_location=None, *args, **kwargs):
     """
-    Mount, if possible, the volume to instance
-    Device and mount_location assumed if empty
+    This task-caller will:
+    - verify that volume is not already mounted
+    - raise exceptions that can be handled _prior_ to running async tasks
+    - create an async "task chain" and execute if all pre-conditions are met.
     """
     logger.info("Mount ONLY: %s --> %s" % (volume_id, instance_id))
     logger.info("device_location:%s --> mount_location: %s"
                 % (device, mount_location))
     try:
-        if not hasattr(driver, 'deploy_to'):
-            # Do not attempt to mount if we don't have sh access
-            return None
         vol = driver.get_volume(volume_id)
         existing_mount = vol.extra.get('metadata', {}).get('mount_location')
         if existing_mount:
@@ -143,32 +168,7 @@ def mount_volume_task(core_identity, driver, instance_id, volume_id, device=None
         raise VolumeMountConflict(instance_id, volume_id)
     return mount_location
 
-
-def attach_volume_task(core_identity, driver, instance_id, volume_id, device_location=None,
-                       mount_location=None, *args, **kwargs):
-    """
-    Attach (And mount, if possible) volume to instance
-    device_location and mount_location assumed if empty
-    """
-    logger.info("Attach: %s --> %s" % (volume_id, instance_id))
-    logger.info("device_location:%s, mount_location: %s"
-                % (device_location, mount_location))
-    try:
-        attach_volume = attach_task.si(
-            driver.__class__, driver.provider, driver.identity,
-            instance_id, volume_id, device_location)
-        if not hasattr(driver, 'deploy_to'):
-            # Do not attempt to mount if we don't have sh access
-            attach_volume.apply_async()
-            # No mount location, return None
-            return None
-        mount_chain = _get_mount_chain(core_identity, driver, instance_id, volume_id,
-                                       device_location, mount_location)
-        attach_volume.link(mount_chain)
-        attach_volume.apply_async()
-    except Exception as e:
-        raise VolumeMountConflict(instance_id, volume_id)
-    return mount_location
+# "Chain builders" -- called by task callers above
 
 
 def _get_umount_chain(driver, instance_id, volume_id, detach_task=None):
@@ -178,7 +178,7 @@ def _get_umount_chain(driver, instance_id, volume_id, detach_task=None):
     pre_umount_status = update_volume_metadata.si(
         driverCls, provider, identity,
         volume_id, {'tmp_status': 'unmounting'})
-    umount = umount_task.si(
+    umount = unmount_volume_task.si(
         driver.__class__, driver.provider, driver.identity,
         instance_id, volume_id)
     post_umount_status = update_volume_metadata.si(
@@ -215,7 +215,7 @@ def _get_mount_chain(core_identity, driver, instance_id, volume_id, device_locat
     pre_mount = check_volume_task.si(
         driverCls, provider, identity,
         instance_id, volume_id, fs_type)
-    mount = mount_task.si(
+    mount = mount_volume_task.si(
         driverCls, provider, identity,
         instance_id, volume_id, device_location, mount_location, fs_type,
         mount_prefix=mount_prefix)

@@ -18,7 +18,6 @@ from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError
 
 #TODO: Internalize exception into RTwo
 from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
-from rtwo.exceptions import LibcloudDeploymentError
 from neutronclient.common.exceptions import IpAddressGenerationFailureClient
 
 from threepio import celery_logger, status_logger, logger
@@ -32,7 +31,6 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.deploy import (
-    check_process,
     instance_deploy, user_deploy,
     build_host_name,
     ready_to_deploy as ansible_ready_to_deploy,
@@ -945,8 +943,6 @@ def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
 def _deploy_instance(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
-    # Note: Splitting preperation (Of the MultiScriptDeployment) and execution
-    # This makes it easier to output scripts for debugging of users.
     try:
         celery_logger.debug("_deploy_instance task started at %s." % datetime.now())
         # Check if instance still exists
@@ -974,23 +970,6 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
         celery_logger.debug("_deploy_instance task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
         celery_logger.exception(exc)
-        _deploy_instance.retry(exc=exc)
-    except LibcloudDeploymentError as exc:
-        celery_logger.exception(exc)
-        # TODO: Figure out where `_parse_steps_output` went and reproduce functionality
-        # See: https://github.com/cyverse/atmosphere/issues/491
-        # full_deploy_output = _parse_steps_output(msd)
-        full_deploy_output = '[Steps Omitted]'
-        if isinstance(exc.value, NonZeroDeploymentException):
-            # The deployment was successful, but the return code on one or more
-            # steps is bad. Log the exception and do NOT try again!
-            raise NonZeroDeploymentException,\
-                "One or more Script(s) reported a NonZeroDeployment:%s"\
-                % full_deploy_output,\
-                sys.exc_info()[2]
-        # TODO: Check if all exceptions thrown at this time
-        # fall in this category, and possibly don't retry if
-        # you hit the Exception block below this.
         _deploy_instance.retry(exc=exc)
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
