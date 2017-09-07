@@ -15,6 +15,7 @@ nohup.out
 .*
 #*#
 #*.*#
+atmosphere/settings/__init__.py
 atmosphere/settings/local.py
 atmosphere/settings/secrets.py
 atmosphere/settings/secret_key.py
