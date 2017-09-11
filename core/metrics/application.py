@@ -70,7 +70,7 @@ def _get_summarized_application_metrics(application, force=False, read_only=Fals
     return metrics
 
 
-def calculate_summarized_application_metrics(application):
+def calculate_summarized_application_metrics(app):
     """
     From start_date of Application to now/End-date of application
       - # forks (How many MachineRequests.Instance.source.application was this application?)
@@ -79,8 +79,8 @@ def calculate_summarized_application_metrics(application):
         # launches total
         # launches success
     """
-    from core.models import MachineRequest, Instance
-    num_forks = MachineRequest.objects.filter(status__name='completed', num_version_forked=True)\
+    from core.models import MachineRequest
+    num_forks = MachineRequest.objects.filter(status__name='completed', new_version_forked=True)\
         .filter(instance__source__providermachine__application_version__application__id=app.id).count()
     num_bookmarked = app.bookmarks.count()
     num_in_projects = app.projects.count()
@@ -91,7 +91,7 @@ def calculate_summarized_application_metrics(application):
 
     application_metrics = {
         'forks': num_forks,
-        'bookmarks': num_bookmarks,
+        'bookmarks': num_bookmarked,
         'projects': num_in_projects,
         'instances': {
             'total': total_launched,

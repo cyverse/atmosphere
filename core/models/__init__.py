@@ -32,7 +32,7 @@ from core.models.provider import (
 from core.models.license import LicenseType, License, ApplicationVersionLicense
 from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
-from core.models.match import PatternMatch, MatchType
+from core.models.pattern_match import PatternMatch, MatchType
 from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance
 from core.models.instance_action import InstanceAction

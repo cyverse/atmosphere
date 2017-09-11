@@ -27,6 +27,7 @@ from .license import LicenseViewSet
 from .link import ExternalLinkViewSet
 from .machine_request import MachineRequestViewSet
 from .maintenance_record import MaintenanceRecordViewSet
+from .pattern_match import PatternMatchViewSet
 from .platform_type import PlatformTypeViewSet
 from .project import ProjectViewSet
 from .project_application import ProjectApplicationViewSet

@@ -36,11 +36,29 @@ class Application(models.Model):
     description = models.TextField(null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     private = models.BooleanField(default=False)
+    access_list = models.ManyToManyField("PatternMatch")
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     # User/Identity that created the application object
     created_by = models.ForeignKey('AtmosphereUser')
     created_by_identity = models.ForeignKey(Identity, null=True)
+
+    def get_users_from_access_list(self):
+        """
+        Cycle through all users, test each pattern for access
+        - Add user to list if _any_ pattern matches the user
+        - Returns a list of Users who passed the test
+
+        NOTE: This is *SLOW* :(
+        """
+        from core.models import AtmosphereUser
+        matching_users = []
+        for user in AtmosphereUser.objects.all():
+            for pattern_match in self.access_list.all():
+                if pattern_match.validate(user):
+                    matching_users.append(user.id)
+                    break
+        return AtmosphereUser.objects.filter(id__in=matching_users)
 
     @property
     def all_versions(self):
@@ -424,7 +442,7 @@ def _user_identity_lookup(provider_uuid, username):
 
 
 def update_application(application, new_name=None, new_tags=None,
-                       new_description=None):
+                       access_list=None, new_description=None):
     """
     This is a dumb way of doing things. Fix this.
     """
@@ -434,6 +452,12 @@ def update_application(application, new_name=None, new_tags=None,
         application.description = new_description
     if new_tags:
         application.tags = new_tags
+    if access_list:
+        # DELETE all access previously added
+        application.access_list.all().delete()
+        for pattern_match in access_list:
+            # Add new access per match
+            application.access_list.add(pattern_match)
     application.save()
     return application
 
@@ -447,6 +471,7 @@ def create_application(
         description=None,
         private=False,
         tags=None,
+        access_list=None,
         uuid=None):
     """
     Create application & Initial ApplicationVersion.
@@ -501,6 +526,9 @@ def create_application(
             uuid=uuid)
     if tags:
         updateTags(new_app, tags, created_by_identity.created_by)
+    if access_list:
+        for pattern_match in access_list:
+            new_app.access_list.add(pattern_match)
     return new_app
 
 #FIXME: This class marked for removal

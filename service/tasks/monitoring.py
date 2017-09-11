@@ -191,9 +191,9 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
         (db_machine, created) = convert_glance_image(cloud_machine, provider.uuid, owner_project)
         db_machines.append(db_machine)
         #STEP 2: For any private cloud_machine, convert the 'shared users' as known by cloud
+        #        into DB relationships: ApplicationVersionMembership, ProviderMachineMembership
         update_image_membership(account_driver, cloud_machine, db_machine)
 
-        # into DB relationships: ApplicationVersionMembership, ProviderMachineMembership
         #STEP 3: if ENFORCING -- occasionally 're-distribute' any ACLs that are *listed on DB but not on cloud* -- removals should be done explicitly, outside of this function
         if settings.ENFORCING:
             distribute_image_membership(account_driver, cloud_machine, provider)
@@ -286,6 +286,7 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     """
     Given a cloud_machine and db_machine, create any relationships possible for ProviderMachineMembership and ApplicationVersionMembership
     """
+    import ipdb;ipdb.set_trace()
     image_visibility = cloud_machine.get('visibility','private')
     if image_visibility.lower() == 'public':
         return
@@ -293,15 +294,27 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
     shared_group_names = [image_owner]
     shared_projects = account_driver.shared_images_for(cloud_machine.id, None)
-    has_machine_request = db_machine.application_version.machinerequest_set.first()
-    if has_machine_request and has_machine_request.status.name == 'completed':
+    has_machine_request = db_machine.application_version.machinerequest_set.filter(status__name='completed').first()
+    if has_machine_request:
         provider = has_machine_request.new_machine_provider
         identifier = has_machine_request.new_machine.identifier
         main_account_driver = get_account_driver(provider)
+        #Extend to include based on information in the machine request
         shared_projects_from_main =  main_account_driver.shared_images_for(identifier, None)
         shared_group_names.extend(p.name for p in shared_projects_from_main if p)
 
+
+    #Extend to include new names found by application pattern_match
+    parent_app = db_machine.application_version.application
+    matching_users = list(parent_app.get_users_from_access_list().values_list('username', flat=True))
+    shared_group_names.extend(matching_users)
+
+    # Extend to include based on projects already granted access to the image
     shared_group_names.extend(p.name for p in shared_projects if p)
+
+    #FIXME: This logic expects groupname == username. If this assumption changes, change this line to
+    #       lookup all groups that a user is part of, and potentially filtered by
+    #       all identities a group has Membership access to
     groups = Group.objects.filter(name__in=shared_group_names)
     if not groups:
         return

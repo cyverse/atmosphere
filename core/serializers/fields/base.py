@@ -21,6 +21,9 @@ class ModelRelatedField(serializers.RelatedField):
             "%s should have a `queryset` attribute."
             % self.___class__.__name__
         )
+        if callable(self.queryset):
+            return self.queryset(self)
+
         return self.queryset.all()
 
     def to_representation(self, value):

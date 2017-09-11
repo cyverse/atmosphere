@@ -24,6 +24,7 @@ from .license import LicenseSerializer
 from .link import ExternalLinkSerializer
 from .maintenance_record import MaintenanceRecordSerializer
 from .machine_request import (MachineRequestSerializer, UserMachineRequestSerializer)
+from .pattern_match import PatternMatchSerializer
 from .project import ProjectSerializer
 from .project_application import ProjectApplicationSerializer
 from .project_link import ProjectExternalLinkSerializer

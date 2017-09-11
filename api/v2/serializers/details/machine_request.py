@@ -2,7 +2,7 @@ from rest_framework import exceptions, serializers
 
 from core.models import (
     ApplicationVersion, ProviderMachine, Group,
-    BootScript, Provider, License, Instance,
+    BootScript, PatternMatch, Provider, License, Instance,
     MachineRequest, Identity,
     AtmosphereUser as User,
     IdentityMembership
@@ -16,6 +16,7 @@ from api.v2.serializers.summaries import (
     InstanceSummarySerializer,
     LicenseSummarySerializer,
     UserSummarySerializer,
+    PatternMatchSummarySerializer,
     ProviderSummarySerializer,
     ProviderMachineSummarySerializer,
     QuotaSummarySerializer,
@@ -106,6 +107,12 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         serializer_class=BootScriptSummarySerializer,
         style={'base_template': 'input.html'},
         required=False)
+    new_application_access_list = ModelRelatedField(
+        many=True,
+        queryset=PatternMatch.objects.all(),
+        serializer_class=PatternMatchSummarySerializer,
+        style={'base_template':'input.html'},
+        required=False)
     new_version_membership = ModelRelatedField(
         many=True,
         queryset=Group.objects.all(),
@@ -146,7 +153,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'new_application_name',
             'new_application_description',
             'new_application_visibility',
-            'access_list',
+            'new_application_access_list',
             'system_files',
             'installed_software',
             'exclude_files',
@@ -260,6 +267,7 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'new_version_forked',
             'new_version_licenses',
             'new_version_scripts',
+            'new_version_access_list',
             'new_version_membership',
             'new_machine_provider',
             'new_application_version',

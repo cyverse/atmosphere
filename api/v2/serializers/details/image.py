@@ -1,9 +1,12 @@
-from core.models import Application as Image, BootScript
+from core.models import Application as Image, BootScript, PatternMatch
 from rest_framework import serializers
 
-from api.v2.serializers.summaries import UserSummarySerializer
+from api.v2.serializers.summaries import UserSummarySerializer, PatternMatchSummarySerializer
 from api.v2.serializers.fields import (
-        ImageVersionRelatedField, TagRelatedField)
+    ModelRelatedField,
+    ImageVersionRelatedField,
+    TagRelatedField
+)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
@@ -19,8 +22,29 @@ class SwapBooleanField(serializers.BooleanField):
         return swap_value
 
 
+def filter_current_user_queryset(modelRelatedField):
+    """
+    This handy method will allow you to limit the choices of ModelRelatedField
+    based on the current request user.
+
+
+    """
+    if 'request' in modelRelatedField.context:
+        user = modelRelatedField.context['request'].user
+    if 'user' in modelRelatedField.context:
+        user = modelRelatedField.context['user']
+    # Built for PatternMatch but could be used by any Model that has a `.created_by`
+    CoreModel = modelRelatedField.serializer_class.Meta.model
+    return CoreModel.objects.filter(created_by=user)
+
+
 class ImageSerializer(serializers.HyperlinkedModelSerializer):
     created_by = UserSummarySerializer(read_only=True)
+    access_list = ModelRelatedField(
+        many=True,
+        queryset=filter_current_user_queryset,
+        serializer_class=PatternMatchSummarySerializer,
+        style={'base_template': 'input.html'})
     tags = TagRelatedField(many=True)
     versions = ImageVersionRelatedField(many=True)
     icon = serializers.CharField(source="get_icon_url", read_only=True)
@@ -47,6 +71,7 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
             'is_public',
             'icon',
             'start_date',
+            'access_list',
             'tags',
             'versions'
         )
