@@ -21,8 +21,34 @@ from service.deploy import (
     build_host_name, deploy_prepare_snapshot,
     execution_has_failures, execution_has_unreachable)
 from service.driver import get_admin_driver, get_esh_driver, get_account_driver
-from service.machine import process_machine_request
+from service.deploy import freeze_instance, sync_instance
+from service.machine import process_machine_request, add_membership, remove_membership
 from service.tasks.driver import wait_for_instance, destroy_instance, print_chain
+
+@task(name="remove_membership_task",
+      default_retry_delay=5,
+      max_retries=2)
+def remove_membership_task(image_version, group):
+    celery_logger.debug("remove_membership_task task started at %s." % timezone.now())
+    try:
+        remove_membership(image_version, group)
+        celery_logger.debug("remove_membership_task task finished at %s." % timezone.now())
+    except Exception as exc:
+        celery_logger.exception(exc)
+        remove_membership_task.retry(exc=exc)
+
+
+@task(name="add_membership_task",
+      default_retry_delay=5,
+      max_retries=2)
+def add_membership_task(image_version, group):
+    celery_logger.debug("add_membership_task task started at %s." % timezone.now())
+    try:
+        add_membership(image_version, group)
+        celery_logger.debug("add_membership_task task finished at %s." % timezone.now())
+    except Exception as exc:
+        celery_logger.exception(exc)
+        add_membership_task.retry(exc=exc)
 
 
 def _get_imaging_task(orig_managerCls, orig_creds,

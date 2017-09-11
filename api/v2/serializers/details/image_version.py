@@ -1,9 +1,15 @@
+from django.db.models import Q
+from django.contrib.auth.models import AnonymousUser
+
+from rest_framework import serializers
+
 from core.models import ApplicationVersion as ImageVersion
 from core.models import Application as Image
 from core.models import (
-    License, BootScript, ApplicationThreshold
+    License, BootScript, ApplicationThreshold,
+    ApplicationVersionMembership, Group
 )
-from rest_framework import serializers
+
 from api.v2.serializers.summaries import (
     BootScriptSummarySerializer,
     ImageSummarySerializer,
@@ -15,8 +21,6 @@ from api.v2.serializers.summaries import (
 )
 from api.v2.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
-from django.db.models import Q
-from django.contrib.auth.models import AnonymousUser
 
 
 class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
@@ -38,8 +42,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         style={'base_template': 'input.html'})
     membership = serializers.SlugRelatedField(
         slug_field='name',
-        read_only=True,
-        many=True)  # NEW
+        read_only=True, many=True)
     user = UserSummarySerializer(source='created_by')
     identity = IdentitySummarySerializer(source='created_by_identity')
     machines = serializers.SerializerMethodField('get_machines_for_user')
