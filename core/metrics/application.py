@@ -52,38 +52,53 @@ def _get_application_metrics(application, interval=rrule.MONTHLY, day_limit=120,
     return metrics
 
 
-def calculate_application_metrics(application, interval=rrule.MONTHLY,
-                                  day_limit=None, sum_datapoints=True, now_time=None):
+def _get_summarized_application_metrics(application, force=False, read_only=False):
+    metrics = collections.OrderedDict()
+    redis_cache = redis.StrictRedis()
+    key = "metrics-application-summary-%s" % (application.id)
+    try:
+        if redis_cache.exists(key) and not force:
+            pickled_object = redis_cache.get(key)
+            metrics = pickle.loads(pickled_object)
+        elif not read_only:
+            metrics = calculate_summarized_application_metrics(application)
+            pickled_object = pickle.dumps(metrics)
+            redis_cache.set(key, pickled_object)
+            redis_cache.expire(key, METRICS_CACHE_DURATION)
+    except:
+        logger.exception("Unexpected errror in application metrics")
+    return metrics
+
+
+def calculate_summarized_application_metrics(application):
     """
     From start_date of Application to now/End-date of application
-      - Create a timeseries by splitting by 'interval'
-      - Query for metrics datapoints
-      - Return the timeseries + datapoints
+      - # forks (How many MachineRequests.Instance.source.application was this application?)
+        # favorites (How many users have bookmarked this?)
+        # project favorites ( How many have added to project?)
+        # launches total
+        # launches success
     """
-    if not now_time:
-        now_time = timezone.now()
-    end_date = application.end_date or now_time
-    start_date = end_date - timezone.timedelta(days=day_limit)
-    timeseries = _generate_time_series(start_date, end_date, interval)
-    all_instance_ids = application.versions.values_list('machines__instance_source__instances', flat=True)
-    application_metrics = collections.OrderedDict()
-    for idx, ts in enumerate(timeseries):
-        interval_start = ts
-        interval_key = interval_start.strftime("%x %X")
-        if sum_datapoints:
-            interval_start = start_date
-        if idx == len(timeseries)-1:
-            interval_end = end_date
-        else:
-            interval_end = timeseries[idx+1]
-        all_instances = Instance.objects\
-            .filter(id__in=all_instance_ids)\
-            .filter(start_date__gt=interval_start, start_date__lt=interval_end)
-        all_histories = InstanceStatusHistory.objects.filter(
-            instance__in=all_instances)
-        per_interval_metrics = calculate_instance_metrics_for_interval(
-            all_instances, all_histories, interval_start, interval_end)
-        application_metrics[interval_key] = per_interval_metrics
+    from core.models import MachineRequest, Instance
+    num_forks = MachineRequest.objects.filter(status__name='completed', num_version_forked=True)\
+        .filter(instance__source__providermachine__application_version__application__id=app.id).count()
+    num_bookmarked = app.bookmarks.count()
+    num_in_projects = app.projects.count()
+    app_instances = Instance.objects.filter(source__providermachine__application_version__application__id=app.id)
+    total_launched = app_instances.count()
+    total_successful = app_instances.filter(instancestatushistory__status__name='active').distinct().count()
+    success_pct = total_successful/float(total_launched) * 100
+
+    application_metrics = {
+        'forks': num_forks,
+        'bookmarks': num_bookmarks,
+        'projects': num_in_projects,
+        'instances': {
+            'total': total_launched,
+            'success': total_successful,
+            'percent': success_pct,
+        }
+    }
     return application_metrics
 
 

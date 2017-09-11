@@ -1,5 +1,5 @@
 from core.models import Application as Image, BootScript
-from core.metrics.application import _get_application_metrics
+from core.metrics.application import _get_summarized_application_metrics
 from rest_framework import serializers
 from dateutil import rrule
 from api.v2.serializers.summaries import UserSummarySerializer
@@ -35,17 +35,20 @@ class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
         user = self.context.get('user', request.user)
         if not user:
             raise Exception("This serializer expects 'user' or an authenticated 'request' including 'user' to be passed in via serializer context! context={'user':user}")
-        if not user.is_staff:
-            return {}
-        interval = rrule.MONTHLY
-        limit = 120
-        if request and 'interval' in request.query_params:
-            interval_str = request.query_params.get('interval', '').lower()
-            if 'week' in interval_str:
-                interval = rrule.WEEKLY
-            elif 'day' in interval_str or 'daily' in interval_str:
-                interval = rrule.DAILY
-        return _get_application_metrics(application, interval=interval, day_limit=limit, read_only=True)
+        # Time-series metrics example
+        # if not user.is_staff:
+        #     return {}
+        # interval = rrule.MONTHLY
+        # limit = 120
+        # if request and 'interval' in request.query_params:
+        #     interval_str = request.query_params.get('interval', '').lower()
+        #     if 'week' in interval_str:
+        #         interval = rrule.WEEKLY
+        #     elif 'day' in interval_str or 'daily' in interval_str:
+        #         interval = rrule.DAILY
+        # return _get_application_metrics(application, interval=interval, day_limit=limit, read_only=True)
+        # Summarized metrics example
+        return _get_summarized_application_metrics(application)
 
     class Meta:
         model = Image
