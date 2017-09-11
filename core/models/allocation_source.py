@@ -1,3 +1,5 @@
+import decimal
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -36,6 +38,7 @@ class AllocationSource(models.Model):
         user: If passed in *and* allocation source is 'special', calculate remaining time based on user snapshots.
 
         Will return a negative number if 'over allocation', when `compute_used` is larger than `compute_allowed`.
+        Will return Infinity if `compute_allowed` is `-1` (or any negative number)
         :return: decimal.Decimal
         :rtype: decimal.Decimal
         """
@@ -57,6 +60,8 @@ class AllocationSource(models.Model):
         else:
             compute_allowed = self.compute_allowed
             last_snapshot = self.snapshot
+        if compute_allowed < 0:
+            return decimal.Decimal('Infinity')
         compute_used = last_snapshot.compute_used if last_snapshot else 0
         remaining_compute = compute_allowed - compute_used
         return remaining_compute

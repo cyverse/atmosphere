@@ -63,7 +63,7 @@ def allocation_threshold_check():
         logger.debug("CHECK_THRESHOLD is FALSE -- allocation_threshold_check task finished at %s." % datetime.now())
         return
 
-    for allocation_source in AllocationSource.objects.all():
+    for allocation_source in AllocationSource.objects.filter(compute_allowed__gte=0).all():
         snapshot = allocation_source.snapshot
         percentage_used = (snapshot.compute_used / snapshot.compute_allowed) * 100
         # check if percentage more than threshold

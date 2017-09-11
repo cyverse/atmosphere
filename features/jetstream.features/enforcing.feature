@@ -106,8 +106,8 @@ Feature: Enforcing allocation usage on Jetstream
 
     When we update snapshots
     Then we should have the following allocation source snapshots
-      | name         | compute_used |
-      | TG-BIO150062 | 781768.01    |
+      | name         | compute_used | compute_allowed |
+      | TG-BIO150062 | 781768.01    | 1000000         |
     And we should have the following user allocation source snapshots
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user208             | TG-BIO150062      | 0.000        | 0.000     |
@@ -141,8 +141,8 @@ Feature: Enforcing allocation usage on Jetstream
     Given a current time of '2017-02-16T07:02:00Z' with tick = False
     When we update snapshots
     Then we should have the following allocation source snapshots
-      | name         | compute_used |
-      | TG-BIO150062 | 781768.01    |
+      | name         | compute_used | compute_allowed |
+      | TG-BIO150062 | 781768.01    | 1000000         |
     And we should have the following user allocation source snapshots
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user208             | TG-BIO150062      | 0.020        | 1.000     |
@@ -154,8 +154,8 @@ Feature: Enforcing allocation usage on Jetstream
     Given a current time of '2017-02-16T08:00:00Z' with tick = False
     When we update snapshots
     Then we should have the following allocation source snapshots
-      | name         | compute_used |
-      | TG-BIO150062 | 781768.01    |
+      | name         | compute_used | compute_allowed |
+      | TG-BIO150062 | 781768.01    | 1000000         |
     And we should have the following user allocation source snapshots
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user208             | TG-BIO150062      | 0.980        | 1.000     |
