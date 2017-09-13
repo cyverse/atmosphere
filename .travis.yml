@@ -55,7 +55,6 @@
     - patch variables.ini variables_for_testing_${DISTRIBUTION}.ini.patch
     - ./configure
     - pip-sync dev_requirements.txt
-    - pip install coveralls
     - coverage run manage.py test --keepdb --noinput --settings=atmosphere.settings
     - coverage run --append manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION} --settings=atmosphere.settings
 
