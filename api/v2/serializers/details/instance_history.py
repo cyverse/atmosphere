@@ -42,6 +42,7 @@ class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
             'size',
             'provider',
             'image',
+            'extra',
             'start_date',
             'end_date',
         )

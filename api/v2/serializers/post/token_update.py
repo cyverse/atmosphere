@@ -1,5 +1,5 @@
 from core.models import (
-    AtmosphereUser, Identity, Provider, Group
+    AtmosphereUser, Identity, Provider, Group, IdentityMembership
 )
 from core.query import contains_credential
 from service.driver import get_esh_driver
@@ -102,6 +102,10 @@ class TokenUpdateSerializer(serializers.ModelSerializer):
             .filter(
                 contains_credential('ex_project_name', project_name) | contains_credential('ex_tenant_name', project_name))\
             .first()
+        membership_exists = IdentityMembership.objects.filter(identity=ident).first()
+        if not membership_exists:
+            # Account creation _did not run to completion_. Re-do it.
+            return None
         return ident
 
     def _get_request_user(self):
