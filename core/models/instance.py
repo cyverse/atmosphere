@@ -223,6 +223,7 @@ class Instance(models.Model):
             task,
             tmp_status)
         activity = self.esh_activity()
+        status = self.esh_status()
         extra = InstanceStatusHistory._build_extra(
             status_name=status_name,
             fault=fault,
@@ -238,11 +239,10 @@ class Instance(models.Model):
                 activity=activity,
                 extra=extra)
             last_history.save()
-            status = self.esh_status()
             logger.debug("STATUSUPDATE - FIRST - Instance:%s Old Status: %s - %s New\
                 Status: %s Tmp Status: %s" % (self.provider_alias,
                                               status,
-                                              self.esh_activity(),
+                                              activity,
                                               status_name,
                                               tmp_status))
             logger.debug("STATUSUPDATE - Traceback: %s"
@@ -254,7 +254,6 @@ class Instance(models.Model):
             # logger.info("status_name matches last history:%s " %
             #        last_history.status.name)
             return (False, last_history)
-        status = self.esh_status()
         logger.debug("STATUSUPDATE - Instance:%s Old Status: %s - %s New Status: %s\
             Tmp Status: %s" % (self.provider_alias,
                                status,
