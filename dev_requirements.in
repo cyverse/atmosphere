@@ -2,6 +2,7 @@ behave
 behave-django
 behaving
 coverage
+coveralls
 django-debug-toolbar  #NOTE: Profiles SQL/CPU time of requests real-time.
 django-jenkins
 django-nose
