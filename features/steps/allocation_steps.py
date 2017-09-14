@@ -2,6 +2,7 @@ import json
 import uuid
 
 from behave import *
+from decimal import Decimal
 from django.core.urlresolvers import reverse
 from django.test import modify_settings
 from django.test.client import Client
@@ -327,3 +328,36 @@ def step_impl(context, instance_is_assigned):
 
 def _str2bool(val):
     return True if val == 'true' else False
+
+
+@when('the user allocation snapshot for "{username}" and "{allocation_source_name}" is deleted')
+def delete_user_allocation_snapshot(context, username, allocation_source_name):
+    import core.models
+    user = core.models.AtmosphereUser.objects.get_by_natural_key(username)
+    context.test.assertIsInstance(user, core.models.AtmosphereUser)
+    allocation_source = core.models.AllocationSource.objects.get(name=allocation_source_name)
+    context.test.assertIsInstance(allocation_source, core.models.AllocationSource)
+    user_allocation_snapshot = core.models.UserAllocationSnapshot.objects.get(
+        user=user,
+        allocation_source=allocation_source)
+    context.test.assertIsInstance(user_allocation_snapshot, core.models.UserAllocationSnapshot)
+    delete_result = user_allocation_snapshot.delete()
+    context.test.assertTrue(delete_result)
+
+
+@step('time remaining on allocation source "{allocation_source_name}" is {time_remaining:f}')
+def time_remaining_on_allocation_source(context, allocation_source_name, time_remaining):
+    import core.models
+    allocation_source = core.models.AllocationSource.objects.get(name=allocation_source_name)
+    context.test.assertIsInstance(allocation_source, core.models.AllocationSource)
+    actual_remaining_compute = allocation_source.time_remaining()
+    context.test.assertAlmostEqual(actual_remaining_compute, Decimal(time_remaining), delta=0.1)
+
+
+@step('allocation source "{allocation_source_name}" is not over allocation')
+def allocation_source_is_over_allocation(context, allocation_source_name):
+    import core.models
+    allocation_source = core.models.AllocationSource.objects.get(name=allocation_source_name)
+    context.test.assertIsInstance(allocation_source, core.models.AllocationSource)
+    is_over_allocation = allocation_source.is_over_allocation()
+    context.test.assertFalse(is_over_allocation)
