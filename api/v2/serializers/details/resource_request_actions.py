@@ -39,17 +39,20 @@ class ResourceRequest_UpdateQuotaSerializer(serializers.Serializer):
         user = validated_data.get('approved_by')
         resource_request = validated_data.get('resource_request')
         identity = validated_data.get('identity')
-        data = {
-            'identity': identity.id,
-            'resource_request': resource_request.id,
-            'approved_by': user.username,
-            'quota': quota.id
-        }
-        event_serializer = QuotaAssignedByResourceRequestSerializer(data=data)
-        event_serializer.is_valid(raise_exception=True)
 
-        # Synchronous call to EventTable -> Set Quota for Identity's CloudProvider -> Save the Quota to Identity
-        event_serializer.save()
+        # This api is designed to update a single identity's quota, instead we
+        # update all identities for the user. This syncs the quota across all of
+        # the user's active identities.
+        for ident in [i for i in user.identity_set.all() if i.is_active()]:
+            data = {
+                'identity': ident.id,
+                'resource_request': resource_request.id,
+                'approved_by': user.username,
+                'quota': quota.id
+            }
+            event_serializer = QuotaAssignedByResourceRequestSerializer(data=data)
+            event_serializer.is_valid(raise_exception=True)
+            event_serializer.save()
 
         return {
             'identity': identity,
