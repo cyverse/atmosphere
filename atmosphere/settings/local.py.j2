@@ -400,7 +400,7 @@ if has_logstash and LOGSTASH_HOST:
 
 # NEW RELIC
 try:
-    from atmosphere.settings import new_relic
+    from atmosphere.settings.new_relic import NEW_RELIC_ENVIRONMENT
     NEW_RELIC_CONFIGURED = True
 except ImportError:
     NEW_RELIC_CONFIGURED = False
