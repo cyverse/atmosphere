@@ -193,6 +193,12 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     new_application_version = ImageVersionSummarySerializer(read_only=True)
     new_application_name = serializers.CharField(validators=[NoSpecialCharacters('!"#$%&\'*+,/;<=>?@[\\]^`{|}~')])
     new_application_description = serializers.CharField()
+    new_application_access_list = ModelRelatedField(
+        many=True,
+        queryset=PatternMatch.objects.all(),
+        serializer_class=PatternMatchSummarySerializer,
+        style={'base_template':'input.html'},
+        required=False)
     access_list = serializers.CharField(allow_blank=True)
     system_files = serializers.CharField(allow_blank=True, required=False)
     installed_software = serializers.CharField()
@@ -253,6 +259,7 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'old_status',
             'new_application_visibility',
             'new_application_name',
+            'new_application_access_list',
             'new_application_description',
             'access_list',
             'system_files',
@@ -267,7 +274,6 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'new_version_forked',
             'new_version_licenses',
             'new_version_scripts',
-            'new_version_access_list',
             'new_version_membership',
             'new_machine_provider',
             'new_application_version',
