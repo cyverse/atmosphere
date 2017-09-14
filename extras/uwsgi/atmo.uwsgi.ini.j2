@@ -18,3 +18,6 @@ chmod-socket = 776
 vacuum = true
 max-requests = 10
 daemonize = {{ UWSGI_LOG_PATH }}
+ignore-sigpipe = true
+ignore-write-errors = true
+disable-write-exception = true

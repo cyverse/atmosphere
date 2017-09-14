@@ -6,6 +6,8 @@ from datetime import timedelta
 
 from django.db import models, transaction, DatabaseError
 from django.db.models import ObjectDoesNotExist
+from django.contrib.postgres.fields import JSONField
+
 from django.utils import timezone
 
 from threepio import logger
@@ -56,6 +58,7 @@ class InstanceStatusHistory(models.Model):
     activity = models.CharField(max_length=36, null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
+    extra = JSONField(null=True, blank=True)
 
     def get_total_hours(self):
         from service.monitoring import _get_allocation_result
@@ -106,7 +109,7 @@ class InstanceStatusHistory(models.Model):
 
     @classmethod
     def transaction(cls, status_name, activity, instance, size,
-                    start_time=None, last_history=None):
+                    extra=None, start_time=None, last_history=None):
         try:
             with transaction.atomic():
                 if not last_history:
@@ -124,7 +127,7 @@ class InstanceStatusHistory(models.Model):
                 last_history.end_date = start_time
                 last_history.save()
                 new_history = InstanceStatusHistory.create_history(
-                    status_name, instance, size, start_date=start_time, activity=activity)
+                    status_name, instance, size, start_date=start_time, activity=activity, extra=extra)
                 logger.info(
                     "Status Update - User:%s Instance:%s "
                     "Old:%s New:%s Time:%s" %
@@ -140,15 +143,36 @@ class InstanceStatusHistory(models.Model):
                 "instance_status_history: Lock is already acquired by"
                 "another transaction.")
 
+    @staticmethod
+    def _build_extra(status_name=None, fault=None, deploy_fault_message=None, deploy_fault_trace=None):
+        extra = {}
+        # Only compute this for deploy_error or user_deploy_error (seen as active)
+        if status_name not in ['active','deploy_error']:
+            return extra
+        if fault:
+            if type(fault) == dict:
+                extra['display_error'] = fault.get('message')
+                extra['traceback'] = fault.get('details')
+            else:
+                logger.warn("Invalid 'fault':(%s) expected dict", fault)
+        if deploy_fault_message and deploy_fault_trace:
+            extra['display_error'] = deploy_fault_message
+            extra['traceback'] = deploy_fault_trace
+        elif deploy_fault_message or deploy_fault_trace:
+            logger.warn("Invalid metadata: Expected 'deploy_fault_message'(%s) AND 'deploy_fault_trace'(%s), but received only one", deploy_fault_message, deploy_fault_trace)
+
+        return extra
+
     @classmethod
     def create_history(cls, status_name, instance, size,
-                       start_date=None, end_date=None, activity=None):
+                       start_date=None, end_date=None, activity=None,
+                       extra=None):
         """
         Creates a new (Unsaved!) InstanceStatusHistory
         """
         status, _ = InstanceStatus.objects.get_or_create(name=status_name)
         new_history = InstanceStatusHistory(
-            instance=instance, size=size, status=status, activity=activity)
+            instance=instance, size=size, status=status, activity=activity, extra=extra)
         if start_date:
             new_history.start_date = start_date
             logger.debug("Created new history object: %s " % (new_history))

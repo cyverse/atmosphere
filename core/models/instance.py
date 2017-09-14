@@ -203,6 +203,9 @@ class Instance(models.Model):
             size,
             task=None,
             tmp_status=None,
+            fault=None,
+            deploy_fault_message=None,
+            deploy_fault_trace=None,
             first_update=False):
         """
         Given the status name and size, look up the previous history object
@@ -220,16 +223,26 @@ class Instance(models.Model):
             task,
             tmp_status)
         activity = self.esh_activity()
+        status = self.esh_status()
+        extra = InstanceStatusHistory._build_extra(
+            status_name=status_name,
+            fault=fault,
+            deploy_fault_message=deploy_fault_message,
+            deploy_fault_trace=deploy_fault_trace)
+
         # 2. Get the last history (or Build a new one if no other exists)
         has_history = self.instancestatushistory_set.all().count()
         if not has_history:
             last_history = InstanceStatusHistory.create_history(
-                status_name, self, size, start_date=self.start_date, activity=activity)
+                status_name, self, size,
+                start_date=self.start_date,
+                activity=activity,
+                extra=extra)
             last_history.save()
             logger.debug("STATUSUPDATE - FIRST - Instance:%s Old Status: %s - %s New\
                 Status: %s Tmp Status: %s" % (self.provider_alias,
-                                              self.esh_status(),
-                                              self.esh_activity(),
+                                              status,
+                                              activity,
                                               status_name,
                                               tmp_status))
             logger.debug("STATUSUPDATE - Traceback: %s"
@@ -243,8 +256,8 @@ class Instance(models.Model):
             return (False, last_history)
         logger.debug("STATUSUPDATE - Instance:%s Old Status: %s - %s New Status: %s\
             Tmp Status: %s" % (self.provider_alias,
-                               self.esh_status(),
-                               self.esh_activity(),
+                               status,
+                               activity,
                                status_name,
                                tmp_status))
         logger.debug("STATUSUPDATE - Traceback: %s" % traceback.format_stack())
@@ -254,6 +267,7 @@ class Instance(models.Model):
         try:
             new_history = InstanceStatusHistory.transaction(
                 status_name, activity, self, size,
+                extra=extra,
                 start_time=now_time,
                 last_history=last_history)
             return (True, new_history)
@@ -849,11 +863,16 @@ def convert_esh_instance(
     # Update the InstanceStatusHistory
     core_size = _esh_instance_size_to_core(esh_driver,
                                            esh_instance, provider_uuid)
+    metadata = esh_instance.extra.get('metadata', {})
     core_instance.update_history(
         esh_instance.extra['status'],
         core_size,
         esh_instance.extra.get('task'),
-        esh_instance.extra.get('metadata', {}).get('tmp_status', "MISSING"))
+        metadata.get('tmp_status', "MISSING"),
+        fault=esh_instance.extra.get('fault', None),
+        deploy_fault_message=metadata.get('fault_message',None),
+        deploy_fault_trace=metadata.get('fault_trace',None))
+
 
     # Update values in core with those found in metadata.
     # core_instance = set_instance_from_metadata(esh_driver, core_instance)

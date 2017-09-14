@@ -6,6 +6,8 @@ import uuid
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from django.utils.timezone import datetime
+
+from celery.result import AsyncResult
 from atmosphere.celery_init import app
 
 from threepio import logger, status_logger
@@ -2067,4 +2069,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     else:
         raise ActionNotAllowed(
             'Unable to to perform action %s.' % (action_type))
+
+    if result_obj == AsyncResult:
+        return str(result_obj)
     return result_obj
