@@ -397,6 +397,14 @@ if has_logstash and LOGSTASH_HOST:
                                      message_type='atmo-deploy', version=1)
     threepio.deploy_logger.addHandler(fh)
 
+
+# NEW RELIC
+try:
+    from atmosphere.settings.new_relic import NEW_RELIC_ENVIRONMENT
+    NEW_RELIC_CONFIGURED = True
+except ImportError:
+    NEW_RELIC_CONFIGURED = False
+
 {% if TESTING %}
 {% include "atmosphere/settings/testing.j2" %}
 {% endif %}
