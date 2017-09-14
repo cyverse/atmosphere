@@ -168,7 +168,7 @@ def get_allocation_sources_from_api(context):
         'name': unicode,
         'compute_allowed': int,
         'start_date': str,
-        'end_date': lambda x: None if x == 'None' else unicode(x),
+        'end_date': unicode,
         'compute_used': decimal.Decimal,
         'global_burn_rate': decimal.Decimal,
         'updated': str,
@@ -177,11 +177,12 @@ def get_allocation_sources_from_api(context):
         'user_burn_rate': decimal.Decimal,
         'user_snapshot_updated': str
     }
+
     for raw_row in raw_expected_allocation_sources:
         clean_row = {}
         for key, value in raw_row.iteritems():
             transform = transform_map[key]
-            clean_row[key] = transform(value)
+            clean_row[key] = None if value == 'None' else transform(value)
         expected_allocation_sources.append(clean_row)
 
     context.test.maxDiff = None
@@ -432,6 +433,7 @@ def associate_volume_with_project(context, volume_id_var, project_id_var):
     response = client.post(url, post_data, format='json')
     context.persona['response'] = response
 
+
 @step('we create an active instance')
 def create_active_instance(context):
     assert context.persona
@@ -531,9 +533,9 @@ def change_name_of_active_instance(context, new_instance_name):
     active_instance = context.persona['active_instance']
     client = context.persona['client']
     response = client.patch('/api/v2/instances/{}'.format(active_instance.id),
-                           {
-                               'name': new_instance_name
-                           })
+                            {
+                                'name': new_instance_name
+                            })
     context.persona['response'] = response
 
 
@@ -644,6 +646,7 @@ def assertDictContainsSubsetRecursive(self, expected, actual, depth=0, msg=None)
 
     self.fail(self._formatMessage(msg, standardMsg))
 
+
 TestCase.assertSequenceRecursive = assertSequenceRecursive
 TestCase.assertDictContainsSubsetRecursive = assertDictContainsSubsetRecursive
 
@@ -688,3 +691,47 @@ def update_cyverse_snapshots(context):
     """
     import cyverse_allocation.tasks
     cyverse_allocation.tasks.update_snapshot_cyverse()
+
+
+@when('we increase compute used by {compute_used:d} for the user on "{allocation_source_name}"')
+def increase_compute_used_for_user_on_allocation_source(context, compute_used, allocation_source_name):
+    assert context.persona
+    context.test.assertIn('user', context.persona)
+    user = context.persona['user']
+    import core.models
+    context.test.assertIsInstance(user, core.models.AtmosphereUser)
+    allocation_source = core.models.AllocationSource.objects.get(name=allocation_source_name)
+    core.models.UserAllocationSnapshot.objects.update_or_create(
+        allocation_source_id=allocation_source.id,
+        user_id=user.id,
+        defaults={
+            'compute_used': compute_used,
+            'burn_rate': 0
+        }
+    )
+
+
+@step('my time remaining on "{allocation_source_name}" is {time_remaining:d}')
+def my_time_remaining_on_allocation_source(context, allocation_source_name, time_remaining):
+    assert context.persona
+    context.test.assertIn('user', context.persona)
+    user = context.persona['user']
+    import core.models
+    context.test.assertIsInstance(user, core.models.AtmosphereUser)
+    allocation_source = core.models.AllocationSource.objects.get(name=allocation_source_name)
+    context.test.assertIsInstance(allocation_source, core.models.AllocationSource)
+    actual_remaining_compute = allocation_source.time_remaining(user)
+    context.test.assertEqual(actual_remaining_compute, time_remaining)
+
+
+@step('I should be over my allocation on "{allocation_source_name}"')
+def i_should_be_over_allocation(context, allocation_source_name):
+    assert context.persona
+    context.test.assertIn('user', context.persona)
+    user = context.persona['user']
+    import core.models
+    context.test.assertIsInstance(user, core.models.AtmosphereUser)
+    allocation_source = core.models.AllocationSource.objects.get(name=allocation_source_name)
+    context.test.assertIsInstance(allocation_source, core.models.AllocationSource)
+    is_over_allocation = allocation_source.is_over_allocation(user)
+    context.test.assertTrue(is_over_allocation)
