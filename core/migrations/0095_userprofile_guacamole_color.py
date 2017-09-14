@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0093_non_null_size_in_instance_status_history_entries'),
+        ('core', '0094_instancestatushistory_add_jsonfield_extra'),
     ]
 
     operations = [
