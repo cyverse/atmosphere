@@ -2009,7 +2009,11 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     # Gather instance related parameters
     provider_uuid = identity.provider.uuid
     identity_uuid = identity.uuid
+
+    # NOTE: This if statement is a HACK! It will be removed when IP management is enabled in an upcoming version. -SG
     reclaim_ip = True if identity.provider.location != 'iPlant Cloud - Tucson' else False
+    # ENDNOTE
+
     logger.info("User %s has initiated instance action %s to be executed on Instance %s" % (user, action_type, instance_id))
     if 'resize' == action_type:
         size_alias = action_params.get('size', '')
