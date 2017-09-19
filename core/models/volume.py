@@ -188,6 +188,8 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid=None, user=None)
     """
     identifier = esh_volume.id
     name = esh_volume.name
+    if not name:
+        name = identifier
     size = esh_volume.size
     created_on = esh_volume.extra.get('createTime')
     description = esh_volume.extra.get('description')
