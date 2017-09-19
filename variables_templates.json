@@ -7,6 +7,9 @@
         "local.py": [
             "local.py"
         ],
+        "init.py": [
+            "init.py"
+        ],
         "nginx": [
             "nginx",
             "nginx-site",
@@ -25,6 +28,10 @@
         "celeryd.sysd.default": [
           "extras/systemd/celeryd.default.dist.j2",
           "extras/systemd/celeryd.default"
+        ],
+        "init.py": [
+          "atmosphere/settings/__init__.py.j2",
+          "atmosphere/settings/__init__.py"
         ],
         "local.py": [
             "atmosphere/settings/local.py.j2",

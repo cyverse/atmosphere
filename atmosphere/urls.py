@@ -36,6 +36,10 @@ urlpatterns = [
     url(r'^admin/', include(admin.site.urls))
 ]
 
+if 'django_prometheus' in settings.INSTALLED_APPS:
+    urlpatterns += [
+        url(r'^atmo-prometheus/', include('django_prometheus.urls')),
+    ]
 
 if settings.DEBUG and 'debug_toolbar.middleware.DebugToolbarMiddleware' in settings.MIDDLEWARE_CLASSES:
     try:

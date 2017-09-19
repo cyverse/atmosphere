@@ -46,6 +46,7 @@ django-filter==1.0.4
 django-jenkins==0.110.0
 django-memoize==2.1.0
 django-nose==1.4.4
+django-prometheus==1.0.9
 django-redis-cache==1.7.1
 django-sslserver==0.20
 django==1.11.4
@@ -122,6 +123,7 @@ pickleshare==0.7.4        # via ipython
 pillow==4.2.1
 positional==1.2.1
 prettytable==0.7.2
+prometheus-client==0.0.20
 prompt-toolkit==1.0.15    # via ipython
 psycopg2==2.7.3
 ptyprocess==0.5.2         # via pexpect

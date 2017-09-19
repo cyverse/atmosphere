@@ -25,6 +25,9 @@ UWSGI_USER = # www-data
 UWSGI_GROUP = # www-data
 UWSGI_LOG_PATH = # /var/log/uwsgi/atmosphere_uwsgi.log
 
+[init.py]
+ENABLE_DJANGO_PROMETHEUS = False # Boolean required
+
 [local.py]
 AUTH_USE_OVERRIDE =  True # Boolean required will override authentication set in __init__.py
 AUTH_MOCK_USER = # testuser
