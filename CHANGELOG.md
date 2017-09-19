@@ -1,6 +1,7 @@
-## [Ancient-Asteroid(v27)](https://github.com/cyverse/atmosphere/milestone/14?closed=1) (as of 8/10/2017)
+## [Ancient-Asteroid(v27)](https://github.com/cyverse/atmosphere/milestone/14?closed=1) (as of 9/19/2017)
 Improvements:
 - Ansible will now deploy user-boot-scripts
+- API /v2/sizes includes 'root' attribute (Root disk size)
 
 Bugfixes:
 - Fix broken emulation endpoint
@@ -11,11 +12,24 @@ Bugfixes:
 - Fix small edge-case where InstanceSource exists, but volume does not
 - Fix broken test-cases
 - Remove duplicated import
+- Fixed a bug where API was trying to return AsyncResult.
+- Fix web_token API calls
+- Small bugfix to /v2/volume API POST calls
+- Fixed a bug where missing snapshot will break `monitor_allocation_sources`.
 
 Internal:
 - Squash migrations 0001-0084
+- cleanup migration 0092
 - Remove unused v2 Event API
 - Updated regression test-cases
+- Optimized resource request serialization to avoid slow API calls
+- Bug encountered and fixed related to Account emulation for staff users
+- ProjectVolume API fixed to work for v27 (will be removed in the future)
+- Default to deployment when using v2 instance API for creating instances
+- Include hotfix for `get_or_create_[user/token]` in django-cyverse-auth
+- Update the meaning of 'active' provider. Allow inactive providers to show resources
+  but not be used for instance launch.
+- Provide support to reset renewal date for allocation sources
 
 Deprecated:
   - /api/v2/allocations has been removed
