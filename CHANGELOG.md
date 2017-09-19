@@ -1,3 +1,14 @@
+## [Beneficent-Bolide(v28)](https://github.com/cyverse/atmosphere/milestone/15?closed=1) (as of 9/19/2017)
+Bugfixes:
+- Temporary fix provided for updating multiple providers via single ResourceRequest
+
+Internal:
+- Introduced code coverage via coveralls
+- Provided instance 'fault' information when instance fails to deploy
+- Changed how atmosphere handles new_relic settings and installation via clank.
+- Introduced new manage.py command to start/stop a maintenance
+- Behave will be quieter in travis.ci
+
 ## [Ancient-Asteroid(v27)](https://github.com/cyverse/atmosphere/milestone/14?closed=1) (as of 9/19/2017)
 Improvements:
 - Ansible will now deploy user-boot-scripts
