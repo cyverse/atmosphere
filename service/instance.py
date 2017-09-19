@@ -2009,6 +2009,11 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     # Gather instance related parameters
     provider_uuid = identity.provider.uuid
     identity_uuid = identity.uuid
+
+    # NOTE: This if statement is a HACK! It will be removed when IP management is enabled in an upcoming version. -SG
+    reclaim_ip = True if identity.provider.location != 'iPlant Cloud - Tucson' else False
+    # ENDNOTE
+
     logger.info("User %s has initiated instance action %s to be executed on Instance %s" % (user, action_type, instance_id))
     if 'resize' == action_type:
         size_alias = action_params.get('size', '')
@@ -2032,17 +2037,19 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     elif 'suspend' == action_type:
         result_obj = suspend_instance(esh_driver, esh_instance,
                                       provider_uuid, identity_uuid,
-                                      user)
+                                      user, reclaim_ip)
     elif 'shelve' == action_type:
         result_obj = shelve_instance(esh_driver, esh_instance,
                                      provider_uuid, identity_uuid,
-                                     user)
+                                     user, reclaim_ip)
     elif 'unshelve' == action_type:
         result_obj = unshelve_instance(esh_driver, esh_instance,
                                        provider_uuid, identity_uuid,
                                        user)
     elif 'shelve_offload' == action_type:
-        result_obj = offload_instance(esh_driver, esh_instance)
+        result_obj = offload_instance(esh_driver, esh_instance,
+                                      provider_uuid, identity_uuid,
+                                      user, reclaim_ip)
     elif 'start' == action_type:
         result_obj = start_instance(
             esh_driver, esh_instance,
@@ -2050,7 +2057,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     elif 'stop' == action_type:
         result_obj = stop_instance(
             esh_driver, esh_instance,
-            provider_uuid, identity_uuid, user)
+            provider_uuid, identity_uuid, user, reclaim_ip)
     elif 'reset_network' == action_type:
         esh_driver.reset_network(esh_instance)
     elif 'console' == action_type:

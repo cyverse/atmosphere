@@ -148,6 +148,11 @@ def get_allocation_result_for(
 
 def _execute_provider_action(identity, user, instance, action_name):
     driver = get_cached_driver(identity=identity)
+
+    # NOTE: This if statement is a HACK! It will be removed when IP management is enabled in an upcoming version. -SG
+    reclaim_ip = True if identity.provider.location != 'iPlant Cloud - Tucson' else False
+    # ENDNOTE
+
     logger.info("User %s has gone over their allocation on Instance %s - Enforcement Choice: %s" % (user, instance, action_name))
     try:
         if not action_name:
@@ -159,30 +164,34 @@ def _execute_provider_action(identity, user, instance, action_name):
                 instance,
                 identity.provider.uuid,
                 identity.uuid,
-                user)
+                user,
+                reclaim_ip)
         elif action_name == 'Stop':
             stop_instance(
                 driver,
                 instance,
                 identity.provider.uuid,
                 identity.uuid,
-                user)
+                user,
+                reclaim_ip)
         elif action_name == 'Shelve':
             shelve_instance(
                 driver,
                 instance,
                 identity.provider.uuid,
                 identity.uuid,
-                user)
+                user,
+                reclaim_ip)
         elif action_name == 'Shelve Offload':
             offload_instance(
                 driver,
                 instance,
                 identity.provider.uuid,
                 identity.uuid,
-                user)
+                user,
+                reclaim_ip)
         elif action_name == 'Terminate':
-            destroy_instance(user, identity.uuid, instance)
+            destroy_instance(user, identity.uuid, instance.id)
         else:
             raise Exception("Encountered Unknown Action Named %s" % action_name)
     except ObjectDoesNotExist:
