@@ -49,7 +49,8 @@
   script:
     - ./travis/check_properly_generated_requirements.sh
     - coverage run manage.py test --keepdb --noinput --settings=atmosphere.settings
-    - coverage run --append manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION} --settings=atmosphere.settings
+    - coverage run --append manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION} --settings=atmosphere.settings --format rerun --outfile rerun_failing.features
+    - if [ -f "rerun_failing.features" ]; then python manage.py behave --logging-level DEBUG --capture-stderr --capture --verbosity 3 --keepdb @rerun_failing.features; fi
     - python manage.py makemigrations --dry-run --check
 
   after_success:
