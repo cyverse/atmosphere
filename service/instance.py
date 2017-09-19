@@ -2047,7 +2047,9 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
                                        provider_uuid, identity_uuid,
                                        user)
     elif 'shelve_offload' == action_type:
-        result_obj = offload_instance(esh_driver, esh_instance, reclaim_ip)
+        result_obj = offload_instance(esh_driver, esh_instance,
+                                      provider_uuid, identity_uuid,
+                                      user, reclaim_ip)
     elif 'start' == action_type:
         result_obj = start_instance(
             esh_driver, esh_instance,
