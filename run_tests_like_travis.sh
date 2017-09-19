@@ -33,8 +33,11 @@ ${SUDO_POSTGRES} createdb --owner=atmosphere_db_user atmosphere_db
 cp ./variables.ini.dist ./variables.ini
 patch variables.ini variables_for_testing_${DISTRIBUTION}.ini.patch
 ./configure
-#./travis/check_properly_generated_requirements.sh
+./travis/check_properly_generated_requirements.sh
 
 python manage.py test --keepdb
-python manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION}
+rm -f rerun_failing.features
+python manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION} --format rerun --outfile rerun_failing.features
+if [ -f "rerun_failing.features" ]; then python manage.py behave --logging-level DEBUG --capture-stderr --capture --verbosity 3 --keepdb @rerun_failing.features; fi
+
 python manage.py makemigrations --dry-run --check
