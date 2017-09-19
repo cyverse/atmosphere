@@ -470,7 +470,7 @@ def allocation_source_overage_enforcement(allocation_source):
     return all_user_instances
 
 
-def filter_allocation_source_instances(allocation_source, esh_instances):
+def filter_allocation_source_instances(allocation_source, user, esh_instances):
     as_instances = []
     for inst in esh_instances:
         core_instance = CoreInstance.objects.filter(created_by=user, provider_alias=inst.id).first()
