@@ -136,8 +136,11 @@ def deploy_unmount_volume(instance_ip, username, instance_id,
         return playbook_runner
     playbook_result = playbook_runner.results.get(hostname)
     (lsof_rc, lsof_stdout, lsof_stderr) = _extract_ansible_register(playbook_result, 'lsof_result')
-    if lsof_rc != 0:
+
+    #lsof returns 1 on success _and_ failure, so combination of 'rc' and 'stdout' is required
+    if lsof_rc != 0 and lsof_stdout != "":
         _raise_lsof_playbook_failure(lsof_rc, lsof_stdout)
+
     (unmount_rc, unmount_stdout, unmount_stderr) = _extract_ansible_register(playbook_result, 'unmount_result')
     if unmount_rc != 0:
         _raise_unmount_playbook_failure(unmount_rc, unmount_stdout, unmount_stderr)
@@ -171,31 +174,33 @@ def _raise_lsof_playbook_failure(lsof_rc, lsof_stdout):
     raise DeviceBusyException(device, offending_processes)
 
 
-def _extract_ansible_register(playbook_result, keyname):
+def _extract_ansible_register(playbook_result, register_name):
     """
-    NOTE: Subspace >= 0.5.0 required
+    *NOTE: Subspace >= 0.5.0 required*
+
+    Using 'PlaybookRunner.results', search for 'register_name' (as named in atmosphere-ansible task)
+    Input: 'PlaybookRunner.results', 'name_of_register'
+    Return: exit_code, stdout, stderr
     """
-    # missing results ignored
-    if keyname not in playbook_result:
+
+    if register_name not in playbook_result:
         raise ValueError(
             "playbook_result does not include output for %s"
-            % keyname)
-    ansible_register = playbook_result[keyname]
+            % register_name)
+
+    ansible_register = playbook_result[register_name]
+
+    if 'failed' in ansible_register and 'msg' in ansible_register:
+        raise ValueError("Unexpected ansible failure stored in register: %s" % ansible_register['msg'])
+
+    for register_key in ['rc', 'stdout', 'stderr']:
+        if not ansible_register.has_key(register_key):
+            raise ValueError(
+                "Unexpected ansible_register output -- missing key '%s': %s"
+                % (register_key, ansible_register))
     rc = ansible_register.get('rc')
-    if not rc:
-        raise ValueError(
-            "Unexpected ansible_register output -- missing 'rc': %s"
-            % ansible_register)
     stdout = ansible_register.get('stdout')
-    if not stdout:
-        raise ValueError(
-            "Unexpected ansible_register output -- missing 'stdout': %s"
-            % ansible_register)
     stderr = ansible_register.get('stderr')
-    if not stderr:
-        raise ValueError(
-            "Unexpected ansible_register output -- missing 'stderr': %s"
-            % ansible_register)
     return (rc, stdout, stderr)
 
 
