@@ -284,10 +284,27 @@ def user_deploy(instance_ip, username, instance_id, first_deploy=True, **runner_
     hostname = build_host_name(instance_id, instance_ip)
     if hostname not in playbook_runner.stats.failures:
         return playbook_runner
-    #Handle specific errors from ansible based on the 'register' results
+    # An error has occurred during deployment!
+    # Handle specific errors from ansible based on the 'register' results.
+    # In any other case, return generic failure
     playbook_result = playbook_runner.results.get(hostname)
-    # look at the results and email-notify user if script(s) have failed
-    return playbook_runner
+    script_register = playbook_result.get('deploy_script_result')
+    if not script_register or not script_register.has_key('results'):
+        return raise_playbook_errors(playbook_runner, instance_ip, hostname)
+    script_register_results = script_register['results']
+    for script_result in script_register_results:
+        failed = script_result.get('failed')
+        if not failed:
+            continue
+        script_rc = script_result.get('rc')
+        script_stdout = script_result.get('stdout')
+        script_stderr = script_result.get('stderr')
+        script_name = script_result.get('item')['name']
+        raise AnsibleDeployException(
+            "\nBootScript Failure: %s\n"
+            "Return Code:%s stdout:%s stderr:%s" %
+            (script_name, script_rc, script_stdout, script_stderr))
+    return raise_playbook_errors(playbook_runner, instance_ip, hostname)
 
 
 def run_utility_playbooks(instance_ip, username, instance_id,
