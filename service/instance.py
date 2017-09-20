@@ -379,17 +379,12 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     """
     from service.tasks.driver import deploy_init_to
     from service.tasks.driver import wait_for_instance, complete_resize
-    from service.deploy import deploy_test
-    touch_script = deploy_test()
     core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
 
     task_one = wait_for_instance.s(
         esh_instance.id, esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, "verify_resize")
     raise Exception("Programmer -- Fix this method based on the TODO")
-    # task_two = deploy_script.si(
-    #     esh_driver.__class__, esh_driver.provider,
-    #     esh_driver.identity, esh_instance.id, touch_script)
     task_three = complete_resize.si(
         esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, esh_instance.id,
@@ -1952,16 +1947,16 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
                 'a volume. (Current: %s)'
                 'Retry request when instance is active.'
                 % (instance_id, instance_status))
-        result = task.attach_volume_task(
+        result = task.attach_volume(
                 identity, esh_driver, esh_instance.alias,
                 volume_id, device_location, mount_location)
     elif 'mount_volume' == action_type:
-        result = task.mount_volume_task(
+        result = task.mount_volume(
                 identity, esh_driver, esh_instance.alias,
                 volume_id, device_location, mount_location)
     elif 'unmount_volume' == action_type:
         (result, error_msg) =\
-            task.unmount_volume_task(esh_driver,
+            task.unmount_volume(esh_driver,
                                      esh_instance.alias,
                                      volume_id, device_location,
                                      mount_location)
@@ -1974,7 +1969,7 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
                 'Retry request when instance is active.'
                 % (instance_id, instance_status))
         (result, error_msg) =\
-            task.detach_volume_task(esh_driver,
+            task.detach_volume(esh_driver,
                                     esh_instance.alias,
                                     volume_id)
         if not result and error_msg:

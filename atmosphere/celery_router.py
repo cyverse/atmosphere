@@ -25,15 +25,18 @@ DEPLOY_TASKS = [
     "_deploy_instance_for_user",
     "check_web_desktop_task",
     "_deploy_init_to", "service.tasks.driver._deploy_init_to",
-    "deploy_ready_test", "service.tasks.driver.deploy_ready_test", 
-    "check_process_task", "service.tasks.driver.check_process_task", 
+    "deploy_ready_test", "service.tasks.driver.deploy_ready_test",
+    "check_process_task", "service.tasks.driver.check_process_task",
+    "check_volume_task", "service.tasks.volume.check_volume_task",
+    "mount_volume_task", "service.tasks.volume.mount_volume_task",
+    "unmount_volume_task", "service.tasks.volume.unmount_volume_task"
 ]
 EMAIL_TASKS = [
     "send_email", "core.tasks.email.send_email",
 ]
 IMAGING_TASKS = [
     # Atmosphere specific
-    "freeze_instance_task", "service.tasks.machine.freeze_instance_task",
+    "prep_instance_for_snapshot", "service.tasks.machine.prep_instance_for_snapshot",
     "process_request", "service.tasks.machine.process_request",
     "imaging_complete", "validate_new_image",
     # Chromogenic
@@ -41,7 +44,6 @@ IMAGING_TASKS = [
     "machine_imaging_task", "chromogenic.tasks.machine_imaging_task",
     "chromogenic.tasks.migrate_instance_task",
     "chromogenic.tasks.machine_imaging_task",
-    "service.tasks.machine.freeze_instance_task",
     "service.tasks.machine.process_request",
 
 ]

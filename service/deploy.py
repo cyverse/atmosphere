@@ -8,7 +8,6 @@ from django.template.loader import render_to_string
 from django.utils.text import slugify
 from django.utils.timezone import datetime
 
-from libcloud.compute.deployment import ScriptDeployment
 
 import subspace
 from subspace.runner import Runner
@@ -24,7 +23,9 @@ from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
 from core.models import Provider, Identity, Instance, SSHKey, AtmosphereUser
 
-from service.exceptions import AnsibleDeployException
+from service.exceptions import (
+    AnsibleDeployException, DeviceBusyException
+)
 
 
 def ansible_deployment(
@@ -49,6 +50,8 @@ def ansible_deployment(
         instance_id)
     hostname = build_host_name(instance_id, instance_ip)
     configure_ansible(debug=debug)
+    if debug:
+        runner_opts['verbosity'] = 4
     if not limit_hosts:
         if hostname:
             limit_hosts = hostname
@@ -103,8 +106,108 @@ def deploy_mount_volume(instance_ip, username, instance_id,
         "VOLUME_DEVICE_TYPE": device_type,
     }
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
-    playbooks_dir = os.path.join(playbooks_dir, 'utils')
+    playbooks_dir = os.path.join(playbooks_dir, 'instance_actions')
     limit_playbooks = ['mount_volume.yml']
+    return ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=limit_playbooks,
+        extra_vars=extra_vars)
+
+
+def deploy_unmount_volume(instance_ip, username, instance_id,
+        device, **runner_opts):
+    """
+    Use service.ansible to mount volume to an instance.
+    """
+    extra_vars = {
+        "src": device
+    }
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'instance_actions')
+    limit_playbooks = ['unmount_volume.yml']
+    playbook_runner = ansible_deployment(
+        instance_ip, username, instance_id, playbooks_dir,
+        limit_playbooks=limit_playbooks,
+        extra_vars=extra_vars,
+        raise_exception=False,
+        **runner_opts)
+    hostname = build_host_name(instance_id, instance_ip)
+    if hostname not in playbook_runner.stats.failures:
+        return playbook_runner
+    playbook_result = playbook_runner.results.get(hostname)
+    (lsof_rc, lsof_stdout, lsof_stderr) = _extract_ansible_register(playbook_result, 'lsof_result')
+
+    #lsof returns 1 on success _and_ failure, so combination of 'rc' and 'stdout' is required
+    if lsof_rc != 0 and lsof_stdout != "":
+        _raise_lsof_playbook_failure(lsof_rc, lsof_stdout)
+
+    (unmount_rc, unmount_stdout, unmount_stderr) = _extract_ansible_register(playbook_result, 'unmount_result')
+    if unmount_rc != 0:
+        _raise_unmount_playbook_failure(unmount_rc, unmount_stdout, unmount_stderr)
+    return playbook_result
+
+
+def _raise_unmount_playbook_failure(unmount_rc, unmount_stdout, unmount_stderr):
+    """
+    - Scrape the stdout/stderr from 'unmount' call
+    - Update VolumeStatusHistory.extra (Future)
+    - raise an Exception to let user know that unmount has failed
+    """
+    raise Exception("Unmount has failed: Stdout: %s, Stderr: %s" % (unmount_stdout, unmount_stderr))
+
+def _raise_lsof_playbook_failure(lsof_rc, lsof_stdout):
+    """
+    - Scrape the stdout from 'lsof' call
+    - Collect a list of pids currently in use
+    - raise a DeviceBusyException
+    """
+    regex = re.compile("(?P<name>[\w]+)\s*(?P<pid>[\d]+)")
+    offending_processes = []
+    for line in lsof_stdout.split('\n'):
+        match = regex.search(line)
+        if not match:
+            continue
+        search_dict = match.groupdict()
+        offending_processes.append(
+            (search_dict['name'], search_dict['pid'])
+        )
+    raise DeviceBusyException(device, offending_processes)
+
+
+def _extract_ansible_register(playbook_result, register_name):
+    """
+    *NOTE: Subspace >= 0.5.0 required*
+
+    Using 'PlaybookRunner.results', search for 'register_name' (as named in atmosphere-ansible task)
+    Input: 'PlaybookRunner.results', 'name_of_register'
+    Return: exit_code, stdout, stderr
+    """
+
+    if register_name not in playbook_result:
+        raise ValueError(
+            "playbook_result does not include output for %s"
+            % register_name)
+
+    ansible_register = playbook_result[register_name]
+
+    if 'failed' in ansible_register and 'msg' in ansible_register:
+        raise ValueError("Unexpected ansible failure stored in register: %s" % ansible_register['msg'])
+
+    for register_key in ['rc', 'stdout', 'stderr']:
+        if not ansible_register.has_key(register_key):
+            raise ValueError(
+                "Unexpected ansible_register output -- missing key '%s': %s"
+                % (register_key, ansible_register))
+    rc = ansible_register.get('rc')
+    stdout = ansible_register.get('stdout')
+    stderr = ansible_register.get('stderr')
+    return (rc, stdout, stderr)
+
+
+def deploy_prepare_snapshot(instance_ip, username, instance_id, extra_vars={}):
+    playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
+    playbooks_dir = os.path.join(playbooks_dir, 'imaging')
+    limit_playbooks = ['prepare_instance_snapshot.yml']
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
         limit_playbooks=limit_playbooks,
@@ -121,7 +224,7 @@ def deploy_check_volume(instance_ip, username, instance_id,
         "VOLUME_DEVICE_TYPE": device_type,
     }
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
-    playbooks_dir = os.path.join(playbooks_dir, 'utils')
+    playbooks_dir = os.path.join(playbooks_dir, 'instance_actions')
     limit_playbooks = ['check_volume.yml']
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
@@ -424,59 +527,3 @@ def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
     if error_message:
         msg = error_message[:-2] + str(pb.stats.processed_playbooks.get(hostname,{}))
         raise AnsibleDeployException(msg)
-
-
-def sync_instance():
-    return ScriptDeployment("sync", name="./deploy_sync_instance.sh")
-
-
-def deploy_test():
-    return ScriptDeployment(
-        "\n", name="./deploy_test.sh")
-
-
-def freeze_instance(sleep_time=45):
-    return ScriptDeployment(
-        "nohup fsfreeze -f / && sleep %s && fsfreeze -u / &" % sleep_time,
-        name="./deploy_freeze_instance.sh")
-
-
-def mount_volume(device, mount_location, username=None, group=None):
-    mount_script = "mkdir -p %s; " % (mount_location,)
-    mount_script += "mount %s %s; " % (device, mount_location)
-    if username and group:
-        mount_script += "chown -R %s:%s %s" % (username, group, mount_location)
-    # NOTE: Fails to recognize mount_script as a str
-    # Removing this line will cause 'celery' to fail
-    # to execute this particular ScriptDeployment
-    return ScriptDeployment(str(mount_script), name="./deploy_mount_volume.sh")
-
-
-def check_mount():
-    return ScriptDeployment("mount",
-                            name="./deploy_check_mount.sh")
-
-
-def check_process(proc_name):
-    return ScriptDeployment(
-        "if ps aux | grep '%s' > /dev/null; "
-        "then echo '1:%s is running'; "
-        "else echo '0:%s is NOT running'; "
-        "fi"
-        % (proc_name, proc_name, proc_name),
-        name="./deploy_check_process_%s.sh"
-        % (proc_name,))
-
-
-def umount_volume(mount_location):
-    return ScriptDeployment("mounts=`mount | grep '%s' | cut -d' ' -f3`; "
-                            "for mount in $mounts; do umount %s; done;"
-                            "/bin/sed -i \"/vd[c-z]/d\" /etc/fstab;"  # should work for most
-                            "/bin/sed -i \"/vol_[b-z]/d\" /etc/fstab;"  # should catch any lingerers
-                            % (mount_location, mount_location),
-                            name="./deploy_umount_volume.sh")
-
-
-def lsof_location(mount_location):
-    return ScriptDeployment("lsof | grep %s" % (mount_location),
-                            name="./deploy_lsof_location.sh")
