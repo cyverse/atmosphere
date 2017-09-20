@@ -192,18 +192,18 @@ class ApplicationVersionMembershipAdmin(admin.ModelAdmin):
     ]
 
     def _start_date(self, obj):
-        return obj.application_version.start_date
+        return obj.image_version.application.start_date
 
     def _app_private(self, obj):
-        return obj.application_version.application.private
+        return obj.image_version.application.private
 
     _app_private.boolean = True
 
     def _app_name(self, obj):
-        return obj.application_version
+        return obj.image_version.application.name
 
     def render_change_form(self, request, context, *args, **kwargs):
-        context['adminform'].form.fields['application_version'].queryset = \
+        context['adminform'].form.fields['image_version'].queryset = \
             models.ApplicationVersion.objects.order_by('application__name')
         context['adminform'].form.fields[
             'group'].queryset = models.Group.objects.order_by('name')
