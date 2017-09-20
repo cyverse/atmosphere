@@ -1,5 +1,7 @@
 import copy
+import logging
 
+import collections
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import models
@@ -14,6 +16,14 @@ ACTIVE_ALLOCATIONS = 'ACTIVE_ALLOCATIONS'
 PROJECTS_WITH_ACTIVE_ALLOCATION = 'PROJECTS_WITH_ACTIVE_ALLOCATION'
 PROJECTS_FOR_USER = 'PROJECTS_FOR_USER'
 USERS_FOR_PROJECT = 'USERS_FOR_PROJECT'
+
+URL_TEMPLATES = {
+    TACC_USERNAME_FOR_XSEDE_USERNAME: '/v1/users/xsede/{}',
+    ACTIVE_ALLOCATIONS: '/v1/allocations/resource/{}',
+    PROJECTS_WITH_ACTIVE_ALLOCATION: '/v1/projects/resource/{}',
+    PROJECTS_FOR_USER: '/v1/projects/username/{}',
+    USERS_FOR_PROJECT: '/v1/projects/name/{}/users'
+}
 
 
 class TACCUserForXSEDEUsername(models.Model):
@@ -214,94 +224,38 @@ def _get_users_for_project(request):
 def _execute_tas_api_query(query_type, query=None):
     # return something like: 'Success', ['col1', 'col2'], [['row1_val1', 'row1_val2'], ['row2_val1', 'row2_val2']]
     tacc_api = settings.TACC_API_URL
-    info = 'Unknown query'
     header = []
     rows = []
-    if query_type == TACC_USERNAME_FOR_XSEDE_USERNAME:
-        xsede_username = query
-        path = '/v1/users/xsede/%s' % xsede_username
-        url = tacc_api + path
-        try:
-            response, data = tas_api.tacc_api_get(url)
-            assert isinstance(data, dict)
-            info = response.__repr__()
-            header = data.keys()
-            row = [data[key] for key in header]
-            rows = [row]
-        except TASAPIException as e:
-            info = e
-    elif query_type == ACTIVE_ALLOCATIONS:
-        resource = query
-        path = '/v1/allocations/resource/%s' % resource
-        url = tacc_api + path
-        try:
-            response, data = tas_api.tacc_api_get(url)
-            assert isinstance(data, dict)
-            status = data.get('status', None)
-            message = data.get('message', None)
-            info = 'Response: {}, status: {}, message: {}'.format(response.__repr__(), status, message)
-            result = data.get('result', [{}])
-            result_headers = copy.copy(result[0].keys())
-            hard_coded_headers = ['project', 'start', 'end', 'computeAllocated', 'computeUsed', 'computeRequested']
-            trimmed_result_headers = list(set(result_headers) - set(hard_coded_headers))
-            header = hard_coded_headers + trimmed_result_headers
-            rows = [[row.get(key) for key in header] for row in result]
-        except TASAPIException as e:
-            info = e
-    elif query_type == PROJECTS_WITH_ACTIVE_ALLOCATION:
-        resource = query
-        path = '/v1/projects/resource/%s' % resource
-        url = tacc_api + path
-        try:
-            response, data = tas_api.tacc_api_get(url)
-            assert isinstance(data, dict)
-            status = data.get('status', None)
-            message = data.get('message', None)
-            info = 'Response: {}, status: {}, message: {}'.format(response.__repr__(), status, message)
-            result = data.get('result', [{}])
-            result_headers = copy.copy(result[0].keys())
-            hard_coded_headers = ['chargeCode', 'title']
-            trimmed_result_headers = list(set(result_headers) - set(hard_coded_headers))
-            header = hard_coded_headers + trimmed_result_headers
-            rows = [[row.get(key) for key in header] for row in result]
-        except TASAPIException as e:
-            info = e
-    elif query_type == PROJECTS_FOR_USER:
-        tacc_username = query
-        path = '/v1/projects/username/%s' % tacc_username
-        url = tacc_api + path
-        try:
-            response, data = tas_api.tacc_api_get(url)
-            assert isinstance(data, dict)
-            status = data.get('status', None)
-            message = data.get('message', None)
-            info = 'Response: {}, status: {}, message: {}'.format(response.__repr__(), status, message)
-            result = data.get('result', [{}])
-            result_headers = copy.copy(result[0].keys())
-            hard_coded_headers = ['chargeCode', 'title']
-            trimmed_result_headers = list(set(result_headers) - set(hard_coded_headers))
-            header = hard_coded_headers + trimmed_result_headers
-            rows = [[row.get(key) for key in header] for row in result]
-        except TASAPIException as e:
-            info = e
-    elif query_type == USERS_FOR_PROJECT:
-        project_charge_code = query
-        path = '/v1/projects/name/%s/users' % project_charge_code
-        url = tacc_api + path
-        try:
-            response, data = tas_api.tacc_api_get(url)
-            assert isinstance(data, dict)
-            status = data.get('status', None)
-            message = data.get('message', None)
-            info = 'Response: {}, status: {}, message: {}'.format(response.__repr__(), status, message)
-            result = data.get('result', [{}])
+    url_template = URL_TEMPLATES[query_type]
+    path = url_template.format(query)
+    url = tacc_api + path
+
+    try:
+        response, data = tas_api.tacc_api_get(url)
+        assert isinstance(data, dict)
+        status = data.get('status', None)
+        logging.debug('status: %s', status)
+        message = data.get('message', None)
+        logging.debug('message: %s', message)
+        info = 'Response: {}, status: {}, message: {}'.format(response.__repr__(), status, message)
+        result = data.get('result')
+        logging.debug('result: %s', result)
+        if result is None:
+            # Probably an unknown user, project or resource. Don't do anything.
+            logging.info('result is None: %s', info)
+        elif isinstance(result, basestring):
+            header = ['result']
+            rows = [[result]]
+        elif isinstance(result, collections.Sequence):
             result_headers = copy.copy(result[0].keys())
             hard_coded_headers = []
             trimmed_result_headers = list(set(result_headers) - set(hard_coded_headers))
             header = hard_coded_headers + trimmed_result_headers
             rows = [[row.get(key) for key in header] for row in result]
-        except TASAPIException as e:
-            info = e
+        else:
+            raise ValueError('Unknown type for result: %s' % type(result))
+    except TASAPIException as e:
+        info = e
     return info, header, rows
 
 
