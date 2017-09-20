@@ -84,8 +84,12 @@ def unmount_volume_task(driverCls, provider, identity, instance_id, volume_id,
                                % (volume,))
         if not device_location:
             raise Exception("No device_location found or inferred by volume %s" % volume)
-        playbooks = deploy_unmount_volume(
-            instance.ip, username, instance.id, device_location)
+        try:
+            playbooks = deploy_unmount_volume(
+                instance.ip, username, instance.id, device_location)
+        except DeviceBusyException:
+            # Future-Fixme: Update VolumeStatusHistory.extra, set status to 'unmount_failed'
+            raise
         hostname = build_host_name(instance.id, instance.ip)
         result = False if execution_has_failures(playbooks, hostname)\
             or execution_has_unreachable(playbooks, hostname) else True

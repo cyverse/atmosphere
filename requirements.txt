@@ -126,7 +126,7 @@ simplejson==3.11.1        # via osc-lib, python-cinderclient, python-neutronclie
 singledispatch==3.4.0.3   # via tornado
 six==1.10.0               # via bcrypt, cliff, cmd2, cryptography, debtcollector, djangorestframework-csv, keystoneauth1, oauth2client, openstacksdk, osc-lib, oslo.config, oslo.i18n, oslo.log, oslo.serialization, oslo.utils, pynacl, pyopenssl, python-cinderclient, python-dateutil, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient, python-swiftclient, singledispatch, stevedore, warlock
 stevedore==1.25.0         # via cliff, keystoneauth1, openstacksdk, osc-lib, oslo.config, python-keystoneclient
-subspace==0.4.1
+subspace==0.5
 threepio==0.2.0
 tornado==4.5.1            # via flower
 unicodecsv==0.14.1        # via cliff, djangorestframework-csv

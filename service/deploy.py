@@ -23,7 +23,9 @@ from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
 from core.models import Provider, Identity, Instance, SSHKey, AtmosphereUser
 
-from service.exceptions import AnsibleDeployException
+from service.exceptions import (
+    AnsibleDeployException, DeviceBusyException
+)
 
 
 def ansible_deployment(
@@ -113,7 +115,7 @@ def deploy_mount_volume(instance_ip, username, instance_id,
 
 
 def deploy_unmount_volume(instance_ip, username, instance_id,
-        device):
+        device, **runner_opts):
     """
     Use service.ansible to mount volume to an instance.
     """
@@ -123,10 +125,78 @@ def deploy_unmount_volume(instance_ip, username, instance_id,
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
     playbooks_dir = os.path.join(playbooks_dir, 'instance_actions')
     limit_playbooks = ['unmount_volume.yml']
-    return ansible_deployment(
+    playbook_runner = ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
         limit_playbooks=limit_playbooks,
-        extra_vars=extra_vars)
+        extra_vars=extra_vars,
+        raise_exception=False,
+        **runner_opts)
+    hostname = build_host_name(instance_id, instance_ip)
+    if hostname not in playbook_runner.stats.failures:
+        return playbook_runner
+    playbook_result = playbook_runner.results.get(hostname)
+    (lsof_rc, lsof_stdout, lsof_stderr) = _extract_ansible_register(playbook_result, 'lsof_result')
+    if lsof_rc != 0:
+        _raise_lsof_playbook_failure(lsof_rc, lsof_stdout)
+    (unmount_rc, unmount_stdout, unmount_stderr) = _extract_ansible_register(playbook_result, 'unmount_result')
+    if unmount_rc != 0:
+        _raise_unmount_playbook_failure(unmount_rc, unmount_stdout, unmount_stderr)
+    return playbook_result
+
+
+def _raise_unmount_playbook_failure(unmount_rc, unmount_stdout, unmount_stderr):
+    """
+    - Scrape the stdout/stderr from 'unmount' call
+    - Update VolumeStatusHistory.extra (Future)
+    - raise an Exception to let user know that unmount has failed
+    """
+    raise Exception("Unmount has failed: Stdout: %s, Stderr: %s" % (unmount_stdout, unmount_stderr))
+
+def _raise_lsof_playbook_failure(lsof_rc, lsof_stdout):
+    """
+    - Scrape the stdout from 'lsof' call
+    - Collect a list of pids currently in use
+    - raise a DeviceBusyException
+    """
+    regex = re.compile("(?P<name>[\w]+)\s*(?P<pid>[\d]+)")
+    offending_processes = []
+    for line in lsof_stdout.split('\n'):
+        match = regex.search(line)
+        if not match:
+            continue
+        search_dict = match.groupdict()
+        offending_processes.append(
+            (search_dict['name'], search_dict['pid'])
+        )
+    raise DeviceBusyException(device, offending_processes)
+
+
+def _extract_ansible_register(playbook_result, keyname):
+    """
+    NOTE: Subspace >= 0.5.0 required
+    """
+    # missing results ignored
+    if keyname not in playbook_result:
+        raise ValueError(
+            "playbook_result does not include output for %s"
+            % keyname)
+    ansible_register = playbook_result[keyname]
+    rc = ansible_register.get('rc')
+    if not rc:
+        raise ValueError(
+            "Unexpected ansible_register output -- missing 'rc': %s"
+            % ansible_register)
+    stdout = ansible_register.get('stdout')
+    if not stdout:
+        raise ValueError(
+            "Unexpected ansible_register output -- missing 'stdout': %s"
+            % ansible_register)
+    stderr = ansible_register.get('stderr')
+    if not stderr:
+        raise ValueError(
+            "Unexpected ansible_register output -- missing 'stderr': %s"
+            % ansible_register)
+    return (rc, stdout, stderr)
 
 
 def deploy_prepare_snapshot(instance_ip, username, instance_id, extra_vars={}):
