@@ -249,7 +249,7 @@ def instance_deploy(instance_ip, username, instance_id,
         extra_vars=extra_vars, **runner_opts)
 
 
-def user_deploy(instance_ip, username, instance_id, **runner_opts):
+def user_deploy(instance_ip, username, instance_id, first_deploy=True, **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     #NOTE: This method will _NOT_ work if you do not run instance deployment *FIRST*!
@@ -262,7 +262,9 @@ def user_deploy(instance_ip, username, instance_id, **runner_opts):
     # Example 'user only' strategy:
     # user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
     instance = Instance.objects.get(provider_alias=instance_id)
-    scripts = instance.scripts.all()  # TODO: determine if script should be run by passing in a 'first_deploy=True/False'
+    scripts = instance.scripts.all()
+    if not first_deploy:
+        scripts = scripts.filter(run_every_deploy=True)
 
     # Example 'all members'  strategy:
     if not instance.project:
@@ -273,11 +275,19 @@ def user_deploy(instance_ip, username, instance_id, **runner_opts):
 
     extra_vars = {
         "USERSSHKEYS": user_keys,
-        "SCRIPTS": [{"name": s.get_title_slug(), "text": s.get_text()} for s in scripts]
+        "ASYNC_SCRIPTS": [{"name": s.get_title_slug(), "text": s.get_text()} for s in scripts.filter(wait_for_deploy=False)],
+        "DEPLOY_SCRIPTS": [{"name": s.get_title_slug(), "text": s.get_text()} for s in scripts.filter(wait_for_deploy=True)],
     }
-    return ansible_deployment(
+    playbook_runner = ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
-        extra_vars=extra_vars, **runner_opts)
+        extra_vars=extra_vars, raise_exception=False, **runner_opts)
+    hostname = build_host_name(instance_id, instance_ip)
+    if hostname not in playbook_runner.stats.failures:
+        return playbook_runner
+    #Handle specific errors from ansible based on the 'register' results
+    playbook_result = playbook_runner.results.get(hostname)
+    # look at the results and email-notify user if script(s) have failed
+    return playbook_runner
 
 
 def run_utility_playbooks(instance_ip, username, instance_id,
