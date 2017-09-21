@@ -1,6 +1,8 @@
 from django.db import models
+from django.db.models import Q
 from core.models.user import AtmosphereUser
-from threepio import logger
+# from threepio import logger
+
 
 class MatchType(models.Model):
     """
@@ -42,59 +44,34 @@ class PatternMatch(models.Model):
         app_label = 'core'
 
     def __unicode__(self):
-        return "%s: %s" % (self.type, self.pattern)
+        access_label = "allow access for" if self.allow_users \
+            else "deny access for"
+        return "%s users with %s:%s" % (access_label, self.type, self.pattern)
 
-    def validate(self, atmo_user):
-        if self.type.name == 'Email':
-            result = _test_user_email(atmo_user, self.pattern)
-        elif self.type.name == "Username":
-            result = _test_username(atmo_user, self.pattern)
+    def validate_users(self):
+        """
+        Use SQL to filter-down the atmo_users affected
+        """
+        from core.models import AtmosphereUser
+        contains = False
+        if ',' in self.pattern:
+            test_patterns = self.pattern.split(",")
+        elif '*' in self.pattern:
+            contains = True
+            test_patterns = [self.pattern.replace('*', '')]
         else:
-            raise ValueError("Encountered an unexpected type: %s" % self.type.name)
-        return result
+            test_patterns = [self.pattern]
+        test_term = 'email' if self.type.name == 'Email' else 'username'
+        if contains:
+            test_term += "__contains"
 
-
-def _simple_match(test_string, pattern, contains=False):
-    if contains:
-        return pattern in test_string
-    else:
-        return pattern == test_string
-
-
-def _simple_glob_test(test_string, pattern):
-    from fnmatch import fnmatch
-    result = fnmatch(test_string, pattern)
-    return result
-
-
-def _test_user_email(atmo_user, email_pattern):
-    email = atmo_user.email.lower()
-    email_pattern = email_pattern.lower()
-    result = _simple_glob_test(
-        email,
-        email_pattern) or _simple_match(
-        email,
-        email_pattern,
-        contains=True)
-    logger.info(
-        "Email:%s Pattern:%s - Result:%s" %
-        (email, email_pattern, result))
-    return result
-
-
-def _test_username(atmo_user, username_match):
-    username = atmo_user.username
-    if '*' in username_match:
-        result = _simple_match(username, username_match, contains=True)
-    elif ',' in username_match:
-        user_matches = username_match.split(",")
-        result = any([_simple_match(username, match, contains=False) for match in user_matches])
-    else:
-        result = _simple_match(username, username_match, contains=False)
-    logger.info(
-        "Username:%s Match On:%s - Result:%s" %
-        (username, username_match, result))
-    return result
+        queries = []
+        for pattern in test_patterns:
+            query = Q(**{test_term: pattern})
+            if not self.allow_users:
+                query = ~query
+            queries.append(query)
+        return AtmosphereUser.objects.filter(*queries)
 
 
 def create_pattern_match(pattern, pattern_type, created_by):

@@ -48,17 +48,12 @@ class Application(models.Model):
         Cycle through all users, test each pattern for access
         - Add user to list if _any_ pattern matches the user
         - Returns a list of Users who passed the test
-
-        NOTE: This is *SLOW* :(
         """
         from core.models import AtmosphereUser
-        matching_users = []
-        for user in AtmosphereUser.objects.all():
-            for pattern_match in self.access_list.all():
-                if pattern_match.validate(user):
-                    matching_users.append(user.id)
-                    break
-        return AtmosphereUser.objects.filter(id__in=matching_users)
+        all_users = AtmosphereUser.objects.all()
+        for pattern_match in self.access_list.all():
+            all_users &= pattern_match.validate_users()
+        return all_users
 
     @property
     def all_versions(self):
