@@ -24,4 +24,4 @@ class PatternMatchSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = PatternMatch
-        fields = ('id', 'url', 'pattern', 'type', 'created_by')
+        fields = ('id', 'url', 'pattern', 'type', 'created_by', 'allow_access')

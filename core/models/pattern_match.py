@@ -37,14 +37,14 @@ class PatternMatch(models.Model):
     pattern = models.CharField(max_length=256)
     type = models.ForeignKey(MatchType)
     created_by = models.ForeignKey(AtmosphereUser)
-    allow_users = models.BooleanField(default=True)
+    allow_access = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'pattern_match'
         app_label = 'core'
 
     def __unicode__(self):
-        access_label = "allow access for" if self.allow_users \
+        access_label = "allow access for" if self.allow_access \
             else "deny access for"
         return "%s users with %s:%s" % (access_label, self.type, self.pattern)
 
@@ -68,7 +68,7 @@ class PatternMatch(models.Model):
         queries = []
         for pattern in test_patterns:
             query = Q(**{test_term: pattern})
-            if not self.allow_users:
+            if not self.allow_access:
                 query = ~query
             queries.append(query)
         return AtmosphereUser.objects.filter(*queries)

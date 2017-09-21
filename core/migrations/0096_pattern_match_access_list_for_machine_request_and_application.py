@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='patternmatch',
-            name='allow_users',
+            name='allow_access',
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
