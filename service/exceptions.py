@@ -201,6 +201,11 @@ class VolumeMountConflict(ServiceException):
 class AnsibleDeployException(AnsibleError, ServiceException):
     pass
 
+
+class NonZeroDeploymentException(Exception):
+    pass
+
+
 class TimeoutError(Exception):
     pass
 
