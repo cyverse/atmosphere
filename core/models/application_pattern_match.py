@@ -1,6 +1,6 @@
 from django.db import models
 from core.models.application import Application
-from core.models.match import PatternMatch
+from core.models.pattern_match import PatternMatch
 
 
 class ApplicationPatternMatch(models.Model):
@@ -9,12 +9,12 @@ class ApplicationPatternMatch(models.Model):
     implicity created by Django when we set 'Application.tags'
     """
     application = models.ForeignKey(Application)
-    match = models.ForeignKey(PatternMatch)
+    patternmatch = models.ForeignKey(PatternMatch)
 
     def __unicode__(self):
         return "%s: %s - %s" %\
-            (self.id, self.application, self.match)
+            (self.id, self.application, self.patternmatch)
 
     class Meta:
-        db_table = 'application_future_access_list'
+        db_table = 'application_access_list'
         managed = False

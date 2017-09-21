@@ -5,7 +5,8 @@ from api.v2.serializers.summaries import UserSummarySerializer, PatternMatchSumm
 from api.v2.serializers.fields import (
     ModelRelatedField,
     ImageVersionRelatedField,
-    TagRelatedField
+    TagRelatedField,
+    filter_current_user_queryset
 )
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
@@ -20,22 +21,6 @@ class SwapBooleanField(serializers.BooleanField):
         truth_value = super(SwapBooleanField, self).to_representation(value)
         swap_value = not truth_value
         return swap_value
-
-
-def filter_current_user_queryset(modelRelatedField):
-    """
-    This handy method will allow you to limit the choices of ModelRelatedField
-    based on the current request user.
-
-
-    """
-    if 'request' in modelRelatedField.context:
-        user = modelRelatedField.context['request'].user
-    if 'user' in modelRelatedField.context:
-        user = modelRelatedField.context['user']
-    # Built for PatternMatch but could be used by any Model that has a `.created_by`
-    CoreModel = modelRelatedField.serializer_class.Meta.model
-    return CoreModel.objects.filter(created_by=user)
 
 
 class ImageSerializer(serializers.HyperlinkedModelSerializer):

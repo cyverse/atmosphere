@@ -10,6 +10,7 @@ from core.models.allocation_source import (
         InstanceAllocationSourceSnapshot, AllocationSourceSnapshot)
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark, ApplicationThreshold
+from core.models.application_pattern_match import ApplicationPatternMatch
 from core.models.application_tag import ApplicationTag
 from core.models.application_version import ApplicationVersion, ApplicationVersionMembership
 from core.models.cloud_admin import CloudAdministrator

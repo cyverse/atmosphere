@@ -14,6 +14,7 @@ from .image import ImageViewSet
 from .image_metric import ImageMetricViewSet
 from .image_bookmark import ImageBookmarkViewSet
 from .image_tag import ImageTagViewSet
+from .image_access_list import ImageAccessListViewSet
 from .image_version import ImageVersionViewSet
 from .image_version_boot_script import ImageVersionBootScriptViewSet
 from .image_version_membership import ImageVersionMembershipViewSet
