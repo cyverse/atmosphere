@@ -35,6 +35,7 @@ class PatternMatch(models.Model):
     pattern = models.CharField(max_length=256)
     type = models.ForeignKey(MatchType)
     created_by = models.ForeignKey(AtmosphereUser)
+    allow_users = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'pattern_match'

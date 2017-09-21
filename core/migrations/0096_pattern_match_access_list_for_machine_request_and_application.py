@@ -13,6 +13,11 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
+            model_name='patternmatch',
+            name='allow_users',
+            field=models.BooleanField(default=True),
+        ),
+        migrations.AddField(
             model_name='application',
             name='access_list',
             field=models.ManyToManyField(to='core.PatternMatch'),
