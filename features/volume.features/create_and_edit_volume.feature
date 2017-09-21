@@ -38,8 +38,8 @@ Feature: Create volume and add to projects
       | user607             | user607           |
     When we update CyVerse snapshots
     Then we should have the following allocation source snapshots
-      | name    | compute_used |
-      | user607 | 0            |
+      | name    | compute_used | compute_allowed |
+      | user607 | 0            | 168             |
     And we should have the following user allocation source snapshots
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user607             | user607           | 0.000        | 0.000     |

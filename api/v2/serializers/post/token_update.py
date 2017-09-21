@@ -35,12 +35,13 @@ class TokenUpdateSerializer(serializers.ModelSerializer):
         identity = self._find_identity_match(validated_data['provider'], username, validated_data['project_name'])
         user = AtmosphereUser.objects.filter(username=atmosphere_username).first()
         if not user:
-                raise serializers.ValidationError(
-                    "User %s does not exist and should be created before token update." % atmosphere_username)
+           raise serializers.ValidationError(
+               "User %s does not exist and should be created before token update." % atmosphere_username)
         group = Group.objects.filter(name=atmosphere_username).first()
         if not group:
-                raise serializers.ValidationError(
-                    "Group %s does not exist and should be created before token update." % atmosphere_username)
+            group = Group.objects.create(name=atmosphere_username)
+            # raise serializers.ValidationError(
+            #     "Group %s does not exist and should be created before token update." % atmosphere_username)
 
         provider_uuid = validated_data['provider']
         if not identity:
@@ -83,8 +84,8 @@ class TokenUpdateSerializer(serializers.ModelSerializer):
         quota = None
         # FIXME: In a different PR re-work quota to sync based on the values in OpenStack.
         # otherwise the value assigned (default) will differ from the users _actual_ quota in openstack and artificially limit the account.
-        identity = Identity._create_identity(
-            user, group, provider, quota, credentials)
+        identity = Identity.build_account(
+            user.username, group.name, username, provider.location, quota, **credentials)
         self.validate_token_with_driver(provider_uuid, username, project_name, token)
         return identity
 

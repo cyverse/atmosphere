@@ -164,18 +164,18 @@ def update_snapshots(context):
 def should_have_allocation_sources(context):
     expected_allocation_sources = dict((row.cells[0], Decimal(row.cells[1]),) for row in context.table)
     from core.models import AllocationSource
-    allocation_sources = {item['name']: item['compute_allowed'] for item in
-                          AllocationSource.objects.all().order_by('name').values('name', 'compute_allowed')}
+    allocation_sources = {item.name: item.compute_allowed for item in
+                          AllocationSource.objects.all().order_by('name')}
     context.test.assertDictEqual(expected_allocation_sources, allocation_sources)
 
 
 @then(u'we should have the following allocation source snapshots')
 def should_have_allocation_source_snapshots(context):
-    expected_allocation_source_snapshots = dict((row.cells[0], Decimal(row.cells[1]),) for row in context.table)
+    expected_allocation_source_snapshots = dict(
+        (row.cells[0], [Decimal(row.cells[1]), Decimal(row.cells[2])],) for row in context.table)
     from core.models import AllocationSourceSnapshot
-    allocation_source_snapshots = {item['allocation_source__name']: item['compute_used'] for item in
-                                   AllocationSourceSnapshot.objects.all().values('allocation_source__name',
-                                                                                 'compute_used')}
+    allocation_source_snapshots = {item.allocation_source.name: [item.compute_used, item.compute_allowed] for item in
+                                   AllocationSourceSnapshot.objects.select_related('allocation_source').all()}
     context.test.assertDictEqual(expected_allocation_source_snapshots, allocation_source_snapshots)
 
 

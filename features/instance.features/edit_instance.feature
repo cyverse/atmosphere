@@ -37,8 +37,8 @@ Feature: Launching & editing of an instance
       | user407             | user407           |
     When we update CyVerse snapshots
     Then we should have the following allocation source snapshots
-      | name    | compute_used |
-      | user407 | 0            |
+      | name    | compute_used | compute_allowed |
+      | user407 | 0            | 168             |
     And we should have the following user allocation source snapshots
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user407             | user407           | 0.000        | 0.000     |
@@ -105,8 +105,8 @@ Feature: Launching & editing of an instance
     Given a current time of '2017-02-16T07:02:00Z' with tick = False
     When we update CyVerse snapshots
     Then we should have the following allocation source snapshots
-      | name    | compute_used |
-      | user407 | 0.020        |
+      | name    | compute_used | compute_allowed |
+      | user407 | 0.020        | 168             |
     And we should have the following user allocation source snapshots
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user407             | user407           | 0.020        | 1.000     |
@@ -117,8 +117,8 @@ Feature: Launching & editing of an instance
     Given a current time of '2017-02-16T08:00:00Z' with tick = False
     When we update CyVerse snapshots
     Then we should have the following allocation source snapshots
-      | name    | compute_used |
-      | user407 | 0.980        |
+      | name    | compute_used | compute_allowed |
+      | user407 | 0.980        | 168             |
     And we should have the following user allocation source snapshots
       | atmosphere_username | allocation_source | compute_used | burn_rate |
       | user407             | user407           | 0.980        | 1.000     |

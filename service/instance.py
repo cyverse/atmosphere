@@ -1605,8 +1605,8 @@ def user_network_init(core_identity):
         username = core_identity.created_by.username
     esh_driver = get_cached_driver(identity=core_identity)
     dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
-    subnet_pool_id = core_identity.provider.get_config('network', 'subnet_pool_id', None)
-    topology_name = core_identity.provider.get_config('network', 'topology', None)
+    subnet_pool_id = core_identity.provider.get_config('network', 'subnet_pool_id', raise_exc=False)
+    topology_name = core_identity.provider.get_config('network', 'topology', raise_exc=False)
     if not topology_name:
         logger.error(
             "Network topology not selected -- "
