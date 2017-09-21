@@ -286,7 +286,6 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     """
     Given a cloud_machine and db_machine, create any relationships possible for ProviderMachineMembership and ApplicationVersionMembership
     """
-    import ipdb;ipdb.set_trace()
     image_visibility = cloud_machine.get('visibility','private')
     if image_visibility.lower() == 'public':
         return
