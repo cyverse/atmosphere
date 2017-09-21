@@ -24,7 +24,7 @@ from core.models.ssh_key import get_user_ssh_keys
 from core.models import Provider, Identity, Instance, SSHKey, AtmosphereUser
 
 from service.exceptions import (
-    AnsibleDeployException, DeviceBusyException
+    AnsibleDeployException, DeviceBusyException, NonZeroDeploymentException
 )
 
 
@@ -134,17 +134,17 @@ def deploy_unmount_volume(instance_ip, username, instance_id,
     hostname = build_host_name(instance_id, instance_ip)
     if hostname not in playbook_runner.stats.failures:
         return playbook_runner
-    playbook_result = playbook_runner.results.get(hostname)
-    (lsof_rc, lsof_stdout, lsof_stderr) = _extract_ansible_register(playbook_result, 'lsof_result')
+    playbook_results = playbook_runner.results.get(hostname)
+    (lsof_rc, lsof_stdout, lsof_stderr) = _extract_ansible_register(playbook_results, 'lsof_result')
 
     #lsof returns 1 on success _and_ failure, so combination of 'rc' and 'stdout' is required
     if lsof_rc != 0 and lsof_stdout != "":
         _raise_lsof_playbook_failure(lsof_rc, lsof_stdout)
 
-    (unmount_rc, unmount_stdout, unmount_stderr) = _extract_ansible_register(playbook_result, 'unmount_result')
+    (unmount_rc, unmount_stdout, unmount_stderr) = _extract_ansible_register(playbook_results, 'unmount_result')
     if unmount_rc != 0:
         _raise_unmount_playbook_failure(unmount_rc, unmount_stdout, unmount_stderr)
-    return playbook_result
+    return playbook_results
 
 
 def _raise_unmount_playbook_failure(unmount_rc, unmount_stdout, unmount_stderr):
@@ -174,7 +174,7 @@ def _raise_lsof_playbook_failure(lsof_rc, lsof_stdout):
     raise DeviceBusyException(device, offending_processes)
 
 
-def _extract_ansible_register(playbook_result, register_name):
+def _extract_ansible_register(playbook_results, register_name):
     """
     *NOTE: Subspace >= 0.5.0 required*
 
@@ -183,12 +183,12 @@ def _extract_ansible_register(playbook_result, register_name):
     Return: exit_code, stdout, stderr
     """
 
-    if register_name not in playbook_result:
+    if register_name not in playbook_results:
         raise ValueError(
-            "playbook_result does not include output for %s"
+            "playbook_results does not include output for %s"
             % register_name)
 
-    ansible_register = playbook_result[register_name]
+    ansible_register = playbook_results[register_name]
 
     if 'failed' in ansible_register and 'msg' in ansible_register:
         raise ValueError("Unexpected ansible failure stored in register: %s" % ansible_register['msg'])
@@ -249,7 +249,7 @@ def instance_deploy(instance_ip, username, instance_id,
         extra_vars=extra_vars, **runner_opts)
 
 
-def user_deploy(instance_ip, username, instance_id, **runner_opts):
+def user_deploy(instance_ip, username, instance_id, first_deploy=True, **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     #NOTE: This method will _NOT_ work if you do not run instance deployment *FIRST*!
@@ -262,7 +262,9 @@ def user_deploy(instance_ip, username, instance_id, **runner_opts):
     # Example 'user only' strategy:
     # user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
     instance = Instance.objects.get(provider_alias=instance_id)
-    scripts = instance.scripts.all()  # TODO: determine if script should be run by passing in a 'first_deploy=True/False'
+    scripts = instance.scripts.all()
+    if not first_deploy:
+        scripts = scripts.filter(run_every_deploy=True)
 
     # Example 'all members'  strategy:
     if not instance.project:
@@ -273,11 +275,22 @@ def user_deploy(instance_ip, username, instance_id, **runner_opts):
 
     extra_vars = {
         "USERSSHKEYS": user_keys,
-        "SCRIPTS": [{"name": s.get_title_slug(), "text": s.get_text()} for s in scripts]
+        "ASYNC_SCRIPTS": [{"name": s.get_title_slug(), "text": s.get_text()} for s in scripts.filter(wait_for_deploy=False)],
+        "DEPLOY_SCRIPTS": [{"name": s.get_title_slug(), "text": s.get_text()} for s in scripts.filter(wait_for_deploy=True)],
     }
-    return ansible_deployment(
+    playbook_runner = ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
-        extra_vars=extra_vars, **runner_opts)
+        extra_vars=extra_vars, raise_exception=False, **runner_opts)
+    hostname = build_host_name(instance_id, instance_ip)
+    if hostname not in playbook_runner.stats.failures:
+        return playbook_runner
+    # An error has occurred during deployment!
+    # Handle specific errors from ansible based on the 'register' results.
+    playbook_results = playbook_runner.results.get(hostname)
+    _check_results_for_script_failure(playbook_results)
+    # If the failure was not related to users boot-scripts,
+    # handle as a generic ansible failure.
+    return raise_playbook_errors(playbook_runner, instance_ip, hostname)
 
 
 def run_utility_playbooks(instance_ip, username, instance_id,
@@ -527,3 +540,24 @@ def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
     if error_message:
         msg = error_message[:-2] + str(pb.stats.processed_playbooks.get(hostname,{}))
         raise AnsibleDeployException(msg)
+
+
+def _check_results_for_script_failure(playbook_results):
+    script_register = playbook_results.get('deploy_script_result')
+    if not script_register or not script_register.has_key('results'):
+        logger.info("Did not find registered variable 'deploy_script_result' Playbook results: %s" % playbook_results)
+        return
+    script_register_results = script_register['results']
+    for script_result in script_register_results:
+        failed = script_result.get('failed')
+        if not failed:
+            continue
+        script_rc = script_result.get('rc')
+        script_stdout = script_result.get('stdout')
+        script_stderr = script_result.get('stderr')
+        script_name = script_result.get('item')['name']
+        raise NonZeroDeploymentException(
+            "BootScript Failure: %s\n"
+            "Return Code:%s stdout:%s stderr:%s" %
+            (script_name, script_rc, script_stdout, script_stderr))
+    return

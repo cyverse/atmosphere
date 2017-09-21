@@ -49,6 +49,7 @@ class BootScript(models.Model):
     # If True: run on resume, start, restart, and Initial Launch
     # If False: run on Initial Launch ONLY
     run_every_deploy = models.BooleanField(default=False)
+    wait_for_deploy = models.BooleanField(default=True)
 
     applications = models.ManyToManyField(Application, related_name='scripts')
     instances = models.ManyToManyField(Instance, related_name='scripts')

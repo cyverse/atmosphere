@@ -724,7 +724,7 @@ def get_chain_from_active_with_ip(
         username, None, redeploy)
     deploy_user_task = _deploy_instance_for_user.si(
         driverCls, provider, identity, instance.id,
-        username, None, redeploy)
+        username, redeploy)
     check_vnc_task = check_process_task.si(
         driverCls, provider, identity, instance.id)
     check_web_desktop = check_web_desktop_task.si(
@@ -903,7 +903,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
       max_retries=3
       )
 def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
-                    username=None, password=None, token=None, redeploy=False,
+                    username=None, redeploy=False,
                     **celery_task_args):
     try:
         celery_logger.debug("_deploy_instance_for_user task started at %s." % datetime.now())
@@ -922,7 +922,13 @@ def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
         _deploy_instance.retry(exc=exc)
     try:
         username = identity.user.username
-        user_deploy(instance.ip, username, instance_id)
+        # FIXME: first_deploy would be more reliable if it was based
+        # on InstanceStatusHistory (made it to 'active'), otherwise,
+        # an instance that 'networking'->'deploy_error'->'redeploy'
+        # would miss out on scripts that require first_deploy == True..
+        # This will work for initial testing.
+        first_deploy = not redeploy
+        user_deploy(instance.ip, username, instance_id, first_deploy=first_deploy)
         _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
         celery_logger.debug("_deploy_instance_for_user task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
