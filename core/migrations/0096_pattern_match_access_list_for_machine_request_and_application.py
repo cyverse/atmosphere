@@ -27,4 +27,14 @@ class Migration(migrations.Migration):
             name='new_application_access_list',
             field=models.ManyToManyField(blank=True, to='core.PatternMatch'),
         ),
+        migrations.CreateModel(
+            name='ApplicationPatternMatch',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ],
+            options={
+                'db_table': 'application_access_list',
+                'managed': False,
+            },
+        ),
     ]
