@@ -68,9 +68,9 @@ def ansible_deployment(
         shared_users.append(username)
     extra_vars.update({
         "SHARED_USERS": shared_users,
-    })
-    extra_vars.update({
         "ATMOUSERNAME": username,
+        "ATMOSPHERE_KEYPAIR_FILE": settings.ATMOSPHERE_KEYPAIR_FILE,
+        "ATMOSPHERE_PRIVATE_KEYFILE": settings.ATMOSPHERE_PRIVATE_KEYFILE
     })
     pbs = execute_playbooks(
         playbooks_dir, host_file, extra_vars, limit_hosts,
