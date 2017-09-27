@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from threepio import logger
 
@@ -63,10 +64,11 @@ def _ensure_user_allocation_source(user):
 
 
 def _create_allocation_source(name):
+    default_compute_allowed = getattr(settings, 'ALLOCATION_SOURCE_COMPUTE_ALLOWED', 168)
     payload = {
         'uuid': str(uuid.uuid4()),
         'allocation_source_name': name,
-        'compute_allowed': 168,  # TODO: Make this configurable
+        'compute_allowed': default_compute_allowed,  # TODO: Make this a plugin configurable
         'renewal_strategy': 'default'
     }
     event = EventTable(

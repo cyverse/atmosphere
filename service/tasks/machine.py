@@ -1,5 +1,3 @@
-import time
-
 from django.utils import timezone
 from django.conf import settings
 from threepio import celery_logger, logger
@@ -19,8 +17,10 @@ from core.models.export_request import ExportRequest
 from core.models.identity import Identity
 from core.models.status_type import StatusType
 
+from service.deploy import (
+    build_host_name, deploy_prepare_snapshot,
+    execution_has_failures, execution_has_unreachable)
 from service.driver import get_admin_driver, get_esh_driver, get_account_driver
-from service.deploy import freeze_instance, sync_instance
 from service.machine import process_machine_request
 from service.tasks.driver import wait_for_instance, destroy_instance, print_chain
 
@@ -97,22 +97,29 @@ def start_machine_imaging(machine_request, delay=False):
         machine_request.old_status = original_status
         machine_request.save()
     instance_id = machine_request.instance.provider_alias
+    identity_id = machine_request.instance.created_by_identity_id
 
     (orig_managerCls, orig_creds,
      dest_managerCls, dest_creds) = machine_request.prepare_manager()
     imaging_args = machine_request.get_imaging_args()
 
 
+    # NOTE: si == (Immutable Subtask) Ignore the result of the last task, all arguments must be passed into these tasks during creation step.
+    # NOTE: s == (Subtask) Will use the result of last task as the _first argument_, arguments passed in will start from arg[1]
     imaging_error_task = machine_request_error.s(machine_request.id)
+
+    # Task 1 - prepare the instance
+    prep_instance_task = prep_instance_for_snapshot.si(identity_id, instance_id)
 
     # Task 2 = Imaging w/ Chromogenic
     imaging_task = _get_imaging_task(orig_managerCls, orig_creds,
                                      dest_managerCls, dest_creds,
                                      imaging_args)
+    prep_instance_task.link(imaging_task)
     imaging_task.link_error(imaging_error_task)
     # Assume we are starting from the beginning.
-    init_task = imaging_task
-    # Task 2 = Process the machine request
+    init_task = prep_instance_task
+    # Task 3 = Process the machine request
     if 'processing - ' in original_status:
         # If processing, start here..
         image_id = original_status.replace("processing - ", "")
@@ -125,9 +132,10 @@ def start_machine_imaging(machine_request, delay=False):
         imaging_task.link(process_task)
     process_task.link_error(imaging_error_task)
 
+    # Task 4 (Optional) - Validate the image by launching a new instance
+    # To skip, set ENABLE_IMAGE_VALIDATION to False
 
     # Final Task - email the user that their image is ready
-    # NOTE: si == Ignore the result of the last task.
     email_task = imaging_complete.si(machine_request.id)
     email_task.link_error(imaging_error_task)
     if getattr(settings, 'ENABLE_IMAGE_VALIDATION', True):
@@ -358,21 +366,26 @@ def validate_new_image(image_id, machine_request_id):
     raise Exception("Validation of new Image %s has *FAILED*" % image_id)
 
 
-@task(name='freeze_instance_task', ignore_result=False)
-def freeze_instance_task(identity_id, instance_id, **celery_task_args):
+@task(name='prep_instance_for_snapshot', ignore_result=False)
+def prep_instance_for_snapshot(identity_id, instance_id, **celery_task_args):
     identity = Identity.objects.get(id=identity_id)
-    driver = get_esh_driver(identity)
-    kwargs = {}
-    private_key = "/opt/dev/atmosphere/extras/ssh/id_rsa"
-    kwargs.update({'ssh_key': private_key})
-    kwargs.update({'timeout': 120})
-
-    si_script = sync_instance()
-    kwargs.update({'deploy': si_script})
-
-    instance = driver.get_instance(instance_id)
-    driver.deploy_to(instance, **kwargs)
-
-    fi_script = freeze_instance()
-    kwargs.update({'deploy': fi_script})
-    driver.deploy_to(instance, **kwargs)
+    try:
+        celery_logger.debug("prep_instance_for_snapshot task started at %s." % timezone.now())
+        # NOTE: FIXMEIF the assumption that the 'linux username'
+        # is the 'created_by' AtmosphereUser changes.
+        username = identity.created_by.username
+        driver = get_esh_driver(identity)
+        instance = driver.get_instance(instance_id)
+        playbooks = deploy_prepare_snapshot(
+            instance.ip, username, instance_id)
+        celery_logger.info(playbooks.__dict__)
+        hostname = build_host_name(instance.id, instance.ip)
+        result = False if execution_has_failures(playbooks, hostname)\
+            or execution_has_unreachable(playbooks, hostname) else True
+        if not result:
+            raise Exception(
+                "Error encountered while preparing instance for snapshot: %s"
+                % playbooks.stats.summarize(host=hostname))
+    except Exception as exc:
+        celery_logger.warn(exc)
+        prep_instance_for_snapshot.retry(exc=exc)

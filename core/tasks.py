@@ -31,9 +31,7 @@ def send_email(subject, body, from_email, to, cc=None,
                            cc=cc)
         if html:
             msg.content_subtype = 'html'
-        log_message = "\n> From:{0}\n> To:{1}\n> Cc:{2}\n> Subject:{3}\n> Body:\n{4}"
-        args = (from_email, to, cc, subject, body)
-        email_logger.info(log_message.format(*args))
+        email_logger.info("\n> From:%s\n> To:%s\n> Cc:%s\n> Subject:%s\n> Body:\n%s", from_email, to, cc, subject, body)
         if getattr(settings, "SEND_EMAILS", True):
             msg.send(fail_silently=fail_silently)
             email_logger.info("NOTE: Above message sent successfully")
