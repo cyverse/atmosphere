@@ -8,6 +8,7 @@ from .license import LicenseSummarySerializer
 from .license_type import LicenseTypeSummarySerializer
 from .link import ExternalLinkSummarySerializer
 from .boot_script import BootScriptSummarySerializer
+from .pattern_match import PatternMatchSummarySerializer
 from .project import ProjectSummarySerializer
 from .provider import ProviderSummarySerializer
 from .provider_machine import ProviderMachineSummarySerializer

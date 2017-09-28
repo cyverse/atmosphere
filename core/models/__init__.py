@@ -10,6 +10,7 @@ from core.models.allocation_source import (
         InstanceAllocationSourceSnapshot, AllocationSourceSnapshot)
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark, ApplicationThreshold
+from core.models.application_pattern_match import ApplicationPatternMatch
 from core.models.application_tag import ApplicationTag
 from core.models.application_version import ApplicationVersion, ApplicationVersionMembership
 from core.models.cloud_admin import CloudAdministrator
@@ -32,7 +33,7 @@ from core.models.provider import (
 from core.models.license import LicenseType, License, ApplicationVersionLicense
 from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
-from core.models.match import PatternMatch, MatchType
+from core.models.pattern_match import PatternMatch, MatchType
 from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance
 from core.models.instance_action import InstanceAction

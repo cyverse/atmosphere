@@ -80,3 +80,18 @@ class InstanceSourceHyperlinkedIdentityField(serializers.HyperlinkedIdentityFiel
             request=request,
             format=format,
         )
+
+
+def filter_current_user_queryset(modelRelatedFieldObj):
+    """
+    This handy method will allow you to limit
+    the choices of modelRelatedFieldObj based on
+    the current request user.
+    """
+    if 'request' in modelRelatedFieldObj.context:
+        user = modelRelatedFieldObj.context['request'].user
+    if 'user' in modelRelatedFieldObj.context:
+        user = modelRelatedFieldObj.context['user']
+    # Built for PatternMatch but could be used by any Model that has a `.created_by`
+    CoreModel = modelRelatedFieldObj.serializer_class.Meta.model
+    return CoreModel.objects.filter(created_by=user)

@@ -52,6 +52,7 @@ class MachineRequest(BaseRequest):
         default='Description Missing')
     new_application_visibility = models.CharField(
         max_length=256, default='private')  # Choices:Public, Private, Select
+    new_application_access_list = models.ManyToManyField("PatternMatch", blank=True)
     access_list = models.TextField(
         default='',
         blank=True,

@@ -1,9 +1,13 @@
-from core.models import Application as Image, BootScript
+from core.models import Application as Image, BootScript, PatternMatch
 from rest_framework import serializers
 
-from api.v2.serializers.summaries import UserSummarySerializer
+from api.v2.serializers.summaries import UserSummarySerializer, PatternMatchSummarySerializer
 from api.v2.serializers.fields import (
-        ImageVersionRelatedField, TagRelatedField)
+    ModelRelatedField,
+    ImageVersionRelatedField,
+    TagRelatedField,
+    filter_current_user_queryset
+)
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
@@ -21,6 +25,11 @@ class SwapBooleanField(serializers.BooleanField):
 
 class ImageSerializer(serializers.HyperlinkedModelSerializer):
     created_by = UserSummarySerializer(read_only=True)
+    access_list = ModelRelatedField(
+        many=True,
+        queryset=filter_current_user_queryset,
+        serializer_class=PatternMatchSummarySerializer,
+        style={'base_template': 'input.html'})
     tags = TagRelatedField(many=True)
     versions = ImageVersionRelatedField(many=True)
     icon = serializers.CharField(source="get_icon_url", read_only=True)
@@ -47,6 +56,7 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
             'is_public',
             'icon',
             'start_date',
+            'access_list',
             'tags',
             'versions'
         )
