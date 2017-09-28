@@ -128,10 +128,10 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         if not request_user.is_staff and not request_user.is_superuser:
             raise Exception('User not allowed to run commands')
 
-        if not 'username' in request_data:
+        if 'username' not in request_data:
             raise Exception('Missing User from request data ')
 
-        if not 'allocation_source_name' in request_data:
+        if 'allocation_source_name' not in request_data:
             raise Exception('Missing Allocation Source Name from request data')
 
         self._for_validate_userallocationsource(request_data, delete)

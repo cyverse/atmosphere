@@ -309,6 +309,7 @@ class UserAllocationSourceAdmin(admin.ModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
+        from api.v2.views import UserAllocationSourceViewSet
         request.data = {"username": obj.user.username,
                         "allocation_source_name": obj.allocation_source.name}
         if not change:
@@ -318,6 +319,7 @@ class UserAllocationSourceAdmin(admin.ModelAdmin):
             return
 
     def delete_model(self, request, obj):
+        from api.v2.views import UserAllocationSourceViewSet
         request.data = request.data = {"username": obj.user.username,
                                        "allocation_source_name": obj.allocation_source.name}
 

@@ -2,22 +2,30 @@ import logging
 import uuid
 from datetime import timedelta
 
+# noinspection PyUnresolvedReferences
 from behave import *
+from behave import when, then, given, step
 from django.db.models import Sum
+from django.conf import settings
+from django.utils import timezone
 
 from api.tests.factories import (
     UserFactory, InstanceFactory, IdentityFactory, InstanceStatusFactory,
     ProviderFactory, ProviderMachineFactory, InstanceHistoryFactory)
-from core.models import *
 from core.models.allocation_source import total_usage
 from jetstream.exceptions import TASPluginException
-from jetstream.models import *
+from core.models import (
+    AllocationSource, UserAllocationSource, EventTable,
+    InstanceStatusHistory, ProviderMachine, Size,
+    AtmosphereUser
+)
+from jetstream.models import TASAllocationReport
+from jetstream.allocation import TASAPIDriver
 
 logger = logging.getLogger(__name__)
 
-
 @given('a test Allocation Source')
-def step_impl(context):
+def a_test_allocation_source(context):
     context.current_time = timezone.now()
     name, compute_allowed = "testSource", 1000
     context.allocation_source = AllocationSource.objects.create(name=name, compute_allowed=compute_allowed)
@@ -26,7 +34,7 @@ def step_impl(context):
 
 
 @when('Allocation Source is assigned to Users')
-def step_impl(context):
+def allocation_source_is_assigned_to_users(context):
     context.users = []
     for row in context.table:
         number_of_users = int(row['number of users assigned to allocation source'])
@@ -40,7 +48,7 @@ def step_impl(context):
 
 
 @when('All Users run an instance on Allocation Source for indefinite duration')
-def step_impl(context):
+def all_users_run_an_instance_on_allocation_source_for_indefinite_duration(context):
     for row in context.table:
         cpu_size = int(row['cpu size of instance'])
         context.cpu_size = cpu_size
@@ -60,7 +68,7 @@ def step_impl(context):
 
 
 @when('create_reports task is run for the first time')
-def step_impl(context):
+def create_reports_task_is_run_for_the_first_time(context):
     for row in context.table:
         interval_time = int(row['task runs every x minutes'])
         context.interval_time = interval_time
@@ -84,7 +92,7 @@ def step_impl(context):
 
 
 @when('Users are deleted from Allocation Source after first create_reports run')
-def step_impl(context):
+def users_are_deleted_from_allocation_source_after_first_create_reports_run(context):
     for row in context.table:
         users_deleted = int(row['number of users deleted from allocation source'])
         users_deleted_after_time = int(row['users deleted x minutes after the first create_reports run'])
@@ -102,9 +110,8 @@ def step_impl(context):
         assert (len(UserAllocationSource.objects.filter(user=user, allocation_source=context.allocation_source)) == 0)
 
 
-@then(
-    'Total expected allocation usage for allocation source matches calculated allocation usage from reports after next create_reports run')
-def step_impl(context):
+@then('Total expected allocation usage for allocation source matches calculated allocation usage from reports after next create_reports run')
+def total_expected_allocation_usage_for_allocation_source_matches_calculated_allocation_usage_from_reports_after_next_create_reports_run(context):
     for row in context.table:
         total_expected_usage = int(row['total expected allocation usage in minutes'])
 

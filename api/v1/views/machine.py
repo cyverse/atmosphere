@@ -4,12 +4,9 @@ Atmosphere service machine rest api.
 """
 import os
 
-from django.core.paginator import Paginator,\
-    PageNotAnInteger, EmptyPage
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -158,7 +155,6 @@ class MachineSearch(AuthListAPIView):
     def get_queryset(self):
         """
         """
-        user = self.request.user
         query = self.request.query_params.get('query')
         identity_uuid = self.kwargs['identity_uuid']
 
@@ -338,7 +334,6 @@ class MachineLicense(AuthAPIView):
         TODO: Determine who is allowed to edit machines besides
         core_machine.owner
         """
-        user = request.user
         data = request.data
 
         logger.info('data = %s' % request.data)

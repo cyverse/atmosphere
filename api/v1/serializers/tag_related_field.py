@@ -1,5 +1,5 @@
 from core.models.identity import Identity
-from core.models.tag import Tag, find_or_create_tag
+from core.models.tag import find_or_create_tag
 from rest_framework import serializers
 
 

@@ -56,7 +56,7 @@ function normalize {
 }
 
 function generate_requirements {
-    pip-compile --dry-run -o requirements.txt requirements.in 2>/dev/null;
+    pip-compile --max-rounds 20 --dry-run -o requirements.txt requirements.in 2>/dev/null;
 }
 
 function pip-tools-version {

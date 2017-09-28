@@ -2,18 +2,13 @@
 Atmosphere service maintenance record rest api.
 
 """
-import copy
-
 from django.contrib.auth.models import AnonymousUser
-from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.response import Response
 
 from core.models.maintenance import\
     MaintenanceRecord as CoreMaintenanceRecord
-from core.models.provider import Provider
-from core.query import only_current_provider
 
 from api.v1.serializers import MaintenanceRecordSerializer
 from api.v1.views.base import AuthOptionalAPIView

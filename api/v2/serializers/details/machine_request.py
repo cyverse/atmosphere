@@ -15,7 +15,6 @@ from api.v2.serializers.summaries import (
     GroupSummarySerializer,
     InstanceSummarySerializer,
     LicenseSummarySerializer,
-    UserSummarySerializer,
     PatternMatchSummarySerializer,
     ProviderSummarySerializer,
     ProviderMachineSummarySerializer,
@@ -39,7 +38,7 @@ class UserRelatedField(serializers.PrimaryKeyRelatedField):
         return serializer.data
 
 class InstanceRelatedField(serializers.RelatedField):
-    
+
     def get_queryset(self):
         return Instance.objects.all()
 
@@ -244,7 +243,7 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     )
     #FIXME: tags are missing here.
     # version change log is missing
-    # 
+    #
     class Meta:
         model = MachineRequest
         fields = (

@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from threepio import logger
 from core.models.user import AtmosphereUser
 from core.models.provider import Provider
 from core.models.cloud_admin import CloudAdministrator

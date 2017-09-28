@@ -189,7 +189,7 @@ class InstanceList(AuthAPIView):
             return over_quota(oqe)
         except OverAllocationError as oae:
             return over_quota(oae)
-        except Unauthorized as auth_invalid:
+        except Unauthorized:
             return invalid_creds(provider_uuid, identity_uuid)
         except SizeNotAvailable as snae:
             return size_not_available(snae)

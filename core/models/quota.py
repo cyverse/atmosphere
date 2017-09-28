@@ -273,7 +273,7 @@ def has_floating_ip_count_quota(driver, quota, new_size=0, raise_exc=True):
     True if the total number of floating ips found on driver are
     less than or equal to Quota.floating_ip_count, otherwise False.
     """
-   # Always False if quota doesnt exist, new size is negative
+    # Always False if quota doesnt exist, new size is negative
     if not quota or new_size < 0:
         return False
     # Always True if floating_ip_count is null

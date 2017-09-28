@@ -3,7 +3,6 @@ from core.query import only_current, only_current_source
 from rest_framework import serializers
 from .instance_serializer import InstanceSerializer
 from .volume_serializer import VolumeSerializer
-from .get_context_user import get_context_user
 
 
 class ProjectSerializer(serializers.ModelSerializer):

@@ -393,8 +393,9 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
         esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, esh_instance.id, core_identity, redeploy=True)
     # Link em all together!
-    task_one.link(task_two)
-    task_two.link(task_three)
+    task_one.link(task_three)
+    # task_one.link(task_two)
+    # task_two.link(task_three)
     task_three.link(task_four)
     return task_one
 
@@ -1259,7 +1260,7 @@ def check_application_threshold(
 
     if not threshold:
         return
-    
+
     # NOTE: Should be MB to MB test
     if esh_size.ram < threshold.memory_min:
         raise UnderThresholdError("This application requires >=%s GB of RAM."
@@ -1422,7 +1423,7 @@ def neutron_set_security_group_rules(security_group_name, security_group_rules_d
                 rule_body['security_group_rule'].pop("remote_group_id")
             user_neutron.create_security_group_rule(body=rule_body)
         except Conflict:
-        # The rule has already in the sec_group
+            # The rule has already in the sec_group
             pass
     return True
 
@@ -1453,7 +1454,7 @@ def libcloud_set_security_group_rules(lc_driver, security_group, rules):
             raise Exception("Invalid DEFAULT_RULES contain a rule, %s, which does not match the expected format" % rule_tuple)
 
         try:
-            # attempt to find 
+            # attempt to find
             rule_found = any(
                 sg_rule for sg_rule in security_group.rules
                 if sg_rule.ip_protocol == ip_protocol.lower() and

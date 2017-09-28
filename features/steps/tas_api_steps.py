@@ -7,7 +7,9 @@ from decimal import Decimal
 import django
 import django.test
 import mock
+# noinspection PyUnresolvedReferences
 from behave import *
+from behave import when, then, given, step
 
 import api.tests.factories
 import jetstream
@@ -307,7 +309,7 @@ def setup_tas_api_failover_scenario(context):
 
 
 @step("the user should be valid - {user_is_valid}")
-def step_impl(context, user_is_valid):
+def the_user_should_be_valid(context, user_is_valid):
     """
     :type context: behave.runner.Context
     :type user_is_valid: str
@@ -350,7 +352,7 @@ def step_impl(context, user_is_valid):
 
 
 @step("we ensure local allocation is created or deleted")
-def step_impl(context):
+def we_ensure_local_allocation_is_created_or_deleted(context):
     """
     :type context: behave.runner.Context
     :type has_local_allocation: str
