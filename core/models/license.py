@@ -2,7 +2,7 @@ from django.db import models
 from uuid import uuid4
 
 from core.models.user import AtmosphereUser
-from core.models.match import PatternMatch
+from core.models.pattern_match import PatternMatch
 
 
 class LicenseType(models.Model):

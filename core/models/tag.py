@@ -15,6 +15,11 @@ class Tag(models.Model):
     user = models.ForeignKey('AtmosphereUser', null=True, blank=True)
 
     def allow_access(self, user):
+        """
+        - Lookup the user. Only return True if:
+          - user is staff
+          - tagname is not in 'settings.BLACKLIST_TAGS'
+        """
         tag_name = self.name.lower()
         if user and (user.is_staff or user.is_superuser):
             return True
