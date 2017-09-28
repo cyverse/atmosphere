@@ -178,16 +178,20 @@ class ImageMetricsTest(APITestCase, APISanityTestCase):
         """Given the setUp above, 1/4 instances are active."""
         client = APIClient()
         client.force_authenticate(user=self.staff_user)
-        expected_metrics = {'active': 1, 'total': 4}
+        expected_metrics = {
+            'instances': {'total': 4, 'percent': 25.0, 'success': 1},
+            'forks': 0,
+            'bookmarks': 0,
+            'projects': 0
+        }
 
         url = reverse(self.url_route+'-detail', args=(self.application.uuid,))
         response = client.get(url)
         self.assertEquals(response.status_code, 200)
         data = response.data
         api_metrics = data['metrics']
-        metrics = api_metrics.values()[-1]
 
-        self.assertEquals(metrics, expected_metrics)
+        self.assertEquals(api_metrics, expected_metrics)
 
     @skip("Skipping until we know how we want to measure statistics like these.")
     def test_complex_instance_affect_on_metrics(self):

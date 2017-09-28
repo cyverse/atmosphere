@@ -14,6 +14,7 @@ from .image import ImageViewSet
 from .image_metric import ImageMetricViewSet
 from .image_bookmark import ImageBookmarkViewSet
 from .image_tag import ImageTagViewSet
+from .image_access_list import ImageAccessListViewSet
 from .image_version import ImageVersionViewSet
 from .image_version_boot_script import ImageVersionBootScriptViewSet
 from .image_version_membership import ImageVersionMembershipViewSet
@@ -27,6 +28,7 @@ from .license import LicenseViewSet
 from .link import ExternalLinkViewSet
 from .machine_request import MachineRequestViewSet
 from .maintenance_record import MaintenanceRecordViewSet
+from .pattern_match import PatternMatchViewSet
 from .platform_type import PlatformTypeViewSet
 from .project import ProjectViewSet
 from .project_application import ProjectApplicationViewSet

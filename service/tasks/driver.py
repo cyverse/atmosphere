@@ -18,7 +18,6 @@ from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError
 
 #TODO: Internalize exception into RTwo
 from rtwo.exceptions import NonZeroDeploymentException, NeutronBadRequest
-from rtwo.exceptions import LibcloudDeploymentError
 from neutronclient.common.exceptions import IpAddressGenerationFailureClient
 
 from threepio import celery_logger, status_logger, logger
@@ -32,7 +31,6 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.deploy import (
-    check_process,
     instance_deploy, user_deploy,
     build_host_name,
     ready_to_deploy as ansible_ready_to_deploy,
@@ -726,7 +724,7 @@ def get_chain_from_active_with_ip(
         username, None, redeploy)
     deploy_user_task = _deploy_instance_for_user.si(
         driverCls, provider, identity, instance.id,
-        username, None, redeploy)
+        username, redeploy)
     check_vnc_task = check_process_task.si(
         driverCls, provider, identity, instance.id)
     check_web_desktop = check_web_desktop_task.si(
@@ -905,7 +903,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
       max_retries=3
       )
 def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
-                    username=None, password=None, token=None, redeploy=False,
+                    username=None, redeploy=False,
                     **celery_task_args):
     try:
         celery_logger.debug("_deploy_instance_for_user task started at %s." % datetime.now())
@@ -924,7 +922,13 @@ def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
         _deploy_instance.retry(exc=exc)
     try:
         username = identity.user.username
-        user_deploy(instance.ip, username, instance_id)
+        # FIXME: first_deploy would be more reliable if it was based
+        # on InstanceStatusHistory (made it to 'active'), otherwise,
+        # an instance that 'networking'->'deploy_error'->'redeploy'
+        # would miss out on scripts that require first_deploy == True..
+        # This will work for initial testing.
+        first_deploy = not redeploy
+        user_deploy(instance.ip, username, instance_id, first_deploy=first_deploy)
         _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
         celery_logger.debug("_deploy_instance_for_user task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
@@ -945,8 +949,6 @@ def _deploy_instance_for_user(driverCls, provider, identity, instance_id,
 def _deploy_instance(driverCls, provider, identity, instance_id,
                     username=None, password=None, token=None, redeploy=False,
                     **celery_task_args):
-    # Note: Splitting preperation (Of the MultiScriptDeployment) and execution
-    # This makes it easier to output scripts for debugging of users.
     try:
         celery_logger.debug("_deploy_instance task started at %s." % datetime.now())
         # Check if instance still exists
@@ -974,23 +976,6 @@ def _deploy_instance(driverCls, provider, identity, instance_id,
         celery_logger.debug("_deploy_instance task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
         celery_logger.exception(exc)
-        _deploy_instance.retry(exc=exc)
-    except LibcloudDeploymentError as exc:
-        celery_logger.exception(exc)
-        # TODO: Figure out where `_parse_steps_output` went and reproduce functionality
-        # See: https://github.com/cyverse/atmosphere/issues/491
-        # full_deploy_output = _parse_steps_output(msd)
-        full_deploy_output = '[Steps Omitted]'
-        if isinstance(exc.value, NonZeroDeploymentException):
-            # The deployment was successful, but the return code on one or more
-            # steps is bad. Log the exception and do NOT try again!
-            raise NonZeroDeploymentException(exc.message),\
-                "One or more Script(s) reported a NonZeroDeployment:%s"\
-                % full_deploy_output,\
-                sys.exc_info()[2]
-        # TODO: Check if all exceptions thrown at this time
-        # fall in this category, and possibly don't retry if
-        # you hit the Exception block below this.
         _deploy_instance.retry(exc=exc)
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
@@ -1134,16 +1119,20 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
         time.sleep(15)
     try:
         celery_logger.debug("add_floating_ip task started at %s." % datetime.now())
-        # Remove unused floating IPs first, so they can be re-used
-        driver = get_driver(driverCls, provider, identity)
-        driver._clean_floating_ip()
+        core_identity = Identity.objects.get(uuid=core_identity_uuid)
+
+        # NOTE: This if statement is a HACK! It will be removed when IP management is enabled in an upcoming version. -SG
+        if core_identity.provider.location != 'iPlant Cloud - Tucson':
+            # Remove unused floating IPs first, so they can be re-used
+            driver = get_driver(driverCls, provider, identity)
+            driver._clean_floating_ip()
+        # ENDNOTE
 
         # assign if instance doesn't already have an IP addr
         instance = driver.get_instance(instance_alias)
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_alias)
             return None
-        core_identity = Identity.objects.get(uuid=core_identity_uuid)
         network_driver = instance_service._to_network_driver(core_identity)
         floating_ips = network_driver.list_floating_ips()
         selected_floating_ip = None

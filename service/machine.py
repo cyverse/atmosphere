@@ -81,12 +81,14 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
             created_by_identity=owner_identity,
             description=machine_request.new_application_description,
             private=not machine_request.is_public(),
-            tags=tags)
+            tags=tags,
+            access_list=machine_request.new_application_access_list.all())
     else:
         application = update_application(
             parent_version.application,
             machine_request.new_application_name,
             tags,
+            machine_request.new_application_access_list.all(),
             machine_request.new_application_description)
     #FIXME: Either *add* system_files here, or *remove* the entire field.
     app_version = create_app_version(

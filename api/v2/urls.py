@@ -26,6 +26,7 @@ router.register(r'images', views.ImageViewSet, base_name='application')
 router.register(r'image_metrics', views.ImageMetricViewSet, base_name='applicationmetric')
 router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
 router.register(r'image_tags', views.ImageTagViewSet)
+router.register(r'image_access_lists', views.ImageAccessListViewSet, base_name='applicationaccesslist')
 router.register(
     r'image_versions',
     views.ImageVersionViewSet,
@@ -58,6 +59,7 @@ router.register(r'links', views.ExternalLinkViewSet)
 router.register(r'machine_requests', views.MachineRequestViewSet)
 router.register(r'maintenance_records', views.MaintenanceRecordViewSet)
 router.register(r'metrics', views.MetricViewSet, base_name='metrics')
+router.register(r'pattern_matches', views.PatternMatchViewSet)
 router.register(r'platform_types', views.PlatformTypeViewSet)
 router.register(r'projects', views.ProjectViewSet)
 router.register(r'project_links', views.ProjectExternalLinkViewSet, base_name='projectlinks')

@@ -187,7 +187,7 @@ snowballstemmer==1.2.1    # via pydocstyle
 splinter==0.7.6           # via behaving
 sqlparse==0.2.3           # via django-debug-toolbar
 stevedore==1.25.0
-subspace==0.4.1
+subspace==0.5
 threepio==0.2.0
 tornado==4.5.1
 traitlets==4.3.2          # via ipython

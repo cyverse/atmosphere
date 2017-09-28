@@ -2,7 +2,7 @@ from rest_framework import exceptions, serializers
 
 from core.models import (
     ApplicationVersion, ProviderMachine, Group,
-    BootScript, Provider, License, Instance,
+    BootScript, PatternMatch, Provider, License, Instance,
     MachineRequest, Identity,
     AtmosphereUser as User,
     IdentityMembership
@@ -15,6 +15,7 @@ from api.v2.serializers.summaries import (
     GroupSummarySerializer,
     InstanceSummarySerializer,
     LicenseSummarySerializer,
+    PatternMatchSummarySerializer,
     ProviderSummarySerializer,
     ProviderMachineSummarySerializer,
     QuotaSummarySerializer,
@@ -105,6 +106,12 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
         serializer_class=BootScriptSummarySerializer,
         style={'base_template': 'input.html'},
         required=False)
+    new_application_access_list = ModelRelatedField(
+        many=True,
+        queryset=PatternMatch.objects.all(),
+        serializer_class=PatternMatchSummarySerializer,
+        style={'base_template':'input.html'},
+        required=False)
     new_version_membership = ModelRelatedField(
         many=True,
         queryset=Group.objects.all(),
@@ -145,7 +152,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'new_application_name',
             'new_application_description',
             'new_application_visibility',
-            'access_list',
+            'new_application_access_list',
             'system_files',
             'installed_software',
             'exclude_files',
@@ -185,6 +192,12 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
     new_application_version = ImageVersionSummarySerializer(read_only=True)
     new_application_name = serializers.CharField(validators=[NoSpecialCharacters('!"#$%&\'*+,/;<=>?@[\\]^`{|}~')])
     new_application_description = serializers.CharField()
+    new_application_access_list = ModelRelatedField(
+        many=True,
+        queryset=PatternMatch.objects.all(),
+        serializer_class=PatternMatchSummarySerializer,
+        style={'base_template':'input.html'},
+        required=False)
     access_list = serializers.CharField(allow_blank=True)
     system_files = serializers.CharField(allow_blank=True, required=False)
     installed_software = serializers.CharField()
@@ -245,6 +258,7 @@ class UserMachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'old_status',
             'new_application_visibility',
             'new_application_name',
+            'new_application_access_list',
             'new_application_description',
             'access_list',
             'system_files',

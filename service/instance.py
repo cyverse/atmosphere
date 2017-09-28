@@ -379,17 +379,12 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     """
     from service.tasks.driver import deploy_init_to
     from service.tasks.driver import wait_for_instance, complete_resize
-    from service.deploy import deploy_test
-    touch_script = deploy_test()
     core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
 
     task_one = wait_for_instance.s(
         esh_instance.id, esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, "verify_resize")
     raise Exception("Programmer -- Fix this method based on the TODO")
-    # task_two = deploy_script.si(
-    #     esh_driver.__class__, esh_driver.provider,
-    #     esh_driver.identity, esh_instance.id, touch_script)
     task_three = complete_resize.si(
         esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, esh_instance.id,
@@ -1611,8 +1606,8 @@ def user_network_init(core_identity):
         username = core_identity.created_by.username
     esh_driver = get_cached_driver(identity=core_identity)
     dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
-    subnet_pool_id = core_identity.provider.get_config('network', 'subnet_pool_id', None)
-    topology_name = core_identity.provider.get_config('network', 'topology', None)
+    subnet_pool_id = core_identity.provider.get_config('network', 'subnet_pool_id', raise_exc=False)
+    topology_name = core_identity.provider.get_config('network', 'topology', raise_exc=False)
     if not topology_name:
         logger.error(
             "Network topology not selected -- "
@@ -1953,16 +1948,16 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
                 'a volume. (Current: %s)'
                 'Retry request when instance is active.'
                 % (instance_id, instance_status))
-        result = task.attach_volume_task(
+        result = task.attach_volume(
                 identity, esh_driver, esh_instance.alias,
                 volume_id, device_location, mount_location)
     elif 'mount_volume' == action_type:
-        result = task.mount_volume_task(
+        result = task.mount_volume(
                 identity, esh_driver, esh_instance.alias,
                 volume_id, device_location, mount_location)
     elif 'unmount_volume' == action_type:
         (result, error_msg) =\
-            task.unmount_volume_task(esh_driver,
+            task.unmount_volume(esh_driver,
                                      esh_instance.alias,
                                      volume_id, device_location,
                                      mount_location)
@@ -1975,7 +1970,7 @@ def run_instance_volume_action(user, identity, esh_driver, esh_instance, action_
                 'Retry request when instance is active.'
                 % (instance_id, instance_status))
         (result, error_msg) =\
-            task.detach_volume_task(esh_driver,
+            task.detach_volume(esh_driver,
                                     esh_instance.alias,
                                     volume_id)
         if not result and error_msg:
@@ -2012,6 +2007,11 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     # Gather instance related parameters
     provider_uuid = identity.provider.uuid
     identity_uuid = identity.uuid
+
+    # NOTE: This if statement is a HACK! It will be removed when IP management is enabled in an upcoming version. -SG
+    reclaim_ip = True if identity.provider.location != 'iPlant Cloud - Tucson' else False
+    # ENDNOTE
+
     logger.info("User %s has initiated instance action %s to be executed on Instance %s" % (user, action_type, instance_id))
     if 'resize' == action_type:
         size_alias = action_params.get('size', '')
@@ -2035,17 +2035,19 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     elif 'suspend' == action_type:
         result_obj = suspend_instance(esh_driver, esh_instance,
                                       provider_uuid, identity_uuid,
-                                      user)
+                                      user, reclaim_ip)
     elif 'shelve' == action_type:
         result_obj = shelve_instance(esh_driver, esh_instance,
                                      provider_uuid, identity_uuid,
-                                     user)
+                                     user, reclaim_ip)
     elif 'unshelve' == action_type:
         result_obj = unshelve_instance(esh_driver, esh_instance,
                                        provider_uuid, identity_uuid,
                                        user)
     elif 'shelve_offload' == action_type:
-        result_obj = offload_instance(esh_driver, esh_instance)
+        result_obj = offload_instance(esh_driver, esh_instance,
+                                      provider_uuid, identity_uuid,
+                                      user, reclaim_ip)
     elif 'start' == action_type:
         result_obj = start_instance(
             esh_driver, esh_instance,
@@ -2053,7 +2055,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     elif 'stop' == action_type:
         result_obj = stop_instance(
             esh_driver, esh_instance,
-            provider_uuid, identity_uuid, user)
+            provider_uuid, identity_uuid, user, reclaim_ip)
     elif 'reset_network' == action_type:
         esh_driver.reset_network(esh_instance)
     elif 'console' == action_type:

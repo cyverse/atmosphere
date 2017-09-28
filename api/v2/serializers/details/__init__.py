@@ -14,6 +14,7 @@ from .identity_membership import IdentityMembershipSerializer
 from .image import ImageSerializer
 from .image_metric import ImageMetricSerializer
 from .image_tag import ImageTagSerializer
+from .image_access_list import ImageAccessListSerializer
 from .image_bookmark import ImageBookmarkSerializer
 from .instance_action import InstanceActionSerializer
 from .instance_tag import InstanceTagSerializer
@@ -24,6 +25,7 @@ from .license import LicenseSerializer
 from .link import ExternalLinkSerializer
 from .maintenance_record import MaintenanceRecordSerializer
 from .machine_request import (MachineRequestSerializer, UserMachineRequestSerializer)
+from .pattern_match import PatternMatchSerializer
 from .project import ProjectSerializer
 from .project_application import ProjectApplicationSerializer
 from .project_link import ProjectExternalLinkSerializer

@@ -1,0 +1,16 @@
+[
+{
+  "pk": 1, 
+  "model": "core.matchtype", 
+  "fields": {
+    "name": "Email"
+  }
+},
+{
+  "pk": 2, 
+  "model": "core.matchtype", 
+  "fields": {
+    "name": "Username"
+  }
+}
+]

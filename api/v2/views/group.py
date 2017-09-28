@@ -125,5 +125,11 @@ class GroupViewSet(MultipleFieldLookup, AuthModelViewSet):
                 self.request._request.method != 'GET'
                 ):
             return Group.objects.all()
+        # Allow non-staff users to search the group API, useful for GUI experience
+        # NOTE: In the project-sharing, user-group-mapping future,
+        # this could be removed so that users can only
+        # add members who are in the same group...
+        if 'search' in self.request.query_params and self.request._request.method == 'GET':
+            return Group.objects.all()
         user_id = self.request.user.id
         return Group.objects.filter(memberships__user__id=user_id)

@@ -111,9 +111,9 @@ Feature: Monitor Jetstream Allocation Sources
     And we fill user allocation sources from TAS
     And we update snapshots
     Then we should have the following allocation source snapshots
-      | name         | compute_used |
-      | TG-ENG150061 | 781768.010   |
-      | TG-TRA160006 | 87914.060    |
+      | name         | compute_used | compute_allowed |
+      | TG-ENG150061 | 781768.010   | 1000000         |
+      | TG-TRA160006 | 87914.060    | 600000          |
 
 
   Scenario: Correct events, with no duplicates when checking twice
