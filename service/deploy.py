@@ -414,15 +414,15 @@ def configure_ansible(debug=False):
     """
     Configure ansible to work with service.ansible and subspace.
     """
-    subspace.set_constants("HOST_KEY_CHECKING", False)
-    subspace.set_constants(
-        "DEFAULT_ROLES_PATH", settings.ANSIBLE_ROLES_PATH)
+
     os.environ["ANSIBLE_DEBUG"] = "true" if debug else "false"
     if settings.ANSIBLE_CONFIG_FILE:
         os.environ["ANSIBLE_CONFIG"] = settings.ANSIBLE_CONFIG_FILE
         os.environ["PYTHONOPTIMIZE"] = "1" #NOTE: Required to run ansible2 + celery + prefork concurrency
-        # Alternatively set this in ansible.cfg: debug = true
-        subspace.constants.reload_config()
+    subspace.configure({
+        "HOST_KEY_CHECKING": False,
+        "DEFAULT_ROLES_PATH": [ settings.ANSIBLE_ROLES_PATH ]
+    })
 
 
 def build_host_name(instance_id, ip):
