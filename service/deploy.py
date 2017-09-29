@@ -10,7 +10,6 @@ from django.utils.timezone import datetime
 
 
 import subspace
-from subspace.runner import Runner
 
 from threepio import logger, deploy_logger
 
@@ -354,6 +353,7 @@ def execute_playbooks(playbook_dir, host_file, extra_vars, my_limit,
 def _one_runner_all_playbook_execution(
         playbook_dir, host_file, extra_vars, my_limit,
         logger=None, limit_playbooks=None, **runner_opts):
+    from subspace.runner import Runner
     runner = Runner.factory(
             host_file,
             playbook_dir,
@@ -383,6 +383,7 @@ def _one_runner_all_playbook_execution(
 def _one_runner_one_playbook_execution(
         playbook_dir, host_file, extra_vars, my_limit,
         logger=None, limit_playbooks=None, **runner_opts):
+    from subspace.runner import Runner
     runners = [Runner.factory(
             host_file,
             os.path.join(playbook_dir, playbook_path),
