@@ -10,7 +10,6 @@ from django.utils.timezone import datetime
 
 
 import subspace
-from subspace.runner import Runner
 
 from threepio import logger, deploy_logger
 
@@ -354,6 +353,7 @@ def execute_playbooks(playbook_dir, host_file, extra_vars, my_limit,
 def _one_runner_all_playbook_execution(
         playbook_dir, host_file, extra_vars, my_limit,
         logger=None, limit_playbooks=None, **runner_opts):
+    from subspace.runner import Runner
     runner = Runner.factory(
             host_file,
             playbook_dir,
@@ -383,6 +383,7 @@ def _one_runner_all_playbook_execution(
 def _one_runner_one_playbook_execution(
         playbook_dir, host_file, extra_vars, my_limit,
         logger=None, limit_playbooks=None, **runner_opts):
+    from subspace.runner import Runner
     runners = [Runner.factory(
             host_file,
             os.path.join(playbook_dir, playbook_path),
@@ -421,15 +422,15 @@ def configure_ansible(debug=False):
     """
     Configure ansible to work with service.ansible and subspace.
     """
-    subspace.set_constants("HOST_KEY_CHECKING", False)
-    subspace.set_constants(
-        "DEFAULT_ROLES_PATH", settings.ANSIBLE_ROLES_PATH)
+
     os.environ["ANSIBLE_DEBUG"] = "true" if debug else "false"
     if settings.ANSIBLE_CONFIG_FILE:
         os.environ["ANSIBLE_CONFIG"] = settings.ANSIBLE_CONFIG_FILE
         os.environ["PYTHONOPTIMIZE"] = "1" #NOTE: Required to run ansible2 + celery + prefork concurrency
-        # Alternatively set this in ansible.cfg: debug = true
-        subspace.constants.reload_config()
+    subspace.configure({
+        "HOST_KEY_CHECKING": False,
+        "DEFAULT_ROLES_PATH": [ settings.ANSIBLE_ROLES_PATH ]
+    })
 
 
 def build_host_name(instance_id, ip):
