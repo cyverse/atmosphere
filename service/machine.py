@@ -233,6 +233,21 @@ def upload_privacy_data(machine_request, new_machine):
     return sync_machine_membership(accounts, img, new_machine, tenant_list)
 
 
+def list_membership(accounts, glance_image_id):
+    members = []
+    for image_share in accounts.image_manager.shared_images_for(image_id=glance_image_id):
+        member_id = image_share['member_id']
+        keystone_project = accounts.user_manager.get_project_by_id(member_id)
+        if not keystone_project:
+            logger.warn("No project returned for member ID %s" % member_id)
+            continue
+        if not hasattr(keystone_project, 'name'):
+            logger.warn("Unexpected value. No attribute 'name' for Project:%s" % keystone_project)
+            continue
+        members.append(keystone_project.name)
+    return members
+
+
 def add_membership(image_version, group):
     """
     This function will add *all* users in the group
