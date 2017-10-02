@@ -39,7 +39,7 @@ defusedxml==0.5.0
 deprecation==1.0.1
 django-celery-beat==1.0.1
 django-cors-headers==2.1.0
-django-cyverse-auth==1.1.2
+django-cyverse-auth==1.1.4
 django-debug-toolbar==1.8
 django-filter==1.0.4
 django-jenkins==0.110.0
@@ -168,7 +168,7 @@ smmap2==2.0.3             # via gitdb2
 splinter==0.7.6           # via behaving
 sqlparse==0.2.3           # via django-debug-toolbar
 stevedore==1.25.0
-subspace==0.5
+subspace==0.5.1
 threepio==0.2.0
 tornado==4.5.1
 traitlets==4.3.2          # via ipython
