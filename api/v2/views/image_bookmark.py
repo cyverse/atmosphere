@@ -1,4 +1,4 @@
-from core.models import ApplicationBookmark as ImageBookmark
+from core.models import ApplicationBookmark as ImageBookmark, Application
 from django.utils import timezone
 from django.db.models import Q
 
@@ -27,6 +27,6 @@ class ImageBookmarkViewSet(MultipleFieldLookup, AuthModelViewSet):
         """
         user = self.request.user
         now_time = timezone.now()
+        application_ids = list(Application.shared_with_user(user).values_list('id', flat=True))
         return ImageBookmark.objects.filter(user=user).filter(
-            Q(application__end_date__isnull=True) | Q(application__end_date__gt=now_time)
-        )
+            Q(application__id__in=application_ids)).distinct()
