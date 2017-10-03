@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='userprofile',
             name='guacamole_color',
-            field=models.CharField(default=b'default', max_length=15),
+            field=models.CharField(default=b'white_black', max_length=15),
         ),
     ]
