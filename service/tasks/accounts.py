@@ -16,6 +16,9 @@ from service.driver import get_account_driver
 def remove_empty_networks_for(provider_id):
     provider = Provider.objects.get(id=provider_id)
     os_driver = get_account_driver(provider)
+    if not os_driver:
+        logger.warn("Cannot remove_empty_networks_for provider %s -- Account Driver not created" % provider)
+        return
     all_instances = os_driver.admin_driver.list_all_instances()
     project_map = os_driver.network_manager.project_network_map()
     known_project_names = Credential.objects.filter(
