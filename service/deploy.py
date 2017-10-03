@@ -63,7 +63,7 @@ def ansible_deployment(
         extra_vars.update({
             "TIMEZONE": time_zone,
         })
-    shared_users = AtmosphereUser.users_for_instance(instance_id).values_list('username', flat=True)
+    shared_users = list(AtmosphereUser.users_for_instance(instance_id).values_list('username', flat=True))
     if not shared_users:
         shared_users = [username]
     if username not in shared_users:
