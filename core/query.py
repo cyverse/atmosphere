@@ -278,9 +278,34 @@ def images_shared_with_user(user):
     """
     Images with versions or machines belonging to the user's groups
     """
-    group_ids = user.group_ids()
+    group_ids = list(user.group_ids())
     return (Q(versions__machines__members__id__in=group_ids) |
         Q(versions__membership__id__in=group_ids))
+
+def images_shared_with_user_by_ids(user):
+    """
+    Images with versions or machines belonging to the user's groups
+    """
+    from core.models import ApplicationVersion, ProviderMachine
+
+    group_ids = list(user.group_ids())
+    # __in is expensive. Use it only when you have to
+    if len(group_ids) > 1:
+        version_ids = list(
+            ApplicationVersion.objects.filter(
+                membership__in=group_ids).values_list('id',flat=True))
+        machine_ids = list(
+            ProviderMachine.objects.filter(
+                members__in=group_ids).values_list('id',flat=True))
+        return (Q(versions__machines__id__in=machine_ids) | Q(versions__id__in=version_ids))
+    group = group_ids[0] if group_ids else -1
+    version_ids = list(
+        ApplicationVersion.objects.filter(
+            membership=group).values_list('id',flat=True))
+    machine_ids = list(
+        ProviderMachine.objects.filter(
+            members=group).values_list('id',flat=True))
+    return (Q(versions__machines__id__in=machine_ids) | Q(versions__id__in=version_ids))
 
 def created_by_user(user):
     """
@@ -292,7 +317,8 @@ def in_users_providers(user):
     """
     Images on providers that the user belongs to
     """
-    return Q(versions__machines__instance_source__provider__in=user.current_providers)
+    provider_ids = list(user.current_providers)
+    return Q(versions__machines__instance_source__provider__in=provider_ids)
 
 def contains_credential(key, value):
     """
