@@ -154,6 +154,7 @@ class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
             'new_application_description',
             'new_application_visibility',
             'new_application_access_list',
+            'access_list',
             'system_files',
             'installed_software',
             'exclude_files',
