@@ -463,10 +463,10 @@ class AccountDriver(BaseAccountDriver):
         #FIXME: This isn't working for CyVerse Cloud.
         for kp in keypairs:
             if kp.name == keyname:
-                if kp.public_key != public_key:
+                if kp.public_key.strip() != public_key.strip():
                     raise Exception(
                         "Mismatched public key found for keypair named: %s"
-                        ". Expected: %s Original: %s"
+                        ". Expected:\n%s\nFound:\n%s"
                         % (keyname, public_key, kp.public_key))
                 return (kp, False)
         return (self.create_keypair(
