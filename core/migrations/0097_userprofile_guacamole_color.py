@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0094_instancestatushistory_add_jsonfield_extra'),
+        ('core', '0096_pattern_match_access_list_for_machine_request_and_application'),
     ]
 
     operations = [
