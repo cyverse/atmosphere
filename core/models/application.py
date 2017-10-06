@@ -169,11 +169,11 @@ class Application(models.Model):
             # This query is not the most clear. Here's an explanation:
             # Include all images created by the user or active images in the
             # users providers that are either shared with the user or public
-            queryset = Application.objects.filter(
+            queryset = Application.objects.select_related('created_by').prefetch_related('versions__machines__instance_source__provider', 'versions__machines__members', 'versions__membership').filter(
                     query.created_by_user(user) |
                     (query.only_current_apps() &
                      query.in_users_providers(user) &
-                     (query.images_shared_with_user(user) | is_public)))
+                     (query.images_shared_with_user_by_ids(user) | is_public)))
         return queryset.distinct()
 
     def _current_versions(self):

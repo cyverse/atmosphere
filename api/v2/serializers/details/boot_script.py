@@ -55,4 +55,4 @@ class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = BootScript
-        fields = ('id', 'url', 'uuid', 'created_by', 'title', 'text', 'type', 'strategy', 'email_notify', 'wait_for_deploy')
+        fields = ('id', 'url', 'uuid', 'created_by', 'title', 'text', 'type', 'strategy', 'wait_for_deploy')

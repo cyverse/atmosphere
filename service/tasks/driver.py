@@ -661,17 +661,17 @@ def get_chain_from_active_no_ip(
     network_meta_task = update_metadata.si(
         driverCls, provider, identity, instance.id,
         {'tmp_status': 'networking'})
-    floating_task = add_floating_ip.si(
+    networking_task = add_floating_ip.si(
         driverCls, provider, identity, str(core_identity.uuid), instance.id, delete_status=False)
-    floating_task.link_error(
+    networking_task.link_error(
         deploy_failed.s(driverCls, provider, identity, instance.id))
 
     if instance.extra.get('metadata', {}).get('tmp_status', '') == 'networking':
-        start_chain = floating_task
+        start_chain = networking_task
     else:
         start_chain = network_meta_task
-        start_chain.link(floating_task)
-    end_chain = floating_task
+        start_chain.link(networking_task)
+    end_chain = networking_task
     deploy_start = get_chain_from_active_with_ip(
         driverCls, provider, identity, instance, core_identity,
         username=username, password=password,
@@ -693,7 +693,7 @@ def get_chain_from_active_with_ip(
     start_chain = None
     # Guarantee 'networking' passes deploy_ready_test first!
     deploy_ready_task = deploy_ready_test.si(
-        driverCls, provider, identity, instance.id)
+        driverCls, provider, identity, instance.id, str(core_identity.uuid))
     # ALWAYS start by testing that deployment is possible. then deploy.
     start_chain = deploy_ready_task
 
@@ -845,11 +845,10 @@ def _deploy_ready_failed_email_test(
 
 @task(name="deploy_ready_test",
       default_retry_delay=64,
-      # 16 second hard-set time limit. (NOTE:TOO LONG? -SG)
       soft_time_limit=120,
-      max_retries=300  # Attempt up to two hours
+      max_retries=115  # Attempt up to two hours
       )
-def deploy_ready_test(driverCls, provider, identity, instance_id,
+def deploy_ready_test(driverCls, provider, identity, instance_id, core_identity_uuid,
                       **celery_task_args):
     """
     deploy_ready_test -
@@ -879,6 +878,12 @@ def deploy_ready_test(driverCls, provider, identity, instance_id,
             celery_logger.debug("Instance IP address missing from : %s." % instance_id)
             raise Exception("Instance IP Missing? %s" % instance_id)
 
+        # HACK: A race-condition exists where an instance may enter this task with _two_ private IPs
+        # If this happens, it is _possible_ that the Fixed IP port is invalid.
+        # The method below will attempt to correct that behavior _prior_ to seeing if the instance
+        # networking is indeed ready.
+        if len(instance._node.private_ips) >= 2:
+            _update_floating_ip_to_active_fixed_ip(driver, instance, core_identity_uuid)
     except (BaseException, Exception) as exc:
         celery_logger.exception(exc)
         _deploy_ready_failed_email_test(
@@ -1128,33 +1133,38 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
             driver._clean_floating_ip()
         # ENDNOTE
 
-        # assign if instance doesn't already have an IP addr
         instance = driver.get_instance(instance_alias)
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_alias)
             return None
         network_driver = instance_service._to_network_driver(core_identity)
+
         floating_ips = network_driver.list_floating_ips()
+        floating_ip_addr = None
         selected_floating_ip = None
         if floating_ips:
-            for fip in floating_ips:
-                if fip.get("instance_id",'') == instance_alias:
-                    selected_floating_ip = fip["floating_ip_address"]
+            instance_floating_ips = [fip for fip in floating_ips if fip.get("instance_id",'') == instance_alias]
+            selected_floating_ip = instance_floating_ips[0] if instance_floating_ips else None
+
         if selected_floating_ip:
-            floating_ip = selected_floating_ip
+            floating_ip_addr = selected_floating_ip["floating_ip_address"]
             celery_logger.debug(
-                "Reusing existing floating_ip_address - %s" %
-                floating_ip)
+                "Skip floating IP add:"
+                " address %s already exists for Instance %s",
+                floating_ip_addr, instance_alias)
+            floating_ip = selected_floating_ip
         else:
-            floating_ip = network_driver.associate_floating_ip(instance_alias)["floating_ip_address"]
-            celery_logger.debug("Created new floating_ip_address - %s" % floating_ip)
+            floating_ip = network_driver.associate_floating_ip(instance_alias)
+            floating_ip_addr = floating_ip["floating_ip_address"]
+            celery_logger.debug("Created new floating_ip_address - %s" % floating_ip_addr)
+
         _update_status_log(instance, "Networking Complete")
         # TODO: Implement this as its own task, with the result from
         #'floating_ip' passed in. Add it to the deploy_chain before deploy_to
-        hostname = build_host_name(instance.id, floating_ip)
+        hostname = build_host_name(instance.id, floating_ip_addr)
         metadata_update = {
             'public-hostname': hostname,
-            'public-ip': floating_ip
+            'public-ip': floating_ip_addr
         }
         # NOTE: This is part of the temp change, should be removed when moving
         # to vxlan
@@ -1165,7 +1175,7 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
             network = [net for net in network if net['subnets'] != []][0]
         if instance_ports:
             for idx, fixed_ip_port in enumerate(instance_ports):
-                fixed_ips = fixed_ip_port.get('fixed_ips', [])
+                # fixed_ips = fixed_ip_port.get('fixed_ips', [])
                 mac_addr = fixed_ip_port.get('mac_address')
                 metadata_update['mac-address%s' % idx] = mac_addr
                 metadata_update['port-id%s' % idx] = fixed_ip_port['id']
@@ -1400,6 +1410,58 @@ def update_links(instances):
             continue
     celery_logger.debug("Instances updated: %d" % len(updated))
     return updated
+
+
+def _update_floating_ip_to_active_fixed_ip(driver, instance, core_identity_uuid):
+    """
+    - Given an instance matching the input described:
+      - determine which fixed IP is 'active' and valid for connection
+      - If floating IP is not set to that fixed IP, update the floating IP accordingly
+
+    Input: An instance with 2+ private/fixed IPs and 1+ floating IP attached
+    Output: Floating IP associated with an ACTIVE 'fixed IP' port, attached to instance.
+    Notes:
+      - In a future where >1 fixed IP and >1 floating IP is "normal"
+        this method will need to be changed/removed.
+    """
+    # Determine which port is the active port
+    from service import instance as instance_service
+    core_identity = Identity.objects.get(uuid=core_identity_uuid)
+    network_driver = instance_service._to_network_driver(core_identity)
+    port_id = _select_port_id(network_driver, driver, instance)
+    instance_id = instance.id
+    # NOTE: Strategy is to manage only the first floating IP address. Other IP addresses would be managed by user.
+    floating_ip_addr = selected_floating_ip = None
+    floating_ips = network_driver.list_floating_ips()
+    instance_floating_ips = [fip for fip in floating_ips if fip.get("instance_id", '') == instance_id]
+    selected_floating_ip = instance_floating_ips[0] if instance_floating_ips else None
+    if selected_floating_ip and port_id:
+        floating_ip_addr = selected_floating_ip["floating_ip_address"]
+        previous_port_id = selected_floating_ip["port_id"]
+        if previous_port_id != port_id:
+            celery_logger.info(
+                "Re-setting existing floating_ip_address %s port: %s -> %s",
+                floating_ip_addr, previous_port_id, port_id)
+            selected_floating_ip = network_driver.neutron.update_floatingip(selected_floating_ip['id'], {'floatingip': {'port_id': port_id}})
+    return selected_floating_ip
+
+
+def _select_port_id(network_driver, driver, instance):
+    """
+    - Input: Instance with two fixed IPs (will fail networking)
+      Output: Instance with one, valid fixed IP
+    """
+    instance_alias = instance.id
+    fixed_ip_ports = [p for p in network_driver.list_ports() if p['device_id'] == instance_alias]
+    active_fixed_ip_ports = [p for p in fixed_ip_ports if 'ACTIVE' in p['status']]
+    # Select the first active fixed ip port.
+    # nt.
+    if not active_fixed_ip_ports:
+        logger.warn(
+            "Instance %s has >1 Fixed IPs AND neither is ACTIVE."
+            " Ports found: %s", instance_alias, fixed_ip_ports)
+    port_id = active_fixed_ip_ports[0]['id']
+    return port_id
 
 
 def _cleanup_traceback(err_str):

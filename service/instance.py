@@ -438,11 +438,25 @@ def redeploy_instance(
 
     if type(esh_driver) == AtmosphereMockDriver:
         return
+    # HACK: Forces a metadata update to avoid "Instance activity workflow" errors in the GUI
+    # by setting 'tmp_status' to 'initializing' users will not be stuck in a "final state"
+    # if API polling starts _prior_ to instance action being successful.
+    # When 'Instance activity workflow' has been addressed, remove these lines.
+    metadata = {'tmp_status': 'initializing'}
+    _update_instance_metadata(
+        esh_driver,
+        esh_instance,
+        metadata
+    )
+    esh_instance = esh_driver.get_instance(esh_instance.id)
+    # END-HACK
+
     # Start deployment chain based on the instance above
     deploy_chain = get_idempotent_deploy_chain(
         esh_driver.__class__, esh_driver.provider, esh_driver.identity,
         esh_instance, core_identity, core_identity.created_by.username)
     deploy_chain.apply_async()
+    return
 
 
 def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
@@ -1766,7 +1780,7 @@ def update_instance_metadata(core_instance, data={}, replace=False):
     esh_instance = esh_driver.get_instance(instance_id)
     return _update_instance_metadata(esh_driver, esh_instance, data, replace)
 
-def _update_instance_metadata(esh_driver, esh_instance, data={}, replace=True):
+def _update_instance_metadata(esh_driver, esh_instance, data={}, replace=False):
     """
     NOTE: This will NOT WORK for TAGS until openstack
     allows JSONArrays as values for metadata!

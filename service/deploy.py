@@ -63,7 +63,7 @@ def ansible_deployment(
         extra_vars.update({
             "TIMEZONE": time_zone,
         })
-    shared_users = AtmosphereUser.users_for_instance(instance_id).values_list('username', flat=True)
+    shared_users = list(AtmosphereUser.users_for_instance(instance_id).values_list('username', flat=True))
     if not shared_users:
         shared_users = [username]
     if username not in shared_users:
@@ -78,7 +78,7 @@ def ansible_deployment(
         playbooks_dir, host_file, extra_vars, limit_hosts,
         logger=logger, limit_playbooks=limit_playbooks, **runner_opts)
     if raise_exception:
-        raise_playbook_errors(pbs, instance_ip, hostname)
+        raise_playbook_errors(pbs, instance_id, instance_ip, hostname)
     return pbs
 
 
@@ -292,7 +292,7 @@ def user_deploy(instance_ip, username, instance_id, first_deploy=True, **runner_
     _check_results_for_script_failure(playbook_results)
     # If the failure was not related to users boot-scripts,
     # handle as a generic ansible failure.
-    return raise_playbook_errors(playbook_runner, instance_ip, hostname)
+    return raise_playbook_errors(playbook_runner, instance_id, instance_ip, hostname)
 
 
 def run_utility_playbooks(instance_ip, username, instance_id,
@@ -525,7 +525,7 @@ def execution_has_failures(pbs, hostname):
     return any(pb.stats.failures for pb in pbs)
 
 
-def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
+def raise_playbook_errors(pbs, instance_id, instance_ip, hostname, allow_failures=False):
     """
     """
     if not type(pbs) == list:
@@ -547,7 +547,13 @@ def raise_playbook_errors(pbs, instance_ip, hostname, allow_failures=False):
                 error_message += playbook_error_message(
                     pb.stats.failures[instance_ip], "failed")
     if error_message:
-        msg = error_message[:-2] + str(pb.stats.processed_playbooks.get(hostname,{}))
+        msg = "Instance: %s IP:%s %s - %s%s" % (
+            instance_id,
+            instance_ip,
+            'Hostname: ' + hostname if hostname else "",
+            error_message[:-2],
+            str(pb.stats.processed_playbooks.get(hostname,{}))
+        )
         raise AnsibleDeployException(msg)
 
 

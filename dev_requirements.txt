@@ -4,13 +4,13 @@
 #
 #    pip-compile --output-file dev_requirements.txt dev_requirements.in requirements.txt
 #
-amqp==2.2.1
+amqp==2.2.2
 ansible==2.3.2.0
 apache-libcloud==0.20.1
 appdirs==1.4.3
 asn1crypto==0.22.0
 astroid==1.5.3            # via pylint, pylint-celery, pylint-flask, pylint-plugin-utils, requirements-detector
-babel==2.3.4
+babel==2.5.1
 backports-abc==0.5
 backports.functools-lru-cache==1.4  # via astroid, pylint
 backports.shutil-get-terminal-size==1.0.0  # via ipython
@@ -27,7 +27,7 @@ celery==4.0.2
 certifi==2017.7.27.1
 cffi==1.10.0
 chardet==3.0.4
-chromogenic==0.4.13
+chromogenic==0.4.15
 cliff==2.8.0
 cmd2==0.7.5
 colorama==0.3.9
@@ -42,7 +42,7 @@ defusedxml==0.5.0
 deprecation==1.0.1
 django-celery-beat==1.0.1
 django-cors-headers==2.1.0
-django-cyverse-auth==1.1.2
+django-cyverse-auth==1.1.4
 django-debug-toolbar==1.8
 django-filter==1.0.4
 django-jenkins==0.110.0
@@ -181,15 +181,15 @@ setoptconf==0.2.0         # via prospector
 simplegeneric==0.8.1      # via ipython
 simplejson==3.11.1
 singledispatch==3.4.0.3
-six==1.10.0
+six==1.11.0
 smmap2==2.0.3             # via gitdb2
 snowballstemmer==1.2.1    # via pydocstyle
 splinter==0.7.6           # via behaving
 sqlparse==0.2.3           # via django-debug-toolbar
 stevedore==1.25.0
-subspace==0.5
+subspace==0.5.1
 threepio==0.2.0
-tornado==4.5.1
+tornado==4.5.2
 traitlets==4.3.2          # via ipython
 unicodecsv==0.14.1
 urllib3[secure]==1.22

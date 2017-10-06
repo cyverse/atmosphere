@@ -23,7 +23,8 @@ from core.models import Allocation, Credential, IdentityMembership
 
 from service.machine import (
     update_db_membership_for_group,
-    update_cloud_membership_for_machine
+    update_cloud_membership_for_machine,
+    remove_membership
 )
 from service.monitoring import (
     _cleanup_missing_instances,
@@ -138,6 +139,11 @@ def prune_machines_for(
     # >=1 Version with >=1 ProviderMachine (ACTIVE!)
     # Apps that don't meet this criteria should be end-dated.
     app_count += _update_improperly_enddated_applications(now)
+
+    # Clear out application, provider machine, and version memberships
+    # if the result is >128.
+    # Additionally, remove all users who are not in the machine request (if one exists).
+    _clean_memberships(db_machines, account_driver)
 
     celery_logger.info(
         "prune_machines completed for Provider %s : "
@@ -282,9 +288,11 @@ def distribute_image_membership(account_driver, cloud_machine, provider):
         except TimeoutError:
             celery_logger.warn("Failed to add cloud membership for %s - Operation timed out" % group)
 
+
 def update_image_membership(account_driver, cloud_machine, db_machine):
     """
     Given a cloud_machine and db_machine, create any relationships possible for ProviderMachineMembership and ApplicationVersionMembership
+    Return a list of all group names who have been given share access.
     """
     image_visibility = cloud_machine.get('visibility','private')
     if image_visibility.lower() == 'public':
@@ -297,28 +305,40 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     if has_machine_request:
         provider = has_machine_request.new_machine_provider
         identifier = has_machine_request.new_machine.identifier
+        access_list = has_machine_request.get_access_list()
+        shared_group_names.extend([name for name in access_list if name not in shared_group_names])
         main_account_driver = get_account_driver(provider)
         #Extend to include based on information in the machine request
         shared_projects_from_main =  main_account_driver.shared_images_for(identifier, None)
-        shared_group_names.extend(p.name for p in shared_projects_from_main if p)
+        shared_projects_from_main = [p for p in shared_projects_from_main if p not in shared_projects]
+        shared_projects.extend(shared_projects_from_main)
+
+    # Extend to include based on projects already granted access to the image
+    shared_group_names.extend([p.name for p in shared_projects if p.name not in shared_group_names])
 
 
     #Extend to include new names found by application pattern_match
     parent_app = db_machine.application_version.application
     matching_users = list(parent_app.get_users_from_access_list().values_list('username', flat=True))
-    shared_group_names.extend(matching_users)
+    shared_group_names.extend([user for user in matching_users if user not in shared_group_names])
 
-    # Extend to include based on projects already granted access to the image
-    shared_group_names.extend(p.name for p in shared_projects if p)
-
-    #FIXME: This logic expects groupname == username. If this assumption changes, change this line to
+    #Future-FIXME: This logic expects groupname == username. If this assumption changes, change this line to
     #       lookup all groups that a user is part of, and potentially filtered by
     #       all identities a group has Membership access to
     groups = Group.objects.filter(name__in=shared_group_names)
     if not groups:
         return
+
+    # THIS IS A HACK - some images have been 'compromised' in this event, reset the access list _back_ to the last-known-good configuration, based on a machine request.
+    if len(shared_group_names) > 128:
+        celery_logger.warn("Application %s has too many shared users. Consider running 'prune_machines' to cleanup", parent_app)
+        if not has_machine_request:
+            return
+        access_list = has_machine_request.get_access_list()
+        shared_group_names = access_list
     for group in groups:
         update_db_membership_for_group(db_machine, group)
+    return shared_group_names
 
 
 
@@ -842,6 +862,28 @@ def reset_provider_allocation(provider_id, default_allocation_id):
         expiring_allocation)
     num_reset = members.update(allocation=default_allocation)
     return num_reset
+
+def _clean_memberships(db_machines, acct_driver=None):
+    """
+    For each db_machine, check the # of shared access.
+    If the # is >128, this application was made in error
+    and should be 'cleaned' so it can be re-built in the next
+    run of 'monitor_machines'
+    """
+    for db_machine in db_machines:
+        members_qs = db_machine.members.all()
+        group_key = 'group__name'
+        if members_qs.count() < 128:
+            members_qs = db_machine.application_version.membership.all()
+        if members_qs.count() < 128:
+            members_qs = db_machine.application.applicationmembership_set.all()
+            group_key = 'group_ptr__name'
+        if members_qs.count() < 128:
+            continue
+        for member in members_qs.order_by(group_key):
+            image_version = db_machine.application_version
+            remove_membership(image_version, member.group, acct_driver)
+
 
 def _end_date_missing_database_machines(db_machines, cloud_machines, now=None, dry_run=False):
     if not now:

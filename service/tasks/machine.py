@@ -401,6 +401,9 @@ def prep_instance_for_snapshot(identity_id, instance_id, **celery_task_args):
         username = identity.created_by.username
         driver = get_esh_driver(identity)
         instance = driver.get_instance(instance_id)
+        if instance.extra.get('status','') != 'active':
+            celery_logger.info("prep_instance_for_snapshot skipped")
+            return
         playbooks = deploy_prepare_snapshot(
             instance.ip, username, instance_id)
         celery_logger.info(playbooks.__dict__)

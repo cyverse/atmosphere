@@ -1,0 +1,17 @@
+[
+{
+  "pk": 1,
+  "model": "core.scripttype",
+  "fields": {
+    "name": "URL"
+  }
+},
+{
+  "pk": 2,
+  "model": "core.scripttype",
+  "fields": {
+    "name": "Raw Text"
+  }
+}
+]
+

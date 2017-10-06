@@ -1,11 +1,27 @@
-## [Beneficent-Bolide(v28)](https://github.com/cyverse/atmosphere/milestone/15?closed=1) (as of 9/19/2017)
+## [Beneficent-Bolide(v28)](https://github.com/cyverse/atmosphere/milestone/15?closed=1) (as of 10/3/2017)
+New Features:
+- Users can now set 'access_list' on an application
+  to specify an email/username pattern. Users that
+  match the pattern will be added to present/future
+  versions of the application.
+
+Improvements:
+- Replaced time-series metrics with summarized metrics
+- BootScript support for strategies: run on first launch and run each deployment
+- BootScripts can be executed asynchronously. (Default is sync and return exit codes to user as a failure)
+
 Bugfixes:
 - Temporary fix provided for updating multiple providers via single ResourceRequest
+- Fix provided for re-associating floating IP when an instance has two fixed IPs available.
 
 Internal:
+- Ansible-ized user boot scripts
+- Removed all libcloud deployments. All instance deployments happen with ansible now!:tada:
+- Create a new 'AccountCreationPlugin' for direct Openstack logins
+- Celery now runs non-imaging tasks under user 'www-data'
 - Introduced code coverage via coveralls
 - Provided instance 'fault' information when instance fails to deploy
-- Changed how atmosphere handles new_relic settings and installation via clank.
+- Changed how atmosphere handles 'new_relic' settings and installation via clank.
 - Introduced new manage.py command to start/stop a maintenance
 - Behave will be quieter in travis.ci
 
