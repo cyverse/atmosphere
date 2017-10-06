@@ -872,13 +872,15 @@ def _clean_memberships(db_machines, acct_driver=None):
     """
     for db_machine in db_machines:
         members_qs = db_machine.members.all()
+        group_key = 'group__name'
         if members_qs.count() < 128:
             members_qs = db_machine.application_version.membership.all()
         if members_qs.count() < 128:
             members_qs = db_machine.application.applicationmembership_set.all()
+            group_key = 'group_ptr__name'
         if members_qs.count() < 128:
             continue
-        for member in members_qs.order_by('group__name'):
+        for member in members_qs.order_by(group_key):
             image_version = db_machine.application_version
             remove_membership(image_version, member.group, acct_driver)
 
