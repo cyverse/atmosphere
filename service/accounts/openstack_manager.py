@@ -493,9 +493,6 @@ class AccountDriver(BaseAccountDriver):
         return keypair
 
     def shared_images_for(self, image_id, status="approved"):
-        shared_with = self.image_manager.shared_images_for(
-            image_id=image_id)
-
         if getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
             from core.models import Provider
             from service.driver import get_account_driver
@@ -505,9 +502,22 @@ class AccountDriver(BaseAccountDriver):
                 raise Exception("Cannot create account_driver for %s" % provider)
         else:
             acct_driver = self
-
-        projects = [acct_driver.get_project_by_id(member.member_id)
-                    for member in shared_with if not status or status == member.status]
+        # acct_driver = self
+        all_projects = {p.id: p for p in acct_driver.list_projects()}
+        shared_with = self.image_manager.shared_images_for(
+            image_id=image_id)
+        projects = []
+        for member in shared_with:
+            # Only add if status matches or ignored
+            if status and status != member.status:
+                continue
+            project_id = member.get('member_id')
+            project = all_projects.get(project_id)
+            if not project:
+                continue
+            projects.append(project)
+        # projects = [acct_driver.get_project_by_id(member.member_id)
+        #             for member in shared_with if not status or status == member.status]
         return projects
 
     @timeout_after(10)
@@ -966,10 +976,23 @@ class AccountDriver(BaseAccountDriver):
     def list_trusts(self):
         return [t for t in self.openstack_sdk.identity.trusts()]
 
-    def list_projects(self, **kwargs):
+    def clear_local_cache(self):
+        logger.info("Clearing the cached project-list")
+        self.project_list = []
+
+    def list_projects(self, force=False, **kwargs):
+        """
+        Cached to save time on repeat queries.. Otherwise its a pass-through to user_manager
+        """
         if self.identity_version > 2:
             kwargs = self._parse_domain_kwargs(kwargs, domain_override='domain')
-        return self.user_manager.list_projects(**kwargs)
+        if not getattr(self, 'project_list', None) or force:
+            logger.info("Caching a copy of project list")
+            self.project_list = self.user_manager.list_projects(**kwargs)
+            return self.project_list
+
+        logger.info("Returning cached copy of project list")
+        return self.project_list
 
     def list_roles(self, **kwargs):
         """

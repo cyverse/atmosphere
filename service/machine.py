@@ -320,14 +320,15 @@ def update_db_membership_for_group(provider_machine, group):
             % (obj,))
 
 
-def remove_membership(image_version, group):
+def remove_membership(image_version, group, accounts=None):
     """
     This function will remove *all* users in the group
     to *all* providers/machines using this image_version
     """
     for provider_machine in image_version.machines.filter(only_current_source()):
         prov = provider_machine.instance_source.provider
-        accounts = get_account_driver(prov)
+        if not accounts:
+            accounts = get_account_driver(prov)
         if not accounts:
             raise NotImplemented("Account Driver could not be created for %s" % prov)
         accounts.clear_cache()
@@ -336,7 +337,7 @@ def remove_membership(image_version, group):
             raise NotImplemented("Admin Driver could not be created for %s" % prov)
         img = accounts.get_image(provider_machine.identifier)
         approved_projects = accounts.shared_images_for(img.id)
-        for identity_membership in group.identitymembership_set.all():
+        for identity_membership in group.identitymembership_set.order_by('identity__created_by__username'):
             if identity_membership.identity.provider != prov:
                 continue
             # Get project name from the identity's credential-list
@@ -346,23 +347,28 @@ def remove_membership(image_version, group):
             if project and project not in approved_projects:
                 continue
             # Perform a *DATABASE* remove first.
+            application = provider_machine.application
+            application_version = provider_machine.application_version
             models.ApplicationMembership.objects.filter(
                 group=group,
-                application=provider_machine.application).delete()
+                application=application).delete()
             logger.info("Removed ApplicationMembership: %s-%s"
-                        % (provider_machine.application, group))
+                        % (application, group))
             models.ApplicationVersionMembership.objects.filter(
                 group=group,
-                application_version=provider_machine.application_version).delete()
+                image_version=application_version).delete()
             logger.info("Removed ApplicationVersionMembership: %s-%s"
-                        % (provider_machine.application_version, group))
+                        % (application_version, group))
             models.ProviderMachineMembership.objects.filter(
                 group=group,
                 provider_machine=provider_machine).delete()
             logger.info("Removed ProviderMachineMembership: %s-%s"
                         % (provider_machine, group))
             # Perform a *CLOUD* remove last.
-            accounts.image_manager.unshare_image(img, project_name)
+            try:
+                accounts.image_manager.unshare_image(img, project_name)
+            except Exception as exc:
+                logger.exception("Exception occurred while removing user from cloud: %s", exc)
             logger.info("Removed Cloud Access: %s-%s"
                         % (img, project_name))
     return
