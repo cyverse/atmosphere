@@ -36,7 +36,7 @@ class Application(models.Model):
     description = models.TextField(null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     private = models.BooleanField(default=False)
-    access_list = models.ManyToManyField("PatternMatch")
+    access_list = models.ManyToManyField("PatternMatch", blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     # User/Identity that created the application object

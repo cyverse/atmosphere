@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='application',
             name='access_list',
-            field=models.ManyToManyField(to='core.PatternMatch'),
+            field=models.ManyToManyField(blank=True, to='core.PatternMatch'),
         ),
         migrations.AddField(
             model_name='machinerequest',
