@@ -493,16 +493,16 @@ class AccountDriver(BaseAccountDriver):
         return keypair
 
     def shared_images_for(self, image_id, status="approved"):
-        # if getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
-        #     from core.models import Provider
-        #     from service.driver import get_account_driver
-        #     provider = Provider.objects.get(location=settings.REPLICATION_PROVIDER_LOCATION)
-        #     acct_driver = get_account_driver(provider)
-        #     if not acct_driver:
-        #         raise Exception("Cannot create account_driver for %s" % provider)
-        # else:
-        #     acct_driver = self
-        acct_driver = self
+        if getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
+            from core.models import Provider
+            from service.driver import get_account_driver
+            provider = Provider.objects.get(location=settings.REPLICATION_PROVIDER_LOCATION)
+            acct_driver = get_account_driver(provider)
+            if not acct_driver:
+                raise Exception("Cannot create account_driver for %s" % provider)
+        else:
+            acct_driver = self
+        # acct_driver = self
         all_projects = {p.id: p for p in acct_driver.list_projects()}
         shared_with = self.image_manager.shared_images_for(
             image_id=image_id)
