@@ -20,6 +20,15 @@ def private_object(modeladmin, request, queryset):
 private_object.short_description = 'Make objects private True'
 
 
+def end_date_machine(modeladmin, request, queryset):
+    instance_source_ids = queryset.values_list('instance_source', flat=True)
+    instance_source_qs = models.InstanceSource.objects.filter(id__in=instance_source_ids)
+    instance_source_qs.update(end_date=timezone.now())
+
+
+end_date_machine.short_description = 'Add end-date to machines'
+
+
 def end_date_object(modeladmin, request, queryset):
     queryset.update(end_date=timezone.now())
 
@@ -159,16 +168,19 @@ class InstanceSourceAdmin(admin.ModelAdmin):
 
 @admin.register(models.ProviderMachine)
 class ProviderMachineAdmin(admin.ModelAdmin):
-    actions = [end_date_object, ]
+    actions = [end_date_machine, ]
     search_fields = [
         "application_version__application__name",
         "instance_source__provider__location",
         "instance_source__identifier"]
-    list_display = ["identifier", "_pm_provider", "start_date", "end_date"]
+    list_display = ["identifier", "_pm_application_name", "_pm_provider", "start_date", "end_date"]
     list_filter = [
         "instance_source__provider__location",
         "application_version__application__private",
     ]
+
+    def _pm_application_name(self, obj):
+        return obj.application_version.application.name
 
     def _pm_provider(self, obj):
         return obj.instance_source.provider.location
