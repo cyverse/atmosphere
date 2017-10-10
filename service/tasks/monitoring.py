@@ -340,7 +340,7 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     if image_visibility.lower() == 'public':
         return
     #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
-    shared_group_names = _get_all_access_list(account_driver, cloud_machine, db_machine)
+    shared_group_names = _get_all_access_list(account_driver, db_machine, cloud_machine)
     #Future-FIXME: This logic expects groupname == username. If this assumption changes, change this line to
     #       lookup all groups that a user is part of, and potentially filtered by
     #       all identities a group has Membership access to
@@ -709,7 +709,9 @@ def monitor_instances_for(provider_id, users=None,
             core_running_instances)
     if print_logs:
         _exit_stdout_logging(console_handler)
-    return seen_instances
+    # return seen_instances  NOTE: this has been commented out to avoid PicklingError!
+    # TODO: Uncomment the above, Determine what _we can return_ and return that instead....
+    return
 
 
 @task(name="monitor_volumes")
