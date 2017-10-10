@@ -16,7 +16,10 @@ except:
     class KeystoneNotFound(Exception):
         pass
 
-from rtwo.exceptions import NeutronClientException, GlanceClientException
+from rtwo.exceptions import (
+    NeutronClientException,
+    GlanceClientException,
+    GlanceForbidden)
 from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_glance_by_auth
 
 import core.models
@@ -507,17 +510,20 @@ class AccountDriver(BaseAccountDriver):
         shared_with = self.image_manager.shared_images_for(
             image_id=image_id)
         projects = []
-        for member in shared_with:
-            # Only add if status matches or ignored
-            if status and status != member.status:
-                continue
-            project_id = member.get('member_id')
-            project = all_projects.get(project_id)
-            if not project:
-                continue
-            projects.append(project)
-        # projects = [acct_driver.get_project_by_id(member.member_id)
-        #             for member in shared_with if not status or status == member.status]
+        try:
+            for member in shared_with:
+                # Only add if status matches or ignored
+                if status and status != member.status:
+                    continue
+                project_id = member.get('member_id')
+                project = all_projects.get(project_id)
+                if not project:
+                    continue
+                projects.append(project)
+        except GlanceForbidden as exc:
+            if 'Only shared images have members' in exc.details:
+                return projects
+            raise
         return projects
 
     @timeout_after(10)
