@@ -285,8 +285,9 @@ def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
     # Active True IFF ANY instance is 'active'
     active_instances = any(driver._is_active_instance(inst)
                            for inst in instances)
-    # Inactive True IFF ALL instances are suspended/stopped
-    inactive_instances = all(driver._is_inactive_instance(inst)
+    # Inactive True IFF ALL instances are non active
+    # (suspended, stopped, and 'error' states like 'error/hard_reboot')
+    inactive_instances = all(not driver._is_active_instance(inst)
                              for inst in instances)
     _remove_ips_from_inactive_instances(driver, instances, core_identity)
     if active_instances and not inactive_instances:
