@@ -289,27 +289,29 @@ def distribute_image_membership(account_driver, cloud_machine, provider):
             celery_logger.warn("Failed to add cloud membership for %s - Operation timed out" % group)
 
 
-def update_image_membership(account_driver, cloud_machine, db_machine):
-    """
-    Given a cloud_machine and db_machine, create any relationships possible for ProviderMachineMembership and ApplicationVersionMembership
-    Return a list of all group names who have been given share access.
-    """
-    image_visibility = cloud_machine.get('visibility','private')
-    if image_visibility.lower() == 'public':
-        return
+def _get_all_access_list(account_driver, db_machine, cloud_machine):
     image_owner = cloud_machine.get('application_owner','')
-    #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
     shared_group_names = [image_owner]
     shared_projects = account_driver.shared_images_for(cloud_machine.id, None)
     has_machine_request = db_machine.application_version.machinerequest_set.filter(status__name='completed').first()
     if has_machine_request:
+        access_list = has_machine_request.get_access_list()
+        # THIS IS A HACK: If there are LOTS of projects shared with the main driver, it is probably
+        # an accident. _ESPECIALLY_ if the list in the access list is smaller. so lets just ignore them.
+        # - SGregory
+        if len(shared_projects) > len(access_list):
+            shared_projects = []
         provider = has_machine_request.new_machine_provider
         identifier = has_machine_request.new_machine.identifier
-        access_list = has_machine_request.get_access_list()
         shared_group_names.extend([name for name in access_list if name not in shared_group_names])
         main_account_driver = get_account_driver(provider)
         #Extend to include based on information in the machine request
         shared_projects_from_main =  main_account_driver.shared_images_for(identifier, None)
+        # THIS IS A HACK: If there are LOTS of projects shared with the main driver, it is probably
+        # an accident. _ESPECIALLY_ if the list in the access list is smaller. so lets just ignore them.
+        # - SGregory
+        if len(shared_projects_from_main) > len(access_list):
+            shared_projects_from_main = []
         shared_projects_from_main = [p for p in shared_projects_from_main if p not in shared_projects]
         shared_projects.extend(shared_projects_from_main)
 
@@ -320,14 +322,29 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     #Extend to include new names found by application pattern_match
     parent_app = db_machine.application_version.application
     matching_users = list(parent_app.get_users_from_access_list().values_list('username', flat=True))
+    if len(matching_users) > 128:
+        # THIS IS A HACK: If there are LOTS of projects shared with the parent application, thats likely
+        # an accident. _ESPECIALLY_ if the list in the access list is smaller. so lets just ignore them.
+        # - SGregory
+        matching_users = []
     shared_group_names.extend([user for user in matching_users if user not in shared_group_names])
+    return shared_group_names
 
+
+def update_image_membership(account_driver, cloud_machine, db_machine):
+    """
+    Given a cloud_machine and db_machine, create any relationships possible for ProviderMachineMembership and ApplicationVersionMembership
+    Return a list of all group names who have been given share access.
+    """
+    image_visibility = cloud_machine.get('visibility','private')
+    if image_visibility.lower() == 'public':
+        return
+    #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
+    shared_group_names = _get_all_access_list(account_driver, cloud_machine, db_machine)
     #Future-FIXME: This logic expects groupname == username. If this assumption changes, change this line to
     #       lookup all groups that a user is part of, and potentially filtered by
     #       all identities a group has Membership access to
     groups = Group.objects.filter(name__in=shared_group_names)
-    if not groups:
-        return
 
     # THIS IS A HACK - some images have been 'compromised' in this event, reset the access list _back_ to the last-known-good configuration, based on a machine request.
     if len(shared_group_names) > 128:
