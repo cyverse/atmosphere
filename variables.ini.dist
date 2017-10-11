@@ -155,19 +155,3 @@ CHROMO_EXTRA_IMAGE_METADATA = {} # {"key1": "value1", "key2": "yes"}
 ATMOSPHERE_SUPERUSER = # atmo_superuser
 ATMOSPHERE_SECRET_SEED = # (Random value:) 9oe5q7cp714zmmjl51
 ATMOSPHERE_VNC_LICENSE = # vnc_license_key
-
-[celeryd.default]
-ATMOSPHERE_LOCATION= # /path/to/atmosphere
-CELERYD_TLS_PRIVKEY_DEST = # "/etc/ssl/private/name_of_your_org.key"
-CELERYD_TLS_CERT_DEST = # "/etc/ssl/certs/name_of_your_org.crt"
-USE_PRODUCTION=  True # Boolean required
-VIRTUALENV_PATH = # ""
-FLOWER_AUTH_SCHEME= # "basic" or "google"
-# if flower_auth_opt == 'basic'
-FLOWER_BASIC_USERNAME= # username
-FLOWER_BASIC_PASSWORD= # password
-# elif flower_auth_opt == 'google'
-FLOWER_EMAIL_ACCESS_LIST= # "me@gmail.com|you@gmail.com"
-FLOWER_OAUTH2_CLIENT_ID= # "123xyz.apps.googleusercontent.com"
-FLOWER_OAUTH2_CLIENT_SECRET= # "client_secret_here"
-FLOWER_OAUTH2_REDIRECT_URI= # "server_redirect_url/flower/login"
