@@ -5,9 +5,9 @@ UserManager:
 import time
 import string
 from urlparse import urlparse
-
+import glanceclient
 from django.db.models import ObjectDoesNotExist
-from rtwo.exceptions import NovaOverLimit, KeystoneUnauthorized
+from rtwo.exceptions import NovaOverLimit, KeystoneUnauthorized, GlanceForbidden
 
 #FIXME: Add this exception to rtwo before merge.
 try:
@@ -496,19 +496,8 @@ class AccountDriver(BaseAccountDriver):
         return keypair
 
     def shared_images_for(self, image_id, status="approved"):
-        if getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
-            from core.models import Provider
-            from service.driver import get_account_driver
-            provider = Provider.objects.get(location=settings.REPLICATION_PROVIDER_LOCATION)
-            acct_driver = get_account_driver(provider)
-            if not acct_driver:
-                raise Exception("Cannot create account_driver for %s" % provider)
-        else:
-            acct_driver = self
-        # acct_driver = self
-        all_projects = {p.id: p for p in acct_driver.list_projects()}
-        shared_with = self.image_manager.shared_images_for(
-            image_id=image_id)
+        all_projects = {p.id: p for p in self.list_projects()}
+        shared_with = self.image_manager.glance.image_members.list(image_id)
         projects = []
         try:
             for member in shared_with:
@@ -520,10 +509,13 @@ class AccountDriver(BaseAccountDriver):
                 if not project:
                     continue
                 projects.append(project)
+        except glanceclient.exc.HTTPNotFound as exc:
+            # If image is not found, no projects should be added
+            pass
         except GlanceForbidden as exc:
-            if 'Only shared images have members' in exc.details:
-                return projects
-            raise
+            # Skip over exception if image visibility is public/private.
+            if 'Only shared images have members' not in exc.details:
+                raise
         return projects
 
     @timeout_after(10)

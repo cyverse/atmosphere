@@ -62,20 +62,21 @@ class ProviderMachine(BaseSource):
     def _split_cloud_name(cls, machine_name):
         version_sep = settings.APPLICATION_VERSION_SEPARATOR
         if version_sep in machine_name:
-            split_list = machine_name.split(version_sep)
+            split_list = [s.strip() for s in machine_name.split(version_sep)]
 
         if len(split_list) == 1:
             logger.warn(
                 "Version separator(%s) was not found: %s"
                 % (version_sep, machine_name))
-            split_list = [split_list[0].trim(), '']
-
-        if len(split_list) > 2:
+            split_list = [split_list[0], '']
+        elif len(split_list) > 2:
             logger.warn(
                 "Version separator(%s) is ambiguous: %s"
                 % (version_sep, machine_name))
-            version_parts = machine_name.rpartition(version_sep)
-            split_list = [version_parts[0].trim(), version_parts[2].trim()]
+            version_parts = [
+                s.strip() for s in
+                machine_name.rpartition(version_sep)]
+            split_list = [version_parts[0], version_parts[2]]
         return split_list
 
     def generated_name(self):
@@ -283,7 +284,15 @@ def convert_glance_image(glance_image, provider_uuid, owner=None):
     from core.models import AtmosphereUser
     image_id = glance_image.id
     machine_name = glance_image.name
-    application_name = machine_name  # Future: application_name will partition at the 'Application Version separator'.. and pass the version_name to create_version
+    default_version_name = '1.0'  # could be configurable if controversial
+    application_name, version_name = ProviderMachine._split_cloud_name(machine_name)
+
+    metadata_version_name = glance_image.get('version_name', default_version_name)
+    if not version_name:
+        version_name = metadata_version_name
+    if metadata_version_name != version_name:
+        logger.warn("Deprecation warning: Using version_name:%s but metadata defines 'application_version=%s'",
+                    version_name, metadata_version_name)
     provider_machine = get_provider_machine(image_id, provider_uuid)
     if provider_machine:
         update_instance_source_size(provider_machine.instance_source, glance_image.get('size'))
@@ -301,7 +310,8 @@ def convert_glance_image(glance_image, provider_uuid, owner=None):
         identity = None
     app_kwargs.update({
         'created_by': user,
-        'created_by_identity': identity
+        'created_by_identity': identity,
+        'uuid': glance_image.get('application_uuid')
     })
     app = create_application(
         provider_uuid, image_id, application_name,
@@ -309,7 +319,7 @@ def convert_glance_image(glance_image, provider_uuid, owner=None):
     version = get_version_for_machine(provider_uuid, image_id, fuzzy=True)
     if not version:
         version_kwargs = {
-            'version_str': glance_image.get('application_version', '1.0'),
+            'version_str': version_name,
             'created_by': user,
             'created_by_identity': identity,
             'provider_machine_id': image_id

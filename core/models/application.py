@@ -50,6 +50,10 @@ class Application(models.Model):
         - Returns a list of Users who passed the test
         """
         from core.models import AtmosphereUser
+
+        if not self.access_list.count():
+            return AtmosphereUser.objects.none()
+
         all_users = AtmosphereUser.objects.all()
         for pattern_match in self.access_list.all():
             all_users &= pattern_match.validate_users()
@@ -473,14 +477,18 @@ def create_application(
     Build information (Based on MachineRequest or API inputs..)
     and RETURN Application!!
     """
-    new_app = None
+    application = None
 
     if not uuid:
         uuid = _generate_app_uuid(identifier)
 
-    existing_app = Application.objects.filter(uuid=uuid)
-    if existing_app.count():
-        new_app = existing_app[0]
+    uuid_match = Application.objects.filter(uuid=uuid).first()
+    if name and uuid_match and name == uuid_match.name:
+        # This is our "Best effort" at keeping 'copycat' images
+        # inside the image catalog, made by non-atmosphere (API) users
+        # due to the metadata/property transfer that occurs.
+        # _Hopefully_ copycat images will have a different name.
+        application = uuid_match
 
     if not name:
         name = "Imported App: %s" % identifier
@@ -504,15 +512,15 @@ def create_application(
             tags = [t.strip() for t in tags.split(',')]
         else:
             tags = [tags]
-    if new_app:
-        new_app.name = name
-        new_app.description = description
-        new_app.created_by = created_by_identity.created_by
-        new_app.created_by_identity = created_by_identity
-        new_app.private = private
-        new_app.save()
+    if application:
+        application.name = name
+        application.description = description
+        application.created_by = created_by_identity.created_by
+        application.created_by_identity = created_by_identity
+        application.private = private
+        application.save()
     else:
-        new_app = Application.objects.create(
+        application = Application.objects.create(
             name=name,
             description=description,
             created_by=created_by_identity.created_by,
@@ -520,11 +528,11 @@ def create_application(
             private=private,
             uuid=uuid)
     if tags:
-        updateTags(new_app, tags, created_by_identity.created_by)
+        updateTags(application, tags, created_by_identity.created_by)
     if access_list:
         for pattern_match in access_list:
-            new_app.access_list.add(pattern_match)
-    return new_app
+            application.access_list.add(pattern_match)
+    return application
 
 #FIXME: This class marked for removal
 class ApplicationScore(models.Model):

@@ -16,6 +16,7 @@ from core.models.volume import Volume, convert_esh_volume
 from core.models.instance import Instance, convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import convert_glance_image, get_or_create_provider_machine, ProviderMachine, ProviderMachineMembership
+from core.models.machine_request import MachineRequest
 from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
 from core.models.application_version import ApplicationVersion
@@ -235,8 +236,9 @@ def machine_is_valid(cloud_machine, accounts):
         - Domain-specific image catalog(?)
     """
     provider = accounts.core_provider
+    cloud_machine_name = cloud_machine.name if cloud_machine.name else ""
     # If the name of the machine indicates that it is a Ramdisk, Kernel, or Chromogenic Snapshot, skip it.
-    if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
+    if any(cloud_machine_name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
         celery_logger.info("Skipping cloud machine %s" % cloud_machine)
         return False
     # If the metadata 'skip_atmosphere' is found, do not add the machine.
@@ -287,48 +289,58 @@ def distribute_image_membership(account_driver, cloud_machine, provider):
             update_cloud_membership_for_machine(pm, group)
         except TimeoutError:
             celery_logger.warn("Failed to add cloud membership for %s - Operation timed out" % group)
+    return groups
 
 
 def _get_all_access_list(account_driver, db_machine, cloud_machine):
+    """
+    Input: AccountDriver, ProviderMachine, glance_image
+    Output: A list of _all project names_ that should be included on `cloud_machine`
+
+    This list will include:
+    - Users who match the provider_machine's application.access_list
+    - Users who are already approved to use the `cloud_machine`
+    - The owner of the application/Creator of the MachineRequest
+    - If using settings.REPLICATION_PROVIDER:
+      - include all those approved on the replication provider's copy of the image
+    """
+    #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
+
     image_owner = cloud_machine.get('application_owner','')
-    shared_group_names = [image_owner]
+    # NOTE: This assumes that the 'owner' (atmosphere user) == 'project_name' (Openstack)
+    # Always include the original application owner
+    shared_project_names = [image_owner]
+
     shared_projects = account_driver.shared_images_for(cloud_machine.id, None)
-    has_machine_request = db_machine.application_version.machinerequest_set.filter(status__name='completed').first()
+    # Extend to include based on projects already granted access to the image
+    shared_project_names.extend([p.name for p in shared_projects if p.name not in shared_project_names])
+
+    has_machine_request = MachineRequest.objects.filter(
+        new_machine__instance_source__identifier=cloud_machine.id,
+        status__name='completed').last()
     if has_machine_request:
         access_list = has_machine_request.get_access_list()
-        # THIS IS A HACK: If there are LOTS of projects shared with the main driver, it is probably
-        # an accident. _ESPECIALLY_ if the list in the access list is smaller. so lets just ignore them.
-        # - SGregory
-        if len(shared_projects) > len(access_list):
-            shared_projects = []
-        provider = has_machine_request.new_machine_provider
-        identifier = has_machine_request.new_machine.identifier
-        shared_group_names.extend([name for name in access_list if name not in shared_group_names])
-        main_account_driver = get_account_driver(provider)
-        #Extend to include based on information in the machine request
-        shared_projects_from_main =  main_account_driver.shared_images_for(identifier, None)
-        # THIS IS A HACK: If there are LOTS of projects shared with the main driver, it is probably
-        # an accident. _ESPECIALLY_ if the list in the access list is smaller. so lets just ignore them.
-        # - SGregory
-        if len(shared_projects_from_main) > len(access_list):
-            shared_projects_from_main = []
-        shared_projects_from_main = [p for p in shared_projects_from_main if p not in shared_projects]
-        shared_projects.extend(shared_projects_from_main)
+        # NOTE: This assumes that every name in
+        #      accesslist (AtmosphereUser) == project_name(Openstack)
+        shared_project_names.extend(
+                [name for name in access_list
+                 if name not in shared_project_names])
+        request_provider = has_machine_request.new_machine_provider
+        request_identifier = has_machine_request.new_machine.instance_source.identifier
+        if request_provider != db_machine.provider:
+            main_account_driver = get_account_driver(request_provider)
+            # Extend to include based on information in the machine request
+            request_shared_projects = main_account_driver.shared_images_for(request_identifier, None)
+            request_shared_projects = [p.name for p in request_shared_projects if p.name not in shared_project_names]
+            shared_project_names.extend(request_shared_projects)
 
-    # Extend to include based on projects already granted access to the image
-    shared_group_names.extend([p.name for p in shared_projects if p.name not in shared_group_names])
+    shared_project_names.extend([p.name for p in shared_projects if p.name not in shared_project_names])
 
-
-    #Extend to include new names found by application pattern_match
+    # Extend to include new names found by application pattern_match
     parent_app = db_machine.application_version.application
     matching_users = list(parent_app.get_users_from_access_list().values_list('username', flat=True))
-    if len(matching_users) > 128:
-        # THIS IS A HACK: If there are LOTS of projects shared with the parent application, thats likely
-        # an accident. _ESPECIALLY_ if the list in the access list is smaller. so lets just ignore them.
-        # - SGregory
-        matching_users = []
-    shared_group_names.extend([user for user in matching_users if user not in shared_group_names])
-    return shared_group_names
+    shared_project_names.extend([user for user in matching_users if user not in shared_project_names])
+    return shared_project_names
 
 
 def update_image_membership(account_driver, cloud_machine, db_machine):
@@ -339,23 +351,31 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     image_visibility = cloud_machine.get('visibility','private')
     if image_visibility.lower() == 'public':
         return
-    #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
-    shared_group_names = _get_all_access_list(account_driver, db_machine, cloud_machine)
-    #Future-FIXME: This logic expects groupname == username. If this assumption changes, change this line to
-    #       lookup all groups that a user is part of, and potentially filtered by
-    #       all identities a group has Membership access to
-    groups = Group.objects.filter(name__in=shared_group_names)
+    shared_project_names = _get_all_access_list(account_driver, db_machine, cloud_machine)
+
+    #Future-FIXME: This logic expects project_name == Group.name
+    #       When this changes, logic should update to include checks for:
+    #       - Lookup Identities with this project_name
+    #       - Share with group that has IdentityMembership
+    #       - Alternatively, consider changing ProviderMachineMembership
+    #       to point to Identity for a 1-to-1 mapping.
+    groups = Group.objects.filter(name__in=shared_project_names)
 
     # THIS IS A HACK - some images have been 'compromised' in this event, reset the access list _back_ to the last-known-good configuration, based on a machine request.
-    if len(shared_group_names) > 128:
+    has_machine_request = MachineRequest.objects.filter(
+        new_machine__instance_source__identifier=cloud_machine.id,
+        status__name='completed').last()
+    parent_app = db_machine.application_version.application
+    if len(shared_project_names) > 128:
         celery_logger.warn("Application %s has too many shared users. Consider running 'prune_machines' to cleanup", parent_app)
         if not has_machine_request:
             return
         access_list = has_machine_request.get_access_list()
-        shared_group_names = access_list
+        shared_project_names = access_list
+    #ENDHACK
     for group in groups:
         update_db_membership_for_group(db_machine, group)
-    return shared_group_names
+    return groups
 
 
 
@@ -377,7 +397,8 @@ def get_public_and_private_apps(provider):
     # if you do not believe this is the case, you should call 'prune_machines_for'
     for cloud_machine in cloud_machines:
         #Filter out: ChromoSnapShot, eri-, eki-, ... (Or dont..)
-        if any(cloud_machine.name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
+        cloud_machine_name = cloud_machine.name if cloud_machine.name else ""
+        if any(cloud_machine_name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
             #celery_logger.debug("Skipping cloud machine %s" % cloud_machine)
             continue
         app_name, version_name = ProviderMachine._split_cloud_name(cloud_machine.name)
@@ -974,7 +995,8 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
     cloud_machine_is_public = cloud_machine.is_public if hasattr(cloud_machine,'is_public') else cloud_machine.get('visibility','') == 'public'
     if cloud_machine_is_public == True:
         celery_logger.info("Making Machine %s private" % cloud_machine.id)
-        account_driver.image_manager.glance.images.update(cloud_machine.id, visibility='shared')
+        if not dry_run:
+            account_driver.image_manager.glance.images.update(cloud_machine.id, visibility='shared')
 
     celery_logger.info("Sharing image %s<%s>: %s with %s" % (cloud_machine.id, cloud_machine.name, identity.provider.location, tenant_name.value))
     if not dry_run:
@@ -985,7 +1007,7 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
                 pass
         except GlanceForbidden as exc:
             if 'Public images do not have members' in exc.message:
-                celery_logger.warn("CONFLICT -- This image should have been marked 'private'! %s" % cloud_machine)
+                celery_logger.warn("CONFLICT -- This image should have been marked 'shared'! %s" % cloud_machine)
                 pass
     return
 
