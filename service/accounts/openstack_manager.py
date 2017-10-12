@@ -134,6 +134,7 @@ class AccountDriver(BaseAccountDriver):
         from service.driver import get_esh_driver
 
         self.core_provider = provider
+        self.project_name = provider.get_admin_identity().project_name()
 
         provider_creds = provider.get_credentials()
         self.cloud_config = provider.cloud_config
@@ -149,12 +150,11 @@ class AccountDriver(BaseAccountDriver):
         all_creds.update(provider_creds)
         return all_creds
 
-    def __init__(self, provider=None, *args, **kwargs):
+    def __init__(self, provider, *args, **kwargs):
         super(AccountDriver, self).__init__()
-        if provider:
-            all_creds = self._init_by_provider(provider, *args, **kwargs)
-        else:
-            all_creds = kwargs
+
+        all_creds = self._init_by_provider(provider, *args, **kwargs)
+
         if 'cloud_config' in all_creds:
             self.cloud_config = all_creds['cloud_config']
         if not self.cloud_config:
