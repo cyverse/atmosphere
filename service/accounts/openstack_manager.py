@@ -495,7 +495,7 @@ class AccountDriver(BaseAccountDriver):
                 public_key=public_key)
         return keypair
 
-    def shared_images_for(self, image_id, status="approved"):
+    def get_image_members(self, image_id, status="approved"):
         all_projects = {p.id: p for p in self.list_projects()}
         shared_with = self.image_manager.glance.image_members.list(image_id)
         projects = []

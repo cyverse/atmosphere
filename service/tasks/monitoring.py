@@ -309,37 +309,40 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
     image_owner = cloud_machine.get('application_owner','')
     # NOTE: This assumes that the 'owner' (atmosphere user) == 'project_name' (Openstack)
     # Always include the original application owner
-    shared_project_names = [image_owner]
+    owner_set = set([image_owner])
 
-    shared_projects = account_driver.shared_images_for(cloud_machine.id, None)
+    existing_members = account_driver.get_image_members(cloud_machine.id, None)
     # Extend to include based on projects already granted access to the image
-    shared_project_names.extend([p.name for p in shared_projects if p.name not in shared_project_names])
+    cloud_shared_set = set(p.name for p in existing_members)
 
     has_machine_request = MachineRequest.objects.filter(
         new_machine__instance_source__identifier=cloud_machine.id,
         status__name='completed').last()
+    machine_request_set = set()
+    machine_request_provider_set = set()
     if has_machine_request:
         access_list = has_machine_request.get_access_list()
         # NOTE: This assumes that every name in
         #      accesslist (AtmosphereUser) == project_name(Openstack)
-        shared_project_names.extend(
-                [name for name in access_list
-                 if name not in shared_project_names])
+        machine_request_set = set(name.strip() for name in access_list)
+
         request_provider = has_machine_request.new_machine_provider
         request_identifier = has_machine_request.new_machine.instance_source.identifier
+        # Deprecation warning: Now that we use a script to do replication,
+        # we should not need to account for shares on another provider.
+        # Remove this code any time during/after the v29 release
         if request_provider != db_machine.provider:
             main_account_driver = get_account_driver(request_provider)
             # Extend to include based on information in the machine request
-            request_shared_projects = main_account_driver.shared_images_for(request_identifier, None)
-            request_shared_projects = [p.name for p in request_shared_projects if p.name not in shared_project_names]
-            shared_project_names.extend(request_shared_projects)
-
-    shared_project_names.extend([p.name for p in shared_projects if p.name not in shared_project_names])
+            request_shared_projects = main_account_driver.get_image_members(request_identifier, None)
+            machine_request_provider_set = set(p.name for p in request_shared_projects)
+        # End deprecation warning
 
     # Extend to include new names found by application pattern_match
     parent_app = db_machine.application_version.application
     matching_users = list(parent_app.get_users_from_access_list().values_list('username', flat=True))
-    shared_project_names.extend([user for user in matching_users if user not in shared_project_names])
+    access_list_set = set(username for username in matching_users)
+    shared_project_names = list(owner_set | cloud_shared_set | machine_request_set | machine_request_provider_set | access_list_set)
     return shared_project_names
 
 
@@ -543,6 +546,7 @@ def add_application_membership(application, identity, dry_run=False):
         else:
             #celery_logger.debug("SKIPPED _ Group %s already ApplicationMember for %s" % (group.name, application.name))
             pass
+
 
 def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
     """
