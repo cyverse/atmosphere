@@ -51,12 +51,12 @@ class Application(models.Model):
         """
         from core.models import AtmosphereUser
 
-        if not self.access_list.count():
-            return AtmosphereUser.objects.none()
-
-        all_users = AtmosphereUser.objects.all()
+        all_users = AtmosphereUser.objects.none()
         for pattern_match in self.access_list.all():
-            all_users &= pattern_match.validate_users()
+            if pattern_match.allow_access:
+                all_users |= pattern_match.validate_users()
+            else:
+                all_users &= pattern_match.validate_users()
         return all_users
 
     @property
