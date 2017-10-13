@@ -315,6 +315,9 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
     # Extend to include based on projects already granted access to the image
     cloud_shared_set = set(p.name for p in existing_members)
 
+    # Deprecation warning: Now that we use a script to do replication,
+    # we should not need to account for shares on another provider.
+    # Remove this code any time during/after the v29 release
     has_machine_request = MachineRequest.objects.filter(
         new_machine__instance_source__identifier=cloud_machine.id,
         status__name='completed').last()
@@ -328,9 +331,6 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
 
         request_provider = has_machine_request.new_machine_provider
         request_identifier = has_machine_request.new_machine.instance_source.identifier
-        # Deprecation warning: Now that we use a script to do replication,
-        # we should not need to account for shares on another provider.
-        # Remove this code any time during/after the v29 release
         if request_provider != db_machine.provider:
             main_account_driver = get_account_driver(request_provider)
             # Extend to include based on information in the machine request
