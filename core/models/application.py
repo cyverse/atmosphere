@@ -358,17 +358,17 @@ class ApplicationMembership(models.Model):
         unique_together = ('application', 'group')
 
 
-def _get_owner_identity(provider, created_by, uuid_match):
-    if uuid_match:
-        #Use existing authorship on UUID matches.
-        # This will avoid bounceback on replica-machines
-        return uuid_match.created_by_identity
-    elif created_by:
+def _get_owner_identity(provider, created_by=None):
+    """
+    This private method is intenteded to ensure that a valid identity exists
+    for the 'owner' of an Application.
+    If the identity cannot be found, the AccountProvider will be the author.
+    """
+    if created_by:
         return _user_identity_lookup(
             str(provider.uuid),
             created_by.username)
     else:
-        logger.error("ERROR: No identity was found for image <%s> -- the 'author' will be admin" % identifier)
         return provider.get_admin_identity()
 
 
@@ -505,8 +505,12 @@ def create_application(
         name = "Imported App: %s" % identifier
     if not description:
         description = "Imported Application - %s" % name
-    if not created_by_identity:
-        created_by_identity = _get_owner_identity(provider, created_by, uuid_match)
+    if not created_by_identity and uuid_match:
+        #Use existing authorship on UUID matches.
+        # This will avoid bounceback on replica-machines
+        return uuid_match.created_by_identity
+    elif not created_by_identity:
+        created_by_identity = _get_owner_identity(provider, created_by)
 
     if not tags:
         tags = []
