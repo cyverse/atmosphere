@@ -381,48 +381,6 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     return groups
 
 
-
-def get_public_and_private_apps(provider):
-    """
-    INPUT: Provider provider
-    OUTPUT: 2-tuple (
-            new_public_apps [],
-            private_apps(key) + super-set-membership(value) {})
-    """
-    account_driver = get_account_driver(provider)
-    all_projects_map = tenant_id_to_name_map(account_driver)
-    cloud_machines = account_driver.list_all_images()
-
-    db_machines = ProviderMachine.objects.filter(only_current_source(), instance_source__provider=provider)
-    new_public_apps = []
-    private_apps = {}
-    # ASSERT: All non-end-dated machines in the DB can be found in the cloud
-    # if you do not believe this is the case, you should call 'prune_machines_for'
-    for cloud_machine in cloud_machines:
-        #Filter out: ChromoSnapShot, eri-, eki-, ... (Or dont..)
-        cloud_machine_name = cloud_machine.name if cloud_machine.name else ""
-        if any(cloud_machine_name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
-            #celery_logger.debug("Skipping cloud machine %s" % cloud_machine)
-            continue
-        app_name, version_name = ProviderMachine._split_cloud_name(cloud_machine.name)
-        db_machine = get_or_create_provider_machine(cloud_machine.id, app_name, provider.uuid, version_name=version_name)
-        db_version = db_machine.application_version
-        db_application = db_version.application
-
-        if cloud_machine.get('visibility') == 'public':
-            if db_application.private and db_application not in new_public_apps:
-                new_public_apps.append(db_application) #Distinct list..
-            #Else the db app is public and no changes are necessary.
-        else:
-            # cloud machine is private
-            membership = get_shared_identities(account_driver, cloud_machine, all_projects_map)
-            all_members = private_apps.get(db_application, [])
-            all_members.extend(membership)
-            #Distinct list..
-            private_apps[db_application] = all_members
-    return new_public_apps, private_apps
-
-
 def remove_machine(db_machine, now_time=None, dry_run=False):
     """
     End date the DB ProviderMachine
