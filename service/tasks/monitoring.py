@@ -306,14 +306,16 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
     """
     #TODO: In a future update to 'imaging' we might image 'as the user' rather than 'as the admin user', in this case we should just use 'owner' metadata
 
-    image_owner = cloud_machine.get('application_owner','')
+    image_owner = cloud_machine.get('application_owner')
     # NOTE: This assumes that the 'owner' (atmosphere user) == 'project_name' (Openstack)
     # Always include the original application owner
-    owner_set = set([image_owner])
+    owner_set = set()
+    if image_owner:
+        owner_set.add(image_owner)
 
     existing_members = account_driver.get_image_members(cloud_machine.id, None)
     # Extend to include based on projects already granted access to the image
-    cloud_shared_set = set(p.name for p in existing_members)
+    cloud_shared_set = { p.name for p in existing_members }
 
     # Deprecation warning: Now that we use a script to do replication,
     # we should not need to account for shares on another provider.
@@ -327,7 +329,7 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
         access_list = has_machine_request.get_access_list()
         # NOTE: This assumes that every name in
         #      accesslist (AtmosphereUser) == project_name(Openstack)
-        machine_request_set = set(name.strip() for name in access_list)
+        machine_request_set = { name.strip() for name in access_list }
 
         request_provider = has_machine_request.new_machine_provider
         request_identifier = has_machine_request.new_machine.instance_source.identifier
@@ -340,8 +342,7 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
 
     # Extend to include new names found by application pattern_match
     parent_app = db_machine.application_version.application
-    matching_users = list(parent_app.get_users_from_access_list().values_list('username', flat=True))
-    access_list_set = set(username for username in matching_users)
+    access_list_set = set(parent_app.get_users_from_access_list().values_list('username', flat=True))
     shared_project_names = list(owner_set | cloud_shared_set | machine_request_set | machine_request_provider_set | access_list_set)
     return shared_project_names
 

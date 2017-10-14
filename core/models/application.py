@@ -360,7 +360,7 @@ class ApplicationMembership(models.Model):
 
 def _get_owner_identity(provider, created_by=None):
     """
-    This private method is intenteded to ensure that a valid identity exists
+    This private method is intended to ensure that a valid identity exists
     for the 'owner' of an Application.
     If the identity cannot be found, the AccountProvider will be the author.
     """
