@@ -2,12 +2,16 @@
 These helper classes are written to make it easier to write 'mock test cases'
 for Core objects
 """
-from core.models import Allocation, Application, AtmosphereUser, Group,\
-    Identity, IdentityMembership, \
-    Instance, InstanceStatusHistory,\
-    MachineRequest, Provider, \
-    ProviderType, PlatformType, \
-    ProviderMachine, Size, Quota
+from core.models import (
+    Allocation, Application, ApplicationVersion,
+    AtmosphereUser, Group,
+    Identity, IdentityMembership,
+    Instance, InstanceSource, InstanceStatusHistory,
+    MachineRequest, Provider,
+    ProviderType, PlatformType,
+    ProviderMachine, Size, Quota,
+    PatternMatch
+)
 from uuid import uuid4
 
 
@@ -36,35 +40,43 @@ def _new_mock_identity_member(username, provider):
         username=username)[0]
     mock_group = Group.objects.get_or_create(
         name=username)[0]
+    mock_quota = Quota.default_quota()
     mock_identity = Identity.objects.get_or_create(
         created_by=mock_user,
+        quota=mock_quota,
         provider=provider)[0]
     mock_allocation = Allocation.default_allocation()
-    mock_quota = Quota.default_quota()
     mock_identity_member = IdentityMembership.objects.get_or_create(
         identity=mock_identity, member=mock_group,
-        allocation=mock_allocation, quota=mock_quota)[0]
+        allocation=mock_allocation)[0]
     return mock_identity_member
 
 
-def _new_provider_machine(name, version, identifier, identity):
+def _new_provider_machine(name, version, identity, identifier=None):
+    if not identifier:
+        identifier = uuid4()
     app = Application.objects.get_or_create(
         name=name,
         description='Mock Test Application named %s' % name,
         created_by=identity.created_by, created_by_identity=identity,
         uuid=identifier)[0]
-    machine = ProviderMachine.objects.get_or_create(
-        application=app, provider=identity.provider,
+    application_version, _ = ApplicationVersion.objects.get_or_create(
+        application=app, name=version, change_log="Mock Version",
+        created_by=identity.created_by, created_by_identity=identity)
+    source, _ = InstanceSource.objects.get_or_create(
+        provider=identity.provider,
         created_by=identity.created_by, created_by_identity=identity,
-        identifier=identifier,
-        version=version)[0]
+        identifier=identifier)
+    machine = ProviderMachine.objects.get_or_create(
+        application_version=application_version,
+        instance_source=source)[0]
     return machine
 
 
 def _new_core_instance(name, alias, start_date, identity, machine=None):
     if not machine:
         machine = _new_provider_machine("Mock Machine", "1.0",
-                                        uuid4(), identity)
+                                        identity)
     mock_user = identity.created_by
 
     return Instance.objects.get_or_create(
@@ -233,7 +245,7 @@ class CoreProviderMachineHelper(object):
 
     def to_core_machine(self):
         self.machine = _new_provider_machine(self.name, self.version,
-                                             self.uuid, self.identity)
+                                             self.identity, self.uuid)
         return self.machine
 
 
@@ -275,3 +287,27 @@ class CoreMachineRequestHelper(object):
             new_machine_version=self.new_machine_version,
             new_machine_owner=self.user, new_machine_visibility='public',
             new_machine_forked=self.forked, start_date=self.start_date)[0]
+
+
+class CoreApplicationHelper(object):
+
+    def __init__(self, name, start_date=None,
+                 provider='openstack', username='mock_user'):
+        self.AVAILABLE_PROVIDERS = _new_providers()
+        self.set_provider(provider)
+        identity_member = _new_mock_identity_member(
+            username, self.provider)
+        self.identity = identity_member.identity
+        self.user = self.identity.created_by
+        db_machine = _new_provider_machine(
+            "Test Machine", "1.0-test",
+            self.identity)
+        self.application = db_machine.application_version.application
+        self.start_date = start_date
+
+    def set_provider(self, provider):
+        if provider not in self.AVAILABLE_PROVIDERS:
+            raise ValueError(
+                "The test provider specified '%s' is not a valid provider"
+                % provider)
+        self.provider = self.AVAILABLE_PROVIDERS[provider]

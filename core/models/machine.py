@@ -62,20 +62,21 @@ class ProviderMachine(BaseSource):
     def _split_cloud_name(cls, machine_name):
         version_sep = settings.APPLICATION_VERSION_SEPARATOR
         if version_sep in machine_name:
-            split_list = machine_name.split(version_sep)
+            split_list = [s.strip() for s in machine_name.split(version_sep)]
 
         if len(split_list) == 1:
             logger.warn(
                 "Version separator(%s) was not found: %s"
                 % (version_sep, machine_name))
-            split_list = [split_list[0].trim(), '']
-
-        if len(split_list) > 2:
+            split_list = [split_list[0], '']
+        elif len(split_list) > 2:
             logger.warn(
                 "Version separator(%s) is ambiguous: %s"
                 % (version_sep, machine_name))
-            version_parts = machine_name.rpartition(version_sep)
-            split_list = [version_parts[0].trim(), version_parts[2].trim()]
+            version_parts = [
+                s.strip() for s in
+                machine_name.rpartition(version_sep)]
+            split_list = [version_parts[0], version_parts[2]]
         return split_list
 
     def generated_name(self):
@@ -230,19 +231,6 @@ def get_cached_machine(provider_alias, provider_id):
                     % (provider_alias, provider_id))
     return cached_mach
 
-def collect_image_metadata(glance_image):
-    app_kwargs = {}
-    try:
-        app_kwargs['private'] = glance_image.visibility.lower() != 'public'
-        if verify_app_uuid(glance_image.get('application_uuid'), glance_image.id):
-            app_kwargs['uuid'] = glance_image.get('application_uuid')
-            app_kwargs['description'] = glance_image.get('application_description')#TODO: Verify that _LINE_BREAK_ is fixed
-            app_kwargs['tags'] = ast.literal_eval(glance_image.get('application_tags'))
-        elif is_replicated_version(glance_image.id):
-            app_kwargs = replicate_app_kwargs(glance_image.id)
-    except AttributeError as exc:
-        logger.exception("Glance image %s was not initialized with atmosphere metadata - %s" % (glance_image.id, exc.message))
-    return app_kwargs
 
 
 def is_replicated_version(image_id):
@@ -270,7 +258,48 @@ def replicate_app_kwargs(image_id):
         return {}
 
 
-def convert_glance_image(glance_image, provider_uuid, owner=None):
+def _application_and_version_from_metadata(account_driver, glance_image):
+    """
+    Input: Account driver, glance image
+    - Determine if image was authored by Atmosphere
+    - If so, return any application and/or version metadata found on glance_image.
+    """
+    from core.models import AtmosphereUser
+    app_kwargs = {}
+    version_kwargs = {}
+    default_version_name = '1.0'  # could be configurable if controversial
+    provider_uuid = str(account_driver.core_provider.uuid)
+    atmo_author_project_name = account_driver.project_name
+    owner = account_driver.get_project_by_id(glance_image.get('owner'))
+    if owner.name != atmo_author_project_name:
+        logger.info("Skipping update because owner of glance_image (%s) is not the imaging author %s", owner.name, atmo_author_project_name)
+        return (app_kwargs, version_kwargs)
+    application_owner = glance_image.get('application_owner')
+    user = AtmosphereUser.objects.filter(
+            username=application_owner).first()
+    identity = Identity.objects.filter(
+        provider__uuid=provider_uuid, created_by=user).first()
+    metadata_tags = glance_image.get('application_tags')
+    app_kwargs = {
+        'provider_uuid': provider_uuid,
+        'identifier': glance_image.id,
+        'name': glance_image.get('application_name'),
+        'created_by_identity': identity,
+        'created_by': user,
+        'description': glance_image.get('application_description', "").replace("_LINEBREAK_", "\n"),
+        'private': glance_image.visibility.lower() != 'public',
+        'tags': ast.literal_eval(metadata_tags) if metadata_tags else [],
+        'uuid': glance_image.get('application_uuid')
+    }
+    version_kwargs = {
+        'name': glance_image.get('version_name', default_version_name),
+        'change_log': glance_image.get('version_changelog', ""),
+        'created_by': user,
+        'created_by_identity': identity
+    }
+    return (app_kwargs, version_kwargs)
+
+def convert_glance_image(account_driver, glance_image, provider_uuid, owner=None):
     """
     Guaranteed Return of ProviderMachine.
     1. Load provider machine from DB and return
@@ -280,48 +309,27 @@ def convert_glance_image(glance_image, provider_uuid, owner=None):
           * Create application based on available glance_machine metadata
     2b. Using application from 2. Create provider machine
     """
-    from core.models import AtmosphereUser
     image_id = glance_image.id
-    machine_name = glance_image.name
-    application_name = machine_name  # Future: application_name will partition at the 'Application Version separator'.. and pass the version_name to create_version
     provider_machine = get_provider_machine(image_id, provider_uuid)
     if provider_machine:
         update_instance_source_size(provider_machine.instance_source, glance_image.get('size'))
         return (provider_machine, False)
-    app_kwargs = collect_image_metadata(glance_image)
-    if owner and hasattr(owner, 'name'):
-        owner_name = owner.name
-    else:
-        owner_name = glance_image.get('application_owner')
-    user = AtmosphereUser.objects.filter(username=owner_name).first()
-    if user:
-        identity = Identity.objects.filter(
-            provider__uuid=provider_uuid, created_by=user).first()
-    else:
-        identity = None
-    app_kwargs.update({
-        'created_by': user,
-        'created_by_identity': identity
-    })
-    app = create_application(
-        provider_uuid, image_id, application_name,
-        **app_kwargs)
+    (app_kwargs, version_kwargs) = _application_and_version_from_metadata(account_driver, glance_image)
+    # TODO: use version_kwargs in method below?
     version = get_version_for_machine(provider_uuid, image_id, fuzzy=True)
-    if not version:
-        version_kwargs = {
-            'version_str': glance_image.get('application_version', '1.0'),
-            'created_by': user,
-            'created_by_identity': identity,
-            'provider_machine_id': image_id
-        }
-        version = create_app_version(app, **version_kwargs)
+    if version:
+        app = version.application
+    else:
+        app = create_application(**app_kwargs)
+        version = create_app_version(app=app, **version_kwargs)
+
     #TODO: fuzzy=True returns a list, but call comes through as a .get()?
     #      this line will cover that edge-case.
     if type(version) in [models.QuerySet, list]:
         version = version[0]
 
     machine_kwargs = {
-        'created_by_identity': identity,
+        'created_by_identity': version_kwargs.get('created_by_identity'),
         'version': version
     }
     provider_machine = create_provider_machine(

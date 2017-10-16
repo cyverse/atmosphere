@@ -290,7 +290,7 @@ def merge_duplicated_app_versions(
 
 def create_app_version(
         app,
-        version_str,
+        name,
         created_by=None,
         created_by_identity=None,
         change_log=None, allow_imaging=None, provider_machine_id=None):
@@ -300,15 +300,14 @@ def create_app_version(
         created_by_identity = app.created_by_identity
 
     if provider_machine_id:
-        app_version = test_machine_in_version(app, version_str, provider_machine_id)
-    if app_version:
+        app_version = test_machine_in_version(app, name, provider_machine_id)
         app_version.created_by = created_by
         app_version.created_by_identity = created_by_identity
         app_version.save()
     else:
         app_version = create_unique_version(
             app,
-            version_str,
+            name,
             created_by,
             created_by_identity)
     last_version = app.latest_version
