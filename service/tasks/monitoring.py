@@ -164,7 +164,7 @@ def monitor_machines():
 
 
 @task(name="monitor_machines_for")
-def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_run=False):
+def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_run=False, validate=True):
     """
     Run the set of tasks related to monitoring machines for a provider.
     Optionally, provide a list of usernames to monitor
@@ -191,7 +191,7 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
     # ASSERT: All non-end-dated machines in the DB can be found in the cloud
     # if you do not believe this is the case, you should call 'prune_machines_for'
     for cloud_machine in cloud_machines:
-        if not machine_is_valid(cloud_machine, account_driver):
+        if not machine_is_valid(cloud_machine, account_driver, validate):
             continue
         owner_project = _get_owner(account_driver, cloud_machine)
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
@@ -228,7 +228,7 @@ def _get_owner(accounts, cloud_machine):
     return owner_project
 
 
-def machine_is_valid(cloud_machine, accounts):
+def machine_is_valid(cloud_machine, accounts, validate=True):
     """
     As the criteria for "what makes a glance image an atmosphere ProviderMachine" changes, we can use this function to hook out to external plugins, etc.
     Filters out:
@@ -236,6 +236,8 @@ def machine_is_valid(cloud_machine, accounts):
         - Images that are not authored by Atmosphere
         - Domain-specific image catalog(?)
     """
+    if not validate:
+        return True
 
     # Skip the machine if the owner was not the chromogenic image creator
     # (tenant name must match admin tenant name)
