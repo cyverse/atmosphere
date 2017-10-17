@@ -185,7 +185,12 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
             _exit_stdout_logging(console_handler)
         return []
 
-    cloud_machines = account_driver.list_all_images()
+    if account_driver.user_manager.version == 2:
+        #Old providers need to use v1 glance to get owner information.
+        cloud_machines = account_driver.image_manager.list_v1_images()
+    else:
+        cloud_machines = account_driver.list_all_images()
+
     if limit_machines:
         cloud_machines = [cm for cm in cloud_machines if cm.id in limit_machines]
     db_machines = []

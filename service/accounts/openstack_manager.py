@@ -1196,7 +1196,7 @@ class AccountDriver(BaseAccountDriver):
             return self.get_legacy_glance_client(all_creds)
         # Remove lines above when legacy cloud compatability is removed
         image_creds = self._build_image_creds(all_creds)
-        _, _, glance = self.image_manager._new_connection(**image_creds)
+        _, _, glance, _ = self.image_manager._new_connection(**image_creds)
         return glance
 
     def get_neutron_client(self, all_creds):
