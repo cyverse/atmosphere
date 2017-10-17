@@ -109,6 +109,7 @@ DEPLOYMENT_KEYPAIR_NAME = # keypair name inject by atmo-ansible during instance 
 EXPIRATION_PLUGINS = ["atmosphere.plugins.auth.validation.NeverExpire"] # list of plugins
 VALIDATION_PLUGINS = ["atmosphere.plugins.auth.validation.AlwaysAllow"] # list of plugins
 ACCOUNT_CREATION_PLUGINS = ["atmosphere.plugins.accounts.creation.UserGroup"] # list of plugins
+MACHINE_VALIDATION_PLUGIN = "atmosphere.plugins.machine_validation.BasicValidation" # plugin
 
 SENTRY_ENABLED =  True # Boolean required or False
 SENTRY_DSN = # https://...@sentry.io/....

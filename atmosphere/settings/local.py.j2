@@ -499,7 +499,16 @@ TACC_API_URL = ''
 # Atmosphere Plugin Settings
 ######
 
-# Validation Plugins:
+# Machine validation Plugin:
+# This plugin will be used to determine whether or not
+# a `cloud_machine` should be included in the Atmosphere image catalog.
+# Atmosphere provides three separate plugins:
+# "atmosphere.plugins.machine_validation.BasicValidation" - All images allowed
+# "atmosphere.plugins.machine_validation.CyverseStrategy" - Skip specific metadata, require author to be admin user.
+# "jetstream.plugins.machine_validation.JetstreamStrategy" - Require specific metadata
+MACHINE_VALIDATION_PLUGIN = "{{ MACHINE_VALIDATION_PLUGIN }}"
+
+# User Validation Plugins:
 # These plugins will be checked, in order, until one passes
 # If all validation plugins fail, user will be "kicked out" of the API.
 {%- if VALIDATION_PLUGINS %}

@@ -13,8 +13,8 @@ from api.tests.factories import (
     SizeFactory)
 from api.v2.views import InstanceViewSet
 from core.models import AtmosphereUser
-from rtwo.driver import MockDriver
 from service.driver import get_esh_driver
+
 
 class InstanceActionTests(APITestCase):
     def setUp(self):
