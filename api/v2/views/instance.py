@@ -9,7 +9,7 @@ from core.models import Instance, Identity, UserAllocationSource, Project, Alloc
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
 from core.models.instance_action import InstanceAction
-from core.query import only_current
+from core.query import only_current_instances
 
 from rest_framework import status
 from rest_framework import renderers
@@ -63,7 +63,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         user = self.request.user
         qs = Instance.shared_with_user(user)
         if 'archived' not in self.request.query_params:
-            qs = qs.filter(only_current())
+            qs = qs.filter(only_current_instances())
         # logger.info("DEBUG- User %s querying for instances, available IDs are:%s" % (user, qs.values_list('id',flat=True)))
         qs = qs.select_related("created_by")\
             .select_related('created_by_identity')\

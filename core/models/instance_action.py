@@ -49,7 +49,7 @@ class InstanceAction(models.Model):
             instance = cls._retrieve_instance(instance)
         # Filter down to what the *provider* will let you do to the *instance*
         valid_actions = cls.filter_by_provider(
-            instance.source.provider.id, queryset)
+            instance.created_by_identity.provider.id, queryset)
         # THEN Filter down to what the *instance* will let you do
         valid_actions = cls.valid_instance_actions(instance, valid_actions)
         return valid_actions

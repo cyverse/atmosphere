@@ -50,9 +50,12 @@ class Application(models.Model):
         - Returns a list of Users who passed the test
         """
         from core.models import AtmosphereUser
-        all_users = AtmosphereUser.objects.all()
-        for pattern_match in self.access_list.all():
-            all_users &= pattern_match.validate_users()
+
+        all_users = AtmosphereUser.objects.none()
+        for pattern_match in self.access_list.filter(allow_access=True):
+                all_users |= pattern_match.validate_users()
+        for pattern_match in self.access_list.filter(allow_access=False):
+                all_users &= pattern_match.validate_users()
         return all_users
 
     @property
@@ -354,6 +357,20 @@ class ApplicationMembership(models.Model):
         unique_together = ('application', 'group')
 
 
+def _get_owner_identity(provider, created_by=None):
+    """
+    This private method is intended to ensure that a valid identity exists
+    for the 'owner' of an Application.
+    If the identity cannot be found, the AccountProvider will be the author.
+    """
+    if created_by:
+        return _user_identity_lookup(
+            str(provider.uuid),
+            created_by.username)
+    else:
+        return provider.get_admin_identity()
+
+
 def _get_app_by_name(provider_uuid, name):
     """
     Retrieve app by name
@@ -473,26 +490,27 @@ def create_application(
     Build information (Based on MachineRequest or API inputs..)
     and RETURN Application!!
     """
-    new_app = None
+    application = None
 
     if not uuid:
         uuid = _generate_app_uuid(identifier)
 
-    existing_app = Application.objects.filter(uuid=uuid)
-    if existing_app.count():
-        new_app = existing_app[0]
+    uuid_match = Application.objects.filter(uuid=uuid).first()
+    if uuid_match:
+        application = uuid_match
 
+    provider = Provider.objects.get(uuid=provider_uuid)
     if not name:
         name = "Imported App: %s" % identifier
     if not description:
         description = "Imported Application - %s" % name
-    if created_by:
-        created_by_identity = _user_identity_lookup(
-            provider_uuid,
-            created_by.username)
-    if not created_by_identity:
-        logger.error("ERROR: No identity was found for image <%s> -- the 'author' will be admin" % identifier)
-        created_by_identity = _get_admin_owner(provider_uuid)
+    if not created_by_identity and uuid_match:
+        #Use existing authorship on UUID matches.
+        # This will avoid bounceback on replica-machines
+        return uuid_match.created_by_identity
+    elif not created_by_identity:
+        created_by_identity = _get_owner_identity(provider, created_by)
+
     if not tags:
         tags = []
     elif isinstance(tags, basestring):
@@ -504,15 +522,15 @@ def create_application(
             tags = [t.strip() for t in tags.split(',')]
         else:
             tags = [tags]
-    if new_app:
-        new_app.name = name
-        new_app.description = description
-        new_app.created_by = created_by_identity.created_by
-        new_app.created_by_identity = created_by_identity
-        new_app.private = private
-        new_app.save()
+    if application:
+        application.name = name
+        application.description = description
+        application.created_by_identity = created_by_identity
+        application.created_by = created_by_identity.created_by
+        application.private = private
+        application.save()
     else:
-        new_app = Application.objects.create(
+        application = Application.objects.create(
             name=name,
             description=description,
             created_by=created_by_identity.created_by,
@@ -520,11 +538,11 @@ def create_application(
             private=private,
             uuid=uuid)
     if tags:
-        updateTags(new_app, tags, created_by_identity.created_by)
+        updateTags(application, tags, created_by_identity.created_by)
     if access_list:
         for pattern_match in access_list:
-            new_app.access_list.add(pattern_match)
-    return new_app
+            application.access_list.add(pattern_match)
+    return application
 
 #FIXME: This class marked for removal
 class ApplicationScore(models.Model):
@@ -638,18 +656,3 @@ class ApplicationThreshold(models.Model):
     class Meta:
         db_table = 'application_threshold'
         app_label = 'core'
-
-
-# NOTE: Should it always take the first admin?
-def _get_admin_owner(provider_uuid):
-    admins = AccountProvider.objects.filter(provider__uuid=provider_uuid)
-
-    # If an admin exists return its identity
-    if admins.count() > 0:
-        return admins.first().identity
-
-    logger.warn("AccountProvider could not be found for provider %s."
-                " AccountProviders are necessary to claim ownership "
-                " for identities that do not yet exist in the DB."
-                % Provider.objects.get(uuid=provider_uuid))
-    return None
