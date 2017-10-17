@@ -181,7 +181,8 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
     account_driver = get_account_driver(provider)
     #Bail out if account driver is invalid
     if not account_driver:
-        _exit_stdout_logging(console_handler)
+        if print_logs:
+            _exit_stdout_logging(console_handler)
         return []
 
     cloud_machines = account_driver.list_all_images()
