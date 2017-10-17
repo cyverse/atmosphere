@@ -1378,6 +1378,7 @@ class AccountDriver(BaseAccountDriver):
         ex_auth_version = user_args.pop("ex_force_auth_version", '2.0_password')
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):
+            user_args.pop('domain_name')
             auth_url_prefix = "/v2.0/"
             auth_version = 'v2.0'
         elif ex_auth_version.startswith('3'):
@@ -1395,6 +1396,7 @@ class AccountDriver(BaseAccountDriver):
         user_args.pop("location", None)
         user_args.pop("router_name", None)
         user_args.pop("ex_project_name", None)
+        user_args.pop("ex_tenant_name", None)
 
         return user_args
 
