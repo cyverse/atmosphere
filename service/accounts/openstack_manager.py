@@ -514,7 +514,8 @@ class AccountDriver(BaseAccountDriver):
             pass
         except GlanceForbidden as exc:
             # Skip over exception if image visibility is public/private.
-            if 'Only shared images have members' not in exc.details:
+            if 'Only shared images have members' not in exc.details\
+                    and 'Public images do not have members' not in exc.details:
                 raise
         return projects
 
