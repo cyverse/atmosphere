@@ -52,10 +52,9 @@ class Application(models.Model):
         from core.models import AtmosphereUser
 
         all_users = AtmosphereUser.objects.none()
-        for pattern_match in self.access_list.all():
-            if pattern_match.allow_access:
+        for pattern_match in self.access_list.filter(allow_access=True):
                 all_users |= pattern_match.validate_users()
-            else:
+        for pattern_match in self.access_list.filter(allow_access=False):
                 all_users &= pattern_match.validate_users()
         return all_users
 
