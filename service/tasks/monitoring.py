@@ -251,7 +251,12 @@ def machine_is_valid(cloud_machine, accounts, validate=True):
     project_id = cloud_machine.get('owner')
     owner_project = accounts.get_project_by_id(project_id)
     atmo_author_project_name = accounts.project_name
-    if owner_project.name != atmo_author_project_name:
+    if not owner_project:
+        celery_logger.info(
+            "Skipping cloud machine authored by project_id %s, not the Atmosphere author: %s",
+            project_id, atmo_author_project_name)
+        return False
+    elif owner_project.name != atmo_author_project_name:
         celery_logger.info(
             "Skipping cloud machine authored by Tenant %s, not the Atmosphere author: %s",
             owner_project.name, atmo_author_project_name)
