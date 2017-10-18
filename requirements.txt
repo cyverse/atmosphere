@@ -21,7 +21,7 @@ celery==4.0.2
 certifi==2017.7.27.1      # via requests, tornado
 cffi==1.10.0              # via bcrypt, cryptography, pynacl
 chardet==3.0.4            # via requests
-chromogenic==0.4.15
+chromogenic==0.4.16
 cliff==2.8.0              # via osc-lib, python-neutronclient, python-openstackclient
 cmd2==0.7.5               # via cliff
 colorama==0.3.9

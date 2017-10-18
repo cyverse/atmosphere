@@ -514,7 +514,8 @@ class AccountDriver(BaseAccountDriver):
             pass
         except GlanceForbidden as exc:
             # Skip over exception if image visibility is public/private.
-            if 'Only shared images have members' not in exc.details:
+            if 'Only shared images have members' not in exc.details\
+                    and 'Public images do not have members' not in exc.details:
                 raise
         return projects
 
@@ -1196,7 +1197,7 @@ class AccountDriver(BaseAccountDriver):
             return self.get_legacy_glance_client(all_creds)
         # Remove lines above when legacy cloud compatability is removed
         image_creds = self._build_image_creds(all_creds)
-        _, _, glance = self.image_manager._new_connection(**image_creds)
+        _, _, glance, _ = self.image_manager._new_connection(**image_creds)
         return glance
 
     def get_neutron_client(self, all_creds):
@@ -1378,6 +1379,7 @@ class AccountDriver(BaseAccountDriver):
         ex_auth_version = user_args.pop("ex_force_auth_version", '2.0_password')
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):
+            user_args.pop('domain_name')
             auth_url_prefix = "/v2.0/"
             auth_version = 'v2.0'
         elif ex_auth_version.startswith('3'):
@@ -1395,6 +1397,7 @@ class AccountDriver(BaseAccountDriver):
         user_args.pop("location", None)
         user_args.pop("router_name", None)
         user_args.pop("ex_project_name", None)
+        user_args.pop("ex_tenant_name", None)
 
         return user_args
 

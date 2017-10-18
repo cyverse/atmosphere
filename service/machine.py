@@ -278,9 +278,10 @@ def update_cloud_membership_for_machine(provider_machine, group):
     if not admin_driver:
         raise NotImplemented("Admin Driver could not be created for %s" % prov)
     img = accounts.get_image(provider_machine.identifier)
-    if img.visibility == 'public':
+    if img.get('visibility') != 'shared':
+       logger.debug("Skipped updates for image %s -- visibility (%s) is not 'shared'", img.id, img.get('visibility'))
        return
-    approved_projects = accounts.shared_images_for(img.id)
+    approved_projects = accounts.get_image_members(img.id)
     for identity_membership in group.identitymembership_set.all():
         if identity_membership.identity.provider != prov:
             logger.debug("Skipped %s -- Wrong provider" % identity_membership.identity)
@@ -336,7 +337,7 @@ def remove_membership(image_version, group, accounts=None):
         if not admin_driver:
             raise NotImplemented("Admin Driver could not be created for %s" % prov)
         img = accounts.get_image(provider_machine.identifier)
-        approved_projects = accounts.shared_images_for(img.id)
+        approved_projects = accounts.get_image_members(img.id)
         for identity_membership in group.identitymembership_set.order_by('identity__created_by__username'):
             if identity_membership.identity.provider != prov:
                 continue
@@ -400,7 +401,7 @@ def share_with_self(private_userlist, username):
 
 def sync_cloud_access(accounts, img, project_names=None):
     domain_id = accounts.credentials.get('domain_name', 'default')
-    approved_projects = accounts.shared_images_for(img.id)
+    approved_projects = accounts.get_image_members(img.id)
     # Any names who aren't already on the image should be added
     # Find names who are marked as 'sharing' on DB but not on OpenStack
     for project_name in project_names:

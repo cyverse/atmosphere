@@ -181,10 +181,16 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
     account_driver = get_account_driver(provider)
     #Bail out if account driver is invalid
     if not account_driver:
-        _exit_stdout_logging(console_handler)
+        if print_logs:
+            _exit_stdout_logging(console_handler)
         return []
 
-    cloud_machines = account_driver.list_all_images()
+    if account_driver.user_manager.version == 2:
+        #Old providers need to use v1 glance to get owner information.
+        cloud_machines = account_driver.image_manager.list_v1_images()
+    else:
+        cloud_machines = account_driver.list_all_images()
+
     if limit_machines:
         cloud_machines = [cm for cm in cloud_machines if cm.id in limit_machines]
     db_machines = []
@@ -245,7 +251,12 @@ def machine_is_valid(cloud_machine, accounts, validate=True):
     project_id = cloud_machine.get('owner')
     owner_project = accounts.get_project_by_id(project_id)
     atmo_author_project_name = accounts.project_name
-    if owner_project.name != atmo_author_project_name:
+    if not owner_project:
+        celery_logger.info(
+            "Skipping cloud machine authored by project_id %s, not the Atmosphere author: %s",
+            project_id, atmo_author_project_name)
+        return False
+    elif owner_project.name != atmo_author_project_name:
         celery_logger.info(
             "Skipping cloud machine authored by Tenant %s, not the Atmosphere author: %s",
             owner_project.name, atmo_author_project_name)
