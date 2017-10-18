@@ -278,7 +278,8 @@ def update_cloud_membership_for_machine(provider_machine, group):
     if not admin_driver:
         raise NotImplemented("Admin Driver could not be created for %s" % prov)
     img = accounts.get_image(provider_machine.identifier)
-    if img.visibility == 'public':
+    if img.get('visibility') != 'shared':
+       logger.debug("Skipped updates for image %s -- visibility (%s) is not 'shared'", img.id, img.get('visibility'))
        return
     approved_projects = accounts.get_image_members(img.id)
     for identity_membership in group.identitymembership_set.all():
