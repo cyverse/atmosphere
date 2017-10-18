@@ -1358,7 +1358,7 @@ class AccountDriver(BaseAccountDriver):
             img_args["auth_url"] = img_args.get('auth_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')  # hostname:port (no routes!)
             auth_version = 'v3'
         img_args['version'] = auth_version
-
+        img_args.pop('admin_url',None)
         return img_args
 
     def _build_user_creds(self, credentials):

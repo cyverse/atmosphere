@@ -322,7 +322,7 @@ def _get_instance_owner_map(provider, users=None):
     from service.driver import get_account_driver
 
     admin_driver = get_cached_driver(provider=provider)
-    accounts = get_account_driver(provider=provider)
+    accounts = get_account_driver(provider=provider, raise_exception=True)
     all_identities = _select_identities(provider, users)
     acct_providers = AccountProvider.objects.filter(provider=provider)
     if acct_providers:
