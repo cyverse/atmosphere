@@ -7,19 +7,20 @@ import string
 from urlparse import urlparse
 import glanceclient
 from django.db.models import ObjectDoesNotExist
-from rtwo.exceptions import NovaOverLimit, KeystoneUnauthorized, GlanceForbidden
+from rtwo.exceptions import (
+    NovaOverLimit,
+    KeystoneUnauthorized,
+    NeutronClientException,
+    GlanceClientException,
+    GlanceForbidden)
 
-#FIXME: Add this exception to rtwo before merge.
+# FIXME: Add this exception to rtwo before merge.
 try:
     from keystoneclient.exceptions import NotFound as KeystoneNotFound
 except:
     class KeystoneNotFound(Exception):
         pass
 
-from rtwo.exceptions import (
-    NeutronClientException,
-    GlanceClientException,
-    GlanceForbidden)
 from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_glance_by_auth
 
 import core.models

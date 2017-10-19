@@ -49,7 +49,7 @@ class DirectOpenstackAccount(AccountCreationPlugin):
     - Based on this, Account Creation here should _lookup_ the identity thats been created above, and do any final associations
 
     This plugin will simply verify that the above has been completed, and ensure an Allocation Source has been created.
-	    - To disable Allocation sources, set compute_allowed to -1
+        - To disable Allocation sources, set compute_allowed to -1
     """
     def create_accounts(self, provider, username, force=False):
         from core.models import Identity, Project
