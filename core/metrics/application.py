@@ -87,7 +87,9 @@ def calculate_summarized_application_metrics(app):
     app_instances = Instance.objects.filter(source__providermachine__application_version__application__id=app.id)
     total_launched = app_instances.count()
     total_successful = app_instances.filter(instancestatushistory__status__name='active').distinct().count()
-    success_pct = total_successful/float(total_launched) * 100
+    success_pct = 0.0
+    if total_launched != 0:
+        success_pct = total_successful/float(total_launched) * 100
 
     application_metrics = {
         'forks': num_forks,
