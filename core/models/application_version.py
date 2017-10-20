@@ -237,6 +237,8 @@ def test_machine_in_version(app, version_name, new_machine_id):
     and it is EMPTY OR it includes the machine
     Otherwise, return None.
     """
+    if not new_machine_id:
+        return None
     try:
         app_version = ApplicationVersion.objects.get(
             application=app,
@@ -299,8 +301,9 @@ def create_app_version(
     if not created_by_identity:
         created_by_identity = app.created_by_identity
 
-    if provider_machine_id:
-        app_version = test_machine_in_version(app, name, provider_machine_id)
+    app_version = test_machine_in_version(app, name, provider_machine_id)
+
+    if app_version:
         app_version.created_by = created_by
         app_version.created_by_identity = created_by_identity
         app_version.save()
