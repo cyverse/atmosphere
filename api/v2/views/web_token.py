@@ -17,9 +17,9 @@ from rest_framework.response import Response
 from core.models import Instance
 from core.query import only_current
 from api.v2.exceptions import failure_response
+from core.models.profile import UserProfile
 
 logger = logging.getLogger(__name__)
-
 
 class WebTokenView(RetrieveAPIView):
 
@@ -71,6 +71,7 @@ class WebTokenView(RetrieveAPIView):
 
     def guacamole_token(self, ip_address):
         request = self.request
+        guacamole_color = UserProfile.objects.get(user__username=request.user.username).guacamole_color
         protocol = request.query_params.get('protocol', 'vnc')
         guac_server = settings.GUACAMOLE['SERVER_URL']
         guac_secret = settings.GUACAMOLE['SECRET_KEY']
@@ -115,7 +116,7 @@ class WebTokenView(RetrieveAPIView):
                           + '&guac.enable-sftp=true')
 
         if protocol == "ssh":
-            request_string += "&guac.color-scheme=white-black"
+            request_string += "&guac.color-scheme=" + guacamole_color.replace("_", "-")
 
         # Send request to Guacamole backend and record the result
         response = requests.post(guac_server + '/api/tokens', data=request_string)
