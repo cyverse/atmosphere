@@ -92,6 +92,7 @@ def run_create_accounts(acct_driver, provider, usernames, rebuild=False, admin=F
     user_total = 0
     identity_total = 0
     for username in sorted(usernames):
+        User.objects.get_or_create(username=username)
         new_identities = AccountCreationPluginManager.create_accounts(provider, username, force=rebuild)
         if new_identities:
             count = len(new_identities)
