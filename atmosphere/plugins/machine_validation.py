@@ -71,8 +71,7 @@ class MachineValidationPlugin(object):
         return False
 
     def _is_snapshot(self, cloud_machine):
-        cloud_machine_name = cloud_machine.name if cloud_machine.name else ""
-        if cloud_machine_name.startswith("ChromoSnapShot"):
+        if cloud_machine.get('name', '').startswith("ChromoSnapShot"):
             return True
         if cloud_machine.get('image_type', 'image') == 'snapshot':
             return True
