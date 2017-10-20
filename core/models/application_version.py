@@ -129,11 +129,16 @@ class ApplicationVersion(models.Model):
                 Q(application__created_by=request_user) |
                 Q(machines__instance_source__created_by=request_user))
             all_group_ids = request_user.memberships.values('group__id')
+
+            # FIXME: This call can be slow/hang when _large_ number of users
+            #        (100/1000s) are included. To address this: query the
+            #        *Membership table(s) directly and select values.
             # Showing non-end dated, shared ApplicationVersions
             shared_set = ApplicationVersion.objects.filter(
                 only_current(), only_current_machines_in_version(), Q(
                     membership=all_group_ids) | Q(
                     machines__members__in=all_group_ids))
+
             if request_user.is_staff:
                 admin_set = cls.get_admin_image_versions(request_user)
             else:
