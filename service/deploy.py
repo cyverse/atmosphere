@@ -82,16 +82,20 @@ def ansible_deployment(
     return pbs
 
 
-def ready_to_deploy(instance_ip, username, instance_id):
+def ready_to_deploy(instance_ip, username, instance_id, **runner_opts):
     """
     Use service.ansible to deploy to an instance.
     """
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
     playbooks_dir = os.path.join(playbooks_dir, 'utils')
+    extra_vars = {
+        "SSH_IDENTITY_FILE": settings.ATMOSPHERE_PRIVATE_KEYFILE,
+    }
 
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
-        limit_playbooks=['check_networking.yml'])
+        limit_playbooks=['check_networking.yml'],
+        extra_vars=extra_vars, **runner_opts)
 
 
 def deploy_mount_volume(instance_ip, username, instance_id,
@@ -240,6 +244,7 @@ def instance_deploy(instance_ip,
     Use service.ansible to deploy to an instance.
     """
     extra_vars = {
+        "SSH_IDENTITY_FILE": settings.ATMOSPHERE_PRIVATE_KEYFILE,
         "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
     }
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
