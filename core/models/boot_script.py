@@ -61,11 +61,29 @@ class BootScript(models.Model):
         """
         return slugify(self.title).replace('-', '_')
 
-    def get_text(self):
+    def get_text(self, clean=True):
+        raw_text = ""
         if self.script_type.name == 'Raw Text':
-            return self.script_text.strip()  # Remove whitespace
+            raw_text = self.script_text.strip()  # Remove whitespace
         elif self.script_type.name == 'URL':
-            return self._text_from_url()
+            raw_text = self._text_from_url()
+        if clean:
+            return BootScript._clean_script_text(raw_text)
+        return raw_text
+
+    @classmethod
+    def _clean_script_text(self, raw_text):
+        """
+        Remove special characters from boot-scripts to avoid ansible failures.
+        """
+        if not raw_text:
+            return ""
+        elif type(raw_text) == unicode:
+            return raw_text.encode('ascii', 'ignore')
+        elif type(raw_text) == str:
+            return raw_text.decode('unicode_escape').encode('ascii', 'ignore')
+        else:
+            raise TypeError("Expected type of 'raw_text' to be unicode/str. Found: %s" % type(raw_text))
 
     def _text_from_url(self):
         """
