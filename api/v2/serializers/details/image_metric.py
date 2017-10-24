@@ -35,18 +35,6 @@ class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
         user = self.context.get('user', request.user)
         if not user:
             raise Exception("This serializer expects 'user' or an authenticated 'request' including 'user' to be passed in via serializer context! context={'user':user}")
-        # Time-series metrics example
-        # if not user.is_staff:
-        #     return {}
-        # interval = rrule.MONTHLY
-        # limit = 120
-        # if request and 'interval' in request.query_params:
-        #     interval_str = request.query_params.get('interval', '').lower()
-        #     if 'week' in interval_str:
-        #         interval = rrule.WEEKLY
-        #     elif 'day' in interval_str or 'daily' in interval_str:
-        #         interval = rrule.DAILY
-        # return _get_application_metrics(application, interval=interval, day_limit=limit, read_only=True)
         # Summarized metrics example
         return _get_summarized_application_metrics(application)
 
