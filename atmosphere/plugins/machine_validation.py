@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from threepio import logger
 
 
@@ -33,7 +35,16 @@ class MachineValidationPlugin(object):
         return True
 
     def _contains_metadata(self, cloud_machine, metadata_key):
-        return True if hasattr(cloud_machine, metadata_key) else False
+        if not hasattr(cloud_machine, metadata_key):
+            return False
+        metadata_value = str(cloud_machine.get(metadata_key)).lower()
+        if metadata_value in ['yes', 'true']:
+            return True
+        elif metadata_value in ['no', 'false']:
+            return False
+        else:
+            logger.info("Encountered unexpected (Not-truthy) metadata_value for %s:%s", metadata_key, metadata_value)
+            return False
 
     def _machine_authored_by_atmosphere(self, cloud_machine):
         project_id = cloud_machine.get('owner')
@@ -112,10 +123,21 @@ class BasicValidation(MachineValidationPlugin):
         """
         return self._sanity_check_machine(cloud_machine)
 
+
 class CyverseValidation(MachineValidationPlugin):
     """
     Represents the current strategy being used by CyVerse
+
+    Default blacklist metadata_key is: `atmo_image_exclude`
+    To set the metadata_key to a non-standard value,
+    include `BLACKLIST_METADATA_KEY = "new_metadata_key"` in `variables.ini`
+    and re-configure.
     """
+    def __init__(self, account_driver):
+        metadata_key = getattr(settings, "BLACKLIST_METADATA_KEY", "atmo_image_exclude")
+        self.blacklist_metadata_key = metadata_key
+        super(CyverseValidation, self).__init__(account_driver)
+
     def machine_is_valid(self, cloud_machine):
         """
         Given a cloud_machine (glance image)
@@ -125,15 +147,21 @@ class CyverseValidation(MachineValidationPlugin):
 
         In this plugin, a cloud_machine is skipped if:
         - image is not authored by the admin user (atmoadmin/admin)
-        - 'skip_atmosphere' is found in image metadata
+        - 'atmo_image_exclude' is found in image metadata
         - Cloud machine does not pass the 'sanity checks'
         """
         if not self._sanity_check_machine(cloud_machine):
             return False
-        elif self._contains_metadata(cloud_machine, 'skip_atmosphere'):
-            logger.info("Skipping cloud machine %s - Includes 'skip_atmosphere' metadata" % cloud_machine)
+        elif self._contains_metadata(cloud_machine, self.blacklist_metadata_key):
+            logger.info(
+                "Skipping cloud machine %s "
+                "- Includes '%s' metadata",
+                cloud_machine, self.blacklist_metadata_key)
             return False
         elif not self._machine_authored_by_atmosphere(cloud_machine):
-            logger.info("Skipping cloud machine %s - Not authored by atmosphere" % cloud_machine)
+            logger.info(
+                "Skipping cloud machine %s "
+                "- Not authored by atmosphere",
+                cloud_machine)
             return False
         return True

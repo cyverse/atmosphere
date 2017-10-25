@@ -111,6 +111,9 @@ VALIDATION_PLUGINS = ["atmosphere.plugins.auth.validation.AlwaysAllow"] # list o
 ACCOUNT_CREATION_PLUGINS = ["atmosphere.plugins.accounts.creation.UserGroup"] # list of plugins
 MACHINE_VALIDATION_PLUGIN = "atmosphere.plugins.machine_validation.BasicValidation" # plugin
 
+BLACKLIST_METADATA_KEY = # default: 'atmo_image_exclude'
+WHITELIST_METADATA_KEY = # default: 'atmo_image_include'
+
 SENTRY_ENABLED =  True # Boolean required or False
 SENTRY_DSN = # https://...@sentry.io/....
 

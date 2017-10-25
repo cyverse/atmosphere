@@ -7,14 +7,15 @@ class JetstreamValidation(MachineValidationPlugin):
     """
     Represents the current strategy being used by Jetstream
 
-    Default metadata_key is: `atmosphere_catalog`
+    Default whitelist metadata_key is: `atmo_image_include`
     To set the metadata_key to a non-standard value,
     include `WHITELIST_METADATA_KEY = "new_metadata_key"` in `variables.ini`
     and re-configure.
     """
     def __init__(self, account_driver):
-        metadata_key = getattr(settings, "WHITELIST_METADATA_KEY", "atmosphere_catalog")
-        self.metadata_key = metadata_key
+        metadata_key = getattr(settings, "WHITELIST_METADATA_KEY", "atmo_image_include")
+        self.whitelist_metadata_key = metadata_key
+        super(JetstreamValidation, self).__init__(account_driver)
 
     def machine_is_valid(self, cloud_machine):
         """
@@ -29,7 +30,7 @@ class JetstreamValidation(MachineValidationPlugin):
         """
         if not self._sanity_check_machine(cloud_machine):
             return False
-        elif not self._contains_metadata(cloud_machine, self.metadata_key):
-            logger.info("Skipping cloud machine %s - Missing metadata_key: %s", cloud_machine, self.metadata_key)
+        elif not self._contains_metadata(cloud_machine, self.whitelist_metadata_key):
+            logger.info("Skipping cloud machine %s - Missing whitelist metadata_key: %s", cloud_machine, self.whitelist_metadata_key)
             return False
         return True

@@ -23,7 +23,7 @@ class TestMachineMonitoring(unittest.TestCase):
             "name": "Test glance image %04d" % x,
             "application_name": "Test Application %04d" % x,
             "version_name": "v%d.0-test" % x,
-            "skip_atmosphere": ""
+            "atmo_image_exclude": "yes"
         }
         skip_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
         x = 12
@@ -32,11 +32,51 @@ class TestMachineMonitoring(unittest.TestCase):
             "name": "Test glance image %04d" % x,
             "application_name": "Test Application %04d" % x,
             "version_name": "v%d.0-test" % x,
-            "atmosphere_catalog": ""
+            "atmo_image_include": "yes"
         }
         allow_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
+        x = 13
+        overrides = {
+            "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
+            "name": "Test glance image %04d" % x,
+            "application_name": "Test Application %04d" % x,
+            "version_name": "v%d.0-test" % x,
+            "atmo_image_include": "no"
+        }
+        no_allow_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
+        x = 14
+        overrides = {
+            "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
+            "name": "Test glance image %04d" % x,
+            "application_name": "Test Application %04d" % x,
+            "version_name": "v%d.0-test" % x,
+            "atmo_image_exclude": "no"
+        }
+        no_skip_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
+        x = 14
+        overrides = {
+            "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
+            "name": "Test glance image %04d" % x,
+            "application_name": "Test Application %04d" % x,
+            "version_name": "v%d.0-test" % x,
+            "atmo_image_exclude": "nopers"
+        }
+        invalid_skip_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
+        x = 15
+        overrides = {
+            "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
+            "name": "Test glance image %04d" % x,
+            "application_name": "Test Application %04d" % x,
+            "version_name": "v%d.0-test" % x,
+            "atmo_image_include": "Yeppers"
+        }
+        invalid_allow_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
         self.account_driver.glance_images.append(skip_atmosphere_image)
         self.account_driver.glance_images.append(allow_atmosphere_image)
+        self.account_driver.glance_images.append(no_skip_atmosphere_image)
+        self.account_driver.glance_images.append(no_allow_atmosphere_image)
+        self.account_driver.glance_images.append(invalid_skip_atmosphere_image)
+        self.account_driver.glance_images.append(invalid_allow_atmosphere_image)
         self.basic_validation = MachineValidationPluginManager.get_validator(
             self.account_driver,
             "atmosphere.plugins.machine_validation.BasicValidation")
@@ -91,7 +131,7 @@ class TestMachineMonitoring(unittest.TestCase):
         # All images should be skipped _except_ 0012
         self.assertTrue(len(validated_machines) == 1, "Expected validated_machines(%s) to contain 1 element" % validated_machines)
         # 0012 should be in the list of validated machines,
-        # due to the 'atmosphere_catalog' metadata on the image.
+        # due to the 'atmo_image_exclude' metadata on the image.
         self.assertEquals(
             [img for img in validated_machines if img.id == "deadbeef-dead-dead-beef-deadbeef0011"], [])
         return

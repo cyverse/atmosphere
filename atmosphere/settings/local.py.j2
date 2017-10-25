@@ -508,6 +508,10 @@ TACC_API_URL = ''
 # "jetstream.plugins.machine_validation.JetstreamStrategy" - Require specific metadata
 MACHINE_VALIDATION_PLUGIN = "{{ MACHINE_VALIDATION_PLUGIN }}"
 
+# Machine validation setting(s) that may be in use:
+BLACKLIST_METADATA_KEY = "{{ BLACKLIST_METADATA_KEY | default("atmo_image_exclude") }}"
+WHITELIST_METADATA_KEY = "{{ WHITELIST_METADATA_KEY | default("atmo_image_include") }}"
+
 # User Validation Plugins:
 # These plugins will be checked, in order, until one passes
 # If all validation plugins fail, user will be "kicked out" of the API.
