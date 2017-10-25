@@ -1,6 +1,7 @@
 import pytz
 import json
 
+from django.conf import settings
 from django.utils.timezone import datetime, now
 
 from threepio import logger
@@ -35,6 +36,8 @@ def glance_write_machine(provider_machine):
             "The method for 'introspecting an image' has changed!"
             " Ask a programmer to fix this!")
     # Do any updating that makes sense... Name. Metadata..
+    blacklist_metadata_key = getattr(settings, "BLACKLIST_METADATA_KEY", "atmo_image_exclude")
+    whitelist_metadata_key = getattr(settings, "WHITELIST_METADATA_KEY", "atmo_image_include")
     overrides = {
         "application_uuid": str(base_app.uuid),
         "application_name": _make_safe(base_app.name),
@@ -43,7 +46,9 @@ def glance_write_machine(provider_machine):
             [_make_safe(tag.name) for tag in base_app.tags.all()]),
         "application_description": _make_safe(base_app.description),
         "version_name": str(version.name),
-        "version_changelog": str(version.change_log)
+        "version_changelog": str(version.change_log),
+        whitelist_metadata_key: "yes",
+        blacklist_metadata_key: "no"
     }
     if update_method == 'v2':
         extras = {
