@@ -138,7 +138,7 @@ def deploy_unmount_volume(instance_ip, username, instance_id,
 
     #lsof returns 1 on success _and_ failure, so combination of 'rc' and 'stdout' is required
     if lsof_rc != 0 and lsof_stdout != "":
-        _raise_lsof_playbook_failure(lsof_rc, lsof_stdout)
+        _raise_lsof_playbook_failure(device, lsof_rc, lsof_stdout)
 
     (unmount_rc, unmount_stdout, unmount_stderr) = _extract_ansible_register(playbook_results, 'unmount_result')
     if unmount_rc != 0:
@@ -154,7 +154,7 @@ def _raise_unmount_playbook_failure(unmount_rc, unmount_stdout, unmount_stderr):
     """
     raise Exception("Unmount has failed: Stdout: %s, Stderr: %s" % (unmount_stdout, unmount_stderr))
 
-def _raise_lsof_playbook_failure(lsof_rc, lsof_stdout):
+def _raise_lsof_playbook_failure(device, lsof_rc, lsof_stdout):
     """
     - Scrape the stdout from 'lsof' call
     - Collect a list of pids currently in use
@@ -193,7 +193,7 @@ def _extract_ansible_register(playbook_results, register_name):
         raise ValueError("Unexpected ansible failure stored in register: %s" % ansible_register['msg'])
 
     for register_key in ['rc', 'stdout', 'stderr']:
-        if not ansible_register.has_key(register_key):
+        if register_key not in ansible_register:
             raise ValueError(
                 "Unexpected ansible_register output -- missing key '%s': %s"
                 % (register_key, ansible_register))
@@ -559,7 +559,7 @@ def raise_playbook_errors(pbs, instance_id, instance_ip, hostname, allow_failure
 
 def _check_results_for_script_failure(playbook_results):
     script_register = playbook_results.get('deploy_script_result')
-    if not script_register or not script_register.has_key('results'):
+    if not script_register or 'results' not in script_register:
         logger.info("Did not find registered variable 'deploy_script_result' Playbook results: %s" % playbook_results)
         return
     script_register_results = script_register['results']

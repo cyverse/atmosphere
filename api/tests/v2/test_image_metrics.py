@@ -14,7 +14,6 @@ from api.tests.factories import (
 )
 from .base import APISanityTestCase
 
-from core.metrics.application import get_application_metrics
 
 
 class ImageMetricsTest(APITestCase, APISanityTestCase):
@@ -157,7 +156,6 @@ class ImageMetricsTest(APITestCase, APISanityTestCase):
                 instance=self.active_instance,
                 start_date=start_date + delta_time*3,
             )
-        get_application_metrics(self.application)
 
     def test_user_sees_no_statistics(self):
         """Non-staff users should see an empty set of data."""
