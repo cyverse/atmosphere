@@ -83,11 +83,11 @@ class TestMachineMonitoring(unittest.TestCase):
         self.cyverse_validation = MachineValidationPluginManager.get_validator(
             self.account_driver,
             "atmosphere.plugins.machine_validation.CyverseValidation")
-        self.jetstream_validation = MachineValidationPluginManager.get_validator(
+        self.whitelist_validation = MachineValidationPluginManager.get_validator(
             self.account_driver,
-            "jetstream.plugins.machine_validation.JetstreamValidation")
+            "atmosphere.plugins.machine_validation.WhitelistValidation")
 
-    def test_monitoring_with_always_allow_validation(self):
+    def test_monitoring_with_basic_validation(self):
         """
         Testing validation plugin: BasicValidation
         """
@@ -99,9 +99,9 @@ class TestMachineMonitoring(unittest.TestCase):
         # Assert: validated_machines includes # machines, based on setUp.
         self.assertTrue(len(validated_machines) == len(images))
 
-    def test_monitoring_with_basic_validation(self):
+    def test_monitoring_with_cyverse_validation(self):
         """
-        Testing validation plugin: BasicValidation
+        Testing validation plugin: CyverseValidation
         """
         validated_machines = []
         images = self.account_driver.list_images()
@@ -119,14 +119,14 @@ class TestMachineMonitoring(unittest.TestCase):
             [img for img in validated_machines if img.id == "deadbeef-dead-dead-beef-deadbeef0011"], [])
         return
 
-    def test_monitoring_with_blacklist_validation(self):
+    def test_monitoring_with_whitelist_validation(self):
         """
-        Testing validation plugin: BlacklistValidation
+        Testing validation plugin: WhitelistValidation
         """
         validated_machines = []
         images = self.account_driver.list_images()
         for glance_image in images:
-            if self.jetstream_validation.machine_is_valid(glance_image):
+            if self.whitelist_validation.machine_is_valid(glance_image):
                 validated_machines.append(glance_image)
         # All images should be skipped _except_ 0012
         self.assertTrue(len(validated_machines) == 1, "Expected validated_machines(%s) to contain 1 element" % validated_machines)

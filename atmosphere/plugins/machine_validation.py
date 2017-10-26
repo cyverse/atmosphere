@@ -124,48 +124,6 @@ class BasicValidation(MachineValidationPlugin):
         return self._sanity_check_machine(cloud_machine)
 
 
-class CyverseValidation(BlacklistValidation):
-    """
-    Cyverse validation strategy:
-    - Only include images authored by the admin user
-    - Exclude images if the 'blacklist_metadata_key' is found.
-
-    Notes:
-    - Default blacklist metadata_key is: `atmo_image_exclude`
-    - To set the metadata_key to a non-standard value,
-      include `BLACKLIST_METADATA_KEY = "new_metadata_key"` in `variables.ini`
-      and re-configure.
-    """
-
-    def machine_is_valid(self, cloud_machine):
-        """
-        Given a cloud_machine (glance image)
-
-        Return True if the machine should be included in Atmosphere's catalog
-        Return False if the machine should be skipped
-
-        In this plugin, a cloud_machine is skipped if:
-        - image is not authored by the admin user (atmoadmin/admin)
-        - 'atmo_image_exclude' is found in image metadata
-        - Cloud machine does not pass the 'sanity checks'
-        """
-        if not self._sanity_check_machine(cloud_machine):
-            return False
-        elif self._contains_metadata(cloud_machine, self.blacklist_metadata_key):
-            logger.info(
-                "Skipping cloud machine %s "
-                "- Includes '%s' metadata",
-                cloud_machine, self.blacklist_metadata_key)
-            return False
-        elif not self._machine_authored_by_atmosphere(cloud_machine):
-            logger.info(
-                "Skipping cloud machine %s "
-                "- Not authored by atmosphere",
-                cloud_machine)
-            return False
-        return True
-
-
 class BlacklistValidation(MachineValidationPlugin):
     """
     Default blacklist metadata_key is: `atmo_image_exclude`
@@ -231,5 +189,47 @@ class WhitelistValidation(MachineValidationPlugin):
                 "Skipping cloud machine %s -"
                 " Missing whitelist metadata_key: %s",
                 cloud_machine, self.whitelist_metadata_key)
+            return False
+        return True
+
+
+class CyverseValidation(BlacklistValidation):
+    """
+    Cyverse validation strategy:
+    - Only include images authored by the admin user
+    - Exclude images if the 'blacklist_metadata_key' is found.
+
+    Notes:
+    - Default blacklist metadata_key is: `atmo_image_exclude`
+    - To set the metadata_key to a non-standard value,
+      include `BLACKLIST_METADATA_KEY = "new_metadata_key"` in `variables.ini`
+      and re-configure.
+    """
+
+    def machine_is_valid(self, cloud_machine):
+        """
+        Given a cloud_machine (glance image)
+
+        Return True if the machine should be included in Atmosphere's catalog
+        Return False if the machine should be skipped
+
+        In this plugin, a cloud_machine is skipped if:
+        - image is not authored by the admin user (atmoadmin/admin)
+        - 'atmo_image_exclude' is found in image metadata
+        - Cloud machine does not pass the 'sanity checks'
+        """
+        if not self._sanity_check_machine(cloud_machine):
+            return False
+        elif self._contains_metadata(cloud_machine, self.blacklist_metadata_key):
+            logger.info(
+                "Skipping cloud machine %s "
+                "- Includes '%s' metadata",
+                cloud_machine, self.blacklist_metadata_key)
+            return False
+        elif not self._machine_authored_by_atmosphere(cloud_machine):
+            logger.info(
+                "Skipping cloud machine %s "
+                "- Not authored by atmosphere",
+                cloud_machine)
             return False
         return True
