@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from celery.decorators import task
 
+from core.plugins import MachineValidationPluginManager
 from core.query import (
     contains_credential, only_current, only_current_source,
     source_in_range, inactive_versions)
@@ -196,10 +197,16 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
     db_machines = []
     # ASSERT: All non-end-dated machines in the DB can be found in the cloud
     # if you do not believe this is the case, you should call 'prune_machines_for'
+    machine_validator = MachineValidationPluginManager.get_validator(provider, account_driver)
     for cloud_machine in cloud_machines:
-        if not machine_is_valid(cloud_machine, account_driver, validate):
+        if validate and not machine_validator.machine_is_valid(cloud_machine):
             continue
-        owner_project = _get_owner(account_driver, cloud_machine)
+        owner = cloud_machine.get('owner')
+        if owner:
+            owner_project = account_driver.get_project_by_id(owner)
+        else:
+            owner = cloud_machine.get('application_owner')
+            owner_project = account_driver.get_project(owner)
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
         (db_machine, created) = convert_glance_image(account_driver, cloud_machine, provider.uuid, owner_project)
         db_machines.append(db_machine)
@@ -210,7 +217,8 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
         #STEP 3: if ENFORCING -- occasionally 're-distribute' any ACLs that are *listed on DB but not on cloud* -- removals should be done explicitly, outside of this function
         if settings.ENFORCING:
             distribute_image_membership(account_driver, cloud_machine, provider)
-        # ASSERTIONS about this method: 
+
+        # ASSERTIONS about this method:
         # 1) We will never 'remove' membership,
         # 2) We will never 'remove' a public or private flag as listed in application.
         # 2b) Future: Individual versions/machines as described by relationships above dictate whats shown in the application.
@@ -218,73 +226,6 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
     if print_logs:
         _exit_stdout_logging(console_handler)
     return db_machines
-
-def _get_owner(accounts, cloud_machine):
-    """
-    For a given cloud machine, attempt to find the owners username
-    Priority is given to 'owner' which will point to the projectId/tenantId that created the image
-    Otherwise, accept the 'application_owner' (Older openstack+glance may not have 'owner' attribute)
-    """
-    owner = cloud_machine.get('owner')
-    if owner:
-        owner_project = accounts.get_project_by_id(owner)
-    else:
-        owner = cloud_machine.get('application_owner')
-        owner_project = accounts.get_project(owner)
-    return owner_project
-
-
-def machine_is_valid(cloud_machine, accounts, validate=True):
-    """
-    As the criteria for "what makes a glance image an atmosphere ProviderMachine" changes, we can use this function to hook out to external plugins, etc.
-    Filters out:
-        - ChromoSnapShot, eri-, eki-
-        - Images that are not authored by Atmosphere
-        - Domain-specific image catalog(?)
-    """
-    if not validate:
-        return True
-
-    # Skip the machine if the owner was not the chromogenic image creator
-    # (tenant name must match admin tenant name)
-    # If that behavior changes, this snippet should be updated/removed.
-    project_id = cloud_machine.get('owner')
-    owner_project = accounts.get_project_by_id(project_id)
-    atmo_author_project_name = accounts.project_name
-    if not owner_project:
-        celery_logger.info(
-            "Skipping cloud machine authored by project_id %s, not the Atmosphere author: %s",
-            project_id, atmo_author_project_name)
-        return False
-    elif owner_project.name != atmo_author_project_name:
-        celery_logger.info(
-            "Skipping cloud machine authored by Tenant %s, not the Atmosphere author: %s",
-            owner_project.name, atmo_author_project_name)
-        return False
-    cloud_machine_name = cloud_machine.name if cloud_machine.name else ""
-    # If the name of the machine indicates that it is a Ramdisk, Kernel, or Chromogenic Snapshot, skip it.
-    if any(cloud_machine_name.startswith(prefix) for prefix in ['eri-','eki-', 'ChromoSnapShot']):
-        celery_logger.info("Skipping cloud machine %s" % cloud_machine)
-        return False
-    # If the metadata 'skip_atmosphere' is found, do not add the machine.
-    if cloud_machine.get('skip_atmosphere', False):
-        celery_logger.info("Skipping cloud machine %s - Includes 'skip_atmosphere' metadata" % cloud_machine)
-        return False
-    # If the metadata indicates that the image-type is snapshot -- skip it.
-    if cloud_machine.get('image_type', 'image') == 'snapshot':
-        celery_logger.info("Skipping cloud machine %s - Image type indicates a snapshot" % cloud_machine)
-        return False
-    owner_project = _get_owner(accounts, cloud_machine)
-    # NOTE: Potentially if we wanted to do 'domain-restrictions' *inside* of atmosphere,
-    # we could do that (based on the domain of the image owner) here.
-    # domain_id = owner_project.domain_id
-    # config_domain = accounts.get_config('user', 'domain', 'default')
-    # owner_domain = accounts.openstack_sdk.identity.get_domain(domain_id)
-    # account_domain = accounts.openstack_sdk.identity.get_domain(config_domain)
-    # if owner_domain.id != account_domain.id: # and if FLAG FOR DOMAIN-SPECIFIC ATMOSPHERE
-    #     celery_logger.info("Skipping private machine %s - The owner belongs to a different domain (%s)" % (cloud_machine, owner_domain))
-    #     return False
-    return True
 
 
 def distribute_image_membership(account_driver, cloud_machine, provider):
@@ -774,7 +715,7 @@ def monitor_volumes_for(provider_id, print_logs=False):
         _exit_stdout_logging(console_handler)
     for vol in seen_volumes:
         vol.esh = None
-    return seen_volumes
+    return [vol.instance_source.identifier for vol in seen_volumes]
 
 @task(name="monitor_sizes")
 def monitor_sizes():

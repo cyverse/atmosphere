@@ -10,6 +10,57 @@ def load_plugin_class(plugin_path):
     return import_string(plugin_path)
 
 
+class PluginManager(object):
+    plugin_required = False
+    plugin_required_message = "A Plugin is required."
+
+    @classmethod
+    def load_plugin(cls, plugin_path):
+        """
+        Use this method to load your plugins,
+        usually based on a list of strings in
+        the local.py settings file.
+        """
+        if cls.plugin_required and not plugin_path:
+            raise ImproperlyConfigured(
+                    cls.plugin_required_message)
+
+        plugin = load_plugin_class(plugin_path)
+        if cls.plugin_required and not plugin:
+            raise ImproperlyConfigured(
+                    cls.plugin_required_message)
+        return plugin
+
+
+class MachineValidationPluginManager(PluginManager):
+    """
+    Provide a plugin to create more complicated rules for default quotas
+    """
+    plugin_class_setting = getattr(settings, 'MACHINE_VALIDATION_PLUGIN', None)
+    plugin_required = True
+    plugin_required_message = """No Machine validation plugin has been defined.
+To restore 'basic' functionality, please set settings.MACHINE_VALIDATION_PLUGIN to:
+"atmosphere.plugins.machine_validation.BasicValidation"
+"""
+
+    @classmethod
+    def get_validator(cls, account_driver, classpath=None):
+        """
+        Load each Default Quota Plugin and call `plugin.get_default_quota(user, provider)`
+        """
+        if not classpath:
+            classpath = cls.plugin_class_setting
+        MachineValidationPluginCls = cls.load_plugin(classpath)
+        try:
+            machine_validator = MachineValidationPluginCls(account_driver)
+        except:
+            logger.exception(
+                "Failed to initialize MachineValidation plugin %s"
+                % MachineValidationPluginCls)
+            raise
+        return machine_validator
+
+
 class PluginListManager(object):
     plugin_required = False
     plugin_required_message = "At least one plugin is required."

@@ -4,6 +4,8 @@ Driver factory (non-standard mock but useful for testing)
 import collections
 import copy
 import uuid
+import random
+import warlock
 
 from threepio import logger
 
@@ -11,9 +13,11 @@ from rtwo.models.instance import Instance
 from rtwo.models.size import MockSize
 from rtwo.driver import MockDriver
 from rtwo.drivers.openstack_network import NetworkManager
-from rtwo.drivers.common import _connect_to_keystone_v3, _token_to_keystone_scoped_project
+from service.accounts.base import BaseAccountDriver
 
+from glanceclient.v2.image_schema import _BASE_SCHEMA as GLANCE_IMAGE_SCHEMA
 # Globals..
+ALL_GLANCE_IMAGES = []
 ALL_VOLUMES = []
 ALL_INSTANCES = []
 ALL_MACHINES = []
@@ -55,8 +59,8 @@ class AtmosphereMockNetworkManager(NetworkManager):
         Return the user_id and tenant_id of the network manager
         """
         return {
-                'user_id':1,
-                'tenant_id':1
+                'user_id': 1,
+                'tenant_id': 1
             }
 
     def disassociate_floating_ip(self, server_id):
@@ -165,7 +169,7 @@ class AtmosphereMockNetworkManager(NetworkManager):
         return router
 
     def add_router_interface(self, router, subnet, interface_name=None):
-        interface_obj = {"name":interface_name}
+        interface_obj = {"name": interface_name}
         return interface_obj
 
     def set_router_gateway(self, neutron, router_name,
@@ -218,8 +222,6 @@ class MockInstance(Instance):
         return self.__dict__
 
 
-
-
 class AtmosphereMockDriver(MockDriver):
 
     all_volumes = ALL_VOLUMES
@@ -229,14 +231,15 @@ class AtmosphereMockDriver(MockDriver):
 
     def is_valid(self):
         """
-        Performs validation on the driver -- for most drivers, this will mean you actually have to _call something_ on the API. if it succeeds, the driver is valid.
+        Performs validation on the driver -- for most drivers,
+        this will mean you actually have to _call something_ on the API.
+        if it succeeds, the driver is valid.
         """
         return True
 
     def _get_size(self, alias):
-        size = MockSize("Unknown", self.providerCls() )
+        size = MockSize("Unknown", self.providerCls())
         return size
-
 
     def list_all_volumes(self, *args, **kwargs):
         """
@@ -356,3 +359,81 @@ class AtmosphereMockDriver(MockDriver):
 
     def detach_volume(self, *args, **kwargs):
         raise NotImplementedError()
+
+
+class MockAccountDriver(BaseAccountDriver):
+
+    def __init__(self):
+        self.glance_images = ALL_GLANCE_IMAGES
+        self.project_name = "admin"
+        self.GlanceImage = warlock.model_factory(GLANCE_IMAGE_SCHEMA)
+        return
+
+    def get_project_by_id(self, project_id):
+        PROJECT_SCHEMA = {'name': {'type': ['null', 'string'], 'description': 'name of the project/tenant', 'maxLength': 255}}
+        MockProject = warlock.model_factory(PROJECT_SCHEMA)
+        if not project_id:
+            return None
+        elif 'admin' in project_id.lower():
+            return MockProject(name='admin')
+        else:
+            return MockProject(name='UnknownUser')
+
+    def _generate_glance_image(self, **kwargs):
+        identifier = kwargs.pop('id', uuid.uuid4())
+        defaults = {
+            'checksum': 'fakefake0notrealnotreal0fakefake',
+            'container_format': 'bare',
+            'created_at': '2017-10-19T08:00:00Z',
+            'updated_at': '2017-10-19T08:00:00Z',
+            'owner': 'fakeADMINfake1234fakse1234fake00',
+            'id': identifier,
+            'size': int(random.uniform(10, 20)) * 1024**3,
+            'container_format': 'bare',
+            'disk_format': 'qcow2',
+            'file':  "/v2/images/%s/file" % identifier,
+            'schema': '/v2/schemas/image',
+            'status': 'active',
+            'visibility': 'public',
+            'min_disk': 0,
+            'min_ram': 0,
+            'name': "Mock glance image",
+            'protected': False,
+            'tags': [],
+            # Extra properties
+            'application_description': u'New application description',
+            'application_name': u'Test Application',
+            'application_owner': u'admin',
+            'application_tags': u'["test", "test2"]',
+            'application_uuid': u'2703ef14-c346-57bd-805a-9bbfae4ad54e',
+            'version_changelog': u'Test Version',
+            'version_name': u'1.0-test',
+        }
+        defaults.update(kwargs)
+        return self.GlanceImage(**defaults)
+
+    def generate_images(self, count=10, **generate_with_kwargs):
+        for x in xrange(1, count+1):
+            overrides = {
+                "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
+                "name": "Test glance image %04d" % x,
+                "application_name": "Test Application %04d" % x,
+                "version_name": "v%d.0-test" % x
+            }
+            glance_image = self._generate_glance_image(**overrides)
+            self.glance_images.append(glance_image)
+
+    def clear_images(self):
+        global ALL_GLANCE_IMAGES
+        ALL_GLANCE_IMAGES = []
+        self.glance_images = ALL_GLANCE_IMAGES
+        return True
+
+    def _list_all_images(self, *args, **kwargs):
+        return self.glance_images
+
+    def _get_image(self, identifier, *args, **kwargs):
+        for image in self.glance_images:
+            if image.get('id') == identifier:
+                return image
+        return None
