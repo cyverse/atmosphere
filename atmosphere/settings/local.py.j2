@@ -504,8 +504,9 @@ TACC_API_URL = ''
 # a `cloud_machine` should be included in the Atmosphere image catalog.
 # Atmosphere provides three separate plugins:
 # "atmosphere.plugins.machine_validation.BasicValidation" - All images allowed
-# "atmosphere.plugins.machine_validation.CyverseStrategy" - Skip specific metadata, require author to be admin user.
-# "jetstream.plugins.machine_validation.JetstreamStrategy" - Require specific metadata
+# "atmosphere.plugins.machine_validation.WhitelistValidation" - Accept images with specific metadata, (reject all other images)
+# "atmosphere.plugins.machine_validation.BlacklistValidation" - Reject images with specific metadata, images not authored by admin user.
+# "atmosphere.plugins.machine_validation.CyverseValidation" - Skip specific metadata, require author to be admin user.
 MACHINE_VALIDATION_PLUGIN = "{{ MACHINE_VALIDATION_PLUGIN }}"
 
 # Machine validation setting(s) that may be in use:

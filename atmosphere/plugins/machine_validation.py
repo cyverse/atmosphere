@@ -124,19 +124,18 @@ class BasicValidation(MachineValidationPlugin):
         return self._sanity_check_machine(cloud_machine)
 
 
-class CyverseValidation(MachineValidationPlugin):
+class CyverseValidation(BlacklistValidation):
     """
-    Represents the current strategy being used by CyVerse
+    Cyverse validation strategy:
+    - Only include images authored by the admin user
+    - Exclude images if the 'blacklist_metadata_key' is found.
 
-    Default blacklist metadata_key is: `atmo_image_exclude`
-    To set the metadata_key to a non-standard value,
-    include `BLACKLIST_METADATA_KEY = "new_metadata_key"` in `variables.ini`
-    and re-configure.
+    Notes:
+    - Default blacklist metadata_key is: `atmo_image_exclude`
+    - To set the metadata_key to a non-standard value,
+      include `BLACKLIST_METADATA_KEY = "new_metadata_key"` in `variables.ini`
+      and re-configure.
     """
-    def __init__(self, account_driver):
-        metadata_key = getattr(settings, "BLACKLIST_METADATA_KEY", "atmo_image_exclude")
-        self.blacklist_metadata_key = metadata_key
-        super(CyverseValidation, self).__init__(account_driver)
 
     def machine_is_valid(self, cloud_machine):
         """
@@ -163,5 +162,74 @@ class CyverseValidation(MachineValidationPlugin):
                 "Skipping cloud machine %s "
                 "- Not authored by atmosphere",
                 cloud_machine)
+            return False
+        return True
+
+
+class BlacklistValidation(MachineValidationPlugin):
+    """
+    Default blacklist metadata_key is: `atmo_image_exclude`
+    To set the metadata_key to a non-standard value,
+    include `BLACKLIST_METADATA_KEY = "new_metadata_key"` in `variables.ini`
+    and re-configure.
+    """
+    def __init__(self, account_driver):
+        metadata_key = getattr(settings, "BLACKLIST_METADATA_KEY", "atmo_image_exclude")
+        self.blacklist_metadata_key = metadata_key
+        super(BlacklistValidation, self).__init__(account_driver)
+
+    def machine_is_valid(self, cloud_machine):
+        """
+        Given a cloud_machine (glance image)
+
+        Return True if the machine should be included in Atmosphere's catalog
+        Return False if the machine should be skipped
+
+        In this plugin, a cloud_machine is skipped if:
+        - image is not authored by the admin user (atmoadmin/admin)
+        - 'atmo_image_exclude' is found in image metadata
+        - Cloud machine does not pass the 'sanity checks'
+        """
+        if not self._sanity_check_machine(cloud_machine):
+            return False
+        elif self._contains_metadata(cloud_machine, self.blacklist_metadata_key):
+            logger.info(
+                "Skipping cloud machine %s "
+                "- Includes '%s' metadata",
+                cloud_machine, self.blacklist_metadata_key)
+            return False
+        return True
+
+
+class WhitelistValidation(MachineValidationPlugin):
+    """
+    Default whitelist metadata_key is: `atmo_image_include`
+    To set the metadata_key to a non-standard value,
+    include `WHITELIST_METADATA_KEY = "new_metadata_key"` in `variables.ini`
+    and re-configure.
+    """
+    def __init__(self, account_driver):
+        metadata_key = getattr(settings, "WHITELIST_METADATA_KEY", "atmo_image_include")
+        self.whitelist_metadata_key = metadata_key
+        super(WhitelistValidation, self).__init__(account_driver)
+
+    def machine_is_valid(self, cloud_machine):
+        """
+        Given a cloud_machine (glance image)
+
+        Return True if the machine should be included in Atmosphere's catalog
+        Return False if the machine should be skipped
+
+        In this plugin, a cloud_machine is skipped if:
+        - metadata_key is not found in image metadata
+        - image does not pass the 'sanity checks'
+        """
+        if not self._sanity_check_machine(cloud_machine):
+            return False
+        elif not self._contains_metadata(cloud_machine, self.whitelist_metadata_key):
+            logger.info(
+                "Skipping cloud machine %s -"
+                " Missing whitelist metadata_key: %s",
+                cloud_machine, self.whitelist_metadata_key)
             return False
         return True
