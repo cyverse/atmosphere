@@ -14,13 +14,11 @@ SITE_CONF_FILE=site.conf
 SITE_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/$(SITE_CONF_FILE)
 ATMO_CONF_FILE=atmo.conf
 ATMO_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(ATMO_CONF_FILE)
-FLOWER_CONF_FILE=flower.conf
-FLOWER_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(FLOWER_CONF_FILE)
 JENKINS_CONF_FILE=jenkins.conf
 JENKINS_CONF_PATH=$(ATMOSPHERE_PATH)/extras/nginx/locations/$(JENKINS_CONF_FILE)
 
 
-.PHONY: all clean restart test setup setup-site setup-atmo deploy deploy-atmo deploy-flower deploy-jenkins unlink unlink-site unlink-atmo unlink-flower unlink-jenkins
+.PHONY: all clean restart test setup setup-site setup-atmo deploy deploy-atmo deploy-jenkins unlink unlink-site unlink-atmo unlink-jenkins
 
 all: deploy
 
@@ -35,7 +33,7 @@ setup-site:
 setup-atmo:
 	$(VIRTUALENV_PATH)/bin/python $(ATMOSPHERE_PATH)/configure -c nginx:nginx-atmo
 
-deploy: $(DHPARAM) setup unlink deploy-atmo deploy-flower deploy-jenkins
+deploy: $(DHPARAM) setup unlink deploy-atmo deploy-jenkins
 	mkdir -p $(SITES_AVAILABLE_DIR)
 	mkdir -p $(SITES_ENABLED_DIR)
 	ln -fs $(ATMOSPHERE_PATH)/extras/nginx/site.conf $(SITES_AVAILABLE_DIR)/$(SITE_CONF_FILE)
@@ -46,15 +44,11 @@ deploy-atmo:
 	mkdir -p $(LOCATIONS_DIR)
 	ln -fs $(ATMO_CONF_PATH) $(LOCATIONS_DIR)/$(ATMO_CONF_FILE)
 
-deploy-flower:
-	mkdir -p $(LOCATIONS_DIR)
-	ln -fs $(FLOWER_CONF_PATH) $(LOCATIONS_DIR)/$(FLOWER_CONF_FILE)
-
 deploy-jenkins:
 	mkdir -p $(LOCATIONS_DIR)
 	ln -fs $(JENKINS_CONF_PATH) $(LOCATIONS_DIR)/$(JENKINS_CONF_FILE)
 
-unlink: unlink-site unlink-atmo unlink-flower unlink-jenkins
+unlink: unlink-site unlink-atmo unlink-jenkins
 
 unlink-site:
 	-rm $(SITES_ENABLED_DIR)/$(SITE_CONF_FILE)
@@ -63,9 +57,6 @@ unlink-site:
 
 unlink-atmo:
 	-rm $(LOCATIONS_DIR)/$(ATMO_CONF_FILE)
-
-unlink-flower:
-	-rm $(LOCATIONS_DIR)/$(FLOWER_CONF_FILE)
 
 unlink-jenkins:
 	-rm $(LOCATIONS_DIR)/$(JENKINS_CONF_FILE)
