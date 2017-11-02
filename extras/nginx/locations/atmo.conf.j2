@@ -2,6 +2,14 @@ location /robots.txt {
    alias {{ ATMOSPHERE_PATH }}/static/templates/robots.txt;
 }
 
+{%- if ENABLE_DEV_ENDPOINT %}
+
+location /dev/ { # Trailing slash here ensures that `//` isn't sent to localhost:8000
+    error_page 502 = /404.html;  # serves the 404 page in the event of a 502 from proxy_pass!
+    proxy_pass http://localhost:8000/;  # Trailing slash here ensures that `/dev` isn't included in proxy_pass
+}
+{%- endif %}
+
 location / {
    # Redirect to home page
    if ($request_uri ~ "^/$") {
