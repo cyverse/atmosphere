@@ -700,6 +700,8 @@ def destroy_instance(user, core_identity_uuid, instance_alias):
         raise Exception("Instance could not be destroyed")
     os_cleanup_networking(core_identity_uuid)
     core_instance = find_instance(instance_alias)
+    if not core_instance:
+        raise Exception("Instance %s not found" % instance_alias)
     core_instance.end_date_all()
     return core_instance
 
