@@ -153,6 +153,13 @@ def _execute_provider_action(identity, user, instance, action_name):
     reclaim_ip = True if identity.provider.location != 'iPlant Cloud - Tucson' else False
     # ENDNOTE
 
+    # NOTE: This metadata statement is a HACK! It should be removed when all instances matching this metadata key have been removed.
+    instance_has_home_mount = instance.extra['metadata'].get('atmosphere_ephemeral_home_mount', 'false').lower()
+    if instance_has_home_mount == 'true' and action_name == 'Shelve':
+        logger.info("Instance %s will be suspended instead of shelved, because the ephemeral storage is in /home" % instance.id)
+        action_name = 'Suspend'
+
+
     logger.info("User %s has gone over their allocation on Instance %s - Enforcement Choice: %s" % (user, instance, action_name))
     try:
         if not action_name:
