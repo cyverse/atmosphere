@@ -21,6 +21,7 @@ from core.models.application_version import (
         get_version_for_machine)
 from core.models.identity import Identity
 from core.models.provider import Provider
+from core.query import contains_credential
 
 
 class ProviderMachine(BaseSource):
@@ -258,6 +259,17 @@ def replicate_app_kwargs(image_id):
         return {}
 
 
+def _lookup_image_owner_identity(account_driver, glance_image):
+    owner = account_driver.get_project_by_id(glance_image.get('owner'))
+    if not owner:
+        return None
+    matches = Identity.objects.filter(contains_credential('ex_project_name', owner.name))
+    if matches.count() > 1:
+        logger.warn("Project %s is ambiguous -- exists on more than one Identity." % owner.name)
+        return None
+    return matches.first()
+
+
 def _application_and_version_from_metadata(account_driver, glance_image):
     """
     Input: Account driver, glance image
@@ -269,21 +281,26 @@ def _application_and_version_from_metadata(account_driver, glance_image):
     version_kwargs = {}
     default_version_name = '1.0'  # could be configurable if controversial
     provider_uuid = str(account_driver.core_provider.uuid)
-    atmo_author_project_name = account_driver.project_name
-    owner = account_driver.get_project_by_id(glance_image.get('owner'))
-    if owner.name != atmo_author_project_name:
-        logger.info("Skipping update because owner of glance_image (%s) is not the imaging author %s", owner.name, atmo_author_project_name)
-        return (app_kwargs, version_kwargs)
     application_owner = glance_image.get('application_owner')
     user = AtmosphereUser.objects.filter(
             username=application_owner).first()
     identity = Identity.objects.filter(
         provider__uuid=provider_uuid, created_by=user).first()
+
+    if not identity:
+        identity = _lookup_image_owner_identity(account_driver, glance_image)
+    if not identity:
+        identity = account_driver.core_provider.get_admin_identity()
+    if not user:
+        user = identity.created_by
+
     metadata_tags = glance_image.get('application_tags')
     app_kwargs = {
         'provider_uuid': provider_uuid,
         'identifier': glance_image.id,
-        'name': glance_image.get('application_name'),
+        'name': glance_image.get(
+            'application_name',
+            glance_image.get('name', '')),
         'created_by_identity': identity,
         'created_by': user,
         'description': glance_image.get('application_description', "").replace("_LINEBREAK_", "\n"),
