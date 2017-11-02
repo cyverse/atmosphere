@@ -69,7 +69,7 @@ class Size(AuthAPIView):
     View a single size.
     """
 
-    def get(self, request, provider_uuid, identity_uuid, size_id):
+    def get(self, request, provider_uuid, identity_uuid, size_alias):
         """
         Lookup the size information (Lookup using the given provider/identity)
         Update on server DB (If applicable)
@@ -86,9 +86,12 @@ class Size(AuthAPIView):
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
-        core_size = convert_esh_size(
-            esh_driver.get_size(size_id),
-            provider_uuid)
+        esh_size = esh_driver.get_size(size_alias)
+        if not esh_size:
+            return failure_response(
+                status.HTTP_404_NOT_FOUND,
+                'Size %s not found' % (size_alias,))
+        core_size = convert_esh_size(esh_size, provider_uuid)
         serialized_data = ProviderSizeSerializer(core_size).data
         response = Response(serialized_data)
         return response

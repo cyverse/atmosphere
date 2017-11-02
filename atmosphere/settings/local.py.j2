@@ -236,9 +236,12 @@ DATABASES = {
     },
 }
 
+# Separates emails by server name:
+SERVER_NAME = SERVER_URL.replace('https://','')
+EMAIL_SUBJECT_PREFIX = "[Django - %s] " % (SERVER_NAME,)
 
 # Prevents warnings
-ALLOWED_HOSTS = [SERVER_URL.replace('https://', '')]
+ALLOWED_HOSTS = [SERVER_NAME, 'localhost']
 CSRF_TRUSTED_ORIGINS = ALLOWED_HOSTS
 
 

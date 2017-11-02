@@ -8,6 +8,7 @@ VIRTUALENV_PATH =# /path/virtualenv/atmo
 [nginx]
 ATMOSPHERE_PATH = # /path/to/atmosphere
 ENABLE_HTTP2 =  True # Boolean required if nginx has http-v2 module# otherwise False
+ENABLE_DEV_ENDPOINT =  True # Boolean required, set True to allow HTTPS entry-point with runserver to /dev
 NGINX_TLS_PRIVKEY_DEST = # /etc/ssl/private/mydomain.org.key
 NGINX_TLS_FULLCHAIN_DEST = # /etc/ssl/certs/mydomain.org.fullchain.crt
 DHPARAM = # /etc/ssl/certs/dhparam.pem

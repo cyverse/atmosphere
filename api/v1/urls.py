@@ -125,7 +125,7 @@ urlpatterns = format_suffix_patterns([
 
     url(identity_specific + r'/size$',
         views.SizeList.as_view(), name='size-list'),
-    url(identity_specific + r'/size/(?P<size_id>%s)$' % (id_match,),
+    url(identity_specific + r'/size/(?P<size_alias>%s)$' % (uuid_match,),
         views.Size.as_view(), name='size-detail'),
 
 
