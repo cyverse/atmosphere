@@ -43,45 +43,6 @@
         "end_date": null, 
         "start_date": "2013-01-16T16:29:18.935"
     }
-},
-{
-    "pk": 1, 
-    "model": "core.provider", 
-    "fields": {
-        "end_date": null, 
-        "public": false, 
-        "location": "EUCALYPTUS", 
-        "active": false, 
-        "type": 1,
-        "virtualization": 1,
-        "start_date": "2012-10-29T16:21:37.844"
-    }
-},
-{
-    "pk": 2, 
-    "model": "core.provider", 
-    "fields": {
-        "end_date": null, 
-        "public": false, 
-        "location": "OPENSTACK", 
-        "active": false, 
-        "type": 2, 
-        "virtualization": 2,
-        "start_date": "2012-12-12T15:27:41.698"
-    }
-},
-{
-    "pk": 3, 
-    "model": "core.provider", 
-    "fields": {
-        "end_date": null, 
-        "public": false, 
-        "location": "EC2_US_EAST", 
-        "active": false,
-        "type": 3, 
-        "virtualization": 1,
-        "start_date": "2013-01-16T16:29:18.941"
-    }
 }
 ]
 
