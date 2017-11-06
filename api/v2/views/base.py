@@ -166,11 +166,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
                 status=status,
                 created_by=self.request.user
             )
-            if serializer.initial_data.get("admin_url"):
-                admin_url = serializer.initial_data.get("admin_url") + str(instance.id)
-                self.submit_action(instance, options={"admin_url": admin_url})
-            else: 
-                self.submit_action(instance)
+            self.submit_action(instance)
         except (core_exceptions.ProviderLimitExceeded,  # NOTE: DEPRECATED -- REMOVE SOON, USE BELOW.
                 core_exceptions.RequestLimitExceeded):
             message = "Only one active request is allowed per provider."

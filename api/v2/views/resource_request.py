@@ -47,18 +47,6 @@ class ResourceRequestViewSet(BaseRequestViewSet):
         instance.end_date = timezone.now()
         instance.save()
 
-    def submit_action(self, instance, options={}):
-        """
-        Submits a resource request email
-        """
-        requested_resource = instance.request
-        reason_for_request = instance.description
-        username = self.request.user.username
-        email.resource_request_email(self.request, username,
-                                     requested_resource,
-                                     reason_for_request,
-                                     options)
-
     def approve_action(self, instance):
         """
         Notify the user, the request was approved
