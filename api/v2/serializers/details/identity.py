@@ -55,13 +55,12 @@ class IdentitySerializer(serializers.HyperlinkedModelSerializer):
         """
         Returns true/false if the user requesting the object is the leader.
         """
+        user = None
         if self.context:
             if 'request' in self.context:
                 user = self.context['request'].user
             elif 'user' in self.context:
                 user = self.context['user']
-            else:
-                user = None
         if user == identity.created_by:
             return True
         return Identity.shared_with_user(user, is_leader=True).filter(id=identity.id).exists()
