@@ -2028,6 +2028,12 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     reclaim_ip = True if identity.provider.location != 'iPlant Cloud - Tucson' else False
     # ENDNOTE
 
+    # NOTE: This metadata statement is a HACK! It should be removed when all instances matching this metadata key have been removed.
+    instance_has_home_mount = esh_instance.extra['metadata'].get('atmosphere_ephemeral_home_mount', 'false').lower()
+    if instance_has_home_mount == 'true' and action_type == 'shelve':
+        logger.info("Instance %s will be suspended instead of shelved, because the ephemeral storage is in /home", esh_instance.id)
+        action_type = 'suspend'
+
     logger.info("User %s has initiated instance action %s to be executed on Instance %s" % (user, action_type, instance_id))
     if 'resize' == action_type:
         size_alias = action_params.get('size', '')
