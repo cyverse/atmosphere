@@ -10,12 +10,16 @@ from api.v2.serializers.summaries import (
     ProviderSummarySerializer,
     GroupSummarySerializer
 )
+from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from core.events.serializers.quota_assigned import QuotaAssignedSerializer
 
-
 class IdentitySerializer(serializers.HyperlinkedModelSerializer):
-    quota = QuotaSummarySerializer(source='get_quota')
+    quota = ModelRelatedField(
+        queryset=Quota.objects.all(),
+        serializer_class=QuotaSummarySerializer,
+        lookup_field='id'
+    )
     usage = serializers.SerializerMethodField()
     credentials = CredentialSummarySerializer(many=True, source='credential_set')
     key = serializers.SerializerMethodField()
@@ -30,8 +34,7 @@ class IdentitySerializer(serializers.HyperlinkedModelSerializer):
     )
 
     def update(self, core_identity, validated_data):
-        quota_id = validated_data.get('quota')
-        quota = Quota.objects.get(id=quota_id)
+        quota = validated_data.get('quota')
         data = {'quota': quota.id, 'identity': core_identity.id}
         event_serializer = QuotaAssignedSerializer(data=data)
         if not event_serializer.is_valid():

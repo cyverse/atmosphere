@@ -4,6 +4,7 @@ from .base import APISanityTestCase
 from api.tests.factories import UserFactory, AnonymousUserFactory,\
     IdentityFactory, ProviderFactory, GroupFactory,\
     IdentityMembershipFactory, QuotaFactory
+from core.models import Identity
 from django.core.urlresolvers import reverse
 
 
@@ -110,3 +111,27 @@ class IdentityTests(APITestCase, APISanityTestCase):
 
     def test_delete_does_not_exist(self):
         self.assertTrue('delete' not in ViewSet.http_method_names)
+
+    def test_admin_update_identity_quota(self):
+
+        # Build a request to patch quota for a user
+        new_quota = QuotaFactory.create(cpu=999)
+        url = "{base_url}?username={username}".format(
+                base_url=reverse('api:v2:identity-detail', args=(self.identity.id,)),
+                username=self.user.username)
+        request = APIRequestFactory().patch(
+                url,
+                {'quota': {'id': new_quota.id}},
+                format='json')
+
+        # Make the patch request as the staff user
+        force_authenticate(request, user=self.staff_user)
+        view = ViewSet.as_view({'patch': 'partial_update'})
+        response = view(request, pk=self.identity.id)
+
+        # Assert the response has new quota
+        self.assertEqual(response.data['quota']['cpu'], new_quota.cpu)
+
+        # Assert the identity has new quota
+        updated_identity = Identity.objects.get(id=self.identity.id)
+        self.assertEqual(updated_identity.quota.id, new_quota.id)

@@ -13,8 +13,9 @@ from core.models import IdentityMembership, CloudAdministrator
 from core.models.status_type import StatusType
 
 from api.permissions import (
-        ApiAuthOptional, ApiAuthRequired, EnabledUserRequired,
-        InMaintenance, CloudAdminRequired, ProjectLeaderRequired
+        ApiAuthOptional, ApiAuthRequired, EnabledUserRequired, InMaintenance,
+        CloudAdminRequired, CloudAdminUpdatingRequired, ProjectLeaderRequired,
+        UserListAdminQueryable
     )
 from api.v2.views.mixins import MultipleFieldLookup
 
@@ -78,6 +79,13 @@ class AdminModelViewSet(AuthModelViewSet):
                           CloudAdminRequired,
                           EnabledUserRequired,
                           ApiAuthRequired,)
+
+
+class UserListAdminQueryAndUpdate():
+    permission_classes = (InMaintenance,
+                          EnabledUserRequired,
+                          ApiAuthRequired,
+                          UserListAdminQueryable)
 
 
 class AuthOptionalViewSet(ModelViewSet):
