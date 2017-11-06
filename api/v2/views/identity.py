@@ -29,7 +29,7 @@ class IdentityViewSet(MultipleFieldLookup, UserListAdminQueryAndUpdate, ModelVie
     filter_class = IdentityFilter
     lookup_fields = ("id", "uuid")
     serializer_class = IdentitySerializer
-    queryset = Identity.objects.all()
+    queryset = Identity.objects.none()
     http_method_names = ['get', 'head', 'options', 'trace', 'patch']
 
     @detail_route(methods=['GET'])
