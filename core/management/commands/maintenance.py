@@ -31,6 +31,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("command", help="commands: start, stop")
+        parser.add_argument("--title", default="", help="(Start only) Title of maintenance record")
+        parser.add_argument("--message", default="", help="(Start only) Use this as the message of maintenance record")
+        parser.add_argument("--start-now", action="store_true", default=False, help="(Start only) Start maintenance record immediately.")
 
     def _create_default_title(self):
         branch_name = git_branch()
@@ -80,8 +83,7 @@ class Command(BaseCommand):
 
         return start_date
 
-
-    def handle_start(self):
+    def gather_input(self):
         banner = "\nGathering Maintenance Information ..."
         self.stdout.write(banner)
         self.stdout.write("=" * len(banner))
@@ -99,7 +101,9 @@ class Command(BaseCommand):
 
             if _continue(option):
                 break
+        return (title, message)
 
+    def gather_start_date(self):
         while True:
             start_date = self._gather_start_date()
 
@@ -111,6 +115,13 @@ class Command(BaseCommand):
 
             if _continue(option):
                 break
+        return start_date
+
+    def handle_start(self, title=None, message=None, start_date=None):
+        if not title or not message:
+            title, message = self.gather_input()
+        if not start_date:
+            start_date = self.gather_start_date()
 
         new_record = MaintenanceRecord.objects.create(
             start_date=default_start_date())
@@ -145,7 +156,10 @@ class Command(BaseCommand):
         result = False
 
         if cmd == 'start':
-            result = self.handle_start()
+            title = options['title']
+            message = options['message']
+            start_date = timezone.now() if options['start_now'] else None
+            result = self.handle_start(title, message, start_date)
         elif cmd == 'stop':
             result = self.handle_stop()
         else:
