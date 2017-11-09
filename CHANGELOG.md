@@ -1,3 +1,17 @@
+## [Carbonaceous-Comet(v29)](https://github.com/cyverse/atmosphere/milestone/16?closed=1) (as of 11/9/2017)
+New Features:
+- Site operators can now create machine validation plugins to control the flow of images in the atmosphere image catalog.
+- Users can now select a `guacamole_color` in their UserProfile, which will correspond to the theme used in guacamole web shell sessions.
+Bugfixes:
+- Remove special characters from BootScripts prior to deployment.
+- Suspend instances if the ephemeral storage is set to /home directory and a 'Shelve' action is received.
+Internal:
+- Change the location of ephemeral drives to a /scratch directory with a 'data-loss' warning.
+- Remove 'Provider' examples from the list of fixtures installed on a fresh database.
+- Explicitly pass the ssh IdentityFile to be used for instance_deploy and check_networking tasks.
+- Update travis to include code linting
+- Enable auto reload for uwsgi as an option for configuration.
+- Celery init.d scripts are no longer included in Atmosphere. Use clank for installation/configuration of celery.
 ## [Beneficent-Bolide(v28)](https://github.com/cyverse/atmosphere/milestone/15?closed=1) (as of 10/3/2017)
 New Features:
 - Users can now set 'access_list' on an application
