@@ -46,7 +46,7 @@ To restore 'basic' functionality, please set settings.MACHINE_VALIDATION_PLUGIN 
     @classmethod
     def get_validator(cls, account_driver, classpath=None):
         """
-        Load each Default Quota Plugin and call `plugin.get_default_quota(user, provider)`
+        Load MachineValidation plugin
         """
         if not classpath:
             classpath = cls.plugin_class_setting

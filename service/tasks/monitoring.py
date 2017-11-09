@@ -95,7 +95,8 @@ def prune_machines():
 
 @task(name="prune_machines_for")
 def prune_machines_for(
-        provider_id, print_logs=False, dry_run=False, forced_removal=False):
+        provider_id, print_logs=False, dry_run=False, forced_removal=False,
+        validate=True):
     """
     Look at the list of machines (as seen by the AccountProvider)
     if a machine cannot be found in the list, remove it.
@@ -121,6 +122,11 @@ def prune_machines_for(
                 source_in_range(),  # like 'only_current..' w/o active_provider
                 instance_source__provider=provider)
         cloud_machines = []
+
+    machine_validator = MachineValidationPluginManager.get_validator(account_driver)
+    cloud_machines = [
+            cloud_machine for cloud_machine in cloud_machines
+            if not validate or machine_validator.machine_is_valid(cloud_machine)]
 
     # Don't do anything if cloud machines == [None,[]]
     if not cloud_machines and not forced_removal:
@@ -197,7 +203,7 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
     db_machines = []
     # ASSERT: All non-end-dated machines in the DB can be found in the cloud
     # if you do not believe this is the case, you should call 'prune_machines_for'
-    machine_validator = MachineValidationPluginManager.get_validator(provider, account_driver)
+    machine_validator = MachineValidationPluginManager.get_validator(account_driver)
     for cloud_machine in cloud_machines:
         if validate and not machine_validator.machine_is_valid(cloud_machine):
             continue
