@@ -40,10 +40,12 @@ class ResourceRequest_UpdateQuotaSerializer(serializers.Serializer):
         resource_request = validated_data.get('resource_request')
         identity = validated_data.get('identity')
 
-        # This api is designed to update a single identity's quota, instead we
+        # THIS IS A HACK -- REMOVE IT WHEN https://github.com/cyverse/atmosphere/pull/541 is merged
+        # Hack explained: This api is designed to update a single identity's quota, instead we
         # update all identities for the user. This syncs the quota across all of
         # the user's active identities.
-        for ident in [i for i in user.identity_set.all() if i.is_active()]:
+        identity_user = identity.created_by
+        for ident in [i for i in identity_user.identity_set.all() if i.is_active()]:
             data = {
                 'identity': ident.id,
                 'resource_request': resource_request.id,
