@@ -1,4 +1,4 @@
-
+-e git+https://github.com/cyverse/ansible.git@stable-2.4-subspace#egg=ansible
 business_rules
 colorama # used by ./configure
 django
@@ -46,7 +46,6 @@ chromogenic
 django-cyverse-auth
 threepio
 rtwo
-subspace
 
 raven
 newrelic

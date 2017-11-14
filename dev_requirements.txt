@@ -4,8 +4,8 @@
 #
 #    pip-compile --output-file dev_requirements.txt dev_requirements.in requirements.txt
 #
+-e git+https://github.com/cyverse/ansible.git@stable-2.4-subspace#egg=ansible
 amqp==2.2.2
-ansible==2.3.2.0
 apache-libcloud==0.20.1
 appdirs==1.4.3
 asn1crypto==0.22.0
@@ -187,7 +187,6 @@ snowballstemmer==1.2.1    # via pydocstyle
 splinter==0.7.6           # via behaving
 sqlparse==0.2.3           # via django-debug-toolbar
 stevedore==1.25.0
-subspace==0.5.1
 threepio==0.2.0
 tornado==4.5.2
 traitlets==4.3.2          # via ipython

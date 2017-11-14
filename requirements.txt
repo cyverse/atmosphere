@@ -4,8 +4,8 @@
 #
 #    pip-compile --output-file requirements.txt requirements.in
 #
+-e git+https://github.com/cyverse/ansible.git@stable-2.4-subspace#egg=ansible
 amqp==2.2.2               # via kombu
-ansible==2.3.2.0          # via subspace
 apache-libcloud==0.20.1
 appdirs==1.4.3            # via os-client-config
 asn1crypto==0.22.0        # via cryptography
@@ -84,7 +84,7 @@ oslo.log==3.30.0          # via python-saharaclient
 oslo.serialization==2.20.0  # via oslo.log, python-keystoneclient, python-neutronclient, python-novaclient, python-saharaclient
 oslo.utils==3.28.0        # via osc-lib, oslo.log, oslo.serialization, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
 pandas==0.20.3
-paramiko==2.2.1           # via ansible, fabric
+paramiko==2.2.1           # via fabric
 pbr==3.1.1                # via cliff, debtcollector, keystoneauth1, openstacksdk, osc-lib, oslo.context, oslo.i18n, oslo.log, oslo.serialization, oslo.utils, positional, python-cinderclient, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient, rtwo, stevedore
 pillow==4.2.1
 positional==1.2.1         # via keystoneauth1, oslo.context, python-keystoneclient
@@ -93,7 +93,7 @@ psycopg2==2.7.3
 pyasn1-modules==0.0.11    # via oauth2client
 pyasn1==0.3.2             # via oauth2client, paramiko, pyasn1-modules, rsa
 pycparser==2.18           # via cffi
-pycrypto==2.6.1           # via ansible, jwt.py
+pycrypto==2.6.1           # via jwt.py
 pyinotify==0.9.6          # via oslo.log
 pyjwt==1.5.2
 pynacl==1.1.2             # via paramiko
@@ -113,7 +113,7 @@ python-openstackclient==3.3.0  # via python-saharaclient, rtwo
 python-saharaclient==1.2.0  # via rtwo
 python-swiftclient==3.3.0  # via rtwo
 pytz==2017.2
-pyyaml==3.12              # via ansible, cliff, djangorestframework-yaml, os-client-config, oslo.config
+pyyaml==3.12              # via cliff, djangorestframework-yaml, os-client-config, oslo.config
 raven==6.1.0
 redis==2.10.5
 requests[security]==2.18.3
@@ -126,7 +126,6 @@ simplejson==3.11.1        # via osc-lib, python-cinderclient, python-neutronclie
 singledispatch==3.4.0.3   # via tornado
 six==1.11.0               # via bcrypt, cliff, cmd2, cryptography, debtcollector, djangorestframework-csv, keystoneauth1, oauth2client, openstacksdk, osc-lib, oslo.config, oslo.i18n, oslo.log, oslo.serialization, oslo.utils, pynacl, pyopenssl, python-cinderclient, python-dateutil, python-glanceclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient, python-swiftclient, singledispatch, stevedore, warlock
 stevedore==1.25.0         # via cliff, keystoneauth1, openstacksdk, osc-lib, oslo.config, python-keystoneclient
-subspace==0.5.1
 threepio==0.2.0
 tornado==4.5.2            # via flower
 unicodecsv==0.14.1        # via cliff, djangorestframework-csv
