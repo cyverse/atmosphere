@@ -215,6 +215,8 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
             owner_project = account_driver.get_project(owner)
         #STEP 1: Get the application, version, and provider_machine registered in Atmosphere
         (db_machine, created) = convert_glance_image(account_driver, cloud_machine, provider.uuid, owner_project)
+        if not db_machine:
+            continue
         db_machines.append(db_machine)
         #STEP 2: For any private cloud_machine, convert the 'shared users' as known by cloud
         #        into DB relationships: ApplicationVersionMembership, ProviderMachineMembership

@@ -131,6 +131,12 @@ class ProviderMachine(BaseSource):
         self.application_version = app_version
         self.save()
 
+    def is_end_dated(self):
+        return (
+            self.end_date or
+            self.application_version.end_date or
+            self.application.end_date)
+
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
 
@@ -328,6 +334,8 @@ def convert_glance_image(account_driver, glance_image, provider_uuid, owner=None
     image_id = glance_image.id
     provider_machine = get_provider_machine(image_id, provider_uuid)
     if provider_machine:
+        if provider_machine.is_end_dated():
+            return (None, False)
         update_instance_source_size(provider_machine.instance_source, glance_image.get('size'))
         return (provider_machine, False)
     (app_kwargs, version_kwargs) = _application_and_version_from_metadata(account_driver, glance_image)
