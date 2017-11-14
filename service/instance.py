@@ -194,7 +194,7 @@ def start_instance(esh_driver, esh_instance,
     if restore_ip and type(esh_driver) != AtmosphereMockDriver:
         restore_network(esh_driver, esh_instance, identity_uuid)
         deploy_task = restore_ip_chain(
-            esh_driver, esh_instance, redeploy=True,
+            esh_driver, esh_instance, deploy=True,
             # NOTE: after removing FIXME, This
             # parameter can be removed as well
             core_identity_uuid=identity_uuid)
@@ -459,7 +459,7 @@ def redeploy_instance(
     return
 
 
-def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
+def restore_ip_chain(esh_driver, esh_instance, deploy=True,
                      core_identity_uuid=None):
     """
     Returns: a task, chained together
@@ -490,7 +490,7 @@ def restore_ip_chain(esh_driver, esh_instance, redeploy=False,
     init_task.link(metadata_update_task)
     metadata_update_task.link(fixed_ip_task)
     # Add float and re-deploy OR just add floating IP...
-    if redeploy:
+    if deploy:
         core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
         deploy_task = deploy_init_to.si(
             esh_driver.__class__,
@@ -579,7 +579,7 @@ def test_capacity(hypervisor_hostname, instance, hypervisor_stats):
 
 def resume_instance(esh_driver, esh_instance,
                     provider_uuid, identity_uuid,
-                    user, restore_ip=True,
+                    user, restore_ip=True, deploy=True,
                     update_meta=True):
     """
     raise OverQuotaError, OverAllocationError, LibcloudInvalidCredsError
@@ -591,7 +591,7 @@ def resume_instance(esh_driver, esh_instance,
     size = _get_size(esh_driver, esh_instance)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
-        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, deploy=deploy,
                                        # NOTE: after removing FIXME, This
                                        # parameter can be removed as well
                                        core_identity_uuid=identity_uuid)
@@ -651,7 +651,7 @@ def unshelve_instance(esh_driver, esh_instance,
     admin_capacity_check(provider_uuid, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
-        deploy_task = restore_ip_chain(esh_driver, esh_instance, redeploy=True,
+        deploy_task = restore_ip_chain(esh_driver, esh_instance, deploy=True,
                                        # NOTE: after removing FIXME, This
                                        # parameter can be removed as well
                                        core_identity_uuid=identity_uuid)
@@ -2051,9 +2051,10 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     elif 'redeploy' == action_type:
         result_obj = redeploy_instance(esh_driver, esh_instance, identity, user=user)
     elif 'resume' == action_type:
+        deploy = action_params.get('deploy', True)
         result_obj = resume_instance(esh_driver, esh_instance,
                                      provider_uuid, identity_uuid,
-                                     user)
+                                     user, deploy=deploy)
     elif 'suspend' == action_type:
         result_obj = suspend_instance(esh_driver, esh_instance,
                                       provider_uuid, identity_uuid,
