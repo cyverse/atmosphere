@@ -67,8 +67,8 @@ class MachineValidationPlugin(object):
         return True
 
     def _is_kernel_or_ramdisk(self, cloud_machine):
-        cloud_machine_name = cloud_machine.name if cloud_machine.name else ""
-        if any(cloud_machine_name.startswith(prefix) for prefix in ['eri-', 'eki-', 'ari-', 'aki-']):
+        cloud_machine_name = cloud_machine.get('name','')
+        if any(cloud_machine_name and cloud_machine_name.startswith(prefix) for prefix in ['eri-', 'eki-', 'ari-', 'aki-']):
             return True
         machine_type = cloud_machine.get('image_type', 'image')
         if machine_type in ['ari', 'aki']:
@@ -82,7 +82,8 @@ class MachineValidationPlugin(object):
         return False
 
     def _is_snapshot(self, cloud_machine):
-        if cloud_machine.get('name', '').startswith("ChromoSnapShot"):
+        cloud_machine_name = cloud_machine.get('name','')
+        if cloud_machine_name and cloud_machine_name.startswith("ChromoSnapShot"):
             return True
         if cloud_machine.get('image_type', 'image') == 'snapshot':
             return True
