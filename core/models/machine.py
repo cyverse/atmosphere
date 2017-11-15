@@ -299,10 +299,17 @@ def _application_and_version_from_metadata(account_driver, glance_image):
     if not user:
         user = identity.created_by
 
+    if hasattr(glance_image, 'id'):
+       image_id = glance_image.id
+    elif type(glance_image) == dict:
+       image_id = glance_image.get('id')
+    else:
+       raise ValueError("Unexpected glance_image: %s" % glance_image)
+
     metadata_tags = glance_image.get('application_tags')
     app_kwargs = {
         'provider_uuid': provider_uuid,
-        'identifier': glance_image.id,
+        'identifier': image_id,
         'name': glance_image.get(
             'application_name',
             glance_image.get('name', '')),
@@ -331,7 +338,13 @@ def convert_glance_image(account_driver, glance_image, provider_uuid, owner=None
           * Create application based on available glance_machine metadata
     2b. Using application from 2. Create provider machine
     """
-    image_id = glance_image.id
+    if hasattr(glance_image, 'id'):
+       image_id = glance_image.id
+    elif type(glance_image) == dict:
+       image_id = glance_image.get('id')
+    else:
+       raise ValueError("Unexpected glance_image: %s" % glance_image)
+
     provider_machine = get_provider_machine(image_id, provider_uuid)
     if provider_machine:
         if provider_machine.is_end_dated():
