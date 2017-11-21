@@ -581,7 +581,6 @@ def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irod
                         password=irods_conn.get('password'))
     src_data_obj_path = os.path.join(irods_src_coll, img_uuid)
     dst_data_obj_path = os.path.join(irods_dst_coll, img_uuid)
-    print(src_data_obj_path, dst_data_obj_path)
     sess.data_objects.copy(src_data_obj_path, dst_data_obj_path)
     logging.info("Copied image data to destination collection in iRODS")
     dst_img_location = "irods://{0}:{1}@{2}:{3}{4}".format(
@@ -592,7 +591,7 @@ def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irod
         dst_data_obj_path
     )
     # Assumption that iRODS copy will always be correct+complete, not inspecting checksums afterward?
-    if int(dst_glance_client_version) == 1:
+    if dst_glance_client_version == 1:
         dst_glance_client.images.update(img_uuid, location=dst_img_location)
     else:
         dst_glance_client.images.add_location(img_uuid, dst_img_location, dict())
