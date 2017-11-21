@@ -327,7 +327,6 @@ def main(application_id,
                                                   application_owner=app_creator_uname,
                                                   application_tags=json.dumps(app_tags),
                                                   application_uuid=str(app.uuid))
-                                                  # Todo min_disk? min_ram? Do we care?
                                               )
             if ami:
                 dprov_glance_client.images.update(dprov_glance_image.id,
@@ -368,7 +367,6 @@ def main(application_id,
                                               application_owner=app_creator_uname,
                                               application_tags=json.dumps(app_tags),
                                               application_uuid=str(app.uuid),
-                                              # Todo min_disk? min_ram? Do we care?
                                               )
             if ami:
                 dprov_glance_client.images.update(dprov_glance_image.id,
