@@ -49,8 +49,9 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
                                                                     'global_burn_rate': total_burn_rate})
 
         run_all(rule_list=cyverse_rules,
-                defined_variables=CyverseTestRenewalVariables(allocation_source, end_date, start_date),
-                defined_actions=CyverseTestRenewalActions(allocation_source, end_date), )
+                defined_variables=CyverseTestRenewalVariables(allocation_source, current_time=end_date,
+                                                              last_renewal_event_date=start_date),
+                defined_actions=CyverseTestRenewalActions(allocation_source, current_time=end_date))
     # At the end of the task, fire-off an allocation threshold check
     logger.debug("update_snapshot_cyverse task finished at %s." % datetime.now())
     allocation_threshold_check.apply_async()
