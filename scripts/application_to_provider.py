@@ -245,7 +245,7 @@ def main(application_id,
         sprov_img_uuid = sprov_instance_source.identifier
         
         sprov_acct_driver = service.driver.get_account_driver(sprov, raise_exception=True)
-        if src_glance_client_version:
+        if src_glance_client_version == 1:
             sprov_keystone_client = service.driver.get_account_driver(sprov, raise_exception=True)
             sprov_glance_client = _connect_to_glance(sprov_keystone_client, version=src_glance_client_version)
         else:
