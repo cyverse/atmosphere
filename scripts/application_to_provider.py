@@ -107,10 +107,10 @@ def _parse_args():
                              "attempt. (Local cache is always deleted after successful upload). "
                              "May consume a lot of disk space.")
     parser.add_argument("--src-glance-client-version",
-                        type=int,
+                        type=float,
                         help="Glance client version to use for source provider")
     parser.add_argument("--dst-glance-client-version",
-                        type=int,
+                        type=float,
                         help="Glance client version to use for destination provider")
     parser.add_argument("--irods-conn",
                         type=str, metavar="irods://user:password@host:port/zone",
@@ -245,7 +245,7 @@ def main(application_id,
         sprov_img_uuid = sprov_instance_source.identifier
         
         sprov_acct_driver = service.driver.get_account_driver(sprov, raise_exception=True)
-        if src_glance_client_version:
+        if src_glance_client_version == 1:
             sprov_keystone_client = service.driver.get_account_driver(sprov, raise_exception=True)
             sprov_glance_client = _connect_to_glance(sprov_keystone_client, version=src_glance_client_version)
         else:
@@ -327,7 +327,6 @@ def main(application_id,
                                                   application_owner=app_creator_uname,
                                                   application_tags=json.dumps(app_tags),
                                                   application_uuid=str(app.uuid))
-                                                  # Todo min_disk? min_ram? Do we care?
                                               )
             if ami:
                 dprov_glance_client.images.update(dprov_glance_image.id,
@@ -335,6 +334,25 @@ def main(application_id,
                                                       kernel_id=sprov_glance_image.kernel_id,
                                                       ramdisk_id=sprov_glance_image.ramdisk_id)
                                                   )
+        elif dst_glance_client_version >= 2.5:
+            dprov_glance_client.images.update(dprov_glance_image.id,
+                                              name=app.name,
+                                              container_format="ami" if ami else sprov_glance_image.container_format,
+                                              disk_format="ami" if ami else sprov_glance_image.disk_format,
+                                              visibility="shared" if app.private else "public",
+                                              owner=dprov_app_owner_uuid,
+                                              tags=app_tags,
+                                              application_name=app.name,
+                                              application_version=app_version.name,
+                                              application_description=app.description,
+                                              application_owner=app_creator_uname,
+                                              application_tags=json.dumps(app_tags),
+                                              application_uuid=str(app.uuid),
+                                              )
+            if ami:
+                dprov_glance_client.images.update(dprov_glance_image.id,
+                                                  kernel_id=sprov_glance_image.kernel_id,
+                                                  ramdisk_id=sprov_glance_image.ramdisk_id)
         else:
             dprov_glance_client.images.update(dprov_glance_image.id,
                                               name=app.name,
@@ -349,7 +367,6 @@ def main(application_id,
                                               application_owner=app_creator_uname,
                                               application_tags=json.dumps(app_tags),
                                               application_uuid=str(app.uuid),
-                                              # Todo min_disk? min_ram? Do we care?
                                               )
             if ami:
                 dprov_glance_client.images.update(dprov_glance_image.id,
@@ -581,7 +598,6 @@ def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irod
                         password=irods_conn.get('password'))
     src_data_obj_path = os.path.join(irods_src_coll, img_uuid)
     dst_data_obj_path = os.path.join(irods_dst_coll, img_uuid)
-    print(src_data_obj_path, dst_data_obj_path)
     sess.data_objects.copy(src_data_obj_path, dst_data_obj_path)
     logging.info("Copied image data to destination collection in iRODS")
     dst_img_location = "irods://{0}:{1}@{2}:{3}{4}".format(
@@ -592,7 +608,7 @@ def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irod
         dst_data_obj_path
     )
     # Assumption that iRODS copy will always be correct+complete, not inspecting checksums afterward?
-    if int(dst_glance_client_version) == 1:
+    if dst_glance_client_version == 1:
         dst_glance_client.images.update(img_uuid, location=dst_img_location)
     else:
         dst_glance_client.images.add_location(img_uuid, dst_img_location, dict())
