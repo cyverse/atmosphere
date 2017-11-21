@@ -125,7 +125,7 @@ class WebTokenView(RetrieveAPIView):
             elif term_emulator == "screen":
                 request_string += "&guac.command=screen -aAdr -RR work bash"
             elif term_emulator != "default":
-                request_string += "&guac.command=" % term_emulator
+                request_string += "&guac.command=%s" % term_emulator
 
         # Send request to Guacamole backend and record the result
         response = requests.post(guac_server + '/api/tokens', data=request_string)
