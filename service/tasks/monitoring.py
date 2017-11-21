@@ -280,7 +280,7 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
     elif type(cloud_machine) == dict:
        image_id = cloud_machine.get('id')
     else:
-       raise ValueError("Unexpected glance_image: %s" % glance_image)
+       raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
 
     existing_members = account_driver.get_image_members(image_id, None)
     # Extend to include based on projects already granted access to the image
@@ -487,7 +487,7 @@ def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
     elif type(cloud_machine) == dict:
        image_id = cloud_machine.get('id')
     else:
-       raise ValueError("Unexpected glance_image: %s" % glance_image)
+       raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
 
     cloud_membership = account_driver.image_manager.shared_images_for(
         image_id=image_id)
