@@ -107,10 +107,10 @@ def _parse_args():
                              "attempt. (Local cache is always deleted after successful upload). "
                              "May consume a lot of disk space.")
     parser.add_argument("--src-glance-client-version",
-                        type=int,
+                        type=float,
                         help="Glance client version to use for source provider")
     parser.add_argument("--dst-glance-client-version",
-                        type=int,
+                        type=float,
                         help="Glance client version to use for destination provider")
     parser.add_argument("--irods-conn",
                         type=str, metavar="irods://user:password@host:port/zone",
@@ -335,6 +335,25 @@ def main(application_id,
                                                       kernel_id=sprov_glance_image.kernel_id,
                                                       ramdisk_id=sprov_glance_image.ramdisk_id)
                                                   )
+        elif dst_glance_client_version >= 2.5:
+            dprov_glance_client.images.update(dprov_glance_image.id,
+                                              name=app.name,
+                                              container_format="ami" if ami else sprov_glance_image.container_format,
+                                              disk_format="ami" if ami else sprov_glance_image.disk_format,
+                                              visibility="shared" if app.private else "public",
+                                              owner=dprov_app_owner_uuid,
+                                              tags=app_tags,
+                                              application_name=app.name,
+                                              application_version=app_version.name,
+                                              application_description=app.description,
+                                              application_owner=app_creator_uname,
+                                              application_tags=json.dumps(app_tags),
+                                              application_uuid=str(app.uuid),
+                                              )
+            if ami:
+                dprov_glance_client.images.update(dprov_glance_image.id,
+                                                  kernel_id=sprov_glance_image.kernel_id,
+                                                  ramdisk_id=sprov_glance_image.ramdisk_id)
         else:
             dprov_glance_client.images.update(dprov_glance_image.id,
                                               name=app.name,
