@@ -59,7 +59,7 @@ class UserViewSet(MultipleFieldLookup, AuthModelViewSet):
     """
     lookup_fields = ("id", "uuid")
     max_page_size = 10000
-    max_page_size_query_param = 3000
+    max_page_size_query_param = 10000
     queryset = AtmosphereUser.objects.all()
     serializer_class = UserSerializer
     filter_backends = (filters.OrderingFilter, MinLengthRequiredSearchFilter)
