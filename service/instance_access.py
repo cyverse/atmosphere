@@ -38,14 +38,14 @@ def _remove_instance_access(instance, username, delay=False):
     return async_task
 
 
-def _retry_instance_access(snapshot):
-    instance = snapshot.instance
+def _retry_playbook_with_args(playboook_snapshot):
+    instance = playboook_snapshot.instance
     identity = instance.created_by_identity
     driver = get_esh_driver(identity)
     extra_vars = {}
     args = (driver.__class__, driver.provider, driver.identity,
-            instance.provider_alias, snapshot.playbook_name, snapshot.playbook_arguments, extra_vars)
-    logger.info("Re-Deploy ansible playbook to share instance %s with playbook args %s", instance, snapshot.playbook_arguments)
+            instance.provider_alias, playboook_snapshot.playbook_name, playboook_snapshot.playbook_arguments, extra_vars)
+    logger.info("Re-Deploy ansible playbook to share instance %s with playbook args %s", instance, playboook_snapshot.playbook_arguments)
     subtask = _deploy_instance_playbook.si(*args)
     async_task = subtask.apply_async()
     return async_task

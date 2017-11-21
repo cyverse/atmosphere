@@ -34,6 +34,46 @@ class InstanceAccess(models.Model):
             Q(instance__created_by__username=username)
         )
 
+    def remove_access(self):
+        from core.events.serializers.instance_access import RemoveInstanceAccessSerializer
+        serializer = RemoveInstanceAccessSerializer(data={
+            'user': self.user.username,
+            'instance': self.instance.provider_alias
+        })
+        if not serializer.is_valid():
+            errors = serializer.errors
+            if 'not in the instance access list':
+                return serializer
+            raise Exception(
+                "Error occurred while removing instance_access for "
+                "Instance:%s, Username:%s -- %s"
+                % (
+                    self.instance,
+                    self.user,
+                    errors))
+        serializer.save()
+        return serializer
+
+    def add_access(self):
+        from core.events.serializers.instance_access import AddInstanceAccessSerializer
+        serializer = AddInstanceAccessSerializer(data={
+            'user': self.user.username,
+            'instance': self.instance.provider_alias
+        })
+        if not serializer.is_valid():
+            errors = serializer.errors
+            if 'already in the instance access list':
+                return serializer
+            raise Exception(
+                "Error occurred while adding self for "
+                "Instance:%s, User:%s -- %s"
+                % (
+                    self.instance,
+                    self.user,
+                    errors))
+        serializer.save()
+        return serializer
+
     def __unicode__(self):
         return "Request(%s) for User:%s to access Instance:%s" %\
                 (self.status.name, self.user, self.instance)

@@ -73,9 +73,9 @@ class InstancePlaybookSnapshotSerializer(serializers.ModelSerializer):
     def update(self, snapshot, validated_data):
         logger.info("Updating snapshot %s" % snapshot)
         if validated_data.get('status') == 'queued':
-            from service.instance_access import _retry_instance_access
+            from service.instance_access import _retry_playbook_with_args
             logger.info("Retrying instance access")
-            _retry_instance_access(snapshot)
+            _retry_playbook_with_args(snapshot)
             snapshot.status = validated_data.get('status')
         return snapshot
 

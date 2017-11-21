@@ -66,11 +66,6 @@ class AddInstanceAccessSerializer(InstanceAccessSerializer):
 
     def validate(self, data):
         validated_data = data.copy()
-        username = validated_data.get('user').username.lower()
-        instance_id = validated_data.get('instance').provider_alias
-        current_users = lookup_access_list(instance_id)
-        if username in current_users:
-            raise serializers.ValidationError("Cannot add user: User %s is already in the instance access list" % username)
         return validated_data
 
     def save(self):
@@ -93,13 +88,9 @@ class AddInstanceAccessSerializer(InstanceAccessSerializer):
         return event
 
 class RemoveInstanceAccessSerializer(InstanceAccessSerializer):
+
     def validate(self, data):
         validated_data = data.copy()
-        username = validated_data.get('user').username.lower()
-        instance_id = validated_data.get('instance').provider_alias
-        current_users = lookup_access_list(instance_id)
-        if username not in current_users:
-            raise serializers.ValidationError("Cannot remove user: User %s is not in the instance access list" % username)
         return validated_data
 
     def save(self):

@@ -1,12 +1,12 @@
 from rest_framework import serializers
 
+from django.conf import settings
 from core.models import (
     AtmosphereUser,
     InstanceAccess,
     StatusType,
     Instance
 )
-from core.events.serializers.instance_access import AddInstanceAccessSerializer, RemoveInstanceAccessSerializer
 from api.v2.serializers.summaries import (
     InstanceSuperSummarySerializer,
     StatusTypeSummarySerializer,
@@ -50,10 +50,16 @@ class InstanceAccessSerializer(serializers.HyperlinkedModelSerializer):
         return user
 
     def validate_status(self, value):
+        if settings.AUTO_APPROVE_INSTANCE_ACCESS and value == 'pending':
+            value = 'approved'
         status = StatusType.objects.filter(name=value).first()
         if not status:
             raise serializers.ValidationError(
                 "Unknown status type: %s" % value)
+        # if we are not auto-approving instance access,
+        # then test that the appropriate user is updating status.
+        if not settings.AUTO_APPROVE_INSTANCE_ACCESS:
+            return status
         if self.instance:
             instance_access = self.instance
             instance_access.status = status
@@ -65,6 +71,12 @@ class InstanceAccessSerializer(serializers.HyperlinkedModelSerializer):
                         % instance_access.user)
         return status
 
+    def create(self, validated_data):
+        instance_access = InstanceAccess.objects.create(**validated_data)
+        if settings.AUTO_APPROVE_INSTANCE_ACCESS:
+            instance_access.add_access()
+        return instance_access
+
     def update(self, instance_access, validated_data):
         """
         On status update:
@@ -74,35 +86,9 @@ class InstanceAccessSerializer(serializers.HyperlinkedModelSerializer):
         status = validated_data['status']
         instance_access.status = status
         if status.name == 'approved':
-            serializer = AddInstanceAccessSerializer(data={
-                'user': instance_access.user.username,
-                'instance': instance_access.instance.provider_alias
-            })
-            if not serializer.is_valid():
-                errors = serializer.errors
-                raise Exception(
-                    "Error occurred while adding instance_access for "
-                    "Instance:%s, User:%s -- %s"
-                    % (
-                        instance_access.instance,
-                        instance_access.user,
-                        errors))
-            serializer.save()
+            instance_access.add_access()
         elif status.name == "cancelled":  # FIXME: Naming?
-            serializer = RemoveInstanceAccessSerializer(data={
-                'user': instance_access.user.username,
-                'instance': instance_access.instance.provider_alias
-            })
-            if not serializer.is_valid():
-                errors = serializer.errors
-                raise Exception(
-                    "Error occurred while removing instance_access for "
-                    "Instance:%s, Username:%s -- %s"
-                    % (
-                        instance_access.instance,
-                        instance_access.user,
-                        errors))
-            serializer.save()
+            instance_access.remove_access()
         return instance_access
 
     class Meta:
