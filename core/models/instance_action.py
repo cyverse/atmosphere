@@ -47,6 +47,8 @@ class InstanceAction(models.Model):
 
         if not isinstance(instance, Instance):
             instance = cls._retrieve_instance(instance)
+        if not instance:
+            return cls.objects.none()
         # Filter down to what the *provider* will let you do to the *instance*
         valid_actions = cls.filter_by_provider(
             instance.created_by_identity.provider.id, queryset)
