@@ -18,6 +18,7 @@ class MachineValidationPlugin(object):
         the catalog:
 
         - Fail if image is None
+        - Fail if image status is not 'active'
         - Fail if image is a 'snapshot'
         - Fail if image is a kernel or ramdisk
         """
@@ -26,11 +27,11 @@ class MachineValidationPlugin(object):
         # If that behavior changes, this snippet should be updated/removed.
         if not cloud_machine:
             return False
+        elif not self._is_active(cloud_machine):
+            return False
         elif self._is_kernel_or_ramdisk(cloud_machine):
-            logger.info("Skipping cloud machine %s - kernel/ramdisk found" % cloud_machine)
             return False
         elif self._is_snapshot(cloud_machine):
-            logger.info("Skipping cloud machine %s - snapshot found" % cloud_machine)
             return False
         return True
 
@@ -67,27 +68,31 @@ class MachineValidationPlugin(object):
         return True
 
     def _is_kernel_or_ramdisk(self, cloud_machine):
-        cloud_machine_name = cloud_machine.get('name','')
-        if any(cloud_machine_name and cloud_machine_name.startswith(prefix) for prefix in ['eri-', 'eki-', 'ari-', 'aki-']):
-            return True
         machine_type = cloud_machine.get('image_type', 'image')
-        if machine_type in ['ari', 'aki']:
-            return True
         container_format = cloud_machine.get('container_format', '')
-        if container_format in ['ari', 'aki']:
-            return True
         disk_format = cloud_machine.get('disk_format', '')
-        if disk_format in ['ari', 'aki']:
+        if (machine_type in ['ari', 'aki']) or (container_format in ['ari', 'aki']) or (disk_format in ['ari', 'aki']):
+            logger.info("Skipping cloud machine %s - kernel/ramdisk found" % cloud_machine)
             return True
+        return False
+
+    def _is_active(self, cloud_machine):
+        cloud_machine_status = cloud_machine.get('status','N/A')
+        if cloud_machine_status == 'active':
+            return True
+        logger.info(
+            "Skipping cloud machine %s, imaging status:'%s' != 'active'.", cloud_machine, cloud_machine_status)
         return False
 
     def _is_snapshot(self, cloud_machine):
         cloud_machine_name = cloud_machine.get('name','')
         if cloud_machine_name and cloud_machine_name.startswith("ChromoSnapShot"):
-            return True
-        if cloud_machine.get('image_type', 'image') == 'snapshot':
-            return True
-        return False
+            logger.info("Skipping cloud machine %s - 'ChromoSnapShot' found" % cloud_machine)
+        elif cloud_machine.get('image_type', 'image') == 'snapshot':
+            logger.info("Skipping cloud machine %s - snapshot found" % cloud_machine)
+        else:
+            return False
+        return True
 
     def _machine_in_same_domain(self, cloud_machine):
         """

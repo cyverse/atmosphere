@@ -12,8 +12,6 @@ from django_cyverse_auth.models import get_or_create_token
 
 from core.models import AtmosphereUser
 
-from service.accounts.eucalyptus import AccountDriver
-
 from api.v1.serializers import ProfileSerializer
 from api.v1.views.base import AuthAPIView
 

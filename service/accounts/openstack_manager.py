@@ -126,6 +126,21 @@ class AccountDriver(BaseAccountDriver):
             })
         return export_data
 
+    def add_owner_to_machine(self, cloud_machines, cloud_machines_dict):
+        for warlock_image in cloud_machines:
+            glance_img_match = [
+                glance_img for glance_img
+                in cloud_machines_dict
+                if glance_img['id'] == warlock_image.id
+            ]
+            if not glance_img_match:
+                logger.warn(
+                    "Image list mismatch: %s exists in glance-v2 "
+                    "and not in glance-v1.." % warlock_image.id
+                )
+                continue
+            warlock_image.owner = glance_img_match[0].get('owner', '')
+
     def clear_cache(self):
         self.admin_driver.provider.machineCls.invalidate_provider_cache(
                 self.admin_driver.provider)
