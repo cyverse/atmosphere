@@ -40,12 +40,10 @@ class UserTests(APITestCase, APISanityTestCase):
         response = self.list_view(self.list_request)
         data = response.data.get('results')[0]
 
-        self.assertEquals(len(data), 5)
+        self.assertEquals(len(data), 3)
         self.assertIn('id', data)
         self.assertIn('uuid', data)
-        self.assertIn('url', data)
         self.assertIn('username', data)
-        self.assertIn('end_date', data)
 
     def test_detail_is_not_public(self):
         force_authenticate(self.detail_request, user=self.anonymous_user)
@@ -62,12 +60,10 @@ class UserTests(APITestCase, APISanityTestCase):
         response = self.detail_view(self.detail_request, pk=self.user.id)
         data = response.data
 
-        self.assertEquals(len(data), 5)
+        self.assertEquals(len(data), 3)
         self.assertIn('id', data)
         self.assertIn('uuid', data)
-        self.assertIn('url', data)
         self.assertIn('username', data)
-        self.assertIn('end_date', data)
 
     def test_create_endpoint_does_not_exist(self):
         self.assertTrue('post' not in UserViewSet.http_method_names)

@@ -27,11 +27,12 @@ class InstanceAccessViewSet(AuthModelViewSet):
     def destroy(self, request, pk=None):
         request_user = request.user
         instance_access = self.queryset.get(pk=pk)
-        if instance_access.instance.created_by != request_user:
+        origin_user = instance_access.instance.created_by
+        dest_user = instance_access.user
+        if request_user != origin_user and request_user != dest_user:
             return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Only user %s can delete the request for Instance Access"
-                % instance_access.instance.created_by)
+                status.HTTP_403_FORBIDDEN,
+                "You are not allowed to delete this access request.")
         if instance_access.status.name == "approved":
             serializer = RemoveInstanceAccessSerializer(data={
                 'user': instance_access.user.username,

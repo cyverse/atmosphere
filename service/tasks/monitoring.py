@@ -277,12 +277,7 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
     if image_owner:
         owner_set.add(image_owner)
 
-    if hasattr(cloud_machine, 'id'):
-       image_id = cloud_machine.id
-    elif type(cloud_machine) == dict:
-       image_id = cloud_machine.get('id')
-    else:
-       raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
+    image_id = cloud_machine.id
 
     existing_members = account_driver.get_image_members(image_id, None)
     # Extend to include based on projects already granted access to the image
@@ -484,12 +479,7 @@ def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
     OUTPUT: List of identities that *include* the 'tenant name' credential matched to 'a shared user' in openstack.
     """
     from core.models import Identity
-    if hasattr(cloud_machine, 'id'):
-       image_id = cloud_machine.id
-    elif type(cloud_machine) == dict:
-       image_id = cloud_machine.get('id')
-    else:
-       raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
+    image_id = cloud_machine.id
 
     cloud_membership = account_driver.image_manager.shared_images_for(
         image_id=image_id)
