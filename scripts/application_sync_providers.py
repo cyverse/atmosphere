@@ -161,7 +161,7 @@ def _app_complete_on_provider(application, provider):
     """
     for av in application.active_versions():
         av_on_prov = False
-        for prov_machine in av.active_machines():
+        for prov_machine in av.machines.all():
             if prov_machine.instance_source.provider == provider:
                 av_on_prov = True
         if not av_on_prov:
