@@ -6,6 +6,7 @@ import hmac
 import hashlib
 import base64
 import requests
+from datetime import datetime
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
@@ -72,6 +73,7 @@ class WebTokenView(RetrieveAPIView):
     def guacamole_token(self, ip_address):
         request = self.request
         guacamole_color = UserProfile.objects.get(user__username=request.user.username).guacamole_color
+        record_shell = UserProfile.objects.get(user__username=request.user.username).record_shell
         protocol = request.query_params.get('protocol', 'vnc')
         guac_server = settings.GUACAMOLE['SERVER_URL']
         guac_secret = settings.GUACAMOLE['SECRET_KEY']
@@ -117,6 +119,11 @@ class WebTokenView(RetrieveAPIView):
 
         if protocol == "ssh":
             request_string += "&guac.color-scheme=" + guacamole_color.replace("_", "-")
+
+            if record_shell:
+                request_string += "&guac.typescript-path=/etc/guacamole/typescript/" + atmo_username
+                request_string += "&guac.typescript-name=" + datetime.now().strftime("%Y-%m-%d-%H:%M")
+                request_string += "&guac.create-typescript-path=true"
 
         # Send request to Guacamole backend and record the result
         response = requests.post(guac_server + '/api/tokens', data=request_string)
