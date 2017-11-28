@@ -328,7 +328,7 @@ def main(application_id,
             app_description = app.description.replace('\r', '').replace('\n', ' -- ')
         else:
             app_description = app.description
-        custom_metadata = dict(
+        atmo_metadata = dict(
             tags=app_tags,
             application_name=app.name,
             application_version=app_version.name,
@@ -338,15 +338,54 @@ def main(application_id,
             application_uuid=str(app.uuid)
         )
         if ami:
-            custom_metadata['kernel_id'] = sprov_glance_image.kernel_id
-            custom_metadata['ramdisk_id'] = sprov_glance_image.ramdisk_id
+            atmo_metadata['kernel_id'] = sprov_glance_image.kernel_id
+            atmo_metadata['ramdisk_id'] = sprov_glance_image.ramdisk_id
+
+        # Gather custom metadata on image in source provider
+        custom_metadata = dict(sprov_glance_image)
+        filter_out_keys = ['application_description',
+                           'application_name',
+                           'application_owner',
+                           'application_tags',
+                           'application_uuid',
+                           'application_version',
+                           'checksum',
+                           'container_format',
+                           'created_at',
+                           'direct_url',
+                           'disk_format',
+                           'file',
+                           'id',
+                           'instance_uuid',
+                           'is_public',
+                           'kernel_id',
+                           'locations',
+                           'min_disk',
+                           'min_ram',
+                           'name',
+                           'owner',
+                           'protected',
+                           'ramdisk_id',
+                           'schema',
+                           'self',
+                           'size',
+                           'status',
+                           'tags',
+                           'updated_at',
+                           'virtual_size',
+                           'visibility']
+
+        for key in filter_out_keys:
+            if key in custom_metadata:
+                del custom_metadata[key]
+        atmo_metadata.update(custom_metadata)
 
         # Set image metadata (this is always done)
         if dst_glance_client_version == 1:
-            metadata['properties'] = custom_metadata
+            metadata['properties'] = atmo_metadata
             dprov_glance_client.images.update(dprov_glance_image.id, **metadata)
         else:
-            metadata.update(custom_metadata)
+            metadata.update(atmo_metadata)
             dprov_glance_client.images.update(dprov_glance_image.id, **metadata)
 
         logging.info("Populated Glance image metadata: {0}"
