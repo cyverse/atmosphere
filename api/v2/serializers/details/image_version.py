@@ -80,7 +80,7 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ImageVersion
         fields = ('id', 'url', 'parent', 'name', 'change_log',
-                  'image', 'machines', 'allow_imaging',
+                  'image', 'machines', 'allow_imaging', 'doc_object_id',
                   'licenses', 'membership', 'min_mem', 'min_cpu', 'scripts',
                   'user', 'identity',
                   'start_date', 'end_date')
