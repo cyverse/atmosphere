@@ -37,7 +37,7 @@ class StatusType(models.Model):
     class Meta:
         db_table = 'status_type'
         app_label = 'core'
-        unique_together = ("name", "start_date")
+        unique_together = ("name",)
 
     @classmethod
     def default(cls):
