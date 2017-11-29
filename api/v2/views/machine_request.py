@@ -16,9 +16,8 @@ from core import exceptions as core_exceptions
 from core.email import send_denied_resource_email
 from core.models import (
     MachineRequest, IdentityMembership, AtmosphereUser,
-    Provider, ProviderMachine, Group, Tag
+    Provider, ProviderMachine, Group, Tag, StatusType
 )
-from core.models.status_type import StatusType
 from core.email import requestImaging
 
 from service.machine import share_with_admins, share_with_self, remove_duplicate_users
