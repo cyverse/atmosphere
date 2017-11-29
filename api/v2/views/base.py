@@ -149,7 +149,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         # NOTE: An identity could possible have multiple memberships
         # It may be better to directly take membership rather than an identity
         identity_id = serializer.initial_data.get("identity")
-        status, _ = StatusType.objects.get_or_create(name="pending")
+        status = StatusType.objects.get(name="pending")
         try:
             # NOTE: This is *NOT* going to be a sufficient query when sharing..
             membership = IdentityMembership.objects.get(identity=identity_id)
@@ -252,7 +252,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         """
         Add an end date to a request and take no further action
         """
-        status, _ = StatusType.objects.get_or_create(name="closed")
+        status = StatusType.objects.get(name="closed")
         instance.status = status
         instance.end_date = timezone.now()
         instance.save()

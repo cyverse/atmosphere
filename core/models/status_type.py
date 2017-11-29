@@ -10,11 +10,8 @@ import uuid
 def get_status_type(status="pending"):
     """
     Fetches a StatusType by the given name
-
-    Creates a new StatusType if a name does not exist
-    for the give `status`.
     """
-    (status_type, _) = StatusType.objects.get_or_create(name=status)
+    status_type = StatusType.objects.get(name=status)
     return status_type
 
 

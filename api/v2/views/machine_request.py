@@ -127,7 +127,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
             share_with_self(access_list, request_user.username)
             access_list = remove_duplicate_users(access_list)
 
-        status, _ = StatusType.objects.get_or_create(name="pending")
+        status = StatusType.objects.get(name="pending")
         new_machine_provider = Provider.objects.filter(id=new_provider.id)
         new_machine_owner = AtmosphereUser.objects.filter(id=request_user.id)
         parent_machine = ProviderMachine.objects.filter(id=parent_machine.id)
@@ -195,7 +195,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
         requestImaging(self.request, instance.id, auto_approve=pre_approved)
 
         if pre_approved:
-            status, _ = StatusType.objects.get_or_create(name="approved")
+            status = StatusType.objects.get(name="approved")
             instance.status = status
             instance.save()
             start_machine_imaging(instance)
