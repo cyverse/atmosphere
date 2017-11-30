@@ -111,10 +111,10 @@ def start_machine_imaging(machine_request, delay=False):
     Builds up a machine imaging task using core.models.machine_request
     delay - If true, wait until task is completed before returning
     """
-    new_status, _ = StatusType.objects.get_or_create(name="started")
+    new_status = StatusType.objects.get(name="started")
     machine_request.status = new_status
     machine_request.save()
-    
+
     original_status = machine_request.old_status
     last_run_error, original_status = machine_request._recover_from_error(original_status)
 
@@ -302,7 +302,7 @@ def machine_request_error(task_request, *args, **kwargs):
 def imaging_complete(machine_request_id):
     machine_request = MachineRequest.objects.get(id=machine_request_id)
     machine_request.old_status = 'completed'
-    new_status, _ = StatusType.objects.get_or_create(name="completed")
+    new_status = StatusType.objects.get(name="completed")
     machine_request.status = new_status
     machine_request.end_date = timezone.now()
     machine_request.save()
@@ -323,7 +323,7 @@ def process_request(new_image_id, machine_request_id):
     Finally, update the metadata on the provider.
     """
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    new_status, _ = StatusType.objects.get_or_create(name="processing")
+    new_status = StatusType.objects.get(name="processing")
     machine_request.status = new_status
     machine_request.old_status = 'processing - %s' % new_image_id
     # HACK - TODO - replace with proper `default` in model
@@ -344,7 +344,7 @@ def validate_new_image(image_id, machine_request_id):
             "Skip validation: ENABLE_IMAGE_VALIDATION is False")
         return True
     machine_request = MachineRequest.objects.get(id=machine_request_id)
-    new_status, _ = StatusType.objects.get_or_create(name="validating")
+    new_status = StatusType.objects.get(name="validating")
     machine_request.status = new_status
     machine_request.old_status = 'validating'
     local_username = machine_request.created_by.username  #NOTE: Change local_username accordingly when this assumption is no longer true.

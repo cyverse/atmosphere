@@ -11,8 +11,7 @@ from django.utils import timezone
 from atmosphere import settings
 from threepio import celery_logger, email_logger
 
-from core.models.status_type import get_status_type
-from core.models.application import Application
+from core.models import StatusType, Application
 from core.query import only_current_apps
 
 
@@ -49,7 +48,7 @@ def close_request(request):
     """
     Close the request and email approval message
     """
-    request.status = get_status_type(status="closed")
+    request.status = StatusType.objects.get(name="closed")
     request.save()
 
 
@@ -58,5 +57,5 @@ def set_request_as_failed(request):
     """
     Set the request as failed
     """
-    request.status = get_status_type(status="failed")
+    request.status = StatusType.objects.get(name="failed")
     request.save()

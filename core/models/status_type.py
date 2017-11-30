@@ -7,21 +7,6 @@ from django.utils.encoding import python_2_unicode_compatible
 import uuid
 
 
-def get_status_type(status="pending"):
-    """
-    Fetches a StatusType by the given name
-
-    Creates a new StatusType if a name does not exist
-    for the give `status`.
-    """
-    (status_type, _) = StatusType.objects.get_or_create(name=status)
-    return status_type
-
-
-def get_status_type_id(status="pending"):
-    return get_status_type(status=status).id
-
-
 @python_2_unicode_compatible
 class StatusType(models.Model):
 
@@ -37,11 +22,7 @@ class StatusType(models.Model):
     class Meta:
         db_table = 'status_type'
         app_label = 'core'
-        unique_together = ("name", "start_date")
-
-    @classmethod
-    def default(cls):
-        return StatusType(name="pending")
+        unique_together = ("name",)
 
     def __unicode__(self):
         return "%s" % \

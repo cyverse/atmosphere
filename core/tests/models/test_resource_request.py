@@ -3,14 +3,13 @@ test resource requests models
 """
 from django.test import TestCase
 
-from core.models import ResourceRequest
-from core.models.status_type import get_status_type
+from core.models import ResourceRequest, StatusType
 
 
 class TestResouceRequest(TestCase):
 
     def setUp(self):
-        self.status = get_status_type()
+        self.status = StatusType.objects.get(name="pending")
         self.message = "Resource admin message"
         self.request = "Resource of size x"
         self.blank_request = ResourceRequest(
