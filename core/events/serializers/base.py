@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 
+# noinspection PyAbstractClass
 class EventSerializer(serializers.Serializer):
     """
     EventSerializers take _anything they need_ as Input
@@ -21,4 +22,3 @@ class EventSerializer(serializers.Serializer):
             ```
         """
         raise NotImplemented("Implement this in the sub-class")
-    pass
