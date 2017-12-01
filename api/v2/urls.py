@@ -91,19 +91,10 @@ router.register(r'version', base_views.VersionViewSet,
                 base_name='version-atmo')
 router.register(r'deploy_version', base_views.DeployVersionViewSet,
                 base_name='version-deploy')
-
-api_v2_urls = router.urls
-uuid_match = '[a-zA-Z0-9-]+'
-
-#NOTE: To include APIViews, add to the list below
-api_views_urls = [
-    url(r'web_tokens/(?P<pk>%s)' % uuid_match,
-        views.WebTokenView.as_view()),
-]
-api_v2_urls.extend(api_views_urls)
-
+router.register(r'web_tokens/(?P<pk>[a-zA-Z0-9-]{36})',
+        views.WebTokenView.as_view(), base_name='web_token'),
 
 urlpatterns = [
-    url(r'^', include(api_v2_urls)),
+    url(r'^', include(router.urls)),
     url(r'^admin/', include(v2_admin_urls, namespace="admin")),
 ]
