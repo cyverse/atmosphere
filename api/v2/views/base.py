@@ -220,7 +220,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
                 "Could not approve request."
                 % (serializer.errors,)
             )
-        approve_status = StatusType.objects.get(name='approved')
+        approve_status, _ = StatusType.objects.get_or_create(name='approved')
         request_obj = serializer.save(status=approve_status)
         self.approve_action(request_obj)
         return Response(serializer.data)
@@ -247,7 +247,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
                 "Could not deny request."
                 % (serializer.errors,)
             )
-        deny_status = StatusType.objects.get(name='denied')
+        deny_status, _ = StatusType.objects.get_or_create(name='denied')
         request_obj = serializer.save(status=deny_status)
         self.deny_action(request_obj)
         return Response(serializer.data)
