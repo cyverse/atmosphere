@@ -4,9 +4,6 @@ from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
 
 class APISanityTestCase(object):
-    url_route = None
-    user = None
-
     def test_list_response_is_paginated(self):
         """
         Sanity test -- this should 'just work'
