@@ -16,7 +16,7 @@ class ResourceRequest(models.Model):
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     status = models.ForeignKey(StatusType)
     request = models.TextField()
-    description = models.CharField(max_length=1024, default="", blank=True)
+    description = models.TextField()
     created_by = models.ForeignKey(AtmosphereUser)
     admin_message = models.CharField(max_length=1024, default="", blank=True)
     start_date = models.DateTimeField(default=timezone.now)
