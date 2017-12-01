@@ -14,7 +14,7 @@ from core.models.status_type import StatusType
 
 from api.permissions import (
         ApiAuthOptional, ApiAuthRequired, EnabledUserRequired, InMaintenance,
-        CloudAdminRequired, CloudAdminUpdatingRequired, ProjectLeaderRequired,
+        CloudAdminRequired, ProjectLeaderRequired,
         UserListAdminQueryable
     )
 from api.v2.views.mixins import MultipleFieldLookup

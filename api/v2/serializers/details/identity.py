@@ -14,6 +14,7 @@ from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from core.events.serializers.quota_assigned import QuotaAssignedSerializer
 
+
 class IdentitySerializer(serializers.HyperlinkedModelSerializer):
     quota = ModelRelatedField(
         queryset=Quota.objects.all(),

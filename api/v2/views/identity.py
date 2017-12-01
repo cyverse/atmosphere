@@ -12,6 +12,7 @@ from api.v2.serializers.details import IdentitySerializer
 from api.v2.views.base import UserListAdminQueryAndUpdate
 from api.v2.views.mixins import MultipleFieldLookup
 
+
 class IdentityFilter(filters.FilterSet):
     project_id = django_filters.CharFilter('identity_memberships__member__projects__id')
     project_uuid = django_filters.CharFilter('identity_memberships__member__projects__uuid')

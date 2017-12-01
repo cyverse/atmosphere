@@ -7,11 +7,12 @@ class QuotaSummarySerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:quota-detail',
     )
+
     class Meta:
         model = Quota
         fields = (
             'id', 'uuid', 'url',
-            #general
+            # general
             'cpu', 'memory', 'storage',
             # compute
             'instance_count',
