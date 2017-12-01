@@ -1,9 +1,10 @@
 from rest_framework import serializers
-from core.models import ResourceRequest
+from core.models import ResourceRequest, StatusType
+from core.models.status_type import get_status_type
 from api.v2.serializers.summaries import (
     UserSummarySerializer, StatusTypeSummarySerializer
 )
-from api.v2.serializers.fields import IdentityRelatedField
+from api.v2.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
@@ -13,8 +14,12 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
         view_name='api:v2:resourcerequest-detail',
     )
     created_by = UserSummarySerializer(read_only=True)
-    identity = IdentityRelatedField(source='membership.identity')
-    status = StatusTypeSummarySerializer(read_only=True)
+    status = ModelRelatedField(
+        default=lambda: get_status_type(status="pending"),
+        serializer_class=StatusTypeSummarySerializer,
+        queryset=StatusType.objects.all(),
+        lookup_field='id'
+    )
 
     class Meta:
         model = ResourceRequest
@@ -26,13 +31,10 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
             'description',
             'status',
             'created_by',
-            'identity',
             'admin_message',
         )
 
-
-class UserResourceRequestSerializer(ResourceRequestSerializer):
-    def validate_status(self, value):
-        if str(value) not in ["pending", "closed"]:
-            raise serializers.ValidationError("Users can only open and close requests.")
-        return value
+class AdminResourceRequestSerializer(ResourceRequestSerializer):
+    url = UUIDHyperlinkedIdentityField(
+        view_name='api:v2:admin:resourcerequest-detail',
+    )

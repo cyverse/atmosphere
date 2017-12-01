@@ -5,6 +5,7 @@ Routes for api v2 endpoints
 from django.conf.urls import include, url
 from rest_framework import routers
 from api.v2 import views
+from api.v2.admin import urls as v2_admin_urls
 from api.base import views as base_views
 
 router = routers.DefaultRouter(trailing_slash=False)
@@ -101,17 +102,8 @@ api_views_urls = [
 ]
 api_v2_urls.extend(api_views_urls)
 
-# ACTIONS url routes...
-action_router = routers.DefaultRouter(trailing_slash=False)
-action_router.register(r'resource_request_update_quota', views.ResourceRequest_UpdateQuotaViewSet, base_name='resource_request_update_quota')
-
-api_v2_action_urls = action_router.urls
-
-# api_v2_action_urls = [
-#     url(r'resource_request_update_quota', views.ResourceRequest_UpdateQuotaViewSet.as_view({'post':'create'}))
-# ]
 
 urlpatterns = [
     url(r'^', include(api_v2_urls)),
-    url(r'^actions/', include(api_v2_action_urls)),
-    ]
+    url(r'^admin/', include(v2_admin_urls, namespace="admin")),
+]

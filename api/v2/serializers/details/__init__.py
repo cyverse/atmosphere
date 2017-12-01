@@ -37,10 +37,7 @@ from .provider_credential import ProviderCredentialSerializer
 from .provider_machine import ProviderMachineSerializer
 from .quota import QuotaSerializer
 from .renewal_strategy import RenewalStrategySerializer
-from .resource_request import (
-    ResourceRequestSerializer, UserResourceRequestSerializer)
-from .resource_request_actions import (
-    ResourceRequest_UpdateQuotaSerializer)
+from .resource_request import ResourceRequestSerializer, AdminResourceRequestSerializer
 from .reporting import InstanceReportingSerializer
 from .size import SizeSerializer
 from .ssh_key import SSHKeySerializer
