@@ -17,36 +17,6 @@ def list_access_for(username):
     return InstanceAccess.shared_with_user(username)
 
 
-def lookup_access_list(instance_id):
-    """
-    Use EventTable to generate the 'current state' of usernames who _should_ be granted access to Instance
-    """
-    # FIXME: This call can be optimized in the future.
-    # FIXME: This call is flawed, "Add, Remove, Add" will result in a "Remove" here.
-    add_events = EventTable.objects.filter(
-        name="add_share_instance_access",
-        entity_id=instance_id)
-    remove_events = EventTable.objects.filter(
-        name="remove_share_instance_access",
-        entity_id=instance_id)
-    added_users = [payload['username'] for payload in add_events.values_list("payload", flat=True).distinct()]
-    removed_users = [payload['username'] for payload in remove_events.values_list("payload", flat=True).distinct()]
-    current_list = list(set(added_users) - set(removed_users))
-    return current_list
-
-
-def get_user_changes(instance_id, new_usernames):
-    """
-    Comparing a list of 'new usernames' to the current set of users,
-    - Determine which usernames should be removed from the current set of users.
-    - Determine which usernames should be added to the current set of users.
-    """
-    current_users = lookup_access_list(instance_id)
-    users_to_add = list(set(new_usernames) - set(current_users))
-    users_to_remove = list(set(current_users) - set(new_usernames))
-    return (users_to_remove, users_to_add)
-
-
 class InstanceAccessSerializer(EventSerializer):
     instance = ModelRelatedField(
         lookup_field="provider_alias",
