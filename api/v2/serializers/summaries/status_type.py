@@ -1,5 +1,6 @@
-from core.models.status_type import StatusType
 from rest_framework import serializers
+
+from core.models.status_type import StatusType
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 

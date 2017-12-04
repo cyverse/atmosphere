@@ -641,8 +641,7 @@ class ResourceRequestAdmin(admin.ModelAdmin):
                        'start_date', 'end_date')
     list_display = ("request", "status", "created_by", "start_date",
                     "end_date")
-    list_filter = ["status", "membership__identity__provider__location"]
-    exclude = ("membership",)
+    list_filter = ["status"]
 
     def has_add_permission(self, request):
         return False

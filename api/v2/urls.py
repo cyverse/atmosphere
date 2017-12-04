@@ -5,6 +5,7 @@ Routes for api v2 endpoints
 from django.conf.urls import include, url
 from rest_framework import routers
 from api.v2 import views
+from api.v2.admin import urls as v2_admin_urls
 from api.base import views as base_views
 
 router = routers.DefaultRouter(trailing_slash=False)
@@ -90,28 +91,10 @@ router.register(r'version', base_views.VersionViewSet,
                 base_name='version-atmo')
 router.register(r'deploy_version', base_views.DeployVersionViewSet,
                 base_name='version-deploy')
-
-api_v2_urls = router.urls
-uuid_match = '[a-zA-Z0-9-]+'
-
-#NOTE: To include APIViews, add to the list below
-api_views_urls = [
-    url(r'web_tokens/(?P<pk>%s)' % uuid_match,
-        views.WebTokenView.as_view()),
-]
-api_v2_urls.extend(api_views_urls)
-
-# ACTIONS url routes...
-action_router = routers.DefaultRouter(trailing_slash=False)
-action_router.register(r'resource_request_update_quota', views.ResourceRequest_UpdateQuotaViewSet, base_name='resource_request_update_quota')
-
-api_v2_action_urls = action_router.urls
-
-# api_v2_action_urls = [
-#     url(r'resource_request_update_quota', views.ResourceRequest_UpdateQuotaViewSet.as_view({'post':'create'}))
-# ]
+router.register(r'web_tokens/(?P<pk>[a-zA-Z0-9-]{36})',
+        views.WebTokenView.as_view(), base_name='web_token'),
 
 urlpatterns = [
-    url(r'^', include(api_v2_urls)),
-    url(r'^actions/', include(api_v2_action_urls)),
-    ]
+    url(r'^', include(router.urls)),
+    url(r'^admin/', include(v2_admin_urls, namespace="admin")),
+]

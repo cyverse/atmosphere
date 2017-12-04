@@ -13,8 +13,9 @@ from core.models import IdentityMembership, CloudAdministrator
 from core.models.status_type import StatusType
 
 from api.permissions import (
-        ApiAuthOptional, ApiAuthRequired, EnabledUserRequired,
-        InMaintenance, CloudAdminRequired, ProjectLeaderRequired
+        ApiAuthOptional, ApiAuthRequired, EnabledUserRequired, InMaintenance,
+        CloudAdminRequired, ProjectLeaderRequired,
+        UserListAdminQueryable
     )
 from api.v2.views.mixins import MultipleFieldLookup
 
@@ -78,6 +79,13 @@ class AdminModelViewSet(AuthModelViewSet):
                           CloudAdminRequired,
                           EnabledUserRequired,
                           ApiAuthRequired,)
+
+
+class UserListAdminQueryAndUpdate():
+    permission_classes = (InMaintenance,
+                          EnabledUserRequired,
+                          ApiAuthRequired,
+                          UserListAdminQueryable)
 
 
 class AuthOptionalViewSet(ModelViewSet):
@@ -158,11 +166,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
                 status=status,
                 created_by=self.request.user
             )
-            if serializer.initial_data.get("admin_url"):
-                admin_url = serializer.initial_data.get("admin_url") + str(instance.id)
-                self.submit_action(instance, options={"admin_url": admin_url})
-            else: 
-                self.submit_action(instance)
+            self.submit_action(instance)
         except (core_exceptions.ProviderLimitExceeded,  # NOTE: DEPRECATED -- REMOVE SOON, USE BELOW.
                 core_exceptions.RequestLimitExceeded):
             message = "Only one active request is allowed per provider."
@@ -216,7 +220,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
                 "Could not approve request."
                 % (serializer.errors,)
             )
-        approve_status = StatusType.objects.get(name='approved')
+        approve_status, _ = StatusType.objects.get_or_create(name='approved')
         request_obj = serializer.save(status=approve_status)
         self.approve_action(request_obj)
         return Response(serializer.data)
@@ -243,7 +247,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
                 "Could not deny request."
                 % (serializer.errors,)
             )
-        deny_status = StatusType.objects.get(name='denied')
+        deny_status, _ = StatusType.objects.get_or_create(name='denied')
         request_obj = serializer.save(status=deny_status)
         self.deny_action(request_obj)
         return Response(serializer.data)

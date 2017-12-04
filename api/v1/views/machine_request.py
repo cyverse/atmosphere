@@ -115,7 +115,7 @@ class MachineRequestList(AuthAPIView):
             serializer.validated_data['membership'] = identity_member
             serializer.validated_data['created_by'] = user
             self._permission_to_image(identity_uuid, instance)
-            pending_status = StatusType.objects.get(name='pending')
+            pending_status, _ = StatusType.objects.get_or_create(name='pending')
             machine_request = serializer.save(status=pending_status)
             instance = machine_request.instance
             if getattr(settings, 'REPLICATION_PROVIDER_LOCATION'):
