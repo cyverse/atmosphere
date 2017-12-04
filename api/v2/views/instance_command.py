@@ -26,43 +26,28 @@ class InstanceCommandViewSet(AuthViewSet):
         request_data = request.data
         serializer = POST_InstanceCommandSerializer(
             data=request_data, context={'request': request})
-        if not serializer.is_valid():
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST)
         try:
+            if not serializer.is_valid():
+                return Response(
+                    serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST)
             data = serializer.save()
-            if data['status'] == 'success':
-                data["message"] = "Successfully executed command."
-                return Response(data, status=status.HTTP_201_CREATED)
-            else:
+            if data['status'] != 'success':
                 data["message"] = "Failed to execute command."
                 return failure_response(
                     status.HTTP_409_CONFLICT, data)
-        except Exception as exc:
-            logger.exception('Exception while saving the command')
-            return failure_response(
-                status.HTTP_409_CONFLICT, exc.message)
-        # FIXME: All the code below here is unreachable
-        request_data = request.data
-        serializer = POST_InstanceCommandSerializer(
-            data=request_data, context={'request': request})
-        if not serializer.is_valid():
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST)
-        try:
-            data = serializer.save()
-            data["message"] = "Successfully executed command."
-            return Response(data, status=status.HTTP_201_CREATED)
         except serializers.ValidationError as exc:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
                 exc.message)
         except Exception as exc:
+            logger.exception('Exception while saving the command')
             return failure_response(
-                status.HTTP_409_CONFLICT,
-                exc.message)
+                status.HTTP_409_CONFLICT, exc.message)
+        # ASSERT: Command was successful
+        request_data = request.data
+        data["message"] = "Successfully executed command."
+        return Response(data, status=status.HTTP_201_CREATED)
 
     def _execute_command(self, request_user, request_data):
         self._validate_request(request_user, request_data)
