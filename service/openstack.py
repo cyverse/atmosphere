@@ -47,8 +47,8 @@ def glance_write_machine(provider_machine):
         "application_description": _make_safe(base_app.description),
         "version_name": str(version.name),
         "version_changelog": str(version.change_log),
-        whitelist_metadata_key: "yes",
-        blacklist_metadata_key: "no"
+        whitelist_metadata_key: "true",
+        blacklist_metadata_key: "false"
     }
     if update_method == 'v2':
         extras = {
