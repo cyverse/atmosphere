@@ -198,9 +198,9 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             message = {
-                "An error was encoutered when closing the request: %s" % e.message
+                "An error was encountered when closing the request: %s" % e.message
             }
-            logger.exception(e)
+            logger.exception(message)
             raise exceptions.ParseError(detail=message)
 
     @detail_route()
@@ -317,9 +317,9 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
             raise exceptions.ParseError(detail=message)
         except Exception as e:
             message = {
-                "An error was encoutered when updating the request: %s" % e.message
+                "An error was encountered when updating the request: %s" % e.message
             }
-            logger.exception(e)
+            logger.exception(message)
             raise exceptions.ParseError(detail=message)
 
 

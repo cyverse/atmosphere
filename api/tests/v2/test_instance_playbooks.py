@@ -8,26 +8,27 @@ from api.tests.factories import (
     ProviderMachineFactory)
 from api.v2.views import InstancePlaybookHistoryViewSet, InstancePlaybookViewSet
 
-def common_setUp(apiTestCase):
-    apiTestCase.anonymous_user = AnonymousUserFactory()
-    apiTestCase.user_1 = UserFactory.create(username='test-username')
-    apiTestCase.user_2 = UserFactory.create(username='not-test-username')
-    apiTestCase.provider_machine = ProviderMachineFactory()
-    apiTestCase.instance_1 = InstanceFactory(
+
+def common_setup(api_test_case):
+    api_test_case.anonymous_user = AnonymousUserFactory()
+    api_test_case.user_1 = UserFactory.create(username='test-username')
+    api_test_case.user_2 = UserFactory.create(username='not-test-username')
+    api_test_case.provider_machine = ProviderMachineFactory()
+    api_test_case.instance_1 = InstanceFactory(
         provider_alias=str(uuid.uuid4()),
         name="Instance in active",
-        created_by=apiTestCase.user_1,
-        source=apiTestCase.provider_machine.instance_source
+        created_by=api_test_case.user_1,
+        source=api_test_case.provider_machine.instance_source
     )
-    apiTestCase.instance_2 = InstanceFactory(
+    api_test_case.instance_2 = InstanceFactory(
         provider_alias=str(uuid.uuid4()),
         name="Instance in active",
-        created_by=apiTestCase.user_2,
-        source=apiTestCase.provider_machine.instance_source
+        created_by=api_test_case.user_2,
+        source=api_test_case.provider_machine.instance_source
     )
     serializer = InstancePlaybookHistoryUpdatedSerializer(
         data={
-            'instance': apiTestCase.instance_1.provider_alias,
+            'instance': api_test_case.instance_1.provider_alias,
             'playbook': 'add_user.yml',
             "arguments": {'ATMOUSERNAME':'sgregory'},
             "status": 'queued',
@@ -36,10 +37,10 @@ def common_setUp(apiTestCase):
     )
     if not serializer.is_valid():
         raise Exception('Error creating event 1: %s' % serializer.errors)
-    apiTestCase.event_1 = serializer.save()
+    api_test_case.event_1 = serializer.save()
     serializer = InstancePlaybookHistoryUpdatedSerializer(
         data={
-            'instance': apiTestCase.instance_1.provider_alias,
+            'instance': api_test_case.instance_1.provider_alias,
             'playbook': 'add_user.yml',
             "arguments": {'ATMOUSERNAME':'lenards'},
             "status": 'queued',
@@ -48,10 +49,10 @@ def common_setUp(apiTestCase):
     )
     if not serializer.is_valid():
         raise Exception('Error creating event 2: %s' % serializer.errors)
-    apiTestCase.event_2 = serializer.save()
+    api_test_case.event_2 = serializer.save()
     serializer = InstancePlaybookHistoryUpdatedSerializer(
         data={
-            'instance': apiTestCase.instance_1.provider_alias,
+            'instance': api_test_case.instance_1.provider_alias,
             'playbook': 'add_user.yml',
             "arguments": {'ATMOUSERNAME':'sgregory'},
             "status": 'running',
@@ -60,10 +61,10 @@ def common_setUp(apiTestCase):
     )
     if not serializer.is_valid():
         raise Exception('Error creating event 3: %s' % serializer.errors)
-    apiTestCase.event_3 = serializer.save()
+    api_test_case.event_3 = serializer.save()
     serializer = InstancePlaybookHistoryUpdatedSerializer(
         data={
-            'instance': apiTestCase.instance_2.provider_alias,
+            'instance': api_test_case.instance_2.provider_alias,
             'playbook': 'add_user.yml',
             "arguments": {'ATMOUSERNAME':'sgregory'},
             "status": 'queued',
@@ -72,12 +73,12 @@ def common_setUp(apiTestCase):
     )
     if not serializer.is_valid():
         raise Exception('Error creating event 4: %s' % serializer.errors)
-    apiTestCase.event_4 = serializer.save()
+    api_test_case.event_4 = serializer.save()
 
 
 class InstancePlaybookTests(APITestCase):
     def setUp(self):
-        common_setUp(self)
+        common_setup(self)
         self.list_view = InstancePlaybookViewSet.as_view({'get': 'list'})
         self.url_route = 'api:v2:instance_playbook'
         self.list_url = reverse(self.url_route+"-list")
@@ -122,7 +123,7 @@ class InstancePlaybookTests(APITestCase):
 
 class InstancePlaybookHistoryTests(APITestCase):
     def setUp(self):
-        common_setUp(self)
+        common_setup(self)
         self.list_view = InstancePlaybookHistoryViewSet.as_view({'get': 'list'})
         self.url_route = 'api:v2:instance_playbook_history'
         self.list_url = reverse(self.url_route+"-list")

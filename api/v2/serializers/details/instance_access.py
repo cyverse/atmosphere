@@ -64,11 +64,10 @@ class InstanceAccessSerializer(serializers.HyperlinkedModelSerializer):
             instance_access = self.instance
             instance_access.status = status
             current_user = self.get_context_user()
-            if status.name == 'approved':
-                if current_user != instance_access.user:
-                    raise serializers.ValidationError(
-                        "Only user %s can approve the request for Instance Access"
-                        % instance_access.user)
+            if status.name == 'approved' and current_user != instance_access.user:
+                raise serializers.ValidationError(
+                    "Only user %s can approve the request for Instance Access"
+                    % instance_access.user)
         return status
 
     def create(self, validated_data):

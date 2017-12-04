@@ -40,10 +40,10 @@ class InstanceCommandViewSet(AuthViewSet):
                 return failure_response(
                     status.HTTP_409_CONFLICT, data)
         except Exception as exc:
-            logger.exception(exc)
+            logger.exception('Exception while saving the command')
             return failure_response(
                 status.HTTP_409_CONFLICT, exc.message)
-        request_user = request.user
+        # FIXME: All the code below here is unreachable
         request_data = request.data
         serializer = POST_InstanceCommandSerializer(
             data=request_data, context={'request': request})
@@ -70,8 +70,8 @@ class InstanceCommandViewSet(AuthViewSet):
         try:
             results = run_command(instance, command_params)
             return results
-        except Exception as exc:
-            logger.exception("An error occurred while executing command:" + exc)
+        except Exception:
+            logger.exception("An error occurred while executing command:")
             raise
 
     def _prepare_command(self, request_user, request_data):

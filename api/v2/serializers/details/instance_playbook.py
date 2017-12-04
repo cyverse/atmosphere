@@ -5,15 +5,13 @@ from threepio import logger
 from api.v2.serializers.summaries import (
     InstanceSuperSummarySerializer
 )
-from api.v2.serializers.fields.base import (
-    ModelRelatedField, UUIDHyperlinkedIdentityField
-)
+
 
 class PayloadField(serializers.Field):
     def __init__(self, payload_class=None, payload_field=None, *args, **kwargs):
         self.payload_field = payload_field
         self.payload_class = payload_class
-        return super(PayloadField, self).__init__(*args, **kwargs)
+        super(PayloadField, self).__init__(*args, **kwargs)
 
     def to_representation(self, payload_obj):
         """
@@ -73,12 +71,11 @@ class InstancePlaybookSnapshotSerializer(serializers.ModelSerializer):
     def update(self, snapshot, validated_data):
         logger.info("Updating snapshot %s" % snapshot)
         if validated_data.get('status') == 'queued':
-            from service.instance_access import _retry_playbook_with_args
+            from service.instance_access import retry_playbook_with_args
             logger.info("Retrying instance access")
-            _retry_playbook_with_args(snapshot)
+            retry_playbook_with_args(snapshot)
             snapshot.status = validated_data.get('status')
         return snapshot
-
 
     class Meta:
         model = InstancePlaybookSnapshot

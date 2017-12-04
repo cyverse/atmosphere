@@ -106,7 +106,7 @@ class Instance(models.Model):
             project_query &= Q(project__owner__memberships__is_leader=True)
         membership_query = Q(created_by__memberships__group__user=user)
         access_query = Q(access_list__user=user, access_list__status__name='approved')
-        # FIXME: This is where you query for instances in 'seriailzers/instance_access:list_access_for'
+        # FIXME: This is where you query for instances in 'serializers/instance_access:list_access_for'
         return Instance.objects.filter(membership_query | project_query | ownership_query | access_query).distinct()
 
     def get_total_hours(self):
