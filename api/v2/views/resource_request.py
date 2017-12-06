@@ -130,6 +130,14 @@ class ResourceRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
             created_by=self.request.user,
             status=status
         )
+        options = {}
+        if serializer.initial_data.get("admin_url"):
+            options={"admin_url": serializer.initial_data.get("admin_url") + str(instance.id)}
+        email.resource_request_email(self.request,
+                                     self.request.user.username,
+                                     instance.request,
+                                     instance.description,
+                                     options)
 
     def perform_destroy(self, serializer):
         """
