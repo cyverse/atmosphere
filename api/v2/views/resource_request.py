@@ -127,7 +127,7 @@ class ResourceRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         Create a resource request
         """
         status, _ = StatusType.objects.get_or_create(name='pending')
-        serializer.save(
+        instance = serializer.save(
             created_by=self.request.user,
             status=status
         )
