@@ -571,21 +571,16 @@ def resource_request_email(request, username, quota, reason, options={}):
 
     Returns a response.
     """
-    user = User.objects.get(username=username)
-    membership = IdentityMembership.objects.get(
-        identity=user.select_identity(),
-        member__in=user.memberships.values_list('group__id',flat=True))
-    admin_url = reverse('admin:core_identitymembership_change',
-                        args=(membership.id,))
 
+    url = None
     if 'admin_url' in options:
-        admin_url = options['admin_url']
+        url = request.build_absolute_uri(options['admin_url'])
 
     subject = "Atmosphere Resource Request - %s" % username
     context = {
         "quota": quota,
         "reason": reason,
-        "url": request.build_absolute_uri(admin_url)
+        "url": url
     }
     context.update(request_data(request))
     body = render_to_string("resource_request.html", context=context)

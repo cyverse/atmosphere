@@ -103,7 +103,11 @@ class UserResourceRequestTests(APITestCase):
         url = reverse('api:v2:resourcerequest-list')
         view = ResourceRequestViewSet.as_view({'post': 'create'})
         factory = APIRequestFactory()
-        request = factory.post(url, {'request': "100000 AU", 'description': 'Make world better place'})
+        request = factory.post(url, {
+            'request': "100000 AU",
+            'description': 'Make world better place',
+            'admin_url': 'https://local.atmo.cloud/application/admin/resource_requests/'
+        })
         force_authenticate(request, user=user)
         response = view(request)
 
