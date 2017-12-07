@@ -9,6 +9,7 @@ from api.v2.serializers.details import (
 from api.v2.views.base import AuthModelViewSet, AdminModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
+
 class AdminResourceRequestViewSet(MultipleFieldLookup, AdminModelViewSet):
 
     """
@@ -126,7 +127,7 @@ class ResourceRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         Create a resource request
         """
         status, _ = StatusType.objects.get_or_create(name='pending')
-        instance = serializer.save(
+        serializer.save(
             created_by=self.request.user,
             status=status
         )
