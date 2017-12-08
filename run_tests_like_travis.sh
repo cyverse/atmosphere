@@ -20,6 +20,9 @@ SUDO_POSTGRES='sudo -u postgres'  # Leave empty if sudo not required to run drop
 PIP_TOOLS_VERSION=1.9.0
 
 cd $ATMO_PATH
+if [ ! -d "$VENV_PATH" ]; then
+    virtualenv "$VENV_PATH";
+fi
 source $VENV_PATH/bin/activate
 
 pip install -U pip setuptools pip-tools=="$PIP_TOOLS_VERSION"
