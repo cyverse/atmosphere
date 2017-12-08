@@ -80,9 +80,10 @@ def lookup_user(request):
     Return the username and email given a django request object.
     TODO: Remove this method _OR_ user_email_info
     """
+    username = None
     try:
         username = request.session.get('username', '')
-    except:
+    except AttributeError:
         pass
     if not username and hasattr(request, "user"):
         username = request.user.username
