@@ -17,11 +17,12 @@ DISTRIBUTION=${1:-cyverse}
 VENV_PATH=/opt/env/atmo-test
 ATMO_PATH=/opt/dev/atmosphere
 SUDO_POSTGRES='sudo -u postgres'  # Leave empty if sudo not required to run dropdb, createdb & psql
+PIP_TOOLS_VERSION=1.9.0
 
 cd $ATMO_PATH
 source $VENV_PATH/bin/activate
 
-pip install -U pip setuptools pip-tools
+pip install -U pip setuptools pip-tools=="$PIP_TOOLS_VERSION"
 pip-sync dev_requirements.txt
 
 ${SUDO_POSTGRES} dropdb --if-exists atmosphere_db
