@@ -227,6 +227,7 @@ def _set_compute_quota(user_quota, identity):
         'floating_ips': user_quota.floating_ip_count,
         'fixed_ips': user_quota.port_count,
         'instances': user_quota.instance_count,
+        'force': True
     }
     creds = identity.get_all_credentials()
     use_tenant_id = False
