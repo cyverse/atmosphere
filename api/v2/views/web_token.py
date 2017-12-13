@@ -51,6 +51,12 @@ class WebTokenView(RetrieveAPIView):
                 status.HTTP_404_NOT_FOUND,
                 'Instance %s not found / no longer exists' % pk)
 
+        ip_address = instance.ip_address
+        if not ip_address or ip_address == '0.0.0.0':
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                'Instance must have a valid ip address')
+
         token = None
         token_url = None
         try:

@@ -47,6 +47,28 @@ class WebTokenTests(APITestCase):
         response = create_get_request(query_params={'client': 'guacamole'})
         self.assertEqual(response.status_code, 400)
 
+    @override_settings(GUACAMOLE_ENABLED=True)
+    def test_api_when_instance_missing_ip_address(self):
+        """
+        An error is returned when a token is requested for an instance without
+        a valid ip address
+        """
+        user = UserFactory.create()
+        instance = create_an_instance(ip_address=None, user=user)
+        guac_response = create_get_request(
+                query_params={'client': 'guacamole'},
+                instance=instance,
+                user=user)
+        web_desktop_response = create_get_request(
+                query_params={'client': 'web_desktop'},
+                instance=instance,
+                user=user)
+
+        for response in [guac_response, web_desktop_response]:
+            messages = [ err["message"] for err in response.data['errors'] ]
+            self.assertEqual(response.status_code, 400)
+            self.assertIn(
+                'Instance must have a valid ip address', messages)
 
 
 def create_an_instance(user=None, ip_address=None):
