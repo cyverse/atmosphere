@@ -7,7 +7,7 @@ from api.v2.serializers.details import UserSerializer, AdminUserSerializer
 from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
-from rest_framework.filters import SearchFilter
+from rest_framework import filters
 from django.utils import six
 from django.db.models import Q
 import operator
@@ -16,7 +16,7 @@ from functools import reduce
 UPDATE_METHODS = ["PUT", "PATCH"]
 
 
-class MinLengthRequiredSearchFilter(SearchFilter):
+class MinLengthRequiredSearchFilter(filters.SearchFilter):
 
     def filter_queryset(self, request, queryset, view):
         search_fields = getattr(view, 'search_fields', None)
@@ -59,10 +59,12 @@ class UserViewSet(MultipleFieldLookup, AuthModelViewSet):
     """
     lookup_fields = ("id", "uuid")
     max_page_size = 10000
-    max_page_size_query_param = 1000
+    max_page_size_query_param = 10000
     queryset = AtmosphereUser.objects.all()
     serializer_class = UserSerializer
-    filter_backends = (MinLengthRequiredSearchFilter,)
+    filter_backends = (filters.OrderingFilter, MinLengthRequiredSearchFilter)
+    ordering = ('username')
+    ordering_fields = ('username')
     http_method_names = ['get', 'put', 'patch',
                          'head', 'options', 'trace']
     search_fields = ('^username',)  # NOTE: ^ == Startswith searching

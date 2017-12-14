@@ -4,6 +4,14 @@ from django.db import models
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
+from core.models.managers import PlaybookHistoryManager
+from core.hooks.instance_playbook import (
+    listen_for_playbook_history_update
+)
+from core.hooks.instance_access import (
+    listen_for_add_share_instance_access,
+    listen_for_remove_share_instance_access
+)
 from core.hooks.quota import (
     listen_for_quota_assigned
 )
@@ -31,11 +39,16 @@ class EventTable(models.Model):
     Used to keep a track of events
     """
 
+    # Model Fields
     uuid = models.UUIDField(default=uuid4, unique=True, blank=True)
     entity_id = models.CharField(max_length=255, default='', blank=True, db_index=True)
     name = models.CharField(max_length=128, db_index=True)
     payload = JSONField()
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
+
+    # Model Managers
+    objects = models.Manager()  # The default manager.
+    instance_history_playbooks = PlaybookHistoryManager()
 
     @classmethod
     def create_event(cls, name, payload, entity_id):
@@ -82,3 +95,6 @@ post_save.connect(listen_for_allocation_source_renewal_strategy_changed, sender=
 post_save.connect(listen_for_allocation_source_name_changed, sender=EventTable)
 post_save.connect(listen_for_allocation_source_removed, sender=EventTable)
 post_save.connect(listen_for_quota_assigned, sender=EventTable)
+post_save.connect(listen_for_playbook_history_update, sender=EventTable)
+post_save.connect(listen_for_add_share_instance_access, sender=EventTable)
+post_save.connect(listen_for_remove_share_instance_access, sender=EventTable)

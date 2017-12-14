@@ -23,7 +23,11 @@ from .instance import InstanceViewSet
 from .instance_allocation_source import InstanceAllocationSourceViewSet
 from .instance_tag import InstanceTagViewSet
 from .instance_history import InstanceStatusHistoryViewSet
+from .instance_playbook_history import InstancePlaybookHistoryViewSet
+from .instance_playbook import InstancePlaybookViewSet
 from .instance_action import InstanceActionViewSet
+from .instance_access import InstanceAccessViewSet
+from .instance_command import InstanceCommandViewSet
 from .license import LicenseViewSet
 from .link import ExternalLinkViewSet
 from .machine_request import MachineRequestViewSet

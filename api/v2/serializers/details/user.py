@@ -3,19 +3,18 @@ from rest_framework import serializers
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:atmosphereuser-detail',
-    )
-
+class UserSerializer(serializers.ModelSerializer):
+    """
+    This serializer used for 'user lookups'
+    """
     class Meta:
         model = AtmosphereUser
         fields = (
             'id',
             'uuid',
-            'url',
+            # 'url',
             'username',
-            'end_date',
+            # 'end_date',
             # 'first_name',
             # 'last_name',
             # 'email',
@@ -24,7 +23,11 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
             # 'date_joined'
         )
 
+
 class AdminUserSerializer(serializers.HyperlinkedModelSerializer):
+    """
+    Admins have access to a more detailed object
+    """
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:atmosphereuser-detail',
     )
@@ -43,5 +46,5 @@ class AdminUserSerializer(serializers.HyperlinkedModelSerializer):
             'email',
             # 'first_name',
             # 'last_name',
-            # 'date_joined'
+            'date_joined'
         )

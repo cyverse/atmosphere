@@ -31,9 +31,20 @@ class ModelRelatedField(serializers.RelatedField):
             "%s should have a `serializer_class` attribute."
             % self.___class__.__name__
         )
-        queryset = self.get_queryset()
-        obj = queryset.get(pk=value.pk)
-        serializer = self.serializer_class(obj, context=self.context)
+        if self.read_only:
+            serializer = self.serializer_class(value, context=self.context)
+        else:
+            # FIXME (?) NOTE: While updating the code above, i noticed that
+            # ipdb> obj
+            # <ModelName: ...>
+            # ipdb> value
+            # <ModelName: ...>
+            # ipdb> obj == value
+            # True
+            # Is this an unnecessary lookup? Should we only be doing this for _writes_?
+            queryset = self.get_queryset()
+            obj = queryset.get(pk=value.pk)
+            serializer = self.serializer_class(obj, context=self.context)
         return serializer.data
 
     def to_internal_value(self, data):

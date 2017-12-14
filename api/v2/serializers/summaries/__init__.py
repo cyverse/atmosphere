@@ -4,6 +4,7 @@ from .identity import IdentitySummarySerializer
 from .image import ImageSummarySerializer
 from .image_version import ImageVersionSummarySerializer
 from .instance import InstanceSummarySerializer, InstanceSuperSummarySerializer
+from .instance_access import InstanceAccessSummarySerializer
 from .license import LicenseSummarySerializer
 from .license_type import LicenseTypeSummarySerializer
 from .link import ExternalLinkSummarySerializer

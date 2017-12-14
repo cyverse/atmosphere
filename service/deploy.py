@@ -4,6 +4,9 @@ Deploy methods for Atmosphere
 import os
 import re
 
+from glob import glob
+
+from django.template import Context
 from django.template.loader import render_to_string
 from django.utils.text import slugify
 from django.utils.timezone import datetime
@@ -34,6 +37,7 @@ def ansible_deployment(
     """
     Use service.ansible to deploy to an instance.
     """
+    defaults = {}
     if not check_ansible():
         return []
     # Expecting to be path-relative to the playbook path, so use basename
@@ -60,7 +64,7 @@ def ansible_deployment(
     identity = Identity.find_instance(instance_id)
     if identity:
         time_zone = identity.provider.timezone
-        extra_vars.update({
+        defaults.update({
             "TIMEZONE": time_zone,
         })
     shared_users = list(AtmosphereUser.users_for_instance(instance_id).values_list('username', flat=True))
@@ -68,12 +72,14 @@ def ansible_deployment(
         shared_users = [username]
     if username not in shared_users:
         shared_users.append(username)
-    extra_vars.update({
+    defaults.update({
         "SHARED_USERS": shared_users,
     })
-    extra_vars.update({
+    defaults.update({
         "ATMOUSERNAME": username,
     })
+    defaults.update(extra_vars)
+    extra_vars = defaults
     pbs = execute_playbooks(
         playbooks_dir, host_file, extra_vars, limit_hosts,
         logger=logger, limit_playbooks=limit_playbooks, **runner_opts)
@@ -318,25 +324,31 @@ def run_utility_playbooks(instance_ip, username, instance_id,
         raise_exception=raise_exception)
 
 
-def select_install_playbooks(install_action):
+def find_playbooks(playbooks_dir, playbook_name):
     """
-    This function would take an install_action, say:
+    This function would take an playbook_name, say:
     `apache` or `nginx` or `R` or `Docker`
     and return as a result, the list of playbooks required to make it happen.
     """
-    raise Exception("Unknown installation action:%s" % install_action)
+    if ".yml" not in playbook_name:
+        playbook_name += ".yml"
+    all_playbooks = glob(playbooks_dir+"/*.yml")  # playbooks/user_customizations/*.yml
+    for playbook_path in all_playbooks:
+        if playbook_name in playbook_path:
+            return [playbook_name] # needle.yml
+    raise Exception("No playbook named %s found in path %s" % (playbook_name, playbooks_dir))
 
 
-def user_deploy_install(instance_ip, username, instance_id, install_action, install_args):
+def user_customization_deploy(instance_ip, username, instance_id, playbook_name, extra_vars={}):
     """
-    Placeholder function to show how a user-initialized install from Troposphere might be handled on the backend.
+    Select the specific playbook in 'user_customizations' to be installed on `instance_id`
     """
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
     playbooks_dir = os.path.join(playbooks_dir, 'user_customizations')
-    limit_playbooks = select_install_playbooks(install_action)
+    limit_playbooks = find_playbooks(playbooks_dir, playbook_name)
     return ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
-        limit_playbooks, extra_vars=install_args)
+        limit_playbooks, extra_vars=extra_vars)
 
 
 def execute_playbooks(playbook_dir, host_file, extra_vars, my_limit,

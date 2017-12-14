@@ -6,6 +6,7 @@ from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 class IdentitySummarySerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.CharField(read_only=True)
     provider = serializers.PrimaryKeyRelatedField(read_only=True)
+    provider_location = serializers.SlugRelatedField(source='provider', slug_field='location', read_only=True)
     key = serializers.SerializerMethodField()
     url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:identity-detail',
@@ -22,4 +23,5 @@ class IdentitySummarySerializer(serializers.HyperlinkedModelSerializer):
             'url',
             'key',
             'provider',
+            'provider_location',
         )

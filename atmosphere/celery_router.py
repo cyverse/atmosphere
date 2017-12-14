@@ -23,6 +23,7 @@ class PredeclareRouter(object):
 DEPLOY_TASKS = [
     "_deploy_instance",
     "_deploy_instance_for_user",
+    "_deploy_instance_playbook",
     "check_web_desktop_task",
     "_deploy_init_to", "service.tasks.driver._deploy_init_to",
     "deploy_ready_test", "service.tasks.driver.deploy_ready_test",

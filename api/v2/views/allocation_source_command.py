@@ -56,7 +56,7 @@ class AllocationSourceCommandViewSet(AuthViewSet):
 
         if not request_data.items():
             return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Reuquest Data is missing")
+                                    "Request Data is missing")
 
         if not request_data['action']:
             return failure_response(status.HTTP_400_BAD_REQUEST,

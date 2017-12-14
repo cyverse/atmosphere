@@ -18,7 +18,6 @@ from core.models.export_request import ExportRequest
 from core.models.group import Group, IdentityMembership,\
     InstanceMembership, GroupMembership
 from core.models.identity import Identity
-from core.models.instance_tag import InstanceTag
 from core.models.link import ExternalLink
 from core.models.profile import UserProfile
 from core.models.project import Project
@@ -36,8 +35,11 @@ from core.models.pattern_match import PatternMatch, MatchType
 from core.models.maintenance import MaintenanceRecord
 from core.models.instance import Instance
 from core.models.instance_action import InstanceAction
+from core.models.instance_access import InstanceAccess
+from core.models.instance_playbook import InstancePlaybookSnapshot
 from core.models.instance_history import InstanceStatus, InstanceStatusHistory
 from core.models.instance_source import InstanceSource
+from core.models.instance_tag import InstanceTag
 from core.models.node import NodeController
 from core.models.boot_script import ScriptType, BootScript, ApplicationVersionBootScript
 from core.models.quota import Quota
