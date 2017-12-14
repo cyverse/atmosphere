@@ -72,6 +72,7 @@ class WebTokenView(RetrieveAPIView):
     def guacamole_token(self, ip_address):
         request = self.request
         guacamole_color = UserProfile.objects.get(user__username=request.user.username).guacamole_color
+        term_emulator = UserProfile.objects.get(user__username=request.user.username).term_emulator
         protocol = request.query_params.get('protocol', 'vnc')
         guac_server = settings.GUACAMOLE['SERVER_URL']
         guac_secret = settings.GUACAMOLE['SECRET_KEY']
@@ -117,6 +118,14 @@ class WebTokenView(RetrieveAPIView):
 
         if protocol == "ssh":
             request_string += "&guac.color-scheme=" + guacamole_color.replace("_", "-")
+
+            # Use terminal emulator if it is in user settings
+            if term_emulator == "tmux":
+                request_string += "&guac.command=tmux attach || tmux new"
+            elif term_emulator == "screen":
+                request_string += "&guac.command=screen -aAdr -RR work bash"
+            elif term_emulator != "default":
+                request_string += "&guac.command=%s" % term_emulator
 
         # Send request to Guacamole backend and record the result
         response = requests.post(guac_server + '/api/tokens', data=request_string)
