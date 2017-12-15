@@ -118,11 +118,11 @@ class WebTokenView(RetrieveAPIView):
                           + '&guac.enable-sftp=true')
 
         if protocol == "ssh":
-            request_string += "&guac.color-scheme=" + guacamole_color.replace("_", "-")
+            request_string += "&guac.color-scheme=%s" % guacamole_color.replace("_", "-")
 
             if record_shell:
-                request_string += "&guac.typescript-path=/etc/guacamole/typescript/" + atmo_username
-                request_string += "&guac.typescript-name=" + datetime.now().strftime("%Y-%m-%d-%H:%M")
+                request_string += "&guac.typescript-path=/etc/guacamole/typescript/%s" % atmo_username
+                request_string += "&guac.typescript-name=%s_%s" % (ip_address, datetime.now().strftime("%Y-%m-%d-%H:%M"))
                 request_string += "&guac.create-typescript-path=true"
 
         # Send request to Guacamole backend and record the result
