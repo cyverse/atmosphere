@@ -123,8 +123,7 @@ class Project(models.Model):
         if user in group.user_set.all():
             return True
         raise Exception(
-            "CANNOT add Resource:%s User:%s does NOT belong to Group:%s" %
-            (related_obj, user, group))
+            "User:%s does NOT belong to Group:%s" % (user, group))
 
     def copy_objects(self, to_project):
         """
