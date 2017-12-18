@@ -1,4 +1,3 @@
-@wip
 Feature: Create volume and add to projects
 
   Background:

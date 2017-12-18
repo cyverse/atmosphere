@@ -1,6 +1,8 @@
 import json
 import uuid
 
+import django
+import mock
 # noinspection PyUnresolvedReferences
 from behave import *
 from behave import when, then, given, step
@@ -14,8 +16,8 @@ from rest_framework.test import APIClient
 from api.tests.factories import (
     InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
     ProviderMachineFactory, IdentityFactory, ProviderFactory, UserFactory)
-from core.models import AllocationSourceSnapshot, Instance
-from core.models.allocation_source import get_allocation_source_object
+from core.models import AllocationSourceSnapshot, Instance, AtmosphereUser
+from core.models.allocation_source import get_allocation_source_object, AllocationSource
 
 
 @given('an admin user "{username}"')
@@ -47,6 +49,49 @@ def create_user_with_username(context, username):
 
 
 # Allocation Source Creation
+
+
+@when(u'the `monitor_allocation_sources` scheduled task is run with settings')
+def run_monitor_allocation_source(context):
+    override_settings = [dict(zip(row.headings, row.cells)) for row in context.table]
+    never_enforce = [setting['allocation_source'] for setting in override_settings if
+                     setting['override'] == 'NEVER_ENFORCE']
+    always_enforce = [setting['allocation_source'] for setting in override_settings if
+                      setting['override'] == 'ALWAYS_ENFORCE']
+    from service.tasks.monitoring import monitor_allocation_sources
+    with mock.patch('service.tasks.monitoring.allocation_source_overage_enforcement_for_user',
+                    autospec=True) as allocation_source_overage_enforcement_for_user:
+        with django.test.override_settings(
+                ALLOCATION_OVERRIDES_NEVER_ENFORCE=never_enforce,
+                ALLOCATION_OVERRIDES_ALWAYS_ENFORCE=always_enforce
+        ):
+            monitor_allocation_sources()
+    context.allocation_source_overage_enforcement_for_user = allocation_source_overage_enforcement_for_user
+
+
+@then(u'`allocation_source_overage_enforcement_for_user` was called as follows')
+def allocation_source_overage_enforcement_for_user_called(context):
+    context.test.assertTrue(hasattr(context, 'allocation_source_overage_enforcement_for_user'))
+    allocation_source_overage_enforcement_for_user = context.allocation_source_overage_enforcement_for_user
+    all_calls = [dict(zip(row.headings, row.cells)) for row in context.table]
+    expected_calls = [call for call in all_calls if call['called'] == 'Yes']
+    method_calls = []
+    for call in allocation_source_overage_enforcement_for_user.method_calls:
+        context.test.assertEqual(len(call), 3)
+        context.test.assertEqual(len(call[2]['args']), 2)
+        allocation_source = call[2]['args'][0]
+        context.test.assertIsInstance(allocation_source, AllocationSource)
+        user = call[2]['args'][1]
+        context.test.assertIsInstance(user, AtmosphereUser)
+        method_calls.append(
+            {
+                'username': user.username,
+                'allocation_source': allocation_source.name,
+                'called': 'Yes'
+            }
+        )
+
+    context.test.assertEqual(method_calls, expected_calls)
 
 
 @when('create_allocation_source command is fired')
