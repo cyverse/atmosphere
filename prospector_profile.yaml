@@ -5,7 +5,6 @@ ignore-paths:
   - service/accounts/aws.py
   - service/accounts/eucalyptus.py
   - service/instance.py
-  - api/v1/views/identity_membership.py
   - settings/local.py
   - settings/secrets.py
 
