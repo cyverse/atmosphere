@@ -1,6 +1,5 @@
 ignore-paths:
   - api/v1/views/post_boot.py
-  - core/models/project.py
   - core/models/t.py
   - scripts/admin_clean_provider_machine.py
   - service/accounts/aws.py

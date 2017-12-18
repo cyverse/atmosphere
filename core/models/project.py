@@ -113,13 +113,10 @@ class Project(models.Model):
         elif isinstance(related_obj, Application):
             application = related_obj
             self._test_project_ownership(application.created_by)
-            # TODO: Replace w/ new_join when 'through' is added
             self.applications.add(related_obj)
         else:
             raise Exception("Invalid type for Object %s: %s"
                             % (related_obj, type(related_obj)))
-        new_join.save()
-        return new_join
 
     def _test_project_ownership(self, user):
         group = self.owner
