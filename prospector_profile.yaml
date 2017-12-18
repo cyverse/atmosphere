@@ -6,7 +6,6 @@ ignore-paths:
   - service/accounts/eucalyptus.py
   - service/instance.py
   - api/v1/views/identity_membership.py
-  - api/v1/views/meta.py
   - settings/local.py
   - settings/secrets.py
 
