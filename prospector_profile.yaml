@@ -1,6 +1,5 @@
 ignore-paths:
   - api/v1/views/post_boot.py
-  - scripts/admin_clean_provider_machine.py
   - service/accounts/aws.py
   - service/accounts/eucalyptus.py
   - service/instance.py
