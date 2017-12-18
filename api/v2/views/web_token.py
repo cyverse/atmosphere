@@ -6,6 +6,7 @@ import hmac
 import hashlib
 import base64
 import requests
+from datetime import datetime
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
@@ -72,6 +73,7 @@ class WebTokenView(RetrieveAPIView):
     def guacamole_token(self, ip_address):
         request = self.request
         guacamole_color = UserProfile.objects.get(user__username=request.user.username).guacamole_color
+        record_session = UserProfile.objects.get(user__username=request.user.username).record_shell
         protocol = request.query_params.get('protocol', 'vnc')
         guac_server = settings.GUACAMOLE['SERVER_URL']
         guac_secret = settings.GUACAMOLE['SECRET_KEY']
@@ -116,7 +118,16 @@ class WebTokenView(RetrieveAPIView):
                           + '&guac.enable-sftp=true')
 
         if protocol == "ssh":
-            request_string += "&guac.color-scheme=" + guacamole_color.replace("_", "-")
+            request_string += "&guac.color-scheme=%s" % guacamole_color.replace("_", "-")
+
+        # If session recording is enabled, add correct parameters to connection
+        if record_session:
+            if protocol == "ssh": record_type = "typescript"
+            if protocol == "vnc": record_type = "recording"
+
+            request_string += "&guac.%s-path=/etc/guacamole/%s/%s" % (record_type, record_type, atmo_username)
+            request_string += "&guac.%s-name=%s_%s" % (record_type, ip_address, datetime.now().strftime("%Y-%m-%d-%H:%M"))
+            request_string += "&guac.create-%s-path=true" % record_type
 
         # Send request to Guacamole backend and record the result
         response = requests.post(guac_server + '/api/tokens', data=request_string)
