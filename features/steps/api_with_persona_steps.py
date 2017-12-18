@@ -200,9 +200,9 @@ def we_create_allocation_source_through_api(context):
     for row in context.table:
         response = client.post('/api/v2/allocation_sources',
                                {
-                                   'renewal_strategy': row['renewal strategy'],
+                                   'renewal_strategy': row['renewal_strategy'],
                                    'name': row['name'],
-                                   'compute_allowed': row['compute allowed']
+                                   'compute_allowed': row['compute_allowed']
                                })
         if 'uuid' in response.data and response.data['uuid']:
             allocation_source_ids = context.persona.get('allocation_source_ids', {})

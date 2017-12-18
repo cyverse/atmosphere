@@ -11,7 +11,7 @@
 # This script properly generates the requirements and performs a diff with the
 # current requirements.
 
-PIP_TOOLS_VERSION=1.9.0
+PIP_TOOLS_VERSION=1.11.0
 
 function main {
 
@@ -60,7 +60,7 @@ function generate_requirements {
 }
 
 function pip-tools-version {
-    pip-compile --version | grep -Po '\d\.\d\.\d';
+    pip-compile --version | grep -Po '\d+\.\d+\.\d+';
 }
 
 function warn_improper_pip_tools_version {
