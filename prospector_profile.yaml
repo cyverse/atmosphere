@@ -1,6 +1,5 @@
 ignore-paths:
   - settings/local.py
-  - settings/secrets.py
 
 inherits:
   - strictness_low
