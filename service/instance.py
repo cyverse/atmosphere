@@ -1058,7 +1058,7 @@ def _launch_machine(driver, identity, machine, size,
         logger.info("EUCA -- driver.create_instance EXTRAS:%s" % kwargs)
         esh_instance = driver\
             .create_instance(name=name, image=machine, size=size,
-                             ex_userdata=userdata_contents, **kwargs)
+                             ex_userdata=userdata_content, **kwargs)
     elif isinstance(driver.provider, AWSProvider):
         # TODO:Extra stuff needed for AWS provider here
         esh_instance = driver.deploy_instance(
@@ -1136,7 +1136,7 @@ def _generate_userdata_content(
                                          password,
                                          name,
                                          username, init_file)
-    return userdata_content
+    return userdata_contents
 
 
 def _complete_launch_instance(
