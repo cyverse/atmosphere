@@ -1,5 +1,4 @@
 ignore-paths:
-  - api/v1/views/post_boot.py
   - service/instance.py
   - settings/local.py
   - settings/secrets.py
