@@ -139,7 +139,7 @@ class AccountDriver():
 
     def delete_identity(self, username):
         ident = Identity.objects.get(
-            created_by__username=username, provider=core_provider)
+            created_by__username=username, provider=self.core_provider)
         return ident.delete()
 
     def delete_user(self, username):
