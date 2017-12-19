@@ -1017,7 +1017,7 @@ def _boot_volume(driver, identity, copy_source, size, name, userdata, network,
     return (new_instance, token, password)
 
 
-def _launch_volume(driver, identity, volume, size, userdata_content, network,
+def _launch_volume(driver, identity, volume, size, name, userdata_content, network,
                    password=None, token=None,
                    boot_index=0, shutdown=False, **kwargs):
     if not isinstance(driver.provider, OSProvider):
