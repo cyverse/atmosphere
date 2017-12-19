@@ -956,7 +956,7 @@ def boot_volume_instance(
     """
     Create a new volume and launch it as an instance
     """
-    kwargs, userdata, network = _pre_launch_instance(
+    prep_kwargs, userdata, network = _pre_launch_instance(
         driver, user, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
     instance, token, password = _boot_volume(
@@ -972,7 +972,7 @@ def launch_volume_instance(driver, user, identity, volume, size, name,
     """
     Re-Launch an existing volume as an instance
     """
-    kwargs, userdata, network = _pre_launch_instance(
+    prep_kwargs, userdata, network = _pre_launch_instance(
         driver, user, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
     instance, token, password = _launch_volume(
