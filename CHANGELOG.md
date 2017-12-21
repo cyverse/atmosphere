@@ -1,16 +1,38 @@
-## [Delightful-Duboshin (v30)](https://github.com/cyverse/atmosphere/milestone/17?closed=1) (as of 2017-12-18)
+## [Delightful-Duboshin (v30)](https://github.com/cyverse/atmosphere/milestone/17?closed=1) (as of 2017-12-21)
 
 New Features:
--  Site operators can override enforcement behavior for specific allocation sources
+- Site operators can override enforcement behavior for specific allocation sources
+
+Improvements:
+- Admin improvements
+    - On resource request approval the reason field is omitted, which makes much more sense in the email template
+    - Identities can be patched (to update quota)
+- Allocations now renews on first day of month   
+- Multiple metadata syncing fixes:
+    - `application_to_provider` previously did not migrate custom image metadata
+    - `application_sync_providers` previously only looked at active (non-end-dated) InstanceSources + ProviderMachines
+    - Refactored the part of `application_to_provider` which sets metadata, for less code duplication
+    
+Bugfixes:
+- Quota cannot exceed limit
+- Incorrect URL definition for web desktop/shell links
+- Missing DOI on ImageVersion model
+- Fixes to monitor_machines and validation
+    - Legacy clouds need to call 'list images' twice and append info to the v2 api.
+    - Skip machines if their status is 'queued' or 'saving'
+- Various small bug fixes like undefined variables and attributes
 
 
 ## [Carbonaceous-Comet (v29)](https://github.com/cyverse/atmosphere/milestone/16?closed=1) (as of 2017-11-09)
+
 New Features:
 - Site operators can now create machine validation plugins to control the flow of images in the atmosphere image catalog.
 - Users can now select a `guacamole_color` in their UserProfile, which will correspond to the theme used in guacamole web shell sessions.
+
 Bugfixes:
 - Remove special characters from BootScripts prior to deployment.
 - Suspend instances if the ephemeral storage is set to /home directory and a 'Shelve' action is received.
+
 Internal:
 - Change the location of ephemeral drives to a /scratch directory with a 'data-loss' warning.
 - Remove 'Provider' examples from the list of fixtures installed on a fresh database.
@@ -18,7 +40,10 @@ Internal:
 - Update travis to include code linting
 - Enable auto reload for uwsgi as an option for configuration.
 - Celery init.d scripts are no longer included in Atmosphere. Use clank for installation/configuration of celery.
+
+
 ## [Beneficent-Bolide(v28)](https://github.com/cyverse/atmosphere/milestone/15?closed=1) (as of 2017-10-03)
+
 New Features:
 - Users can now set 'access_list' on an application
   to specify an email/username pattern. Users that
@@ -45,7 +70,9 @@ Internal:
 - Introduced new manage.py command to start/stop a maintenance
 - Behave will be quieter in travis.ci
 
+
 ## [Ancient-Asteroid(v27)](https://github.com/cyverse/atmosphere/milestone/14?closed=1) (as of 2017-09-19)
+
 Improvements:
 - Ansible will now deploy user-boot-scripts
 - API /v2/sizes includes 'root' attribute (Root disk size)
