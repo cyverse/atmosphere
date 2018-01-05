@@ -1,6 +1,3 @@
-ignore-paths:
-  - settings/local.py
-
 inherits:
   - strictness_low
 
