@@ -19,21 +19,19 @@ class ModelRelatedField(serializers.RelatedField):
     def get_queryset(self):
         assert self.queryset is not None, (
             "%s should have a `queryset` attribute."
-            % self.___class__.__name__
+            % self.__class__.__name__
         )
         if callable(self.queryset):
             return self.queryset(self)
 
         return self.queryset.all()
 
-    def to_representation(self, value):
+    def to_representation(self, model):
         assert self.serializer_class is not None, (
             "%s should have a `serializer_class` attribute."
-            % self.___class__.__name__
+            % self.__class__.__name__
         )
-        queryset = self.get_queryset()
-        obj = queryset.get(pk=value.pk)
-        serializer = self.serializer_class(obj, context=self.context)
+        serializer = self.serializer_class(model, context=self.context)
         return serializer.data
 
     def to_internal_value(self, data):

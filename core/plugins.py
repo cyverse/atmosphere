@@ -1,5 +1,7 @@
 import inspect
 
+import enum
+
 from django.utils.module_loading import import_string
 from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
@@ -115,6 +117,13 @@ class DefaultQuotaPluginManager(PluginListManager):
         return _default_quota
 
 
+@enum.unique
+class EnforcementOverrideChoice(str, enum.Enum):
+    ALWAYS_ENFORCE = 'ALWAYS_ENFORCE'
+    NEVER_ENFORCE = 'NEVER_ENFORCE'
+    NO_OVERRIDE = 'NO_OVERRIDE'
+
+
 class AllocationSourcePluginManager(PluginListManager):
     """
     Provide a plugin to create more complicated rules for default quotas
@@ -153,6 +162,45 @@ class AllocationSourcePluginManager(PluginListManager):
             if _has_valid_allocation_sources:
                 return _has_valid_allocation_sources
         return _has_valid_allocation_sources
+
+    @classmethod
+    def get_enforcement_override(cls, user, allocation_source, provider=None):
+        """Returns whether (and how) to override the enforcement for a particular user, allocation source and provider
+        combination.
+
+        Load each Allocation Source Plugin and call `plugin.get_enforcement_override(allocation_source)`. Will
+        return the first value that is not `EnforcementOverrideChoice.NO_OVERRIDE`
+
+        :param user: The user to check
+        :type user: core.models.AtmosphereUser
+        :param allocation_source: The allocation source to check
+        :type allocation_source: core.models.AllocationSource
+        :param provider: The provider (optional, not used by any plugins yet)
+        :type provider: core.models.Provider
+        :return: The enforcement override behaviour for the allocation source on the provider
+        :rtype: EnforcementOverrideChoice
+        """
+        _enforcement_override_choice = EnforcementOverrideChoice.NO_OVERRIDE
+        for AllocationSourcePlugin in cls.load_plugins(cls.list_of_classes):
+            plugin = AllocationSourcePlugin()
+            try:
+                inspect.getcallargs(
+                    getattr(plugin, 'get_enforcement_override'),
+                    user=user, allocation_source=allocation_source, provider=provider)
+            except AttributeError:
+                logger.info(
+                    "Allocation Source plugin %s missing method 'get_enforcement_override'",
+                    AllocationSourcePlugin)
+            except TypeError:
+                logger.info(
+                    "Allocation Source plugin %s does not accept kwargs `user`, `allocation_source`, & `provider`",
+                    AllocationSourcePlugin)
+            _enforcement_override_choice = plugin.get_enforcement_override(user=user,
+                                                                           allocation_source=allocation_source,
+                                                                           provider=provider)
+            if _enforcement_override_choice != EnforcementOverrideChoice.NO_OVERRIDE:
+                return _enforcement_override_choice
+        return _enforcement_override_choice
 
 
 class AccountCreationPluginManager(PluginListManager):

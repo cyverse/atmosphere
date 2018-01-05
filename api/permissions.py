@@ -271,6 +271,28 @@ class IsAdminOrReadOnly(permissions.BasePermission):
             request.user and request.user.is_staff
         )
 
+class UserListAdminQueryable(permissions.BasePermission):
+    """
+    The request is authenticated as an admin, or it doesn't include filtering
+    by username or all_users
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        # Staff/Admins have all permissions to query
+        if user.is_staff or user.is_admin():
+            return True
+
+        method_is_safe = request.method in permissions.SAFE_METHODS
+        no_bad_params = \
+            not any([p for p in ["all_users", "username"] if p in request.GET])
+
+        # For all other users, only allow SAFE_METHODS and for GET don't allow
+        # filtering by all_users or username
+        return (
+            method_is_safe and no_bad_params
+        )
 
 class ApiAuthIgnore(permissions.BasePermission):
 

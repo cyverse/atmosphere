@@ -96,6 +96,64 @@ class AllocationSourceTests(APITestCase, APISanityTestCase):
         self.assertEqual(allocation_source.time_remaining(), decimal.Decimal('Infinity'))
         self.assertEqual(allocation_source.is_over_allocation(), False)
 
+    def test_renewal_rules(self):
+        """Check renewal rules"""
+        import datetime
+        from business_rules import run_all
+        from django.utils import timezone
+        from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVariables, \
+            CyverseTestRenewalActions, cyverse_rules
+        from core.models import EventTable
+
+        source_01 = AllocationSourceFactory.create(
+            uuid='98e9aed3-1f4c-415c-9ea3-618a8c318eaa',
+            name='default_source_01',
+            compute_allowed=168,
+            start_date=datetime.datetime(2017, 7, 4, hour=12, tzinfo=timezone.utc),
+            end_date=None,
+            renewal_strategy='default'
+        )
+
+        renewal_events_count_before = EventTable.objects.filter(name='allocation_source_created_or_renewed').count()
+        self.assertEqual(renewal_events_count_before, 0)
+
+        current_time = datetime.datetime(2017, 7, 5, hour=12, tzinfo=timezone.utc)
+        run_all(rule_list=cyverse_rules,
+                defined_variables=CyverseTestRenewalVariables(source_01, current_time=current_time,
+                                                              last_renewal_event_date=source_01.start_date),
+                defined_actions=CyverseTestRenewalActions(source_01, current_time=current_time))
+
+        renewal_events_count_after_one = EventTable.objects.filter(name='allocation_source_created_or_renewed').count()
+        self.assertEqual(renewal_events_count_after_one, 0)
+
+        current_time = datetime.datetime(2017, 8, 1, hour=12, tzinfo=timezone.utc)
+        run_all(rule_list=cyverse_rules,
+                defined_variables=CyverseTestRenewalVariables(source_01, current_time=current_time,
+                                                              last_renewal_event_date=source_01.start_date),
+                defined_actions=CyverseTestRenewalActions(source_01, current_time=current_time))
+
+        renewal_events_count_after_two = EventTable.objects.filter(name='allocation_source_created_or_renewed').count()
+        self.assertEqual(renewal_events_count_after_two, 1)
+        last_renewal_event_date = current_time
+
+        current_time = datetime.datetime(2017, 8, 3, hour=12, tzinfo=timezone.utc)
+        run_all(rule_list=cyverse_rules,
+                defined_variables=CyverseTestRenewalVariables(source_01, current_time=current_time,
+                                                              last_renewal_event_date=last_renewal_event_date),
+                defined_actions=CyverseTestRenewalActions(source_01, current_time=current_time))
+
+        renewal_events_count_after_three = EventTable.objects.filter(
+            name='allocation_source_created_or_renewed').count()
+        self.assertEqual(renewal_events_count_after_three, 1)
+
+        current_time = datetime.datetime(2017, 9, 1, hour=12, tzinfo=timezone.utc)
+        run_all(rule_list=cyverse_rules,
+                defined_variables=CyverseTestRenewalVariables(source_01, current_time=current_time,
+                                                              last_renewal_event_date=last_renewal_event_date),
+                defined_actions=CyverseTestRenewalActions(source_01, current_time=current_time))
+
+        renewal_events_count_after_four = EventTable.objects.filter(name='allocation_source_created_or_renewed').count()
+        self.assertEqual(renewal_events_count_after_four, 2)
 
     def test_anonymous_user_cant_see_allocation_sources(self):
         request_factory = APIRequestFactory()
