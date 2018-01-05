@@ -21,6 +21,7 @@ Bugfixes:
     - Legacy clouds need to call 'list images' twice and append info to the v2 api.
     - Skip machines if their status is 'queued' or 'saving'
 - Various small bug fixes like undefined variables and attributes
+- Workaround cron script for special allocation quota not being set on first login
 
 
 ## [Carbonaceous-Comet (v29)](https://github.com/cyverse/atmosphere/milestone/16?closed=1) (as of 2017-11-09)
