@@ -51,6 +51,7 @@ class ApplicationVersion(models.Model):
     system_files = models.TextField(default='', null=True, blank=True)
     installed_software = models.TextField(default='', null=True, blank=True)
     excluded_files = models.TextField(default='', null=True, blank=True)
+    doc_object_id = models.TextField(default='', null=True, blank=True)
     licenses = models.ManyToManyField(License,
             blank=True, related_name='application_versions')
     boot_scripts = models.ManyToManyField(

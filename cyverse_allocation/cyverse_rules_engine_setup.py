@@ -1,5 +1,5 @@
 from business_rules.actions import BaseActions, rule_action
-from business_rules.fields import FIELD_NUMERIC
+from business_rules.fields import FIELD_NUMERIC, FIELD_TEXT
 from business_rules.variables import BaseVariables, boolean_rule_variable, numeric_rule_variable, string_rule_variable
 
 from core.models.allocation_source import AllocationSource,AllocationSourceSnapshot
@@ -22,6 +22,10 @@ class CyverseTestRenewalVariables(BaseVariables):
             return True
         return False
 
+    @boolean_rule_variable
+    def hard_coded_false(self):
+        return False
+
     #
     # @boolean_rule_variable
     # def is_at_full_capacity(self):
@@ -34,6 +38,10 @@ class CyverseTestRenewalVariables(BaseVariables):
         return (
             self.current_time - self.last_renewal_event_date).days
 
+    @numeric_rule_variable
+    def today_calendar_day(self):
+        return self.current_time.day
+
 
 class CyverseTestRenewalActions(BaseActions):
     def __init__(self, allocation_source, current_time):
@@ -42,29 +50,18 @@ class CyverseTestRenewalActions(BaseActions):
         self.allocation_source = allocation_source
         self.current_time = current_time
 
-    @rule_action(params={"compute_allowed": FIELD_NUMERIC})
-    def renew_allocation_source(self, compute_allowed):
-        source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=self.allocation_source)
-        if not source_snapshot:
-            raise Exception('Allocation Source %s cannot be renewed because no snapshot is available' % (
-                self.allocation_source.name))
-        source_snapshot = source_snapshot.last()
-
-        # carryover logic
-        #remaining_compute = 0 if source_snapshot.compute_allowed - source_snapshot.compute_used < 0 else source_snapshot.compute_allowed - source_snapshot.compute_used
-        #total_compute_allowed = float(remaining_compute + compute_allowed)
-
+    @rule_action(params={"strategy_name": FIELD_TEXT, "compute_allowed": FIELD_NUMERIC})
+    def renew_allocation_source(self, strategy_name, compute_allowed):
         total_compute_allowed = compute_allowed
 
         # fire renewal event
 
-        renewal_strategy = self.allocation_source.renewal_strategy
         allocation_source_name = self.allocation_source.name
         allocation_source_uuid = self.allocation_source.uuid
 
         payload = {
             "uuid": str(allocation_source_uuid),
-            "renewal_strategy": renewal_strategy,
+            "renewal_strategy": strategy_name,
             "allocation_source_name": allocation_source_name,
             "compute_allowed": total_compute_allowed
         }
@@ -80,53 +77,110 @@ class CyverseTestRenewalActions(BaseActions):
 
 
 def parse_cyverse_rules(renewal_strategies):
-    cyverse_rules = []
-    for strategy, config in renewal_strategies.iteritems():
+    new_cyverse_rules = []
+    for strategy_name, strategy_config in renewal_strategies.iteritems():
         rule = {}
-        name, compute_allowed, renewed_in_days = strategy, \
-                                                 config['compute_allowed'], \
-                                                 config['renewed_in_days']
-        conditions = _create_conditions_for(name, renewed_in_days)
-        actions = _create_actions_for(compute_allowed, renewed_in_days)
+        conditions = _create_conditions_for(strategy_name, strategy_config)
+        actions = _create_actions_for(strategy_name, strategy_config)
         rule['conditions'] = {"all": conditions}
         rule['actions'] = actions
-        cyverse_rules.append(rule)
+        new_cyverse_rules.append(rule)
 
-    return cyverse_rules
+    return new_cyverse_rules
 
 
-def _create_conditions_for(name, renewed_in_days):
+def _create_conditions_for(strategy_name, strategy_config):
     conditions = []
+    period_type = strategy_config.get('period_type')
+    period_param = strategy_config.get('period_param')
 
-    # condition 1
-    conditions.append({"name": "renewal_strategy",
-                       "operator": "equal_to",
-                       "value": name})
+    if not period_type:
+        # We don't automatically renew for strategies without a period. So add a dummy condition that should fail.
+        conditions.append(
+            {
+                "name": "hard_coded_false",
+                "operator": "is_true",
+                "value": True
+            }
+        )
+        return conditions
 
-    # condition 2
-    conditions.append({"name": "is_valid",
-                       "operator": "is_true",
-                       "value": True})
+    # Does the Allocation Source renewal strategy match `strategy_name`?
+    conditions.append(
+        {
+            "name": "renewal_strategy",
+            "operator": "equal_to",
+            "value": strategy_name
+        }
+    )
 
-    # condition 3 if strategy is renewable
-    if renewed_in_days > 0:
-        conditions.append({"name": "days_since_renewed",
-                           "operator": "greater_than_or_equal_to",
-                           "value": renewed_in_days})
+    # Is the Allocation Source valid? (Basically valid if it has not been end-dated.)
+    conditions.append(
+        {
+            "name": "is_valid",
+            "operator": "is_true",
+            "value": True
+        }
+    )
+
+    assert period_type in ['days', 'on_calendar_day']
+
+    if period_type == 'on_calendar_day':
+        calendar_day_to_renew_on = period_param
+        assert type(calendar_day_to_renew_on) == int, 'Invalid calendar day: Must be an integer'
+        assert 0 < calendar_day_to_renew_on <= 31, 'Invalid calendar day: Must be an integer from 1 to 31'
+        # TODO: What happens when the cron job doesn't fire on the first of the month?
+        # Add a condition to check if it's been more than a month since last renewal?
+
+        # Make sure it's been more than a day since we last renewed
+        conditions.append(
+            {
+                "name": "days_since_renewed",
+                "operator": "greater_than_or_equal_to",
+                "value": 1
+            }
+        )
+        conditions.append(
+            {
+                "name": "today_calendar_day",
+                "operator": "equal_to",
+                "value": calendar_day_to_renew_on
+            }
+        )
+
+    if period_type == 'days':
+        renewed_in_days = period_param
+        assert type(renewed_in_days) == int, 'Invalid number of days: Must be an integer'
+        conditions.append(
+            {
+                "name": "days_since_renewed",
+                "operator": "greater_than_or_equal_to",
+                "value": renewed_in_days
+            }
+        )
 
     return conditions
 
 
-def _create_actions_for(compute_allowed, renewed_in_days):
+def _create_actions_for(strategy_name, strategy_config):
     actions = []
+    compute_allowed = strategy_config.get('compute_allowed', 0)
+    period_type = strategy_config.get('period_type')
 
-    if renewed_in_days > 0:
-        actions.append({"name": "renew_allocation_source",
-                        "params": {"compute_allowed": compute_allowed}
-                        })
-
-    else:
+    if period_type is None:
         actions.append({"name": "cannot_renew_allocation_source"})
+        return actions
+
+    actions.append(
+        {
+            "name": "renew_allocation_source",
+            "params":
+                {
+                    "strategy_name": strategy_name,
+                    "compute_allowed": compute_allowed
+                }
+        }
+    )
 
     return actions
 
@@ -134,25 +188,33 @@ def _create_actions_for(compute_allowed, renewed_in_days):
 # RENEWAL STRATEGY CONFIGURATION
 renewal_strategies = {
 
-    'default': {'id': 1,
-                'compute_allowed': 168,
-                'renewed_in_days': 30,
-                'external': False},
+    'default': {
+        'id': 1,
+        'compute_allowed': 168,
+        'period_type': 'on_calendar_day',
+        'period_param': 1
+    },
 
-    'bi-weekly': {'id': 2,
-                  'compute_allowed': 84,
-                  'renewed_in_days': 15,
-                  'external': True},
+    'bi-weekly': {
+        'id': 2,
+        'compute_allowed': 84,
+        'period_type': 'days',
+        'period_param': 14
+    },
 
-    'workshop': {'id': 3,
-                 'compute_allowed': 0,
-                 'renewed_in_days': 0,
-                 'external': False},
+    'workshop': {
+        'id': 3,
+        'compute_allowed': 0,
+        'period_type': 'days',
+        'period_param': 7
+    },
 
-    'custom': {'id': 4,
-               'compute_allowed': 0,
-               'renewed_in_days': 0,
-               'external': True},
+    'custom': {
+        'id': 4,
+        'compute_allowed': 0,
+        'period_type': None,
+        'period_param': None
+    },
 }
 
 # MAIN RULES JSON

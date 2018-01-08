@@ -1,10 +1,38 @@
-## [Carbonaceous-Comet(v29)](https://github.com/cyverse/atmosphere/milestone/16?closed=1) (as of 11/9/2017)
+## [Delightful-Duboshin (v30)](https://github.com/cyverse/atmosphere/milestone/17?closed=1) (as of 2017-12-21)
+
+New Features:
+- Site operators can override enforcement behavior for specific allocation sources
+
+Improvements:
+- Admin improvements
+    - On resource request approval the reason field is omitted, which makes much more sense in the email template
+    - Identities can be patched (to update quota)
+- Allocations now renews on first day of month   
+- Multiple metadata syncing fixes:
+    - `application_to_provider` previously did not migrate custom image metadata
+    - `application_sync_providers` previously only looked at active (non-end-dated) InstanceSources + ProviderMachines
+    - Refactored the part of `application_to_provider` which sets metadata, for less code duplication
+    
+Bugfixes:
+- Quota cannot exceed limit
+- Incorrect URL definition for web desktop/shell links
+- Missing DOI on ImageVersion model
+- Fixes to monitor_machines and validation
+    - Legacy clouds need to call 'list images' twice and append info to the v2 api.
+    - Skip machines if their status is 'queued' or 'saving'
+- Various small bug fixes like undefined variables and attributes
+
+
+## [Carbonaceous-Comet (v29)](https://github.com/cyverse/atmosphere/milestone/16?closed=1) (as of 2017-11-09)
+
 New Features:
 - Site operators can now create machine validation plugins to control the flow of images in the atmosphere image catalog.
 - Users can now select a `guacamole_color` in their UserProfile, which will correspond to the theme used in guacamole web shell sessions.
+
 Bugfixes:
 - Remove special characters from BootScripts prior to deployment.
 - Suspend instances if the ephemeral storage is set to /home directory and a 'Shelve' action is received.
+
 Internal:
 - Change the location of ephemeral drives to a /scratch directory with a 'data-loss' warning.
 - Remove 'Provider' examples from the list of fixtures installed on a fresh database.
@@ -12,7 +40,10 @@ Internal:
 - Update travis to include code linting
 - Enable auto reload for uwsgi as an option for configuration.
 - Celery init.d scripts are no longer included in Atmosphere. Use clank for installation/configuration of celery.
-## [Beneficent-Bolide(v28)](https://github.com/cyverse/atmosphere/milestone/15?closed=1) (as of 10/3/2017)
+
+
+## [Beneficent-Bolide(v28)](https://github.com/cyverse/atmosphere/milestone/15?closed=1) (as of 2017-10-03)
+
 New Features:
 - Users can now set 'access_list' on an application
   to specify an email/username pattern. Users that
@@ -39,7 +70,9 @@ Internal:
 - Introduced new manage.py command to start/stop a maintenance
 - Behave will be quieter in travis.ci
 
-## [Ancient-Asteroid(v27)](https://github.com/cyverse/atmosphere/milestone/14?closed=1) (as of 9/19/2017)
+
+## [Ancient-Asteroid(v27)](https://github.com/cyverse/atmosphere/milestone/14?closed=1) (as of 2017-09-19)
+
 Improvements:
 - Ansible will now deploy user-boot-scripts
 - API /v2/sizes includes 'root' attribute (Root disk size)
@@ -76,7 +109,7 @@ Deprecated:
   - /api/v2/allocations has been removed
   - identity.allocation, and quota.allocation have been removed
 
-## [Zesty-Zapdos](https://github.com/cyverse/atmosphere/milestone/13?closed=1) (as of 7/17/2017)
+## [Zesty-Zapdos](https://github.com/cyverse/atmosphere/milestone/13?closed=1) (as of 2017-07-17)
 
 Improvements:
  - Disable instance sizes if the hosting image has a disk size thats larger than what is allowed.
@@ -99,7 +132,7 @@ Internal:
  - Include script for replication of an application to a provider
 
 
-## [Yampy-Yellowlegs](https://github.com/cyverse/atmosphere/milestone/12?closed=1) (as of 6/12/2017)
+## [Yampy-Yellowlegs](https://github.com/cyverse/atmosphere/milestone/12?closed=1) (as of 2017-06-12)
 
 Improvements:
  - Improvements related to the new Allocation Source model introduced in Xenops
@@ -114,7 +147,7 @@ Internal:
  - Move web_desktop functionality to Atmosphere from Troposphere
  - New script created to help migrate an entire application to a new provider
 
-## [Xylotomous-Xenops](https://github.com/cyverse/atmosphere/milestone/11?closed=1) (as of 5/2/2017)
+## [Xylotomous-Xenops](https://github.com/cyverse/atmosphere/milestone/11?closed=1) (as of 2017-05-02)
  
 Improvements:
  - Updated Atmosphere to latest subspace Ansible 2.3 (https://github.com/cyverse/atmosphere/commit/253bf6d23ab1be0e15f35d97fa9a2b238b9bc639)
@@ -137,7 +170,7 @@ Internal:
  
  
 
-## [Whimsical-Wyvern](https://github.com/cyverse/atmosphere/milestone/10?closed=1) (as of 4/6/2017)
+## [Whimsical-Wyvern](https://github.com/cyverse/atmosphere/milestone/10?closed=1) (as of 2017-04-06)
 
 Features:
   - Include sentry.io error reporting for production environments
@@ -160,7 +193,7 @@ Internal:
   - Provide optional cloud_config options in 'deploy' section: 'volume_fs_type' and 'volume_mount_prefix'
   - Image validation is now a feature flag, configurable from settings.ENABLE_IMAGE_VALIDATION
 
-## [Voracious-Velociraptor](https://github.com/cyverse/atmosphere/milestone/9?closed=1) (as of 2/14/2017)
+## [Voracious-Velociraptor](https://github.com/cyverse/atmosphere/milestone/9?closed=1) (as of 2017-02-14)
 
 Features:
   - Image validation works as intended (and deletes instance on cleanup)
@@ -176,7 +209,7 @@ Internal:
   - Remove iPlant-isms from template pages
   - Fix logfile growing pains
 
-## Undulating-Umbrellabird (as of 1/4/17)
+## Undulating-Umbrellabird (as of 2017-01-04)
 
 Features:
   - move from iplantauth to django_cyverse_auth

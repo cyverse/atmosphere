@@ -17,6 +17,7 @@ django-redis-cache
 itsdangerous
 redis
 eventlet
+enum34
 
 Jinja2
 django-celery-beat

@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from celery.decorators import task
 
-from core.plugins import MachineValidationPluginManager
+from core.plugins import MachineValidationPluginManager, AllocationSourcePluginManager, EnforcementOverrideChoice
 from core.query import (
     contains_credential, only_current, only_current_source,
     source_in_range, inactive_versions)
@@ -597,10 +597,30 @@ def monitor_allocation_sources(usernames=()):
                 continue
             over_allocation = allocation_source.is_over_allocation(user)
             celery_logger.debug('monitor_allocation_sources - user: %s, over_allocation: %s', user, over_allocation)
-            if not over_allocation:
+
+            enforcement_override_choice = AllocationSourcePluginManager.get_enforcement_override(user,
+                                                                                                 allocation_source)
+            celery_logger.debug('monitor_allocation_sources - enforcement_override_choice: %s',
+                                enforcement_override_choice)
+
+            if over_allocation and enforcement_override_choice == EnforcementOverrideChoice.NEVER_ENFORCE:
+                celery_logger.debug('Allocation source is over allocation, but %s + user %s has an override of %s, '
+                                    'therefore not enforcing',
+                                    allocation_source, user, enforcement_override_choice)
                 continue
-            celery_logger.debug('monitor_allocation_sources - Going to enforce on user user: %s', user)
-            allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source, user))
+
+            if not over_allocation and enforcement_override_choice == EnforcementOverrideChoice.ALWAYS_ENFORCE:
+                celery_logger.debug('Allocation source is not over allocation, but %s + user %s has an override of %s, '
+                                    'therefore enforcing',
+                                    allocation_source, user, enforcement_override_choice)
+                # Note: The enforcing happens in the next `if` statement.
+            if over_allocation or enforcement_override_choice == EnforcementOverrideChoice.ALWAYS_ENFORCE:
+                assert enforcement_override_choice in (
+                    EnforcementOverrideChoice.NO_OVERRIDE,
+                    EnforcementOverrideChoice.ALWAYS_ENFORCE
+                )
+                celery_logger.debug('monitor_allocation_sources - Going to enforce on user: %s', user)
+                allocation_source_overage_enforcement_for_user.apply_async(args=(allocation_source, user))
 
 
 @task(name="allocation_source_overage_enforcement_for_user")

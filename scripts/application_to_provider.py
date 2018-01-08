@@ -243,7 +243,7 @@ def main(application_id,
 
         # Get access to source provider
         sprov_img_uuid = sprov_instance_source.identifier
-        
+
         sprov_acct_driver = service.driver.get_account_driver(sprov, raise_exception=True)
         if src_glance_client_version == 1:
             sprov_keystone_client = service.driver.get_account_driver(sprov, raise_exception=True)
@@ -309,69 +309,85 @@ def main(application_id,
                                                         instance_source=dprov_instance_source)
             dprov_machine.save()
 
-        # Populate image metadata (this is always done)
+        # Build image metadata (this is always done)
+        metadata = dict(
+            name=app.name,
+            owner=dprov_app_owner_uuid,
+            container_format="ami" if ami else sprov_glance_image.container_format,
+            disk_format="ami" if ami else sprov_glance_image.disk_format
+        )
         if dst_glance_client_version == 1:
-            dprov_glance_client.images.update(dprov_glance_image.id,
-                                              name=app.name,
-                                              container_format="ami" if ami else sprov_glance_image.container_format,
-                                              disk_format="ami" if ami else sprov_glance_image.disk_format,
-                                              is_public=False if app.private else True,
-                                              owner=dprov_app_owner_uuid,
-                                              properties=dict(
-                                                  tags=app_tags,
-                                                  application_name=app.name,
-                                                  application_version=app_version.name,
-                                                  # Glance v1 client throws exception on line breaks
-                                                  application_description=app.description
-                                                      .replace('\r', '').replace('\n', ' -- '),
-                                                  application_owner=app_creator_uname,
-                                                  application_tags=json.dumps(app_tags),
-                                                  application_uuid=str(app.uuid))
-                                              )
-            if ami:
-                dprov_glance_client.images.update(dprov_glance_image.id,
-                                                  properties=dict(
-                                                      kernel_id=sprov_glance_image.kernel_id,
-                                                      ramdisk_id=sprov_glance_image.ramdisk_id)
-                                                  )
+            metadata['is_public'] = False if app.private else True
         elif dst_glance_client_version >= 2.5:
-            dprov_glance_client.images.update(dprov_glance_image.id,
-                                              name=app.name,
-                                              container_format="ami" if ami else sprov_glance_image.container_format,
-                                              disk_format="ami" if ami else sprov_glance_image.disk_format,
-                                              visibility="shared" if app.private else "public",
-                                              owner=dprov_app_owner_uuid,
-                                              tags=app_tags,
-                                              application_name=app.name,
-                                              application_version=app_version.name,
-                                              application_description=app.description,
-                                              application_owner=app_creator_uname,
-                                              application_tags=json.dumps(app_tags),
-                                              application_uuid=str(app.uuid),
-                                              )
-            if ami:
-                dprov_glance_client.images.update(dprov_glance_image.id,
-                                                  kernel_id=sprov_glance_image.kernel_id,
-                                                  ramdisk_id=sprov_glance_image.ramdisk_id)
+            metadata['visibility'] = "shared" if app.private else "public"
         else:
-            dprov_glance_client.images.update(dprov_glance_image.id,
-                                              name=app.name,
-                                              container_format="ami" if ami else sprov_glance_image.container_format,
-                                              disk_format="ami" if ami else sprov_glance_image.disk_format,
-                                              visibility="private" if app.private else "public",
-                                              owner=dprov_app_owner_uuid,
-                                              tags=app_tags,
-                                              application_name=app.name,
-                                              application_version=app_version.name,
-                                              application_description=app.description,
-                                              application_owner=app_creator_uname,
-                                              application_tags=json.dumps(app_tags),
-                                              application_uuid=str(app.uuid),
-                                              )
-            if ami:
-                dprov_glance_client.images.update(dprov_glance_image.id,
-                                                  kernel_id=sprov_glance_image.kernel_id,
-                                                  ramdisk_id=sprov_glance_image.ramdisk_id)
+            metadata['visibility'] = "private" if app.private else "public"
+
+        # Glance v1 client throws exception on line breaks
+        if dst_glance_client_version == 1:
+            app_description = app.description.replace('\r', '').replace('\n', ' -- ')
+        else:
+            app_description = app.description
+        atmo_metadata = dict(
+            tags=app_tags,
+            application_name=app.name,
+            application_version=app_version.name,
+            application_description=app_description,
+            application_owner=app_creator_uname,
+            application_tags=json.dumps(app_tags),
+            application_uuid=str(app.uuid)
+        )
+        if ami:
+            atmo_metadata['kernel_id'] = sprov_glance_image.kernel_id
+            atmo_metadata['ramdisk_id'] = sprov_glance_image.ramdisk_id
+
+        # Gather custom metadata on image in source provider
+        custom_metadata = dict(sprov_glance_image)
+        filter_out_keys = ['application_description',
+                           'application_name',
+                           'application_owner',
+                           'application_tags',
+                           'application_uuid',
+                           'application_version',
+                           'checksum',
+                           'container_format',
+                           'created_at',
+                           'direct_url',
+                           'disk_format',
+                           'file',
+                           'id',
+                           'instance_uuid',
+                           'is_public',
+                           'kernel_id',
+                           'locations',
+                           'min_disk',
+                           'min_ram',
+                           'name',
+                           'owner',
+                           'protected',
+                           'ramdisk_id',
+                           'schema',
+                           'self',
+                           'size',
+                           'status',
+                           'tags',
+                           'updated_at',
+                           'virtual_size',
+                           'visibility']
+
+        for key in filter_out_keys:
+            if key in custom_metadata:
+                del custom_metadata[key]
+        atmo_metadata.update(custom_metadata)
+
+        # Set image metadata (this is always done)
+        if dst_glance_client_version == 1:
+            metadata['properties'] = atmo_metadata
+            dprov_glance_client.images.update(dprov_glance_image.id, **metadata)
+        else:
+            metadata.update(atmo_metadata)
+            dprov_glance_client.images.update(dprov_glance_image.id, **metadata)
+
         logging.info("Populated Glance image metadata: {0}"
                      .format(str(dprov_glance_client.images.get(dprov_glance_image.id))))
 

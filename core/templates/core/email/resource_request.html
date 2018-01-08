@@ -1,12 +1,12 @@
 Username : {{ username }} ({{ name }})
 
-Resource Requested : 
+Resource Requested :
     {{ quota }}
 
-Reason for Increase : 
+Reason for Increase :
     {{ reason }}
-
-URL for Resource Increase : 
+{% if url %}
+URL for Resource Increase :
     {{ url }}
-
+{% endif %}
 {% include "fingerprint.html" %}
