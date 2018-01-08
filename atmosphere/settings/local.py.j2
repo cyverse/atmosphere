@@ -3,10 +3,18 @@ Settings specific to the local deploy.
 """
 import os
 import sys
+import logging
+from datetime import timedelta
+from celery.schedules import crontab
+
+from atmosphere.settings import (
+    secrets, TEMPLATES, ADMINS,
+    CELERYBEAT_SCHEDULE, REDIRECT_URL,
+    REST_FRAMEWORK, INSTALLED_APPS
+)
 
 # This is used by dependencies (ex: chromogenic)
 # without exposing 'secret' settings in Debug mode.
-from atmosphere.settings import secrets
 SECRETS_MODULE = secrets
 
 globals().update(vars(sys.modules['atmosphere.settings']))
@@ -31,16 +39,9 @@ ENFORCING = False
 {% endif %}
 
 #Cloud-Operator specific information
-{%- if SITE_NAME %}
-SITE_NAME = '{{ SITE_NAME }}'
-SITE_TITLE = '{{ SITE_NAME }}'
-{%- else %}
-SITE_NAME = 'Atmosphere'
-SITE_TITLE = 'Atmosphere'
-{%- endif %}
-{%- if ORG_NAME %}
-ORG_NAME = '{{ ORG_NAME }}'
-{%- endif %}
+SITE_NAME = '{{ SITE_NAME | default("") }}'
+SITE_TITLE = '{{ SITE_NAME | default("") }}'
+ORG_NAME = '{{ ORG_NAME | default("") }}'
 
 {%- if TIME_ZONE %}
 TIME_ZONE = '{{ TIME_ZONE }}'
@@ -135,7 +136,7 @@ DEFAULT_QUOTA = None
 # Marked for deletion -- Use provider.cloud_config instead
 DEFAULT_KEYSTONE_ROLE = '{{ DEFAULT_KEYSTONE_ROLE }}'
 DEFAULT_IP_LOOKUP = '{{ DEFAULT_IP_LOOKUP }}'
-DEFAULT_PASSWORD_UPDATE = '{{ DEFAULT_PASSWORD_UPDATE }}'
+DEFAULT_PASSWORD_UPDATE = '{{ DEFAULT_PASSWORD_UPDATE }}' # noqa
 INSTANCE_HOSTNAMING_DOMAIN = '{{ INSTANCE_HOSTNAMING_DOMAIN }}'
 INSTANCE_HOSTNAMING_FORMAT = '{{ INSTANCE_HOSTNAMING_FORMAT }}'
 
@@ -379,7 +380,7 @@ ANSIBLE_GROUP_VARS_DIR = os.path.join(ANSIBLE_ROOT, 'ansible/group_vars')
 ANSIBLE_PLAYBOOKS_DIR = os.path.join(ANSIBLE_ROOT, 'ansible/playbooks')
 ANSIBLE_ROLES_PATH = os.path.join(ANSIBLE_ROOT, 'ansible/roles')
 
-os.environ["ANSIBLE_CONFIG"] = ANSIBLE_CONFIG_FILE 
+os.environ["ANSIBLE_CONFIG"] = ANSIBLE_CONFIG_FILE
 
 # LOGSTASH
 {%- if LOGSTASH_HOST and LOGSTASH_PORT %}

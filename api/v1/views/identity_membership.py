@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from threepio import logger
 
-from core.models.group import Group
+from core.models.group import Group, Identity
 from core.models import IdentityMembership as CoreIdentityMembership
 from core.query import only_current_provider
 
@@ -83,6 +83,7 @@ class IdentityMembership(AuthAPIView):
         """
         Unshare the identity.
         """
+        user = request.user
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
         except Identity.DoesNotExist:

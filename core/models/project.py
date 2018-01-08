@@ -113,21 +113,17 @@ class Project(models.Model):
         elif isinstance(related_obj, Application):
             application = related_obj
             self._test_project_ownership(application.created_by)
-            # TODO: Replace w/ new_join when 'through' is added
             self.applications.add(related_obj)
         else:
             raise Exception("Invalid type for Object %s: %s"
                             % (related_obj, type(related_obj)))
-        new_join.save()
-        return new_join
 
     def _test_project_ownership(self, user):
         group = self.owner
         if user in group.user_set.all():
             return True
         raise Exception(
-            "CANNOT add Resource:%s User:%s does NOT belong to Group:%s" %
-            (related_obj, user, group))
+            "User:%s does NOT belong to Group:%s" % (user, group))
 
     def copy_objects(self, to_project):
         """

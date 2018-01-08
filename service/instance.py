@@ -956,7 +956,7 @@ def boot_volume_instance(
     """
     Create a new volume and launch it as an instance
     """
-    kwargs, userdata, network = _pre_launch_instance(
+    prep_kwargs, userdata, network = _pre_launch_instance(
         driver, user, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
     instance, token, password = _boot_volume(
@@ -972,7 +972,7 @@ def launch_volume_instance(driver, user, identity, volume, size, name,
     """
     Re-Launch an existing volume as an instance
     """
-    kwargs, userdata, network = _pre_launch_instance(
+    prep_kwargs, userdata, network = _pre_launch_instance(
         driver, user, identity, size, name, **kwargs)
     kwargs.update(prep_kwargs)
     instance, token, password = _launch_volume(
@@ -1017,7 +1017,7 @@ def _boot_volume(driver, identity, copy_source, size, name, userdata, network,
     return (new_instance, token, password)
 
 
-def _launch_volume(driver, identity, volume, size, userdata_content, network,
+def _launch_volume(driver, identity, volume, size, name, userdata_content, network,
                    password=None, token=None,
                    boot_index=0, shutdown=False, **kwargs):
     if not isinstance(driver.provider, OSProvider):
@@ -1058,7 +1058,7 @@ def _launch_machine(driver, identity, machine, size,
         logger.info("EUCA -- driver.create_instance EXTRAS:%s" % kwargs)
         esh_instance = driver\
             .create_instance(name=name, image=machine, size=size,
-                             ex_userdata=userdata_contents, **kwargs)
+                             ex_userdata=userdata_content, **kwargs)
     elif isinstance(driver.provider, AWSProvider):
         # TODO:Extra stuff needed for AWS provider here
         esh_instance = driver.deploy_instance(
@@ -1136,7 +1136,7 @@ def _generate_userdata_content(
                                          password,
                                          name,
                                          username, init_file)
-    return userdata_content
+    return userdata_contents
 
 
 def _complete_launch_instance(
