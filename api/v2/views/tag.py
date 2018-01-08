@@ -17,6 +17,7 @@ class TagViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     lookup_fields = ("id", "uuid")
     queryset = Tag.objects.all()
     serializer_class = TagSummarySerializer
+    search_fields = ('id', 'name', 'description')
 
     def perform_create(self, serializer):
         same_name_tags = Tag.objects.filter(
