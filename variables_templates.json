@@ -3,12 +3,6 @@
         "local.py": [
             "local.py"
         ],
-        "nginx": [
-            "nginx",
-            "nginx-site",
-            "nginx-atmo"
-        ],
-        "uwsgi.ini": ["atmo.uwsgi"],
         "secrets.py": [
             "secrets.py"
         ]
@@ -21,22 +15,6 @@
         "local.py": [
             "atmosphere/settings/local.py.j2",
             "atmosphere/settings/local.py"
-        ],
-        "nginx": [
-            "extras/nginx/Makefile.j2",
-            "extras/nginx/Makefile"
-        ],
-        "nginx-site": [
-            "extras/nginx/site.conf.j2",
-            "extras/nginx/site.conf"
-        ],
-        "nginx-atmo": [
-            "extras/nginx/locations/atmo.conf.j2",
-            "extras/nginx/locations/atmo.conf"
-        ],
-        "atmo.uwsgi": [
-            "extras/uwsgi/atmo.uwsgi.ini.j2",
-            "extras/uwsgi/atmo.uwsgi.ini"
         ],
         "secrets.py": [
             "atmosphere/settings/secrets.py.j2",
