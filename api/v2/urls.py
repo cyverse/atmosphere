@@ -24,7 +24,7 @@ router.register(r'identities', views.IdentityViewSet)
 router.register(r'identity_memberships', views.IdentityMembershipViewSet, base_name='identitymembership')
 router.register(r'images', views.ImageViewSet, base_name='application')
 router.register(r'image_metrics', views.ImageMetricViewSet, base_name='applicationmetric')
-router.register(r'image_bookmarks', views.ImageBookmarkViewSet)
+router.register(r'image_bookmarks', views.ImageBookmarkViewSet, base_name="applicationbookmark")
 router.register(r'image_tags', views.ImageTagViewSet)
 router.register(r'image_access_lists', views.ImageAccessListViewSet, base_name='applicationaccesslist')
 router.register(
