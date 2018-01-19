@@ -1,3 +1,5 @@
+import django_filters
+
 from api.v2.serializers.details import InstanceSerializer, InstanceActionSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
 from api.v2.views.base import AuthModelViewSet
@@ -11,7 +13,7 @@ from core.models.instance import find_instance
 from core.models.instance_action import InstanceAction
 from core.query import only_current_instances
 
-from rest_framework import status
+from rest_framework import filters, status
 from rest_framework import renderers
 from rest_framework.decorators import detail_route, renderer_classes
 from rest_framework.response import Response
@@ -36,6 +38,14 @@ from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 
 
+class InstanceFilter(filters.FilterSet):
+    provider_id = django_filters.NumberFilter(name="created_by_identity__provider__id")
+
+    class Meta:
+        model = Instance
+        fields = ['provider_id']
+
+
 class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     """
@@ -44,6 +54,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
     queryset = Instance.objects.all()
     serializer_class = InstanceSerializer
+    filter_class = InstanceFilter
     filter_fields = ('created_by__id', 'project')
     lookup_fields = ("id", "provider_alias")
     http_method_names = ['get', 'put', 'patch', 'post',
