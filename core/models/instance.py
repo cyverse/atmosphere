@@ -34,6 +34,7 @@ from core.models.managers import ActiveInstancesManager
 from atmosphere import settings
 from service.mock import MockInstance
 
+
 class Instance(models.Model):
     """
     When a user launches a machine, an Instance is created.

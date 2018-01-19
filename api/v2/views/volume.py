@@ -29,10 +29,12 @@ VOLUME_EXCEPTIONS = (OverQuotaError, ConnectionFailure, LibcloudBadResponseError
 class VolumeFilter(django_filters.FilterSet):
     min_size = django_filters.NumberFilter(name="size__gte")
     max_size = django_filters.NumberFilter(name="size__lte")
+    provider_id = django_filters.NumberFilter(
+        name="instance_source__created_by_identity__provider__id")
 
     class Meta:
         model = Volume
-        fields = ['min_size', 'max_size', 'project']
+        fields = ['min_size', 'max_size', 'provider_id', 'project']
 
 
 class VolumeViewSet(MultipleFieldLookup, AuthModelViewSet):
