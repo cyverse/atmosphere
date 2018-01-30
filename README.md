@@ -95,7 +95,7 @@ The following individuals who have help/helped make :cloud: great appear in alph
 + **Evan Briones <cloud-alum@cyverse.org>**
 + **Tharon Carlson <tharon@cyverse.org>**
 + **Joseph Garcia <cloud-alum@cyverse.org>**
-+ **Steven Gregory <sgregory@cyverse.org>**
++ **Steven Gregory <cloud-alum@cyverse.org>**
 + **Jason Hansen <cloud-alum@cyverse.org>**
 + **Christopher James LaRose <cloud-alum@cyverse.org>**
 + **Amit Juneja <cloud-alum@cyverse.org>**
