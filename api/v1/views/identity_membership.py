@@ -52,8 +52,6 @@ class IdentityMembershipList(AuthAPIView):
         # User is authenticated
         user = request.user
         try:
-            # User is a member of a group ( TODO: loop through all instead)
-            group = user.group_set.get(name=user.username)
             # All other members of the identity are visible
             id_members = CoreIdentityMembership.objects.filter(
                 identity__uuid=identity_uuid)
