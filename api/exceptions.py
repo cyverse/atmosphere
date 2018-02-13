@@ -136,7 +136,6 @@ def over_allocation(allocation_exception):
 
 
 def member_action_forbidden(username, object_type, object_id):
-    message = "User %s does not have permission to act on %s %s. Make sure that you are a Leader of the Project that %s %s resides in." % (username, object_type, object_id, object_type, object_id)
-    return failure_response(
-        status.HTTP_403_FORBIDDEN,
-        message)
+    message = "User %s does not have permission to act on %s %s. Make sure that you are a Leader of the Project that %s %s resides in." % (
+        username, object_type, object_id, object_type, object_id)
+    return failure_response(status.HTTP_403_FORBIDDEN, message)
