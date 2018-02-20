@@ -10,9 +10,9 @@ from rest_framework.test import APITestCase, APIRequestFactory, force_authentica
 from api.tests.factories import (
     UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
     ApplicationVersionFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
-    SizeFactory)
+    SizeFactory, AllocationSourceFactory)
 from api.v2.views import InstanceViewSet
-from core.models import AtmosphereUser
+from core.models import InstanceAllocationSourceSnapshot
 from service.driver import get_esh_driver
 
 
@@ -67,6 +67,10 @@ class InstanceActionTests(APITestCase):
                 instance=self.active_instance_second,
                 start_date=start_date_second + delta_time*3)
         self.mock_driver.add_core_instance(self.active_instance_second)
+        self.allocation_source_1 = AllocationSourceFactory.create(name='TEST_INSTANCE_ALLOCATION_SOURCE_01',
+                                                                  compute_allowed=1000)
+        InstanceAllocationSourceSnapshot.objects.update_or_create(instance=self.active_instance,
+                                                                  allocation_source=self.allocation_source_1)
 
     # For resize, I will add a size in InstanceStatusHistory. for stop, we don't have to have
     def test_stop_instance_action(self):
