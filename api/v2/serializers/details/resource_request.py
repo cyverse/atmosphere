@@ -32,6 +32,7 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
             'status',
             'created_by',
             'admin_message',
+            'start_date'
         )
 
 class AdminResourceRequestSerializer(ResourceRequestSerializer):
