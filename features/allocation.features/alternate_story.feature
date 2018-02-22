@@ -46,9 +46,10 @@ Feature: Testing an Alternate story
     ## NOTE: Currently, the rules engine is set to renew in every 3 days. After every renewal the compute used is reset and remaining compute is carried over
 
     Then calculate allocations used by allocation source after certain number of days
-    |  report start date                  | number of days   | total compute used   | current compute used | current compute allowed | allocation_source_id |
-    |      current                        |  1               |     24               | 24                   | 168                     | 1                    |
-    |      current                        |  1               |     24               | 24                   | 168                     | 2                    |
+    | report start date             | number of days | total compute used | current compute used | current compute allowed | allocation_source_id |
+    | January 30, 2018 10:44:22 UTC | 1              | 24                 | 24                   | 168                     | 1                    |
+    | current                       | 1              | 24                 | 24                   | 168                     | 1                    |
+    | current                       | 1              | 24                 | 24                   | 168                     | 2                    |
 
     And Compute Allowed is increased for Allocation Source
     | allocation_source_id | new_compute_allowed |
