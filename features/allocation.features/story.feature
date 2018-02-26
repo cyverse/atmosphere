@@ -12,6 +12,8 @@ Feature: Testing a story
 
   Scenario: Use cases of allocation source
 
+    Given a current time of "February 21, 2018 10:44:22 UTC"
+
     When admin creates allocation source
     |  name                       |  compute allowed   |  renewal strategy   |   allocation_source_id | date_created |
     |  DefaultAllocationSource    |  250               |  default            |   1                    | current      |
