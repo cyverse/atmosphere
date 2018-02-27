@@ -19,6 +19,8 @@ from rtwo.exceptions import LibcloudBadResponseError
 from rtwo.driver import OSDriver
 from rtwo.drivers.openstack_user import UserManager
 from rtwo.drivers.common import _token_to_keystone_scoped_project
+
+from core.plugins import AllocationSourcePluginManager, EnforcementOverrideChoice
 from service.driver import AtmosphereNetworkManager
 from service.mock import AtmosphereMockDriver, AtmosphereMockNetworkManager
 
@@ -32,7 +34,7 @@ from libcloud.common.exceptions import BaseHTTPError  # Move into rtwo.exception
 
 from core.query import only_current
 from core.models.instance_source import InstanceSource
-from core.models import AtmosphereUser
+from core.models import AtmosphereUser, InstanceAllocationSourceSnapshot
 from core.models.ssh_key import get_user_ssh_keys
 from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
@@ -1315,12 +1317,27 @@ def _test_for_licensing(esh_machine, identity):
 
 
 def check_allocation(username, allocation_source):
+    logger.debug('check_allocation - username: %s', username)
+    logger.debug('check_allocation - allocation_source: %s', allocation_source)
+    if not settings.ENFORCING:
+        logger.debug('check_allocation - settings.ENFORCING is False - just returning')
+        return
     user = AtmosphereUser.objects.filter(username=username).first()
     if not user:
         raise Exception("Username %s does not exist" % username)
+
+    enforcement_override_choice = AllocationSourcePluginManager.get_enforcement_override(user,
+                                                                                         allocation_source)
+    logger.debug('check_allocation - enforcement_override_choice: %s', enforcement_override_choice)
+    if enforcement_override_choice == EnforcementOverrideChoice.NEVER_ENFORCE:
+        return
+    elif enforcement_override_choice == EnforcementOverrideChoice.ALWAYS_ENFORCE:
+        # Using a dummy value of -1, should throw a separate error
+        raise OverAllocationError(allocation_source.name, -1)
+
     compute_remaining = allocation_source.time_remaining(user)
     over_allocation = compute_remaining < 0
-    if over_allocation and settings.ENFORCING:
+    if over_allocation:
         raise OverAllocationError(allocation_source.name, abs(compute_remaining))
 
 
@@ -2035,6 +2052,10 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
         action_type = 'suspend'
 
     logger.info("User %s has initiated instance action %s to be executed on Instance %s" % (user, action_type, instance_id))
+    if action_type in ('start', 'resume', 'unshelve'):
+        logger.info('Going to check the allocation of the instance due to the action type: %s', action_type)
+        instance_allocation_source = InstanceAllocationSourceSnapshot.objects.get(instance__provider_alias=instance_id)
+        check_allocation(user.username, instance_allocation_source)
     if 'resize' == action_type:
         size_alias = action_params.get('size', '')
         if isinstance(size_alias, int):

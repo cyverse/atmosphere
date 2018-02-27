@@ -50,6 +50,9 @@ Feature: Override enforcing allocation usage on CyVerse
     Then `allocation_source_overage_enforcement_for_user` was called as follows
       | username   | allocation_source   | called    |
       | <username> | <allocation_source> | <enforce> |
+    And `check_allocation` with username '<username>' and '<allocation_source>' will throw an exception: <enforce>
+      | allocation_source   | override   |
+      | <allocation_source> | <override> |
 
 
     Examples:
