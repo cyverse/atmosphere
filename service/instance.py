@@ -2054,8 +2054,9 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
     logger.info("User %s has initiated instance action %s to be executed on Instance %s" % (user, action_type, instance_id))
     if action_type in ('start', 'resume', 'unshelve'):
         logger.info('Going to check the allocation of the instance due to the action type: %s', action_type)
-        instance_allocation_source = InstanceAllocationSourceSnapshot.objects.get(instance__provider_alias=instance_id)
-        check_allocation(user.username, instance_allocation_source)
+        allocation_snapshot = InstanceAllocationSourceSnapshot.objects.get(instance__provider_alias=instance_id)
+        allocation = allocation_snapshot.allocation_source
+        check_allocation(user.username, allocation)
     if 'resize' == action_type:
         size_alias = action_params.get('size', '')
         if isinstance(size_alias, int):
