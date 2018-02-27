@@ -28,10 +28,10 @@ from api.exceptions import (
     over_capacity, mount_failed, inactive_provider)
 from rtwo.exceptions import LibcloudInvalidCredsError
 from service.exceptions import (
-    ActionNotAllowed, OverAllocationError, OverQuotaError,
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
-    UnderThresholdError, VolumeAttachConflict, VolumeMountConflict,
-    InstanceDoesNotExist)
+    ActionNotAllowed, AllocationBlacklistedError, OverAllocationError,
+    OverQuotaError, SizeNotAvailable, HypervisorCapacityError,
+    SecurityGroupNotCreated, UnderThresholdError, VolumeAttachConflict,
+    VolumeMountConflict, InstanceDoesNotExist)
 from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 
@@ -138,6 +138,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             return inactive_provider(pna)
         except (OverQuotaError, OverAllocationError) as oqe:
             return over_quota(oqe)
+        except AllocationBlacklistedError as e:
+            return failure_response(
+                status.HTTP_403_FORBIDDEN,
+                e.message)
         except SizeNotAvailable as snae:
             return size_not_available(snae)
         except (socket_error, ConnectionFailure):
@@ -319,6 +323,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             return under_threshold(ute)
         except (OverQuotaError, OverAllocationError) as oqe:
             return over_quota(oqe)
+        except AllocationBlacklistedError as e:
+            return failure_response(
+                status.HTTP_403_FORBIDDEN,
+                e.message)
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except SizeNotAvailable as snae:
