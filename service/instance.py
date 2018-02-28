@@ -54,7 +54,7 @@ from service.driver import _retrieve_source, get_account_driver
 from service.licensing import _test_license
 from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
 from service.exceptions import (
-    OverAllocationError, OverQuotaError, SizeNotAvailable,
+    OverAllocationError, AllocationBlacklistedError, OverQuotaError, SizeNotAvailable,
     HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
     socket_error, ConnectionFailure, InstanceDoesNotExist, InstanceLaunchConflict, LibcloudInvalidCredsError,
@@ -835,7 +835,7 @@ def _pre_launch_validation(
     check_quota(username, identity_uuid, size,
             include_networking=True)
 
-    # May raise OverAllocationError
+    # May raise OverAllocationError, AllocationBlacklistedError
     check_allocation(username, allocation_source)
 
     # May raise UnderThresholdError
@@ -1329,8 +1329,7 @@ def check_allocation(username, allocation_source):
     if enforcement_override_choice == EnforcementOverrideChoice.NEVER_ENFORCE:
         return
     elif enforcement_override_choice == EnforcementOverrideChoice.ALWAYS_ENFORCE:
-        # Using a dummy value of -1, should throw a separate error
-        raise OverAllocationError(allocation_source.name, -1)
+        raise AllocationBlacklistedError(allocation_source.name)
 
     compute_remaining = allocation_source.time_remaining(user)
     over_allocation = compute_remaining < 0

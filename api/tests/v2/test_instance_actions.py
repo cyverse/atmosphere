@@ -1,6 +1,7 @@
 import uuid
 from unittest import skip, skipIf
 
+from django.test import override_settings
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
@@ -111,6 +112,26 @@ class InstanceActionTests(APITestCase):
             'action': 'start'
         }
         return self.attempt_instance_action(data)
+
+    @override_settings(ALLOCATION_OVERRIDES_ALWAYS_ENFORCE=['TEST_INSTANCE_ALLOCATION_SOURCE_01'])
+    def test_start_instance_when_allocation_blacklisted(self):
+        data = {
+            'action': 'start'
+        }
+        factory = APIRequestFactory()
+        request = factory.post(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
+        data = response.data.get('result')
+
+        # Check the status code
+        self.assertEquals(response.status_code, 403);
+
+        # Check the error message
+        target_error_message = "Allocation 'TEST_INSTANCE_ALLOCATION_SOURCE_01' has been blacklisted by staff"
+        error_messages = [ e['message'] for e in response.data['errors'] ]
+        target_error_was_included = any(target_error_message in message for message in error_messages)
+        self.assertTrue(target_error_was_included)
 
     def test_reboot_soft_instance_action(self):
         data = {
