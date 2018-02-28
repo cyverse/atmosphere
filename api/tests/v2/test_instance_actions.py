@@ -12,7 +12,10 @@ from api.tests.factories import (
     ApplicationVersionFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
     SizeFactory, AllocationSourceFactory)
 from api.v2.views import InstanceViewSet
-from core.models import InstanceAllocationSourceSnapshot
+from core.models import (
+    InstanceAllocationSourceSnapshot,
+    UserAllocationSnapshot, AllocationSourceSnapshot,
+    UserAllocationSource)
 from service.driver import get_esh_driver
 
 
@@ -69,6 +72,20 @@ class InstanceActionTests(APITestCase):
         self.mock_driver.add_core_instance(self.active_instance_second)
         self.allocation_source_1 = AllocationSourceFactory.create(name='TEST_INSTANCE_ALLOCATION_SOURCE_01',
                                                                   compute_allowed=1000)
+        UserAllocationSource.objects.create(
+                allocation_source=self.allocation_source_1,
+                user=self.user)
+        UserAllocationSnapshot.objects.create(
+                allocation_source=self.allocation_source_1,
+                user=self.user,
+                burn_rate=1,
+                compute_used=0)
+        AllocationSourceSnapshot.objects.create(
+            allocation_source=self.allocation_source_1,
+            compute_used=0,
+            compute_allowed=168,
+            global_burn_rate=1
+        )
         InstanceAllocationSourceSnapshot.objects.update_or_create(instance=self.active_instance,
                                                                   allocation_source=self.allocation_source_1)
 

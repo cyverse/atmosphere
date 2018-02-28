@@ -1319,9 +1319,6 @@ def _test_for_licensing(esh_machine, identity):
 def check_allocation(username, allocation_source):
     logger.debug('check_allocation - username: %s', username)
     logger.debug('check_allocation - allocation_source: %s', allocation_source)
-    if not settings.ENFORCING:
-        logger.debug('check_allocation - settings.ENFORCING is False - just returning')
-        return
     user = AtmosphereUser.objects.filter(username=username).first()
     if not user:
         raise Exception("Username %s does not exist" % username)

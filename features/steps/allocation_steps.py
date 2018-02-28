@@ -106,7 +106,6 @@ def step_impl(context, username, allocation_source_name, yes_or_no):
     try:
         from service.instance import check_allocation
         with mock.patch('service.instance.settings', autospec=True) as mock_settings:
-            mock_settings.ENFORCING = True
             mock_settings.ALLOCATION_OVERRIDES_NEVER_ENFORCE = never_enforce
             mock_settings.ALLOCATION_OVERRIDES_ALWAYS_ENFORCE = always_enforce
             with django.test.override_settings(
