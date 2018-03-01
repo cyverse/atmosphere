@@ -8,7 +8,7 @@ from .image_factory import ImageFactory
 class ProviderMachineFactory(factory.DjangoModelFactory):
 
     @staticmethod
-    def create_provider_machine(user, identity, application=None, version=None):
+    def create_provider_machine(user, identity, application=None, version=None, end_date=None):
         if version and not application:
             application = version.application
         if not application:
@@ -26,7 +26,8 @@ class ProviderMachineFactory(factory.DjangoModelFactory):
             created_by=user)
         machine = ProviderMachineFactory.create(
             instance_source=source,
-            application_version=version)
+            application_version=version,
+            end_date=end_date)
         return machine
 
     class Meta:
