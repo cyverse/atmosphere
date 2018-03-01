@@ -94,6 +94,34 @@ def allocation_source_overage_enforcement_for_user_called(context):
     context.test.assertEqual(method_calls, expected_calls)
 
 
+@step(
+    u"`check_allocation` with username '{username}' and '{allocation_source_name}' will throw an exception: {yes_or_no}")
+def step_impl(context, username, allocation_source_name, yes_or_no):
+    override_settings = [dict(zip(row.headings, row.cells)) for row in context.table]
+    never_enforce = [setting['allocation_source'] for setting in override_settings if
+                     setting['override'] == 'NEVER_ENFORCE']
+    always_enforce = [setting['allocation_source'] for setting in override_settings if
+                      setting['override'] == 'ALWAYS_ENFORCE']
+    allocation_source = AllocationSource.objects.get(name=allocation_source_name)
+    try:
+        from service.instance import check_allocation
+        with mock.patch('service.instance.settings', autospec=True) as mock_settings:
+            mock_settings.ALLOCATION_OVERRIDES_NEVER_ENFORCE = never_enforce
+            mock_settings.ALLOCATION_OVERRIDES_ALWAYS_ENFORCE = always_enforce
+            with django.test.override_settings(
+                    ALLOCATION_OVERRIDES_NEVER_ENFORCE=never_enforce,
+                    ALLOCATION_OVERRIDES_ALWAYS_ENFORCE=always_enforce
+            ):
+                check_allocation(username, allocation_source)
+    except Exception as e:
+        if yes_or_no == 'No':
+            raise ValueError('Did not expect an exception and got it', e)
+    else:
+        if yes_or_no == 'Yes':
+            raise ValueError('Expected exception and did not get it')
+
+
+
 @when('create_allocation_source command is fired')
 def create_allocation_source_command_fired(context):
     for row in context.table:
