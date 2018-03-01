@@ -105,8 +105,6 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     allocation_source_name = payload['allocation_source_name']
     threshold = payload['threshold']
     usage_percentage = payload['usage_percentage']
-    if not settings.ENFORCING:
-        return None
     source = AllocationSource.objects.filter(name=allocation_source_name).last()
     ##CHANGED
     # source = AllocationSource.objects.filter(name=allocation_source_name).last()

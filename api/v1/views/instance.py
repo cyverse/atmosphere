@@ -21,7 +21,7 @@ from service.cache import get_cached_instances,\
     invalidate_cached_instances
 from service.driver import prepare_driver
 from service.exceptions import (
-    OverAllocationError, OverQuotaError,
+    OverAllocationError, AllocationBlacklistedError, OverQuotaError,
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist,
     UnderThresholdError, ActionNotAllowed, Unauthorized,
@@ -189,6 +189,10 @@ class InstanceList(AuthAPIView):
             return over_quota(oqe)
         except OverAllocationError as oae:
             return over_quota(oae)
+        except AllocationBlacklistedError as e:
+            return failure_response(
+                status.HTTP_403_FORBIDDEN,
+                e.message)
         except Unauthorized:
             return invalid_creds(provider_uuid, identity_uuid)
         except SizeNotAvailable as snae:
@@ -499,6 +503,10 @@ class InstanceAction(AuthAPIView):
             return over_quota(oqe)
         except OverAllocationError as oae:
             return over_quota(oae)
+        except AllocationBlacklistedError as e:
+            return failure_response(
+                status.HTTP_403_FORBIDDEN,
+                e.message)
         except SizeNotAvailable as snae:
             return size_not_available(snae)
         except (socket_error, ConnectionFailure):

@@ -1,6 +1,7 @@
 import uuid
 from unittest import skip, skipIf
 
+from django.test import override_settings
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
@@ -10,9 +11,12 @@ from rest_framework.test import APITestCase, APIRequestFactory, force_authentica
 from api.tests.factories import (
     UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
     ApplicationVersionFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
-    SizeFactory)
+    SizeFactory, AllocationSourceFactory)
 from api.v2.views import InstanceViewSet
-from core.models import AtmosphereUser
+from core.models import (
+    InstanceAllocationSourceSnapshot,
+    UserAllocationSnapshot, AllocationSourceSnapshot,
+    UserAllocationSource)
 from service.driver import get_esh_driver
 
 
@@ -67,6 +71,24 @@ class InstanceActionTests(APITestCase):
                 instance=self.active_instance_second,
                 start_date=start_date_second + delta_time*3)
         self.mock_driver.add_core_instance(self.active_instance_second)
+        self.allocation_source_1 = AllocationSourceFactory.create(name='TEST_INSTANCE_ALLOCATION_SOURCE_01',
+                                                                  compute_allowed=1000)
+        UserAllocationSource.objects.create(
+                allocation_source=self.allocation_source_1,
+                user=self.user)
+        UserAllocationSnapshot.objects.create(
+                allocation_source=self.allocation_source_1,
+                user=self.user,
+                burn_rate=1,
+                compute_used=0)
+        AllocationSourceSnapshot.objects.create(
+            allocation_source=self.allocation_source_1,
+            compute_used=0,
+            compute_allowed=168,
+            global_burn_rate=1
+        )
+        InstanceAllocationSourceSnapshot.objects.update_or_create(instance=self.active_instance,
+                                                                  allocation_source=self.allocation_source_1)
 
     # For resize, I will add a size in InstanceStatusHistory. for stop, we don't have to have
     def test_stop_instance_action(self):
@@ -90,6 +112,26 @@ class InstanceActionTests(APITestCase):
             'action': 'start'
         }
         return self.attempt_instance_action(data)
+
+    @override_settings(ALLOCATION_OVERRIDES_ALWAYS_ENFORCE=['TEST_INSTANCE_ALLOCATION_SOURCE_01'])
+    def test_start_instance_when_allocation_blacklisted(self):
+        data = {
+            'action': 'start'
+        }
+        factory = APIRequestFactory()
+        request = factory.post(self.url, data)
+        force_authenticate(request, user=self.user)
+        response = self.view(request, str(self.active_instance.provider_alias))
+        data = response.data.get('result')
+
+        # Check the status code
+        self.assertEquals(response.status_code, 403);
+
+        # Check the error message
+        target_error_message = "Allocation 'TEST_INSTANCE_ALLOCATION_SOURCE_01' has been blacklisted by staff"
+        error_messages = [ e['message'] for e in response.data['errors'] ]
+        target_error_was_included = any(target_error_message in message for message in error_messages)
+        self.assertTrue(target_error_was_included)
 
     def test_reboot_soft_instance_action(self):
         data = {
