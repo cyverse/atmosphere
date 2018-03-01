@@ -12,6 +12,8 @@ Feature: Testing an Alternate story
 
   Scenario: Reproducing the bug with allocation source logic
 
+    Given a current time of "February 21, 2018 10:44:22 UTC"
+
     When admin creates allocation source
     |  name     |  compute allowed   |  renewal strategy   |   allocation_source_id | date_created |
     |  amitj    |  168               |  default            |   1                    | current      |
