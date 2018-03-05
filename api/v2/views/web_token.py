@@ -77,7 +77,7 @@ class WebTokenView(RetrieveAPIView):
         guac_secret = settings.GUACAMOLE['SECRET_KEY']
         # Create UUID for connection ID
         conn_id = str(uuid.uuid4())
-        base64_conn_id = base64.b64encode(conn_id[2:] + "\0" + 'c' + "\0" + 'hmac')
+        base64_conn_id = base64.b64encode(conn_id + "\0c\0hmac")
 
         # Create timestamp that looks like: 1489181545018
         timestamp = str(int(round(time.time()*1000)))
