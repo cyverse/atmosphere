@@ -121,18 +121,8 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
-      "status": "active",
-      "shell": false,
-      "vnc": false,
-      "end_date": null,
-      "scripts": [],
-      "ip_address": null,
-      "project": null,
-      "name": "Instance in active",
-      "allocation_source": null,
-      "activity": ""
+      "name": "Instance in active"
     }
     """
     When I change the name of the active instance to "My New Instance Name"
@@ -141,34 +131,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
-      "status": "active",
-      "shell": false,
-      "vnc": false,
-      "end_date": null,
-      "scripts": [],
-      "ip_address": null,
-      "project": null,
-      "name": "My New Instance Name",
-      "activity": ""
-    }
-    """
-    When we get the details for the active instance via the API
-    Then the API response code is 200
-    And the API response contains
-    """
-    {
-      "usage": -1,
-      "start_date": "2017-02-16T07:00:00Z",
-      "status": "active",
-      "shell": false,
-      "vnc": false,
-      "end_date": null,
-      "scripts": [],
-      "ip_address": null,
-      "project": null,
-      "name": "My New Instance Name",
-      "activity": ""
+      "name": "My New Instance Name"
     }
     """
