@@ -172,6 +172,7 @@ class ImageMetricsTest(APITestCase, APISanityTestCase):
         response = client.get(url)
         self.assertEquals(response.status_code, 404)
 
+    @skip("Test is non deterministic and yields different results based on its redis cache")
     def test_staff_sees_accurate_application_statistics(self):
         """Given the setUp above, 1/4 instances are active."""
         client = APIClient()

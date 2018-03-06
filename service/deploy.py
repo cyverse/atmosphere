@@ -269,9 +269,9 @@ def user_deploy(instance_ip, username, instance_id, first_deploy=True, **runner_
     # Example 'user only' strategy:
     # user_keys = [k.pub_key for k in get_user_ssh_keys(username)]
     instance = Instance.objects.get(provider_alias=instance_id)
-    scripts = instance.scripts.all()
-    if not first_deploy:
-        scripts = scripts.filter(run_every_deploy=True)
+    image_scripts = instance.source.providermachine.application_version.boot_scripts.all()
+    instance_scripts = instance.scripts.all()
+    scripts = image_scripts.union(instance_scripts)
 
     # Example 'all members'  strategy:
     if not instance.project:
@@ -280,10 +280,20 @@ def user_deploy(instance_ip, username, instance_id, first_deploy=True, **runner_
     group_ssh_keys = SSHKey.keys_for_group(group)
     user_keys = [k.pub_key for k in group_ssh_keys]
 
+    async_scripts, deploy_scripts = [], []
+    for script in scripts:
+        if not (first_deploy or script.run_every_deploy):
+            continue
+        if script.wait_for_deploy:
+            deploy_scripts.append(script)
+        else:
+            async_scripts.append(script)
+
+    format_script = lambda s: {"name": s.get_title_slug(), "text": s.get_text()}
     extra_vars = {
         "USERSSHKEYS": user_keys,
-        "ASYNC_SCRIPTS": [{"name": s.get_title_slug(), "text": s.get_text()} for s in scripts.filter(wait_for_deploy=False)],
-        "DEPLOY_SCRIPTS": [{"name": s.get_title_slug(), "text": s.get_text()} for s in scripts.filter(wait_for_deploy=True)],
+        "ASYNC_SCRIPTS":  map(format_script, async_scripts),
+        "DEPLOY_SCRIPTS":  map(format_script, deploy_scripts)
     }
     playbook_runner = ansible_deployment(
         instance_ip, username, instance_id, playbooks_dir,
