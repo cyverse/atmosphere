@@ -53,21 +53,11 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": -1,
-      "start_date": "2017-02-16T07:00:00Z",
-      "status": "active",
-      "shell": false,
-      "vnc": false,
-      "end_date": null,
-      "scripts": [],
-      "ip_address": null,
-      "project": null,
       "name": "Instance in active",
-      "allocation_source": null,
-      "activity": ""
+      "start_date": "2017-02-16T07:00:00Z",
+      "allocation_source": null
     }
     """
-    # Assign the allocation source to the instance
     Given a current time of '2017-02-16T07:01:00Z' with tick = False
     When I assign allocation source "user407" to active instance
     Then the API response code is 201
@@ -76,28 +66,14 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": 0.0,
-      "start_date": "2017-02-16T07:00:00Z",
-      "status": "active",
-      "shell": false,
-      "vnc": false,
-      "end_date": null,
-      "scripts": [],
-      "ip_address": null,
-      "project": null,
-      "name": "Instance in active",
-      "activity": ""
-    }
-    """
-    And I set "response_data" to attribute "data" of "response"
-    And I set "allocation_source" to key "allocation_source" of "response_data"
-    Then "allocation_source" contains
-    """
-    {
-      "name": "user407",
-      "renewal_strategy": "default",
-      "compute_allowed": 168,
-      "start_date": "2017-02-16T06:00:00Z"
+        "name": "Instance in active",
+        "start_date": "2017-02-16T07:00:00Z",
+        "allocation_source": {
+            "compute_allowed": 168,
+            "name": "user407",
+            "renewal_strategy": "default",
+            "start_date": "2017-02-16T06:00:00Z"
+        }
     }
     """
     And I set "instance01" to another variable "active_instance"
@@ -145,18 +121,8 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
-      "status": "active",
-      "shell": false,
-      "vnc": false,
-      "end_date": null,
-      "scripts": [],
-      "ip_address": null,
-      "project": null,
-      "name": "Instance in active",
-      "allocation_source": null,
-      "activity": ""
+      "name": "Instance in active"
     }
     """
     When I change the name of the active instance to "My New Instance Name"
@@ -165,34 +131,7 @@ Feature: Launching & editing of an instance
     And the API response contains
     """
     {
-      "usage": -1,
       "start_date": "2017-02-16T07:00:00Z",
-      "status": "active",
-      "shell": false,
-      "vnc": false,
-      "end_date": null,
-      "scripts": [],
-      "ip_address": null,
-      "project": null,
-      "name": "My New Instance Name",
-      "activity": ""
-    }
-    """
-    When we get the details for the active instance via the API
-    Then the API response code is 200
-    And the API response contains
-    """
-    {
-      "usage": -1,
-      "start_date": "2017-02-16T07:00:00Z",
-      "status": "active",
-      "shell": false,
-      "vnc": false,
-      "end_date": null,
-      "scripts": [],
-      "ip_address": null,
-      "project": null,
-      "name": "My New Instance Name",
-      "activity": ""
+      "name": "My New Instance Name"
     }
     """

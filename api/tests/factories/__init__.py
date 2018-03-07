@@ -13,7 +13,9 @@ from .version_factory import ApplicationVersionFactory
 from .quota_factory import QuotaFactory
 from .allocation_factory import AllocationFactory
 from .provider_type_factory import ProviderTypeFactory
-from .provider_machine_factory import ProviderMachineFactory, InstanceSourceFactory
+from .provider_machine_factory import ProviderMachineFactory
 from .platform_type_factory import PlatformTypeFactory
 from .size_factory import SizeFactory
 from .allocation_source_factory import AllocationSourceFactory, UserAllocationSourceFactory
+from .boot_script_factory import BootScriptRawTextFactory, BootScriptURLFactory
+from .instance_source_factory import InstanceSourceFactory

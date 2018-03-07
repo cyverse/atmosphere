@@ -3,6 +3,9 @@ import uuid
 from core.models import ProviderMachine, InstanceSource
 from .version_factory import ApplicationVersionFactory
 from .image_factory import ImageFactory
+from .provider_factory import ProviderFactory
+from .instance_source_factory import InstanceSourceFactory
+from .version_factory import ApplicationVersionFactory
 
 
 class ProviderMachineFactory(factory.DjangoModelFactory):
@@ -32,10 +35,6 @@ class ProviderMachineFactory(factory.DjangoModelFactory):
     class Meta:
         model = ProviderMachine
 
-
-class InstanceSourceFactory(factory.DjangoModelFactory):
-
-    class Meta:
-        model = InstanceSource
-
-    identifier = factory.Sequence(lambda n: uuid.uuid4())
+    # Field occurs on super class of ProviderMachine
+    instance_source = factory.SubFactory(InstanceSourceFactory)
+    application_version = factory.SubFactory(ApplicationVersionFactory)

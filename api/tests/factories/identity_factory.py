@@ -37,3 +37,7 @@ class IdentityFactory(factory.DjangoModelFactory):
 
     class Meta:
         model = Identity
+
+    created_by = factory.SubFactory(UserFactory)
+    provider = factory.SubFactory(ProviderFactory)
+    quota = factory.SubFactory(QuotaFactory)
