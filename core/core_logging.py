@@ -13,6 +13,9 @@ class InstanceAdapter(logging.LoggerAdapter):
                            self.extra['username']])
         return '%s %s' % (fields, msg), kwargs
 
+    def warn(self, msg, *args, **kwargs):
+        return self.warning(msg, *args, **kwargs)
+
 
 def create_instance_logger(logger, ip_address, username, instance_id):
     adapter = InstanceAdapter(logger, {'instance_id': instance_id,

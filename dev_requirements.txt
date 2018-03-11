@@ -4,14 +4,13 @@
 #
 #    pip-compile --output-file dev_requirements.txt dev_requirements.in requirements.txt
 #
+-e git+https://github.com/cyverse/ansible.git@stable-2.4-subspace#egg=ansible
 amqp==2.2.2
-ansible==2.3.2.0
 apache-libcloud==0.20.1
 appdirs==1.4.3
 asn1crypto==0.22.0
 astroid==1.5.3            # via pylint, pylint-celery, pylint-flask, pylint-plugin-utils, requirements-detector
 babel==2.5.1
-backports-abc==0.5
 backports.functools-lru-cache==1.4  # via astroid, pylint
 backports.shutil-get-terminal-size==1.0.0  # via ipython
 backports.ssl-match-hostname==3.5.0.1
@@ -77,7 +76,7 @@ gitpython==2.1.5
 greenlet==0.4.12
 httplib2==0.10.3
 idna==2.5
-ipaddress==1.0.18
+ipaddress==1.0.18         # via faker, urllib3
 ipdb==0.10.3
 ipython-genutils==0.2.0   # via traitlets
 ipython==5.4.1
@@ -180,14 +179,13 @@ selenium==3.5.0           # via splinter
 setoptconf==0.2.0         # via prospector
 simplegeneric==0.8.1      # via ipython
 simplejson==3.11.1
-singledispatch==3.4.0.3
+singledispatch==3.4.0.3   # via astroid, pylint
 six==1.11.0
 smmap2==2.0.3             # via gitdb2
 snowballstemmer==1.2.1    # via pydocstyle
 splinter==0.7.6           # via behaving
 sqlparse==0.2.3           # via django-debug-toolbar
 stevedore==1.25.0
-subspace==0.5.1
 threepio==0.2.0
 tornado==4.5.2
 traitlets==4.3.2          # via ipython
