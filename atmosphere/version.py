@@ -37,7 +37,7 @@ def git_branch():
         return None
 
 
-def get_version(form='short'):
+def get_version(form='short', git_branch_name=None, git_head_info=None):
     """
     Returns the version string.
 
@@ -70,10 +70,10 @@ def get_version(form='short'):
     versions["normal"] = v
     if form is "normal":
         return v
-    info = git_info()
+    info = git_head_info or git_info()
     versions["git_sha"] = info[0:39]
     versions["git_sha_abbrev"] = "@" + info[0:6]
-    versions["git_branch"] = git_branch()
+    versions["git_branch"] = git_branch_name or git_branch()
     versions["commit_date"] = parser.parse(info[40:])
     v += " " + versions["git_sha_abbrev"]
     versions["verbose"] = v
