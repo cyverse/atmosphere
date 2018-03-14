@@ -1,83 +1,62 @@
 """
 Atmosphere version.
 """
-from dateutil import parser
-from os.path import abspath, dirname
 from subprocess import Popen, PIPE
-
+from dateutil import parser
 
 VERSION = (0, 14, 3, 'dev', 0)
 
 
-def git_info():
-    loc = abspath(dirname(__file__))
-    try:
-        p = Popen(
-            "cd \"%s\" && git log -1 --format=format:%%H%%ci" % loc,
-            shell=True,
-            stdout=PIPE,
-            stderr=PIPE
-        )
-        return p.communicate()[0]
-    except OSError:
+def git_info(git_directory=None):
+    if not git_directory:
         return None
-
-
-def git_branch():
-    loc = abspath(dirname(__file__))
     try:
-        p = Popen(
-            "cd \"%s\" && git "
-            "rev-parse --symbolic-full-name --abbrev-ref HEAD" % loc,
+        proc = Popen(
+            "git --git-dir {} log -1 --format=format:%H%ci".format(
+                git_directory),
             shell=True,
             stdout=PIPE,
             stderr=PIPE)
-        return p.communicate()[0].replace("\n", "")
+        return proc.communicate()[0]
     except OSError:
         return None
 
 
-def get_version(form='short', git_branch_name=None, git_head_info=None):
+def git_branch(git_directory=None):
+    if not git_directory:
+        return None
+    try:
+        proc = Popen(
+            ("git --git-dir {} rev-parse --symbolic-full-name "
+             "--abbrev-ref HEAD").format(git_directory),
+            shell=True,
+            stdout=PIPE,
+            stderr=PIPE)
+        return proc.communicate()[0].replace("\n", "")
+    except OSError:
+        return None
+
+
+def git_version_lookup(git_directory=None,
+                       git_branch_name=None,
+                       git_head_info=None):
     """
-    Returns the version string.
-
-    Takes single argument ``form``, which should be one of the following
-    strings:
-
-    * ``short`` Returns major + minor branch version string with the format of
-    B.b.t.
-    * ``normal`` Returns human readable version string with the format of
-    B.b.t _type type_num.
-    * ``verbose`` Returns a verbose version string with the format of
-    B.b.t _type type_num@git_sha_abbrev
-    * ``all`` Returns a dict of all versions.
+    Generate a summary from git on the version
     """
-    versions = {}
-    branch = "%s.%s" % (VERSION[0], VERSION[1])
-    tertiary = VERSION[2]
-    type_ = VERSION[3]
-    type_num = VERSION[4]
+    branch = git_branch_name or git_branch(git_directory=git_directory)
+    info = git_head_info or git_info(git_directory=git_directory)
 
-    versions["branch"] = branch
-    v = versions["branch"]
-    if tertiary:
-        versions["tertiary"] = "." + str(tertiary)
-        v += versions["tertiary"]
-    versions['short'] = v
-    if form is "short":
-        return v
-    v += " " + type_ + " " + str(type_num)
-    versions["normal"] = v
-    if form is "normal":
-        return v
-    info = git_head_info or git_info()
-    versions["git_sha"] = info[0:39]
-    versions["git_sha_abbrev"] = "@" + info[0:6]
-    versions["git_branch"] = git_branch_name or git_branch()
-    versions["commit_date"] = parser.parse(info[40:])
-    v += " " + versions["git_sha_abbrev"]
-    versions["verbose"] = v
-    if form is "verbose":
-        return v
-    if form is "all":
-        return versions
+    git_sha = None
+    git_sha_abbrev = None
+    commit_date = None
+    if info:
+        git_sha = info[0:39]
+        git_sha_abbrev = "@" + info[0:6]
+        commit_date = parser.parse(info[40:])
+
+    return {
+        'git_sha': git_sha,
+        'git_sha_abbrev': git_sha_abbrev,
+        'commit_date': commit_date,
+        'git_branch': branch
+    }

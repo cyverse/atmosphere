@@ -92,7 +92,8 @@ class Command(BaseCommand):
 
 def _default_title():
     now = timezone.localdate()
-    branch_name = git_branch()
+    git_directory = os.path.join(settings.PROJECT_ROOT, ".git")
+    branch_name = git_branch(git_directory=git_directory)
 
     return "{0}/{1} ({2}) Maintenance".format(now.month, now.day,
                                               branch_name)
