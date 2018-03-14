@@ -1,5 +1,5 @@
 """
-Atmosphere API Common/Base views.
+Atmosphere version views
 
 """
 from rest_framework import viewsets, mixins
