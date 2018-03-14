@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Changed
   - Update license to 2018
   - Updated CHANGELOG.md to use the recommendations from [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+  - Change ./manage.py maintenance to be non-interactive
 
 ## [v31-0](https://github.com/cyverse/atmosphere/compare/v30...v31-0) - 2018-03-08
 ### Added
