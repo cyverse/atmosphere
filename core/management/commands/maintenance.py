@@ -1,171 +1,105 @@
+import os
 from django.core.management.base import BaseCommand, CommandError
+from django.conf import settings
 from django.utils import timezone
+from dateutil.parser import parse
 
 from core.models import MaintenanceRecord
 from atmosphere.version import git_branch
-
- 
-def current_date():
-    d = timezone.localdate()
-    return (d.month, d.day)
-
-
-def default_start_date():
-    d = timezone.localdate()
-    return timezone.datetime(d.year, d.month, d.day, 8, 0, 0,
-        tzinfo=timezone.utc)
-
-def _continue(val):
-    option = 'n'
-    if val is None or len(val) == 0:
-        # Yes is the default, Example: [Y/n]
-        option = 'y'
-    elif len(val) > 0:
-        option = val.lower()[0]
-
-    return option == 'y'
 
 
 class Command(BaseCommand):
     help = 'Allows starting and stopping maintenance'
 
     def add_arguments(self, parser):
-        parser.add_argument("command", help="commands: start, stop")
-        parser.add_argument("--title", default="", help="(Start only) Title of maintenance record")
-        parser.add_argument("--message", default="", help="(Start only) Use this as the message of maintenance record")
-        parser.add_argument("--start-now", action="store_true", default=False, help="(Start only) Start maintenance record immediately.")
+        default_title = _default_title()
+        default_message = _default_message()
+        default_start_date = timezone.localtime()
+        parser.add_argument("command", help="commands: start, stop, show")
+        parser.add_argument(
+            "--title",
+            default=default_title,
+            help="Title of maintenance record")
+        parser.add_argument(
+            "--message",
+            default=default_message,
+            help="Use this as the message of maintenance record")
+        parser.add_argument(
+            "--start-date",
+            default=default_start_date,
+            help="Start date of maintenance record, default is now. Many "
+                 "time formats are accepted. Use --dry-run to ensure "
+                 "correct time.")
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            default=False,
+            help="Only print what would occur")
 
-    def _create_default_title(self):
-        branch_name = git_branch()
-        month, day = current_date()
-
-        return "{0}/{1} ({2}) Maintenance".format(month, day, branch_name)
-
-    def _gather_input(self):
-        title = self._create_default_title()
-        message = "Atmosphere is down for a Scheduled Maintenance"
-
-        banner = "Default:"
-        self.stdout.write(banner)
-        self.stdout.write("-" * len(banner) + "\n")
-        self.stdout.write("- title: {0}".format(title))
-        self.stdout.write("- message: {0}".format(message))
-        self.stdout.write("\n\n")
-
-        new_title = raw_input("Provide desired title (ENTER to default): ")
-        if len(new_title) > 0:
-            title = new_title
-
-        new_message = raw_input("Provide descriptive message (ENTER to default): ")
-        if len(new_message) > 0:
-            message = new_message
-
-        return (title, message)
-
-    def _gather_start_date(self):
-        start_date = default_start_date()
-
-        banner = "Default:"
-        self.stdout.write(banner)
-        self.stdout.write("-" * len(banner))
-        self.stdout.write("- start date: {0}".format(start_date))
-        self.stdout.write("\n")
-
-        # ISO 8601 OR GET OUT! https://xkcd.com/1179/
-        new_start_date = raw_input("Provider different start date, format: YYYY-MM-DD HH:MM\n(ENTER to default): ")
-        if len(new_start_date) > 0:
+    def handle_start(self, **options):
+        start_date = options['start_date']
+        if isinstance(start_date, str):
             try:
-                start_date = timezone.datetime.strptime(
-                    new_start_date, "%Y-%m-%d %I:%M")
-            except ValueError:
-                self.stderr.write("Please use the ISO 8601 format:")
-                self.stderr.write(" - https://xkcd.com/1179/")
+                start_date = parse(start_date)
+            except Exception as exc:
+                raise CommandError("Error parsing start_date: {}".format(exc))
 
-        return start_date
+        record = MaintenanceRecord(
+            title=options['title'],
+            message=options['message'],
+            start_date=start_date)
+        if options['dry_run']:
+            self.stdout.write("{}: {}".format(
+                self.style.NOTICE("Dry run"), record))
+        else:
+            record.save()
+            self.stdout.write("{}: {}".format(
+                self.style.SUCCESS("Record created"), record))
 
-    def gather_input(self):
-        banner = "\nGathering Maintenance Information ..."
-        self.stdout.write(banner)
-        self.stdout.write("=" * len(banner))
-        self.stdout.write("\n")
-
-        while True:
-            title, message = self._gather_input()
-
-            self.stdout.write("\nTitle: {0}".format(title))
-            self.stdout.write("Message: {0}".format(message))
-            self.stdout.write("\n")
-
-            option = raw_input("Continue? [Y/n] ")
-            self.stdout.write("\n")
-
-            if _continue(option):
-                break
-        return (title, message)
-
-    def gather_start_date(self):
-        while True:
-            start_date = self._gather_start_date()
-
-            self.stdout.write(
-                "\n- Start date: {0}\n\n".format(start_date))
-
-            option = raw_input("Continue? [Y/n] ")
-            self.stdout.write("\n")
-
-            if _continue(option):
-                break
-        return start_date
-
-    def handle_start(self, title=None, message=None, start_date=None):
-        if not title or not message:
-            title, message = self.gather_input()
-        if not start_date:
-            start_date = self.gather_start_date()
-
-        new_record = MaintenanceRecord.objects.create(
-            start_date=default_start_date())
-
-        new_record.title = title
-        new_record.message = message
-        new_record.save()
-
-        self.stdout.write(self.style.SUCCESS("MaintenanceRecord saved ..."))
-
-        return True
-
-    def handle_stop(self):
+    def handle_stop(self, **options):
         records = MaintenanceRecord.active()
 
-        self.stdout.write(
-            "Preparing to process {0} records ...".format(len(records)))
+        if not records:
+            self.stdout.write("There are no active records")
+            return
 
         for record in records:
-            self.stdout.write(" - End dating ... {0}".format(record))
-
             record.end_date = timezone.now()
-            record.save()
+            if options['dry_run']:
+                self.stdout.write("{}: {}".format(
+                    self.style.NOTICE("Dry run"), record))
+                continue
+            else:
+                record.save()
+                self.stdout.write("{}: {}".format(
+                    self.style.SUCCESS("Record enddated"), record))
 
-        self.stdout.write("Done ...")
+    def handle_show(self, **options):
+        records = MaintenanceRecord.active()
 
-        return True
+        if not records:
+            self.stdout.write("There are no active records")
+            return
 
-    def handle(self, *args, **options):
+        for record in records:
+            self.stdout.write(str(record))
+
+    def handle(self, **options):
         cmd = options['command']
+        handler = getattr(self, "handle_{}".format(cmd), _raise_unknown)
+        handler(**options)
 
-        result = False
 
-        if cmd == 'start':
-            title = options['title']
-            message = options['message']
-            start_date = timezone.now() if options['start_now'] else None
-            result = self.handle_start(title, message, start_date)
-        elif cmd == 'stop':
-            result = self.handle_stop()
-        else:
-            self.stderr.write("Unknown command ...")
+def _default_title():
+    now = timezone.localdate()
+    branch_name = git_branch()
 
-        if result:
-            self.stdout.write(self.style.SUCCESS('Successfully ran ...'))
-        else:
-            self.stderr.write(" ... WHOA - an error occurred, I think!")
+    return "{0}/{1} ({2}) Maintenance".format(now.month, now.day,
+                                              branch_name)
+
+def _default_message():
+    return "Atmosphere is down for a Scheduled Maintenance"
+
+def _raise_unknown(*args, **options):
+    cmd = options['command']
+    raise CommandError("Unknown command: {}".format(cmd))
