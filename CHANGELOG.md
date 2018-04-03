@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v31-0...HEAD)
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v31-1...HEAD)
 ### Added
   - Include a start date in the resource request api
 
@@ -32,6 +32,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Update license to 2018
   - Updated CHANGELOG.md to use the recommendations from [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Change ./manage.py maintenance to be non-interactive
+
+## [v31-1](https://github.com/cyverse/atmosphere/compare/v31-0...v31-1) 2018-04-03
+### Fixed
+  - Worked around nova bug which prevented unshelved instances from getting
+    fixed ips [#599](https://github.com/cyverse/atmosphere/pull/599)
 
 ## [v31-0](https://github.com/cyverse/atmosphere/compare/v30...v31-0) - 2018-03-08
 ### Added
