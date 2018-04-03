@@ -24,7 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v31-1...HEAD)
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v32-0...HEAD)
+## [v32-0](https://github.com/cyverse/atmosphere/compare/v31-1...v32-0) 2018-04-03
 ### Added
   - Include a start date in the resource request api
 
