@@ -30,8 +30,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ### Changed
   - Update license to 2018
-  - Updated CHANGELOG.md to use the recommendations from [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+  - Update CHANGELOG.md to use the recommendations from [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Change ./manage.py maintenance to be non-interactive
+  - Return less information in the version api (api/v{1,2}/version) like
+    atmosphere's major minor and patch version
+
+### Fixed
+  - The version reported for atmopshere ansible (api/v{1,2}/deploy_version now
+  returns results
 
 ## [v31-1](https://github.com/cyverse/atmosphere/compare/v31-0...v31-1) 2018-04-03
 ### Fixed
