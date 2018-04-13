@@ -168,35 +168,40 @@ def _is_instance_ready(instance, status_query,
         return instance.id
     return True
 
-@task(name="restore_port",
+
+@task(name="add_fixed_ip",
       ignore_result=True,
       default_retry_delay=15,
-      max_retries=5,
-      bind=True)
-def restore_port(self,
-                 driverCls,
-                 provider,
-                 identity,
-                 instance_id,
-                 core_identity_uuid=None):
-    from service.instance import _to_network_driver, _get_network_id
+      max_retries=15)
+def add_fixed_ip(
+        driverCls,
+        provider,
+        identity,
+        instance_id,
+        core_identity_uuid=None):
+    from service import instance as instance_service
     try:
+        celery_logger.debug("add_fixed_ip task started at %s." % datetime.now())
         driver = get_driver(driverCls, provider, identity)
-        core_identity = Identity.objects.get(uuid=core_identity_uuid)
-        network_driver = _to_network_driver(core_identity)
         instance = driver.get_instance(instance_id)
-        assert instance, "Instance {} no longer exists".format(instance_id)
+        if not instance:
+            celery_logger.debug("Instance has been teminated: %s." % instance_id)
+            return None
+        if instance._node.private_ips:
+            # TODO: Attempt to rescue
+            celery_logger.info("Instance has fixed IP: %s" % instance_id)
+            return instance
 
-        ports = network_driver.list_ports(device_id=instance.id)
-        for port in ports:
-            network_driver.delete_port(port)
-
-        network_id = _get_network_id(driver, instance)
-        driver._connection.ex_attach_interface(
-            instance.id, network_id=network_id)
+        network_id = instance_service._get_network_id(driver, instance)
+        fixed_ip = driver._connection.ex_add_fixed_ip(instance, network_id)
+        celery_logger.debug("add_fixed_ip task finished at %s." % datetime.now())
+        return fixed_ip
     except Exception as exc:
-        celery_logger.exception(exc)
-        self.retry(exc=exc)
+        if "Not Ready" not in str(exc):
+            # Ignore 'normal' errors.
+            celery_logger.exception(exc)
+        add_fixed_ip.retry(exc=exc)
+
 
 def current_openstack_identities():
     identities = Identity.objects.filter(
@@ -1192,8 +1197,20 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
         countdown = min(2**current.request.retries, 128)
         add_floating_ip.retry(exc=floating_ip_err,
                               countdown=countdown)
-    except NeutronBadRequest:
-        # This is an error on our end, we want it to surface
+    except NeutronBadRequest as bad_request:
+        # NOTE: 'Neutron Bad Request' is a good message to 'catch and fix'
+        # because its a user-supplied problem.
+        # Here we will attempt to 'fix' requests and put the 'add_floating_ip'
+        # task back on the queue after we're done.
+        celery_logger.exception("Neutron did not accept request - %s."
+            % bad_request.message)
+        if 'no fixed ip' in bad_request.message.lower():
+            fixed_ip = add_fixed_ip(driverCls, provider, identity,
+                                    instance_alias)
+            if fixed_ip:
+                celery_logger.debug("Fixed IP %s has been added to Instance %s."
+                             % (fixed_ip, instance_alias))
+        # let the exception bubble-up for a retry..
         raise
     except (BaseException, Exception) as exc:
         celery_logger.exception("Error occurred while assigning a floating IP")
