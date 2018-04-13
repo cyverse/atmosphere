@@ -1218,20 +1218,8 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
         countdown = min(2**current.request.retries, 128)
         add_floating_ip.retry(exc=floating_ip_err,
                               countdown=countdown)
-    except NeutronBadRequest as bad_request:
-        # NOTE: 'Neutron Bad Request' is a good message to 'catch and fix'
-        # because its a user-supplied problem.
-        # Here we will attempt to 'fix' requests and put the 'add_floating_ip'
-        # task back on the queue after we're done.
-        celery_logger.exception("Neutron did not accept request - %s."
-            % bad_request.message)
-        if 'no fixed ip' in bad_request.message.lower():
-            fixed_ip = add_fixed_ip(driverCls, provider, identity,
-                                    instance_alias)
-            if fixed_ip:
-                celery_logger.debug("Fixed IP %s has been added to Instance %s."
-                             % (fixed_ip, instance_alias))
-        # let the exception bubble-up for a retry..
+    except NeutronBadRequest:
+        # This is an error on our end, we want it to surface
         raise
     except (BaseException, Exception) as exc:
         celery_logger.exception("Error occurred while assigning a floating IP")
