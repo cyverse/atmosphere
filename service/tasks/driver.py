@@ -179,23 +179,44 @@ def add_fixed_ip(
         identity,
         instance_id,
         core_identity_uuid=None):
-    from service import instance as instance_service
+    from service.instance import _to_network_driver, _get_network_id
     try:
         celery_logger.debug("add_fixed_ip task started at %s." % datetime.now())
+        core_identity = Identity.objects.get(uuid=core_identity_uuid)
+        network_driver = _to_network_driver(core_identity)
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
             celery_logger.debug("Instance has been teminated: %s." % instance_id)
             return None
-        if instance._node.private_ips:
-            # TODO: Attempt to rescue
-            celery_logger.info("Instance has fixed IP: %s" % instance_id)
-            return instance
 
-        network_id = instance_service._get_network_id(driver, instance)
-        fixed_ip = driver._connection.ex_add_fixed_ip(instance, network_id)
+        ports = network_driver.list_ports(device_id=instance.id)
+        # Catch a common scenario that breaks networking
+        assert len(ports) == 1, "Attaching a fixed ip requires a single port"
+        port = ports[0]
+        port_zone = instance_zone = None
+        try:
+            port_zone = port['device_owner'].split(":")[1]
+            instance_zone = instance.extra['availability_zone']
+        except:
+            pass
+
+        network_id = _get_network_id(driver, instance)
+
+        if port_zone and instance_zone and port_zone != instance_zone:
+            # If the port and instance are in different zones, delete the old
+            # port and attach a new one, this only occurs in narrow scenarios
+            # documented in the following ticket:
+            # https://bugs.launchpad.net/nova/+bug/1759924
+            network_driver.delete_port(port)
+            driver._connection.ex_attach_interface(
+                instance.id, network_id=network_id)
+
+        elif not instance._node.private_ips:
+            # Only add fixed ip if the instance doesn't already have one
+            driver._connection.ex_add_fixed_ip(instance, network_id)
+
         celery_logger.debug("add_fixed_ip task finished at %s." % datetime.now())
-        return fixed_ip
     except Exception as exc:
         if "Not Ready" not in str(exc):
             # Ignore 'normal' errors.
