@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Fixed
  - On start/unshelve instances would fail to be reachable because ports added
    post boot ([#604](https://github.com/cyverse/atmosphere/pull/604))
+ - Travis build failure, specify version 9 of pip until we're ready for pip 10 ((607)[https://github.com/cyverse/atmosphere/pull/607])
 
 ## [v32-0](https://github.com/cyverse/atmosphere/compare/v31-1...v32-0) 2018-04-03
 ### Changed
