@@ -6,6 +6,7 @@ DJANGO_SERVER_URL = # https://www.my-website.com
 VIRTUALENV_PATH =# /path/virtualenv/atmo
 
 [local.py]
+ADDITIONAL_ALLOWED_HOSTNAMES = [] # Additional HOST header values that django will permit in requests
 AUTH_USE_OVERRIDE =  True # Boolean required will override authentication set in __init__.py
 AUTH_MOCK_USER = # testuser
 AUTH_ENABLE_MOCK =  True # Boolean required

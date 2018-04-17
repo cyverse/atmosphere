@@ -192,12 +192,10 @@ def _set_network_quota(user_quota, identity):
     username = identity.created_by.username
     logger.info("Updating network quota for %s to %s"
                 % (username, network_values))
-    driver = get_cached_driver(identity=identity)
-    tenant_id = driver._connection._get_tenant_id()
-
     ad = get_account_driver(identity.provider)
+    tenant = ad.get_project(username)
     admin_driver = ad.admin_driver
-    result = admin_driver._connection._neutron_update_quota(tenant_id, network_values)
+    result = admin_driver._connection._neutron_update_quota(tenant.id, network_values)
     logger.info("Updated quota for %s to %s" % (username, result))
     return result
 
@@ -239,15 +237,15 @@ def _set_compute_quota(user_quota, identity):
     logger.info("Updating quota for %s to %s" % (username, compute_values))
     driver = get_cached_driver(identity=identity)
     username = driver._connection.key
-    tenant_id = driver._connection._get_tenant_id()
     ad = get_account_driver(identity.provider, raise_exception=True)
+    tenant = ad.get_project(username)
     ks_user = ad.get_user(username)
     admin_driver = ad.admin_driver
     creds = identity.get_all_credentials()
     if creds.get('ex_force_auth_version', '2.0_password') != "2.0_password":
         # FIXME: Remove 'use_tenant_id' when legacy clouds are no-longer in use.
         try:
-            result = admin_driver._connection.ex_update_quota(tenant_id, compute_values, use_tenant_id=use_tenant_id)
+            result = admin_driver._connection.ex_update_quota(tenant.id, compute_values, use_tenant_id=use_tenant_id)
         except Exception:
             logger.exception("Could not set a user-quota, trying to set tenant-quota")
             raise
@@ -255,7 +253,7 @@ def _set_compute_quota(user_quota, identity):
         # For CyVerse old clouds, run the top method. don't use try/except.
         try:
             result = admin_driver._connection.ex_update_quota_for_user(
-                tenant_id, ks_user.id, compute_values, use_tenant_id=use_tenant_id)
+                tenant.id, ks_user.id, compute_values, use_tenant_id=use_tenant_id)
         except Exception:
             logger.exception("Could not set a user-quota, trying to set tenant-quota")
             raise
