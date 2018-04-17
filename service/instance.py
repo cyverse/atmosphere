@@ -470,7 +470,7 @@ def restore_ip_chain(esh_driver, esh_instance, deploy=True,
     start with: task.apply_async()
     """
     from service.tasks.driver import (
-        wait_for_instance, restore_port, add_floating_ip,
+        wait_for_instance, add_fixed_ip, add_floating_ip,
         deploy_init_to, update_metadata
     )
     init_task = wait_for_instance.s(
@@ -478,19 +478,20 @@ def restore_ip_chain(esh_driver, esh_instance, deploy=True,
         esh_driver.identity, "active",
         # TODO: DELETEME below.
         no_tasks=True)
-
+    # Step 1: Set metadata to initializing
     metadata = {'tmp_status': 'initializing'}
     metadata_update_task = update_metadata.si(
         esh_driver.__class__, esh_driver.provider, esh_driver.identity,
         esh_instance.id, metadata, replace_metadata=False)
 
-    restore_port_task = restore_port.si(
+    # Step 2: Add fixed
+    fixed_ip_task = add_fixed_ip.si(
         esh_driver.__class__, esh_driver.provider,
         esh_driver.identity, esh_instance.id, core_identity_uuid)
 
     init_task.link(metadata_update_task)
-    metadata_update_task.link(restore_port_task)
-
+    metadata_update_task.link(fixed_ip_task)
+    # Add float and re-deploy OR just add floating IP...
     if deploy:
         core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
         deploy_task = deploy_init_to.si(
@@ -500,16 +501,16 @@ def restore_ip_chain(esh_driver, esh_instance, deploy=True,
             esh_instance.id,
             core_identity,
             redeploy=True)
-        restore_port_task.link(deploy_task)
+        fixed_ip_task.link(deploy_task)
     else:
+        logger.info("Skip deployment, Add floating IP only")
         floating_ip_task = add_floating_ip.si(
             esh_driver.__class__,
             esh_driver.provider,
             esh_driver.identity,
             str(core_identity_uuid),
             esh_instance.id)
-        restore_port_task.link(floating_ip_task)
-
+        fixed_ip_task.link(floating_ip_task)
     return init_task
 
 
