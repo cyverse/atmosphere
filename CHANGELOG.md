@@ -25,7 +25,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v32-0...HEAD)
+### Added
+ - Support multiple hostnames for Atmosphere(1) server ([#602](https://github.com/cyverse/atmosphere/pull/602))
+
+### Fixed
+ - On start/unshelve instances would fail to be reachable because ports added
+   post boot ([#604](https://github.com/cyverse/atmosphere/pull/604))
+ - Quota update would yield an index out of bounds error ((606)[https://github.com/cyverse/atmosphere/pull/606])
+ - Travis build failure, specify version 9 of pip until we're ready for pip 10 ((607)[https://github.com/cyverse/atmosphere/pull/607])
+
 ## [v32-0](https://github.com/cyverse/atmosphere/compare/v31-1...v32-0) 2018-04-03
+### Changed
 ### Added
   - Include a start date in the resource request api
 

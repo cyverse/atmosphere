@@ -168,35 +168,61 @@ def _is_instance_ready(instance, status_query,
         return instance.id
     return True
 
-@task(name="restore_port",
+
+@task(name="add_fixed_ip",
       ignore_result=True,
       default_retry_delay=15,
-      max_retries=5,
-      bind=True)
-def restore_port(self,
-                 driverCls,
-                 provider,
-                 identity,
-                 instance_id,
-                 core_identity_uuid=None):
+      max_retries=15)
+def add_fixed_ip(
+        driverCls,
+        provider,
+        identity,
+        instance_id,
+        core_identity_uuid=None):
     from service.instance import _to_network_driver, _get_network_id
     try:
-        driver = get_driver(driverCls, provider, identity)
+        celery_logger.debug("add_fixed_ip task started at %s." % datetime.now())
         core_identity = Identity.objects.get(uuid=core_identity_uuid)
         network_driver = _to_network_driver(core_identity)
+        driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
-        assert instance, "Instance {} no longer exists".format(instance_id)
+        if not instance:
+            celery_logger.debug("Instance has been teminated: %s." % instance_id)
+            return None
 
         ports = network_driver.list_ports(device_id=instance.id)
-        for port in ports:
-            network_driver.delete_port(port)
+        # Catch a common scenario that breaks networking
+        assert len(ports) == 1, "Attaching a fixed ip requires a single port"
+        port = ports[0]
+        port_zone = instance_zone = None
+        try:
+            port_zone = port['device_owner'].split(":")[1]
+            instance_zone = instance.extra['availability_zone']
+        except:
+            pass
 
         network_id = _get_network_id(driver, instance)
-        driver._connection.ex_attach_interface(
-            instance.id, network_id=network_id)
+
+        if port_zone and instance_zone and port_zone != instance_zone:
+            # If the port and instance are in different zones, delete the old
+            # port and attach a new one, this only occurs in narrow scenarios
+            # documented in the following ticket:
+            # https://bugs.launchpad.net/nova/+bug/1759924
+            network_driver.delete_port(port)
+            driver._connection.ex_attach_interface(
+                instance.id, network_id=network_id)
+
+        elif not instance._node.private_ips:
+            # Only add fixed ip if the instance doesn't already have one
+            driver._connection.ex_add_fixed_ip(instance, network_id)
+
+        celery_logger.debug("add_fixed_ip task finished at %s." % datetime.now())
     except Exception as exc:
-        celery_logger.exception(exc)
-        self.retry(exc=exc)
+        if "Not Ready" not in str(exc):
+            # Ignore 'normal' errors.
+            celery_logger.exception(exc)
+        add_fixed_ip.retry(exc=exc)
+
 
 def current_openstack_identities():
     identities = Identity.objects.filter(
