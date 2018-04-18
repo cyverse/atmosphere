@@ -25,6 +25,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v32-2...HEAD) - YYYY-MM-DD
+### Changed
+  - Private networking resources (fixed IP, port, private subnet, private network) are preserved for inactive (suspended,
+    shelved, stopped) instances ([#608](https://github.com/cyverse/atmosphere/pull/608))
+    - Additionally atmosphere no longer reports the private ip in the absence
+      of the public ip
+
 ### Fixed
   - `application_to_provider` was using an invalid method in Glance Client v1 to upload image data ([#618](https://github.com/cyverse/atmosphere/pull/618))
   - monitor_machines_for fails in the presence of inactive provider ([#614](https://github.com/cyverse/atmosphere/pull/614))
