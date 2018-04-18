@@ -209,10 +209,10 @@ def _set_volume_quota(user_quota, identity):
     username = identity.created_by.username
     logger.info("Updating quota for %s to %s" % (username, volume_values))
     driver = get_cached_driver(identity=identity)
-    username = driver._connection._get_username()
     ad = get_account_driver(identity.provider)
     admin_driver = ad.admin_driver
-    result = admin_driver._connection._cinder_update_quota(username, volume_values)
+    tenant = ad.get_project(username)
+    result = admin_driver._connection._cinder_update_quota(tenant.id, volume_values)
     logger.info("Updated quota for %s to %s" % (username, result))
     return result
 
