@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v32-1...HEAD)
+### Fixed
+ - Quota updates concerning volumes would silently fail ([#611](https://github.com/cyverse/atmosphere/pull/611))
+
 ## [v32-1](https://github.com/cyverse/atmosphere/compare/v32-0...v32-1) - 2018-04-17
 ### Added
  - Support multiple hostnames for Atmosphere(1) server ([#602](https://github.com/cyverse/atmosphere/pull/602))
