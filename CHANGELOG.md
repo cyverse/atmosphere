@@ -28,6 +28,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Fixed
 - `application_to_provider` was using an invalid method in Glance Client v1 to upload image data ([#618](https://github.com/cyverse/atmosphere/pull/618))
 
+### Removed
+  - In the general feedback email we no longer include the users selected
+    provider, as it's no longer relevant ([#603](https://github.com/cyverse/atmosphere/pull/603))
+
 ## [v32-2](https://github.com/cyverse/atmosphere/compare/v32-1...v32-2) - 2018-04-26
 ### Fixed
  - Quota updates concerning volumes would silently fail ([#611](https://github.com/cyverse/atmosphere/pull/611))
