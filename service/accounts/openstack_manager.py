@@ -1218,7 +1218,7 @@ class AccountDriver(BaseAccountDriver):
 
     def get_neutron_client(self, all_creds):
         net_creds = self._build_network_creds(all_creds)
-        neutron, _ = self.network_manager.new_connection(**net_creds)
+        neutron, _, _ = self.network_manager.new_connection(**net_creds)
         return neutron
 
     def get_user_clients(self, all_creds):
