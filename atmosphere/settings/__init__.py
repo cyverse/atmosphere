@@ -51,6 +51,8 @@ ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
 
 # Django uses this one..
 MANAGERS = ADMINS
+CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
+CONSTANCE_DATABASE_CACHE_BACKEND = 'default'
 
 DATABASES = {
     'default': {
@@ -92,6 +94,8 @@ INSTALLED_APPS = (
     'cyverse_allocation',
     'service',
     'core',
+    'constance',
+    'constance.backends.database'
 )
 SESSION_COOKIE_NAME = 'atmo_sessionid'
 

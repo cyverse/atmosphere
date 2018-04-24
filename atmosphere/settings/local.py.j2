@@ -4,6 +4,7 @@ Settings specific to the local deploy.
 import os
 import sys
 import logging
+from collections import OrderedDict
 from datetime import timedelta
 from celery.schedules import crontab
 
@@ -499,6 +500,11 @@ TACC_API_USER = ''
 TACC_API_PASS = ''
 TACC_API_URL = ''
 {% endif %}
+
+CONSTANCE_CONFIG = OrderedDict([
+    ('ALLOCATION_OVERRIDES_NEVER_ENFORCE', ('', 'Never enforce on these allocation sources. Comma-separated strings.')),
+    ('ALLOCATION_OVERRIDES_ALWAYS_ENFORCE', ('', 'Stop all instances on these allocation sources (nuclear option)')),
+])
 
 ######
 # Atmosphere Plugin Settings
