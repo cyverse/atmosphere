@@ -24,7 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v32-1...HEAD)
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v32-2...HEAD) - YYYY-MM-DD
+## [v32-2](https://github.com/cyverse/atmosphere/compare/v32-1...v32-2) - 2018-04-26
 ### Fixed
  - Quota updates concerning volumes would silently fail ([#611](https://github.com/cyverse/atmosphere/pull/611))
  - Fix monitor_instances_for timing out, upgrade to rtwo version 0.5.18 ([#598](https://github.com/cyverse/atmosphere/pull/598))
