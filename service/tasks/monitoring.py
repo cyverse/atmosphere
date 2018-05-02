@@ -288,33 +288,20 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
     # Extend to include based on projects already granted access to the image
     cloud_shared_set = { p.name for p in existing_members }
 
-    # Deprecation warning: Now that we use a script to do replication,
-    # we should not need to account for shares on another provider.
-    # Remove this code any time during/after the v29 release
     has_machine_request = MachineRequest.objects.filter(
         new_machine__instance_source__identifier=cloud_machine.id,
         status__name='completed').last()
     machine_request_set = set()
-    machine_request_provider_set = set()
     if has_machine_request:
         access_list = has_machine_request.get_access_list()
         # NOTE: This assumes that every name in
         #      accesslist (AtmosphereUser) == project_name(Openstack)
         machine_request_set = { name.strip() for name in access_list }
 
-        request_provider = has_machine_request.new_machine_provider
-        request_identifier = has_machine_request.new_machine.instance_source.identifier
-        if request_provider != db_machine.provider:
-            main_account_driver = get_account_driver(request_provider)
-            # Extend to include based on information in the machine request
-            request_shared_projects = main_account_driver.get_image_members(request_identifier, None)
-            machine_request_provider_set = set(p.name for p in request_shared_projects)
-        # End deprecation warning
-
     # Extend to include new names found by application pattern_match
     parent_app = db_machine.application_version.application
     access_list_set = set(parent_app.get_users_from_access_list().values_list('username', flat=True))
-    shared_project_names = list(owner_set | cloud_shared_set | machine_request_set | machine_request_provider_set | access_list_set)
+    shared_project_names = list(owner_set | cloud_shared_set | machine_request_set | access_list_set)
     return shared_project_names
 
 
