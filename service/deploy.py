@@ -20,6 +20,7 @@ from django_cyverse_auth.protocol import ldap
 
 from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
+from core.models.profile import UserProfile
 from core.models import Provider, Identity, Instance, SSHKey, AtmosphereUser
 
 from service.exceptions import (
@@ -246,6 +247,7 @@ def instance_deploy(instance_ip,
     extra_vars = {
         "SSH_IDENTITY_FILE": settings.ATMOSPHERE_PRIVATE_KEYFILE,
         "VNCLICENSE": secrets.ATMOSPHERE_VNC_LICENSE,
+        "VNC_RESOLUTION": UserProfile.objects.get(user__username=username).vnc_resolution
     }
     playbooks_dir = settings.ANSIBLE_PLAYBOOKS_DIR
     playbooks_dir = os.path.join(playbooks_dir, 'instance_deploy')

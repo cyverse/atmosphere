@@ -13,7 +13,7 @@ class UserProfile(models.Model):
     # Backend Profile attributes
     send_emails = models.BooleanField(default=True)
     quick_launch = models.BooleanField(default=True)
-    vnc_resolution = models.CharField(max_length=255, default='800x600')
+    vnc_resolution = models.CharField(max_length=255, default='1024x768')
     # Frontend profile attributes
     default_size = models.CharField(max_length=255, default='m1.small')
     background = models.CharField(max_length=255, default='default')
