@@ -512,10 +512,13 @@ def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client,
                 logging.warn("Warning: image data already present on destination provider but size does not match; "
                              "this may be OK if image was previously migrated with --clean")
         else:
-            if src_img.checksum != dst_img.checksum:
-                logging.warn("Warning: image data already present on destination provider but checksum does not "
-                             "match; this may be OK if image was previously migrated with --clean, or if iRODS "
-                             "transfer was previously used to migrate image")
+            try:
+                if src_img.checksum != dst_img.checksum:
+                    logging.warn("Warning: image data already present on destination provider but checksum does not "
+                                 "match; this may be OK if image was previously migrated with --clean, or if iRODS "
+                                 "transfer was previously used to migrate image")
+            except AttributeError:
+                    logging.warn("Warning: either source or destination image missing a checksum")
     else:
         raise Exception("Glance image on destination provider is not in an uploadable or usable status")
     return True
@@ -577,7 +580,11 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
         logging.debug("Attempting to upload image data to destination provider")
         with open(local_path, 'rb') as img_file:
             try:
-                dst_glance_client.images.upload(img_uuid, img_file)
+                # "Upload" method is different for Glance client v1, than for v2
+                if type(dst_glance_client) is glanceclient.v1.client.Client:
+                    dst_glance_client.images.update(img_uuid, data=img_file)
+                else:
+                    dst_glance_client.images.upload(img_uuid, img_file)
                 if local_img_checksum == dst_glance_client.images.get(img_uuid).checksum:
                     logging.info("Successfully uploaded image data to destination provider")
                     break
