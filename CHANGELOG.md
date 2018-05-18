@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v32-2...HEAD) - YYYY-MM-DD
+### Fixed
+- `application_to_provider` was using an invalid method in Glance Client v1 to upload image data ([#618](https://github.com/cyverse/atmosphere/pull/618))
+
 ## [v32-2](https://github.com/cyverse/atmosphere/compare/v32-1...v32-2) - 2018-04-26
 ### Fixed
  - Quota updates concerning volumes would silently fail ([#611](https://github.com/cyverse/atmosphere/pull/611))
