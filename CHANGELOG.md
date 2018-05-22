@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Fixed
   - `application_to_provider` was using an invalid method in Glance Client v1 to upload image data ([#618](https://github.com/cyverse/atmosphere/pull/618))
   - monitor_machines_for fails in the presence of inactive provider ([#614](https://github.com/cyverse/atmosphere/pull/614))
+  - Chromogenic (0.4.17) had a caching issue causing imaging to fail ([#619](https://github.com/cyverse/atmosphere/pull/619))
 
 ### Removed
   - In the general feedback email we no longer include the users selected
@@ -35,19 +36,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [v32-2](https://github.com/cyverse/atmosphere/compare/v32-1...v32-2) - 2018-04-26
 ### Fixed
- - Quota updates concerning volumes would silently fail ([#611](https://github.com/cyverse/atmosphere/pull/611))
- - Fix monitor_instances_for timing out, upgrade to rtwo version 0.5.18 ([#598](https://github.com/cyverse/atmosphere/pull/598))
- - Fix unintentional fetch of all_tenants instances, upgrade to rtwo version 0.5.19 ([#614](https://github.com/cyverse/atmosphere/pull/614))
+  - Quota updates concerning volumes would silently fail ([#611](https://github.com/cyverse/atmosphere/pull/611))
+  - Fix monitor_instances_for timing out, upgrade to rtwo version 0.5.18 ([#598](https://github.com/cyverse/atmosphere/pull/598))
+  - Fix unintentional fetch of all_tenants instances, upgrade to rtwo version 0.5.19 ([#614](https://github.com/cyverse/atmosphere/pull/614))
 
 ## [v32-1](https://github.com/cyverse/atmosphere/compare/v32-0...v32-1) - 2018-04-17
 ### Added
- - Support multiple hostnames for Atmosphere(1) server ([#602](https://github.com/cyverse/atmosphere/pull/602))
+  - Support multiple hostnames for Atmosphere(1) server ([#602](https://github.com/cyverse/atmosphere/pull/602))
 
 ### Fixed
- - On start/unshelve instances would fail to be reachable because ports added
-   post boot ([#604](https://github.com/cyverse/atmosphere/pull/604))
- - Quota update would yield an index out of bounds error ([#606](https://github.com/cyverse/atmosphere/pull/606))
- - Travis build failure, specify version 9 of pip until we're ready for pip 10 ([#607](https://github.com/cyverse/atmosphere/pull/607))
+  - On start/unshelve instances would fail to be reachable because ports added
+    post boot ([#604](https://github.com/cyverse/atmosphere/pull/604))
+  - Quota update would yield an index out of bounds error ([#606](https://github.com/cyverse/atmosphere/pull/606))
+  - Travis build failure, specify version 9 of pip until we're ready for pip 10 ([#607](https://github.com/cyverse/atmosphere/pull/607))
 
 ## [v32-0](https://github.com/cyverse/atmosphere/compare/v31-1...v32-0) - 2018-04-03
 ### Changed
