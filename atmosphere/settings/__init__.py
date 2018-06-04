@@ -495,14 +495,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "clear_empty_ips": {
         "task": "clear_empty_ips",
-        "schedule": timedelta(minutes=120),
+        "schedule": crontab(hour="1", minute="0", day_of_week="*"),
         "options": {"expires": 60 * 60}
-    },
-    "remove_empty_networks": {
-        "task": "remove_empty_networks",
-        # Every two hours.. midnight/2am/4am/...
-        "schedule": crontab(hour="*/2", minute="0", day_of_week="*"),
-        "options": {"expires": 5 * 60, "time_limit": 5 * 60}
     },
 }
 
