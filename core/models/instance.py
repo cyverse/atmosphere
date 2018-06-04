@@ -713,19 +713,14 @@ def find_instance(instance_id):
 def _find_esh_ip(esh_instance):
     if esh_instance.ip:
         return esh_instance.ip
+
+    ip_address = "0.0.0.0"
     try:
-        if not hasattr(esh_instance, "extra")\
-           or not esh_instance.extra.get("addresses"):
-            return "0.0.0.0"
         ips = esh_instance.extra["addresses"].values()
         ip_address = [ip for ip in ips[0]
                       if ip["OS-EXT-IPS:type"] == "floating"][0]["addr"]
-    except Exception:  # no public ip
-        try:
-            ip_address = [ip for ip in ips[0]
-                          if ip["OS-EXT-IPS:type"] == "fixed"][0]["addr"]
-        except Exception:  # no private ip
-            ip_address = "0.0.0.0"
+    except Exception:
+        pass
     return ip_address
 
 
