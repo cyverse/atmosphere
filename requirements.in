@@ -1,4 +1,4 @@
-
+ansible
 business_rules
 colorama # used by ./configure
 django
@@ -46,7 +46,6 @@ chromogenic
 django-cyverse-auth
 threepio
 rtwo
-subspace
 
 raven
 newrelic

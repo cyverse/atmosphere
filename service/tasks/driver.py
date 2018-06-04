@@ -869,7 +869,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id, core_identity_
     # USE ANSIBLE
     try:
         username = identity.user.username
-        playbooks = ansible_ready_to_deploy(instance.ip, username, instance_id)
+        playbook_results = ansible_ready_to_deploy(instance.ip, username, instance_id)
         _update_status_log(instance, "Ansible Finished (ready test) for %s." % instance.ip)
         celery_logger.debug("deploy_ready_test task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
@@ -977,20 +977,19 @@ def check_web_desktop_task(driverCls, provider, identity,
             return False
         # USE ANSIBLE
         username = identity.user.username
-        hostname = build_host_name(instance.id, instance.ip)
         should_raise = True
         retry_count = current.request.retries
         if retry_count > 2:
             should_raise = False
-        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_novnc.yml"], raise_exception=should_raise)
-        result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
+        playbook_results = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_novnc.yml"], raise_exception=should_raise)
+        desktop_enabled = not (execution_has_failures(playbook_results) or execution_has_unreachable(playbook_results))
 
         # NOTE: Throws Instance.DoesNotExist
         core_instance = Instance.objects.get(provider_alias=instance_alias)
-        core_instance.web_desktop = result
+        core_instance.web_desktop = desktop_enabled
         core_instance.save()
         celery_logger.debug("check_web_desktop_task finished at %s." % datetime.now())
-        return result
+        return desktop_enabled
     except AnsibleDeployException as exc:
         check_web_desktop_task.retry(exc=exc)
     except Instance.DoesNotExist:
@@ -1042,18 +1041,17 @@ def check_process_task(driverCls, provider, identity,
         instance = driver.get_instance(instance_alias)
         if not instance:
             return False
-        hostname = build_host_name(instance.id, instance.ip)
         # USE ANSIBLE
         username = identity.user.username
-        playbooks = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_vnc.yml"], raise_exception=False)
-        result = False if execution_has_failures(playbooks, hostname) or execution_has_unreachable(playbooks, hostname)  else True
+        playbook_results = run_utility_playbooks(instance.ip, username, instance_alias, ["atmo_check_vnc.yml"], raise_exception=False)
+        vnc_enabled = not (execution_has_failures(playbook_results) or execution_has_unreachable(playbook_results))
 
         # NOTE: Throws Instance.DoesNotExist
         core_instance = Instance.objects.get(provider_alias=instance_alias)
-        core_instance.vnc = result
+        core_instance.vnc = vnc_enabled
         core_instance.save()
         celery_logger.debug("check_process_task finished at %s." % datetime.now())
-        return result
+        return vnc_enabled
     except AnsibleDeployException as exc:
         check_process_task.retry(exc=exc)
     except Instance.DoesNotExist:
