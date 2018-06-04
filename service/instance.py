@@ -169,10 +169,8 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
     """
     _permission_to_act(identity_uuid, "Stop")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance, identity_uuid)
+        remove_floating_ip(esh_driver, esh_instance, identity_uuid)
     stopped = esh_driver.stop_instance(esh_instance)
-    if reclaim_ip:
-        remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
     update_status(
         esh_driver,
         esh_instance.id,
@@ -234,10 +232,8 @@ def suspend_instance(esh_driver, esh_instance,
     """
     _permission_to_act(identity_uuid, "Suspend")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance, identity_uuid)
+        remove_floating_ip(esh_driver, esh_instance, identity_uuid)
     suspended = esh_driver.suspend_instance(esh_instance)
-    if reclaim_ip:
-        remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
     update_status(
         esh_driver,
         esh_instance.id,
@@ -251,9 +247,9 @@ def suspend_instance(esh_driver, esh_instance,
 
 
 # Networking specific
-def remove_ips(esh_driver, esh_instance, core_identity_uuid, update_meta=True):
+def remove_floating_ip(esh_driver, esh_instance, core_identity_uuid, update_meta=True):
     """
-    Returns: (floating_removed, fixed_removed)
+    Returns: nothing
     """
     from service.tasks.driver import update_metadata
     core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
@@ -269,42 +265,6 @@ def remove_ips(esh_driver, esh_instance, core_identity_uuid, update_meta=True):
         metadata={'public-ip': '', 'public-hostname': ''}
         update_metadata.s(driver_class, provider, identity, esh_instance.id,
                           metadata, replace_metadata=False).apply()
-    # Fixed
-    instance_ports = network_driver.list_ports(device_id=esh_instance.id)
-    if instance_ports:
-        fixed_ip_port = instance_ports[0]
-        fixed_ips = fixed_ip_port.get('fixed_ips', [])
-        if fixed_ips:
-            fixed_ip = fixed_ips[0]['ip_address']
-            result = esh_driver._connection.ex_remove_fixed_ip(
-                esh_instance,
-                fixed_ip)
-            logger.info("Removed Fixed IP %s - Result:%s" % (fixed_ip, result))
-        return (True, True)
-    return (True, False)
-
-# Not in use -- marked for deletion
-# def detach_port(esh_driver, esh_instance):
-#     instance_ports = network_manager.list_ports(device_id=esh_instance.id)
-#     if instance_ports:
-#         fixed_ip_port = instance_ports[0]
-#         result = esh_driver._connection.ex_detach_interface(
-#             esh_instance.id, fixed_ip_port['id'])
-#         logger.info("Detached Port: %s - Result:%s" % (fixed_ip_port, result))
-#     return result
-
-
-def remove_empty_network(esh_driver, identity_uuid, network_options={}):
-    """
-    #FIXME: I think the original intent of why we called this was:
-    # 1. IF you are the last instance, remove the network.
-    # 2. Remove the fixed IP that was allocated for the instance.
-    # If so, i don't believe #2 is being completed
-    """
-    from service.tasks.driver import remove_empty_network as remove_empty_network_task
-    remove_empty_network_task.s(
-        esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, identity_uuid, network_options).apply_async()
 
 
 def restore_network(esh_driver, esh_instance, identity_uuid):
@@ -623,10 +583,8 @@ def shelve_instance(esh_driver, esh_instance,
     _permission_to_act(identity_uuid, "Shelve")
     _update_status_log(esh_instance, "Shelving Instance")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance, identity_uuid)
+        remove_floating_ip(esh_driver, esh_instance, identity_uuid)
     shelved = esh_driver._connection.ex_shelve_instance(esh_instance)
-    if reclaim_ip:
-        remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
     update_status(
         esh_driver,
         esh_instance.id,
@@ -675,10 +633,8 @@ def offload_instance(esh_driver, esh_instance,
     _permission_to_act(identity_uuid, "Shelve Offload")
     _update_status_log(esh_instance, "Shelve-Offloading Instance")
     if reclaim_ip:
-        remove_ips(esh_driver, esh_instance, identity_uuid)
+        remove_floating_ip(esh_driver, esh_instance, identity_uuid)
     offloaded = esh_driver._connection.ex_shelve_offload_instance(esh_instance)
-    if reclaim_ip:
-        remove_empty_network(esh_driver, identity_uuid, {"skip_network":True})
     update_status(
         esh_driver,
         esh_instance.id,
@@ -712,7 +668,7 @@ def os_cleanup_networking(core_identity_uuid):
     """
     NOTE: this relies on celery to 'kick these tasks off' as we return the destroyed instance back to the user.
     """
-    from service.tasks.driver import clean_empty_ips, remove_empty_network
+    from service.tasks.driver import clean_empty_ips
     core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
     driver = get_cached_driver(identity=core_identity)
     if not isinstance(driver, OSDriver):
@@ -734,10 +690,6 @@ def os_cleanup_networking(core_identity_uuid):
             time.sleep(60)
         clean_task = clean_empty_ips.si(driverCls, provider, identity,
                                         immutable=True, countdown=5)
-        remove_task = remove_empty_network.si(
-            driverCls, provider, identity, core_identity_uuid, {"skip_network":False}
-        )
-        clean_task.link(remove_task)
         clean_task.apply_async()
     else:
         logger.debug("Driver shows %s of %s instances are active"

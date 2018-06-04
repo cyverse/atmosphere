@@ -250,44 +250,27 @@ def _remove_ips_from_inactive_instances(driver, instances, core_identity):
     for instance in instances:
         # DOUBLE-CHECK:
         if driver._is_inactive_instance(instance) and instance.ip:
-            # If an inactive instance has floating/fixed IPs.. Remove them!
-            instance_service.remove_ips(driver, instance, str(core_identity.uuid))
-    return True
-
-
-def _remove_network(
-        core_identity,
-        tenant_name):
-    """
-    """
-    celery_logger.info("Removing project network for %s" % tenant_name)
-    # Sec. group can't be deleted if instances are suspended
-    # when instances are suspended we pass remove_network=False
-    from service import instance as instance_service
-
-    instance_service.delete_security_group(core_identity)
-    instance_service.destroy_network(
-        core_identity)
+            # If an inactive instance has floating IP.. Remove it!
+            instance_service.remove_floating_ip(driver, instance, str(core_identity.uuid))
     return True
 
 
 @task(name="clear_empty_ips_for")
 def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
     """
-    RETURN: (number_ips_removed, delete_network_called)
+    RETURN: number_ips_removed
     on Failure:
     -404, driver creation failure (Verify credentials are accurate)
     -401, authorization failure (Change the password of the driver)
     -500, cloud failure (Operational support required)
     """
     from service.driver import get_esh_driver
-    from service import instance as instance_service
     from rtwo.driver import OSDriver
     # Initialize the drivers
     core_identity = Identity.objects.get(uuid=core_identity_uuid)
     driver = get_esh_driver(core_identity)
     if not isinstance(driver, OSDriver):
-        return (-404, False)
+        return -404
     # Get useful info
     creds = core_identity.get_credentials()
     tenant_name = creds['ex_tenant_name']
@@ -299,39 +282,11 @@ def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
         instances = driver.list_instances()
     except LibcloudInvalidCredsError:
         logger.exception("InvalidCredentials provided for Identity %s" % core_identity)
-        return (-401, False)
+        return -401
     except LibcloudBadResponseError:
         logger.exception("Driver returned unexpected response for Identity %s" % core_identity)
-        return (-500, False)
-    # Active True IFF ANY instance is 'active'
-    active_instances = any(driver._is_active_instance(inst)
-                           for inst in instances)
-    # Inactive True IFF ALL instances are non active
-    # (suspended, stopped, and 'error' states like 'error/hard_reboot')
-    inactive_instances = all(not driver._is_active_instance(inst)
-                             for inst in instances)
+        return -500
     _remove_ips_from_inactive_instances(driver, instances, core_identity)
-    if active_instances and not inactive_instances:
-        # User has >1 active instances AND not all instances inactive_instances
-        return (num_ips_removed, False)
-    network_driver = instance_service._to_network_driver(core_identity)
-    network = network_driver.find_network('%s-net' % tenant_name)
-    if network:
-        network = network[0]
-        network_id = network['id']
-        # User has 0 active instances OR all instances are inactive_instances
-        # Network exists, attempt to dismantle as much as possible
-        # Remove network=False IFF inactive_instances=True..
-        remove_network = not inactive_instances
-        if remove_network:
-            _remove_network(
-                core_identity,
-                tenant_name)
-            return (num_ips_removed, True)
-        return (num_ips_removed, False)
-    else:
-        celery_logger.info("No Network found. Skipping %s" % tenant_name)
-        return (num_ips_removed, False)
 
 
 @task(name="clear_empty_ips")
@@ -1263,58 +1218,6 @@ def add_os_project_network(core_identity, *args, **kwargs):
                      datetime.now())
     except Exception as exc:
         add_os_project_network.retry(exc=exc)
-
-
-@task(name="remove_empty_network",
-      default_retry_delay=60,
-      max_retries=1)
-def remove_empty_network(
-        driverCls, provider, identity,
-        core_identity_uuid,
-        network_options):
-    from service import instance as instance_service
-    try:
-        celery_logger.debug("remove_empty_network task started at %s." %
-                     datetime.now())
-
-        celery_logger.debug("CoreIdentity(uuid=%s)" % core_identity_uuid)
-        core_identity = Identity.objects.get(uuid=core_identity_uuid)
-        driver = get_driver(driverCls, provider, identity)
-        instances = driver.list_instances()
-        if not hasattr(driver, '_is_active_instance'):
-            celery_logger.debug("Driver %s does not have '_is_active_instance'" % driver)
-            return False
-        if not hasattr(driver, '_is_inactive_instance'):
-            celery_logger.debug("Driver %s does not have '_is_inactive_instance'" % driver)
-            return False
-        active_instances = any(
-            driver._is_active_instance(instance) for
-            instance in instances)
-        # If instances are active, we are done..
-        if not active_instances:
-            # Inactive True IFF ALL instances are suspended/stopped, False if empty list.
-            inactive_instances_present = all(
-                driver._is_inactive_instance(instance)
-                for instance in instances)
-            # Inactive instances, True: Remove network, False
-            # Check for project network
-            celery_logger.info(
-                "No active instances. Removing project network"
-                "from %s" % core_identity)
-            delete_network_options = {}
-            delete_network_options['skip_network'] = inactive_instances_present
-            instance_service.destroy_network(
-                core_identity, delete_network_options)
-            if not inactive_instances_present:
-                # Sec. group can't be deleted if instances are suspended
-                # when instances are suspended we should leave this intact.
-                instance_service.delete_security_group(core_identity)
-            return True
-        celery_logger.debug("remove_empty_network task finished at %s." %
-                     datetime.now())
-        return False
-    except Exception as exc:
-        celery_logger.exception("Exception occurred project network is empty")
 
 
 @task(name="check_image_membership")
