@@ -1,5 +1,5 @@
 import json
-
+import memoize
 import freezegun
 import vcr
 from django.test import TestCase, override_settings, modify_settings
@@ -22,6 +22,14 @@ my_vcr = vcr.VCR(
 @override_settings(TACC_API_URL='https://localhost/api-test')
 class TestJetstream(TestCase):
     """Tests for Jetstream allocation source API"""
+
+    def setUp(self):
+        # Because we use memoize to cache the tacc api, calling tacc_api_get
+        # doesn't necessarily trigger an http request. This means that a
+        # cassette will not necessarily be played. In order to test cassette
+        # playback, we just need to clear the memoize cache
+        from jetstream.tas_api import tacc_api_get
+        memoize.delete_memoized(tacc_api_get)
 
     @my_vcr.use_cassette()
     def test_validate_account(self, cassette):
