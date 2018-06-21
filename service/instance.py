@@ -127,42 +127,6 @@ def reboot_instance(
     redeploy_instance(esh_driver, esh_instance, core_identity, user=user, status_update=False)
 
 
-def resize_instance(esh_driver, esh_instance, size_alias,
-                    provider_uuid, identity_uuid, user):
-    _permission_to_act(identity_uuid, "Resize")
-    size = esh_driver.get_size(size_alias)
-    redeploy_task = resize_and_redeploy(
-        esh_driver,
-        esh_instance,
-        identity_uuid)
-    esh_driver.resize_instance(esh_instance, size)
-    redeploy_task.apply_async()
-    # Write build state for new size
-    update_status(
-        esh_driver,
-        esh_instance.id,
-        provider_uuid,
-        identity_uuid,
-        user)
-
-
-def confirm_resize(
-        esh_driver,
-        esh_instance,
-        provider_uuid,
-        identity_uuid,
-        user):
-    _permission_to_act(identity_uuid, "Resize")
-    esh_driver.confirm_resize_instance(esh_instance)
-    # Double-Check we are counting on new size
-    update_status(
-        esh_driver,
-        esh_instance.id,
-        provider_uuid,
-        identity_uuid,
-        user)
-
-
 def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
                   reclaim_ip=True):
     """
@@ -333,35 +297,6 @@ def _get_network_id(esh_driver, esh_instance):
 
 # Celery Chain-Starters and Tasks
 
-
-def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
-    """
-    TODO: Remove this and use the 'deploy_init' tasks already written instead!
-          -Steve 2/2015
-    Use this function to kick off the async task when you ONLY want to deploy
-    (No add fixed, No add floating)
-    """
-    from service.tasks.driver import deploy_init_to
-    from service.tasks.driver import wait_for_instance, complete_resize
-    core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
-
-    task_one = wait_for_instance.s(
-        esh_instance.id, esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, "verify_resize")
-    raise Exception("Programmer -- Fix this method based on the TODO")
-    task_three = complete_resize.si(
-        esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, esh_instance.id,
-        core_identity.provider.id, core_identity.id, core_identity.created_by)
-    task_four = deploy_init_to.si(
-        esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, esh_instance.id, core_identity, redeploy=True)
-    # Link em all together!
-    task_one.link(task_three)
-    # task_one.link(task_two)
-    # task_two.link(task_three)
-    task_three.link(task_four)
-    return task_one
 
 
 def redeploy_instance(
@@ -2004,20 +1939,7 @@ def run_instance_action(user, identity, instance_id, action_type, action_params)
         allocation_snapshot = InstanceAllocationSourceSnapshot.objects.get(instance__provider_alias=instance_id)
         allocation = allocation_snapshot.allocation_source
         check_allocation(user.username, allocation)
-    if 'resize' == action_type:
-        size_alias = action_params.get('size', '')
-        if isinstance(size_alias, int):
-            size_alias = str(size_alias)
-        result_obj = resize_instance(
-            esh_driver, esh_instance, size_alias,
-            provider_uuid, identity_uuid, user)
-    elif 'confirm_resize' == action_type:
-        result_obj = confirm_resize(
-            esh_driver, esh_instance,
-            provider_uuid, identity_uuid, user)
-    elif 'revert_resize' == action_type:
-        result_obj = esh_driver.revert_resize_instance(esh_instance)
-    elif 'redeploy' == action_type:
+    if 'redeploy' == action_type:
         result_obj = redeploy_instance(esh_driver, esh_instance, identity, user=user)
     elif 'resume' == action_type:
         deploy = action_params.get('deploy', True)

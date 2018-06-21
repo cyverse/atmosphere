@@ -78,7 +78,7 @@ AVAILABLE_SIZES = {
     "test.large": large_size
 }
 
-STATUS_CHOICES = frozenset(["active", "suspended", "build", "resize"])
+STATUS_CHOICES = frozenset(["active", "suspended", "build"])
 
 # Rules
 carry_forward = CarryForwardTime()
@@ -106,9 +106,11 @@ double_burn_rate = MultiplyBurnTime(
 
 ignore_inactive = IgnoreStatusRule(
     "Ignore Inactive Instances",
-    value=["build", "pending", "hard_reboot", "reboot", "migrating", "rescue",
-           "resize", "verify_resize", "shutoff", "shutting-down", "suspended",
-           "terminated", "deleted", "error", "unknown", "N/A", ])
+    value=[
+        "build", "pending", "hard_reboot", "reboot", "migrating", "rescue",
+        "shutoff", "shutting-down", "suspended", "terminated", "deleted",
+        "error", "unknown", "N/A",
+    ])
 
 ignore_suspended = IgnoreStatusRule("Ignore Suspended Instances", "suspended")
 ignore_build = IgnoreStatusRule("Ignore 'Build' Instances", "build")

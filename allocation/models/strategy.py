@@ -171,7 +171,6 @@ class IgnoreNonActiveStatus(GlobalRules):
                    "networking", "deploying",
                    "hard_reboot", "reboot",
                    "migrating", "rescue",
-                   "resize", "verify_resize",
                    "shutoff", "shutting-down",
                    "suspended", "terminated",
                    "deleted", "deploy_error", "error", "Unknown", "unknown", "N/A",

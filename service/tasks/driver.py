@@ -62,28 +62,6 @@ def print_debug():
     celery_logger.debug(log_str)
 
 
-@task(name="complete_resize", max_retries=2, default_retry_delay=15)
-def complete_resize(driverCls, provider, identity, instance_alias,
-                    core_provider_uuid, core_identity_uuid, user):
-    """
-    Confirm the resize of 'instance_alias'
-    """
-    from service import instance as instance_service
-    try:
-        celery_logger.debug("complete_resize task started at %s." % datetime.now())
-        driver = get_driver(driverCls, provider, identity)
-        instance = driver.get_instance(instance_alias)
-        if not instance:
-            celery_logger.debug("Instance has been teminated: %s." % instance_alias)
-            return False, None
-        result = instance_service.confirm_resize(
-            driver, instance, core_provider_uuid, core_identity_uuid, user)
-        celery_logger.debug("complete_resize task finished at %s." % datetime.now())
-        return True, result
-    except Exception as exc:
-        celery_logger.exception(exc)
-        complete_resize.retry(exc=exc)
-
 
 @task(name="wait_for_instance", max_retries=250, default_retry_delay=15)
 def wait_for_instance(

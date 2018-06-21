@@ -97,7 +97,6 @@ class InstanceActionTests(APITestCase):
         InstanceAllocationSourceSnapshot.objects.update_or_create(instance=self.active_instance,
                                                                   allocation_source=self.allocation_source_1)
 
-    # For resize, I will add a size in InstanceStatusHistory. for stop, we don't have to have
     def test_stop_instance_action(self):
         data = {
             'action': 'stop'
@@ -177,20 +176,3 @@ class InstanceActionTests(APITestCase):
         }
         with mock.patch('service.tasks.driver.get_idempotent_deploy_chain'):
             return self.attempt_instance_action(data)
-
-# Comment out this test for test-script PR. Will add this in the Resize PR --Lucas
-'''
-    def test_resize_instance_action(self):
-        factory = APIRequestFactory()
-        data = {
-            "action":"resize",
-            "resize_size":self.size_large.alias
-        }
-        request = factory.post(self.url, data)
-        force_authenticate(request, user=self.user)
-        response = self.view(request, str(self.active_instance.provider_alias))
-        self.assertEquals(response.status_code, 200,
-            "Expected a 200, received %s: %s" % (response.status_code, response.data) )
-        data = response.data.get('result')
-        self.assertEquals('success', data)
-'''
