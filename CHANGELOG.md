@@ -37,6 +37,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - monitor_machines_for fails in the presence of inactive provider ([#614](https://github.com/cyverse/atmosphere/pull/614))
   - Chromogenic (0.4.17) had a caching issue causing imaging to fail ([#619](https://github.com/cyverse/atmosphere/pull/619))
   - Explicitly specify external network to rtwo when associating a floating IP address ([#624](https://github.com/cyverse/atmosphere/pull/624))
+  - Consecutive test runs would fail because django-memoize was intercepting
+    cassette playback ([#626](https://github.com/cyverse/atmosphere/pull/626))
 
 ### Removed
   - In the general feedback email we no longer include the users selected
