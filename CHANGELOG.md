@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     - Additionally atmosphere no longer reports the private ip in the absence
       of the public ip
   - `monitor_machines` periodic task runs once each night rather than every 30 minutes
+  - Subspace is replaced by Ansible's PlaybookCLI for instance deployment ([#631](https://github.com/cyverse/atmosphere/pull/631))
 
 ### Fixed
   - `application_to_provider` was using an invalid method in Glance Client v1 to upload image data ([#618](https://github.com/cyverse/atmosphere/pull/618))
