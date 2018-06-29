@@ -175,7 +175,7 @@ requirements-detector==0.5.2  # via prospector
 rfc3986==1.1.0
 rfive==0.2.0
 rsa==3.4.2
-rtwo==0.5.20
+rtwo==0.5.21
 scandir==1.5              # via pathlib2
 selenium==3.5.0           # via splinter
 setoptconf==0.2.0         # via prospector
