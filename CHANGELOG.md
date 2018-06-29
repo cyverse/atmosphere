@@ -36,7 +36,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - `application_to_provider` was using an invalid method in Glance Client v1 to upload image data ([#618](https://github.com/cyverse/atmosphere/pull/618))
   - monitor_machines_for fails in the presence of inactive provider ([#614](https://github.com/cyverse/atmosphere/pull/614))
   - Chromogenic (0.4.17) had a caching issue causing imaging to fail ([#619](https://github.com/cyverse/atmosphere/pull/619))
-  - Explicitly specify external network to rtwo when associating a floating IP address ([#624](https://github.com/cyverse/atmosphere/pull/624))
+  - Explicitly specify external network to rtwo when associating a floating IP
+    address ([#624](https://github.com/cyverse/atmosphere/pull/624))
+    ([#632](https://github.com/cyverse/atmosphere/pull/632))
 
 ### Removed
   - In the general feedback email we no longer include the users selected
