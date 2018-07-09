@@ -1132,8 +1132,33 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
                 floating_ip_addr, instance_alias)
             floating_ip = selected_floating_ip
         else:
-            floating_ip = network_driver.associate_floating_ip(instance_alias)
-            floating_ip_addr = floating_ip["floating_ip_address"]
+            if core_identity.provider.cloud_config['network']['topology'] \
+                    == "External Router Topology":
+                # Determine correct external network based on external gateway
+                # info of the identity's public router
+                public_router_name = core_identity.get_credential('router_name')
+                admin_identity = core_identity.provider.admin
+                admin_neutron = instance_service._to_network_driver(admin_identity).neutron
+                routers = admin_neutron.list_routers(retrieve_all=True)['routers']
+                public_router = None
+                for router in routers:
+                    if router['name'] == public_router_name:
+                        public_router = router
+                if not public_router:
+                    raise Exception("Could not find a router matching"
+                                    " public_router name {} for user {}"
+                                    .format(public_router_name,
+                                            identity.created_by.username))
+                external_network_id = \
+                    public_router['external_gateway_info']['network_id']
+                floating_ip = \
+                    network_driver.associate_floating_ip(instance_alias,
+                                                         external_network_id)
+            else:
+                floating_ip = \
+                    network_driver.associate_floating_ip(instance_alias)
+            floating_ip_addr = \
+                floating_ip["floating_ip_address"]
             celery_logger.debug("Created new floating_ip_address - %s" % floating_ip_addr)
 
         _update_status_log(instance, "Networking Complete")
@@ -1185,7 +1210,6 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
         countdown = min(2**current.request.retries, 128)
         add_floating_ip.retry(exc=exc,
                               countdown=countdown)
-
 
 @task(name="clean_empty_ips", default_retry_delay=15,
       ignore_result=True, max_retries=6)
