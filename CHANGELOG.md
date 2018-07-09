@@ -39,6 +39,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Explicitly specify external network to rtwo when associating a floating IP
     address ([#624](https://github.com/cyverse/atmosphere/pull/624))
     ([#632](https://github.com/cyverse/atmosphere/pull/632))
+  - Attaching task succeeded before volume was actually attached causing
+    volume mount to fail
+    ([#629](https://github.com/cyverse/atmosphere/pull/629))
 
 ### Removed
   - In the general feedback email we no longer include the users selected

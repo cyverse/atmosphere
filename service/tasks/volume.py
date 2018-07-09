@@ -154,62 +154,49 @@ def mount_volume_task(driverCls, provider, identity, instance_id, volume_id,
 # Libcloud Instance Action (Attachment) tasks
 
 
-@task(name="attach_task",
-      default_retry_delay=20,
-      ignore_result=False,
-      max_retries=1)
-def attach_task(driverCls, provider, identity, instance_id, volume_id,
-                device_choice=None, *args, **kwargs):
+@task(name="attach_task")
+def attach_task(driverCls,
+                provider,
+                identity,
+                instance_id,
+                volume_id,
+                device_choice=None,
+                *args,
+                **kwargs):
+    celery_logger.debug("attach_task started at %s." % timezone.now())
+    driver = get_driver(driverCls, provider, identity)
+    from service.volume import attach_volume
+    attach_volume(driver, instance_id, volume_id, device_choice=device_choice)
+
+    attempts = 0
+    while True:
+        volume = driver.get_volume(volume_id)
+        assert volume, "Volume ({}) does not exist".format(volume_id)
+
+        volume_status = volume.extra.get('status', '')
+        if volume_status == "in-use":
+            break
+
+        if attempts > 4:
+            raise Exception(
+                "Attach task timed out for volume {} and instance {}, volume status: {}".
+                format(volume_id, instance_id, volume_status))
+
+        celery_logger.debug(
+            "Volume {} is not ready. Expected 'in-use', got '{}'".format(
+                volume_id, volume_status))
+        time.sleep(10)
+        attempts += 1
+
     try:
-        celery_logger.debug("attach_task started at %s." % timezone.now())
-        driver = get_driver(driverCls, provider, identity)
-        from service.volume import attach_volume  # TODO: Test pulling this up -- out of band
-        attach_volume(driver, instance_id, volume_id, device_choice=device_choice)
+        attach_data = volume.extra['attachments'][0]
+        device = attach_data['device']
+    except (IndexError, KeyError):
+        raise Exception("Could not find 'device' in volume.extra {}".format(
+            volume.extra))
 
-        # When the reslt returns the volume will be 'attaching'
-        # We can't do anything until the volume is 'available/in-use'
-        attempts = 0
-        while True:
-            volume = driver.get_volume(volume_id)
-            # Give up if you can't find the volume
-            if not volume:
-                return None
-            if attempts > 6:  # After 6 attempts (~1min)
-                break
-            # Openstack Check
-            if isinstance(driver, OSDriver) and\
-                    'attaching' not in volume.extra.get('status', ''):
-                break
-            if isinstance(driver, EucaDriver) and\
-                    'attaching' not in volume.extra.get('status', ''):
-                break
-            # Exponential backoff..
-            attempts += 1
-            sleep_time = 2**attempts
-            celery_logger.debug("Volume %s is not ready (%s). Sleep for %s"
-                         % (volume.id, volume.extra.get('status', 'no-status'),
-                            sleep_time))
-            time.sleep(sleep_time)
-
-        if 'available' in volume.extra.get('status', ''):
-            raise Exception("Volume %s failed to attach to instance %s"
-                            % (volume.id, instance_id))
-
-        # Device path for euca == openstack
-        try:
-            attach_data = volume.extra['attachments'][0]
-            device = attach_data['device']
-        except (IndexError, KeyError) as bad_fetch:
-            celery_logger.warn("Could not find 'device' in "
-                        "volume.extra['attachments']: "
-                        "Volume:%s Extra:%s" % (volume.id, volume.extra))
-            device = None
-
-        celery_logger.debug("attach_task finished at %s." % timezone.now())
-        return device
-    except Exception as exc:
-        celery_logger.exception(exc)
-        attach_task.retry(exc=exc)
+    celery_logger.debug("attach_task finished at %s." % timezone.now())
+    return device
 
 
 @task(name="detach_task",
