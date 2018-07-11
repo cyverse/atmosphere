@@ -10,8 +10,6 @@ from django.utils.text import slugify
 from django.utils.timezone import datetime
 
 
-from ansible.cli.playbook import PlaybookCLI
-
 from threepio import logger, deploy_logger
 
 from atmosphere import settings
@@ -297,6 +295,9 @@ def user_deploy_install(instance_ip, username, instance_id, install_action, inst
 
 def execute_playbooks(playbook_dir, host_file, extra_vars, host,
                       logger=None, limit_playbooks=[]):
+    # Import PlaybookCLI here because if it is imported before reading ansible.cfg,
+    # ansible will try to create a tempdir that it does not have permission for.
+    from ansible.cli.playbook import PlaybookCLI
     # Force requirement of a logger for 2.0 playbook runs
     if not logger:
         logger = deploy_logger
