@@ -54,6 +54,17 @@
     copytruncate
     dateext
 }
+/opt/dev/atmosphere/logs/atmosphere_deploy.d/*/*.log {
+    su www-data www-data
+    daily
+    rotate 4
+    maxage 3
+    missingok
+    compress
+    delaycompress
+    notifempty
+    dateext
+}
 /opt/dev/atmosphere/logs/atmosphere_email.log {
     su www-data www-data
     daily
