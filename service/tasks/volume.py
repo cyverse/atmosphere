@@ -19,11 +19,10 @@ from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 from service.driver import get_driver
 from service.deploy import (
     deploy_check_volume, deploy_mount_volume, deploy_unmount_volume,
-    build_host_name, execution_has_failures, execution_has_unreachable)
+    execution_has_failures, execution_has_unreachable)
 from service.exceptions import DeviceBusyException
 
 # Ansible deployment tasks
-
 
 @task(name="check_volume_task",
       max_retries=0,
@@ -45,18 +44,15 @@ def check_volume_task(driverCls, provider, identity,
         # 1. Voume exists
         # 2. Volume has a filesystem
         #    (If not, create one of type 'device_type')
-        playbooks = deploy_check_volume(
+        playbook_results = deploy_check_volume(
             instance.ip, username, instance.id,
             device_location, device_type=device_type)
-        celery_logger.info(playbooks.__dict__)
-        hostname = build_host_name(instance.id, instance.ip)
-        result = False if execution_has_failures(playbooks, hostname)\
-            or execution_has_unreachable(playbooks, hostname) else True
-        if not result:
+        success = not (execution_has_failures(playbook_results) or execution_has_unreachable(playbook_results))
+        if not success:
             raise Exception(
-                "Error encountered while checking volume for filesystem: %s"
-                % playbooks.stats.summarize(host=hostname))
-        return result
+                "Error encountered while checking volume for filesystem: instance_id: {}, volume_id: {}".format(instance_id, volume_id)
+            )
+        return success
     except Exception as exc:
         celery_logger.warn(exc)
         check_volume_task.retry(exc=exc)
@@ -85,18 +81,15 @@ def unmount_volume_task(driverCls, provider, identity, instance_id, volume_id,
         if not device_location:
             raise Exception("No device_location found or inferred by volume %s" % volume)
         try:
-            playbooks = deploy_unmount_volume(
+            playbook_results = deploy_unmount_volume(
                 instance.ip, username, instance.id, device_location)
         except DeviceBusyException:
             # Future-Fixme: Update VolumeStatusHistory.extra, set status to 'unmount_failed'
             raise
-        hostname = build_host_name(instance.id, instance.ip)
-        result = False if execution_has_failures(playbooks, hostname)\
-            or execution_has_unreachable(playbooks, hostname) else True
-        if not result:
+        if execution_has_failures(playbook_results) or execution_has_unreachable(playbook_results):
             raise Exception(
-                "Error encountered while unmounting volume: %s"
-                % playbooks.stats.summarize(host=hostname))
+                "Error encountered while unmounting volume: instance_id: {}, volume_id: {}".format(instance_id, volume_id)
+            )
         return device_location
     except Exception as exc:
         celery_logger.warn(exc)
@@ -134,17 +127,14 @@ def mount_volume_task(driverCls, provider, identity, instance_id, volume_id,
         if not mount_location:
             mount_location = mount_prefix + last_char
 
-        playbooks = deploy_mount_volume(
+        playbook_results = deploy_mount_volume(
             instance.ip, username, instance.id,
             device_location, mount_location=mount_location, device_type=device_type)
-        celery_logger.info(playbooks.__dict__)
-        hostname = build_host_name(instance.id, instance.ip)
-        result = False if execution_has_failures(playbooks, hostname)\
-            or execution_has_unreachable(playbooks, hostname) else True
-        if not result:
+        celery_logger.info(playbook_results)
+        if execution_has_failures(playbook_results) or execution_has_unreachable(playbook_results):
             raise Exception(
-                "Error encountered while mounting volume: %s"
-                % playbooks.stats.summarize(host=hostname))
+                "Error encountered while mounting volume: instance_id: {}, volume_id: {}".format(instance_id, volume_id)
+            )
         return mount_location
     except Exception as exc:
         celery_logger.warn(exc)
