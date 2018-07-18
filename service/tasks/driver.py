@@ -1146,7 +1146,7 @@ def add_floating_ip(driverCls, provider, identity, core_identity_uuid,
                     raise Exception("Could not find a router matching"
                                     " public_router name {} for user {}"
                                     .format(public_router_name,
-                                            identity.created_by.username))
+                                            core_identity.created_by.username))
                 external_network_id = \
                     public_router['external_gateway_info']['network_id']
                 floating_ip = \
