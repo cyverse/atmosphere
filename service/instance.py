@@ -550,7 +550,6 @@ def resume_instance(esh_driver, esh_instance,
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Resume")
     _update_status_log(esh_instance, "Resuming Instance")
-    size = _get_size(esh_driver, esh_instance)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
         deploy_task = restore_ip_chain(esh_driver, esh_instance, deploy=deploy,
