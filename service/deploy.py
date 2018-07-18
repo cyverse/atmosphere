@@ -309,7 +309,7 @@ def execute_playbooks(playbook_dir, host_file, extra_vars, host,
     for pb in limit_playbooks:
         logger.info("Executing playbook %s/%s" % (playbook_dir, pb))
         args = [
-            "--inventory-file=%s" % inventory_dir,
+            "--inventory=%s" % inventory_dir,
             "--limit=%s" % host,
             "--extra-vars=%s" % json.dumps(extra_vars),
             "%s/%s" % (playbook_dir, pb)
