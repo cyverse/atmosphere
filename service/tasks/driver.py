@@ -499,10 +499,6 @@ def get_idempotent_deploy_chain(
     instance_status = instance.extra.get('status', '').lower()
     start_task = None
 
-    if not metadata or not instance_status:
-        raise Exception(
-            "This function cannot work without access to instance metadata AND status."
-            " re-write this function to access the instance's metadata AND status!")
     tmp_status = metadata.get('tmp_status', '').lower()
 
     if instance_status in ['suspended', 'stopped', 'paused',
