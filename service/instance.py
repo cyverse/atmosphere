@@ -22,10 +22,11 @@ from rtwo.drivers.common import _token_to_keystone_scoped_project
 
 from core.plugins import AllocationSourcePluginManager, EnforcementOverrideChoice
 from service.driver import AtmosphereNetworkManager
-from service.mock import AtmosphereMockDriver, AtmosphereMockNetworkManager
+from service.mock import AtmosphereMockNetworkManager
 
 from rtwo.drivers.common import _connect_to_keystone_v3
 from rtwo.drivers.openstack_network import NetworkManager
+from rtwo.models.instance import MockInstance
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
@@ -65,7 +66,8 @@ from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 from neutronclient.common.exceptions import Conflict
 
 def _get_size(esh_driver, esh_instance):
-    if isinstance(esh_instance.size, MockSize):
+    if isinstance(esh_instance.size, MockSize) and \
+        not isinstance(esh_instance, MockInstance):
         size = esh_driver.get_size(esh_instance.size.id)
     else:
         size = esh_instance.size
@@ -191,7 +193,7 @@ def start_instance(esh_driver, esh_instance,
     """
     # Don't check capacity because.. I think.. its already being counted.
     _permission_to_act(identity_uuid, "Start")
-    if restore_ip and type(esh_driver) != AtmosphereMockDriver:
+    if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
         deploy_task = restore_ip_chain(
             esh_driver, esh_instance, deploy=True,
@@ -210,7 +212,7 @@ def start_instance(esh_driver, esh_instance,
             identity_uuid)
 
     esh_driver.start_instance(esh_instance)
-    if restore_ip and type(esh_driver) != AtmosphereMockDriver:
+    if restore_ip:
         deploy_task.apply_async(countdown=10)
     update_status(
         esh_driver,
@@ -398,8 +400,6 @@ def redeploy_instance(
                              str(core_identity.uuid),
                              core_identity.created_by)
 
-    if type(esh_driver) == AtmosphereMockDriver:
-        return
     # HACK: Forces a metadata update to avoid "Instance activity workflow" errors in the GUI
     # by setting 'tmp_status' to 'initializing' users will not be stuck in a "final state"
     # if API polling starts _prior_ to instance action being successful.
@@ -550,7 +550,6 @@ def resume_instance(esh_driver, esh_instance,
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Resume")
     _update_status_log(esh_instance, "Resuming Instance")
-    size = _get_size(esh_driver, esh_instance)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
         deploy_task = restore_ip_chain(esh_driver, esh_instance, deploy=deploy,
@@ -568,7 +567,7 @@ def resume_instance(esh_driver, esh_instance,
             identity_uuid)
 
     esh_driver.resume_instance(esh_instance)
-    if restore_ip and type(esh_driver) != AtmosphereMockDriver:
+    if restore_ip:
         deploy_task.apply_async()
 
 

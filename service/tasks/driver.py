@@ -41,18 +41,15 @@ from service.exceptions import AnsibleDeployException
 from service.instance import _update_instance_metadata
 from service.networking import _generate_ssh_kwargs
 
-from service.mock import MockInstance
 
 def _update_status_log(instance, status_update):
-    if type(instance) == MockInstance:
-        return
     now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         user = instance._node.extra['metadata']['creator']
     except KeyError as no_user:
         user = "Unknown -- Metadata missing"
-    size_alias = instance._node.extra['flavorId']
-    machine_alias = instance._node.extra['imageId']
+    size_alias = instance.size.alias
+    machine_alias = instance.source.alias
     status_logger.debug("%s,%s,%s,%s,%s,%s"
                         % (now_time, user, instance.alias, machine_alias,
                            size_alias, status_update))
@@ -499,10 +496,6 @@ def get_idempotent_deploy_chain(
     instance_status = instance.extra.get('status', '').lower()
     start_task = None
 
-    if not metadata or not instance_status:
-        raise Exception(
-            "This function cannot work without access to instance metadata AND status."
-            " re-write this function to access the instance's metadata AND status!")
     tmp_status = metadata.get('tmp_status', '').lower()
 
     if instance_status in ['suspended', 'stopped', 'paused',

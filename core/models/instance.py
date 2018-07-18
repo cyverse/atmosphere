@@ -14,6 +14,7 @@ from django.utils import timezone
 
 import pytz
 
+from rtwo.models.instance import MockInstance
 from rtwo.models.machine import MockMachine
 from rtwo.models.size import MockSize
 from rtwo.models.size import OSSize
@@ -32,7 +33,6 @@ from core.models.size import (
 from core.models.tag import Tag
 from core.models.managers import ActiveInstancesManager
 from atmosphere import settings
-from service.mock import MockInstance
 
 
 class Instance(models.Model):
@@ -441,7 +441,7 @@ class Instance(models.Model):
         return status_name
 
     def esh_status(self):
-        if self.esh and type(self.esh) != MockInstance:
+        if self.esh:
             return self.esh.get_status()
         last_history = self.get_last_history()
         if last_history:
@@ -880,7 +880,8 @@ def _esh_instance_size_to_core(esh_driver, esh_instance, provider_uuid):
     # Only holds the alias, not all the values.
     # As a bonus this is a cached-call
     esh_size = esh_instance.size
-    if isinstance(esh_size, MockSize):
+    if isinstance(esh_size, MockSize) and not isinstance(esh_instance,
+            MockInstance):
         # MockSize includes only the Alias/ID information
         # so a lookup on the size is required to get accurate
         # information.
