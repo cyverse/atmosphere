@@ -1,5 +1,6 @@
 import uuid
 from unittest import skip, skipIf
+import mock
 
 from django.test import override_settings
 from django.core.urlresolvers import reverse
@@ -51,7 +52,10 @@ class InstanceActionTests(APITestCase):
         self.url = reverse('api:v2:instance-list')
         self.url += "/" + str(self.active_instance.provider_alias) + "/actions"
         self.mock_driver = get_esh_driver(self.user_identity)
-        self.mock_driver.add_core_instance(self.active_instance)
+        self.mock_driver.create_instance(
+            id=str(self.active_instance.provider_alias),
+            ip=self.active_instance.ip_address,
+            name=self.active_instance.name)
 
         start_date_second = timezone.now()
         self.active_instance_second = InstanceFactory.create(
@@ -70,7 +74,10 @@ class InstanceActionTests(APITestCase):
                 activity="",
                 instance=self.active_instance_second,
                 start_date=start_date_second + delta_time*3)
-        self.mock_driver.add_core_instance(self.active_instance_second)
+        self.mock_driver.create_instance(
+            id=str(self.active_instance_second.provider_alias),
+            ip=self.active_instance_second.ip_address,
+            name=self.active_instance_second.name)
         self.allocation_source_1 = AllocationSourceFactory.create(name='TEST_INSTANCE_ALLOCATION_SOURCE_01',
                                                                   compute_allowed=1000)
         UserAllocationSource.objects.create(
@@ -111,7 +118,8 @@ class InstanceActionTests(APITestCase):
         data = {
             'action': 'start'
         }
-        return self.attempt_instance_action(data)
+        with mock.patch('service.instance.restore_ip_chain'):
+            return self.attempt_instance_action(data)
 
     @override_settings(ALLOCATION_OVERRIDES_ALWAYS_ENFORCE=['TEST_INSTANCE_ALLOCATION_SOURCE_01'])
     def test_start_instance_when_allocation_blacklisted(self):
@@ -121,7 +129,8 @@ class InstanceActionTests(APITestCase):
         factory = APIRequestFactory()
         request = factory.post(self.url, data)
         force_authenticate(request, user=self.user)
-        response = self.view(request, str(self.active_instance.provider_alias))
+        with mock.patch('service.instance.restore_ip_chain'):
+            response = self.view(request, str(self.active_instance.provider_alias))
         data = response.data.get('result')
 
         # Check the status code
@@ -138,14 +147,16 @@ class InstanceActionTests(APITestCase):
             'action': 'reboot',
             'reboot_type': 'SOFT'
         }
-        return self.attempt_instance_action(data)
+        with mock.patch('service.instance.redeploy_instance'):
+            return self.attempt_instance_action(data)
 
     def test_reboot_hard_instance_action(self):
         data = {
             'action': 'reboot',
             'reboot_type': 'HARD'
         }
-        return self.attempt_instance_action(data)
+        with mock.patch('service.instance.redeploy_instance'):
+            return self.attempt_instance_action(data)
 
     def test_suspend_instance_action(self):
         data = {
@@ -157,13 +168,15 @@ class InstanceActionTests(APITestCase):
         data = {
             'action': 'resume'
         }
-        return self.attempt_instance_action(data)
+        with mock.patch('service.instance.restore_ip_chain'):
+            return self.attempt_instance_action(data)
 
     def test_redeploy_instance_action(self):
         data = {
             'action': 'redeploy'
         }
-        return self.attempt_instance_action(data)
+        with mock.patch('service.tasks.driver.get_idempotent_deploy_chain'):
+            return self.attempt_instance_action(data)
 
 # Comment out this test for test-script PR. Will add this in the Resize PR --Lucas
 '''
