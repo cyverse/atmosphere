@@ -3,6 +3,7 @@ business_rules
 colorama # used by ./configure
 django
 django-cors-headers
+django-enumfields
 django-sslserver #NOTE: Debugs requests real-time.
 djangorestframework
 djangorestframework-jsonp
@@ -21,7 +22,7 @@ enum34
 
 Jinja2
 django-celery-beat
-celery==4.0.2
+celery
 billiard
 flower
 

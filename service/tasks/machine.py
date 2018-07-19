@@ -22,7 +22,7 @@ from service.deploy import (
     execution_has_failures, execution_has_unreachable)
 from service.driver import get_admin_driver, get_esh_driver, get_account_driver
 from service.machine import process_machine_request, add_membership, remove_membership
-from service.tasks.driver import wait_for_instance, destroy_instance, print_chain
+from service.tasks.driver import wait_for_instance, destroy_instance
 
 @task(name="remove_membership_task",
       default_retry_delay=5,
@@ -114,7 +114,7 @@ def start_machine_imaging(machine_request, delay=False):
     new_status, _ = StatusType.objects.get_or_create(name="started")
     machine_request.status = new_status
     machine_request.save()
-    
+
     original_status = machine_request.old_status
     last_run_error, original_status = machine_request._recover_from_error(original_status)
 
@@ -174,8 +174,6 @@ def start_machine_imaging(machine_request, delay=False):
     if init_task == imaging_task:
         machine_request.old_status = 'imaging'
         machine_request.save()
-    # Start the task.
-    logger.info("Machine Chain : %s" % print_chain(init_task, idx=0))
     async = init_task.apply_async()
     if delay:
         async.get()
@@ -197,26 +195,40 @@ def enable_image_validation(machine_request, init_task, final_task, original_sta
     else:
         validate_task = validate_new_image.s(machine_request.id)
         init_task.link(validate_task)
-    #Validate task returns an instance_id
-    # Task 4 = Wait for new instance to be 'active'
-    wait_for_task = wait_for_instance.s(
-        # NOTE: 1st arg, instance_id, passed from last task.
+    # Task 4 = Terminate the new instance on completion
+    destroy_task = destroy_instance_once_active.s(
         admin_driver.__class__,
         admin_driver.provider,
         admin_driver.identity,
-        "active",
-        test_tmp_status=True,
-        return_id=True)
-    validate_task.link(wait_for_task)
+        admin_ident.created_by,
+        admin_ident.uuid)
+    validate_task.link(destroy_task)
     validate_task.link_error(error_handler_task)
-    # Task 5 = Terminate the new instance on completion
-    destroy_task = destroy_instance.s(
-        admin_ident.created_by, admin_ident.uuid)
-    wait_for_task.link(destroy_task)
-    wait_for_task.link_error(error_handler_task)
     destroy_task.link_error(error_handler_task)
     destroy_task.link(final_task)
     return init_task
+
+@task(name="destroy_instance_once_active")
+def destroy_instance_once_active(
+        instance_alias,
+        driverCls,
+        provider,
+        identity,
+        admin_user,
+        admin_ident_uuid):
+    # This is a hacky method to chain two different tasks together. In this way
+    # destroy_instance_once_active is really two separate tasks. We cannot use
+    # the typical linking/chaining because, destroy_instance must follow
+    # wait_for_task, and the instance_alias is only provided by a prior task
+    wait_for_task = wait_for_instance.si(
+        instance_alias,
+        driverCls,
+        provider,
+        identity,
+        "active")
+    destroy_task = destroy_instance.si(
+        instance_alias, admin_user, admin_ident_uuid)
+    return (wait_for_task | destroy_task).delay().get()
 
 def set_machine_request_metadata(machine_request, image_id):
     admin_driver = get_admin_driver(machine_request.new_machine_provider)

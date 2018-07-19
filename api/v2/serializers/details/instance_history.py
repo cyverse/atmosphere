@@ -6,7 +6,7 @@ from allocation.models import Allocation
 from core.models import Instance, InstanceStatusHistory, Size
 
 from api.v2.serializers.summaries import (
-    InstanceSuperSummarySerializer,
+    InstanceSummarySerializer,
     ProviderSummarySerializer, ImageSummarySerializer)
 from api.v2.serializers.summaries.size import SizeRelatedField
 from api.v2.serializers.fields.base import (
@@ -17,7 +17,7 @@ from api.v2.serializers.fields.base import (
 class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):
     instance = ModelRelatedField(
         queryset=Instance.objects.all(),
-        serializer_class=InstanceSuperSummarySerializer,
+        serializer_class=InstanceSummarySerializer,
         style={'base_template': 'input.html'})
     size = SizeRelatedField(queryset=Size.objects.none())
     provider = ProviderSummarySerializer(

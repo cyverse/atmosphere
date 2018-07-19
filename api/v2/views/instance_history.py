@@ -28,7 +28,6 @@ class InstanceStatusHistoryFilter(django_filters.FilterSet):
         fields = ['instance', 'created_by']
 
 
-
 class InstanceStatusHistoryViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
 
     """
@@ -49,7 +48,7 @@ class InstanceStatusHistoryViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
         user_id = self.request.user.id
 
         if self.request.query_params.get('unique', "").lower() == 'true':
-            # filtering distinct instance__start_date effectively gives us a unique instance list. Also the order of fields in distinct() 
+            # filtering distinct instance__start_date effectively gives us a unique instance list. Also the order of fields in distinct()
             # must match the order of fields in ordering set above
             return InstanceStatusHistory.objects.filter(instance__created_by_id=user_id).distinct('instance__start_date')
 

@@ -15,7 +15,7 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
     provider = serializers.PrimaryKeyRelatedField(
         source='created_by_identity.provider',
         read_only=True)
-    status = serializers.CharField(source='esh_status', read_only=True)
+    status = serializers.CharField(source='get_status', read_only=True)
     size = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     uuid = serializers.CharField(source='provider_alias')
@@ -55,37 +55,6 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
             'user',
             'provider',
             'image',
-            'start_date',
-            'end_date',
-        )
-
-
-class InstanceSuperSummarySerializer(serializers.HyperlinkedModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(
-        source='created_by',
-        read_only=True)
-    provider = serializers.PrimaryKeyRelatedField(
-        source='created_by_identity.provider',
-        read_only=True)
-    status = serializers.CharField(source='esh_status', read_only=True)
-    uuid = serializers.CharField(source='provider_alias')
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:instance-detail',
-        uuid_field='provider_alias'
-    )
-    class Meta:
-        model = Instance
-        fields = (
-            'id',
-            'uuid',
-            'url',
-            'name',
-            'status',
-            'ip_address',
-            'shell',
-            'vnc',
-            'user',
-            'provider',
             'start_date',
             'end_date',
         )

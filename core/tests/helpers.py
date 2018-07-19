@@ -102,10 +102,8 @@ class CoreStatusHistoryHelper(object):
         self.set_start_date(start_date)
 
     def first_transaction(self):
-        history = InstanceStatusHistory.create_history(
+        return InstanceStatusHistory.create_history(
             self.status_name, self.instance, self.size, self.start_date)
-        history.save()
-        return history
 
     def new_transaction(self):
         return InstanceStatusHistory.transaction(

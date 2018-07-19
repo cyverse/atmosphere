@@ -36,6 +36,7 @@ class IdentityFactory(factory.DjangoModelFactory):
         return identity
 
     class Meta:
+        django_get_or_create = ('created_by', 'provider')
         model = Identity
 
     created_by = factory.SubFactory(UserFactory)

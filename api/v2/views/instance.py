@@ -18,9 +18,8 @@ from rest_framework import renderers
 from rest_framework.decorators import detail_route, renderer_classes
 from rest_framework.response import Response
 
-from service.instance import (
-    launch_instance, destroy_instance, run_instance_action,
-    update_instance_metadata)
+from service.instance import (launch_instance, destroy_instance,
+                              run_instance_action)
 from threepio import logger
 # Things that go bump
 from api.v2.exceptions import (
@@ -82,23 +81,6 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             .select_related('project')
         return qs
 
-    @detail_route(methods=['post'])
-    def update_metadata(self, request, pk=None):
-        """
-        Until a better method comes about,
-        we will handle Updating metadata here.
-        """
-        data = request.data.copy()
-        metadata = data.pop('metadata')
-        instance_id = pk
-        instance = find_instance(instance_id)
-        try:
-            update_instance_metadata(instance, metadata)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception as exc:
-            logger.exception("Error occurred updating v2 instance metadata")
-            return Response(exc.message, status=status.HTTP_409_CONFLICT)
-
     @detail_route(methods=['get', 'post'])
     def actions(self, request, pk=None):
         """
@@ -127,11 +109,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         if type(action) == list:
             action = action[0]
         try:
-            result_obj = run_instance_action(user, identity, instance_id, action, action_params)
+            run_instance_action(user, identity, instance_id, action, action_params)
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully' % (action,),
-                'object': result_obj,
             }
             response = Response(api_response, status=status.HTTP_200_OK)
             return response

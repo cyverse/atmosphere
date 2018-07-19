@@ -6,6 +6,7 @@ import copy
 import uuid
 import random
 import warlock
+import mock
 
 from threepio import logger
 
@@ -35,7 +36,8 @@ class AtmosphereMockNetworkManager(NetworkManager):
     Once we are sure that no other overrides are necessary, we can cull the extra methods.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, core_identity):
+        self.core_identity = core_identity
         self.neutron = None
         self.default_router = None
         self.all_networks = ALL_NETWORKS
@@ -48,11 +50,8 @@ class AtmosphereMockNetworkManager(NetworkManager):
         return AtmosphereMockNetworkManager(
             core_identity)
 
-    def tenant_networks(self, tenant_id=None):
-        return []
-
     def get_tenant_id(self):
-        return 1
+        return self.core_identity.get_credential('ex_tenant_name')
 
     def get_credentials(self):
         """
@@ -64,21 +63,22 @@ class AtmosphereMockNetworkManager(NetworkManager):
             }
 
     def disassociate_floating_ip(self, server_id):
-        return '0.0.0.0'
+        return { "floating_ip_address": "0.0.0.0" }
 
-    def associate_floating_ip(self, server_id):
-        return '0.0.0.0'
+    def associate_floating_ip(self, server_id, external_network_id):
+        return { "floating_ip_address": "0.0.0.0" }
 
     def create_port(self, server_id, network_id, **kwargs):
         port = kwargs
         self.all_ports.append(port)
         return port
 
+
     def find_server_ports(self, server_id):
         return self.all_ports
 
     def list_floating_ips(self):
-        return ['0.0.0.0']
+        return []
 
     def rename_security_group(self, project, security_group_name=None):
         return True
@@ -110,12 +110,12 @@ class AtmosphereMockNetworkManager(NetworkManager):
                 return port
         return None
 
-    def list_networks(self, *args, **kwargs):
-        """
-        NOTE: kwargs can be: tenant_id=, or any other attr listed in the
-        details of a network.
-        """
-        return self.all_networks
+    def list_networks(self, tenant_id=None):
+        all_networks = self.all_networks
+        if tenant_id is not None:
+            all_networks = [ n for n in all_networks if n.get("tenant_id", "")
+                    == tenant_id ]
+        return all_networks
 
     def list_subnets(self):
         return self.all_subnets
@@ -123,17 +123,22 @@ class AtmosphereMockNetworkManager(NetworkManager):
     def list_routers(self):
         return self.all_routers
 
-    def list_ports(self, **kwargs):
-        """
-        Options:
-        subnet_id=subnet.id
-        device_id=device.id
-        ip_address=111.222.333.444
-        """
-        return self.all_ports
+    def list_ports(self, device_id=None):
+        filtered_ports = self.all_ports
+        if device_id:
+            filtered_ports = [ p for p in self.all_ports if
+                    p.get('device_id', '') == device_id ]
+
+        return filtered_ports
 
     def create_network(self, neutron, network_name):
-        network = {'name': network_name, 'admin_state_up': True}
+        tenant_id = self.get_tenant_id()
+        network = {
+            'name': network_name,
+            'admin_state_up': True,
+            'id': uuid.uuid4(),
+            'tenant_id': tenant_id
+        }
         self.all_networks.append(network)
         return network
 
@@ -164,7 +169,7 @@ class AtmosphereMockNetworkManager(NetworkManager):
         if existing_routers:
             logger.info('Router %s already exists' % router_name)
             return existing_routers[0]
-        router = {'name': router_name, 'admin_state_up': True}
+        router = {'name': router_name, 'admin_state_up': True, 'external_gateway_info': { 'network_id': '' }}
         self.all_routers.append(router)
         return router
 

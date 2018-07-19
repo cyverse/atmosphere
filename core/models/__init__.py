@@ -13,6 +13,7 @@ from core.models.application_pattern_match import ApplicationPatternMatch
 from core.models.application_tag import ApplicationTag
 from core.models.application_version import ApplicationVersion, ApplicationVersionMembership
 from core.models.cloud_admin import CloudAdministrator
+from core.models.deploy_record import DeployRecord
 from core.models.credential import Credential, ProviderCredential
 from core.models.export_request import ExportRequest
 from core.models.group import Group, IdentityMembership,\

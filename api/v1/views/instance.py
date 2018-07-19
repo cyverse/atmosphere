@@ -31,7 +31,6 @@ from service.exceptions import (
 from service.instance import (
     run_instance_action,
     launch_instance)
-from service.tasks.driver import update_metadata
 
 from api.exceptions import (
     failure_response, member_action_forbidden,
@@ -557,42 +556,12 @@ class Instance(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
 
-        # Cleared provider testing -- ready for driver prep.
+        core_instance = None
         try:
-            esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
-            if not esh_driver:
-                return invalid_creds(provider_uuid, identity_uuid)
-            logger.info("InstanceQuery Looking for %s" % instance_id)
-            esh_instance = esh_driver.get_instance(instance_id)
-            logger.info("InstanceQuery Found instance %s" % esh_instance)
-        except (socket_error, ConnectionFailure):
-            logger.exception("Connection failure prevented InstanceQuery")
-            return connection_failure(provider_uuid, identity_uuid)
-        except LibcloudInvalidCredsError:
-            logger.exception("Invalid credentialsprevented InstanceQuery")
-            return invalid_creds(provider_uuid, identity_uuid)
-        except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
-
-        # NOTE: Especially THIS part below, where you end date all the
-        #       things that are 'inactive'
-        if not esh_instance:
-            try:
-                core_inst = CoreInstance.objects.get(
-                    provider_alias=instance_id,
-                    source__provider__uuid=provider_uuid,
-                    created_by_identity__uuid=identity_uuid)
-                core_inst.end_date_all()
-            except CoreInstance.DoesNotExist:
-                pass
+            core_instance = CoreInstance.objects.get(provider_alias=instance_id)
+        except CoreInstance.DoesNotExist:
             return instance_not_found(instance_id)
 
-        core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             provider_uuid, identity_uuid,
-                                             user)
         serialized_data = InstanceSerializer(
             core_instance,
             context={"request": request}).data
@@ -634,10 +603,6 @@ class Instance(AuthAPIView):
 
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-
-            driver_class = esh_driver.__class__
-            update_metadata.s(driver_class, provider, identity, esh_instance.id,
-                              data, replace_metadata=False).apply()
             instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:
@@ -684,10 +649,6 @@ class Instance(AuthAPIView):
         identity = Identity.objects.get(uuid=identity_uuid)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
-            #NOTE: We shouldn't allow 'full replacement' of metadata..
-            # We should also validate against potentional updating of 'atmo-used metadata'
-            update_metadata.s(esh_driver.__class__, esh_driver.provider, esh_driver.identity, esh_instance.id,
-                              data, replace_metadata=False).apply()
             new_instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:

@@ -23,8 +23,8 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     identity = IdentitySummarySerializer(source='created_by_identity')
     user = UserSummarySerializer(source='created_by')
     provider = ProviderSummarySerializer(source='created_by_identity.provider')
-    status = serializers.CharField(source='api_status', read_only=True)
-    activity = serializers.CharField(source='api_activity', read_only=True)
+    status = serializers.CharField(source='get_status', read_only=True)
+    activity = serializers.CharField(source='get_activity', read_only=True)
     project = ModelRelatedField(
         queryset=Project.objects.all(),
         serializer_class=ProjectSummarySerializer,
@@ -37,7 +37,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
         style={'base_template': 'input.html'})
     size = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
-    ip_address = serializers.SerializerMethodField()
+    ip_address = serializers.CharField(read_only=True, default="0.0.0.0")
     usage = serializers.SerializerMethodField()
     version = serializers.SerializerMethodField()
     allocation_source = serializers.SerializerMethodField()
@@ -75,12 +75,6 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
         image = Image.objects.get(uuid=image_uuid)
         serializer = ImageSuperSummarySerializer(image, context=self.context)
         return serializer.data
-
-    def get_ip_address(self, obj):
-        status = obj.esh_status()
-        if status in ["suspended", "shutoff", "shelved"]:
-            return "0.0.0.0"
-        return obj.ip_address
 
     def get_version(self, obj):
         if not obj.source.is_machine():
