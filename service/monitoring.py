@@ -13,9 +13,7 @@ from core.models.allocation_strategy import AllocationStrategy as CoreAllocation
 from core.models.credential import Credential
 from core.models import IdentityMembership, Identity, InstanceStatusHistory
 from core.models.instance import Instance as CoreInstance
-from core.models.instance import (
-    convert_esh_instance, _esh_instance_size_to_core
-)
+from core.models.instance import convert_esh_instance
 from core.models.size import convert_esh_size
 from allocation.models import Allocation, AllocationResult
 from service.cache import get_cached_instances, get_cached_driver
@@ -149,10 +147,6 @@ def get_allocation_result_for(
 def _execute_provider_action(identity, user, instance, action_name):
     driver = get_cached_driver(identity=identity)
 
-    # NOTE: This if statement is a HACK! It will be removed when IP management is enabled in an upcoming version. -SG
-    reclaim_ip = True if identity.provider.location != 'iPlant Cloud - Tucson' else False
-    # ENDNOTE
-
     # NOTE: This metadata statement is a HACK! It should be removed when all instances matching this metadata key have been removed.
     instance_has_home_mount = instance.extra['metadata'].get('atmosphere_ephemeral_home_mount', 'false').lower()
     if instance_has_home_mount == 'true' and action_name == 'Shelve':
@@ -171,32 +165,28 @@ def _execute_provider_action(identity, user, instance, action_name):
                 instance,
                 identity.provider.uuid,
                 identity.uuid,
-                user,
-                reclaim_ip)
+                user)
         elif action_name == 'Stop':
             stop_instance(
                 driver,
                 instance,
                 identity.provider.uuid,
                 identity.uuid,
-                user,
-                reclaim_ip)
+                user)
         elif action_name == 'Shelve':
             shelve_instance(
                 driver,
                 instance,
                 identity.provider.uuid,
                 identity.uuid,
-                user,
-                reclaim_ip)
+                user)
         elif action_name == 'Shelve Offload':
             offload_instance(
                 driver,
                 instance,
                 identity.provider.uuid,
                 identity.uuid,
-                user,
-                reclaim_ip)
+                user)
         elif action_name == 'Terminate':
             destroy_instance(user, identity.uuid, instance.id)
         else:
@@ -207,37 +197,7 @@ def _execute_provider_action(identity, user, instance, action_name):
         return
 
 
-def update_instances(driver, identity, esh_list, core_list):
-    """
-    End-date core instances that don't show up in esh_list
-    && Update the values of instances that do
-    """
-    esh_ids = [instance.id for instance in esh_list]
-    # logger.info('%s Instances for Identity %s: %s'
-    #            % (len(esh_ids), identity, esh_ids))
-    for core_instance in core_list:
-        try:
-            index = esh_ids.index(core_instance.provider_alias)
-        except ValueError:
-            logger.info("Did not find instance %s in ID List: %s" %
-                        (core_instance.provider_alias, esh_ids))
-            core_instance.end_date_all()
-            continue
-        esh_instance = esh_list[index]
-        esh_size = driver.get_size(esh_instance.size.id)
-        core_size = convert_esh_size(esh_size, identity.provider.uuid)
-        core_instance.update_history(
-            esh_instance.extra['status'],
-            core_size,
-            esh_instance.extra.get('task'),
-            esh_instance.extra.get(
-                'metadata', {}).get('tmp_status','MISSING'))
-
-# Used in monitoring.py
-
-
-def _cleanup_missing_instances(
-        identity, core_running_instances, start_date=None):
+def _cleanup_missing_instances(identity, core_running_instances):
     """
     Cleans up the DB InstanceStatusHistory when you know what instances are
     active...
@@ -245,78 +205,21 @@ def _cleanup_missing_instances(
     core_running_instances - Reference list of KNOWN active instances
     """
     instances = []
+    core_running_instances = core_running_instances or []
 
     if not identity:
         return instances
 
-    core_instances = _core_instances_for(identity, start_date)
+    core_instances = _core_instances_for(identity)
     fixed_instances = []
     for inst in core_instances:
-        if not core_running_instances or inst not in core_running_instances:
+        if inst not in core_running_instances:
             inst.end_date_all()
             fixed_instances.append(inst)
-        else:
-            # Instance IS in the list of running instances.. Further cleaning
-            # can be done at this level.
-            non_end_dated_history = inst.instancestatushistory_set.filter(
-                end_date=None)
-            count = len(non_end_dated_history)
-            if count > 1:
-                history_names = [ish.status.name for ish
-                                 in non_end_dated_history]
-                # Note: We have the 'wrong' instance, we want the one that
-                # includes the ESH driver
-                core_running_inst = [i for i in core_running_instances
-                                     if i == inst][0]
-                new_history = _resolve_history_conflict(
-                    identity, core_running_inst, non_end_dated_history)
-                fixed_instances.append(inst)
-                logger.warn(
-                    "Instance %s contained %s "
-                    "NON END DATED history:%s. "
-                    " New History: %s" %
-                    (inst.provider_alias,
-                     count, history_names, new_history))
-            # Gather the updated values..
-            instances.append(inst)
-    # Return the updated list
     if fixed_instances:
         logger.warn("Cleaned up %s instances for %s"
                     % (len(fixed_instances), identity.created_by.username))
     return instances
-
-
-def _resolve_history_conflict(
-        identity, core_running_instance,
-        bad_history, reset_time=None):
-    """
-    NOTE 1: This is a 'band-aid' fix until we are 100% that Transaction will
-            not create conflicting un-end-dated objects.
-
-    NOTE 2: It is EXPECTED that this instance has the 'esh' attribute
-            Failure to add the 'esh' attribute will generate a ValueError!
-    """
-    if not getattr(core_running_instance, 'esh'):
-        raise ValueError("Esh is missing from %s" % core_running_instance)
-    esh_instance = core_running_instance.esh
-
-    # Check for temporary status and fetch that
-    tmp_status = esh_instance.extra.get('metadata', {}).get("tmp_status")
-    new_status = tmp_status or esh_instance.extra['status']
-
-    esh_driver = get_cached_driver(identity=identity)
-    new_size = _esh_instance_size_to_core(
-        esh_driver, esh_instance, identity.provider.uuid)
-    if not reset_time:
-        reset_time = timezone.now()
-    for history in bad_history:
-        history.end_date = reset_time
-        history.save()
-    new_history = InstanceStatusHistory.create_history(
-        new_status,
-        core_running_instance, new_size,
-        reset_time)
-    return new_history
 
 
 def _get_instance_owner_map(provider, users=None):

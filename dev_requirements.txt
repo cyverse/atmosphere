@@ -23,7 +23,7 @@ billiard==3.5.0.3
 boto==2.39.0
 business-rules==1.0.1
 caslib.py==2.2.2
-celery==4.0.2
+celery==4.2.0
 certifi==2017.7.27.1
 cffi==1.10.0
 chardet==3.0.4
@@ -44,6 +44,7 @@ django-celery-beat==1.0.1
 django-cors-headers==2.1.0
 django-cyverse-auth==1.1.4
 django-debug-toolbar==1.8
+django-enumfields==0.10.1
 django-filter==1.0.4
 django-jenkins==0.110.0
 django-memoize==2.1.0
@@ -91,7 +92,7 @@ jsonpointer==1.10
 jsonschema==2.6.0
 jwt.py==0.1.0
 keystoneauth1==3.1.0
-kombu==4.1.0
+kombu==4.2.1
 lazy-object-proxy==1.3.1  # via astroid
 markupsafe==1.0
 mccabe==0.6.1             # via flake8, prospector, pylint
@@ -175,7 +176,7 @@ requirements-detector==0.5.2  # via prospector
 rfc3986==1.1.0
 rfive==0.2.0
 rsa==3.4.2
-rtwo==0.5.21
+-e git+https://github.com/cdosborn/rtwo.git@mock-driver-and-connection#egg=rtwo
 scandir==1.5              # via pathlib2
 selenium==3.5.0           # via splinter
 setoptconf==0.2.0         # via prospector

@@ -25,8 +25,7 @@ DEPLOY_TASKS = [
     "_deploy_instance_for_user",
     "check_web_desktop_task",
     "_deploy_init_to", "service.tasks.driver._deploy_init_to",
-    "deploy_ready_test", "service.tasks.driver.deploy_ready_test",
-    "check_process_task", "service.tasks.driver.check_process_task",
+    "check_vnc", "service.tasks.driver.check_vnc",
     "check_volume_task", "service.tasks.volume.check_volume_task",
     "mount_volume_task", "service.tasks.volume.mount_volume_task",
     "unmount_volume_task", "service.tasks.volume.unmount_volume_task"
@@ -69,6 +68,11 @@ PERIODIC_TASKS = [
 ]
 SHORT_TASKS = [
     "wait_for_instance",
+    "assert_active_record",
+    "mark_deploy_record_as_success",
+    "mark_deploy_record_as_failure",
+    "update_instance_status",
+    "deploy_status_error",
 ]
 
 

@@ -1,6 +1,6 @@
 from core.models import InstanceTag, Instance, Tag
 from rest_framework import serializers
-from api.v2.serializers.summaries import InstanceSuperSummarySerializer
+from api.v2.serializers.summaries import InstanceSummarySerializer
 from .tag import TagSerializer
 
 
@@ -11,9 +11,7 @@ class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
 
     def to_representation(self, value):
         instance = Instance.objects.get(pk=value.pk)
-        # important! We have to use the SuperSummary because there are non-end_dated
-        # instances that don't have a valid size (size='Unknown')
-        serializer = InstanceSuperSummarySerializer(
+        serializer = InstanceSummarySerializer(
             instance,
             context=self.context)
         return serializer.data

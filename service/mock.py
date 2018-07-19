@@ -6,6 +6,7 @@ import copy
 import uuid
 import random
 import warlock
+import mock
 
 from threepio import logger
 
@@ -35,7 +36,8 @@ class AtmosphereMockNetworkManager(NetworkManager):
     Once we are sure that no other overrides are necessary, we can cull the extra methods.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, core_identity):
+        self.core_identity = core_identity
         self.neutron = None
         self.default_router = None
         self.all_networks = ALL_NETWORKS
@@ -48,11 +50,8 @@ class AtmosphereMockNetworkManager(NetworkManager):
         return AtmosphereMockNetworkManager(
             core_identity)
 
-    def tenant_networks(self, tenant_id=None):
-        return []
-
     def get_tenant_id(self):
-        return 1
+        return self.core_identity.get_credential('ex_tenant_name')
 
     def get_credentials(self):
         """
@@ -64,21 +63,22 @@ class AtmosphereMockNetworkManager(NetworkManager):
             }
 
     def disassociate_floating_ip(self, server_id):
-        return '0.0.0.0'
+        return { "floating_ip_address": "0.0.0.0" }
 
-    def associate_floating_ip(self, server_id):
-        return '0.0.0.0'
+    def associate_floating_ip(self, server_id, external_network_id):
+        return { "floating_ip_address": "0.0.0.0" }
 
     def create_port(self, server_id, network_id, **kwargs):
         port = kwargs
         self.all_ports.append(port)
         return port
 
+
     def find_server_ports(self, server_id):
         return self.all_ports
 
     def list_floating_ips(self):
-        return ['0.0.0.0']
+        return []
 
     def rename_security_group(self, project, security_group_name=None):
         return True
@@ -110,12 +110,12 @@ class AtmosphereMockNetworkManager(NetworkManager):
                 return port
         return None
 
-    def list_networks(self, *args, **kwargs):
-        """
-        NOTE: kwargs can be: tenant_id=, or any other attr listed in the
-        details of a network.
-        """
-        return self.all_networks
+    def list_networks(self, tenant_id=None):
+        all_networks = self.all_networks
+        if tenant_id is not None:
+            all_networks = [ n for n in all_networks if n.get("tenant_id", "")
+                    == tenant_id ]
+        return all_networks
 
     def list_subnets(self):
         return self.all_subnets
@@ -123,17 +123,22 @@ class AtmosphereMockNetworkManager(NetworkManager):
     def list_routers(self):
         return self.all_routers
 
-    def list_ports(self, **kwargs):
-        """
-        Options:
-        subnet_id=subnet.id
-        device_id=device.id
-        ip_address=111.222.333.444
-        """
-        return self.all_ports
+    def list_ports(self, device_id=None):
+        filtered_ports = self.all_ports
+        if device_id:
+            filtered_ports = [ p for p in self.all_ports if
+                    p.get('device_id', '') == device_id ]
+
+        return filtered_ports
 
     def create_network(self, neutron, network_name):
-        network = {'name': network_name, 'admin_state_up': True}
+        tenant_id = self.get_tenant_id()
+        network = {
+            'name': network_name,
+            'admin_state_up': True,
+            'id': uuid.uuid4(),
+            'tenant_id': tenant_id
+        }
         self.all_networks.append(network)
         return network
 
@@ -164,7 +169,7 @@ class AtmosphereMockNetworkManager(NetworkManager):
         if existing_routers:
             logger.info('Router %s already exists' % router_name)
             return existing_routers[0]
-        router = {'name': router_name, 'admin_state_up': True}
+        router = {'name': router_name, 'admin_state_up': True, 'external_gateway_info': { 'network_id': '' }}
         self.all_routers.append(router)
         return router
 
@@ -197,168 +202,6 @@ class AtmosphereMockNetworkManager(NetworkManager):
 
     def delete_port(self, port):
         return
-
-
-class MockInstance(Instance):
-    def __init__(self, id=None, provider=None, source=None, ip=None, size=None, extra={}, *args, **kwargs):
-        identifier = id
-        if not identifier:
-            identifier = kwargs.get('uuid', uuid.uuid4())
-        if not size:
-            size = MockSize("Unknown", provider)
-        if not ip:
-            ip = '0.0.0.0'
-        self.id = identifier
-        self.alias = identifier
-        self.provider = provider
-        self.size = size
-        self.name = kwargs.get('name', "Mock instance %s" % identifier)
-        self.source = source
-        self.ip = ip
-        self._node = None
-        self.extra = extra
-
-    def json(self):
-        return self.__dict__
-
-
-class AtmosphereMockDriver(MockDriver):
-
-    all_volumes = ALL_VOLUMES
-    all_instances = ALL_INSTANCES
-    all_machines = ALL_MACHINES
-    all_sizes = ALL_SIZES
-
-    def is_valid(self):
-        """
-        Performs validation on the driver -- for most drivers,
-        this will mean you actually have to _call something_ on the API.
-        if it succeeds, the driver is valid.
-        """
-        return True
-
-    def _get_size(self, alias):
-        size = MockSize("Unknown", self.providerCls())
-        return size
-
-    def list_all_volumes(self, *args, **kwargs):
-        """
-        Return the InstanceClass representation of a libcloud node
-        """
-        return self.all_volumes
-
-    def list_all_instances(self, **kwargs):
-        """
-        Return the InstanceClass representation of a libcloud node
-        """
-        return self.all_instances
-
-    def get_instance(self, instance_id, *args, **kwargs):
-        """
-        Return the InstanceClass representation of a libcloud node
-        """
-        instances = self.list_all_instances()
-        instance = [inst for inst in instances if inst.id == instance_id]
-        if not instance:
-            return None
-        return instance[0]
-
-    def add_core_instance(self, core_instance):
-        extra = {}
-        extra['metadata'] = {'iplant_suspend_fix': False, 'tmp_status': ''}
-        extra['status'] = core_instance.get_last_history().status.name
-        esh_instance = self.create_instance(
-            id=str(core_instance.provider_alias),
-            ip=core_instance.ip_address,
-            name=core_instance.name,
-            extra=extra)
-        return esh_instance
-
-    def list_instances(self, **kwargs):
-        """
-        Return the InstanceClass representation of a libcloud node
-        """
-        return self.all_instances
-
-    def list_machines(self, *args, **kwargs):
-        """
-        Return the MachineClass representation of a libcloud NodeImage
-        """
-        return self.all_machines
-
-    def list_sizes(self, *args, **kwargs):
-        """
-        Return the SizeClass representation of a libcloud NodeSize
-        """
-        return self.all_sizes
-
-    def list_locations(self, *args, **kwargs):
-        return []
-
-    def create_instance(self, *args, **kwargs):
-        """
-        Return the InstanceClass representation of a libcloud node
-        """
-        new_instance = MockInstance(*args, **kwargs)
-        self.all_instances.append(new_instance)
-        return new_instance
-
-    def deploy_instance(self, *args, **kwargs):
-        return True
-
-    def reset_network(self, *args, **kwargs):
-        return True
-
-    def reboot_instance(self, *args, **kwargs):
-        return True
-
-    def start_instance(self, *args, **kwargs):
-        return True
-
-    def stop_instance(self, *args, **kwargs):
-        return True
-
-    def resume_instance(self, *args, **kwargs):
-        return True
-
-    def confirm_resize(self, *args, **kwargs):
-        return True
-
-    def resize_instance(self, *args, **kwargs):
-        return True
-
-    def suspend_instance(self, *args, **kwargs):
-        return True
-
-    def destroy_instance(self, new_instance, *args, **kwargs):
-        index = self.all_instances.index(new_instance)
-        return self.all_instances.pop(index)
-
-    def boot_volume(self, *args, **kwargs):
-        raise NotImplementedError()
-
-    def list_volumes(self, *args, **kwargs):
-        return self.all_volumes
-
-    def create_volume(self, *args, **kwargs):
-        volume_args = copy.copy(kwargs)
-        volume_args.pop('max_attempts', None)
-        volume_args['id'] = volume_args.get('id', str(uuid.uuid4()))
-        volume_args['extra'] = volume_args.get('extra', {})
-        MockESHVolume = collections.namedtuple('MockESHVolume',
-                                               ['id', 'name', 'image', 'snapshot', 'metadata', 'size', 'extra'])
-        mock_volume = MockESHVolume(**volume_args)
-        self.all_volumes.append(mock_volume)
-        return True, mock_volume
-
-    def destroy_volume(self, *args, **kwargs):
-        raise NotImplementedError()
-
-    def attach_volume(self, *args, **kwargs):
-        raise NotImplementedError()
-
-    def detach_volume(self, *args, **kwargs):
-        raise NotImplementedError()
 
 
 class MockAccountDriver(BaseAccountDriver):

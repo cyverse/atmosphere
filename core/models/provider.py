@@ -55,6 +55,7 @@ class ProviderType(models.Model):
     class Meta:
         db_table = 'provider_type'
         app_label = 'core'
+        unique_together = ("name",)
 
     def __unicode__(self):
         return self.name

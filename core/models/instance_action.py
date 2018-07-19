@@ -91,9 +91,8 @@ class InstanceAction(models.Model):
         """
         Giiven an instance, determine the appropriate actions available via API
         """
-        last_history = instance.get_last_history()
-        last_status = last_history.status.name
-        last_activity = last_history.activity
+        last_status = instance.get_status()
+        last_activity = instance.get_activity()
         if last_status in ['initializing', 'networking', 'deploying']:
             last_status = 'active'
         if last_activity in ['shelving_image_uploading', 'shelving_image_pending_upload']:
@@ -115,7 +114,7 @@ class InstanceAction(models.Model):
                 all_actions.append('Stop')
                 all_actions.append('Terminate')
                 all_actions.append('Imaging')
-        elif last_status == 'deploy_error':
+        elif last_status == 'deploy_error' or last_status == 'networking_error':
             all_actions.append('Redeploy')
             all_actions.append('Reboot')
             all_actions.append('Hard Reboot')

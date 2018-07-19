@@ -505,7 +505,6 @@ def create_provider_machine(identifier, provider_uuid, app,
     )
     read_cloud_machine_hook(provider_machine, provider_uuid, identifier)
     logger.info("New ProviderMachine created: %s" % provider_machine)
-    add_to_cache(provider_machine)
     return provider_machine
 
 
@@ -557,13 +556,6 @@ def provider_machine_write_hook(provider_machine):
             "Create a new write hook for %s"
             " to keep cloud objects up to date." %
             provider)
-
-
-def add_to_cache(provider_machine):
-    # ProviderMachine.cached_machines[(
-    #    provider_machine.provider.id,
-    #    provider_machine.identifier)] = provider_machine
-    return provider_machine
 
 
 def update_provider_machine_metadata(provider_machine_id, metadata={}):

@@ -1,4 +1,5 @@
 import factory
+import uuid
 from core.models import Instance
 from django.utils import timezone
 from .user_factory import UserFactory
@@ -15,6 +16,7 @@ class InstanceFactory(factory.DjangoModelFactory):
         model = Instance
         exclude = ('provider_machine',)
 
+    provider_alias = factory.LazyFunction(uuid.uuid4)
     provider_machine = factory.SubFactory(ProviderMachineFactory)
     start_date = factory.LazyFunction(timezone.now)
     project = factory.SubFactory(ProjectFactory)

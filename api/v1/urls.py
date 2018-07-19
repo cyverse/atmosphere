@@ -112,7 +112,7 @@ urlpatterns = format_suffix_patterns([
         '(?P<instance_id>%s)/action$' % uuid_match,
         views.InstanceAction.as_view(), name='instance-action'),
     url(identity_specific + r'/instance/(?P<instance_id>%s)$' % uuid_match,
-        django.views.decorators.cache.cache_page(60 * 1)(views.Instance.as_view()), name='instance-detail'),
+        views.Instance.as_view(), name='instance-detail'),
     url(identity_specific + r'/instance$',
         views.InstanceList.as_view(), name='instance-list'),
 

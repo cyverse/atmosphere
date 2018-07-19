@@ -129,12 +129,6 @@ class Volume(BaseSource):
         """
         return self.get_attach_data()
 
-    def esh_status(self):
-        """
-        TODO: Refactor and use get_status.
-        """
-        return self.get_status()
-
     def _has_history(self):
         history_count = self.volumestatushistory_set.count()
         return history_count > 0

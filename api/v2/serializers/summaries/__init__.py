@@ -3,7 +3,7 @@ from .group import GroupSummarySerializer
 from .identity import IdentitySummarySerializer
 from .image import ImageSummarySerializer
 from .image_version import ImageVersionSummarySerializer
-from .instance import InstanceSummarySerializer, InstanceSuperSummarySerializer
+from .instance import InstanceSummarySerializer
 from .license import LicenseSummarySerializer
 from .license_type import LicenseTypeSummarySerializer
 from .link import ExternalLinkSummarySerializer

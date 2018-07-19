@@ -90,7 +90,6 @@ class InstanceTests(APITestCase, APISanityTestCase):
             )
 
     def test_networking_status_and_activity(self):
-        """Will only work with a correct database."""
         client = APIClient()
         client.force_authenticate(user=self.user)
 
@@ -98,11 +97,10 @@ class InstanceTests(APITestCase, APISanityTestCase):
         response = client.get(url)
         self.assertEquals(response.status_code, 200)
         data = response.data
-        self.assertEquals(data['status'], 'active')
-        self.assertEquals(data['activity'], 'networking')
+        self.assertEquals(data['status'], 'networking')
+        self.assertEquals(data['activity'], '')
 
     def test_deploying_status_and_activity(self):
-        """Will only work with a correct database."""
         client = APIClient()
         client.force_authenticate(user=self.user)
 
@@ -110,11 +108,10 @@ class InstanceTests(APITestCase, APISanityTestCase):
         response = client.get(url)
         self.assertEquals(response.status_code, 200)
         data = response.data
-        self.assertEquals(data['status'], 'active')
-        self.assertEquals(data['activity'], 'deploying')
+        self.assertEquals(data['status'], 'deploying')
+        self.assertEquals(data['activity'], '')
 
     def test_deploy_error_status_and_activity(self):
-        """Will only work with a correct database."""
         client = APIClient()
         client.force_authenticate(user=self.user)
 
@@ -122,11 +119,10 @@ class InstanceTests(APITestCase, APISanityTestCase):
         response = client.get(url)
         self.assertEquals(response.status_code, 200)
         data = response.data
-        self.assertEquals(data['status'], 'active')
-        self.assertEquals(data['activity'], 'deploy_error')
+        self.assertEquals(data['status'], 'deploy_error')
+        self.assertEquals(data['activity'], '')
 
     def test_active_status_and_activity(self):
-        """Will only work with a correct database."""
         client = APIClient()
         client.force_authenticate(user=self.user)
 

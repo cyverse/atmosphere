@@ -189,10 +189,7 @@ class SingletonModel(models.Model):
 
     @classmethod
     def get_instance(cls):
-        try:
-            return cls.objects.get(pk=1)
-        except cls.DoesNotExist:
-            return cls()
+        return cls.objects.get(pk=1)
 
     class Meta:
         abstract = True

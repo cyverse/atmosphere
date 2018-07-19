@@ -8,7 +8,6 @@ from threepio import logger
 
 from service.exceptions import DeviceBusyException, VolumeMountConflict, InstanceDoesNotExist
 
-from service.tasks.driver import deploy_init_to
 from service.tasks.driver import destroy_instance
 from service.tasks.volume import attach_task, mount_volume_task, check_volume_task
 from service.tasks.volume import detach_task, unmount_volume_task,\
@@ -27,34 +26,12 @@ def print_task_chain(start_link):
         next_link = next_link.options['link'][0]
         print "--> %s" % next_link.values()[1],
 
-# Instance-specific tasks
-
-
-def deploy_init_task(driver, instance, identity,
-                     username=None, password=None, token=None,
-                     redeploy=False, deploy=True, *args, **kwargs):
-    from service.tasks.driver import _update_status_log
-    _update_status_log(instance, "Launching Instance")
-    logger.debug("deploy_init_task redeploy = %s" % redeploy)
-    return deploy_init_to.apply_async((driver.__class__,
-                                driver.provider,
-                                driver.identity,
-                                instance.alias,
-                                identity,
-                                username,
-                                password,
-                                redeploy,
-                                deploy),
-                               immutable=True)
-
 
 def destroy_instance_task(user, instance, identity_uuid, *args, **kwargs):
     if not instance:
         raise InstanceDoesNotExist()
     return destroy_instance.delay(
         instance.alias, user, identity_uuid, *args, **kwargs)
-
-# Volume-specific task-callers
 
 
 def attach_volume(core_identity, driver, instance_id, volume_id, device_location=None,
@@ -159,8 +136,6 @@ def mount_volume(core_identity, driver, instance_id, volume_id, device=None,
         logger.exception("Exc occurred")
         raise VolumeMountConflict(instance_id, volume_id)
     return mount_location
-
-# "Chain builders" -- called by task callers above
 
 
 def _get_umount_chain(driver, instance_id, volume_id, detach_task=None):
