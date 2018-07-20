@@ -433,9 +433,6 @@ class UserProfileInline(admin.StackedInline):
 @admin.register(models.AtmosphereUser)
 class UserAdmin(AuthUserAdmin):
     inlines = [UserProfileInline]
-    fieldsets = AuthUserAdmin.fieldsets + (
-        (None, {'fields': ('selected_identity',)}),
-    )
 
 
 @admin.register(models.IdentityMembership)
