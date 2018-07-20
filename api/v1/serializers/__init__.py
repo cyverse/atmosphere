@@ -23,7 +23,6 @@ from .post_license_serializer import POST_LicenseSerializer
 from .machine_request_serializer import MachineRequestSerializer
 from .maintenance_record_serializer import MaintenanceRecordSerializer
 from .identity_detail_serializer import IdentityDetailSerializer
-from .atmo_user_serializer import AtmoUserSerializer
 from .cloud_admin_serializer import (
     CloudAdminSerializer, CloudAdminActionListSerializer)
 from .profile_serializer import ProfileSerializer
@@ -53,7 +52,7 @@ __all__ = (
     InstanceSerializer, InstanceActionSerializer, InstanceHistorySerializer,
     ExportRequestSerializer, LicenseSerializer, POST_LicenseSerializer,
     MachineRequestSerializer, MaintenanceRecordSerializer,
-    IdentityDetailSerializer, AtmoUserSerializer, CloudAdminSerializer,
+    IdentityDetailSerializer, CloudAdminSerializer,
     CloudAdminActionListSerializer, ProfileSerializer,
     ProviderMachineSerializer, GroupSerializer,
     VolumeSerializer, NoProjectSerializer,
