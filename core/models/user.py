@@ -18,7 +18,6 @@ from django.utils.translation import ugettext_lazy as _
 
 class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    selected_identity = models.ForeignKey('Identity', blank=True, null=True)
     end_date = models.DateTimeField(null=True, blank=True)
     # Ripped from django.contrib.auth.models to force a larger max_length:
     username = models.CharField(
