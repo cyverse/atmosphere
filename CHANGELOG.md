@@ -57,6 +57,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Fix monitor_instances_for timing out, upgrade to rtwo version 0.5.18 ([#598](https://github.com/cyverse/atmosphere/pull/598))
   - Fix unintentional fetch of all_tenants instances, upgrade to rtwo version 0.5.19 ([#614](https://github.com/cyverse/atmosphere/pull/614))
 
+### Added
+- Added dynamic settings feature ([#613](https://github.com/cyverse/atmosphere/pull/613))
+
 ## [v32-1](https://github.com/cyverse/atmosphere/compare/v32-0...v32-1) - 2018-04-17
 ### Added
   - Support multiple hostnames for Atmosphere(1) server ([#602](https://github.com/cyverse/atmosphere/pull/602))

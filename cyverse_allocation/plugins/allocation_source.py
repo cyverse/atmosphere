@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from constance import config as constance_config
 from django.core.exceptions import ObjectDoesNotExist
 from threepio import logger
 
@@ -49,9 +50,9 @@ def _get_enforcement_override(allocation_source):
         """
     assert isinstance(allocation_source, AllocationSource)
     import core.plugins
-    if allocation_source.name in getattr(settings, 'ALLOCATION_OVERRIDES_NEVER_ENFORCE', []):
+    if allocation_source.name in getattr(constance_config, 'ALLOCATION_OVERRIDES_NEVER_ENFORCE', '').split(','):
         return core.plugins.EnforcementOverrideChoice.NEVER_ENFORCE
-    if allocation_source.name in getattr(settings, 'ALLOCATION_OVERRIDES_ALWAYS_ENFORCE', []):
+    if allocation_source.name in getattr(constance_config, 'ALLOCATION_OVERRIDES_ALWAYS_ENFORCE', '').split(','):
         return core.plugins.EnforcementOverrideChoice.ALWAYS_ENFORCE
     return core.plugins.EnforcementOverrideChoice.NO_OVERRIDE
 

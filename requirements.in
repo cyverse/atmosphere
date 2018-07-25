@@ -41,6 +41,8 @@ psycopg2
 python-ldap
 uWSGI
 
+django-constance[database]
+
 ## ours
 chromogenic
 django-cyverse-auth
