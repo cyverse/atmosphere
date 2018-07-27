@@ -178,24 +178,6 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         m.update(self.user.email)
         return m.hexdigest()
 
-# Save Hooks Here:
-
-
-def get_or_create_user_profile(sender, instance, created, **kwargs):
-    from core.models.profile import UserProfile
-    try:
-        prof = UserProfile.objects.filter(user=instance).distinct().get()
-    except UserProfile.DoesNotExist:
-        prof = UserProfile.objects.get_or_create(user=instance)
-        if prof[1] is True:
-            logger.debug("Creating User Profile for %s" % instance)
-    return prof
-
-# Instantiate the hooks:
-post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)
-
-# USER METHODS HERE
-
 
 def _get_providers(username, selected_provider=None):
     from core.models import Provider
@@ -251,3 +233,17 @@ def get_available_providers():
     from core.models.provider import Provider
     available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
     return available_providers
+
+
+def get_or_create_user_profile(sender, instance, created, **kwargs):
+    from core.models.profile import UserProfile
+    try:
+        prof = UserProfile.objects.filter(user=instance).distinct().get()
+    except UserProfile.DoesNotExist:
+        prof = UserProfile.objects.get_or_create(user=instance)
+        if prof[1] is True:
+            logger.debug("Creating User Profile for %s" % instance)
+    return prof
+
+
+post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)
