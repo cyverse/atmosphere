@@ -31,11 +31,3 @@ class XsedeProjectRequired(ValidationPlugin):
                 only_current_user_allocations() & Q(user=user)).count()
             logger.debug('user: %s, active_allocation_count: %d', user, active_allocation_count)
             return active_allocation_count > 0
-
-
-def assign_allocation(username):
-    """
-    Assign allocation sources based on the information you know about the user?
-    Or delete this :)
-    """
-    pass
