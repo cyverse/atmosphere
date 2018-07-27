@@ -30,9 +30,9 @@ class Profile(AuthAPIView):
         # THIS IS A HACK! -- This check covered by permissions in v2
         if not user.is_enabled:
             return Response(
-                "The account <%s> has been disabled by an Administrator. "
+                "The account <{}> has been disabled by an Administrator. "
                 "Please contact your Cloud Administrator for more information."
-                % (user.username,), status=403)  # Forbidden
+                .format(user.username), status=403)
 
         profile = user.userprofile
         try:
