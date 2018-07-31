@@ -28,7 +28,7 @@ class XsedeProjectRequired(ValidationPlugin):
             # TODO: Also check that:
             # - the start date of the allocation source is in the past, and
             # - the end date of the allocation source is not set, or is in the future.
-            logger.debug('user: %s, active_allocation_count: %d', active_allocation_count, user)
+            logger.debug('user: %s, active_allocation_count: %d', user, active_allocation_count)
             return active_allocation_count > 0
 
 
