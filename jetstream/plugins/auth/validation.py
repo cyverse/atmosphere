@@ -22,7 +22,7 @@ class XsedeProjectRequired(ValidationPlugin):
             if not project_allocations:
                 return False
             return True
-        except (NoTaccUserForXsedeException, NoAccountForUsernameException) as e:
+        except (NoTaccUserForXsedeException, NoAccountForUsernameException):
             logger.exception('User is invalid: %s', user)
             return False
         except TASAPIException:
