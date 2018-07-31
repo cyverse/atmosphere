@@ -265,9 +265,6 @@ def get_default_identity(username, provider=None):
 def _get_providers(username, selected_provider=None):
     from core.models import Provider
     user = AtmosphereUser.objects.get(username=username)
-    if not user.is_valid():
-        raise InvalidUser("The account %s is not yet valid." % username)
-
     public_providers = Provider.objects.filter(only_current(), active=True, public=True)
 
     providers = user.current_providers.filter(only_current(), active=True)
