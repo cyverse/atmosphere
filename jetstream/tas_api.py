@@ -16,7 +16,8 @@ def tacc_api_post(url, post_data, username=None, password=None):
     # logger.debug("REQ BODY: %s" % post_data)
     resp = requests.post(
         url, post_data,
-        auth=(username, password))
+        auth=(username, password),
+        timeout=settings.TACC_API_TIMEOUT)
     logger.debug('resp.status_code: %s', resp.status_code)
     # logger.debug('resp.__dict__: %s', resp.__dict__)
     return resp
@@ -31,7 +32,8 @@ def tacc_api_get(url, username=None, password=None):
     logger.debug('url: %s', url)
     resp = requests.get(
         url,
-        auth=(username, password))
+        auth=(username, password),
+        timeout=settings.TACC_API_TIMEOUT)
     logger.debug('resp.status_code: %s', resp.status_code)
     # logger.debug('resp.__dict__: %s', resp.__dict__)
     if resp.status_code != 200:
