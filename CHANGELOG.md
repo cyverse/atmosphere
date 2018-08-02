@@ -48,6 +48,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Attaching task succeeded before volume was actually attached causing
     volume mount to fail
     ([#629](https://github.com/cyverse/atmosphere/pull/629))
+  - Fix incorrect fetching of instances, upgrade to rtwo version 0.5.22
+    ([#641](https://github.com/cyverse/atmosphere/pull/641))
 
 ### Removed
   - In the general feedback email we no longer include the users selected
