@@ -32,8 +32,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
       of the public ip
   - `monitor_machines` periodic task runs once each night rather than every 30 minutes
   - Subspace is replaced by Ansible's PlaybookCLI for instance deployment ([#631](https://github.com/cyverse/atmosphere/pull/631))
+  - Projects can be deleted if they only contain links/applications
+    ([#640](https://github.com/cyverse/atmosphere/pull/640))
 
 ### Fixed
+  - Deleting a project via api/v2/projects no longer deletes enddated
+    instances and volumes in those projects
+    ([#640](https://github.com/cyverse/atmosphere/pull/640))
   - `application_to_provider` was using an invalid method in Glance Client v1 to upload image data ([#618](https://github.com/cyverse/atmosphere/pull/618))
   - monitor_machines_for fails in the presence of inactive provider ([#614](https://github.com/cyverse/atmosphere/pull/614))
   - Chromogenic (0.4.17) had a caching issue causing imaging to fail ([#619](https://github.com/cyverse/atmosphere/pull/619))

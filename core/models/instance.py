@@ -47,7 +47,7 @@ class Instance(models.Model):
     """
     esh = None
     name = models.CharField(max_length=256)
-    project = models.ForeignKey("Project", null=True, blank=True, related_name='instances')
+    project = models.ForeignKey("Project", models.SET_NULL, null=True, blank=True, related_name='instances')
     # TODO: CreateUUIDfield that is *not* provider_alias?
     # token is used to help instance 'phone home' to server post-deployment.
     token = models.CharField(max_length=36, blank=True, null=True)
