@@ -2,10 +2,12 @@ from rest_framework.test import APITestCase, APIRequestFactory,\
     force_authenticate
 from api.v2.views import ProjectViewSet
 from .base import APISanityTestCase
-from api.tests.factories import ProjectFactory, UserFactory,\
-    AnonymousUserFactory, GroupFactory, GroupMembershipFactory
+from api.tests.factories import (ProjectFactory, UserFactory,
+                                 AnonymousUserFactory, GroupFactory,
+                                 GroupMembershipFactory, InstanceFactory)
 from django.core.urlresolvers import reverse
-from core.models import Project
+from core.models import Project, Instance
+from django.utils import timezone
 
 EXPECTED_FIELD_COUNT = 15
 
@@ -24,6 +26,9 @@ class ProjectTests(APITestCase, APISanityTestCase):
             is_leader=True)
         self.group.user_set.add(self.user)
         self.project = ProjectFactory.create(owner=self.group, created_by=self.user)
+        self.enddated_instance = InstanceFactory.create(created_by=self.user,
+                end_date=timezone.now(),
+                project=self.project)
 
         self.user2 = UserFactory.create()
         self.group2 = GroupFactory.create(name=self.user2.username)
@@ -211,3 +216,16 @@ class ProjectTests(APITestCase, APISanityTestCase):
         force_authenticate(self.delete_request, user=self.user)
         response = self.delete_view(self.delete_request, pk=self.project.id)
         self.assertEquals(response.status_code, 204)
+
+    def test_delete_does_not_cascade_to_enddated_instances(self):
+        force_authenticate(self.delete_request, user=self.user)
+        self.delete_view(self.delete_request, pk=self.project.id)
+
+        # Assert project is deleted
+        self.assertFalse(Project.objects.filter(id=self.project.id).exists())
+
+        # Assert that instance from the project still exists
+        enddated_instance = Instance.objects.get(id=self.enddated_instance.id)
+
+        # Assert that instance no longer has a project
+        self.assertEquals(enddated_instance.project, None)
