@@ -73,6 +73,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#631](https://github.com/cyverse/atmosphere/pull/631))
   - Projects can be deleted if they only contain links/applications
     ([#640](https://github.com/cyverse/atmosphere/pull/640))
+  - Added timeout of 5 sec to tas api for user validation, and refactored to
+    make validation more explicit in the absence of the old selected_identity
+    notion ([#639](https://github.com/cyverse/atmosphere/pull/639))
+
+### Removed
+  - In the general feedback email we no longer include the users selected
+    provider, as it's no longer relevant
+    ([#603](https://github.com/cyverse/atmosphere/pull/603))
+  - Removed references to selected_identity
+    ([#639](https://github.com/cyverse/atmosphere/pull/639))
 
 ### Fixed
   - Deleting a project via api/v2/projects no longer deletes enddated
@@ -93,11 +103,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#629](https://github.com/cyverse/atmosphere/pull/629))
   - Fix incorrect fetching of instances, upgrade to rtwo version 0.5.22
     ([#641](https://github.com/cyverse/atmosphere/pull/641))
-
-### Removed
-  - In the general feedback email we no longer include the users selected
-    provider, as it's no longer relevant
-    ([#603](https://github.com/cyverse/atmosphere/pull/603))
 
 ## [v32-2](https://github.com/cyverse/atmosphere/compare/v32-1...v32-2) - 2018-04-26
 ### Fixed
