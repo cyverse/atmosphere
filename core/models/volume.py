@@ -26,7 +26,7 @@ class Volume(BaseSource):
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
-    project = models.ForeignKey("Project", null=True, blank=True, related_name='volumes')
+    project = models.ForeignKey("Project", models.SET_NULL, null=True, blank=True, related_name='volumes')
 
     objects = models.Manager()  # The default manager.
     active_volumes = ActiveVolumesManager()
