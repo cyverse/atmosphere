@@ -6,7 +6,7 @@ from rest_framework.viewsets import ModelViewSet
 import django_filters
 
 from core.models import Identity, AtmosphereUser
-from core.query import only_current_provider
+from core.query import only_current_provider, only_active_provider
 
 from api.v2.serializers.details import IdentitySerializer
 from api.v2.views.base import UserListAdminQueryAndUpdate
@@ -62,4 +62,4 @@ class IdentityViewSet(MultipleFieldLookup, UserListAdminQueryAndUpdate, ModelVie
             user = AtmosphereUser.objects.filter(username=target_username).first()
             idents = Identity.shared_with_user(user)
 
-        return idents.filter(only_current_provider())
+        return idents.filter(only_active_provider(), only_current_provider())
