@@ -3,6 +3,7 @@
 Collection of models
 """
 from django.db.models import ObjectDoesNotExist
+from core.models.access_token import AccessToken
 from core.models.allocation_strategy import Allocation, AllocationStrategy
 from core.models.allocation_source import (
         AllocationSource, UserAllocationSource, UserAllocationSnapshot,
