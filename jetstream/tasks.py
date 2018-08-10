@@ -138,6 +138,11 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
 
 @task(name="report_allocations_to_tas")
 def report_allocations_to_tas():
+    if not settings.REPORT_ALLOCATION_USAGE:
+        logger.warn(
+            "Report sending is disabled! The TACC API will NOT see changes in allocation ({})".
+            format(settings.TACC_API_URL))
+        return
     logger.info("Reporting: Begin creating reports")
     create_reports()
     logger.info("Reporting: Completed, begin sending reports")

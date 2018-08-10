@@ -38,6 +38,12 @@ ENFORCING = True
 ENFORCING = False
 {% endif %}
 
+{% if REPORT_ALLOCATION_USAGE %}
+REPORT_ALLOCATION_USAGE = True
+{% else %}
+REPORT_ALLOCATION_USAGE = False
+{% endif %}
+
 #Cloud-Operator specific information
 SITE_NAME = '{{ SITE_NAME | default("") }}'
 SITE_TITLE = '{{ SITE_NAME | default("") }}'
