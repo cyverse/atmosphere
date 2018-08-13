@@ -10,5 +10,4 @@ Please describe your pull request. If you're solving a problem, include a onelin
 - [ ] If creating/modifying DB models which will contain secrets or sensitive information, PR to [clank](https://github.com/cyverse/clank) updating sanitation queries in `roles/sanitary-sql-access/templates/sanitize-dump.sh.j2`
 - [ ] Reviewed and approved by at least one other contributor.
 - [ ] New variables supported in Clank
-- [ ] New variables committed to secrets repos
 -->
