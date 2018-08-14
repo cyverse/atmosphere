@@ -25,6 +25,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v33-0...HEAD) - YYYY-MM-DD
+### Changed
+  - Increased hard timeouts for tasks
+    ([#650](https://github.com/cyverse/atmosphere/pull/650))
+
 ## [v33-0](https://github.com/cyverse/atmosphere/compare/v32-2...v33-0) - 2018-08-06
 ### Changed
   - Private networking resources (fixed IP, port, private subnet, private
