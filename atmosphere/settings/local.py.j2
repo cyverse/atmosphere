@@ -168,14 +168,13 @@ JETSTREAM_CELERYBEAT_SCHEDULE = {
     },
     "update_snapshot": {
         "task": "update_snapshot",
-        "schedule": timedelta(minutes=30),
-        "options": {"expires": 20 * 60, "time_limit": 20 * 60}
+        "schedule": timedelta(minutes=60),
+        "options": {"expires": 40 * 60, "time_limit": 40 * 60}
     },
     "monitor_jetstream_allocation_sources": {
         "task": "monitor_jetstream_allocation_sources",
-        # Every 60 minutes, no longer than 45 minutes
-        "schedule": crontab(minute="*/60"),
-        "options": {"expires": 45 * 60, "time_limit": 45 * 60}
+        "schedule": timedelta(minutes=75),
+        "options": {"expires": 60 * 60, "time_limit": 60 * 60}
     },
     "monitor_allocation_sources": {
         "task": "monitor_allocation_sources",
