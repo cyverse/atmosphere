@@ -19,9 +19,17 @@ SECRETS_MODULE = secrets
 
 globals().update(vars(sys.modules['atmosphere.settings']))
 
-# Debug Mode
-DEBUG = {{ DJANGO_DEBUG | default(True) }}
-SEND_EMAILS = {{ not DJANGO_DEBUG | default(False) }}
+{% if DEBUG %}
+DEBUG = True
+{% else %}
+DEBUG = False
+{% endif %}
+
+{% if SEND_EMAILS %}
+SEND_EMAILS = True
+{% else %}
+SEND_EMAILS = False
+{% endif %}
 
 {% if DJANGO_TEMPLATE_DEBUG -%}
 template_backends = filter(lambda t:
