@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Changed
   - Increased hard timeouts for tasks
     ([#650](https://github.com/cyverse/atmosphere/pull/650))
+  - Variable changes to DJANGO_DEBUG and SEND_EMAILS
+    ([#649](https://github.com/cyverse/atmosphere/pull/649))
 
 ## [v33-0](https://github.com/cyverse/atmosphere/compare/v32-2...v33-0) - 2018-08-06
 ### Changed
