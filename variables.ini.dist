@@ -92,6 +92,8 @@ EXPIRATION_PLUGINS = ["atmosphere.plugins.auth.validation.NeverExpire"] # list o
 VALIDATION_PLUGINS = ["atmosphere.plugins.auth.validation.AlwaysAllow"] # list of plugins
 ACCOUNT_CREATION_PLUGINS = ["atmosphere.plugins.accounts.creation.UserGroup"] # list of plugins
 MACHINE_VALIDATION_PLUGIN = "atmosphere.plugins.machine_validation.BasicValidation" # plugin
+ALLOCATION_OVERRIDES_NEVER_ENFORCE = []
+ALLOCATION_OVERRIDES_ALWAYS_ENFORCE = []
 
 BLACKLIST_METADATA_KEY = # default: 'atmo_image_exclude'
 WHITELIST_METADATA_KEY = # default: 'atmo_image_include'
