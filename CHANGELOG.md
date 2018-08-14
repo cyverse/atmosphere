@@ -31,6 +31,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Variable changes to DJANGO_DEBUG and SEND_EMAILS
     ([#649](https://github.com/cyverse/atmosphere/pull/649))
 
+### Added
+  - Add ability to configure allocation overrides
+    ([#652](https://github.com/cyverse/atmosphere/pull/652))
+
 ## [v33-0](https://github.com/cyverse/atmosphere/compare/v32-2...v33-0) - 2018-08-06
 ### Changed
   - Private networking resources (fixed IP, port, private subnet, private
