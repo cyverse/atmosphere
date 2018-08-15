@@ -25,6 +25,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v33-0...HEAD) - YYYY-MM-DD
+### Added
+  - Add ability to configure allocation overrides
+    ([#652](https://github.com/cyverse/atmosphere/pull/652))
+
 ### Changed
   - Updated Ansible version to 2.6.1 by changing requirements and changing
     `deploy.py` Playbook arg `--inventory-file` to `--inventory`
@@ -33,6 +37,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Fixed
   - Consecutive test runs would fail because django-memoize was intercepting
     cassette playback ([#626](https://github.com/cyverse/atmosphere/pull/626))
+  - Increased hard timeouts for tasks
+    ([#650](https://github.com/cyverse/atmosphere/pull/650))
+  - Variable changes to DJANGO_DEBUG and SEND_EMAILS
+    ([#649](https://github.com/cyverse/atmosphere/pull/649))
 
 ## [v33-0](https://github.com/cyverse/atmosphere/compare/v32-2...v33-0) - 2018-08-06
 ### Changed
