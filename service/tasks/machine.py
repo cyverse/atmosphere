@@ -114,7 +114,7 @@ def start_machine_imaging(machine_request, delay=False):
     new_status, _ = StatusType.objects.get_or_create(name="started")
     machine_request.status = new_status
     machine_request.save()
-    
+
     original_status = machine_request.old_status
     last_run_error, original_status = machine_request._recover_from_error(original_status)
 
@@ -404,16 +404,13 @@ def prep_instance_for_snapshot(identity_id, instance_id, **celery_task_args):
         if instance.extra.get('status','') != 'active':
             celery_logger.info("prep_instance_for_snapshot skipped")
             return
-        playbooks = deploy_prepare_snapshot(
+        playbook_results = deploy_prepare_snapshot(
             instance.ip, username, instance_id)
-        celery_logger.info(playbooks.__dict__)
         hostname = build_host_name(instance.id, instance.ip)
-        result = False if execution_has_failures(playbooks, hostname)\
-            or execution_has_unreachable(playbooks, hostname) else True
+        result = False if execution_has_failures(playbook_results)\
+            or execution_has_unreachable(playbook_results) else True
         if not result:
-            raise Exception(
-                "Error encountered while preparing instance for snapshot: %s"
-                % playbooks.stats.summarize(host=hostname))
+            raise Exception("Error encountered while preparing instance for snapshot")
     except Exception as exc:
         celery_logger.warn(exc)
         prep_instance_for_snapshot.retry(exc=exc)
