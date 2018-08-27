@@ -9,6 +9,7 @@ from api.v2.admin import urls as v2_admin_urls
 from api.base import views as base_views
 
 router = routers.DefaultRouter(trailing_slash=False)
+router.register(r'access_tokens', views.AccessTokenViewSet, base_name='access_token')
 router.register(r'accounts', views.AccountViewSet, base_name='account')
 router.register(r'allocation_sources', views.AllocationSourceViewSet)
 router.register(r'boot_scripts', views.BootScriptViewSet)
