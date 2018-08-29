@@ -1,4 +1,5 @@
 import django_filters
+from django.db.models import Q
 
 from api.v2.serializers.details import InstanceSerializer, InstanceActionSerializer
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
@@ -183,13 +184,14 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 "an irrecoverable exception: %s"
                 % (action, message))
 
-    def perform_destroy(self, instance):
+    def destroy(self, request, pk=None):
         user = self.request.user
-        identity_uuid = str(instance.created_by_identity.uuid)
-        identity = Identity.objects.get(uuid=identity_uuid)
-        provider_uuid = str(identity.provider.uuid)
         try:
-            # Test that there is not an attached volume and destroy is ASYNC
+            instance = Instance.objects.get(
+                Q(id=pk) if isinstance(pk, int) else Q(provider_alias=pk))
+            identity_uuid = str(instance.created_by_identity.uuid)
+            identity = Identity.objects.get(uuid=identity_uuid)
+            provider_uuid = str(identity.provider.uuid)
             destroy_instance.delay(
                 instance.provider_alias, user, identity_uuid)
 
@@ -358,4 +360,3 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                              "Returning 409-CONFLICT")
             return failure_response(status.HTTP_409_CONFLICT,
                                     str(exc.message))
-
