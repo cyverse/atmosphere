@@ -36,6 +36,7 @@ from service.exceptions import (
     VolumeMountConflict, InstanceDoesNotExist)
 from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
+from service.cache import invalidate_cached_instances
 
 
 class InstanceFilter(filters.FilterSet):
@@ -191,7 +192,9 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             # Test that there is not an attached volume and destroy is ASYNC
             destroy_instance.delay(
                 instance.provider_alias, user, identity_uuid)
-            # NOTE: Task to delete has been queued, return 204
+
+            # We must invalidate the cache while we still depend on api.v1.instance
+            invalidate_cached_instances(identity=identity)
             serializer = InstanceSerializer(
                 instance, context={
                     'request': self.request},
