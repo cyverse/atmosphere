@@ -38,6 +38,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Prefer importing settings from django.conf
     ([#658](https://github.com/cyverse/atmosphere/pull/658))
 
+### Removed
+  - Remove code/vars related to old allocation system
+    ([#656](https://github.com/cyverse/atmosphere/pull/656))
+
 ### Fixed
   - Consecutive test runs would fail because django-memoize was intercepting
     cassette playback ([#626](https://github.com/cyverse/atmosphere/pull/626))
