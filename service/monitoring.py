@@ -355,21 +355,6 @@ def get_delta(allocation, time_period, end_date=None):
         return timedelta(minutes=allocation.delta)
 
 
-def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=[], start_date=None, end_date=None):
-    """
-    Given identity and core allocation, grab the ProviderStrategy
-    and apply it. Returns an "AllocationInput"
-    """
-    strategy = _get_strategy(identity)
-    if not strategy:
-        return Allocation(credits=[], rules=[], instances=[],
-            start_date=start_date, end_date=end_date)
-    return strategy.apply(
-        identity, core_allocation,
-        limit_instances=limit_instances, limit_history=limit_history,
-        start_date=start_date, end_date=end_date)
-
-
 def _get_strategy(identity):
     try:
         return identity.provider.allocationstrategy
