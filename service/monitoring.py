@@ -355,13 +355,6 @@ def get_delta(allocation, time_period, end_date=None):
         return timedelta(minutes=allocation.delta)
 
 
-def _get_strategy(identity):
-    try:
-        return identity.provider.allocationstrategy
-    except CoreAllocationStrategy.DoesNotExist:
-        return None
-
-
 def allocation_source_overage_enforcement(allocation_source):
     all_user_instances = {}
     for user in allocation_source.all_users:
