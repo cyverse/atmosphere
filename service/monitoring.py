@@ -361,30 +361,6 @@ def _empty_allocation_result():
     return AllocationResult.no_allocation()
 
 
-def _get_allocation_result(identity, start_date=None, end_date=None,
-                           print_logs=False, limit_instances=[], limit_history=[]):
-    """
-    Given an identity, retrieve the provider strategy and apply the strategy
-    to this identity.
-    """
-
-    if not identity:
-        return _empty_allocation_result()
-    username = identity.created_by.username
-    core_allocation = get_allocation(username, identity.uuid)
-    if not core_allocation:
-        logger.warn("User:%s Identity:%s does not have an allocation assigned"
-                    % (username, identity))
-    allocation_input = apply_strategy(
-        identity, core_allocation,
-        limit_instances=limit_instances, limit_history=limit_history,
-        start_date=start_date, end_date=end_date)
-    allocation_result = calculate_allocation(
-        allocation_input,
-        print_logs=print_logs)
-    return allocation_result
-
-
 def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=[], start_date=None, end_date=None):
     """
     Given identity and core allocation, grab the ProviderStrategy
