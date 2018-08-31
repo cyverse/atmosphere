@@ -675,13 +675,3 @@ def repl_test_strategy():
     counting_behavior = FixedWindow(first_of_feb, first_of_march)
     strategy = PythonAllocationStrategy(counting_behavior, [refresh_behavior])
     return strategy
-
-
-def repl_apply_strategy(identity):
-    from service.monitoring import get_allocation
-    allocation = get_allocation(identity.created_by.username,
-                                identity.uuid)
-    strategy = repl_test_strategy()
-    alloc_input = strategy.apply(identity, allocation)
-    result = engine.calculate_allocation(alloc_input)
-    return result
