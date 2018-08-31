@@ -128,32 +128,6 @@ class AllocationSourceAdmin(admin.ModelAdmin):
         return False
 
 
-@admin.register(models.AllocationStrategy)
-class AllocationStrategyAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(models.Allocation)
-class AllocationAdmin(admin.ModelAdmin):
-    list_display = ("threshold_str", "delta_str")
-
-    def threshold_str(self, obj):
-        td = timedelta(minutes=obj.threshold)
-        return '%s days, %s hours, %s minutes' % (td.days,
-                                                  td.seconds // 3600,
-                                                  (td.seconds // 60) % 60)
-
-    threshold_str.short_description = 'Threshold'
-
-    def delta_str(self, obj):
-        td = timedelta(minutes=obj.delta)
-        return '%s days, %s hours, %s minutes' % (td.days,
-                                                  td.seconds // 3600,
-                                                  (td.seconds // 60) % 60)
-
-    delta_str.short_description = 'Delta'
-
-
 @admin.register(models.InstanceSource)
 class InstanceSourceAdmin(admin.ModelAdmin):
     actions = [end_date_object, ]

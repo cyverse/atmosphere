@@ -21,7 +21,7 @@ from core.models.machine_request import MachineRequest
 from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
 from core.models.application_version import ApplicationVersion
-from core.models import Allocation, Credential, IdentityMembership
+from core.models import Credential, IdentityMembership
 
 from service.machine import (
     update_db_membership_for_group,

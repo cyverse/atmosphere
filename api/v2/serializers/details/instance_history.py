@@ -2,7 +2,6 @@ from rest_framework import serializers
 
 from allocation.models import Instance as AllocInstance
 from allocation.engine import calculate_allocation
-from allocation.models import Allocation
 from core.models import Instance, InstanceStatusHistory, Size
 
 from api.v2.serializers.summaries import (
