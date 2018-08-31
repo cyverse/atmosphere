@@ -308,29 +308,6 @@ def _get_instance_owner_map(provider, users=None):
 # Used in OLD allocation
 
 
-def get_allocation(username, identity_uuid):
-    user = User.objects.get(username=username)
-    logger.warn(
-        "DEPRECATION WARNING: Identities do not control allocation anymore. This will no longer return values.")
-    return None
-    group_ids = user.memberships.values_list('group__id', flat=True)
-    try:
-        membership = IdentityMembership.objects.get(
-            identity__uuid=identity_uuid, member__in=group_ids)
-    except IdentityMembership.DoesNotExist:
-        logger.warn(
-            "WARNING: User %s does not"
-            "have IdentityMembership on this database" % (username, ))
-        return None
-    if not user.is_staff and not membership.allocation:
-        def_allocation = CoreAllocation.default_allocation(
-            membership.identity.provider)
-        logger.warn("%s is MISSING an allocation. Default Allocation"
-                    " assigned:%s" % (user, def_allocation))
-        return def_allocation
-    return membership.allocation
-
-
 def get_delta(allocation, time_period, end_date=None):
     # Monthly Time Allocation
     if time_period and time_period.months == 1:
