@@ -311,20 +311,6 @@ def _get_instance_owner_map(provider, users=None):
 # Used in OLD allocation
 
 
-def check_over_allocation(username, identity_uuid,
-                          time_period=None):
-    """
-    Check if an identity is over allocation.
-
-    NOTE: Answer is ALWAYS a 2-tuple
-    True,False - Over/Under Allocation
-    Amount - Time (amount) Over/Under Allocation.
-    """
-    identity = Identity.objects.get(uuid=identity_uuid)
-    allocation_result = _get_allocation_result(identity)
-    return allocation_result.total_difference()
-
-
 def get_allocation(username, identity_uuid):
     user = User.objects.get(username=username)
     logger.warn(
