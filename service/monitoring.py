@@ -355,12 +355,6 @@ def get_delta(allocation, time_period, end_date=None):
         return timedelta(minutes=allocation.delta)
 
 
-def _empty_allocation_result():
-    """
-    """
-    return AllocationResult.no_allocation()
-
-
 def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=[], start_date=None, end_date=None):
     """
     Given identity and core allocation, grab the ProviderStrategy
