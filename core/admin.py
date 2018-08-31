@@ -468,8 +468,8 @@ class UserAdmin(AuthUserAdmin):
 class IdentityMembershipAdmin(admin.ModelAdmin):
     search_fields = ["identity__created_by__username", ]
     list_display = ["_identity_user", "_identity_provider",
-                    "quota", "allocation"]
-    list_filter = ["identity__provider__location", "allocation"]
+                    "quota"]
+    list_filter = ["identity__provider__location",]
 
     def render_change_form(self, request, context, *args, **kwargs):
         identity_membership = context['original']

@@ -164,20 +164,15 @@ class Identity(models.Model):
     def share(self, core_group, allocation=None):
         """
         """
-        from core.models import IdentityMembership, Quota, Allocation
+        from core.models import IdentityMembership, Quota
         existing_membership = IdentityMembership.objects.filter(
             member=core_group, identity=self)
         if existing_membership:
             return existing_membership[0]
 
-        # Ready to create new membership for this group
-        if not allocation:
-            allocation = Allocation.default_allocation()
-
         new_membership = IdentityMembership.objects.get_or_create(
             member=core_group,
-            identity=self,
-            allocation=allocation)[0]
+            identity=self)[0]
         return new_membership
 
     def unshare(self, core_group):
@@ -226,7 +221,7 @@ class Identity(models.Model):
         """
         # Do not move up. ImportError.
         from core.models import Group, Quota,\
-            Provider, AccountProvider, Allocation,\
+            Provider, AccountProvider,\
             IdentityMembership
 
         provider = Provider.objects.get(location__iexact=provider_location)

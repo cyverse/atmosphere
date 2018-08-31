@@ -14,7 +14,6 @@ from django.contrib.auth.models import Group as DjangoGroup
 
 from threepio import logger
 
-from core.models.allocation_strategy import Allocation
 from core.models.application import Application
 from core.models.identity import Identity
 from core.models.provider import Provider
@@ -176,7 +175,6 @@ class IdentityMembership(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     identity = models.ForeignKey(Identity, related_name='identity_memberships')
     member = models.ForeignKey(Group, related_name='identity_memberships')
-    allocation = models.ForeignKey(Allocation, null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
 
     @classmethod
