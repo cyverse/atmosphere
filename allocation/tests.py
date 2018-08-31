@@ -659,19 +659,3 @@ def repl_refresh_behaviors():
         RecurringRefresh(first_of_year, None, every_1_day),
     ]
     return refresh_behaviors
-
-
-def repl_test_strategy():
-    """
-    Create an AllocationStrategy by instantiating
-    Refresh, Counting, (and Rules?) behaviors
-    """
-    first_of_feb = datetime(2015, 2, 1, tzinfo=pytz.utc)
-    first_of_march = datetime(2015, 3, 1, tzinfo=pytz.utc)
-    every_1_month = relativedelta(months=1)
-
-    refresh_behavior = RecurringRefresh(first_of_feb, first_of_march,
-                                        every_1_month)
-    counting_behavior = FixedWindow(first_of_feb, first_of_march)
-    strategy = PythonAllocationStrategy(counting_behavior, [refresh_behavior])
-    return strategy
