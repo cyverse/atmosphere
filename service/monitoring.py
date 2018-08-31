@@ -103,48 +103,6 @@ def _get_identity_from_tenant_name(provider, username):
     except Credential.DoesNotExist:
         return None
 
-# Core Monitoring methods
-
-
-def get_allocation_result_for(
-        provider, username, print_logs=False, start_date=None, end_date=None):
-    """
-    Given provider and username:
-    * Find the correct identity for the user
-    * Create 'Allocation' using core representation
-    * Calculate the 'AllocationResult' and return both
-    """
-    #FIXME: Remove this after debug testing is complete
-    if print_logs:
-        from service.tasks.monitoring import _init_stdout_logging, _exit_stdout_logging
-        console_handler = _init_stdout_logging(logger)
-    #ENDFIXME: Remove this after debug testing is complete
-
-    identity = _get_identity_from_tenant_name(provider, username)
-    # Attempt to run through the allocation engine
-    try:
-        allocation_result = _get_allocation_result(
-            identity, start_date, end_date,
-            print_logs=print_logs)
-        if allocation_result.total_runtime() != timedelta(0):
-            logger.debug("Result for Username %s: %s"
-                         % (username, allocation_result))
-        return allocation_result
-    except IdentityMembership.DoesNotExist:
-        logger.warn(
-            "WARNING: User %s does not"
-            "have IdentityMembership on this database" % (username, ))
-        return _empty_allocation_result()
-    except:
-        logger.exception("Unable to monitor Identity:%s"
-                         % (identity,))
-        raise
-    #FIXME: Remove this after debug testing is complete
-    else:
-        if print_logs:
-            _exit_stdout_logging(console_handler)
-    #ENDFIXME: Remove this after debug testing is complete
-
 
 def _execute_provider_action(identity, user, instance, action_name):
     driver = get_cached_driver(identity=identity)
