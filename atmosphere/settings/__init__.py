@@ -88,7 +88,6 @@ INSTALLED_APPS = (
 
     # atmosphere apps
     'api',
-    'allocation',
     'cyverse_allocation',
     'service',
     'core',
