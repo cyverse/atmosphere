@@ -436,13 +436,6 @@ class Identity(models.Model):
             "ttz": zero_time,  # Time Til Zero
         }
 
-
-
-    def get_allocation_dict(self):
-        id_member = self.identity_memberships.all()[0]
-        allocation_dict = id_member.get_allocation_dict()
-        return allocation_dict
-
     def get_quota_dict(self):
         id_member = self.identity_memberships.all()[0]
         # See core/models/membership.py#IdentityMembership
