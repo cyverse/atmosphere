@@ -406,16 +406,6 @@ class Identity(models.Model):
     def get_quota(self):
         return self.quota
 
-    def total_usage(self, start_date, end_date):
-        # Undoubtedly will cause circular dependencies
-        from service.monitoring import _get_allocation_result
-        allocation_result = _get_allocation_result(self, start_date, end_date)
-        if not allocation_result:
-            # Flag to the plugin you have an error in counting.
-            return -1
-        total_au = allocation_result.total_runtime().total_seconds() / 3600.0
-        return total_au
-
     def get_allocation_usage(self):
         # Undoubtedly will cause circular dependencies
         from service.monitoring import _get_allocation_result
