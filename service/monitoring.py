@@ -8,7 +8,6 @@ from django.utils import timezone
 from threepio import logger
 from core.models import AtmosphereUser as User
 from core.models import AccountProvider
-from core.models.allocation_strategy import Allocation as CoreAllocation
 from core.models.credential import Credential
 from core.models import IdentityMembership, Identity, InstanceStatusHistory
 from core.models.instance import Instance as CoreInstance
