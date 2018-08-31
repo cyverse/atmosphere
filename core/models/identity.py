@@ -399,10 +399,6 @@ class Identity(models.Model):
     def get_urls(self):
         return []
 
-    def get_allocation(self):
-        id_member = self.identity_memberships.all()[0]
-        return id_member.allocation
-
     def get_quota(self):
         return self.quota
 
