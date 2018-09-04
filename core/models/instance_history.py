@@ -99,9 +99,7 @@ class InstanceStatusHistory(models.Model):
         try:
             with transaction.atomic():
                 if not last_history:
-                    # Required to prevent race conditions.
-                    last_history = instance.get_last_history()\
-                                           .select_for_update(nowait=True)
+                    last_history = instance.get_last_history()
                     if not last_history:
                         raise ValueError(
                             "A previous history is required "
