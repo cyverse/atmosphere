@@ -150,9 +150,7 @@ def lookupEmail(username):
     """
     if not hasattr(settings, 'EMAIL_LOOKUP_METHOD'):
         return ldapLookupEmail(username)
-    lookup_fn_str = settings.EMAIL_LOOKUP_METHOD
-    lookup_fn = settings._get_method_for_string(lookup_fn_str, the_globals=globals())
-    # Known function and args..
+    lookup_fn = globals()[settings.EMAIL_LOOKUP_METHOD]
     return lookup_fn(username)
 
 def user_email_info(username):
@@ -162,9 +160,7 @@ def user_email_info(username):
     """
     if not hasattr(settings, 'USER_EMAIL_LOOKUP_METHOD'):
         return ldap_get_email_info(username)
-    lookup_fn_str = settings.USER_EMAIL_LOOKUP_METHOD
-    lookup_fn = settings._get_method_for_string(lookup_fn_str, the_globals=globals())
-    # Known function and args..
+    lookup_fn = globals()[settings.USER_EMAIL_LOOKUP_METHOD]
     return lookup_fn(username)
 
 
