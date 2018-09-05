@@ -57,39 +57,3 @@ class CoreSearchProvider(BaseSearchProvider):
             | Q(application__name__icontains=query)
             | Q(application__description__icontains=query),
             *only_current_source())
-
-
-class CoreApplicationSearch(BaseSearchProvider):
-
-    """
-    Search core.models.application Application.
-    """
-
-    @classmethod
-    def search(cls, query, identity=None):
-        if identity:
-            base_apps = Application.objects.filter(
-                # Privately owned OR public machines
-                Q(private=True,
-                  versions__machines__instance_source__created_by_identity=identity)
-                | Q(private=False,
-                    versions__machines__instance_source__provider=identity.provider))
-        else:
-            active_providers = Provider.get_active()
-            base_apps = Application.objects.filter(
-                # Public machines
-                private=False,
-                # Providermachine's provider is active
-                versions__machines__instance_source__provider__in=active_providers)
-        # AND query matches on:
-        query_match = base_apps.filter(
-            # app tag name
-            Q(tags__name__icontains=query)
-            # OR app tag desc
-            | Q(tags__description__icontains=query)
-            # OR app name
-            | Q(name__icontains=query)
-            # OR app desc
-            | Q(description__icontains=query),
-            *only_current_source())
-        return query_match.distinct()
