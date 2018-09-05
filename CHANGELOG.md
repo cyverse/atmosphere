@@ -33,6 +33,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Updated Ansible version to 2.6.1 by changing requirements and changing
     `deploy.py` Playbook arg `--inventory-file` to `--inventory`
     ([#635](https://github.com/cyverse/atmosphere/pull/635))
+  - Prefer importing settings from django.conf
+    ([#658](https://github.com/cyverse/atmosphere/pull/658))
 
 ### Fixed
   - Consecutive test runs would fail because django-memoize was intercepting
