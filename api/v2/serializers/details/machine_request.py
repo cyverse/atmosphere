@@ -39,17 +39,6 @@ class InstanceRelatedField(serializers.RelatedField):
         return serializer.data
 
 
-class ProviderRelatedField(serializers.RelatedField):
-
-    def get_queryset(self):
-        return Provider.objects.all()
-
-    def to_representation(self, value):
-        provider = Provider.objects.get(id=value.id)
-        serializer = ProviderSummarySerializer(provider, context=self.context)
-        return serializer.data
-
-
 class MachineRequestSerializer(serializers.HyperlinkedModelSerializer):
 
     uuid = serializers.CharField(read_only=True)
