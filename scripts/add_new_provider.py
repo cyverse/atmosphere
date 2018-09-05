@@ -142,7 +142,6 @@ def read_json_file(filename):
     try:
         json_data = json.loads(data)
     except:
-        raise
         print("Invalid file format expected a json file.")
         raise
 

@@ -1078,7 +1078,6 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata,
             return
         return _update_instance_metadata(
             driver, instance, data=metadata, replace=replace_metadata)
-        celery_logger.debug("update_metadata task finished at %s." % datetime.now())
     except Exception as exc:
         celery_logger.exception(exc)
         update_metadata.retry(exc=exc)
