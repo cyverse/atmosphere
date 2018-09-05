@@ -11,23 +11,3 @@ class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = IdentityMembership
         fields = ('identity_id', 'credentials', 'provider_id', 'group_name')
-
-
-class POST_AccountSerializer(serializers.Serializer):
-
-    """
-TODO: Decide how a CloudAdmin could programmatically add a new account to atmosphere..
-Example Input:
-{
-    "credentials": {"key":"..",
-                    "secret":"..",
-                    "ex_project_name":".."},
-    "group_name": "sgregory",
-    "identity": <creaated from credentials>,
-    "provider": <dirived from CloudAdmin>,
-}
-    """
-    pass
-
-    class Meta:
-        fields = ('', '')
