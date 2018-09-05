@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from threepio import logger
 
-from atmosphere import settings
+from django.conf import settings
 
 from core import query
 from core.models.provider import Provider, AccountProvider

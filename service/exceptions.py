@@ -6,7 +6,7 @@ Atmosphere service exceptions.
 from ansible.errors import AnsibleError
 from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure, LibcloudInvalidCredsError, LibcloudBadResponseError
-from atmosphere import settings
+from django.conf import settings
 
 
 class ServiceException(Exception):

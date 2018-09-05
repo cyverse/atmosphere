@@ -12,7 +12,7 @@ from django.utils.timezone import datetime
 
 from threepio import logger, deploy_logger
 
-from atmosphere import settings
+from django.conf import settings
 from atmosphere.settings import secrets
 
 from django_cyverse_auth.protocol import ldap

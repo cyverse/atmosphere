@@ -20,7 +20,7 @@ from core.models import Provider, PlatformType, ProviderType, Identity, Group,\
 from core.models import InstanceAction
 from service.driver import get_account_driver
 from service.networking import topology_list
-from atmosphere import settings
+from django.conf import settings
 
 libcloud.security.VERIFY_SSL_CERT = False
 libcloud.security.VERIFY_SSL_CERT_STRICT = False
@@ -506,7 +506,7 @@ def _create_provider_and_identity(arguments):
     provider_credentials.update(json_provider_credentials)
     cloud_config.update(json_cloud_config)
 
-    
+
     while True:
         get_provider_info(provider_info)
         get_admin_info(admin_info)

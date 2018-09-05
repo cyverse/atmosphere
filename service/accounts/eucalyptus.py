@@ -17,7 +17,7 @@ from core.models.provider import Provider
 from rtwo.drivers.eucalyptus_user import UserManager
 from chromogenic.drivers.eucalyptus import ImageManager
 
-from atmosphere import settings
+from django.conf import settings
 
 
 class AccountDriver():

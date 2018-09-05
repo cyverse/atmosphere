@@ -10,7 +10,7 @@ from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
 
-from atmosphere import settings
+from django.conf import settings
 
 from core import exceptions as core_exceptions
 from core.email import send_denied_resource_email
