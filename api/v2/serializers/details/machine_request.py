@@ -27,15 +27,6 @@ from api.v2.serializers.fields import (
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from api.validators import NoSpecialCharacters
 
-class UserRelatedField(serializers.PrimaryKeyRelatedField):
-
-    def get_queryset(self):
-        return User.objects.all()
-
-    def to_representation(self, value):
-        user = User.objects.get(pk=value.pk)
-        serializer = UserSummarySerializer(user, context=self.context)
-        return serializer.data
 
 class InstanceRelatedField(serializers.RelatedField):
 
