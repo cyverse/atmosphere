@@ -11,7 +11,7 @@ import random
 from rtwo.exceptions import NeutronClientException, NeutronNotFound
 from service.driver import get_account_driver
 
-from atmosphere import settings
+from django.conf import settings
 from threepio import logger
 
 

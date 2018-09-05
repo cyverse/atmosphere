@@ -8,7 +8,7 @@ from django.http import HttpResponse
 
 from threepio import logger
 
-from atmosphere import settings
+from django.conf import settings
 from core.models.instance import Instance
 
 

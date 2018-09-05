@@ -36,7 +36,7 @@ from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.openstack_user import UserManager
 from chromogenic.drivers.openstack import ImageManager
 
-from atmosphere import settings
+from django.conf import settings
 
 from core.query import contains_credential
 from core.models import GroupMembership
@@ -58,7 +58,7 @@ def timeout_after(seconds):
             raise TimeoutError()
 
         # set the timeout handler
-        signal.signal(signal.SIGALRM, handler) 
+        signal.signal(signal.SIGALRM, handler)
         signal.alarm(seconds)
         try:
             result = func(*args, **kwargs)
@@ -567,7 +567,7 @@ class AccountDriver(BaseAccountDriver):
                     % (glance_image, project_name))
         return project
 
-        
+
 
     def rebuild_security_groups(self, core_identity, rules_list=None):
         creds = self.parse_identity(core_identity)
@@ -1086,7 +1086,7 @@ class AccountDriver(BaseAccountDriver):
             limits['ram'] = absolute_limits['maxTotalRAMSize']
         except:
             logger.exception("The method for 'reading' absolute limits has changed!")
-            
+
         return limits
 
     def get_user_limits(self, username, project_name):
@@ -1126,7 +1126,7 @@ class AccountDriver(BaseAccountDriver):
                                              % (tenant_id, user_id))
         quota_obj = server_resp.object
         return quota_obj
-        
+
 
 
 
@@ -1241,7 +1241,7 @@ class AccountDriver(BaseAccountDriver):
             tenant_name = self.get_project_name_for(username)
         if not password:
             password = self.hashpass(tenant_name)
-        version = self.user_manager.keystone_version() 
+        version = self.user_manager.keystone_version()
         if version == 2:
             ex_version = '2.0_password'
             keystone_auth_url = self.credentials['auth_url'].replace('/tokens','')

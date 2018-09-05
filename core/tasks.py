@@ -8,7 +8,7 @@ from celery.decorators import task
 from django.core.mail import EmailMessage
 from django.utils import timezone
 
-from atmosphere import settings
+from django.conf import settings
 from threepio import celery_logger, email_logger
 
 from core.models.status_type import get_status_type

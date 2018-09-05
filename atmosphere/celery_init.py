@@ -18,7 +18,7 @@ app.autodiscover_tasks()
 
 #NOTE: Some settings are not being set properly.. so we'll override them.. again. here
 # Load task modules from all registered Django app configs.
-from atmosphere import settings
+from django.conf import settings
 app.Task.resultrepr_maxsize = 2000
 
 # Django-Celery secrets ( set inside atmosphere/settings/__init__.py )

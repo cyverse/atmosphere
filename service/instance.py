@@ -46,7 +46,7 @@ from core.models.volume import convert_esh_volume
 from core.models.provider import AccountProvider, Provider, ProviderInstanceAction
 from core.exceptions import ProviderNotActive
 
-from atmosphere import settings
+from django.conf import settings
 from atmosphere.settings import secrets
 
 from service.cache import get_cached_driver, invalidate_cached_instances

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from atmosphere import settings
+from django.conf import settings
 from core.models import Provider, Identity
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 from rtwo.exceptions import KeystoneUnauthorized
