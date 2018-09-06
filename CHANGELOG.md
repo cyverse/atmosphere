@@ -35,14 +35,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#635](https://github.com/cyverse/atmosphere/pull/635))
   - Prefer importing settings from django.conf
     ([#658](https://github.com/cyverse/atmosphere/pull/658))
-
-### Fixed
-  - Consecutive test runs would fail because django-memoize was intercepting
-    cassette playback ([#626](https://github.com/cyverse/atmosphere/pull/626))
   - Increased hard timeouts for tasks
     ([#650](https://github.com/cyverse/atmosphere/pull/650))
   - Variable changes to DJANGO_DEBUG and SEND_EMAILS
     ([#649](https://github.com/cyverse/atmosphere/pull/649))
+
+### Fixed
+  - Consecutive test runs would fail because django-memoize was intercepting
+    cassette playback ([#626](https://github.com/cyverse/atmosphere/pull/626))
+  - Offline user validation always failed because of incorrect order of
+    arguments ([#660](https://github.com/cyverse/atmosphere/pull/660))
 
 ### Added
   - Added AccessTokens model, API view, and serializers to enable new feature on
