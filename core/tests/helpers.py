@@ -109,7 +109,8 @@ class CoreStatusHistoryHelper(object):
 
     def new_transaction(self):
         return InstanceStatusHistory.transaction(
-            self.status_name, self.instance, self.size, self.start_date)
+            self.status_name, "dummy-activity", self.instance, self.size,
+            start_time=self.start_date)
 
     def _init_sizes(self, provider):
         size_params = [
@@ -178,35 +179,15 @@ class CoreInstanceHelper(object):
     def to_core_instance(self):
         return Instance.objects.get_or_create(
             name=self.name, provider_alias=self.provider_alias,
-            provider_machine=self.machine, ip_address='1.2.3.4',
+            source=self.machine.instance_source, ip_address='1.2.3.4',
             created_by=self.user, created_by_identity=self.identity,
             token='unique-test-token-%s' % self.name,
             password='password',
             shell=False, start_date=self.start_date)[0]
 
     def _init_provider_machines(self):
-        # Mock a machine and its dependencies..
-        app = Application.objects.get_or_create(
-            name='Ubuntu',
-            description='', created_by=self.user,
-            created_by_identity=self.identity,
-            uuid='1234-ubuntu-mock-APP')[0]
-        ubuntu = ProviderMachine.objects.get_or_create(
-            application=app, provider=self.provider,
-            created_by=self.user, created_by_identity=self.identity,
-            identifier='1234-ubuntu-mock-machine',
-            version="1.0")[0]
-
-        app = Application.objects.get_or_create(
-            name='CentOS',
-            description='', created_by=self.user,
-            created_by_identity=self.identity,
-            uuid='1234-centos-mock-APP')[0]
-        centos = ProviderMachine.objects.get_or_create(
-            application=app, provider=self.provider,
-            created_by=self.user, created_by_identity=self.identity,
-            identifier='1234-centos-mock-machine',
-            version='1.0')[0]
+        ubuntu = _new_provider_machine("ubuntu", "1.0", self.identity)
+        centos = _new_provider_machine("centos", "1.0", self.identity)
         self.AVAILABLE_MACHINES = {
             "ubuntu": ubuntu,
             "centos": centos,
@@ -251,21 +232,19 @@ class CoreProviderMachineHelper(object):
 
 class CoreMachineRequestHelper(object):
 
-    def __init__(self, new_application_name, start_date,
-                 new_machine_version='1.0', new_machine_forked=True,
+    def __init__(self, new_application_name, start_date, new_machine_forked=True,
                  instance=None, provider='openstack', username='mock_user'):
         self.AVAILABLE_PROVIDERS = _new_providers()
         self.set_provider(provider)
-        identity_member = _new_mock_identity_member(
+        self.identity_member = _new_mock_identity_member(
             username, self.provider)
-        self.identity = identity_member.identity
+        self.identity = self.identity_member.identity
         self.user = self.identity.created_by
         self.forked = new_machine_forked
         if not instance:
             instance = _new_core_instance(
                 "Mock Instance", uuid4(), start_date, self.identity, None)
         self.new_application_name = new_application_name
-        self.new_machine_version = new_machine_version
         self.instance = instance
         self.start_date = start_date
 
@@ -279,14 +258,15 @@ class CoreMachineRequestHelper(object):
     def to_core_machine_request(self):
         provider_machine = self.instance.provider_machine
 
+        status, _ = StatusType.objects.get_or_create(name='pending')
         return MachineRequest.objects.get_or_create(
-            instance=self.instance, status='pending',
+            created_by=self.user, membership=self.identity_member,
+            instance=self.instance, status=status,
             parent_machine=provider_machine,
             new_machine_provider=provider_machine.provider,
             new_application_name=self.new_application_name,
-            new_machine_version=self.new_machine_version,
-            new_machine_owner=self.user, new_machine_visibility='public',
-            new_machine_forked=self.forked, start_date=self.start_date)[0]
+            new_machine_owner=self.user, new_application_visibility='public',
+            new_version_forked=self.forked, start_date=self.start_date)[0]
 
 
 class CoreApplicationHelper(object):

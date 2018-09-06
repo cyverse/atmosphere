@@ -51,6 +51,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#649](https://github.com/cyverse/atmosphere/pull/649))
   - Fixed v2 volume detach throwing 500 serialization error
     ([#655](https://github.com/cyverse/atmosphere/pull/655))
+  - Reincluded/fixed broken tests
+    ([#657](https://github.com/cyverse/atmosphere/pull/657))
 
 ### Added
   - Added AccessTokens model, API view, and serializers to enable new feature on

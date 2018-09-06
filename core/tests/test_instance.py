@@ -1,5 +1,6 @@
 from django.core.urlresolvers import reverse
 from django.test import TestCase
+import uuid
 
 import unittest
 
@@ -62,7 +63,7 @@ class TestInstanceStatusHistory(CoreInstanceTestCase):
             tzinfo=pytz.utc)
         self.terminate_time = datetime(2015, 1, 8, tzinfo=pytz.utc)
         self.instance_helper = CoreInstanceHelper(
-            "test_instance", "1234-1234-1234-1234", self.start_time)
+            "test_instance", uuid.uuid4(), self.start_time)
 
     def test_growing_history(self):
         """

@@ -126,7 +126,7 @@ class TestApplicationAccessList(CoreApplicationTestCase):
         self.app.access_list.add(self.allow_test_email)
         expected_result = [
             u'cdosborn', u'cyversedemo1', u'cyversedemo2',
-            u'cyversedemo3', u'lenards', u'steve']
+            u'cyversedemo3', u'lenards', u'sgregory', u'steve']
         self.assertAccessList(expected_result)
         self.app.access_list.clear()
 
@@ -135,7 +135,7 @@ class TestApplicationAccessList(CoreApplicationTestCase):
         self.app.access_list.add(self.deny_specific_test_email)
         expected_result = [
             u'cdosborn', u'cyversedemo1', u'cyversedemo2',
-            u'cyversedemo3', u'lenards']
+            u'cyversedemo3', u'lenards', u'steve']
         self.assertAccessList(expected_result)
         self.app.access_list.clear()
 
