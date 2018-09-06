@@ -1,5 +1,5 @@
 import json
-from unittest import skip, skipUnless
+from unittest import skip
 
 from django.core.urlresolvers import reverse
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate

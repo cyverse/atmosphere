@@ -1,4 +1,3 @@
-from api import exceptions as api_exceptions
 from rest_framework import exceptions as rest_exceptions
 from rest_framework.response import Response
 from api.v2.serializers.details import MachineRequestSerializer,\

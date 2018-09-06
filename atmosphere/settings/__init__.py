@@ -14,7 +14,6 @@ import os
 import os.path
 import threepio
 import atmosphere
-from kombu import Exchange, Queue
 
 
 # Debug Mode

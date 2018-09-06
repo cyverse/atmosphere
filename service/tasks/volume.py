@@ -9,7 +9,6 @@ from django.utils import timezone
 from celery import current_app as app
 from celery.result import allow_join_result
 from celery.decorators import task
-from celery import chain
 
 from threepio import celery_logger
 from rtwo.driver import EucaDriver, OSDriver

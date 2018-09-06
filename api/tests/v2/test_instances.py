@@ -1,5 +1,4 @@
 import uuid
-from unittest import skip, skipIf
 import mock
 
 from django.core.urlresolvers import reverse

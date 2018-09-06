@@ -24,11 +24,9 @@ from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.project_application import ProjectApplication
 from core.models.project_link import ProjectExternalLink
-from core.models.provider import (
-    AccountProvider, ProviderType, PlatformType,
-    Provider, ProviderInstanceAction, ProviderDNSServerIP,
-    ProviderConfiguration
-)
+from core.models.provider import (AccountProvider, ProviderType, PlatformType,
+                                  Provider, ProviderInstanceAction,
+                                  ProviderConfiguration)
 from core.models.license import LicenseType, License, ApplicationVersionLicense
 from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest

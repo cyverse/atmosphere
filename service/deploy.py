@@ -15,8 +15,6 @@ from threepio import logger, deploy_logger
 from django.conf import settings
 from atmosphere.settings import secrets
 
-from django_cyverse_auth.protocol import ldap
-
 from core.core_logging import create_instance_logger
 from core.models.ssh_key import get_user_ssh_keys
 from core.models import Provider, Identity, Instance, SSHKey, AtmosphereUser
