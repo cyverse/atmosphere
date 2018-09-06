@@ -21,7 +21,7 @@ from core.models.machine_request import MachineRequest
 from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
 from core.models.application_version import ApplicationVersion
-from core.models import Allocation, Credential, IdentityMembership
+from core.models import Credential, IdentityMembership
 
 from service.machine import (
     update_db_membership_for_group,
@@ -809,47 +809,6 @@ def monitor_sizes_for(provider_id, print_logs=False):
     for size in seen_sizes:
         size.esh = None
     return seen_sizes
-
-@task(name="monthly_allocation_reset")
-def monthly_allocation_reset():
-    """
-    This task contains logic related to:
-    * Providers whose allocations should be reset on the first of the month
-    * Which Allocation will be used as 'default'
-    """
-    default_allocation = Allocation.default_allocation()
-    provider_locations = None
-    # ensure a 'set' settings value
-    if hasattr(settings, 'MONTHLY_RESET_PROVIDER_LOCATIONS'):
-        provider_locations = settings.MONTHLY_RESET_PROVIDER_LOCATIONS
-    else:
-        raise Exception("settings.MONTHLY_RESET_PROVIDER_LOCATIONS has not been set. SKIPPING the monthly allocation reset.")
-
-    # Ensure settings value is a list
-    if not provider_locations or not isinstance(provider_locations, list):
-        raise Exception("Expected a list ([]) of provider locations to receive a monthly reset")
-    for location in provider_locations:
-        provider = Provider.objects.get(location=location)
-        reset_provider_allocation.apply_async(
-            args=[
-                provider.id,
-                default_allocation.id])
-    return
-
-
-@task(name="reset_provider_allocation")
-def reset_provider_allocation(provider_id, default_allocation_id):
-    default_allocation = Allocation.objects.get(id=default_allocation_id)
-    this_provider = Q(identity__provider_id=provider_id)
-    no_privilege = (Q(identity__created_by__is_staff=False) &
-                   Q(identity__created_by__is_superuser=False))
-    expiring_allocation = ~Q(allocation__delta=-1)
-    members = IdentityMembership.objects.filter(
-        this_provider,
-        no_privilege,
-        expiring_allocation)
-    num_reset = members.update(allocation=default_allocation)
-    return num_reset
 
 def _clean_memberships(db_machines, acct_driver=None):
     """

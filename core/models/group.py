@@ -14,7 +14,6 @@ from django.contrib.auth.models import Group as DjangoGroup
 
 from threepio import logger
 
-from core.models.allocation_strategy import Allocation
 from core.models.application import Application
 from core.models.identity import Identity
 from core.models.provider import Provider
@@ -176,7 +175,6 @@ class IdentityMembership(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     identity = models.ForeignKey(Identity, related_name='identity_memberships')
     member = models.ForeignKey(Group, related_name='identity_memberships')
-    allocation = models.ForeignKey(Allocation, null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
 
     @classmethod
@@ -198,33 +196,6 @@ class IdentityMembership(models.Model):
             now = timezone.now()
             return not(self.end_date < now)
         return True
-
-    def get_allocation_dict(self):
-        if not self.allocation:
-            return {}
-        # Don't move it up. Circular reference.
-        from django.conf import settings
-        from service.monitoring import get_delta, _get_allocation_result
-        delta = get_delta(self, time_period=settings.FIXED_WINDOW)
-        allocation_result = _get_allocation_result(self.identity)
-        over_allocation, diff_amount = allocation_result.total_difference()
-        burn_time = allocation_result.get_burn_rate()
-        # Moving from seconds to hours
-        hourly_credit = int(allocation_result
-                            .total_credit().total_seconds() / 3600.0)
-        hourly_runtime = int(allocation_result
-                             .total_runtime().total_seconds() / 3600.0)
-        hourly_difference = int(diff_amount.total_seconds() / 3600.0)
-        zero_time = allocation_result.time_to_zero()
-
-        allocation_dict = {
-            "threshold": hourly_credit,
-            "current": hourly_runtime,
-            "delta": ceil(delta.total_seconds() / 60),
-            "burn": hourly_difference,
-            "ttz": zero_time,
-        }
-        return allocation_dict
 
     def get_quota_dict(self):
         """

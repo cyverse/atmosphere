@@ -57,8 +57,6 @@ PERIODIC_TASKS = [
     "clear_empty_ips", "clear_empty_ips_for",
     "remove_empty_networks",
     "remove_empty_networks_for",
-    "reset_provider_allocation",
-    "monthly_allocation_reset",
     #JETSTREAM_SPECIFIC PERIODIC TASKS
     "report_allocations_to_tas",
     "update_snapshot",

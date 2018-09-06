@@ -191,12 +191,6 @@ class Provider(models.Model):
             cred_map.update(url_map)
         return cred_map
 
-    def get_total_hours(self, identity):
-        if identity.provider != self:
-            raise Exception("Provider Mismatch - %s != %s"
-                % (self, identity.provider))
-        return self.get_total_hours()
-
     def get_platform_name(self):
         return self.virtualization.name
 

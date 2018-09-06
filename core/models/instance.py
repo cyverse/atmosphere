@@ -102,17 +102,6 @@ class Instance(models.Model):
         membership_query = Q(created_by__memberships__group__user=user)
         return Instance.objects.filter(membership_query | project_query | ownership_query).distinct()
 
-    def get_total_hours(self):
-        from service.monitoring import _get_allocation_result
-        identity = self.created_by_identity
-        limit_instances = [self.provider_alias]
-        result = _get_allocation_result(
-            identity,
-            limit_instances=limit_instances)
-        total_hours = result.total_runtime().total_seconds()/3600.0
-        hours = round(total_hours, 2)
-        return hours
-
     def get_first_history(self):
         """
         Returns the first InstanceStatusHistory

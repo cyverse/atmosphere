@@ -11,7 +11,6 @@ from .instance_factory import InstanceFactory
 from .instance_history_factory import InstanceHistoryFactory, InstanceStatusFactory
 from .version_factory import ApplicationVersionFactory
 from .quota_factory import QuotaFactory
-from .allocation_factory import AllocationFactory
 from .provider_type_factory import ProviderTypeFactory
 from .provider_machine_factory import ProviderMachineFactory
 from .platform_type_factory import PlatformTypeFactory

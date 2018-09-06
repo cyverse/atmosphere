@@ -8,8 +8,6 @@ from django.utils import timezone
 from threepio import logger
 from core.models import AtmosphereUser as User
 from core.models import AccountProvider
-from core.models.allocation_strategy import Allocation as CoreAllocation
-from core.models.allocation_strategy import AllocationStrategy as CoreAllocationStrategy
 from core.models.credential import Credential
 from core.models import IdentityMembership, Identity, InstanceStatusHistory
 from core.models.instance import Instance as CoreInstance
@@ -17,10 +15,8 @@ from core.models.instance import (
     convert_esh_instance, _esh_instance_size_to_core
 )
 from core.models.size import convert_esh_size
-from allocation.models import Allocation, AllocationResult
 from service.cache import get_cached_instances, get_cached_driver
 from service.instance import suspend_instance, stop_instance, destroy_instance, shelve_instance, offload_instance
-from allocation.engine import calculate_allocation
 from django.conf import settings
 from rtwo.exceptions import LibcloudInvalidCredsError
 
@@ -102,48 +98,6 @@ def _get_identity_from_tenant_name(provider, username):
         return identity
     except Credential.DoesNotExist:
         return None
-
-# Core Monitoring methods
-
-
-def get_allocation_result_for(
-        provider, username, print_logs=False, start_date=None, end_date=None):
-    """
-    Given provider and username:
-    * Find the correct identity for the user
-    * Create 'Allocation' using core representation
-    * Calculate the 'AllocationResult' and return both
-    """
-    #FIXME: Remove this after debug testing is complete
-    if print_logs:
-        from service.tasks.monitoring import _init_stdout_logging, _exit_stdout_logging
-        console_handler = _init_stdout_logging(logger)
-    #ENDFIXME: Remove this after debug testing is complete
-
-    identity = _get_identity_from_tenant_name(provider, username)
-    # Attempt to run through the allocation engine
-    try:
-        allocation_result = _get_allocation_result(
-            identity, start_date, end_date,
-            print_logs=print_logs)
-        if allocation_result.total_runtime() != timedelta(0):
-            logger.debug("Result for Username %s: %s"
-                         % (username, allocation_result))
-        return allocation_result
-    except IdentityMembership.DoesNotExist:
-        logger.warn(
-            "WARNING: User %s does not"
-            "have IdentityMembership on this database" % (username, ))
-        return _empty_allocation_result()
-    except:
-        logger.exception("Unable to monitor Identity:%s"
-                         % (identity,))
-        raise
-    #FIXME: Remove this after debug testing is complete
-    else:
-        if print_logs:
-            _exit_stdout_logging(console_handler)
-    #ENDFIXME: Remove this after debug testing is complete
 
 
 def _execute_provider_action(identity, user, instance, action_name):
@@ -353,43 +307,6 @@ def _get_instance_owner_map(provider, users=None):
 # Used in OLD allocation
 
 
-def check_over_allocation(username, identity_uuid,
-                          time_period=None):
-    """
-    Check if an identity is over allocation.
-
-    NOTE: Answer is ALWAYS a 2-tuple
-    True,False - Over/Under Allocation
-    Amount - Time (amount) Over/Under Allocation.
-    """
-    identity = Identity.objects.get(uuid=identity_uuid)
-    allocation_result = _get_allocation_result(identity)
-    return allocation_result.total_difference()
-
-
-def get_allocation(username, identity_uuid):
-    user = User.objects.get(username=username)
-    logger.warn(
-        "DEPRECATION WARNING: Identities do not control allocation anymore. This will no longer return values.")
-    return None
-    group_ids = user.memberships.values_list('group__id', flat=True)
-    try:
-        membership = IdentityMembership.objects.get(
-            identity__uuid=identity_uuid, member__in=group_ids)
-    except IdentityMembership.DoesNotExist:
-        logger.warn(
-            "WARNING: User %s does not"
-            "have IdentityMembership on this database" % (username, ))
-        return None
-    if not user.is_staff and not membership.allocation:
-        def_allocation = CoreAllocation.default_allocation(
-            membership.identity.provider)
-        logger.warn("%s is MISSING an allocation. Default Allocation"
-                    " assigned:%s" % (user, def_allocation))
-        return def_allocation
-    return membership.allocation
-
-
 def get_delta(allocation, time_period, end_date=None):
     # Monthly Time Allocation
     if time_period and time_period.months == 1:
@@ -409,72 +326,6 @@ def get_delta(allocation, time_period, end_date=None):
     else:
         # Use allocation's delta value because no time period is set.
         return timedelta(minutes=allocation.delta)
-
-
-def _empty_allocation_result():
-    """
-    """
-    return AllocationResult.no_allocation()
-
-
-def _get_allocation_result(identity, start_date=None, end_date=None,
-                           print_logs=False, limit_instances=[], limit_history=[]):
-    """
-    Given an identity, retrieve the provider strategy and apply the strategy
-    to this identity.
-    """
-
-    if not identity:
-        return _empty_allocation_result()
-    username = identity.created_by.username
-    core_allocation = get_allocation(username, identity.uuid)
-    if not core_allocation:
-        logger.warn("User:%s Identity:%s does not have an allocation assigned"
-                    % (username, identity))
-    allocation_input = apply_strategy(
-        identity, core_allocation,
-        limit_instances=limit_instances, limit_history=limit_history,
-        start_date=start_date, end_date=end_date)
-    allocation_result = calculate_allocation(
-        allocation_input,
-        print_logs=print_logs)
-    return allocation_result
-
-
-def apply_strategy(identity, core_allocation, limit_instances=[], limit_history=[], start_date=None, end_date=None):
-    """
-    Given identity and core allocation, grab the ProviderStrategy
-    and apply it. Returns an "AllocationInput"
-    """
-    strategy = _get_strategy(identity)
-    if not strategy:
-        return Allocation(credits=[], rules=[], instances=[],
-            start_date=start_date, end_date=end_date)
-    return strategy.apply(
-        identity, core_allocation,
-        limit_instances=limit_instances, limit_history=limit_history,
-        start_date=start_date, end_date=end_date)
-
-
-def _get_strategy(identity):
-    try:
-        return identity.provider.allocationstrategy
-    except CoreAllocationStrategy.DoesNotExist:
-        return None
-
-
-def allocation_source_overage_enforcement(allocation_source):
-    all_user_instances = {}
-    for user in allocation_source.all_users:
-        all_user_instances[user.username] = []
-        #TODO: determine how this will work with project-sharing (i.e. that we aren't issue-ing multiple suspend/stop/etc. for shared instances
-        for identity in Identity.shared_with_user(user):
-            affected_instances = allocation_source_overage_enforcement_for(
-                    allocation_source, user, identity)
-            user_instances = all_user_instances[user.username]
-            user_instances.extend(affected_instances)
-            all_user_instances[user.username] = user_instances
-    return all_user_instances
 
 
 def filter_allocation_source_instances(allocation_source, user, esh_instances):

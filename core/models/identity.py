@@ -164,20 +164,15 @@ class Identity(models.Model):
     def share(self, core_group, allocation=None):
         """
         """
-        from core.models import IdentityMembership, Quota, Allocation
+        from core.models import IdentityMembership, Quota
         existing_membership = IdentityMembership.objects.filter(
             member=core_group, identity=self)
         if existing_membership:
             return existing_membership[0]
 
-        # Ready to create new membership for this group
-        if not allocation:
-            allocation = Allocation.default_allocation()
-
         new_membership = IdentityMembership.objects.get_or_create(
             member=core_group,
-            identity=self,
-            allocation=allocation)[0]
+            identity=self)[0]
         return new_membership
 
     def unshare(self, core_group):
@@ -226,7 +221,7 @@ class Identity(models.Model):
         """
         # Do not move up. ImportError.
         from core.models import Group, Quota,\
-            Provider, AccountProvider, Allocation,\
+            Provider, AccountProvider,\
             IdentityMembership
 
         provider = Provider.objects.get(location__iexact=provider_location)
@@ -399,61 +394,8 @@ class Identity(models.Model):
     def get_urls(self):
         return []
 
-    def get_allocation(self):
-        id_member = self.identity_memberships.all()[0]
-        return id_member.allocation
-
-    def get_total_hours(self):
-        from service.monitoring import _get_allocation_result
-        limit_instances = self.instance_set.all().values_list(
-                'provider_alias', flat=True
-            ).distinct()
-        result = _get_allocation_result(
-            self,
-            limit_instances=limit_instances)
-        total_hours = result.total_runtime().total_seconds()/3600.0
-        hours = round(total_hours, 2)
-        return hours
-
     def get_quota(self):
         return self.quota
-
-    def total_usage(self, start_date, end_date):
-        # Undoubtedly will cause circular dependencies
-        from service.monitoring import _get_allocation_result
-        allocation_result = _get_allocation_result(self, start_date, end_date)
-        if not allocation_result:
-            # Flag to the plugin you have an error in counting.
-            return -1
-        total_au = allocation_result.total_runtime().total_seconds() / 3600.0
-        return total_au
-
-    def get_allocation_usage(self):
-        # Undoubtedly will cause circular dependencies
-        from service.monitoring import _get_allocation_result
-        allocation_result = _get_allocation_result(self)
-        over_allocation, diff_amount = allocation_result.total_difference()
-        burn_time = allocation_result.get_burn_rate()
-        # Moving from seconds to hours
-        hourly_credit = int(allocation_result
-                            .total_credit().total_seconds() / 3600.0)
-        hourly_runtime = int(allocation_result
-                             .total_runtime().total_seconds() / 3600.0)
-        hourly_difference = int(diff_amount.total_seconds() / 3600.0)
-        zero_time = allocation_result.time_to_zero()
-        return {
-            "threshold": hourly_credit,  # Total amount
-            "current": hourly_runtime,  # Total used
-            "remaining": hourly_difference,
-            "ttz": zero_time,  # Time Til Zero
-        }
-
-
-
-    def get_allocation_dict(self):
-        id_member = self.identity_memberships.all()[0]
-        allocation_dict = id_member.get_allocation_dict()
-        return allocation_dict
 
     def get_quota_dict(self):
         id_member = self.identity_memberships.all()[0]
