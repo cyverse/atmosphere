@@ -130,11 +130,6 @@ def get_scripts_for_application(application_uuid):
         applications__uuid=application_uuid)
 
 
-def get_scripts_for_instance_id(instance_id):
-    return BootScript.objects.filter(
-        Q(instances__provider_alias=instance_id))
-
-
 def get_scripts_for_instance(instance):
     query_kwargs = {}
     # Look for scripts on the specific instance
