@@ -1,5 +1,6 @@
 import uuid
 from unittest import skip, skipIf
+import mock
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -137,3 +138,10 @@ class InstanceTests(APITestCase, APISanityTestCase):
         self.assertEquals(data['status'], 'active')
         self.assertEquals(data['activity'], '')
 
+    def test_instance_delete(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        url = reverse(self.url_route+"-detail", args=(self.active_instance.provider_alias,))
+        with mock.patch('api.v2.views.instance.destroy_instance'):
+            response = client.delete(url, HTTP_ACCEPT='application/json')
+        self.assertEquals(response.status_code, 204)
