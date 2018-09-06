@@ -129,11 +129,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         if type(action) == list:
             action = action[0]
         try:
-            result_obj = run_instance_action(user, identity, instance_id, action, action_params)
+            run_instance_action(user, identity, instance_id, action, action_params)
             api_response = {
                 'result': 'success',
                 'message': 'The requested action <%s> was run successfully' % (action,),
-                'object': result_obj,
             }
             response = Response(api_response, status=status.HTTP_200_OK)
             return response

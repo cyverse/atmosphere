@@ -33,6 +33,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Updated Ansible version to 2.6.1 by changing requirements and changing
     `deploy.py` Playbook arg `--inventory-file` to `--inventory`
     ([#635](https://github.com/cyverse/atmosphere/pull/635))
+  - Simplified v2 instance action api to exclude 'object' field
+    ([#655](https://github.com/cyverse/atmosphere/pull/655))
   - Prefer importing settings from django.conf
     ([#658](https://github.com/cyverse/atmosphere/pull/658))
 
@@ -43,6 +45,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#650](https://github.com/cyverse/atmosphere/pull/650))
   - Variable changes to DJANGO_DEBUG and SEND_EMAILS
     ([#649](https://github.com/cyverse/atmosphere/pull/649))
+  - Fixed v2 volume detach throwing 500 serialization error
+    ([#655](https://github.com/cyverse/atmosphere/pull/655))
 
 ### Added
   - Added AccessTokens model, API view, and serializers to enable new feature on
