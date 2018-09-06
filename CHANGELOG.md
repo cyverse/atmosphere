@@ -26,8 +26,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v33-0...HEAD) - YYYY-MM-DD
 ### Added
+  - Added AccessTokens model, API view, and serializers to enable new feature
+    on Troposphere that allows users to create personal access tokens that can
+    be used to authenticate the user from things like Atmosphere CLI
+    ([#648](https://github.com/cyverse/atmosphere/pull/648))
   - Add ability to configure allocation overrides
     ([#652](https://github.com/cyverse/atmosphere/pull/652))
+  - Added api v2 delete support
+    ([#654](https://github.com/cyverse/atmosphere/pull/654))
 
 ### Changed
   - Updated Ansible version to 2.6.1 by changing requirements and changing
@@ -53,13 +59,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#655](https://github.com/cyverse/atmosphere/pull/655))
   - Reincluded/fixed broken tests
     ([#657](https://github.com/cyverse/atmosphere/pull/657))
-
-### Added
-  - Added AccessTokens model, API view, and serializers to enable new feature on
-    Troposphere that allows users to create personal access tokens that can be
-    used to authenticate the user from things like Atmosphere CLI ([#648](https://github.com/cyverse/atmosphere/pull/648))
-  - Added api v2 delete support
-    ([#654](https://github.com/cyverse/atmosphere/pull/654))
 
 ## [v33-0](https://github.com/cyverse/atmosphere/compare/v32-2...v33-0) - 2018-08-06
 ### Changed
