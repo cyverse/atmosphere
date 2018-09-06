@@ -38,8 +38,6 @@ from service.deploy import (
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
 from service.instance import _update_instance_metadata
-from service.networking import _generate_ssh_kwargs
-
 from service.mock import MockInstance
 
 def _update_status_log(instance, status_update):

@@ -22,13 +22,6 @@ def topology_list():
     ]
 
 
-def _generate_ssh_kwargs(timeout=120):
-    kwargs = {}
-    kwargs.update({'ssh_key': settings.ATMOSPHERE_PRIVATE_KEYFILE})
-    kwargs.update({'timeout': timeout})
-    return kwargs
-
-
 def _get_unique_id(userid):
     if 'django_cyverse_auth.authBackends.LDAPLoginBackend' in \
             settings.AUTHENTICATION_BACKENDS:
