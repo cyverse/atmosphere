@@ -3,7 +3,7 @@ import uuid
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
+from rest_framework.test import APITestCase, APIRequestFactory
 
 from api.tests.factories import (
     GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
