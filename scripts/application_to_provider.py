@@ -291,8 +291,8 @@ def main(application_id,
 
         # Get or create AKI+ARI Glance images for AMI-based image
         if ami:
-            dprov_aki_glance_image = get_or_create_glance_image(dprov_glance_client,
-                                                                sprov_glance_image.get("kernel_id"))
+            get_or_create_glance_image(dprov_glance_client,
+                                       sprov_glance_image.get("kernel_id"))
             dprov_ari_glance_image = get_or_create_glance_image(dprov_glance_client,
                                                                 sprov_glance_image.get("ramdisk_id"))
 
