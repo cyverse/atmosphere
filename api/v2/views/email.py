@@ -13,7 +13,6 @@ from api import permissions
 from api.v2.exceptions import failure_response
 
 from core.email import resource_request_email, email_admin, request_data
-from core.models import AtmosphereUser as User
 from core.models import Instance, Volume
 
 class EmailViewSet(ViewSet):
