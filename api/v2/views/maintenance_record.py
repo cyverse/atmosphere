@@ -1,11 +1,8 @@
 import django_filters
-
 from rest_framework import filters
-from rest_framework.serializers import ValidationError
 
 from core.models import AtmosphereUser, MaintenanceRecord
 from core.query import only_current
-
 from api.permissions import CanEditOrReadOnly
 from api.v2.serializers.details import MaintenanceRecordSerializer
 from api.v2.views.base import AuthOptionalViewSet
