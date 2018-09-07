@@ -11,7 +11,7 @@ from threepio import logger
 from django.conf import settings
 
 from core import query
-from core.models.provider import Provider, AccountProvider
+from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.models.application_version import ApplicationVersion
