@@ -7,7 +7,6 @@ from core.models.link import ExternalLink
 from core.models.instance import Instance
 from core.models.group import Group
 from core.models.volume import Volume
-from core.query import only_current_source
 
 from threepio import logger
 
