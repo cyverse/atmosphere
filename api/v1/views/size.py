@@ -71,7 +71,6 @@ class Size(AuthAPIView):
         Lookup the size information (Lookup using the given provider/identity)
         Update on server DB (If applicable)
         """
-        user = request.user
         try:
             esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         except ProviderNotActive as pna:
