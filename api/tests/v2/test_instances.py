@@ -8,9 +8,10 @@ from rest_framework.test import APIClient
 
 from rest_framework.test import APITestCase, force_authenticate
 from api.tests.factories import (
-    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory, SizeFactory,
-    ImageFactory, ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
-    IdentityMembershipFactory, QuotaFactory)
+    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory,
+    InstanceHistoryFactory, InstanceStatusFactory, ImageFactory,
+    ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory,
+    IdentityFactory, ProviderFactory, IdentityMembershipFactory, QuotaFactory)
 from .base import APISanityTestCase
 from api.v2.views import InstanceViewSet
 from core.models import AtmosphereUser
