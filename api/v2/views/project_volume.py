@@ -1,5 +1,3 @@
-from django.utils import timezone
-
 from core.models import Volume
 from core.query import only_current_source
 from api.v2.serializers.details import ProjectVolumeSerializer
