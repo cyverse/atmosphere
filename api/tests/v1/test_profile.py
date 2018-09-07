@@ -40,5 +40,5 @@ class ProfileTests(TestCase):
         with mock.patch.object(AtmosphereUser, 'is_valid', return_value=False), \
                 mock.patch("api.v1.views.profile.create_new_accounts") \
                 as mock_create_new_accounts:
-            response = view(request)
+            view(request)
             mock_create_new_accounts.assert_not_called()
