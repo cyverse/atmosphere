@@ -2,7 +2,7 @@ from rest_framework.test import APITestCase, APIRequestFactory, force_authentica
 
 from api.v2.views import AccessTokenViewSet
 from api.tests.factories import UserFactory, AnonymousUserFactory
-from core.models.access_token import AccessToken, create_access_token
+from core.models.access_token import create_access_token
 from .base import APISanityTestCase
 
 
