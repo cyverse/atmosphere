@@ -58,7 +58,6 @@ def print_instances(provider, users=[], status_list=[]):
             continue
         for instance in instance_list:
             instance_status = instance.extra.get('status')
-            task = instance.extra.get('task')
             metadata = instance.extra.get('metadata', {})
             tmp_status = metadata.get('tmp_status', '')
             created = instance.extra.get('created', "N/A")
