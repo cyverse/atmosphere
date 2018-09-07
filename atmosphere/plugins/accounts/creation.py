@@ -79,7 +79,7 @@ class DirectOpenstackAccount(AccountCreationPlugin):
                 if not has_projects and membership:
                     group = membership.group
                     logger.info('Creating new project for %s: "%s"', user, project_name)
-                    project = Project.objects.create(
+                    Project.objects.create(
                         name=project_name,
                         created_by=user,
                         owner=group,
