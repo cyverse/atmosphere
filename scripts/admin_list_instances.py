@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import argparse
 
-from service.tasks.driver import get_idempotent_deploy_chain
 from service.driver import get_esh_driver
 from service.driver import get_account_driver
 from core.models import Provider, Identity, Instance, InstanceStatusHistory
