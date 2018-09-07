@@ -557,7 +557,6 @@ class BootVolume(AuthAPIView):
         missing_keys = valid_launch_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
-        source = None
         name = data.pop('name')
         size_id = data.pop('size')
         key_name = self._select_source_key(data)
