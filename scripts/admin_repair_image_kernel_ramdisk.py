@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import argparse
-import subprocess
 import logging
 
 import django; django.setup()
