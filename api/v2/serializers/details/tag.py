@@ -1,7 +1,5 @@
 from rest_framework import serializers
 
-from atmosphere.settings import BLACKLIST_TAGS
-
 from api.v2.serializers.summaries import UserSummarySerializer
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from core.models import Tag
