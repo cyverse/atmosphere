@@ -71,7 +71,6 @@ def allocation_threshold_check():
         THRESHOLD = [50.0, 90.0]
         for threshold in THRESHOLD:
             if percentage_used > threshold:
-                compute_used = snapshot.compute_used
                 allocation_source_name = allocation_source.name
 
                 # check if event has been fired
