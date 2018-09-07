@@ -12,7 +12,7 @@ from django.utils import timezone as django_timezone
 from pytz import timezone as pytz_timezone
 
 from django.conf import settings
-from core.models import IdentityMembership, MachineRequest, EmailTemplate
+from core.models import MachineRequest, EmailTemplate
 
 from django_cyverse_auth.protocol.ldap import lookupEmail as ldapLookupEmail, lookupUser
 from core.tasks import send_email
