@@ -21,7 +21,6 @@ class ProjectVolumeViewSet(AuthModelViewSet):
         Filter out tags for deleted volumes
         """
         user = self.request.user
-        now = timezone.now()
         return Volume.objects.filter(
             only_current_source(),
             project__owner__user=user)
