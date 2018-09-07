@@ -15,7 +15,6 @@ from threepio import logger
 from core.models.application import Application
 from core.models.identity import Identity
 from core.models.provider import Provider
-from core.models.quota import Quota
 from core.models.user import AtmosphereUser
 
 from core.query import (
