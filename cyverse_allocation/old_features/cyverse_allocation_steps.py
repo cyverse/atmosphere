@@ -1,7 +1,7 @@
 from datetime import timedelta
 
-# noqa
-from behave import *
+# noinspection PyUnresolvedReferences
+from behave import * # noqa
 from behave import when, then, given
 from business_rules import run_all
 from dateutil.parser import parse
