@@ -15,7 +15,7 @@ import django.utils.timezone
 import mock
 import rest_framework.test
 # noinspection PyUnresolvedReferences
-from behave import *
+from behave import * # noqa
 from behave import when, then, given, step
 
 import api.tests.factories
