@@ -2,7 +2,7 @@
 import argparse
 
 from service.driver import get_account_driver
-from core.models import Provider, Identity, Instance, InstanceStatusHistory
+from core.models import Provider, Identity, Instance
 from core.models.instance import _get_status_name_for_provider, _convert_timestamp
 import django
 django.setup()
