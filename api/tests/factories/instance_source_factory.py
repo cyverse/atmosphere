@@ -1,6 +1,6 @@
 import factory
 import uuid
-from core.models import ProviderMachine, InstanceSource
+from core.models import InstanceSource
 from .provider_factory import ProviderFactory
 
 class InstanceSourceFactory(factory.DjangoModelFactory):
