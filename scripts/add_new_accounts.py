@@ -12,7 +12,6 @@ django.setup()
 
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
-from core.query import contains_credential
 from core.plugins import ValidationPluginManager, ExpirationPluginManager, AccountCreationPluginManager
 
 from django_cyverse_auth.protocol.ldap import get_members
