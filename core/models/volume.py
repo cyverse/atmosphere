@@ -168,7 +168,7 @@ class Volume(BaseSource):
                             last_history.end_date = new_history.start_date
                             last_history.save()
                         new_history.save()
-                    except DatabaseError as dbe:
+                    except DatabaseError:
                         logger.exception(
                             "volume_status_history: Lock is already acquired by"
                             "another transaction.")
