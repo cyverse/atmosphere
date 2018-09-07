@@ -78,7 +78,9 @@ class AccountSerializer(serializers.Serializer):
                 provider=new_identity.provider,
                 identity=new_identity)
 
-        # TODO: When the refactor of rtwo/get_esh_driver is complete, validate_identity should be call-able without the django model (to avoid create-then-delete)
+        # TODO: When the refactor of rtwo/get_esh_driver is complete,
+        # validate_identity should be call-able without the django model (to
+        # avoid create-then-delete)
         validate_identity(new_identity)
         return new_identity
 
