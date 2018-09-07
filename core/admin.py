@@ -94,7 +94,7 @@ class AllocationSourceAdmin(admin.ModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
-        from api.v2.views import AllocationSourceViewSet, UserAllocationSourceViewSet
+        from api.v2.views import AllocationSourceViewSet
         request.data = {"renewal_strategy": obj.renewal_strategy,
                         "name": obj.name,
                         "compute_allowed": obj.compute_allowed}
