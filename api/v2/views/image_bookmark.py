@@ -1,5 +1,4 @@
 from core.models import ApplicationBookmark as ImageBookmark, Application
-from django.utils import timezone
 from django.db.models import Q
 
 from api.v2.serializers.details import ImageBookmarkSerializer
