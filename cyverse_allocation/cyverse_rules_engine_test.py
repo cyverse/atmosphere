@@ -18,8 +18,11 @@ class CyverseRulesEngineTest(TestCase):
         ts = parse('2016-10-04T00:00+00:00')
         allocation_source = create_allocation_source(name='TestSource', compute_allowed=1000,timestamp=ts)
 
-        # In this workflow the instance_allocation_source_changed event is fired before any instance status history is created. Hence the instance will report usage as 0.0 because
-        # it thinks the allocation source is 'N/A'. A fix for this would be to decouple instance status histories and events completely in the allocation logic.
+        # In this workflow the instance_allocation_source_changed event is
+        # fired before any instance status history is created. Hence the
+        # instance will report usage as 0.0 because it thinks the allocation
+        # source is 'N/A'. A fix for this would be to decouple instance status
+        # histories and events completely in the allocation logic.
 
         workflow1 = UserWorkflow()
         workflow1.assign_allocation_source_to_user(allocation_source, timestamp=ts + timedelta(minutes=10))
