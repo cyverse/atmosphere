@@ -1,4 +1,4 @@
-from core.models import Application as Image, BootScript
+from core.models import Application as Image
 from core.metrics.application import _get_summarized_application_metrics
 from rest_framework import serializers
 from dateutil import rrule
