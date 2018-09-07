@@ -552,7 +552,6 @@ class BootVolume(AuthAPIView):
             return None
 
     def post(self, request, provider_uuid, identity_uuid, volume_id=None):
-        user = request.user
         data = request.data
 
         missing_keys = valid_launch_data(data)
