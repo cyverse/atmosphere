@@ -6,8 +6,9 @@ from django.utils import timezone
 from rest_framework.test import APITestCase, APIRequestFactory
 
 from api.tests.factories import (
-    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
-    ImageFactory, ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory, IdentityFactory,
+    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory,
+    InstanceHistoryFactory ImageFactory, ApplicationVersionFactory,
+    InstanceSourceFactory, ProviderMachineFactory, IdentityFactory,
     ProviderFactory, IdentityMembershipFactory, ProjectFactory)
 
 from api.v2.views import ProjectInstanceViewSet
