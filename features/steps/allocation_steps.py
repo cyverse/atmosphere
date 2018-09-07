@@ -4,7 +4,7 @@ import uuid
 import django
 import mock
 # noinspection PyUnresolvedReferences
-from behave import *
+from behave import * # noqa
 from behave import when, then, given, step
 from decimal import Decimal
 from django.core.urlresolvers import reverse
