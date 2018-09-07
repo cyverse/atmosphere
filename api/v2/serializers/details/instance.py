@@ -10,7 +10,6 @@ from api.v2.serializers.summaries import (
     UserSummarySerializer,
     ProviderSummarySerializer,
     SizeSummarySerializer,
-    ImageSummarySerializer,
     ProjectSummarySerializer,
     ImageVersionSummarySerializer,
     BootScriptSummarySerializer
