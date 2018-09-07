@@ -2,7 +2,6 @@
   Boot script model for atmosphere.
 """
 import requests
-from hashlib import md5
 import pytz
 from django.db import models
 from django.db.models import Q
