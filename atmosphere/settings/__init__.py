@@ -531,4 +531,4 @@ except ImportError:
 """
 Import local settings specific to the server, and secrets not checked into Git.
 """
-from atmosphere.settings.local import *
+from atmosphere.settings.local import * # noqa
