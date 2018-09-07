@@ -7,7 +7,6 @@ from core.models import ApplicationVersion as ImageVersion
 from core.models import Application as Image
 from core.models import (
     License, BootScript, ApplicationThreshold,
-    Group
 )
 
 from api.v2.serializers.summaries import (
