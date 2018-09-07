@@ -14,7 +14,6 @@ from api.tests.factories import (
     IdentityFactory, ProviderFactory, IdentityMembershipFactory, QuotaFactory)
 from .base import APISanityTestCase
 from api.v2.views import InstanceViewSet
-from core.models import AtmosphereUser
 
 
 class InstanceTests(APITestCase, APISanityTestCase):
