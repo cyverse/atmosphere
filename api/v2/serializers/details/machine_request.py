@@ -1,10 +1,8 @@
 from rest_framework import serializers
 
 from core.models import (
-    ApplicationVersion, ProviderMachine, Group,
-    BootScript, PatternMatch, Provider, License, Instance,
-    MachineRequest, Identity,
-    AtmosphereUser as User,
+    ApplicationVersion, ProviderMachine, Group, BootScript, PatternMatch,
+    Provider, License, Instance, MachineRequest, AtmosphereUser as User,
     IdentityMembership
 )
 
