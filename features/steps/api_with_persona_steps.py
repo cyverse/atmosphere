@@ -16,7 +16,7 @@ import mock
 import rest_framework.test
 # noinspection PyUnresolvedReferences
 from behave import * # noqa
-from behave import when, then, given, step
+from behave import when, then, step
 
 import api.tests.factories
 import jetstream.tests.tas_api_mock_utils
