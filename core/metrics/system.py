@@ -15,7 +15,6 @@ def instance_history_usage_report(filename, start_date=None, end_date=None, only
         query = query.filter(start_date__gt=start_date)
     if end_date:
         query = query.filter(end_date__gt=end_date)
-    now_time = timezone.now()
     with open(filename, 'w') as the_file:
         the_file.write("ID,Provider Alias,Username,Provider,Application,Version,Machine UUID,Status,Start Date,End Date,Active Time(Hours),CPU,RAM,DISK\n")
         for instance_history in query.order_by('instance__id', 'start_date', 'end_date'):
