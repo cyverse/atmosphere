@@ -3,7 +3,7 @@ import uuid
 from datetime import timedelta
 
 # noinspection PyUnresolvedReferences
-from behave import *
+from behave import * # noqa
 from behave import when, then, given, step
 from django.db.models import Sum
 from django.conf import settings
