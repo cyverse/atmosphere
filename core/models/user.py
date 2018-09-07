@@ -4,7 +4,6 @@ from hashlib import md5
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager
 from django.core import validators
 from django.core.mail import send_mail
-from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
