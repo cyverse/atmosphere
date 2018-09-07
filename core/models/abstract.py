@@ -4,9 +4,7 @@
   See the respective sub-classes for complete implementation details.
 """
 from uuid import uuid4
-
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 
 from core.exceptions import InvalidMembership, ProviderLimitExceeded
