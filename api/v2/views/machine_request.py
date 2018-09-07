@@ -41,8 +41,12 @@ class MachineRequestViewSet(BaseRequestViewSet):
             "%s should include an `admin_serializer_class` attribute."
             % self.__class__.__name__
         )
-        # NOTE: Special case! If we are querying for 'user-facing-view' _as a staff user_ we will see something different than normal users. This line will keep consistency, but is admittedly fragile.
-        # A better solution would be to _include_ ?admin=true or some other queryparam when the admin_serializer_class is desired _or_ splitting into two endpoints.
+        # NOTE: Special case! If we are querying for 'user-facing-view' _as a
+        # staff user_ we will see something different than normal users. This
+        # line will keep consistency, but is admittedly fragile. A better
+        # solution would be to _include_ ?admin=true or some other queryparam
+        # when the admin_serializer_class is desired _or_ splitting into two
+        # endpoints.
         if self.request.query_params.get('new_machine_owner__username','') != '':
             return self.serializer_class
 
