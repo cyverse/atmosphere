@@ -7,7 +7,6 @@ from django import http
 from django.utils.http import urlquote
 from django.core import urlresolvers
 
-from threepio import logger
 
 class RemoveCSRFMiddleware(object):
 
