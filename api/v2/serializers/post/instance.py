@@ -1,11 +1,10 @@
-
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from core.models import (
     BootScript, Identity, Instance, InstanceSource, Provider, ProviderMachine,
     Project, UserAllocationSource, Size)
-from api.v2.serializers.fields.base import ReprSlugRelatedField
+
 
 class InstanceSerializer(serializers.ModelSerializer):
     """
