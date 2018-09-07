@@ -6,7 +6,6 @@ from core.models import AtmosphereUser as User
 from core.models import Instance
 
 from django.core.urlresolvers import reverse
-from django.db.models import ObjectDoesNotExist
 from django.template.loader import render_to_string
 from django.utils import timezone as django_timezone
 
