@@ -326,8 +326,6 @@ def launch_instance(user, time_created, cpu, before=False):
             provider=provider)
     else:
         user_identity = Identity.objects.all().last()
-    admin_identity = user_identity
-
     provider_machine = ProviderMachine.objects.all()
     if not provider_machine:
         machine = ProviderMachineFactory.create_provider_machine(user, user_identity)
