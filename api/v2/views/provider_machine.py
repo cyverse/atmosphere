@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from core.models import AccountProvider
-from core.models.machine import ProviderMachine, find_provider_machine, update_provider_machine_metadata
+from core.models.machine import ProviderMachine, update_provider_machine_metadata
 from core.query import (
     only_current_source, only_public_providers,
     user_provider_machine_set, in_provider_list
