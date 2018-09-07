@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from core.exceptions import InvalidMembership, ProviderLimitExceeded
 from core.query import only_current
-from core.models.identity import Identity
 from core.models.instance_source import InstanceSource
 from core.models.provider import Provider
 from core.models.status_type import StatusType
