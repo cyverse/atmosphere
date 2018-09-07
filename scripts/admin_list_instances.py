@@ -69,7 +69,10 @@ def print_instances(provider, users=[], status_list=[]):
                     provider_alias=instance.id).get_last_history()
             except:
                 last_history = "N/A (Instance not in this DB)"
-            print "Tenant:%s Instance:%s Status: (%s - %s) Created:%s Updated:%s, Last History:%s" % (username, instance.id, instance_status, tmp_status, created, updated, last_history)
+            print "Tenant:%s Instance:%s Status: (%s - %s) Created:%s Updated:%s, Last History:%s" % (
+                username, instance.id, instance_status, tmp_status, created,
+                updated, last_history)
+
 
 if __name__ == "__main__":
     main()
