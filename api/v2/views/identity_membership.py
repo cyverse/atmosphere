@@ -2,7 +2,7 @@ from rest_framework import filters
 import django_filters
 
 from core.models.cloud_admin import admin_provider_list
-from core.models import IdentityMembership, Group
+from core.models import IdentityMembership
 from core.query import only_active_provider_memberships
 
 from api.v2.serializers.details import IdentityMembershipSerializer
