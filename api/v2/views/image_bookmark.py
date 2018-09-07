@@ -26,7 +26,6 @@ class ImageBookmarkViewSet(MultipleFieldLookup, AuthModelViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        now_time = timezone.now()
         application_ids = list(Application.shared_with_user(user).values_list('id', flat=True))
         return ImageBookmark.objects.filter(user=user).filter(
             Q(application__id__in=application_ids)).distinct()
