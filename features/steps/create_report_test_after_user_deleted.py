@@ -20,7 +20,7 @@ from core.models import (
     AtmosphereUser
 )
 from jetstream.models import TASAllocationReport
-from jetstream.allocation import TASAPIDriver
+
 
 logger = logging.getLogger(__name__)
 
