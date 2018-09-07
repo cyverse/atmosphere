@@ -354,7 +354,7 @@ def fill_user_allocation_sources():
     for user in AtmosphereUser.objects.order_by('username'):
         try:
             resources = fill_user_allocation_source_for(driver, user)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error filling user allocation source for %s" % user)
             resources = []
         allocation_resources[user.username] = resources
