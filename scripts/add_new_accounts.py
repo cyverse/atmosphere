@@ -10,7 +10,6 @@ import django
 
 django.setup()
 
-import core.models
 from core.models import AtmosphereUser as User
 from core.models import Provider, Identity
 from core.query import contains_credential
