@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from rest_framework.test import APIClient
 
-from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
+from rest_framework.test import APITestCase, force_authenticate
 from api.tests.factories import (
     GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory, SizeFactory,
     ImageFactory, ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
