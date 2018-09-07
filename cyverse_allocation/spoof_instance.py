@@ -92,10 +92,11 @@ class UserWorkflow:
             "instance_id": instance.provider_alias
         }
 
-        instance_allocation_event = EventTable.objects.create(name='instance_allocation_source_changed',
-                                                              payload=payload,
-                                                              entity_id=self.user.username,
-                                                              timestamp=timestamp)
+        EventTable.objects.create(
+            name='instance_allocation_source_changed',
+            payload=payload,
+            entity_id=self.user.username,
+            timestamp=timestamp)
 
     def create_instance_status_history(self, instance, start_date=None, status=None ,cpu=None, end_date=None):
         # Spoof InstanceStatusHistory
