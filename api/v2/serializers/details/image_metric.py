@@ -30,7 +30,11 @@ class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
         request = self.context.get('request', None)
         user = self.context.get('user', request.user)
         if not user:
-            raise Exception("This serializer expects 'user' or an authenticated 'request' including 'user' to be passed in via serializer context! context={'user':user}")
+            raise Exception(
+                "This serializer expects 'user' or an authenticated "
+                "'request' including 'user' to be passed in via serializer "
+                "context! context={'user':user}"
+            )
         # Summarized metrics example
         return _get_summarized_application_metrics(application)
 
