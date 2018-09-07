@@ -26,13 +26,18 @@ def instance_history_usage_report(filename, start_date=None, end_date=None, only
             machine = instance.source.providermachine
             active_time = instance_history.get_active_time()[0]
 
-            the_file.write( "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" % (
-                instance.id, instance.provider_alias, instance.created_by.username,
-                instance.created_by_identity.provider.location, machine.application.name.replace(",",""), machine.application_version.name.replace(",",""),
-                instance.source.identifier, instance_history.status.name, instance_history.start_date.strftime("%x %X"), instance_history.end_date.strftime("%x %X") if instance_history.end_date else "N/A",
-                active_time.total_seconds()/3600.0,
-                cpu, mem, disk
-                ) )
+            the_file.write(
+                "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" %
+                (instance.id, instance.provider_alias,
+                 instance.created_by.username,
+                 instance.created_by_identity.provider.location,
+                 machine.application.name.replace(",", ""),
+                 machine.application_version.name.replace(",", ""),
+                 instance.source.identifier, instance_history.status.name,
+                 instance_history.start_date.strftime("%x %X"),
+                 instance_history.end_date.strftime("%x %X")
+                 if instance_history.end_date else "N/A",
+                 active_time.total_seconds() / 3600.0, cpu, mem, disk))
 
 
 def instance_usage_report(filename, start_date=None, end_date=None):
