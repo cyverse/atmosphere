@@ -12,7 +12,7 @@ from api.tests.factories import (
     ProviderFactory, IdentityMembershipFactory, ProjectFactory)
 
 from api.v2.views import ProjectInstanceViewSet
-from core.models import AtmosphereUser, Group
+from core.models import Group
 
 class GetProjectInstanceListTests(APITestCase):
     def setUp(self):
