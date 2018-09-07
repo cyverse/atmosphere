@@ -1,18 +1,16 @@
 """
   Boot script model for atmosphere.
 """
-import time
 import requests
 from hashlib import md5
 import pytz
-
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.text import slugify
-
 from threepio import logger
 from uuid import uuid4
+
 from core.models.instance import Instance
 from core.models.application import Application
 
