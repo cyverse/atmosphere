@@ -159,7 +159,7 @@ class Identity(models.Model):
     def share(self, core_group, allocation=None):
         """
         """
-        from core.models import IdentityMembership, Quota
+        from core.models import IdentityMembership
         existing_membership = IdentityMembership.objects.filter(
             member=core_group, identity=self)
         if existing_membership:
