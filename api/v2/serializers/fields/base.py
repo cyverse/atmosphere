@@ -1,4 +1,3 @@
-from rest_framework import exceptions
 from rest_framework import serializers
 from core.serializers.fields import ModelRelatedField
 
