@@ -1,4 +1,4 @@
-from core.models import Application as Image, PatternMatch
+from core.models import Application as Image
 from rest_framework import serializers
 
 from api.v2.serializers.summaries import UserSummarySerializer, PatternMatchSummarySerializer
