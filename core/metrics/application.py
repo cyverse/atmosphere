@@ -1,6 +1,5 @@
 import pickle
 import collections
-import numpy
 import redis
 
 from threepio import logger
