@@ -2,7 +2,6 @@ from rest_framework.test import APITestCase, APIRequestFactory,\
     force_authenticate
 
 from django.core.urlresolvers import reverse
-from core.models import Size
 from api.v2.views import SizeViewSet
 from api.tests.factories import ProviderFactory, UserFactory,\
     AnonymousUserFactory, SizeFactory, IdentityFactory
