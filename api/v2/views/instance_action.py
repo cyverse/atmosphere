@@ -1,6 +1,4 @@
 import django_filters
-import uuid
-
 from rest_framework import filters
 
 from api.v2.serializers.details import InstanceActionSerializer
