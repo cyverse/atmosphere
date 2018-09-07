@@ -10,7 +10,7 @@ from threepio import logger
 from uuid import uuid4
 from core.query import only_active_memberships, contains_credential
 from core.models.quota import Quota
-from django.db.models.signals import post_save
+
 
 class Identity(models.Model):
 
