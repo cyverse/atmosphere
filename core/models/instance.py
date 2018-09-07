@@ -29,7 +29,6 @@ from core.models.size import (
 )
 from core.models.tag import Tag
 from core.models.managers import ActiveInstancesManager
-from django.conf import settings
 from service.mock import MockInstance
 
 
