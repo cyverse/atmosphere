@@ -4,7 +4,7 @@ from unittest import skip
 from django.core.urlresolvers import reverse
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 
-from api.tests.factories import UserFactory, AnonymousUserFactory, InstanceFactory
+from api.tests.factories import UserFactory, AnonymousUserFactory
 from api.v2.views import ReportingViewSet
 from core.models import AtmosphereUser
 
