@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from django.db import models, transaction, DatabaseError
 from django.db.models import Q
 from django.utils import timezone
