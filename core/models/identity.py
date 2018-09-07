@@ -215,9 +215,7 @@ class Identity(models.Model):
         DEPRECATED: POST to v2/identities API to create an identity.
         """
         # Do not move up. ImportError.
-        from core.models import Group, Quota,\
-            Provider, AccountProvider,\
-            IdentityMembership
+        from core.models import Group, Quota, Provider, AccountProvider
 
         provider = Provider.objects.get(location__iexact=provider_location)
         credentials = cls._kwargs_to_credentials(kwarg_creds)
