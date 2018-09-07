@@ -519,7 +519,7 @@ def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client,
                                  "match; this may be OK if image was previously migrated with --clean, or if iRODS "
                                  "transfer was previously used to migrate image")
             except AttributeError:
-                    logging.warn("Warning: either source or destination image missing a checksum")
+                logging.warn("Warning: either source or destination image missing a checksum")
     else:
         raise Exception("Glance image on destination provider is not in an uploadable or usable status")
     return True
