@@ -76,7 +76,6 @@ def admin_create_allocation_source(context):
 @when('Users are added to allocation source')
 def add_users_to_allocation(context):
     for row in context.table:
-        source_id = context.allocation_sources[row['allocation_source_id']]
         name = context.allocation_sources_name[row['allocation_source_id']]
         response = context.client.post('/api/v2/user_allocation_sources',
                                        {"username": row['username'],
