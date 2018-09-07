@@ -24,7 +24,6 @@ def main():
     """
     Add a user to openstack.
     """
-    errors = []
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider-id", type=int, required=True,
                         help="Atmosphere provider ID"
