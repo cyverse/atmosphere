@@ -1,6 +1,6 @@
 import factory
 from factory import fuzzy
-from api.tests.factories import UserFactory, InstanceFactory
+from api.tests.factories import UserFactory
 from core.models import BootScript, ScriptType
 
 
