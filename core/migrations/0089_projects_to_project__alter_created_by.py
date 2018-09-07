@@ -9,7 +9,6 @@ import django.db.models.deletion
 
 def move_projects_to_project(apps,schema_editor):
     Project = apps.get_model('core','Project')
-    Volume = apps.get_model('core','Volume')
     for project in Project.objects.all():
         for instance in project.instances.all():
             instance.project = project
