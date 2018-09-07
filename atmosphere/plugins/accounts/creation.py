@@ -283,7 +283,8 @@ class XsedeGroup(AtmosphereAccountCreationPlugin):
             tacc_projectname = tacc_project['chargeCode']
             tacc_leader_username = tacc_project.get('pi', {})\
                 .get('username', '')
-            is_leader = tacc_leader_username == tacc_username
+            # TODO: should is_leader be used in the dict created below?
+            # is_leader = tacc_leader_username == tacc_username
             credentials_list.append({
                 'account_user': username,
                 'username': tacc_username,
