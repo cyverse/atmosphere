@@ -8,8 +8,6 @@ from core.models.instance import Instance
 from core.models.group import Group
 from core.models.volume import Volume
 
-from threepio import logger
-
 
 class Project(models.Model):
 
