@@ -7,7 +7,7 @@ from core.models import Group as Membership
 
 from api.v2.serializers.summaries import (
     ImageVersionSummarySerializer, GroupSummarySerializer)
-from api.v2.serializers.fields.base import ModelRelatedField
+from core.serializers.fields import ModelRelatedField
 
 
 class ImageVersionMembershipSerializer(serializers.HyperlinkedModelSerializer):

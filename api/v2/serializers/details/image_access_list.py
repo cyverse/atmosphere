@@ -1,10 +1,8 @@
 from core.models import ApplicationPatternMatch, Application as Image
 from rest_framework import serializers
 from api.v2.serializers.summaries import ImageSummarySerializer, PatternMatchSummarySerializer
-from api.v2.serializers.fields import (
-    ModelRelatedField,
-    filter_current_user_queryset
-)
+from core.serializers.fields import ModelRelatedField
+from api.v2.serializers.fields import filter_current_user_queryset
 
 
 class ImageRelatedField(serializers.PrimaryKeyRelatedField):

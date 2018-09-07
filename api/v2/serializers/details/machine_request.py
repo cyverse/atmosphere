@@ -18,8 +18,9 @@ from api.v2.serializers.summaries import (
     QuotaSummarySerializer,
     UserSummarySerializer
 )
+from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields import (
-    ModelRelatedField, IdentityRelatedField, StatusTypeRelatedField
+    IdentityRelatedField, StatusTypeRelatedField
 )
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from api.validators import NoSpecialCharacters

@@ -19,7 +19,7 @@ from api.v2.serializers.summaries import (
     ProviderMachineSummarySerializer,
     UserSummarySerializer
 )
-from api.v2.serializers.fields import ModelRelatedField
+from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 

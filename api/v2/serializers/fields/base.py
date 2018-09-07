@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from core.serializers.fields import ModelRelatedField
 
 class ReprSlugRelatedField(serializers.SlugRelatedField):
     def __init__(self, slug_field=None, repr_slug_field=None, **kwargs):

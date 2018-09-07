@@ -1,7 +1,8 @@
 from rest_framework import serializers
 
 from core.models import (Volume, Project)
-from api.v2.serializers.fields.base import ModelRelatedField, InstanceSourceHyperlinkedIdentityField
+from api.v2.serializers.fields.base import InstanceSourceHyperlinkedIdentityField
+from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.summaries import (
     IdentitySummarySerializer,
     ProviderSummarySerializer,

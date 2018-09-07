@@ -2,8 +2,8 @@ from core.models import Application as Image
 from rest_framework import serializers
 
 from api.v2.serializers.summaries import UserSummarySerializer, PatternMatchSummarySerializer
+from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields import (
-    ModelRelatedField,
     ImageVersionRelatedField,
     TagRelatedField,
     filter_current_user_queryset

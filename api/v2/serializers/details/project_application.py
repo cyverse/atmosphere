@@ -1,7 +1,7 @@
 from core.models import ProjectApplication, Project, Application
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
-from api.v2.serializers.fields import ModelRelatedField
+from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.summaries import (
     ProjectSummarySerializer, ImageSummarySerializer)
 

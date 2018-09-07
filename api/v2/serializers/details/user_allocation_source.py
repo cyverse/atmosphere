@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from api.v2.serializers.fields import ModelRelatedField
+from core.serializers.fields import ModelRelatedField
 from core.models import (
     AllocationSource, AtmosphereUser, UserAllocationSource
 )
