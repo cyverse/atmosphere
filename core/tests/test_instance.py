@@ -78,7 +78,7 @@ class TestInstanceStatusHistory(CoreInstanceTestCase):
             self.instance_1,
             self.begin_history)
         # Create first history for instance
-        first_history = self.history_helper.first_transaction()
+        self.history_helper.first_transaction()
         self.assertOneActiveHistory(self.instance_1)
         next_start = self.begin_history + self.history_swap_every
         suspended = False
