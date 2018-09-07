@@ -14,7 +14,6 @@ from api.v2.serializers.summaries import (
     PatternMatchSummarySerializer,
     ProviderSummarySerializer,
     ProviderMachineSummarySerializer,
-    QuotaSummarySerializer,
     UserSummarySerializer
 )
 from core.serializers.fields import ModelRelatedField
