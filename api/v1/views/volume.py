@@ -212,7 +212,7 @@ class VolumeSnapshotDetail(AuthAPIView):
         snapshot = esh_driver._connection.get_snapshot(snapshot_id)
         if not snapshot:
             return snapshot_not_found(snapshot_id)
-        delete_success = esh_driver._connection.ex_delete_snapshot(snapshot)
+        esh_driver._connection.ex_delete_snapshot(snapshot)
         # NOTE: Always false until icehouse...
         #    return failure_response(
         #        status.HTTP_400_BAD_REQUEST,
