@@ -29,7 +29,7 @@ class ImageBookmarkSerializer(serializers.HyperlinkedModelSerializer):
         user = self.context['request'].user
 
         try:
-            existing_image_bookmark = ImageBookmark.objects.get(
+            ImageBookmark.objects.get(
                 application=value,
                 user=user)
             raise serializers.ValidationError("Image already bookmarked")
