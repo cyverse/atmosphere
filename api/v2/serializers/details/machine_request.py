@@ -19,7 +19,7 @@ from api.v2.serializers.summaries import (
     UserSummarySerializer
 )
 from api.v2.serializers.fields import (
-    ProviderMachineRelatedField, ModelRelatedField, IdentityRelatedField, StatusTypeRelatedField
+    ModelRelatedField, IdentityRelatedField, StatusTypeRelatedField
 )
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from api.validators import NoSpecialCharacters
