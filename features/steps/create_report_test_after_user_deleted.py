@@ -217,13 +217,12 @@ def create_reports(end_date=False):
 
 
 def _create_reports_for(user, allocation_name, end_date):
-    driver = TASAPIDriver()
-    tacc_username = user.username  # driver.get_tacc_username(user)
+    tacc_username = user.username
     if not tacc_username:
         logger.error("No TACC username for user: '{}' which came from allocation id: {}".format(user,
                                                                                                 allocation_name))
         return
-    project_name = allocation_name  # driver.get_allocation_project_name(allocation_name)
+    project_name = allocation_name
     try:
         project_report = _create_tas_report_for(
             user,
