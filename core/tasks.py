@@ -8,7 +8,6 @@ from django.conf import settings
 from threepio import celery_logger, email_logger
 
 from core.models.status_type import get_status_type
-from core.query import only_current_apps
 
 
 @task(name="send_email")
