@@ -6,7 +6,6 @@ from __future__ import absolute_import, unicode_literals
 from datetime import timedelta
 from uuid import UUID
 import logging
-import sys
 
 from dateutil.relativedelta import relativedelta
 from celery.schedules import crontab
