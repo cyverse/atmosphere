@@ -48,9 +48,6 @@ class IdentityMembershipList(AuthAPIView):
         """
         Return the identity membership matching this provider+identity
         """
-        # Sanity checks:
-        # User is authenticated
-        user = request.user
         try:
             # All other members of the identity are visible
             id_members = CoreIdentityMembership.objects.filter(
