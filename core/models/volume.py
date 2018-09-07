@@ -1,9 +1,6 @@
 from django.db import models, transaction, DatabaseError
 from django.db.models import Q
 from django.utils import timezone
-
-import pytz
-
 from threepio import logger
 
 from core.models.abstract import BaseSource
