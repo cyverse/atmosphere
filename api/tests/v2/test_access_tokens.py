@@ -1,5 +1,3 @@
-import requests
-
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from django.core.urlresolvers import reverse
 
