@@ -1,7 +1,5 @@
 from django.db import models
 
-from threepio import logger
-
 from core.models.user import AtmosphereUser
 from core.models.identity import Identity
 
