@@ -2,7 +2,7 @@ from business_rules.actions import BaseActions, rule_action
 from business_rules.fields import FIELD_NUMERIC, FIELD_TEXT
 from business_rules.variables import BaseVariables, boolean_rule_variable, numeric_rule_variable, string_rule_variable
 
-from core.models.allocation_source import AllocationSource,AllocationSourceSnapshot
+from core.models.allocation_source import AllocationSource
 from core.models.event_table import EventTable
 
 
