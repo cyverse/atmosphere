@@ -21,7 +21,7 @@ class ProfileTests(TestCase):
         force_authenticate(request, user=user)
 
         with mock.patch("api.v1.views.profile.create_new_accounts") as mock_create_new_accounts:
-            response = view(request)
+            view(request)
             mock_create_new_accounts.assert_called_once()
 
     @override_settings(AUTO_CREATE_NEW_ACCOUNTS=True)
