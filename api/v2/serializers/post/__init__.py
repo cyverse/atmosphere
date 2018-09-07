@@ -8,6 +8,7 @@ from .volume import VolumeSerializer
 __all__ = (
     "InstanceSerializer",
     "AccountSerializer",
+    "TokenUpdateSerializer",
     "ProviderSerializer",
     "UpdateAccountSerializer",
     "VolumeSerializer",
