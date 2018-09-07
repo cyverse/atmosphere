@@ -6,6 +6,7 @@ DJANGO_SERVER_URL = # https://www.my-website.com
 VIRTUALENV_PATH =# /path/virtualenv/atmo
 
 [local.py]
+REPORT_ALLOCATION_USAGE = False # Whether we update the TAS api with our allocation usage reports (DO NOT SET TO TRUE UNLESS YOU ARE PRODUCTION)
 ADDITIONAL_ALLOWED_HOSTNAMES = [] # Additional HOST header values that django will permit in requests
 AUTH_USE_OVERRIDE =  True # Boolean required will override authentication set in __init__.py
 AUTH_MOCK_USER = # testuser
