@@ -135,7 +135,7 @@ class Instance(models.Model):
             str_builder += "%s on %s" % (next_history.status.name, next_history.start_date.strftime("%m/%d/%Y %H:%M:%S"))
             try:
                 next_history = next_history.next()
-            except (LookupError, ValueError) as exc:
+            except (LookupError, ValueError):
                 next_history = None
         if self.end_date:
             str_builder += " -> destroyed on %s" % (self.end_date.strftime("%m/%d/%Y %H:%M:%S"))
