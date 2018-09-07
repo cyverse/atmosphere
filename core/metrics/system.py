@@ -57,13 +57,18 @@ def instance_usage_report(filename, start_date=None, end_date=None):
             machine = instance.source.providermachine
             active_time = instance.get_active_time()[0]
 
-            the_file.write( "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" % (
-                instance.id, instance.provider_alias, instance.created_by.username,
-                instance.created_by_identity.provider.location, machine.application.name.replace(",",""), machine.application_version.name.replace(",",""),
-                instance.source.identifier, instance.start_date.strftime("%x %X"), instance.end_date.strftime("%x %X") if instance.end_date else now_time.strftime("%x %X"),
-                active_time.total_seconds()/3600.0,
-                cpu, mem, disk
-                ) )
+            the_file.write(
+                "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" %
+                (instance.id, instance.provider_alias,
+                 instance.created_by.username,
+                 instance.created_by_identity.provider.location,
+                 machine.application.name.replace(",", ""),
+                 machine.application_version.name.replace(
+                     ",", ""), instance.source.identifier,
+                 instance.start_date.strftime("%x %X"),
+                 instance.end_date.strftime("%x %X")
+                 if instance.end_date else now_time.strftime("%x %X"),
+                 active_time.total_seconds() / 3600.0, cpu, mem, disk))
 
 
 def machine_request_report(filename, start_date=None, end_date=None):
