@@ -11,7 +11,6 @@ from django.utils import timezone
 from django.conf import settings
 
 from core import exceptions as core_exceptions
-from core.email import send_denied_resource_email
 from core.models import (
     MachineRequest, IdentityMembership, AtmosphereUser,
     Provider, ProviderMachine, Group, Tag
