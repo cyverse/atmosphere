@@ -4,7 +4,6 @@
 import requests
 from django.db import models
 from django.db.models import Q
-from django.utils import timezone
 from django.utils.text import slugify
 from threepio import logger
 from uuid import uuid4
