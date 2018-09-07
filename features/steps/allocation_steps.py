@@ -276,9 +276,11 @@ def user_assigned_to_allocation_source(context):
         context.source_id = response.data['uuid']
         context.name = row['name']
 
-        response_main = context.client.post('/api/v2/user_allocation_sources',
-                                            {"username": context.user.username,
-                                             "allocation_source_name": context.name})
+        context.client.post(
+            '/api/v2/user_allocation_sources', {
+                "username": context.user.username,
+                "allocation_source_name": context.name
+            })
 
 
 @when('User is removed from Allocation Source')
