@@ -336,7 +336,7 @@ def create_app_version(
     else:
         if change_log is None:
             change_log = "New Application %s - Version %s" % (app.name, app_version.name)
-        if allow_imaging == None:
+        if allow_imaging is None:
             allow_imaging = True
         app_version.change_log = change_log
         app_version.allow_imaging = allow_imaging
