@@ -247,16 +247,13 @@ class ValidationPluginManager(PluginListManager):
     At least one plugin is required to test user validation.
     A sample validation plugin has been provided for you:
     - atmosphere.plugins.auth.validation.AlwaysAllow
-
-    If a user fails the validation plugin test
-    they will not be able to access the Atmosphere API.
     """
     list_of_classes = getattr(settings, 'VALIDATION_PLUGINS', [])
     plugin_required = True
-    plugin_required_message = """No validation backend has been defined.
-If all users are considered valid,
-please set settings.VALIDATION_PLUGINS to:
-('atmosphere.plugins.auth.validation.AlwaysAllow',)"""
+    plugin_required_message = "\
+        No validation backend has been defined. If all users are considered \
+        valid, please set settings.VALIDATION_PLUGINS to: \
+        ('atmosphere.plugins.auth.validation.AlwaysAllow',)"
 
     @classmethod
     def is_valid(cls, user):

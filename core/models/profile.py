@@ -2,7 +2,7 @@ from django.db import models
 
 from threepio import logger
 
-from core.models.user import AtmosphereUser, get_default_identity
+from core.models.user import AtmosphereUser
 from core.models.identity import Identity
 
 from hashlib import md5
@@ -19,11 +19,6 @@ class UserProfile(models.Model):
     background = models.CharField(max_length=255, default='default')
     icon_set = models.CharField(max_length=255, default='default')
     guacamole_color = models.CharField(max_length=15, default='default')
-
-    def user_quota(self):
-        identity = get_default_identity(self.user.username)
-        identity_member = identity.identity_memberships.all()[0]
-        return identity_member.get_quota_dict()
 
     def email_hash(self):
         m = md5()

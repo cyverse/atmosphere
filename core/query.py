@@ -187,6 +187,13 @@ def only_current_source(now_time=None):
     return _in_range() & current_provider()
 
 
+def only_current_user_allocations():
+    now_time = timezone.now()
+    return (Q(allocation_source__end_date__isnull=True) |
+            (Q(allocation_source__end_date__gt=now_time) &
+             Q(allocation_source__start_date__lt=now_time)))
+
+
 def only_public_providers(now_time=None):
     return (Q(instance_source__provider__public=True))
 

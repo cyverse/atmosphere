@@ -15,9 +15,6 @@ class ProfileSerializer(serializers.ModelSerializer):
     is_expired = serializers.BooleanField(source='user.is_expired')
     is_staff = serializers.BooleanField(source='user.is_staff')
     is_superuser = serializers.BooleanField(source='user.is_superuser')
-    selected_identity = IdentityRelatedField(
-        source='user.select_identity',
-        queryset=Identity.objects.all())
 
     class Meta:
         model = UserProfile

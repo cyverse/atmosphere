@@ -18,7 +18,6 @@ from django.utils.translation import ugettext_lazy as _
 
 class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    selected_identity = models.ForeignKey('Identity', blank=True, null=True)
     end_date = models.DateTimeField(null=True, blank=True)
     # Ripped from django.contrib.auth.models to force a larger max_length:
     username = models.CharField(
@@ -116,10 +115,6 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
     def provider_ids(self):
         return self.identity_set.values_list('provider', flat=True)
 
-    def user_quota(self):
-        identity = self.select_identity()
-        return identity.quota
-
     def is_expired(self):
         """
         Call expiration plugin to determine if user is expired
@@ -172,34 +167,6 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         user_ids = UserAllocationSource.objects.filter(allocation_source__source_id=allocation_source_id).values_list('user',flat=True)
         return AtmosphereUser.objects.filter(id__in=user_ids)
 
-    def select_identity(self):
-        """
-        Set, save and return an active selected_identity for the user.
-        """
-        # Return previously selected identity
-        if settings.AUTO_CREATE_NEW_ACCOUNTS:
-            new_identities = create_new_accounts(self.username)
-        if self.selected_identity and self.selected_identity.is_active(user=self):
-            return self.selected_identity
-        else:
-            self.selected_identity = get_default_identity(self.username)
-            if self.selected_identity:
-                self.save()
-                return self.selected_identity
-        from core.models import IdentityMembership
-
-        for membership in self.memberships.select_related('group'):
-            group = membership.group
-            id_memberships = IdentityMembership.get_membership_for(group.name)
-            if not id_memberships:
-                continue
-            #TODO: this can now be *a list of members* -- just pick first for now.
-            self.selected_identity = id_memberships.first().identity
-            if self.selected_identity and self.selected_identity.is_active():
-                logger.debug("Selected Identity:%s" % self.selected_identity)
-                self.save()
-                return self.selected_identity
-
     def volume_set(self):
         from core.models import Volume
         volume_db_ids = [source.volume.id for source in
@@ -211,63 +178,10 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         m.update(self.user.email)
         return m.hexdigest()
 
-# Save Hooks Here:
-
-
-def get_or_create_user_profile(sender, instance, created, **kwargs):
-    from core.models.profile import UserProfile
-    try:
-        prof = UserProfile.objects.filter(user=instance).distinct().get()
-    except UserProfile.DoesNotExist:
-        prof = UserProfile.objects.get_or_create(user=instance)
-        if prof[1] is True:
-            logger.debug("Creating User Profile for %s" % instance)
-    return prof
-
-# Instantiate the hooks:
-post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)
-
-# USER METHODS HERE
-
-
-def get_default_identity(username, provider=None):
-    """
-    Return the default identity given to the user-group for provider.
-    """
-    try:
-        filter_query = {}
-        if provider:
-            filter_query['provider'] = provider
-        from core.models.group import GroupMembership
-        memberships = GroupMembership.objects.filter(user__username=username).prefetch_related('group')
-        for membership in memberships:
-            group = membership.group
-            identities = group.current_identities.filter(
-                    **filter_query)
-            if group and identities.count() > 0:
-                default_identity = identities.first()
-                logger.debug(
-                    "default_identity set to %s " %
-                    default_identity)
-                return default_identity
-        # No identities found for any group
-        if settings.AUTO_CREATE_NEW_ACCOUNTS:
-            new_identities = create_new_accounts(username, selected_provider=provider)
-            if new_identities:
-                return new_identities[0]
-            logger.error("%s has no identities. Functionality will be severely limited." % username)
-            return None
-    except Exception as e:
-        logger.exception(e)
-        return None
-
 
 def _get_providers(username, selected_provider=None):
     from core.models import Provider
     user = AtmosphereUser.objects.get(username=username)
-    if not user.is_valid():
-        raise InvalidUser("The account %s is not yet valid." % username)
-
     public_providers = Provider.objects.filter(only_current(), active=True, public=True)
 
     providers = user.current_providers.filter(only_current(), active=True)
@@ -319,3 +233,17 @@ def get_available_providers():
     from core.models.provider import Provider
     available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
     return available_providers
+
+
+def get_or_create_user_profile(sender, instance, created, **kwargs):
+    from core.models.profile import UserProfile
+    try:
+        prof = UserProfile.objects.filter(user=instance).distinct().get()
+    except UserProfile.DoesNotExist:
+        prof = UserProfile.objects.get_or_create(user=instance)
+        if prof[1] is True:
+            logger.debug("Creating User Profile for %s" % instance)
+    return prof
+
+
+post_save.connect(get_or_create_user_profile, sender=AtmosphereUser)

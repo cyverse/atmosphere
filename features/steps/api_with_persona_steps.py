@@ -311,7 +311,7 @@ def should_have_quota_on_provider(context, provider_location):
     import core.models
     provider = core.models.Provider.objects.get(location=provider_location)
     username = context.persona['username']
-    user_identity = core.models.user.get_default_identity(username, provider)
+    user_identity = core.models.Identity.objects.get(created_by__username=username, provider=provider)
     expected_quota = dict([(row[0], int(row[1])) for row in context.table.rows])
     quota_keys = expected_quota.keys()
     actual_quota = user_identity.quota
