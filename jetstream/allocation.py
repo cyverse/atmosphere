@@ -290,7 +290,7 @@ def get_or_create_allocation_source(api_allocation):
                                                   uuid=created_event_uuid,
                                                   payload=payload)
         assert isinstance(created_event, EventTable)
-    except IntegrityError as e:
+    except IntegrityError:
         # This is totally fine. No really. This should fail if it already exists and we should ignore it.
         pass
 
