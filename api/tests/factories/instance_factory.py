@@ -3,7 +3,6 @@ from core.models import Instance
 from django.utils import timezone
 from .user_factory import UserFactory
 from .project_factory import ProjectFactory
-from .instance_source_factory import InstanceSourceFactory
 from .provider_machine_factory import ProviderMachineFactory
 from .identity_factory import IdentityFactory
 
