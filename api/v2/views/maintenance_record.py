@@ -1,7 +1,7 @@
 import django_filters
 from rest_framework import filters
 
-from core.models import AtmosphereUser, MaintenanceRecord
+from core.models import MaintenanceRecord
 from core.query import only_current
 from api.permissions import CanEditOrReadOnly
 from api.v2.serializers.details import MaintenanceRecordSerializer
