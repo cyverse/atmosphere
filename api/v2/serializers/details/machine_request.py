@@ -3,7 +3,6 @@ from rest_framework import serializers
 from core.models import (
     ApplicationVersion, ProviderMachine, Group, BootScript, PatternMatch,
     Provider, License, Instance, MachineRequest, AtmosphereUser as User,
-    IdentityMembership
 )
 
 from api.v2.serializers.summaries import (
