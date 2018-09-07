@@ -1,7 +1,6 @@
 from core.models import Application as Image
 from core.metrics.application import _get_summarized_application_metrics
 from rest_framework import serializers
-from dateutil import rrule
 from api.v2.serializers.summaries import UserSummarySerializer
 from api.v2.serializers.fields import (
         ImageVersionRelatedField, TagRelatedField)
