@@ -105,7 +105,6 @@ def django_get_email_info(raw_username):
     Returns a 3-tuple of:
     ("username", "email@address.com", "My Name")
     """
-    (username, user_email, user_name) = ("", "", "")
     try:
         user = User.objects.get(username=raw_username)
         return (user.username, user.email, user.get_full_name())
