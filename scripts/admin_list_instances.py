@@ -64,11 +64,6 @@ def print_instances(provider, users=[], status_list=[]):
             tmp_status = metadata.get('tmp_status', '')
             created = instance.extra.get('created', "N/A")
             updated = instance.extra.get('updated', "N/A")
-            status_name = _get_status_name_for_provider(
-                provider,
-                instance_status,
-                task,
-                tmp_status)
             try:
                 last_history = Instance.objects.get(
                     provider_alias=instance.id).get_last_history()
