@@ -3,7 +3,7 @@ from django.db.models import Q
 import django_filters
 
 from core.models import Size, Provider, ProviderMachine
-from core.query import only_current, only_current_provider
+from core.query import only_current
 
 from api.v2.serializers.details import SizeSerializer
 from api.v2.views.base import AuthReadOnlyViewSet
