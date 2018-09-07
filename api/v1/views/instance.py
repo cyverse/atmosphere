@@ -491,7 +491,7 @@ class InstanceAction(AuthAPIView):
             return connection_failure(provider_uuid, identity_uuid)
         except ProviderNotActive as pna:
             return inactive_provider(pna)
-        except InstanceDoesNotExist as dne:
+        except InstanceDoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 'Instance %s no longer exists' % (instance_id,))
