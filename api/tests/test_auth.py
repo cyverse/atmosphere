@@ -82,7 +82,10 @@ class AuthTests(APITestCase):
         response = self.client.post(self.auth_url, data)
         resp_data = response.data
         self.assertEquals(response.status_code, 201)
-        self.assertTrue(resp_data['username'] == self.username, "Response returned unexpected username <%s>, expected %s" % (resp_data['username'], self.username))
+        self.assertTrue(
+            resp_data['username'] == self.username,
+            "Response returned unexpected username <%s>, expected %s" %
+            (resp_data['username'], self.username))
         self.assertTrue(resp_data['token'] is not None)
 
     @override_settings(AUTHENTICATION_BACKENDS=('django_cyverse_auth.authBackends.LDAPLoginBackend',))
