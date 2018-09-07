@@ -16,8 +16,6 @@ from core.plugins import ExpirationPluginManager, AccountCreationPluginManager
 
 from django_cyverse_auth.protocol.ldap import get_members
 from service.driver import get_account_driver
-from threepio import logger
-
 libcloud.security.VERIFY_SSL_CERT = False
 
 
