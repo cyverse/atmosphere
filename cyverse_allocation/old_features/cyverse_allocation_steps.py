@@ -303,7 +303,10 @@ def default_allocation_source_changes_renewal_strategy(context):
 
 
 @when(
-    'Amit runs an instance for 5 days before the first renewal and Julian launches a new instance and runs it for 4 days before the first renewal and 8 days before the second renewal on the DefaultAllocationSource')
+    'Amit runs an instance for 5 days before the first renewal and Julian '
+    'launches a new instance and runs it for 4 days before the first renewal '
+    'and 8 days before the second renewal on the DefaultAllocationSource'
+)
 def amit_runs_instance_for_five_days(context):
     # amit runs instance for 5 days before the first renewal
     context.amit.create_instance_status_history(context.amit_instance_2,
