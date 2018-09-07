@@ -209,7 +209,6 @@ def read_openrc_file(filename):
 
 def get_provider_info(provider_info={}):
     # 1.  Collect name
-    platform = None
     if not provider_info.get('name'):
         provider_info['name'] = require_input("What is the name of your new provider? : ")
     if not provider_info.get('public'):
