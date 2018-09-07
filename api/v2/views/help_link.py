@@ -1,8 +1,6 @@
 """
 Help Links API
 """
-from rest_framework import status
-
 from core.models import HelpLink
 from api import permissions
 from api.v2.serializers.details import HelpLinkSerializer
