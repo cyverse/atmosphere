@@ -4,7 +4,10 @@ This script is for the accounting purposes of Jetstream
 The goal:
     Print a CSV of:
 """
-CSV_HEADER="Instance ID, Instance Alias, Username, Staff_user, Provider, Instance Start Date, Image Name, Version Name, Size Name, Size Alias, Size cpu, Size mem, Size disk, Featured Image, Active, Deploy Error, Error, Aborted"
+CSV_HEADER=("Instance ID, Instance Alias, Username, Staff_user, Provider, "
+            "Instance Start Date, Image Name, Version Name, Size Name, "
+            "Size Alias, Size cpu, Size mem, Size disk, Featured Image, "
+            "Active, Deploy Error, Error, Aborted")
 import sys
 import django; django.setup()
 from django.core.exceptions import MultipleObjectsReturned
