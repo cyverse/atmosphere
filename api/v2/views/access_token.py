@@ -3,10 +3,9 @@ from rest_framework.response import Response
 
 from core.models import AccessToken
 from core.models.access_token import create_access_token
-
-from api.exceptions import invalid_auth
 from api.v2.serializers.details import AccessTokenSerializer
 from api.v2.views.base import AuthModelViewSet
+
 
 class AccessTokenViewSet(AuthModelViewSet):
 
