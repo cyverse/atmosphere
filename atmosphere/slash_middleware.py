@@ -16,7 +16,7 @@ class RemoveCSRFMiddleware(object):
 
     def process_request(self, request):
         # check if the url is valid
-        path = new_path = request.path_info
+        new_path = request.path_info
         if '/api' in new_path:
             setattr(request, '_dont_enforce_csrf_checks', True)
 
