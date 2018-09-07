@@ -6,7 +6,6 @@ from core.models.allocation_source import total_usage
 from spoof_instance import UserWorkflow,create_allocation_source
 from jetstream.tasks import update_snapshot_cyverse_allocation
 
-import uuid
 
 class CyverseRulesEngineTest(TestCase):
 
