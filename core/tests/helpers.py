@@ -3,7 +3,7 @@ These helper classes are written to make it easier to write 'mock test cases'
 for Core objects
 """
 from core.models import (
-    Allocation, Application, ApplicationVersion,
+    Application, ApplicationVersion,
     AtmosphereUser, Group,
     Identity, IdentityMembership,
     Instance, InstanceSource, InstanceStatusHistory,
@@ -45,10 +45,8 @@ def _new_mock_identity_member(username, provider):
         created_by=mock_user,
         quota=mock_quota,
         provider=provider)[0]
-    mock_allocation = Allocation.default_allocation()
     mock_identity_member = IdentityMembership.objects.get_or_create(
-        identity=mock_identity, member=mock_group,
-        allocation=mock_allocation)[0]
+        identity=mock_identity, member=mock_group)[0]
     return mock_identity_member
 
 
