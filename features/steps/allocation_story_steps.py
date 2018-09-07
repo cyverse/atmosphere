@@ -2,7 +2,7 @@ import uuid
 from datetime import timedelta
 
 # noinspection PyUnresolvedReferences
-from behave import *
+from behave import * # noqa
 from behave import when, then, given, step
 from dateutil.parser import parse
 from dateutil.rrule import rrule, HOURLY
