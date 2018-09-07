@@ -1,5 +1,6 @@
-from core.models import (Volume, Project)
 from rest_framework import serializers
+
+from core.models import (Volume, Project)
 from api.v2.serializers.fields.base import ModelRelatedField, InstanceSourceHyperlinkedIdentityField
 from api.v2.serializers.summaries import (
     IdentitySummarySerializer,
@@ -8,7 +9,6 @@ from api.v2.serializers.summaries import (
     UserSummarySerializer
 )
 from core.models import Identity, Provider
-from core.models.instance_source import InstanceSource
 
 
 class VolumeSerializer(serializers.HyperlinkedModelSerializer):
