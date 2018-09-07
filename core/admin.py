@@ -8,7 +8,6 @@ from threepio import logger
 
 from core import email
 from core import models
-from core import tasks
 from core.events.serializers.quota_assigned import QuotaAssignedSerializer
 
 def private_object(modeladmin, request, queryset):
