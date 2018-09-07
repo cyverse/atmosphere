@@ -1,4 +1,4 @@
-from rest_framework import exceptions, serializers
+from rest_framework import serializers
 
 from core.models import (
     ApplicationVersion, ProviderMachine, Group,
