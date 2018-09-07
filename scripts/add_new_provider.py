@@ -302,7 +302,10 @@ def set_network_config(provider_credentials, net_config):
         for idx, choice in enumerate(choices):
             print "%s:" % idx,
             pprint.pprint(choice)
-        topology_choice = require_input("Select the topology name by number: ", lambda answer: choices[int(answer)] if int(answer) < len(choices) else None, default='1')
+        topology_choice = require_input(
+            "Select the topology name by number: ",
+            lambda answer: choices[int(answer)] if int(answer) < len(choices) else None,
+            default='1')
         topology = choices[int(topology_choice)]
         topology_name = topology.name
     else:
