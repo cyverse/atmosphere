@@ -179,7 +179,7 @@ def has_cpu_quota(driver, quota, new_size=0, raise_exc=True):
     for inst in instances:
         try:
             total_size += inst.size._size.extra['cpu']
-        except AttributeError, KeyError:
+        except (AttributeError, KeyError):
             # Instance running on an unknown size..
             total_size += 1
     if total_size <= quota.cpu:
