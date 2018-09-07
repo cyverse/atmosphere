@@ -523,7 +523,7 @@ except ImportError:
     SETTINGS_DIR = os.path.abspath(os.path.dirname(__file__))
     generate_secret_key(os.path.join(SETTINGS_DIR, 'secret_key.py'))
     try:
-        from .secret_key import SECRET_KEY
+        from .secret_key import SECRET_KEY # noqa
     except ImportError:
         raise Exception(
             "__init__.py could not generate a SECRET_KEY in secret_key.py")
