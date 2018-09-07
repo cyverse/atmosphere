@@ -56,7 +56,10 @@ class DirectOpenstackAccount(AccountCreationPlugin):
         from core.plugins import AllocationSourcePluginManager
         identities = Identity.objects.filter(provider=provider, created_by__username=username)
         if not identities.count():
-            raise AccountCreationConflict("Expected an identity to have been created for %s on Provider %s during the /token_update method. Contact support for help!" % (username, provider))
+            raise AccountCreationConflict(
+                "Expected an identity to have been created for %s on "
+                "Provider %s during the /token_update method. Contact "
+                "support for help!" % (username, provider))
         for identity in identities:
             user = identity.created_by
             try:
