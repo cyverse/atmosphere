@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import filters
 from core.models import Application as Application
-from core.query import only_current
 from api.v2.views.base import AuthOptionalViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 from api.v2.serializers.details import ImageMetricSerializer
