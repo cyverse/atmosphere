@@ -86,7 +86,7 @@ class TestInstanceStatusHistory(CoreInstanceTestCase):
             self.history_helper.set_start_date(next_start)
             self.history_helper.status_name = \
                 'suspended' if suspended else 'active'
-            next_history = self.history_helper.new_transaction()
+            self.history_helper.new_transaction()
             self.assertOneActiveHistory(self.instance_1)
             suspended = not suspended
             next_start = next_start + self.history_swap_every
