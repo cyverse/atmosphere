@@ -5,7 +5,6 @@ import copy
 import json
 import logging
 import sys
-import pprint
 
 import application_to_provider
 import django;
