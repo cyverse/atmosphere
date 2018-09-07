@@ -1,5 +1,3 @@
-import django_filters
-
 from rest_framework import serializers
 
 from core.models.boot_script import BootScript, ScriptType
