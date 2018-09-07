@@ -751,7 +751,7 @@ class Instance(AuthAPIView):
             return connection_failure(provider_uuid, identity_uuid)
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
-        except InstanceDoesNotExist as dne:
+        except InstanceDoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 "Instance %s does not exist" % instance_id)
