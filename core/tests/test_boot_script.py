@@ -1,7 +1,5 @@
 import unittest
 
-from django.utils.timezone import now
-
 from core.models import BootScript
 
 
