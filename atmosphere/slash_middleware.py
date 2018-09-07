@@ -51,7 +51,11 @@ class RemoveSlashMiddleware(object):
 
     def adjust_path(self, request, new_path):
         """
-        Redirect the clients browser to new_path, and tell it that all future requests to the desired URL should be sent to new_path. (This method looks like it may be able to be made more efficient, but I'm not familiar enough with request.path_info and other django variables to know how.)
+        Redirect the clients browser to new_path, and tell it that all future
+        requests to the desired URL should be sent to new_path. (This method
+        looks like it may be able to be made more efficient, but I'm not
+        familiar enough with request.path_info and other django variables to
+        know how.)
         """
         if request.get_host():
             new_url = "%s://%s%s" % ('https',
