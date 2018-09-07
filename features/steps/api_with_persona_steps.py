@@ -356,7 +356,7 @@ def create_project_api(context, project_name):
     assert context.persona
     client = context.persona['client']
     user = context.persona['user']
-    from core.models import AtmosphereUser, Identity
+    from core.models import AtmosphereUser
     assert isinstance(user, AtmosphereUser)
     owner_group_name = user.username
     url = '/api/v2/projects'
