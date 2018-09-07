@@ -3,7 +3,7 @@ from datetime import timedelta
 
 # noinspection PyUnresolvedReferences
 from behave import * # noqa
-from behave import when, then, given, step
+from behave import when, then, given
 from dateutil.parser import parse
 from dateutil.rrule import rrule, HOURLY
 from django.test import modify_settings
