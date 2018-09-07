@@ -1,7 +1,7 @@
 from core.models import Provider, ProviderType, PlatformType
 from rest_framework import serializers
 from api.v2.serializers.summaries import SizeSummarySerializer
-from api.v2.serializers.fields.base import DebugHyperlinkedIdentityField, UUIDHyperlinkedIdentityField 
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 class ProviderTypeSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
