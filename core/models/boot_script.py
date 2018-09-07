@@ -5,7 +5,6 @@ import requests
 from django.db import models
 from django.db.models import Q
 from django.utils.text import slugify
-from threepio import logger
 from uuid import uuid4
 
 from core.models.instance import Instance
