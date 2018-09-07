@@ -3,14 +3,10 @@ These helper classes are written to make it easier to write 'mock test cases'
 for Core objects
 """
 from core.models import (
-    Application, ApplicationVersion,
-    AtmosphereUser, Group,
-    Identity, IdentityMembership,
-    Instance, InstanceSource, InstanceStatusHistory,
-    MachineRequest, Provider,
-    ProviderType, PlatformType,
-    ProviderMachine, Size, Quota,
-    PatternMatch
+    Application, ApplicationVersion, AtmosphereUser, Group, Identity,
+    IdentityMembership, Instance, InstanceSource, InstanceStatusHistory,
+    MachineRequest, Provider, ProviderType, PlatformType, ProviderMachine,
+    Size, Quota
 )
 from uuid import uuid4
 
