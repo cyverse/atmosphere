@@ -141,13 +141,9 @@ class Provider(models.Model):
         """
         is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
         """
-        #ownership_query = Q(created_by=user)
         project_query = Q(identity__identity_memberships__member__memberships__user=user)
-        if is_leader == False:
-            project_query &= Q(identity__identity_memberships__member__memberships__is_leader=False)
-        elif is_leader == True:
-            project_query &= Q(identity__identity_memberships__member__memberships__is_leader=True)
-        #return Provider.objects.filter(project_query | ownership_query)
+        if is_leader is not None:
+            project_query &= Q(identity__identity_memberships__member__memberships__is_leader=is_leader)
         return Provider.objects.filter(project_query)
 
     @classmethod
