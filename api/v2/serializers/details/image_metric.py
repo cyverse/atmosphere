@@ -1,7 +1,6 @@
 from core.models import Application as Image
 from core.metrics.application import _get_summarized_application_metrics
 from rest_framework import serializers
-from api.v2.serializers.fields import ImageVersionRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
