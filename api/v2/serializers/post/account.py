@@ -1,5 +1,5 @@
 from core.models import (
-    AtmosphereUser, AccountProvider, Group, Identity, Provider, Quota
+    AtmosphereUser, AccountProvider, Group, Identity, Quota
 )
 from core.query import only_current, contains_credential
 from api.v2.serializers.details.credential import CredentialSerializer
@@ -28,7 +28,7 @@ class AccountSerializer(serializers.Serializer):
         """
         Validation will:
         - Ensure that user/group exists (Or create it)
-        - 
+        -
         """
         validated_data = data
         self.validate_user(data['provider'])
