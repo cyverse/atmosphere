@@ -301,7 +301,7 @@ def get_or_create_allocation_source(api_allocation):
         compute_allowed_event = EventTable.objects.create(
             name='allocation_source_compute_allowed_changed', uuid=compute_event_uuid, payload=payload)
         assert isinstance(compute_allowed_event, EventTable)
-    except IntegrityError as e:
+    except IntegrityError:
         # This is totally fine. No really. This should fail if it already exists and we should ignore it.
         pass
 
