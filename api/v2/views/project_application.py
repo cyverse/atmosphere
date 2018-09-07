@@ -1,4 +1,4 @@
-from core.models import ProjectApplication, Provider
+from core.models import ProjectApplication
 from api.v2.serializers.details import ProjectApplicationSerializer
 from api.v2.views.base import AuthModelViewSet
 
