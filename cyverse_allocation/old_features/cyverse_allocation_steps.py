@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-# noinspection PyUnresolvedReferences
+# noqa
 from behave import *
 from behave import when, then, given
 from business_rules import run_all
