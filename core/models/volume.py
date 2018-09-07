@@ -57,10 +57,8 @@ class Volume(BaseSource):
         """
         ownership_query = Q(instance_source__created_by=user)
         project_query = Q(project__owner__memberships__user=user)
-        if is_leader == False:
-            project_query &= Q(project__owner__memberships__is_leader=False)
-        elif is_leader == True:
-            project_query &= Q(project__owner__memberships__is_leader=True)
+        if is_leader is not None:
+            project_query &= Q(project__owner__memberships__is_leader=is_leader)
         membership_query = Q(instance_source__created_by__memberships__group__user=user)
         return Volume.objects.filter(membership_query | project_query | ownership_query).distinct()
 
