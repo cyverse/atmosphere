@@ -10,7 +10,6 @@ CSV_HEADER=("Instance ID, Instance Alias, Username, Staff_user, Provider, "
             "Active, Deploy Error, Error, Aborted")
 import sys
 import django; django.setup()
-from django.core.exceptions import MultipleObjectsReturned
 from core.models import Provider, Instance, InstanceStatusHistory, ObjectDoesNotExist
 from django.utils import timezone
 
