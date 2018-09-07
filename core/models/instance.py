@@ -4,9 +4,7 @@
 from hashlib import md5
 from datetime import datetime, timedelta
 
-from django.db import (
-    models, transaction, DatabaseError
-)
+from django.db import models, DatabaseError
 from django.db.models import (
     Q, ObjectDoesNotExist
 )
