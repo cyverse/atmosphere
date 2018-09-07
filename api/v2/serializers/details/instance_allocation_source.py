@@ -1,4 +1,3 @@
-from django.conf import settings
 from rest_framework import serializers
 from api.v2.serializers.fields import ModelRelatedField
 from core.models import (
