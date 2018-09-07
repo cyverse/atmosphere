@@ -48,7 +48,7 @@ class Profile(AuthAPIView):
 
         # User is valid, build out any new accounts
         if settings.AUTO_CREATE_NEW_ACCOUNTS:
-            new_identities = create_new_accounts(user.username)
+            create_new_accounts(user.username)
 
         response = Response(serialized_data)
         return response
