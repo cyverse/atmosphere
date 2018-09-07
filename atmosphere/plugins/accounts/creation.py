@@ -281,9 +281,9 @@ class XsedeGroup(AtmosphereAccountCreationPlugin):
         tacc_projects = self.tas_driver.find_projects_for(tacc_username)
         for tacc_project in tacc_projects:
             tacc_projectname = tacc_project['chargeCode']
-            tacc_leader_username = tacc_project.get('pi', {})\
-                .get('username', '')
             # TODO: should is_leader be used in the dict created below?
+            # tacc_leader_username = tacc_project.get('pi', {})\
+            #     .get('username', '')
             # is_leader = tacc_leader_username == tacc_username
             credentials_list.append({
                 'account_user': username,
