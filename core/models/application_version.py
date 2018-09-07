@@ -334,7 +334,7 @@ def create_app_version(
         transfer_licenses(last_version, app_version)
         transfer_membership(last_version, app_version)
     else:
-        if change_log == None:
+        if change_log is None:
             change_log = "New Application %s - Version %s" % (app.name, app_version.name)
         if allow_imaging == None:
             allow_imaging = True
