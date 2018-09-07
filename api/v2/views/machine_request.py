@@ -64,8 +64,12 @@ class MachineRequestViewSet(BaseRequestViewSet):
                     Q(start_date__gt=timezone.now() - timedelta(days=7))
                 )
             )
-            # NOTE: Special case! If we are querying for 'user-facing-view' _as a staff user_ we will get back all the results rather than only our own. This line will keep consistency, but is admittedly fragile.
-            # A better solution would be to _include_ ?admin=true or some other queryparam when the entire machine-request-list is desired _or_ splitting into two endpoints.
+            # NOTE: Special case! If we are querying for 'user-facing-view'
+            # _as a staff user_ we will get back all the results rather than
+            # only our own. This line will keep consistency, but is admittedly
+            # fragile. A better solution would be to _include_ ?admin=true or
+            # some other queryparam when the entire machine-request-list is
+            # desired _or_ splitting into two endpoints.
             if self.request.query_params.get('new_machine_owner__username','') == '' and request_user.is_staff:
                 return all_active.order_by('-start_date')
             return all_active.filter(
