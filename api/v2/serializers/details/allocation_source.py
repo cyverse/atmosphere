@@ -4,7 +4,6 @@ import django
 from rest_framework import serializers
 
 from core.models.allocation_source import AllocationSource, AllocationSourceSnapshot, UserAllocationSnapshot
-from core.models.event_table import EventTable
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
