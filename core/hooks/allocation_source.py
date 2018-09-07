@@ -419,7 +419,7 @@ def listen_for_user_allocation_source_created(sender, instance, created, **kwarg
            The method should assign a user to an allocation source
         """
     event = instance
-    from core.models import EventTable, AtmosphereUser, AllocationSource
+    from core.models import AtmosphereUser, AllocationSource
     if event.name != 'user_allocation_source_created':
         return None
     logger.info('user_allocation_source_created: %s' % event.__dict__)
