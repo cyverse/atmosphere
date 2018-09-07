@@ -14,7 +14,11 @@ from core.models.allocation_source import get_allocation_source_object
 #FIXME: MARKED FOR DELETION according to julianp
 def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     """
-    DEV NOTE: This is a *pre_save* signal. As such, the arguments are slightly different and the object in the database matching the data will be the "before", while the data coming into the function should be considered the "after". For more details about pre_save signals: https://docs.djangoproject.com/en/dev/ref/signals/#pre-save
+    DEV NOTE: This is a *pre_save* signal. As such, the arguments are slightly
+    different and the object in the database matching the data will be the
+    "before", while the data coming into the function should be considered the
+    "after". For more details about pre_save signals:
+    https://docs.djangoproject.com/en/dev/ref/signals/#pre-save
 
     This listener expects:
     EventType - 'allocation_source_snapshot'
