@@ -13,7 +13,7 @@ from django.conf import settings
 from core import exceptions as core_exceptions
 from core.models import (
     MachineRequest, IdentityMembership, AtmosphereUser,
-    Provider, ProviderMachine, Group, Tag
+    Provider, ProviderMachine, Tag
 )
 from core.models.status_type import StatusType
 from core.email import requestImaging
