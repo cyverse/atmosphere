@@ -206,7 +206,7 @@ def has_mem_quota(driver, quota, new_size=0, raise_exc=True):
     for inst in instances:
         try:
             total_size += inst.size._size.ram / 1024.0
-        except AttributeError, KeyError:
+        except (AttributeError, KeyError):
             # Instance running on an unknown size..
             total_size += 1
     total_size = int(total_size)
