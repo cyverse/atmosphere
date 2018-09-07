@@ -110,10 +110,6 @@ def renew_allocation_sources(renewal_strategy=False, current_time=False, ignore_
 
 def renew_allocation_source_for(compute_allowed, allocation_source, current_time, ignore_current_compute_allowed=False,
                                 dry_run=False):
-    # carryover logic
-    # remaining_compute = 0 if source_snapshot.compute_allowed - source_snapshot.compute_used < 0 else source_snapshot.compute_allowed - source_snapshot.compute_used
-    # total_compute_allowed = float(remaining_compute + compute_allowed)
-
     total_compute_allowed = compute_allowed
     if not ignore_current_compute_allowed:
         source_snapshot = AllocationSourceSnapshot.objects.filter(allocation_source=allocation_source).last()
