@@ -3,7 +3,6 @@ import collections
 import redis
 
 from threepio import logger
-from django.utils import timezone
 from dateutil import rrule
 from core.models import (
     Instance, InstanceStatusHistory
