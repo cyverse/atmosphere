@@ -1,7 +1,6 @@
 """
 Help Links API
 """
-from rest_framework.viewsets import ViewSet
 from rest_framework import status
 
 from core.models import HelpLink
