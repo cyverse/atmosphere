@@ -149,7 +149,10 @@ class TASAPIDriver(object):
             raise ValueError(exc_message)
 
         if resp_status != 'success' or resp.status_code != 200:
-            exc_message = ("Report %s produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (report_id, resp.status_code, resp_status))
+            exc_message = (
+                "Report %s produced an Invalid Response - Expected 200 and "
+                "'success' response: %s - %s" % (report_id, resp.status_code,
+                                                 resp_status))
             logger.exception(exc_message)
             raise Exception(exc_message)
 
@@ -479,5 +482,3 @@ def _validate_tas_data(data):
             % (data['status'], data)
         )
     return True
-
-
