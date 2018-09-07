@@ -101,7 +101,10 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     }
     The method should fire off emails to the users who should be informed of the new threshold value.
     """
-    # FIXME+TODO: next version: Fire and respond to the `clear_allocation_threshold_met` for a given allocation_source_name (This event should be generated any time you `.save()` and update the `compute_allowed` for an AllocationSource
+    # FIXME+TODO: next version: Fire and respond to the
+    # `clear_allocation_threshold_met` for a given allocation_source_name
+    # (This event should be generated any time you `.save()` and update the
+    # `compute_allowed` for an AllocationSource
     event = instance
     if event.name != 'allocation_source_threshold_met':
         return None
