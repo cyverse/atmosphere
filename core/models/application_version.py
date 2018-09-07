@@ -322,7 +322,7 @@ def create_app_version(
     last_version = app.latest_version
     if last_version:
         # DEFAULT: Use kwargs.. Otherwise: Inherit information from last
-        if change_log != None:
+        if change_log is not None:
             app_version.change_log = change_log
         else:
             app_version.change_log=last_version.change_log
