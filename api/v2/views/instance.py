@@ -5,7 +5,6 @@ from api.v2.serializers.details import InstanceSerializer, InstanceActionSeriali
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
 from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
-from api.v2.views.instance_action import InstanceActionViewSet
 
 from core.exceptions import ProviderNotActive
 from core.models import Instance, Identity, UserAllocationSource, Project, AllocationSource
