@@ -34,7 +34,7 @@ class Identity(models.Model):
     @classmethod
     def delete_identity(cls, username, provider_location):
         # Do not move up. ImportError.
-        from core.models import AtmosphereUser, Group, Quota, Provider, AccountProvider
+        from core.models import AtmosphereUser, Group, Quota, Provider
 
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
