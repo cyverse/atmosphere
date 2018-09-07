@@ -181,7 +181,7 @@ class AllocationSourceSnapshot(models.Model):
         app_label = 'core'
 
 def total_usage(username, start_date, allocation_source_name=None,end_date=None, burn_rate=False, email=None):
-    """ 
+    """
         This function outputs the total allocation usage in hours
     """
     from service.allocation_logic import create_report
@@ -192,7 +192,6 @@ def total_usage(username, start_date, allocation_source_name=None,end_date=None,
         return user_allocation
     total_allocation = 0.0
     for data in user_allocation:
-        #print data['instance_id'], data['allocation_source'], data['instance_status_start_date'], data['instance_status_end_date'], data['applicable_duration']
         if not data['allocation_source']=='N/A':
             total_allocation += data['applicable_duration']
     compute_used_total = round(total_allocation/3600.0,2)
