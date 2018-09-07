@@ -396,27 +396,6 @@ class ProviderInstanceAction(models.Model):
         unique_together = (("provider", "instance_action"),)
 
 
-class ProviderDNSServerIP(models.Model):
-
-    """
-    Used to describe all available
-    DNS servers (by IP, sorted by order, then id) for a given provider
-    """
-    provider = models.ForeignKey(Provider, related_name="dns_server_ips")
-    ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
-    order = models.IntegerField()
-
-    def __unicode__(self):
-        return "#%s Provider:%s ip_address:%s" % \
-            (self.order, self.provider, self.ip_address)
-
-    class Meta:
-        db_table = 'provider_dns_server_ip'
-        app_label = 'core'
-        unique_together = (("provider", "ip_address"),
-                           ("provider", "order"))
-
-
 class AccountProvider(models.Model):
 
     """
