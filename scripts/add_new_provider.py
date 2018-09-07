@@ -6,7 +6,6 @@ import argparse
 import json
 import pprint
 import sys
-import subprocess
 
 import django; django.setup()
 from django.core.exceptions import ValidationError
