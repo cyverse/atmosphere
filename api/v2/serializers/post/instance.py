@@ -39,10 +39,14 @@ class InstanceSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         """
-        Overwrite to force custom logic required before accepting data to launch an instance.
-        1. check of identity prior to checking size_alias or source_alias
-        NOTE: This is required because we have identical alias' on multiple providers, so we must first filter-down based on the identity requested for launching the instance.
-        2. Check source_alias is either a Volume or a ProviderMachine before continuing.
+        Overwrite to force custom logic required before accepting data to
+        launch an instance.
+        1. check of identity prior to checking size_alias or source_alias.
+        This is required because we have identical alias' on multiple
+        providers, so we must first filter-down based on the identity
+        requested for launching the instance.
+        2. Check source_alias is either a Volume or a ProviderMachine before
+        continuing.
         """
 
         identity_uuid = data.get('identity')
