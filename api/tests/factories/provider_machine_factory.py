@@ -1,5 +1,4 @@
 import factory
-import uuid
 from core.models import ProviderMachine, InstanceSource
 from .version_factory import ApplicationVersionFactory
 from .image_factory import ImageFactory
