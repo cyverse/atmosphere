@@ -274,7 +274,7 @@ class VolumeList(AuthAPIView):
         """
         user = request.user
         try:
-            membership = IdentityMembership.objects.get(
+            IdentityMembership.objects.get(
                 identity__uuid=identity_uuid,
                 member__memberships__user=user)
         except:
