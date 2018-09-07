@@ -4,7 +4,7 @@ from datetime import timedelta
 
 # noinspection PyUnresolvedReferences
 from behave import * # noqa
-from behave import when, then, given, step
+from behave import when, then, given
 from django.db.models import Sum
 from django.conf import settings
 from django.utils import timezone
