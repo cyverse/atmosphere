@@ -293,8 +293,8 @@ def main(application_id,
         if ami:
             get_or_create_glance_image(dprov_glance_client,
                                        sprov_glance_image.get("kernel_id"))
-            dprov_ari_glance_image = get_or_create_glance_image(dprov_glance_client,
-                                                                sprov_glance_image.get("ramdisk_id"))
+            get_or_create_glance_image(dprov_glance_client,
+                                       sprov_glance_image.get("ramdisk_id"))
 
         # Create models in database
         if not (dprov_machine or dprov_instance_source):
