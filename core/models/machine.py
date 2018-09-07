@@ -6,7 +6,6 @@ import json, ast
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist as DoesNotExist
 from threepio import logger
