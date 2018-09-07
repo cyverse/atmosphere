@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand
 import django.db.models.base
-from subprocess import call
+
 import core.models
+
 
 class Command(BaseCommand):
     help = 'Custom manage.py command to start celery.'
