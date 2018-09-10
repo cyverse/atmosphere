@@ -56,7 +56,7 @@ from service.exceptions import (
     OverAllocationError, AllocationBlacklistedError, OverQuotaError, SizeNotAvailable,
     HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
-    socket_error, ConnectionFailure, InstanceDoesNotExist, InstanceLaunchConflict, LibcloudInvalidCredsError,
+    ConnectionFailure, InstanceDoesNotExist, InstanceLaunchConflict, LibcloudInvalidCredsError,
     Unauthorized)
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver

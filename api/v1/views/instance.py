@@ -3,6 +3,7 @@ from django.db.models import Q
 
 from rest_framework import status
 from rest_framework.response import Response
+from socket import error as socket_error
 
 from threepio import logger
 
@@ -26,7 +27,7 @@ from service.exceptions import (
     VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist,
     UnderThresholdError, ActionNotAllowed, Unauthorized,
     # Technically owned by another
-    socket_error, ConnectionFailure, LibcloudInvalidCredsError, LibcloudBadResponseError
+    ConnectionFailure, LibcloudInvalidCredsError, LibcloudBadResponseError
     )
 from service.instance import (
     run_instance_action,
