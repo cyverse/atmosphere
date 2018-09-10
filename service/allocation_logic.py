@@ -143,9 +143,24 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                 allocation_source_name = current_as_name if current_as_name else 'N/A'
                 current_instance_id = hist.instance.id
 
-            empty_row = {'username': '', 'instance_id': '', 'allocation_source': '', 'provider_alias': '', 'instance_status_history_id': '', 'cpu': '', 'memory': '',
-                         'disk': '', 'instance_status_start_date': '', 'instance_status_end_date': '', 'report_start_date': report_start_date, 'report_end_date': report_end_date,
-                         'instance_status': '', 'duration': '', 'applicable_duration': '', 'burn_rate': ''}
+            empty_row = {
+                'username': '',
+                'instance_id': '',
+                'allocation_source': '',
+                'provider_alias': '',
+                'instance_status_history_id': '',
+                'cpu': '',
+                'memory': '',
+                'disk': '',
+                'instance_status_start_date': '',
+                'instance_status_end_date': '',
+                'report_start_date': report_start_date,
+                'report_end_date': report_end_date,
+                'instance_status': '',
+                'duration': '',
+                'applicable_duration': '',
+                'burn_rate': ''
+            }
             filled_row = fill_data(empty_row, hist, allocation_source_name)
             # check if instance is active and has no end date. If so, increment total burn rate
             if hist.status.name == 'active' and not hist.end_date:
