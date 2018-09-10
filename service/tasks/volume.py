@@ -2,10 +2,7 @@
 Tasks for volume operations.
 """
 import time
-
 from django.utils import timezone
-
-from celery import current_app as app
 from celery.result import allow_join_result
 from celery.decorators import task
 
@@ -13,14 +10,12 @@ from threepio import celery_logger
 from rtwo.driver import EucaDriver, OSDriver
 
 from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
-
 from service.driver import get_driver
 from service.deploy import (
     deploy_check_volume, deploy_mount_volume, deploy_unmount_volume,
     execution_has_failures, execution_has_unreachable)
 from service.exceptions import DeviceBusyException
 
-# Ansible deployment tasks
 
 @task(name="check_volume_task",
       max_retries=0,
