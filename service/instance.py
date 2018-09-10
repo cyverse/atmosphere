@@ -1012,7 +1012,10 @@ def _pre_launch_instance_kwargs(
     if not token:
         token = _get_token()
     if not username:
-        username = _get_username(driver, identity)
+        try:
+            username = driver.identity.user.username
+        except Exception:
+            username = identity.created_by.username
     if not password:
         password = _get_password(username)
     return {
@@ -1083,13 +1086,6 @@ def _first_update(driver, identity, core_instance, esh_instance):
         core_instance.esh.extra.get('metadata', {}).get('tmp_status'),
         first_update=True)
     return history
-
-
-def _get_username(driver, core_identity):
-    try:
-        username = driver.identity.user.username
-    except Exception:
-        username = core_identity.created_by.username
 
 
 def _get_token():
