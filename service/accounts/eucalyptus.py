@@ -6,8 +6,6 @@ User, BooleanField, StringList
   These XML parsing classes belong to euca_admin.py,
   and can be found on the Cloud Controller
 """
-from threepio import logger
-
 from core.models.identity import Identity
 from core.models.provider import Provider
 
