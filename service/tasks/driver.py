@@ -4,7 +4,6 @@ NOTE: At this point create options do not have a hard-set requirement for 'CoreI
 Delete/remove operations do. This should be investigated further..
 """
 from operator import attrgetter
-import re
 import time
 
 from django.conf import settings
