@@ -667,7 +667,7 @@ def monitor_instances_for(provider_id, users=None,
                         identity.uuid,
                         identity.created_by) for inst in running_instances]
                 seen_instances.extend(core_running_instances)
-            except Exception as exc:
+            except Exception:
                 celery_logger.exception(
                     "Could not convert running instances for %s" %
                     tenant_name)
