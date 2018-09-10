@@ -1,7 +1,6 @@
 """
 Tasks for volume operations.
 """
-import re
 import time
 
 from django.utils import timezone
