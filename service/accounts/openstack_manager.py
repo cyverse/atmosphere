@@ -415,7 +415,6 @@ class AccountDriver(BaseAccountDriver):
             user_matches = [u for u in self.user_manager.keystone.users.list(**kwargs) if u.name == username]
             if not user_matches or len(user_matches) > 1:
                 raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
-            user = user_matches[0]  # Not used
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain_id': 'default'})
