@@ -11,7 +11,7 @@ from api.tests.factories import (
     GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory,
     InstanceHistoryFactory, InstanceStatusFactory, ImageFactory,
     ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory,
-    IdentityFactory, ProviderFactory, IdentityMembershipFactory, QuotaFactory)
+    IdentityFactory, ProviderFactory, IdentityMembershipFactory)
 from .base import APISanityTestCase
 from api.v2.views import InstanceViewSet
 
