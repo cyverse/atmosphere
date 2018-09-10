@@ -1088,7 +1088,7 @@ def _first_update(driver, identity, core_instance, esh_instance):
 def _get_username(driver, core_identity):
     try:
         username = driver.identity.user.username
-    except Exception as no_username:
+    except Exception:
         username = core_identity.created_by.username
 
 
