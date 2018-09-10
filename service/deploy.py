@@ -5,7 +5,6 @@ import os
 import re
 import json
 from threepio import logger, deploy_logger
-
 from django.conf import settings
 from atmosphere.settings import secrets
 
