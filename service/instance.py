@@ -27,7 +27,6 @@ from service.driver import AtmosphereNetworkManager
 from service.mock import AtmosphereMockDriver, AtmosphereMockNetworkManager
 
 from rtwo.drivers.common import _connect_to_keystone_v3
-from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
