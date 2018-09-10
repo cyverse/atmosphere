@@ -44,7 +44,7 @@ def _update_status_log(instance, status_update):
     now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         user = instance._node.extra['metadata']['creator']
-    except KeyError as no_user:
+    except KeyError:
         user = "Unknown -- Metadata missing"
     size_alias = instance._node.extra['flavorId']
     machine_alias = instance._node.extra['imageId']
