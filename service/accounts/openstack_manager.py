@@ -1427,7 +1427,6 @@ class AccountDriver(BaseAccountDriver):
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):
             auth_url_prefix = "/v2.0/"
-            auth_version = 'v2.0'
         elif ex_auth_version.startswith('3'):
             auth_url_prefix = "/v3/"
         os_args["auth_url"] = os_args.get("auth_url")\
