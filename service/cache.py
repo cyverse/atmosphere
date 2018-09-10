@@ -1,5 +1,4 @@
 import cPickle as pickle
-from django.conf import settings
 from django.utils import timezone
 
 import redis
