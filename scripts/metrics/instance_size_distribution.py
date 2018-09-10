@@ -2,7 +2,6 @@
 
 from collections import OrderedDict
 import argparse
-import logging
 
 import django
 django.setup()
