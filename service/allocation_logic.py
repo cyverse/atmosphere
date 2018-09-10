@@ -229,7 +229,9 @@ def fill_data(row, history_obj, allocation_source):
     row['instance_status_start_date'] = history_obj.start_date
     row['instance_status_end_date'] = still_running if not history_obj.end_date else history_obj.end_date
     row['instance_status'] = history_obj.status.name
-    row['duration'] = (still_running - history_obj.start_date).total_seconds() if not history_obj.end_date else (history_obj.end_date - history_obj.start_date).total_seconds()
+    row['duration'] = (still_running - history_obj.start_date).total_seconds(
+    ) if not history_obj.end_date else (
+        history_obj.end_date - history_obj.start_date).total_seconds()
     row['current_time'] = still_running
     return row
 
