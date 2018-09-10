@@ -1,8 +1,5 @@
 import cPickle as pickle
-from django.utils import timezone
-
 import redis
-
 from threepio import logger
 
 from service.driver import get_esh_driver, get_admin_driver
