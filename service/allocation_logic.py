@@ -1,13 +1,18 @@
 import datetime
+import decimal
+import json
 
 import pytz
 from dateutil.parser import parse
 from django.db.models.query import Q
 from threepio import logger
+from django.conf import settings
 
 from core.models import EventTable
 from core.models.allocation_source import AllocationSource
 from core.models.instance import Instance
+
+_charge_rates_validity_cache = {}
 
 
 def create_report(report_start_date, report_end_date, user_id=None, allocation_source_name=None):
@@ -122,6 +127,144 @@ def get_allocation_source_name_from_event(username, report_start_date, instance_
         return allocation_source_object.name
 
 
+def _check_true(expression, problem_message):
+    if not expression:
+        raise ValueError(problem_message)
+    return True
+
+
+def _validate_rate(rate_to_validate, previous_rate):
+    logger.debug("rate_to_validate: %s", rate_to_validate)
+    _check_true('effective_date' in rate_to_validate, 'No effective_date in rate: {}'.format(rate_to_validate))
+    effective_date = parse(rate_to_validate['effective_date'])
+    _check_true(effective_date >= parse('1970-01-01T00:00:00Z'), 'effective_date smaller than 1970-01-01: {}'.format(
+        effective_date))
+    _check_true('rates' in rate_to_validate, 'No rates in rate: {}'.format(rate_to_validate))
+    status_rates = rate_to_validate['rates']
+    for status_name, status_rate in status_rates.iteritems():
+        _check_true(isinstance(status_name, str), 'status_name is not a string, but is a: {}'.format(
+            type(status_name)))
+        _check_true(len(status_name) > 0, 'There is an empty status_name in rate: {}'.format(rate_to_validate))
+        _check_true(isinstance(status_rate, str), 'status_rate is not a string, but is a: {}'.format(
+            type(status_rate)))
+        try:
+            decimal_status_rate = decimal.Decimal(status_rate)
+        except decimal.InvalidOperation:
+            # status_rate is not a valid literal for Decimal
+            raise
+        _check_true(decimal_status_rate >= 0, 'There is a negative status_rate ({}) in rate: {}'.format(
+            decimal_status_rate, rate_to_validate))
+    if previous_rate:
+        # Make sure that the rate effective dates are strictly increasing
+        previous_effective_date = parse(previous_rate['effective_date'])
+        _check_true(effective_date > previous_effective_date,
+                    'effective_date for rate ({}) is not bigger than previous_rate ({})'.format(
+                        effective_date, previous_effective_date))
+    return True
+
+
+def _validate_charge_rates(instance_status_rates):
+    """Make sure that the charge rates are valid"""
+    global _charge_rates_validity_cache
+    instance_status_rates_json = json.dumps(instance_status_rates)
+    try:
+        return _charge_rates_validity_cache[instance_status_rates_json]
+    except KeyError:
+        # We haven't tested this charge rate yet, check it.
+        logger.debug("Validate instance_status_rates: %s", instance_status_rates)
+    is_valid = True
+    is_valid &= _check_true(len(instance_status_rates) > 0, 'instance_status_rates is empty')
+    previous_rate = None
+    for instance_status_rate in instance_status_rates:
+        is_valid &= _validate_rate(instance_status_rate, previous_rate)
+        previous_rate = instance_status_rate
+    # If we get to his stage we assume that _check_true & _validate_rate did not throw an exception, and the rates
+    # are valid.
+    _charge_rates_validity_cache[instance_status_rates_json] = is_valid
+    return is_valid
+
+
+def fractional_charge_rate_at_date(instance_status_name, instance_status_rates, sample_date):
+    """
+    Calculates the charge rate for an instance status, at a point in time, given the rates setting.
+
+    :param instance_status_name: Name of an instance status, e.g. 'active', 'suspended', etc.
+    :type instance_status_name: str
+    :param instance_status_rates: See settings.INSTANCE_STATUS_RATES, e.g. [{'effective_date': '1970-01-01T00:00:00Z',
+        'rates': {'active': '1.0', 'suspended': '0.0', 'shutoff': '0.0'}}, {'effective_date': '2018-11-12T00:00:00Z',
+        'rates': {'active': '1.0', 'suspended': '0.75', 'shutoff': '0.5'}}]
+    :type instance_status_rates: list<dict>
+    :param sample_date: Date at which to calculate charge rate
+    :type sample_date: datetime.datetime
+    :return: The charge rate
+    :rtype: decimal.Decimal
+    """
+
+    def validate_input():
+        """Make sure the input to the fractional_charge_rate_at_date is correct"""
+        _check_true(isinstance(sample_date, datetime.datetime), 'sample_date is of type: {}'.format(type(sample_date)))
+        _check_true(_validate_charge_rates(instance_status_rates),
+                    'instance_status_rates are invalid: {}'.format(instance_status_rates))
+
+    validate_input()
+
+    fractional_rate_for_date = decimal.Decimal(0)
+    for rate in instance_status_rates:
+        rate_effective_date = parse(rate['effective_date'])
+        if rate_effective_date > sample_date:
+            break
+        fractional_rate_for_date = decimal.Decimal(rate['rates'].get(instance_status_name, 0))
+
+    return fractional_rate_for_date
+
+
+def effective_fractional_charge_rate(instance_status_name, instance_status_rates, start_date, end_date):
+    """
+    Calculates the charge rate for an instance status between two dates, given the rates setting.
+
+    :param instance_status_name: Name of an instance status, e.g. 'active', 'suspended', etc.
+    :type instance_status_name: str
+    :param instance_status_rates: See settings.INSTANCE_STATUS_RATES, e.g. [{'effective_date': '1970-01-01T00:00:00Z',
+        'rates': {'active': '1.0', 'suspended': '0.0', 'shutoff': '0.0'}}, {'effective_date': '2018-11-12T00:00:00Z',
+        'rates': {'active': '1.0', 'suspended': '0.75', 'shutoff': '0.5'}}]
+    :type instance_status_rates: list<dict>
+    :param start_date: Start of period for which to calculate effective charge rate
+    :type start_date: datetime.datetime
+    :param end_date: End of period for which to calculate effective charge rate
+    :type end_date: datetime.datetime
+    :return: The effective charge rate
+    :rtype: decimal.Decimal
+    """
+
+    def validate_input():
+        """Make sure the input to the effective_fractional_charge_rate is correct"""
+        _check_true(isinstance(start_date, datetime.datetime), 'start_date is of type: {}'.format(type(start_date)))
+        _check_true(isinstance(end_date, datetime.datetime), 'end_date is of type: {}'.format(type(end_date)))
+        _check_true(end_date > start_date, 'end_date is not bigger than start_date')
+        _check_true(_validate_charge_rates(instance_status_rates),
+                    'instance_status_rates are invalid: {}'.format(instance_status_rates))
+
+    validate_input()
+
+    period_length = decimal.Decimal((end_date - start_date).total_seconds())
+
+    previous_rate_effective_date = parse('9999-12-31T23:59:59Z')
+    fractional_rate_for_period = decimal.Decimal(0)
+    for rate in reversed(instance_status_rates):
+        rate_effective_date = parse(rate['effective_date'])
+        rate_for_status = decimal.Decimal(rate['rates'].get(instance_status_name, 0))
+        effective_start_date = max(start_date, rate_effective_date)
+        effective_end_date = min(end_date, previous_rate_effective_date)
+        effective_period = effective_end_date - effective_start_date
+        if effective_period.total_seconds() > 0:
+            effective_period_ratio = decimal.Decimal(effective_period.total_seconds()) / period_length
+            effective_fractional_rate_for_status = effective_period_ratio * rate_for_status
+            fractional_rate_for_period += effective_fractional_rate_for_status
+        previous_rate_effective_date = rate_effective_date
+
+    return fractional_rate_for_period
+
+
 def create_rows(filtered_instance_histories, events_histories_dict, report_start_date, report_end_date):
     data = []
     current_user = ''
@@ -162,9 +305,13 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                 'burn_rate': ''
             }
             filled_row = fill_data(empty_row, hist, allocation_source_name)
-            # check if instance is active and has no end date. If so, increment total burn rate
-            if hist.status.name == 'active' and not hist.end_date:
-                total_burn_rate += 1
+            # check if instance has no end date. If so, increase total burn rate
+            if not hist.end_date:
+                # Get instantaneous burn rate
+                fractional_burn_rate = fractional_charge_rate_at_date(hist.status.name,
+                                                                      settings.INSTANCE_STATUS_RATES,
+                                                                      still_running)
+                total_burn_rate += fractional_burn_rate
             filled_row['burn_rate'] = total_burn_rate
             if hist.id in events_histories_dict:
                 events = events_histories_dict[hist.id]
@@ -201,14 +348,18 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
 
 
 def calculate_allocation(hist, start_date, end_date, report_start_date, report_end_date):
-
-    if hist.status.name == 'active':
-        effective_start_date = max(start_date, report_start_date)
-        effective_end_date = report_end_date if end_date is None else min(end_date, report_end_date)
-        applicable_duration = (effective_end_date - effective_start_date).total_seconds()*hist.size.cpu
-        return applicable_duration
-    else:
-        return 0
+    logger.info("hist.status.name: %s", hist.status.name)
+    effective_charge_rate = effective_fractional_charge_rate(
+        hist.status.name,
+        settings.INSTANCE_STATUS_RATES,
+        report_start_date,
+        report_end_date
+    )
+    effective_start_date = max(start_date, report_start_date)
+    effective_end_date = report_end_date if end_date is None else min(end_date, report_end_date)
+    effective_period_seconds = int((effective_end_date - effective_start_date).total_seconds())
+    applicable_duration = effective_period_seconds * hist.size.cpu * effective_charge_rate
+    return applicable_duration
 
 
 def _get_current_date_utc():

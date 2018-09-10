@@ -1,11 +1,15 @@
-75c75,78
+61c61,64
 < TESTING =  False # Boolean required
 ---
 > TESTING =  True # Boolean required
 > TEST_RUNNER_USER = # Nothing
 > TEST_RUNNER_PASS = # Nothing
 > DJANGO_JENKINS = False
-78c81
+66c69
 < USE_JETSTREAM_PLUGIN =  False # Boolean required
 ---
 > USE_JETSTREAM_PLUGIN =  True # Boolean required
+95c98
+< INSTANCE_STATUS_RATES = [{'effective_date': '1970-01-01T00:00:00Z', 'rates': {'active': '1.0', 'suspended': '0.0', 'shutoff': '0.0'}}]
+---
+> INSTANCE_STATUS_RATES = [{'effective_date': '1970-01-01T00:00:00Z', 'rates': {'active': '1.0', 'suspended': '0.0', 'shutoff': '0.0'}}, {'effective_date': '2018-11-12T00:00:00Z', 'rates': {'active': '1.0', 'suspended': '0.75', 'shutoff': '0.5'}}]
