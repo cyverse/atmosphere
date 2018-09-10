@@ -33,7 +33,6 @@ from rtwo.models.volume import Volume
 from rtwo.exceptions import LibcloudHTTPError  # Move into rtwo.exceptions later...
 from libcloud.common.exceptions import BaseHTTPError  # Move into rtwo.exceptions later...
 
-from core.query import only_current
 from core.models.instance_source import InstanceSource
 from core.models import AtmosphereUser, InstanceAllocationSourceSnapshot
 from core.models.ssh_key import get_user_ssh_keys
