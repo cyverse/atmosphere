@@ -280,11 +280,11 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
         owner_set.add(image_owner)
 
     if hasattr(cloud_machine, 'id'):
-       image_id = cloud_machine.id
+        image_id = cloud_machine.id
     elif type(cloud_machine) == dict:
-       image_id = cloud_machine.get('id')
+        image_id = cloud_machine.get('id')
     else:
-       raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
+        raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
 
     existing_members = account_driver.get_image_members(image_id, None)
     # Extend to include based on projects already granted access to the image
@@ -476,11 +476,11 @@ def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
     """
     from core.models import Identity
     if hasattr(cloud_machine, 'id'):
-       image_id = cloud_machine.id
+        image_id = cloud_machine.id
     elif type(cloud_machine) == dict:
-       image_id = cloud_machine.get('id')
+        image_id = cloud_machine.get('id')
     else:
-       raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
+        raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
 
     cloud_membership = account_driver.image_manager.shared_images_for(
         image_id=image_id)
@@ -676,9 +676,7 @@ def monitor_instances_for(provider_id, users=None,
             # No running instances.
             core_running_instances = []
         # Using the 'known' list of running instances, cleanup the DB
-        core_instances = _cleanup_missing_instances(
-            identity,
-            core_running_instances)
+        _cleanup_missing_instances(identity, core_running_instances)
     if print_logs:
         _exit_stdout_logging(console_handler)
     # return seen_instances  NOTE: this has been commented out to avoid PicklingError!
