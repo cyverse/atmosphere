@@ -14,7 +14,7 @@ def main():
     # Check environment
     try:
         import django; django.setup()
-        from core.models import Application, Instance
+        from core.models import Instance
         from django.db.models import Q
     except:
         print "\n".join([
