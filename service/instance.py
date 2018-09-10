@@ -279,7 +279,7 @@ def _extract_network_metadata(network_manager, esh_instance, node_network):
         node_network = esh_instance.extra.get('addresses')
         network_id = network[0]['id']
         return network_id
-    except (IndexError, KeyError) as e:
+    except (IndexError, KeyError):
         logger.warn(
             "Non-standard 'addresses' metadata. "
             "Cannot extract network_id" % esh_instance)
