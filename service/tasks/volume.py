@@ -8,7 +8,6 @@ from celery.decorators import task
 from threepio import celery_logger
 from rtwo.driver import EucaDriver, OSDriver
 
-from atmosphere.settings.local import ATMOSPHERE_PRIVATE_KEYFILE
 from service.driver import get_driver
 from service.deploy import (
     deploy_check_volume, deploy_mount_volume, deploy_unmount_volume,
