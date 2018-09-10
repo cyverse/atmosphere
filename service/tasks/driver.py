@@ -126,7 +126,7 @@ def _eager_override(task_class, run_method, args, kwargs):
         try:
             result = run_method(*args, **kwargs)
             return result
-        except Exception as exc:
+        except Exception:
             celery_logger.exception("Encountered error while running eager")
         attempts += 1
         celery_logger.info("Waiting %d seconds" % delay)
