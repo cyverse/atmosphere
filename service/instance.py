@@ -1150,7 +1150,6 @@ def get_boot_source(username, identity_uuid, source_identifier):
     try:
         identity = CoreIdentity.objects.get(
             uuid=identity_uuid)
-        driver = get_cached_driver(identity=identity)
         sources = InstanceSource.current_sources()
         boot_source = sources.get(
             provider=identity.provider,
