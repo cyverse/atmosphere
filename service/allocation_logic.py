@@ -43,7 +43,10 @@ def generate_data(report_start_date, report_end_date, username=None):
 
 
 def filter_events_and_instances(report_start_date, report_end_date, username=None):
-    events = EventTable.objects.filter(Q(timestamp__gte=report_start_date) & Q(timestamp__lte=report_end_date) & Q(name__exact="instance_allocation_source_changed")).order_by('timestamp')
+    events = EventTable.objects.filter(
+        Q(timestamp__gte=report_start_date) & Q(timestamp__lte=report_end_date)
+        & Q(name__exact="instance_allocation_source_changed")).order_by(
+            'timestamp')
     instances = Instance.objects.filter(
         Q(
             Q(start_date__gte=report_start_date) & Q(start_date__lte=report_end_date)
@@ -81,7 +84,7 @@ def get_all_histories_for_instance(instances, report_start_date, report_end_date
     histories = {}
     for instance in instances:
         histories[instance.provider_alias] = instance.instancestatushistory_set.filter(
-                ~Q(start_date__gte=report_end_date) & 
+                ~Q(start_date__gte=report_end_date) &
                 ~Q(
                     Q(end_date__isnull=False) & Q(end_date__lte=report_start_date)
                   )
@@ -137,9 +140,9 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
 
             if current_instance_id != hist.instance.id:
                 current_as_name = get_allocation_source_name_from_event(current_user,report_start_date,hist.instance.provider_alias,hist.start_date)
-                allocation_source_name = current_as_name if current_as_name else 'N/A' 
+                allocation_source_name = current_as_name if current_as_name else 'N/A'
                 current_instance_id = hist.instance.id
-            
+
             empty_row = {'username': '', 'instance_id': '', 'allocation_source': '', 'provider_alias': '', 'instance_status_history_id': '', 'cpu': '', 'memory': '',
                          'disk': '', 'instance_status_start_date': '', 'instance_status_end_date': '', 'report_start_date': report_start_date, 'report_end_date': report_end_date,
                          'instance_status': '', 'duration': '', 'applicable_duration': '', 'burn_rate': ''}
@@ -157,7 +160,7 @@ def create_rows(filtered_instance_histories, events_histories_dict, report_start
                     filled_row_temp = filled_row.copy()
                     filled_row_temp['instance_status_start_date'] = start_date
                     filled_row_temp['instance_status_end_date'] = end_date
-                    filled_row_temp['allocation_source'] = allocation_source_name 
+                    filled_row_temp['allocation_source'] = allocation_source_name
                     try:
                         new_allocation_source = event.payload['allocation_source_name']
                     except:
