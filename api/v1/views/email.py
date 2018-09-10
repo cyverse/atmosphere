@@ -10,7 +10,7 @@ from threepio import logger
 from django_cyverse_auth.protocol.ldap import lookupEmail
 
 from core.models import AtmosphereUser as User
-from core.email import email_admin, resource_request_email
+from core.email import email_support, resource_request_email
 
 from api import failure_response
 from api.v1.views.base import AuthAPIView
@@ -45,9 +45,7 @@ class Feedback(AuthAPIView):
         subject = 'Subject: Atmosphere Client Feedback from %s' % username
         context = {"user": user, "feedback": message}
         body = render_to_string("core/email/feedback.html", context=context)
-        email_success = email_admin(
-            request, subject, body, request_tracker=True
-        )
+        email_success = email_support(subject, body, request)
         if email_success:
             resp = {
                 'result':
@@ -131,9 +129,7 @@ class SupportEmail(AuthAPIView):
 
         Returns a response.
         """
-        email_success = email_admin(
-            request, subject, message, request_tracker=True
-        )
+        email_success = email_support(subject, message, request)
         return {"email_sent": email_success}
 
 
