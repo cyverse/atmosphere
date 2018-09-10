@@ -30,7 +30,6 @@ def main():
         raise Exception("Required argument 'provider' is missing. Please provide the DB ID of the provider to continue.")
     else:
         provider = Provider.objects.get(id=args.provider)
-    is_now = True
     try:
         date_value = parse(args.date)
         if not date_value:
