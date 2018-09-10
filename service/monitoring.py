@@ -8,7 +8,7 @@ from django.utils import timezone
 from threepio import logger
 from core.models import AccountProvider
 from core.models.credential import Credential
-from core.models import IdentityMembership, InstanceStatusHistory
+from core.models import InstanceStatusHistory
 from core.models.instance import Instance as CoreInstance
 from core.models.instance import (
     convert_esh_instance, _esh_instance_size_to_core
