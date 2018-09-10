@@ -1311,7 +1311,7 @@ def test_instance_links(alias, uri):
     vnc_address = 'http://%s:5904' % uri
     try:
         vnc_success = test_link(vnc_address)
-    except Exception as e:
+    except Exception:
         celery_logger.exception("Bad vnc address: %s" % vnc_address)
         vnc_success = False
     return {alias: {'vnc': vnc_success}}
