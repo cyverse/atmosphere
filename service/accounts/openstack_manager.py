@@ -669,7 +669,6 @@ class AccountDriver(BaseAccountDriver):
         3. Delete network based on topology
         """
 
-        identity_creds = self.parse_identity(identity)
         neutron = self.get_openstack_client(identity, 'neutron')
         topology_name = self.get_config('network', 'topology', None)
         if not topology_name:
