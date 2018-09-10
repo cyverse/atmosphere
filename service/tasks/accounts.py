@@ -29,7 +29,11 @@ def remove_empty_networks_for(provider_id):
             if running_instances(network_name, all_instances):
                 continue
             user = project
-            identity = Identity.objects.filter(provider_id=provider_id, credential__key='ex_project_name', credential__value=project).filter(credential__key='key', credential__value=user).first()
+            identity = Identity.objects.filter(
+                provider_id=provider_id,
+                credential__key='ex_project_name',
+                credential__value=project).filter(
+                    credential__key='key', credential__value=user).first()
             if not identity:
                 celery_logger.warn("NOT Removing project network for User:%s, Project:%s -- No Valid Identity found!"
                              % (user, project))
