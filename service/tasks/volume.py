@@ -3,7 +3,6 @@ Tasks for volume operations.
 """
 import time
 from django.utils import timezone
-from celery.result import allow_join_result
 from celery.decorators import task
 
 from threepio import celery_logger
