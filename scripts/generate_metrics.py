@@ -63,7 +63,12 @@ for idx, inst in enumerate(inst_list.order_by('id')):
     hit_aborted = 1 if hit_aborted else 0
     hit_error = 1 if hit_error else 0
     hit_deploy_error = 1 if hit_deploy_error else 0
-    arg_list = [inst.id, instance_id, username, staff_user, provider, inst.start_date.strftime("%x %X"), image_name, version_name, size.name, size.alias, size.cpu, size.mem, size.disk, featured_image, hit_active, hit_deploy_error, hit_error, hit_aborted]
+    arg_list = [
+        inst.id, instance_id, username, staff_user, provider,
+        inst.start_date.strftime("%x %X"), image_name, version_name, size.name,
+        size.alias, size.cpu, size.mem, size.disk, featured_image, hit_active,
+        hit_deploy_error, hit_error, hit_aborted
+    ]
     csv_line = ",".join(map(str,arg_list))
     content += "%s\n" % csv_line
 time_duration = timezone.now() - time_start
