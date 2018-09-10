@@ -271,7 +271,7 @@ def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
     tenant_name = creds['ex_tenant_name']
     celery_logger.info("Checking Identity %s" % tenant_name)
     # Attempt to clean floating IPs
-    num_ips_removed = _remove_extra_floating_ips(driver, tenant_name)
+    _remove_extra_floating_ips(driver, tenant_name)
     # Test for active/inactive_instances instances
     try:
         instances = driver.list_instances()
