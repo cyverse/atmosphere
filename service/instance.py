@@ -1697,7 +1697,6 @@ def _update_instance_metadata(esh_driver, esh_instance, data={}, replace=False):
     NOTE: This will NOT WORK for TAGS until openstack
     allows JSONArrays as values for metadata!
     """
-    wait_time = 1
     if not esh_instance:
         return {}
     instance_id = esh_instance.id
