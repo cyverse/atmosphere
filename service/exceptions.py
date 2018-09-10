@@ -86,7 +86,7 @@ class AllocationBlacklistedError(ServiceException):
     def __init__(self, source_name):
         self.message = "Allocation disabled: Allocation '{}' has been " \
                 "blacklisted by staff. If you think this is in error, reach " \
-                "out to support at {}".format(source_name, settings.SUPPORT_EMAIL)
+                "out to support at {}".format(source_name, settings.ATMO_SUPPORT)
         super(AllocationBlacklistedError, self).__init__(self.message)
 
     def __str__(self):

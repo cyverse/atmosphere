@@ -52,30 +52,6 @@ def email_address_str(name, email):
     return "%s <%s>" % (name, email)
 
 
-def request_tracker_address():
-    """ Return the admin name and admin email from
-        django's settings.
-    """
-    return (settings.ATMO_SUPPORT[0][0], settings.ATMO_SUPPORT[0][1])
-
-
-def admin_address(test_user=None):
-    """ Return the admin name and admin email from
-        django's settings.
-    """
-    if test_user:
-        for admin_user, admin_email in settings.ADMINS:
-            if admin_user == test_user:
-                return admin_user, admin_email
-    return (settings.ADMINS[0][0], settings.ADMINS[0][1])
-
-
-def atmo_daemon_address():
-    """ Return the daemon email address.
-    """
-    return (settings.ATMO_DAEMON[0][0], settings.ATMO_DAEMON[0][1])
-
-
 def lookup_user(request):
     """
     Return the username and email given a django request object.
@@ -200,90 +176,50 @@ def request_info(request):
     return (user_agent, remote_ip, location, resolution)
 
 
-def email_admin(
-    request, subject, message, cc_user=True, request_tracker=False, html=False
-):
-    """ Use request, subject and message to build and send a standard
-        Atmosphere user request email. From an atmosphere user to admins.
-        Returns True on success and False on failure.
+def email_support(subject, body, request):
     """
-    user_agent, remote_ip, location, resolution = request_info(request)
+    Send a basic email to support.
+    """
     user, user_email, user_name = lookup_user(request)
-    return email_to_admin(
-        subject,
-        message,
-        user,
-        user_email,
-        cc_user=cc_user,
-        request_tracker=request_tracker,
-        html=html
-    )
-
-
-def email_to_admin(
-    subject,
-    body,
-    username=None,
-    user_email=None,
-    cc_user=True,
-    admin_user=None,
-    request_tracker=False,
-    html=False
-):
-    """
-    Send a basic email to the admins. Nothing more than subject and message
-    are required.
-    """
-    if admin_user:
-        sendto, sendto_email = admin_address(admin_user)
-    elif request_tracker:
-        sendto, sendto_email = request_tracker_address()
-    else:
-        sendto, sendto_email = admin_address()
-    # E-mail yourself if no users are provided
-    if not username and not user_email:
-        username, user_email = sendto, sendto_email
-    elif not user_email:    # Username provided
-        # TODO: Pass only strings, avoid passing 'User' object here.
-        if isinstance(username, User):
-            username = username.username
-        user_email = lookupEmail(username)
-        if not user_email:
-            user_email = "%s@%s" % (username, settings.DEFAULT_EMAIL_DOMAIN)
-    elif not username:    # user_email provided
-        username = 'Unknown'
-    if request_tracker or not cc_user:
-        # Send w/o the CC
-        cc = []
-    else:
-        cc = [email_address_str(username, user_email)]
     celery_task = send_email.si(
         subject,
         body,
-        from_email=email_address_str(username, user_email),
-        to=[email_address_str(sendto, sendto_email)],
-        cc=cc,
-        html=html
+        from_email=email_address_str(user_name, user_email),
+        to=[email_address_str(*settings.ATMO_SUPPORT)]
     )
-    celery_task.delay()    # Task executes here
+    celery_task.delay()
     return True
 
 
-def email_from_admin(username, subject, message, html=False):
-    """ Use user, subject and message to build and send a standard
+def email_admin(subject, body, sender):
+    """
+    Send a basic email to the admins.
+    """
+    celery_task = send_email.si(
+        subject,
+        body,
+        from_email=sender,
+        to=[email_address_str(name, email) for name, email in settings.ADMINS]
+    )
+    celery_task.delay()
+    return True
+
+
+def email_from_admin(username, subject, body, html=False):
+    """ Use user, subject and body to build and send a standard
         Atmosphere admin email from admins to a user.
         Returns True on success and False on failure.
     """
-    from_name, from_email = admin_address()
+    sender = email_address_str(*settings.ATMO_DAEMON)
     user_email = lookupEmail(username)
     if not user_email:
         user_email = "%s@%s" % (username, settings.DEFAULT_EMAIL_DOMAIN)
     celery_task = send_email.si(
         subject,
-        message,
-        from_email=email_address_str(from_name, from_email),
+        body,
+        from_email=sender,
         to=[email_address_str(username, user_email)],
-        cc=[email_address_str(from_name, from_email)],
+        cc=[sender],
         html=html
     )
     celery_task.delay()    # Task executes here
@@ -305,10 +241,9 @@ def send_approved_resource_email(user, request, reason):
         "request": request,
         "reason": reason
     }
-    from_name, from_email = admin_address()
     user_email = lookupEmail(user.username)
     recipients = [email_address_str(user.username, user_email)]
-    sender = email_address_str(from_name, from_email)
+    sender = email_address_str(*settings.ATMO_DAEMON)
 
     return send_email_template(
         subject,
@@ -336,10 +271,9 @@ def send_denied_resource_email(user, request, reason):
         "request": request,
         "reason": reason
     }
-    from_name, from_email = admin_address()
     user_email = lookupEmail(user.username)
     recipients = [email_address_str(user.username, user_email)]
-    sender = email_address_str(from_name, from_email)
+    sender = email_address_str(*settings.ATMO_DAEMON)
 
     return send_email_template(
         subject,
@@ -381,7 +315,7 @@ def send_instance_email(
     local_launched_at = django_timezone.localtime(utc_date)
     getting_started_link = email_template.get_link('getting-started')
     faq_link = email_template.get_link('faq')
-    support_email = settings.SUPPORT_EMAIL
+    support_email = email_address_str(*settings.ATMO_SUPPORT)
     context = {
         "getting_started_instances_link": getting_started_link.href,
         "getting_started_instances_name": getting_started_link.topic,
@@ -453,7 +387,6 @@ def send_allocation_usage_email(
         "actual": usage_percentage,
     }
     body = render_to_string("core/email/allocation_warning.html", context)
-    from_name, from_email = atmo_daemon_address()
     subject = '(%s) Jetstream Allocation Usage Notice' % username
     return email_from_admin(user.username, subject, body)
 
@@ -474,16 +407,8 @@ def send_preemptive_deploy_failed_email(core_instance, message):
         "details": message
     }
     body = render_to_string("core/email/deploy_warning.html", context)
-    from_name, from_email = atmo_daemon_address()
     subject = '(%s) Preemptive Deploy Failure' % username
-    return email_to_admin(
-        subject,
-        body,
-        from_name,
-        from_email,
-        admin_user='Atmosphere Alerts',
-        cc_user=False
-    )
+    return email_admin(subject, body, email_address_str(user_name, user_email))
 
 
 def send_deploy_failed_email(core_instance, exception_str):
@@ -502,9 +427,8 @@ def send_deploy_failed_email(core_instance, exception_str):
         "error": exception_str
     }
     body = render_to_string("core/email/deploy_failed.html", context=context)
-    from_name, from_email = atmo_daemon_address()
     subject = '(%s) Deploy Failed' % username
-    return email_to_admin(subject, body, from_name, from_email, cc_user=False)
+    return email_admin(subject, body, email_address_str(user_name, user_email))
 
 
 def send_image_request_failed_email(machine_request, exception_str):
@@ -528,8 +452,8 @@ def send_image_request_failed_email(machine_request, exception_str):
     }
     body = render_to_string("core/email/imaging_failed.html", context=context)
     subject = 'ERROR - Atmosphere Imaging Task has encountered an exception'
-    return email_to_admin(
-        subject, body, user.username, user_email, cc_user=False
+    return email_admin(
+        subject, body, email_address_str(user.username, user_email)
     )
 
 
@@ -609,9 +533,7 @@ def requestImaging(request, machine_request_id, auto_approve=False):
         staff_body = render_to_string(
             "core/email/imaging_request_staff.html", context=context
         )
-        email_admin(
-            request, subject, staff_body, cc_user=False, request_tracker=True
-        )
+        email_support(subject, staff_body, request)
 
     return email_from_admin(user.username, subject, body)
 
@@ -631,22 +553,5 @@ def resource_request_email(request, username, quota, reason, options={}):
     context = {"quota": quota, "reason": reason, "url": url}
     context.update(request_data(request))
     body = render_to_string("resource_request.html", context=context)
-    success = email_admin(
-        request, subject, body, cc_user=False, request_tracker=True
-    )
+    success = email_support(subject, body, request)
     return {"email_sent": success}
-
-
-def support_email(request, subject, message):
-    """
-    Sends an email to support.
-
-    POST Params expected:
-      * user
-      * message
-      * subject
-
-    Returns a response.
-    """
-    email_success = email_admin(request, subject, message, request_tracker=True)
-    return {"email_sent": email_success}

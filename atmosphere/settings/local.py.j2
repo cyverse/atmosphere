@@ -8,7 +8,7 @@ from datetime import timedelta
 from celery.schedules import crontab
 
 from atmosphere.settings import (
-    secrets, TEMPLATES, ADMINS,
+    secrets, TEMPLATES,
     CELERYBEAT_SCHEDULE, REDIRECT_URL,
     REST_FRAMEWORK, INSTALLED_APPS
 )
@@ -59,7 +59,7 @@ CELERY_TIMEZONE = TIME_ZONE
 DEFAULT_EMAIL_DOMAIN = '{{ DEFAULT_EMAIL_DOMAIN }}'
 {% if ADMINS_EMAIL_TUPLE %}
 ADMINS = [
-# The first admin will AUTHOR all e-mails.
+# ADMINS will receive emails
 # These ADMINS override values set in __init__.py
 {%- for email_tuple in ADMINS_EMAIL_TUPLE %}
   {{ email_tuple }},
@@ -67,22 +67,9 @@ ADMINS = [
 ]
 {% endif %}
 
-
-{%- if SERVER_EMAIL %}
-# This email will be used as the FROM: address for emails to the ADMINS
-SERVER_EMAIL="{{ SERVER_EMAIL }}"
-{%- endif %}
 # Required to send RequestTracker emails
-{% if ATMO_SUPPORT_EMAIL_TUPLE %}
-ATMO_SUPPORT = [
-# The first admin will AUTHOR all e-mails.
-# These ATMO_SUPPORT override values set in __init__.py
-{%- for email_tuple in ATMO_SUPPORT_EMAIL_TUPLE %}
-  {{ email_tuple }},
-{%- endfor %}
-]
-{%- else %}
-ATMO_SUPPORT = ADMINS
+{% if ATMO_SUPPORT_EMAIL %}
+ATMO_SUPPORT = {{ ATMO_SUPPORT_EMAIL }}
 {% endif %}
 
 {% if MAINTENANCE_EXEMPT_USERNAMES %}
@@ -90,23 +77,6 @@ MAINTENANCE_EXEMPT_USERNAMES = {{ MAINTENANCE_EXEMPT_USERNAMES }}
 {% else %}
 MAINTENANCE_EXEMPT_USERNAMES = []
 {% endif %}
-
-ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
-
-# Django uses this one..
-MANAGERS = ADMINS
-
-{%- if SUPPORT_EMAIL %}
-SUPPORT_EMAIL = '{{ SUPPORT_EMAIL }}'
-{%- else %}
-SUPPORT_EMAIL = ADMINS[0][1]  # First email in ADMINS
-{%- endif %}
-
-{%- if SUPPORT_EMAIL_SIGNATURE %}
-SUPPORT_EMAIL_SIGNATURE = '{{ SUPPORT_EMAIL_SIGNATURE }}'
-{%- else %}
-SUPPORT_EMAIL_SIGNATURE = 'Atmosphere Support Team'
-{%- endif %}
 
 # These support links will be made available through Troposphere.
 {%- if SUPPORT_LINKS %}
@@ -237,6 +207,9 @@ DATABASES = {
 # Separates emails by server name:
 SERVER_NAME = SERVER_URL.replace('https://','')
 EMAIL_SUBJECT_PREFIX = "[Django - %s] " % (SERVER_NAME,)
+
+# Sends all emails
+ATMO_DAEMON = ("Atmosphere Admin", "<atmo-notify@{}>".format(SERVER_NAME))
 
 # Prevents warnings
 ADDITIONAL_ALLOWED_HOSTNAMES = {{ ADDITIONAL_ALLOWED_HOSTNAMES }}
