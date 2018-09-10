@@ -48,7 +48,7 @@ for idx, inst in enumerate(inst_list.order_by('id')):
 
     hit_active = inst.instancestatushistory_set.filter(status__name='active').count() > 0
     hit_deploy_error = not hit_active and inst.instancestatushistory_set.filter(status__name='deploy_error').count() > 0
-    hit_error = hit_active == False and inst.instancestatushistory_set.filter(status__name='error').count() > 0
+    hit_error = not hit_active and inst.instancestatushistory_set.filter(status__name='error').count() > 0
     if not hit_active and not hit_error and not hit_deploy_error:
         hit_aborted = True
     featured_image = 1 if featured_image else 0
