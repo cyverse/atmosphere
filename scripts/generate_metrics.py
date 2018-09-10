@@ -10,7 +10,7 @@ CSV_HEADER=("Instance ID, Instance Alias, Username, Staff_user, Provider, "
             "Active, Deploy Error, Error, Aborted")
 import sys
 import django; django.setup()
-from core.models import Provider, Instance, ObjectDoesNotExist
+from core.models import Instance, ObjectDoesNotExist
 from django.utils import timezone
 
 time_start = timezone.now()
