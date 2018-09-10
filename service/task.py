@@ -153,7 +153,7 @@ def mount_volume(core_identity, driver, instance_id, volume_id, device=None,
         mount_chain.apply_async()
     except VolumeMountConflict:
         raise
-    except Exception as e:
+    except Exception:
         logger.exception("Exc occurred")
         raise VolumeMountConflict(instance_id, volume_id)
     return mount_location
