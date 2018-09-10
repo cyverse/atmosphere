@@ -73,7 +73,7 @@ def attach_volume(core_identity, driver, instance_id, volume_id, device_location
         init_task.link(mount_chain)
         print_task_chain(init_task)
         init_task.apply_async()
-    except Exception as e:
+    except Exception:
         raise VolumeMountConflict(instance_id, volume_id)
     return mount_location
 
