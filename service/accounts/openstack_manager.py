@@ -670,7 +670,6 @@ class AccountDriver(BaseAccountDriver):
         """
 
         identity_creds = self.parse_identity(identity)
-        project_name = identity_creds["tenant_name"]
         neutron = self.get_openstack_client(identity, 'neutron')
         topology_name = self.get_config('network', 'topology', None)
         if not topology_name:
