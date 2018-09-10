@@ -6,7 +6,6 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 
 from core.models.license import License, LicenseType
-from core.models.pattern_match import MatchType
 
 from threepio import logger
 
