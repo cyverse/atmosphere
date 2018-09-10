@@ -1122,7 +1122,7 @@ def check_size(esh_driver, size_alias, provider, boot_source):
         if http_err.code == 401:
             raise Unauthorized(http_err.message)
         raise ConnectionFailure(http_err.message)
-    except Exception as exc:
+    except Exception:
         raise
 
 
