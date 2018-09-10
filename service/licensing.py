@@ -47,7 +47,7 @@ def is_url(test_string):
     try:
         val(test_string)
         return True
-    except ValidationError as e:
+    except ValidationError:
         return False
     except:
         logger.exception("URL Validation no longer works -- Code fix required")
