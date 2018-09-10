@@ -9,8 +9,8 @@ from rest_framework.test import APIClient
 from rest_framework.test import APITestCase
 from api.tests.factories import (
     UserFactory, AnonymousUserFactory, InstanceFactory,
-    InstanceHistoryFactory, InstanceStatusFactory, ImageFactory,
-    ProviderMachineFactory, IdentityFactory, ProviderFactory)
+    InstanceHistoryFactory, InstanceStatusFactory, ProviderMachineFactory,
+    IdentityFactory, ProviderFactory)
 from .base import APISanityTestCase
 from api.v2.views import InstanceViewSet
 
