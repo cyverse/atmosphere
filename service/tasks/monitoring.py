@@ -14,7 +14,7 @@ from core.query import (
 from core.models.group import Group
 from core.models.size import Size, convert_esh_size
 from core.models.volume import Volume, convert_esh_volume
-from core.models.instance import Instance, convert_esh_instance
+from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
 from core.models.machine import convert_glance_image, get_or_create_provider_machine, ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
