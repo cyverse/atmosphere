@@ -1168,7 +1168,6 @@ def check_application_threshold(
         boot_source):
     """
     """
-    core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
     try:
         threshold = boot_source.current_source.application_version.get_threshold()
     except:
