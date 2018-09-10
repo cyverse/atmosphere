@@ -6,7 +6,6 @@ import pytz
 from django.db.models import Q
 from django.utils import timezone
 from threepio import logger
-from core.models import AtmosphereUser as User
 from core.models import AccountProvider
 from core.models.credential import Credential
 from core.models import IdentityMembership, Identity, InstanceStatusHistory
