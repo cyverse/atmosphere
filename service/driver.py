@@ -73,7 +73,6 @@ PROVIDER_DEFAULTS = {
 
 
 def create_libcloud_driver(identity, provider_type=Provider.OPENSTACK):
-    user = identity.created_by
     provider = identity.provider
     # Fetch classes to construct driver and default options
     driver_class = fetch_driver(provider_type)
