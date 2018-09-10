@@ -523,7 +523,7 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
                 continue
 
             image_is_public = image.is_public if hasattr(image,'is_public') else image.get('visibility','') == 'public'
-            if image and image_is_public == False:
+            if image and not image_is_public:
                 celery_logger.info("Making Machine %s public" % image.id)
                 if not dry_run:
                     account_driver.image_manager.glance.images.update(image.id, visibility='public')
