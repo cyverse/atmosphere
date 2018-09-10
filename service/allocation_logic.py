@@ -239,7 +239,14 @@ def fill_data(row, history_obj, allocation_source):
 def write_csv(data):
 
     with open('/opt/dev/reports/new_report.csv', 'w+') as csv:
-        csv.write("Username,Instance_ID,Allocation Source,Provider Alias,Instance_Status_History_ID,CPU,Memory,Disk,Instance_Status_Start_Date,Instance_Status_End_Date,Report_Start_Date,Report_End_Date,Instance_Status,Duration (hours),Applicable_Duration (hours)\n")
+        csv.write(
+            "Username,Instance_ID,Allocation Source,"
+            "Provider Alias,Instance_Status_History_ID,CPU,"
+            "Memory,Disk,Instance_Status_Start_Date,"
+            "Instance_Status_End_Date,Report_Start_Date,"
+            "Report_End_Date,Instance_Status,Duration (hours),"
+            "Applicable_Duration (hours)\n"
+        )
 
         for row in data:
 
