@@ -1,13 +1,11 @@
 from django.utils import timezone
 from django.db.models import Q
 from rtwo.exceptions import (
-    LibcloudBadResponseError, LibcloudInvalidCredsError
+    LibcloudInvalidCredsError, ConnectionFailure, LibcloudBadResponseError
 )
-
 from rest_framework import status
 from rest_framework.response import Response
 from socket import error as socket_error
-
 from threepio import logger
 
 from core.exceptions import ProviderNotActive
@@ -29,8 +27,6 @@ from service.exceptions import (
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist,
     UnderThresholdError, ActionNotAllowed, Unauthorized,
-    # Technically owned by another
-    ConnectionFailure
     )
 from service.instance import (
     run_instance_action,
