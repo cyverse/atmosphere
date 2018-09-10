@@ -1431,7 +1431,6 @@ class AccountDriver(BaseAccountDriver):
             auth_version = 'v2.0'
         elif ex_auth_version.startswith('3'):
             auth_url_prefix = "/v3/"
-            auth_version = 'v3'
         os_args["auth_url"] = os_args.get("auth_url")\
             .replace("/tokens", "").replace('/v2.0', '').replace('/v3', '')
 
