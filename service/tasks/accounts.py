@@ -1,6 +1,4 @@
 from celery.decorators import task
-from celery.task.schedules import crontab
-
 from django.utils.timezone import datetime
 from rtwo.exceptions import NeutronClientException, NeutronException
 
