@@ -5,7 +5,6 @@ import os
 import re
 import json
 
-from django.template.loader import render_to_string
 from django.utils.text import slugify
 from django.utils.timezone import datetime
 
