@@ -1,12 +1,9 @@
 from celery.decorators import task
 from django.utils.timezone import datetime
 from rtwo.exceptions import NeutronClientException, NeutronException
-
 from threepio import celery_logger
 
-from core.models import AtmosphereUser as User
 from core.models import Provider,Identity, Credential
-
 from service.driver import get_account_driver
 
 
