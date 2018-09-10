@@ -36,7 +36,6 @@ from libcloud.common.exceptions import BaseHTTPError  # Move into rtwo.exception
 from core.models.instance_source import InstanceSource
 from core.models import AtmosphereUser, InstanceAllocationSourceSnapshot
 from core.models.ssh_key import get_user_ssh_keys
-from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance, find_instance
 from core.models.size import convert_esh_size
