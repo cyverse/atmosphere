@@ -864,7 +864,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id, core_identity_
     # USE ANSIBLE
     try:
         username = identity.user.username
-        playbook_results = ansible_ready_to_deploy(instance.ip, username, instance_id)
+        ansible_ready_to_deploy(instance.ip, username, instance_id)
         _update_status_log(instance, "Ansible Finished (ready test) for %s." % instance.ip)
         celery_logger.debug("deploy_ready_test task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
