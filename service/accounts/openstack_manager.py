@@ -38,7 +38,6 @@ from chromogenic.drivers.openstack import ImageManager
 
 from django.conf import settings
 
-from core.query import contains_credential
 from core.models import GroupMembership
 from core.models.identity import Identity
 
