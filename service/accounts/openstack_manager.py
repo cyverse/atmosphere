@@ -433,7 +433,7 @@ class AccountDriver(BaseAccountDriver):
                 nova.security_group.create("default", project_name)
             self.network_manager.rename_security_group(
                 project, security_group_name=security_group_name)
-        except ConnectionError as ce:
+        except ConnectionError:
             logger.exception(
                 "Failed to establish connection."
                 " Security group creation FAILED")
