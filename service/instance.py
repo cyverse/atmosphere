@@ -1699,7 +1699,6 @@ def _update_instance_metadata(esh_driver, esh_instance, data={}, replace=False):
     """
     if not esh_instance:
         return {}
-    instance_id = esh_instance.id
 
     if not hasattr(esh_driver._connection, 'ex_write_metadata'):
         logger.warn("EshDriver %s does not have function 'ex_write_metadata'"
