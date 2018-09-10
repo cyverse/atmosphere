@@ -272,24 +272,6 @@ def restore_network(esh_driver, esh_instance, identity_uuid):
     return network
 
 
-def restore_instance_port(esh_driver, esh_instance):
-    """
-    This can be ignored when we move to vxlan..
-
-    For a given instance, retrieve the network-name and
-    convert it to a network-id
-    """
-    try:
-        import libvirt
-    except ImportError:
-        raise Exception(
-            "Cannot restore instance port without libvirt. To Install:"
-            " apt-get install python-libvirt\n"
-            " cp /usr/lib/python2.7/dist-packages/*libvirt* "
-            "/virtualenv/lib/python2.7/site-packages\n")
-    conn = libvirt.openReadOnly()
-
-
 def _extract_network_metadata(network_manager, esh_instance, node_network):
     try:
         network_name = node_network.keys()[0]
