@@ -9,7 +9,7 @@ django.setup()
 from dateutil.parser import parse
 
 from django.db.models import Q
-from django.utils.timezone import datetime, timedelta, now
+from django.utils.timezone import timedelta, now
 from core.models import Instance, Size, Provider
 
 
