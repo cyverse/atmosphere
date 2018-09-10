@@ -691,7 +691,6 @@ class AccountDriver(BaseAccountDriver):
 
         identity_creds = self.parse_identity(identity)
         project_name = identity_creds["tenant_name"]
-        dns_nameservers = self.dns_nameservers_for(identity)
         network = self.network_manager.find_network(
             "%s-net" % project_name)
         # Use `network.name` from here
