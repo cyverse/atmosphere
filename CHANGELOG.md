@@ -48,6 +48,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Added timeout of 5 sec to tas api for user validation, and refactored to
     make validation more explicit in the absence of the old selected_identity
     notion ([#639](https://github.com/cyverse/atmosphere/pull/639))
+  - Linter runs more strict. Many changes were made to satisfy linter.
+    ([#664](https://github.com/cyverse/atmosphere/pull/664))
 
 ### Removed
   - Remove code/vars related to old allocation system
