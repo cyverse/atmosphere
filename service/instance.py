@@ -12,8 +12,9 @@ from atmosphere.celery_init import app
 
 from threepio import logger, status_logger
 
-from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
-    AWSUSWestProvider, EucaProvider, OSProvider
+from rtwo.models.provider import (
+    AWSProvider, AWSUSWestProvider, EucaProvider, OSProvider
+)
 from rtwo.exceptions import LibcloudBadResponseError
 from rtwo.driver import OSDriver
 from rtwo.drivers.openstack_user import UserManager
