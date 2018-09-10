@@ -721,7 +721,10 @@ def monitor_volumes_for(provider_id, print_logs=False):
             tenant_name = tenant.name if tenant else tenant_id
             try:
                 if not tenant:
-                    celery_logger.warn("Warning: tenant_id %s found on volume %s, but did not exist from the account driver perspective.", tenant_id, cloud_volume)
+                    celery_logger.warn(
+                        "Warning: tenant_id %s found on volume %s, "
+                        "but did not exist from the account driver "
+                        "perspective.", tenant_id, cloud_volume)
                     raise ObjectDoesNotExist()
                 identity = Identity.objects.filter(
                     contains_credential('ex_project_name', tenant_name), provider=provider
