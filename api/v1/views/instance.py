@@ -1,6 +1,8 @@
 from django.utils import timezone
 from django.db.models import Q
-from rtwo.exceptions import LibcloudBadResponseError
+from rtwo.exceptions import (
+    LibcloudBadResponseError, LibcloudInvalidCredsError
+)
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -28,7 +30,7 @@ from service.exceptions import (
     VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist,
     UnderThresholdError, ActionNotAllowed, Unauthorized,
     # Technically owned by another
-    ConnectionFailure, LibcloudInvalidCredsError
+    ConnectionFailure
     )
 from service.instance import (
     run_instance_action,

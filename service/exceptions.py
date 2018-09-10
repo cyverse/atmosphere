@@ -4,7 +4,7 @@ Atmosphere service exceptions.
 """
 
 from ansible.errors import AnsibleError
-from rtwo.exceptions import ConnectionFailure, LibcloudInvalidCredsError
+from rtwo.exceptions import ConnectionFailure
 from django.conf import settings
 
 

@@ -15,7 +15,7 @@ from threepio import logger, status_logger
 from rtwo.models.provider import (
     AWSProvider, AWSUSWestProvider, EucaProvider, OSProvider
 )
-from rtwo.exceptions import LibcloudBadResponseError
+from rtwo.exceptions import LibcloudBadResponseError, LibcloudInvalidCredsError
 from rtwo.driver import OSDriver
 from rtwo.drivers.openstack_user import UserManager
 from rtwo.drivers.common import _token_to_keystone_scoped_project
@@ -57,7 +57,7 @@ from service.exceptions import (
     OverAllocationError, AllocationBlacklistedError, OverQuotaError, SizeNotAvailable,
     HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
-    ConnectionFailure, InstanceDoesNotExist, InstanceLaunchConflict, LibcloudInvalidCredsError,
+    ConnectionFailure, InstanceDoesNotExist, InstanceLaunchConflict,
     Unauthorized)
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
