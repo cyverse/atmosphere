@@ -41,7 +41,7 @@ from django.conf import settings
 from core.models.identity import Identity
 
 from service.accounts.base import BaseAccountDriver
-from service.networking import get_topology_cls, ExternalRouter, _get_unique_id
+from service.networking import get_topology_cls, ExternalRouter
 from service.exceptions import TimeoutError
 
 from atmosphere.settings import DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
