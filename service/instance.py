@@ -169,7 +169,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
     _permission_to_act(identity_uuid, "Stop")
     if reclaim_ip:
         remove_floating_ip(esh_driver, esh_instance, identity_uuid)
-    stopped = esh_driver.stop_instance(esh_instance)
+    esh_driver.stop_instance(esh_instance)
     update_status(
         esh_driver,
         esh_instance.id,
