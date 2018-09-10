@@ -4,8 +4,6 @@ Deploy methods for Atmosphere
 import os
 import re
 import json
-
-from django.utils.text import slugify
 from django.utils.timezone import datetime
 
 
