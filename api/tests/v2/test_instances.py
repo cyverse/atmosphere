@@ -8,7 +8,7 @@ from rest_framework.test import APIClient
 
 from rest_framework.test import APITestCase
 from api.tests.factories import (
-    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory,
+    UserFactory, AnonymousUserFactory, InstanceFactory,
     InstanceHistoryFactory, InstanceStatusFactory, ImageFactory,
     ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory,
     IdentityFactory, ProviderFactory)
