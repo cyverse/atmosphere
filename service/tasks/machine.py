@@ -256,7 +256,7 @@ def export_request_error(task_uuid, export_request_id):
 
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
-        exc = result.get(propagate=False)
+        result.get(propagate=False)
     err_str = "ERROR - %r Exception:%r" % (result.result, result.traceback,)
     celery_logger.error(err_str)
     export_request = ExportRequest.objects.get(id=export_request_id)
