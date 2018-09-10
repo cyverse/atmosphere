@@ -51,7 +51,7 @@ from atmosphere.settings import secrets
 from service.cache import get_cached_driver, invalidate_cached_instances
 from service.driver import _retrieve_source, get_account_driver
 from service.licensing import _test_license
-from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
+from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork
 from service.exceptions import (
     OverAllocationError, AllocationBlacklistedError, OverQuotaError,
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
