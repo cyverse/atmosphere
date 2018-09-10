@@ -60,7 +60,7 @@ def timeout_after(seconds):
         signal.alarm(seconds)
         try:
             result = func(*args, **kwargs)
-        except TimeoutError as exc:
+        except TimeoutError:
             raise
         finally:
             signal.alarm(0)
