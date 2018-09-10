@@ -1276,12 +1276,9 @@ def update_membership_for(provider_uuid):
             pm = pm[0]
         app_manager = pm.application_version.application.applicationmembership_set
         if img.get('visibility','') is not 'public':
-            # Lookup members
-            image_members = acct_driver.image_manager.shared_images_for(
-                image_id=img.id)
-            # add machine to each member
-            #(Who owns the cred:ex_project_name) in MachineMembership
-            # for member in image_members:
+            # Note this case was never handled and is an error, this comment
+            # was added during a linting cleanup, fixing this is out of scope
+            pass
         else:
             members = app_manager.all()
             # if MachineMembership exists, remove it (No longer private)
