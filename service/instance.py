@@ -948,8 +948,6 @@ def _launch_machine(driver, identity, machine, size,
                     name, userdata_content=None, network=None,
                     password=None, token=None, **kwargs):
     if isinstance(driver.provider, OSProvider):
-        deploy = True
-        #ex_metadata, ex_keyname
         extra_args = _extra_openstack_args(identity)
         kwargs.update(extra_args)
         conn_kwargs = {'max_attempts': 1}
