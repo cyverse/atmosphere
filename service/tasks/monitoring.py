@@ -325,7 +325,9 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     #       to point to Identity for a 1-to-1 mapping.
     groups = Group.objects.filter(name__in=shared_project_names)
 
-    # THIS IS A HACK - some images have been 'compromised' in this event, reset the access list _back_ to the last-known-good configuration, based on a machine request.
+    # THIS IS A HACK - some images have been 'compromised' in this event,
+    # reset the access list _back_ to the last-known-good configuration, based
+    # on a machine request.
     has_machine_request = MachineRequest.objects.filter(
         new_machine__instance_source__identifier=cloud_machine.id,
         status__name='completed').last()
