@@ -94,7 +94,6 @@ def create_volume_or_fail(name, size, user, provider, identity,
                               snapshot=snapshot, image=image,
                               raise_exception=True)
     identifier = esh_volume.id
-    start_date = esh_volume.extra.get('created_at')
     source = InstanceSource.objects.create(
         identifier=identifier,
         provider=provider,
