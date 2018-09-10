@@ -4,9 +4,6 @@ Deploy methods for Atmosphere
 import os
 import re
 import json
-from django.utils.timezone import datetime
-
-
 from threepio import logger, deploy_logger
 
 from django.conf import settings
