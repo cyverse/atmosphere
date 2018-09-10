@@ -904,7 +904,7 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
         raise Exception("Safety Check -- You should not be here")
     tenant_name = missing_tenant[0]
     cloud_machine_is_public = cloud_machine.is_public if hasattr(cloud_machine,'is_public') else cloud_machine.get('visibility','') == 'public'
-    if cloud_machine_is_public == True:
+    if cloud_machine_is_public:
         celery_logger.info("Making Machine %s private" % cloud_machine.id)
         if not dry_run:
             account_driver.image_manager.glance.images.update(cloud_machine.id, visibility='shared')
