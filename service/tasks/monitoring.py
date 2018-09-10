@@ -224,7 +224,9 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
         #        into DB relationships: ApplicationVersionMembership, ProviderMachineMembership
         update_image_membership(account_driver, cloud_machine, db_machine)
 
-        #STEP 3: if ENFORCING -- occasionally 're-distribute' any ACLs that are *listed on DB but not on cloud* -- removals should be done explicitly, outside of this function
+        # STEP 3: if ENFORCING -- occasionally 're-distribute' any ACLs that
+        # are *listed on DB but not on cloud* -- removals should be done
+        # explicitly, outside of this function
         if settings.ENFORCING:
             distribute_image_membership(account_driver, cloud_machine, provider)
 
