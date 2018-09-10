@@ -1656,7 +1656,6 @@ def _extra_openstack_args(core_identity, ex_metadata={}):
         # FIXME: In a new PR, allow user to select the keypair for launching
         user_key = user_keys[0]
         ex_keyname = user_key.name
-    security_group_name = core_identity.provider.get_config("network", "security_group_name", "default")
     return {"ex_metadata": ex_metadata, "ex_keyname": ex_keyname}
 
 
