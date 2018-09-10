@@ -4,7 +4,7 @@ Atmosphere service tasks methods
 """
 from threepio import logger
 
-from service.exceptions import DeviceBusyException, VolumeMountConflict, InstanceDoesNotExist
+from service.exceptions import VolumeMountConflict, InstanceDoesNotExist
 
 from service.tasks.driver import deploy_init_to
 from service.tasks.driver import destroy_instance
