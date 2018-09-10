@@ -11,9 +11,7 @@ from atmosphere.settings import secrets
 from core.core_logging import create_instance_logger
 from core.models import Provider, Identity, Instance, SSHKey, AtmosphereUser
 
-from service.exceptions import (
-    AnsibleDeployException, DeviceBusyException, NonZeroDeploymentException
-)
+from service.exceptions import AnsibleDeployException, DeviceBusyException
 
 
 def ansible_deployment(
