@@ -1,4 +1,3 @@
-import json
 from unittest import skip
 
 from django.core.urlresolvers import reverse
