@@ -515,7 +515,6 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
     """
     for version in application.active_versions():
         for machine in version.active_machines():
-            provider = machine.instance_source.provider
             account_driver = memoized_driver(machine, account_drivers)
             try:
                 image = account_driver.image_manager.get_image(image_id=machine.identifier)
