@@ -35,8 +35,6 @@ def main():
         date_value = parse(args.date)
         if not date_value:
             date_value = now()
-        else:
-            is_now = False
     except Exception:
         date_value = now()
     size_distribution = instance_size_distribution(
