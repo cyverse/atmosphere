@@ -15,7 +15,7 @@ from rtwo.models.identity import AWSIdentity, EucaIdentity,\
     OSIdentity, MockIdentity
 from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 from rtwo.drivers.openstack_network import NetworkManager
-from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_keystone_v3, _token_to_keystone_scoped_project
+from rtwo.drivers.common import _connect_to_keystone_v3, _token_to_keystone_scoped_project
 from service.mock import AtmosphereMockNetworkManager, AtmosphereMockDriver
 from service.exceptions import ServiceException
 
