@@ -288,7 +288,7 @@ def machine_request_error(task_request, *args, **kwargs):
 
     result = app.AsyncResult(task_uuid)
     with allow_join_result():
-        exc = result.get(propagate=False)
+        result.get(propagate=False)
     err_str = _status_to_error(machine_request.old_status, result.result, result.traceback)
     celery_logger.info("traceback=%s" % (result.traceback,) )
     celery_logger.error(err_str)
