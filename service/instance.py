@@ -724,11 +724,8 @@ def update_status(esh_driver, instance_id, provider_uuid, identity_uuid, user):
     if esh_driver.provider.location.lower() == 'mock':
         return None
     # Convert & Update based on new status change
-    core_instance = convert_esh_instance(esh_driver,
-                                         esh_instance,
-                                         provider_uuid,
-                                         identity_uuid,
-                                         user)
+    convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
+                         user)
 
 
 def _pre_launch_validation(
