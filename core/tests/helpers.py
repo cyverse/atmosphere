@@ -5,8 +5,7 @@ for Core objects
 from core.models import (
     Application, ApplicationVersion, AtmosphereUser, Group, Identity,
     IdentityMembership, Instance, InstanceSource, InstanceStatusHistory,
-    MachineRequest, Provider, ProviderType, PlatformType, ProviderMachine,
-    Size, Quota
+    Provider, ProviderType, PlatformType, ProviderMachine, Size, Quota
 )
 from uuid import uuid4
 
