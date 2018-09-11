@@ -10,7 +10,6 @@ from django.conf import settings
 from django.utils.timezone import datetime, timedelta
 from celery.decorators import task
 from celery.task import current
-from celery.result import allow_join_result
 
 from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError
 
