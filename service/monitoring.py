@@ -13,7 +13,6 @@ from core.models.instance import Instance as CoreInstance
 from core.models.instance import (
     convert_esh_instance, _esh_instance_size_to_core
 )
-from core.models.size import convert_esh_size
 from service.cache import get_cached_instances, get_cached_driver
 from service.instance import suspend_instance, stop_instance, destroy_instance, shelve_instance, offload_instance
 from django.conf import settings
