@@ -8,7 +8,6 @@ import operator
 from django.db.models import Q
 
 from core.models.machine import ProviderMachine
-from core.models.application import Application
 from core.query import only_current_source
 from functools import reduce
 
