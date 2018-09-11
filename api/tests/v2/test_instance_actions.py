@@ -4,8 +4,6 @@ from django.test import override_settings
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from rest_framework.test import APIClient
-
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from api.tests.factories import (
     UserFactory, AnonymousUserFactory, InstanceFactory,
