@@ -188,7 +188,6 @@ class CloudAdminAccountList(APIView):
             return Response(
                 "Provider with UUID %s does not exist" % provider_uuid,
                 status=status.HTTP_409_conflict)
-            raise Exception
         driver = get_account_driver(provider)
         missing_args = driver.clean_credentials(data)
         if missing_args:

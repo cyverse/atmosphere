@@ -16,24 +16,6 @@ from api import ServiceUnavailable
 from django.conf import settings
 
 
-class ImageOwnerUpdateAllowed(permissions.BasePermission):
-
-    def has_permission(self, request, view):
-        user = request.user
-        if request.METHOD != 'PATCH':
-            return True
-        image_id = view.kwargs.get('image_id')
-        if not image_id:
-            logger.warn("Could not find kwarg:'image_id'")
-            return False
-        if user.is_superuser or \
-                user.is_staff or \
-                any(app for app in
-                    user.application_set.filter(id=image_id)):
-            return True
-        return False
-
-
 class ProjectOwnerRequired(permissions.BasePermission):
 
     def has_permission(self, request, view):

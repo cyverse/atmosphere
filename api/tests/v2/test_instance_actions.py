@@ -1,5 +1,4 @@
 import uuid
-from unittest import skip, skipIf
 
 from django.test import override_settings
 from django.core.urlresolvers import reverse

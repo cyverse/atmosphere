@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#652](https://github.com/cyverse/atmosphere/pull/652))
   - Added api v2 delete support
     ([#654](https://github.com/cyverse/atmosphere/pull/654))
+  - Introduce vulture to detect dead code
+    ([#662](https://github.com/cyverse/atmosphere/pull/662))
 
 ### Changed
   - Updated Ansible version to 2.6.1 by changing requirements and changing

@@ -9,7 +9,6 @@ from django.utils import timezone
 from celery import current_app as app
 from celery.result import allow_join_result
 from celery.decorators import task
-from celery import chain
 
 from threepio import celery_logger
 from rtwo.driver import EucaDriver, OSDriver
@@ -264,9 +263,6 @@ def update_mount_location(new_mount_location,
         return volume_service._update_volume_metadata(
             driver, volume,
             metadata={'mount_location': new_mount_location})
-        celery_logger.debug(
-            "update_mount_location task finished at %s." %
-            timezone.now())
     except Exception as exc:
         celery_logger.exception(exc)
         update_mount_location.retry(exc=exc)
@@ -290,7 +286,6 @@ def update_volume_metadata(driverCls, provider,
         return volume_service._update_volume_metadata(
             driver, volume,
             metadata=metadata)
-        celery_logger.debug("volume_metadata task finished at %s." % timezone.now())
     except Exception as exc:
         celery_logger.exception(exc)
         update_volume_metadata.retry(exc=exc)
@@ -320,7 +315,6 @@ def mount_failed(
         return volume_service._update_volume_metadata(
             driver, volume,
             metadata={'tmp_status': tmp_status})
-        celery_logger.debug("mount_failed task finished at %s." % timezone.now())
     except Exception as exc:
         celery_logger.warn(exc)
         mount_failed.retry(exc=exc)

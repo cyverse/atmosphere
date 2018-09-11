@@ -16,7 +16,7 @@ from core.query import only_current_instances
 
 from rest_framework import filters, status
 from rest_framework import renderers
-from rest_framework.decorators import detail_route, renderer_classes
+from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 
 from service.tasks.driver import destroy_instance

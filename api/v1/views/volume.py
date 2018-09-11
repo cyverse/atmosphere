@@ -647,10 +647,6 @@ def can_use_volume(user, volume_id, leader_required=False):
     Optionally, if leadership is required, test for it.
     """
     return True
-    if leader_required:
-        return Volume.shared_with_user(user, is_leader=True)
-    else:
-        return Volume.shared_with_user(user)
 
 
 def can_use_snapshot(user, snapshot_id, leader_required=False):

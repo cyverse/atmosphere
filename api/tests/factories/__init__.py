@@ -16,5 +16,5 @@ from .provider_machine_factory import ProviderMachineFactory
 from .platform_type_factory import PlatformTypeFactory
 from .size_factory import SizeFactory
 from .allocation_source_factory import AllocationSourceFactory, UserAllocationSourceFactory
-from .boot_script_factory import BootScriptRawTextFactory, BootScriptURLFactory
+from .boot_script_factory import BootScriptRawTextFactory
 from .instance_source_factory import InstanceSourceFactory

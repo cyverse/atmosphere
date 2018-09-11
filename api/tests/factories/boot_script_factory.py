@@ -15,7 +15,3 @@ class BootScriptFactory(factory.DjangoModelFactory):
 
 class BootScriptRawTextFactory(BootScriptFactory):
     script_type = factory.LazyAttribute(lambda _: ScriptType.objects.get_or_create(name='Raw Text')[0])
-
-
-class BootScriptURLFactory(BootScriptFactory):
-    script_type = factory.LazyAttribute(lambda _: ScriptType.objects.get_or_create(name='URL')[0])

@@ -18,11 +18,9 @@ def emulate_user(func):
         emulate_name = self.request.query_params.get('username', None)
         if self.request.user.is_staff and emulate_name:
             emulate_name = emulate_name[0]  # Querystring conversion
-            original_user = self.request.user
             try:
                 self.request.user = User.objects.get(username=emulate_name)
-                self.emulated = (True, original_user, emulate_name)
             except User.DoesNotExist:
-                self.emulated = (False, original_user, emulate_name)
+                pass
         return func(self, *args, **kwargs)
     return wrapper

@@ -3,7 +3,7 @@ behave-django
 behaving
 coverage
 coveralls
-django-debug-toolbar  #NOTE: Profiles SQL/CPU time of requests real-time.
+django-debug-toolbar
 django-jenkins
 django-nose
 emoji
@@ -20,3 +20,4 @@ vcrpy
 json_delta
 freezegun
 pathlib
+vulture

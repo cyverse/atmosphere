@@ -13,8 +13,7 @@ from atmosphere.celery_init import app
 from threepio import logger, status_logger
 
 from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
-    AWSUSWestProvider, EucaProvider,\
-    OSProvider, OSValhallaProvider
+    AWSUSWestProvider, EucaProvider, OSProvider
 from rtwo.exceptions import LibcloudBadResponseError
 from rtwo.driver import OSDriver
 from rtwo.drivers.openstack_user import UserManager
@@ -339,27 +338,7 @@ def resize_and_redeploy(esh_driver, esh_instance, core_identity_uuid):
     Use this function to kick off the async task when you ONLY want to deploy
     (No add fixed, No add floating)
     """
-    from service.tasks.driver import deploy_init_to
-    from service.tasks.driver import wait_for_instance, complete_resize
-    core_identity = CoreIdentity.objects.get(uuid=core_identity_uuid)
-
-    task_one = wait_for_instance.s(
-        esh_instance.id, esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, "verify_resize")
     raise Exception("Programmer -- Fix this method based on the TODO")
-    task_three = complete_resize.si(
-        esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, esh_instance.id,
-        core_identity.provider.id, core_identity.id, core_identity.created_by)
-    task_four = deploy_init_to.si(
-        esh_driver.__class__, esh_driver.provider,
-        esh_driver.identity, esh_instance.id, core_identity, redeploy=True)
-    # Link em all together!
-    task_one.link(task_three)
-    # task_one.link(task_two)
-    # task_two.link(task_three)
-    task_three.link(task_four)
-    return task_one
 
 
 def redeploy_instance(

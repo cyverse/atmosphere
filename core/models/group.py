@@ -4,7 +4,6 @@ Atmosphere utilizes the DjangoGroup model
 to manage users via the membership relationship
 """
 import uuid
-from math import floor, ceil
 
 from django.db import models
 from django.db.models.signals import post_save

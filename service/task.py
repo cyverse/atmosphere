@@ -2,8 +2,6 @@
 Atmosphere service tasks methods
 
 """
-from celery import chain
-
 from threepio import logger
 
 from service.exceptions import DeviceBusyException, VolumeMountConflict, InstanceDoesNotExist

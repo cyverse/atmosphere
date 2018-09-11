@@ -161,35 +161,6 @@ def _execute_provider_action(identity, user, instance, action_name):
         return
 
 
-def update_instances(driver, identity, esh_list, core_list):
-    """
-    End-date core instances that don't show up in esh_list
-    && Update the values of instances that do
-    """
-    esh_ids = [instance.id for instance in esh_list]
-    # logger.info('%s Instances for Identity %s: %s'
-    #            % (len(esh_ids), identity, esh_ids))
-    for core_instance in core_list:
-        try:
-            index = esh_ids.index(core_instance.provider_alias)
-        except ValueError:
-            logger.info("Did not find instance %s in ID List: %s" %
-                        (core_instance.provider_alias, esh_ids))
-            core_instance.end_date_all()
-            continue
-        esh_instance = esh_list[index]
-        esh_size = driver.get_size(esh_instance.size.id)
-        core_size = convert_esh_size(esh_size, identity.provider.uuid)
-        core_instance.update_history(
-            esh_instance.extra['status'],
-            core_size,
-            esh_instance.extra.get('task'),
-            esh_instance.extra.get(
-                'metadata', {}).get('tmp_status','MISSING'))
-
-# Used in monitoring.py
-
-
 def _cleanup_missing_instances(
         identity, core_running_instances, start_date=None):
     """

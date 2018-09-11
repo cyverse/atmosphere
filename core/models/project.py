@@ -99,7 +99,6 @@ class Project(models.Model):
         Use this function to move A single object
         to Project X
         """
-        from core.models import ProjectInstance, ProjectVolume
         if isinstance(related_obj, Instance):
             instance = related_obj
             self._test_project_ownership(instance.created_by)

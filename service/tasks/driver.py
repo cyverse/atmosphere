@@ -25,7 +25,6 @@ from threepio import celery_logger, status_logger, logger
 from celery import current_app as app
 
 from core.email import send_instance_email
-from core.models.boot_script import get_scripts_for_instance
 from core.models.instance import Instance
 from core.models.identity import Identity
 from core.models.profile import UserProfile
@@ -39,8 +38,6 @@ from service.deploy import (
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
 from service.instance import _update_instance_metadata
-from service.networking import _generate_ssh_kwargs
-
 from service.mock import MockInstance
 
 def _update_status_log(instance, status_update):
@@ -1078,7 +1075,6 @@ def update_metadata(driverCls, provider, identity, instance_alias, metadata,
             return
         return _update_instance_metadata(
             driver, instance, data=metadata, replace=replace_metadata)
-        celery_logger.debug("update_metadata task finished at %s." % datetime.now())
     except Exception as exc:
         celery_logger.exception(exc)
         update_metadata.retry(exc=exc)

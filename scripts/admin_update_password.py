@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 import argparse
-from hashlib import sha1
-
 import django
 django.setup()
 
