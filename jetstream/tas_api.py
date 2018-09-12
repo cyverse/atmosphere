@@ -1,4 +1,5 @@
 import requests
+from requests.exceptions import ReadTimeout
 
 from django.conf import settings
 from memoize import memoize
@@ -27,10 +28,16 @@ def tacc_api_get(url, username=None, password=None):
     if not password:
         password = settings.TACC_API_PASS
     logger.debug('url: %s', url)
-    resp = requests.get(
-        url,
-        auth=(username, password),
-        timeout=settings.TACC_READ_API_TIMEOUT)
+    try:
+        resp = requests.get(
+            url,
+            auth=(username, password),
+            timeout=settings.TACC_READ_API_TIMEOUT)
+    except ReadTimeout:
+        raise TASAPIException(
+            "TAS API is taking too long to respond, we're timing out ({})".
+            format(url)
+        )
     logger.debug('resp.status_code: %s', resp.status_code)
     # logger.debug('resp.__dict__: %s', resp.__dict__)
     if resp.status_code != 200:
