@@ -493,6 +493,7 @@ def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client,
         irods_src_coll: Path to collection for iRODS images on source provider
         irods_dst_coll: Path to collection for iRODS images on destination provider
         clean: apply Chromogenic mount_and_clean() to downloaded image
+        dst_glance_client_version: Version of Glance client for destination provider
 
     Returns: True if successful, else raises exception
     """
@@ -505,7 +506,7 @@ def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client,
             migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid, dst_glance_client_version)
         else:
             migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache,
-                                      clean=clean)
+                                      clean=clean, dst_glance_client_version=dst_glance_client_version)
     elif dst_img.status == "active":
         if irods:
             if src_img.size != dst_img.size:
@@ -525,7 +526,7 @@ def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client,
 
 
 def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True,
-                              max_tries=3, clean=False):
+                              max_tries=3, clean=False, dst_glance_client_version=None):
     """
     Migrates image data using Glance API. Assumes that:
     - The Glance image object has already been created in the source provider
@@ -540,6 +541,7 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
                              (Local cache is always deleted after successful upload)
         max_tries: number of times to attempt each of download and upload
         clean: apply Chromogenic mount_and_clean() to downloaded image
+        dst_glance_client_version: Version of Glance client for destination provider
 
     Returns: True if success, else raises an exception
     """
@@ -581,7 +583,7 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
         with open(local_path, 'rb') as img_file:
             try:
                 # "Upload" method is different for Glance client v1, than for v2
-                if type(dst_glance_client) is glanceclient.v1.client.Client:
+                if dst_glance_client_version == 1:
                     dst_glance_client.images.update(img_uuid, data=img_file)
                 else:
                     dst_glance_client.images.upload(img_uuid, img_file)
@@ -611,6 +613,7 @@ def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irod
         irods_src_coll: Path to collection for iRODS images on source provider
         irods_dst_coll: Path to collection for iRODS images on destination provider
         img_uuid: UUID of image to be migrated
+        dst_glance_client_version: Version of Glance client for destination provider
 
     Returns: True if successful, else raises exception
     """
