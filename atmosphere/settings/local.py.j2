@@ -467,7 +467,7 @@ INSTALLED_APPS += (
 TACC_API_USER = '{{ TACC_API_USER }}'
 TACC_API_PASS = '{{ TACC_API_PASS }}'
 TACC_API_URL = '{{ TACC_API_URL }}'
-TACC_READ_API_TIMEOUT = '{{ TACC_READ_API_TIMEOUT | default(5) }}'
+TACC_READ_API_TIMEOUT = {{ TACC_READ_API_TIMEOUT | default(5) }}
 # Uncomment this DEFAULT_QUOTA_PLUGINS line to use the JetstreamSpecialAllocationQuota plugin
 DEFAULT_QUOTA_PLUGINS = [
     'jetstream.plugins.quota.default_quota.JetstreamSpecialAllocationQuota',
@@ -496,7 +496,7 @@ SPECIAL_ALLOCATION_SOURCES = {
 TACC_API_USER = ''
 TACC_API_PASS = ''
 TACC_API_URL = ''
-TACC_READ_API_TIMEOUT = ''
+TACC_READ_API_TIMEOUT = None
 {% endif %}
 
 {% if ALLOCATION_OVERRIDES_NEVER_ENFORCE %}
