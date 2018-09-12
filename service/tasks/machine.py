@@ -406,7 +406,6 @@ def prep_instance_for_snapshot(identity_id, instance_id, **celery_task_args):
             return
         playbook_results = deploy_prepare_snapshot(
             instance.ip, username, instance_id)
-        hostname = build_host_name(instance.id, instance.ip)
         result = False if execution_has_failures(playbook_results)\
             or execution_has_unreachable(playbook_results) else True
         if not result:
