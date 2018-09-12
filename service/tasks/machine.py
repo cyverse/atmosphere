@@ -18,8 +18,8 @@ from core.models.identity import Identity
 from core.models.status_type import StatusType
 
 from service.deploy import (
-    build_host_name, deploy_prepare_snapshot,
-    execution_has_failures, execution_has_unreachable)
+    deploy_prepare_snapshot, execution_has_failures, execution_has_unreachable
+)
 from service.driver import get_admin_driver, get_esh_driver, get_account_driver
 from service.machine import process_machine_request, add_membership, remove_membership
 from service.tasks.driver import wait_for_instance, destroy_instance, print_chain
