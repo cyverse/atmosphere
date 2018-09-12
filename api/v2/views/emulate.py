@@ -24,8 +24,6 @@ class TokenEmulateViewSet(ViewSet):
 
     def retrieve(self, *args, **kwargs):
         user = self.request.user
-        # data = self.request.data
-        username = kwargs.get('username')
         expireDate = timezone.now() + secrets.TOKEN_EXPIRY_TIME
         new_token = get_or_create_token(
             user,

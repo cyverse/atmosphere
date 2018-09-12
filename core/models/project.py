@@ -7,9 +7,6 @@ from core.models.link import ExternalLink
 from core.models.instance import Instance
 from core.models.group import Group
 from core.models.volume import Volume
-from core.query import only_current_source
-
-from threepio import logger
 
 
 class Project(models.Model):
@@ -39,10 +36,8 @@ class Project(models.Model):
         """
         owner_query = Q(created_by=user)
         leadership_query = Q(owner__memberships__user=user)
-        if is_leader == False:
-            leadership_query &= Q(owner__memberships__is_leader=False)
-        elif is_leader == True:
-            leadership_query &= Q(owner__memberships__is_leader=True)
+        if is_leader is not None:
+            leadership_query &= Q(owner__memberships__is_leader=is_leader)
         return Project.objects.filter(owner_query | leadership_query)
 
     def active_volumes(self):

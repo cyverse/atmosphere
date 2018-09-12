@@ -24,7 +24,6 @@ def main():
     """
     Add a user to openstack.
     """
-    errors = []
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider-id", type=int, required=True,
                         help="Atmosphere provider ID"
@@ -41,7 +40,7 @@ def main():
         end_date = None
     try:
         end_date = _local_date_str_to_utc_date(args.end)
-    except ValueError as bad_format:
+    except ValueError:
         print >> sys.stderr, "ERROR: End date '%s'"\
             " does not match Expected format: 'YYYY-MM-DD HH:MM:SS'"
         return 1

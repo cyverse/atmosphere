@@ -6,14 +6,11 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from core.query import only_current_provider
-from core.models.group import Group
 from core.models.provider import Provider as CoreProvider
 
 from api import failure_response
 from api.v1.serializers import ProviderSerializer
-from api.permissions import InMaintenance, ApiAuthRequired,\
-    CloudAdminUpdatingRequired
+from api.permissions import ApiAuthRequired, CloudAdminUpdatingRequired
 from api.v1.views.base import AuthAPIView
 
 

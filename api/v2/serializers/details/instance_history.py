@@ -6,9 +6,8 @@ from api.v2.serializers.summaries import (
     InstanceSuperSummarySerializer,
     ProviderSummarySerializer, ImageSummarySerializer)
 from api.v2.serializers.summaries.size import SizeRelatedField
-from api.v2.serializers.fields.base import (
-    ModelRelatedField, UUIDHyperlinkedIdentityField
-)
+from core.serializers.fields import ModelRelatedField
+from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class InstanceStatusHistorySerializer(serializers.HyperlinkedModelSerializer):

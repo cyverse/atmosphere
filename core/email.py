@@ -6,17 +6,13 @@ from core.models import AtmosphereUser as User
 from core.models import Instance
 
 from django.core.urlresolvers import reverse
-from django.db.models import ObjectDoesNotExist
 from django.template.loader import render_to_string
 from django.utils import timezone as django_timezone
 
 from pytz import timezone as pytz_timezone
 
-from threepio import logger
-
 from django.conf import settings
-from core.models.allocation_source import total_usage
-from core.models import IdentityMembership, MachineRequest, EmailTemplate
+from core.models import MachineRequest, EmailTemplate
 
 from django_cyverse_auth.protocol.ldap import lookupEmail as ldapLookupEmail, lookupUser
 from core.tasks import send_email
@@ -109,7 +105,6 @@ def django_get_email_info(raw_username):
     Returns a 3-tuple of:
     ("username", "email@address.com", "My Name")
     """
-    (username, user_email, user_name) = ("", "", "")
     try:
         user = User.objects.get(username=raw_username)
         return (user.username, user.email, user.get_full_name())
@@ -387,7 +382,7 @@ def send_allocation_usage_email(user, allocation_source, threshold, usage_percen
         user_compute_used_percent = "N/A"
     else:
         user_compute_used_percent = int((user_compute_used/allocation_source.compute_allowed)*100)
-        user_compute_used = int(user_compute_used) #min(int(user_compute_used), total_used)  # This is a hack until the values can be more accurately calcualted in EventTable.
+        user_compute_used = int(user_compute_used)
 
     allocation_source_total = int(allocation_source.compute_allowed)
     context = {

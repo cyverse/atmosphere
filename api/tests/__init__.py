@@ -2,9 +2,7 @@
 Common functions used by all API test cases
 """
 from urlparse import urljoin
-from datetime import datetime
 from rest_framework import status
-from time import sleep
 
 
 def verify_expected_output(test_client, api_out, expected_out):

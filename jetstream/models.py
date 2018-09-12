@@ -1,10 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from core.models import AllocationSource
-from django.db.models.signals import post_save
 
-from .allocation import TASAPIDriver, fill_user_allocation_source_for
+from .allocation import TASAPIDriver
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", 'auth.User')
 
 

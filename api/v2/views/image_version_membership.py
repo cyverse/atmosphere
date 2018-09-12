@@ -7,7 +7,6 @@ from service.tasks.machine import add_membership_task, remove_membership_task
 
 from api.v2.serializers.details import ImageVersionMembershipSerializer
 from api.v2.views.base import AuthModelViewSet
-from api.v2.views.mixins import MultipleFieldLookup
 
 
 class VersionFilter(django_filters.FilterSet):

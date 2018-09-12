@@ -2,8 +2,8 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.decorators import detail_route
 from rest_framework import viewsets
 
-from core.models import Provider, Group
-from core.query import only_current_provider, only_current
+from core.models import Provider
+from core.query import only_current
 
 from api.v2.serializers.details import ProviderSerializer
 from api.v2.serializers.post import ProviderSerializer as POST_ProviderSerializer

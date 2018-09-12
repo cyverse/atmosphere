@@ -8,7 +8,7 @@ import django
 import django.test
 import mock
 # noinspection PyUnresolvedReferences
-from behave import *
+from behave import * # noqa
 from behave import when, then, given, step
 
 import api.tests.factories

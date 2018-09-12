@@ -1,11 +1,10 @@
+from rest_framework import serializers
+
 from core.models import (
     AtmosphereUser, Identity, Provider, Group, IdentityMembership
 )
 from core.query import contains_credential
 from service.driver import get_esh_driver
-from api.v2.serializers.summaries import IdentitySummarySerializer
-
-from rest_framework import serializers
 
 
 class TokenUpdateSerializer(serializers.ModelSerializer):

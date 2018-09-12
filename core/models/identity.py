@@ -3,17 +3,14 @@
 Note:
   Multiple users can 'own' an identity (IdentityMembership - group.py)
 """
-
-from datetime import timedelta
-
 from django.db import models
 from django.db.models import Q
 
 from threepio import logger
-from uuid import uuid5, uuid4
+from uuid import uuid4
 from core.query import only_active_memberships, contains_credential
 from core.models.quota import Quota
-from django.db.models.signals import post_save
+
 
 class Identity(models.Model):
 
@@ -37,9 +34,7 @@ class Identity(models.Model):
     @classmethod
     def delete_identity(cls, username, provider_location):
         # Do not move up. ImportError.
-        from core.models import AtmosphereUser, Group, Credential, Quota,\
-            Provider, AccountProvider,\
-            IdentityMembership
+        from core.models import AtmosphereUser, Group, Provider
 
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
@@ -164,7 +159,7 @@ class Identity(models.Model):
     def share(self, core_group, allocation=None):
         """
         """
-        from core.models import IdentityMembership, Quota
+        from core.models import IdentityMembership
         existing_membership = IdentityMembership.objects.filter(
             member=core_group, identity=self)
         if existing_membership:
@@ -220,9 +215,7 @@ class Identity(models.Model):
         DEPRECATED: POST to v2/identities API to create an identity.
         """
         # Do not move up. ImportError.
-        from core.models import Group, Quota,\
-            Provider, AccountProvider,\
-            IdentityMembership
+        from core.models import Group, Quota, Provider, AccountProvider
 
         provider = Provider.objects.get(location__iexact=provider_location)
         credentials = cls._kwargs_to_credentials(kwarg_creds)

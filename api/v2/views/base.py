@@ -169,7 +169,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
             if serializer.initial_data.get("admin_url"):
                 admin_url = serializer.initial_data.get("admin_url") + str(instance.id)
                 self.submit_action(instance, options={"admin_url": admin_url})
-            else: 
+            else:
                 self.submit_action(instance)
         except (core_exceptions.ProviderLimitExceeded,  # NOTE: DEPRECATED -- REMOVE SOON, USE BELOW.
                 core_exceptions.RequestLimitExceeded):
@@ -232,7 +232,10 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
     @detail_route()
     def deny(self, *args, **kwargs):
         """
-        #FIXME: Both of these actions do something similar, they also 'create and abuse' serializers. Is there a better way to handle this? Lets lok into how `create` vs `perform_create` is called in a DRF 'normal' view.
+        #FIXME: Both of these actions do something similar, they also 'create
+        and abuse' serializers. Is there a better way to handle this? Lets lok
+        into how `create` vs `perform_create` is called in a DRF 'normal'
+        view.
         """
         request_obj = self.get_object()
         SerializerCls = self.get_serializer_class()

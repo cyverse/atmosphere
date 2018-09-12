@@ -1,11 +1,7 @@
 from django.db import models
-
-from threepio import logger
+from hashlib import md5
 
 from core.models.user import AtmosphereUser
-from core.models.identity import Identity
-
-from hashlib import md5
 
 
 class UserProfile(models.Model):

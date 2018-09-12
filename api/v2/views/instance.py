@@ -5,7 +5,6 @@ from api.v2.serializers.details import InstanceSerializer, InstanceActionSeriali
 from api.v2.serializers.post import InstanceSerializer as POST_InstanceSerializer
 from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
-from api.v2.views.instance_action import InstanceActionViewSet
 
 from core.exceptions import ProviderNotActive
 from core.models import Instance, Identity, UserAllocationSource, Project, AllocationSource
@@ -15,7 +14,6 @@ from core.models.instance_action import InstanceAction
 from core.query import only_current_instances
 
 from rest_framework import filters, status
-from rest_framework import renderers
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 

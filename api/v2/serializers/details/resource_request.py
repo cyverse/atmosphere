@@ -4,7 +4,7 @@ from core.models.status_type import get_status_type
 from api.v2.serializers.summaries import (
     UserSummarySerializer, StatusTypeSummarySerializer
 )
-from api.v2.serializers.fields import ModelRelatedField
+from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 

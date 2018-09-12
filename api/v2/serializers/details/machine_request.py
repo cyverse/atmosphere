@@ -1,28 +1,24 @@
-from rest_framework import exceptions, serializers
+from rest_framework import serializers
 
 from core.models import (
-    ApplicationVersion, ProviderMachine, Group,
-    BootScript, PatternMatch, Provider, License, Instance,
-    MachineRequest, Identity,
-    AtmosphereUser as User,
-    IdentityMembership
+    ProviderMachine, Group, BootScript, PatternMatch, Provider, License,
+    Instance, MachineRequest, AtmosphereUser as User
 )
 
 from api.v2.serializers.summaries import (
     ImageVersionSummarySerializer,
     BootScriptSummarySerializer,
-    IdentitySummarySerializer,
     GroupSummarySerializer,
     InstanceSummarySerializer,
     LicenseSummarySerializer,
     PatternMatchSummarySerializer,
     ProviderSummarySerializer,
     ProviderMachineSummarySerializer,
-    QuotaSummarySerializer,
     UserSummarySerializer
 )
+from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields import (
-    ProviderMachineRelatedField, ModelRelatedField, IdentityRelatedField, StatusTypeRelatedField
+    IdentityRelatedField, StatusTypeRelatedField
 )
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 from api.validators import NoSpecialCharacters

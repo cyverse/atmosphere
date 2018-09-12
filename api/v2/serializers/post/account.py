@@ -1,5 +1,5 @@
 from core.models import (
-    AtmosphereUser, AccountProvider, Group, Identity, Provider, Quota
+    AtmosphereUser, AccountProvider, Group, Identity, Quota
 )
 from core.query import only_current, contains_credential
 from api.v2.serializers.details.credential import CredentialSerializer
@@ -28,7 +28,7 @@ class AccountSerializer(serializers.Serializer):
         """
         Validation will:
         - Ensure that user/group exists (Or create it)
-        - 
+        -
         """
         validated_data = data
         self.validate_user(data['provider'])
@@ -78,7 +78,9 @@ class AccountSerializer(serializers.Serializer):
                 provider=new_identity.provider,
                 identity=new_identity)
 
-        # TODO: When the refactor of rtwo/get_esh_driver is complete, validate_identity should be call-able without the django model (to avoid create-then-delete)
+        # TODO: When the refactor of rtwo/get_esh_driver is complete,
+        # validate_identity should be call-able without the django model (to
+        # avoid create-then-delete)
         validate_identity(new_identity)
         return new_identity
 

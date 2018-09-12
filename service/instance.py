@@ -12,9 +12,12 @@ from atmosphere.celery_init import app
 
 from threepio import logger, status_logger
 
-from rtwo.models.provider import AWSProvider, AWSUSEastProvider,\
-    AWSUSWestProvider, EucaProvider, OSProvider
-from rtwo.exceptions import LibcloudBadResponseError
+from rtwo.models.provider import (
+    AWSProvider, EucaProvider, OSProvider
+)
+from rtwo.exceptions import (
+    LibcloudBadResponseError, LibcloudInvalidCredsError, ConnectionFailure
+)
 from rtwo.driver import OSDriver
 from rtwo.drivers.openstack_user import UserManager
 from rtwo.drivers.common import _token_to_keystone_scoped_project
@@ -24,21 +27,17 @@ from service.driver import AtmosphereNetworkManager
 from service.mock import AtmosphereMockDriver, AtmosphereMockNetworkManager
 
 from rtwo.drivers.common import _connect_to_keystone_v3
-from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.models.machine import Machine
 from rtwo.models.size import MockSize
 from rtwo.models.volume import Volume
 from rtwo.exceptions import LibcloudHTTPError  # Move into rtwo.exceptions later...
 from libcloud.common.exceptions import BaseHTTPError  # Move into rtwo.exceptions later...
 
-from core.query import only_current
 from core.models.instance_source import InstanceSource
 from core.models import AtmosphereUser, InstanceAllocationSourceSnapshot
 from core.models.ssh_key import get_user_ssh_keys
-from core.models.application import Application
 from core.models.identity import Identity as CoreIdentity
 from core.models.instance import convert_esh_instance, find_instance
-from core.models.instance_action import InstanceAction
 from core.models.size import convert_esh_size
 from core.models.machine import ProviderMachine
 from core.models.volume import convert_esh_volume
@@ -51,13 +50,13 @@ from atmosphere.settings import secrets
 from service.cache import get_cached_driver, invalidate_cached_instances
 from service.driver import _retrieve_source, get_account_driver
 from service.licensing import _test_license
-from service.networking import get_topology_cls, ExternalRouter, ExternalNetwork, _get_unique_id
+from service.networking import get_topology_cls
 from service.exceptions import (
-    OverAllocationError, AllocationBlacklistedError, OverQuotaError, SizeNotAvailable,
-    HypervisorCapacityError, SecurityGroupNotCreated,
-    VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
-    socket_error, ConnectionFailure, InstanceDoesNotExist, InstanceLaunchConflict, LibcloudInvalidCredsError,
-    Unauthorized)
+    OverAllocationError, AllocationBlacklistedError, OverQuotaError,
+    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
+    VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError,
+    ActionNotAllowed, InstanceDoesNotExist, InstanceLaunchConflict, Unauthorized
+)
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
 
@@ -169,7 +168,7 @@ def stop_instance(esh_driver, esh_instance, provider_uuid, identity_uuid, user,
     _permission_to_act(identity_uuid, "Stop")
     if reclaim_ip:
         remove_floating_ip(esh_driver, esh_instance, identity_uuid)
-    stopped = esh_driver.stop_instance(esh_instance)
+    esh_driver.stop_instance(esh_instance)
     update_status(
         esh_driver,
         esh_instance.id,
@@ -272,24 +271,6 @@ def restore_network(esh_driver, esh_instance, identity_uuid):
     return network
 
 
-def restore_instance_port(esh_driver, esh_instance):
-    """
-    This can be ignored when we move to vxlan..
-
-    For a given instance, retrieve the network-name and
-    convert it to a network-id
-    """
-    try:
-        import libvirt
-    except ImportError:
-        raise Exception(
-            "Cannot restore instance port without libvirt. To Install:"
-            " apt-get install python-libvirt\n"
-            " cp /usr/lib/python2.7/dist-packages/*libvirt* "
-            "/virtualenv/lib/python2.7/site-packages\n")
-    conn = libvirt.openReadOnly()
-
-
 def _extract_network_metadata(network_manager, esh_instance, node_network):
     try:
         network_name = node_network.keys()[0]
@@ -297,7 +278,7 @@ def _extract_network_metadata(network_manager, esh_instance, node_network):
         node_network = esh_instance.extra.get('addresses')
         network_id = network[0]['id']
         return network_id
-    except (IndexError, KeyError) as e:
+    except (IndexError, KeyError):
         logger.warn(
             "Non-standard 'addresses' metadata. "
             "Cannot extract network_id" % esh_instance)
@@ -529,7 +510,6 @@ def resume_instance(esh_driver, esh_instance,
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Resume")
     _update_status_log(esh_instance, "Resuming Instance")
-    size = _get_size(esh_driver, esh_instance)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
         deploy_task = restore_ip_chain(esh_driver, esh_instance, deploy=deploy,
@@ -743,11 +723,8 @@ def update_status(esh_driver, instance_id, provider_uuid, identity_uuid, user):
     if esh_driver.provider.location.lower() == 'mock':
         return None
     # Convert & Update based on new status change
-    core_instance = convert_esh_instance(esh_driver,
-                                         esh_instance,
-                                         provider_uuid,
-                                         identity_uuid,
-                                         user)
+    convert_esh_instance(esh_driver, esh_instance, provider_uuid, identity_uuid,
+                         user)
 
 
 def _pre_launch_validation(
@@ -970,8 +947,6 @@ def _launch_machine(driver, identity, machine, size,
                     name, userdata_content=None, network=None,
                     password=None, token=None, **kwargs):
     if isinstance(driver.provider, OSProvider):
-        deploy = True
-        #ex_metadata, ex_keyname
         extra_args = _extra_openstack_args(identity)
         kwargs.update(extra_args)
         conn_kwargs = {'max_attempts': 1}
@@ -1036,7 +1011,10 @@ def _pre_launch_instance_kwargs(
     if not token:
         token = _get_token()
     if not username:
-        username = _get_username(driver, identity)
+        try:
+            username = driver.identity.user.username
+        except Exception:
+            username = identity.created_by.username
     if not password:
         password = _get_password(username)
     return {
@@ -1109,13 +1087,6 @@ def _first_update(driver, identity, core_instance, esh_instance):
     return history
 
 
-def _get_username(driver, core_identity):
-    try:
-        username = driver.identity.user.username
-    except Exception as no_username:
-        username = core_identity.created_by.username
-
-
 def _get_token():
     return generate_uuid4()
 
@@ -1150,7 +1121,7 @@ def check_size(esh_driver, size_alias, provider, boot_source):
         if http_err.code == 401:
             raise Unauthorized(http_err.message)
         raise ConnectionFailure(http_err.message)
-    except Exception as exc:
+    except Exception:
         raise
 
 
@@ -1178,7 +1149,6 @@ def get_boot_source(username, identity_uuid, source_identifier):
     try:
         identity = CoreIdentity.objects.get(
             uuid=identity_uuid)
-        driver = get_cached_driver(identity=identity)
         sources = InstanceSource.current_sources()
         boot_source = sources.get(
             provider=identity.provider,
@@ -1198,10 +1168,6 @@ def check_application_threshold(
         boot_source):
     """
     """
-    core_identity = CoreIdentity.objects.get(uuid=identity_uuid)
-    application = Application.objects.filter(
-        versions__machines__instance_source__identifier=boot_source.identifier,
-        versions__machines__instance_source__provider=core_identity.provider).distinct().get()
     try:
         threshold = boot_source.current_source.application_version.get_threshold()
     except:
@@ -1564,7 +1530,6 @@ def user_network_init(core_identity):
     username = core_identity.get_credential('key')
     if not username:
         username = core_identity.created_by.username
-    esh_driver = get_cached_driver(identity=core_identity)
     dns_nameservers = core_identity.provider.get_config('network', 'dns_nameservers', [])
     subnet_pool_id = core_identity.provider.get_config('network', 'subnet_pool_id', raise_exc=False)
     topology_name = core_identity.provider.get_config('network', 'topology', raise_exc=False)
@@ -1689,7 +1654,6 @@ def _extra_openstack_args(core_identity, ex_metadata={}):
         # FIXME: In a new PR, allow user to select the keypair for launching
         user_key = user_keys[0]
         ex_keyname = user_key.name
-    security_group_name = core_identity.provider.get_config("network", "security_group_name", "default")
     return {"ex_metadata": ex_metadata, "ex_keyname": ex_keyname}
 
 
@@ -1731,10 +1695,8 @@ def _update_instance_metadata(esh_driver, esh_instance, data={}, replace=False):
     NOTE: This will NOT WORK for TAGS until openstack
     allows JSONArrays as values for metadata!
     """
-    wait_time = 1
     if not esh_instance:
         return {}
-    instance_id = esh_instance.id
 
     if not hasattr(esh_driver._connection, 'ex_write_metadata'):
         logger.warn("EshDriver %s does not have function 'ex_write_metadata'"

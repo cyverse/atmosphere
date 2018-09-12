@@ -1,11 +1,9 @@
 import django_filters
-import uuid
-
 from rest_framework import filters
 
 from api.v2.serializers.details import InstanceActionSerializer
 from api.v2.views.base import AuthReadOnlyViewSet
-from core.models import InstanceAction, Instance
+from core.models import InstanceAction
 
 
 class InstanceActionFilter(filters.FilterSet):

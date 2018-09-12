@@ -6,8 +6,6 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 
 from core.models.license import License, LicenseType
-from core.models.pattern_match import PatternMatch, MatchType
-from core.models.identity import Identity
 
 from threepio import logger
 
@@ -48,7 +46,7 @@ def is_url(test_string):
     try:
         val(test_string)
         return True
-    except ValidationError as e:
+    except ValidationError:
         return False
     except:
         logger.exception("URL Validation no longer works -- Code fix required")

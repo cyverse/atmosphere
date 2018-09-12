@@ -15,8 +15,8 @@ import django.utils.timezone
 import mock
 import rest_framework.test
 # noinspection PyUnresolvedReferences
-from behave import *
-from behave import when, then, given, step
+from behave import * # noqa
+from behave import when, step
 
 import api.tests.factories
 import jetstream.tests.tas_api_mock_utils
@@ -356,7 +356,7 @@ def create_project_api(context, project_name):
     assert context.persona
     client = context.persona['client']
     user = context.persona['user']
-    from core.models import AtmosphereUser, Identity
+    from core.models import AtmosphereUser
     assert isinstance(user, AtmosphereUser)
     owner_group_name = user.username
     url = '/api/v2/projects'

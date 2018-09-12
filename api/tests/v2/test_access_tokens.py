@@ -1,12 +1,8 @@
-import requests
-
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
-from django.core.urlresolvers import reverse
 
 from api.v2.views import AccessTokenViewSet
 from api.tests.factories import UserFactory, AnonymousUserFactory
-from core.models.access_token import AccessToken, create_access_token
-
+from core.models.access_token import create_access_token
 from .base import APISanityTestCase
 
 
@@ -98,7 +94,7 @@ class AccessTokenTests(APITestCase, APISanityTestCase):
 
     def test_delete(self):
         force_authenticate(self.delete_request, user=self.user)
-        delete_response = self.delete_view(self.delete_request, pk=self.access_token.id)
+        self.delete_view(self.delete_request, pk=self.access_token.id)
         force_authenticate(self.list_request, user=self.user)
         list_response = self.list_view(self.list_request)
         data = list_response.data.get('results')

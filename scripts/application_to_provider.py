@@ -291,10 +291,10 @@ def main(application_id,
 
         # Get or create AKI+ARI Glance images for AMI-based image
         if ami:
-            dprov_aki_glance_image = get_or_create_glance_image(dprov_glance_client,
-                                                                sprov_glance_image.get("kernel_id"))
-            dprov_ari_glance_image = get_or_create_glance_image(dprov_glance_client,
-                                                                sprov_glance_image.get("ramdisk_id"))
+            get_or_create_glance_image(dprov_glance_client,
+                                       sprov_glance_image.get("kernel_id"))
+            get_or_create_glance_image(dprov_glance_client,
+                                       sprov_glance_image.get("ramdisk_id"))
 
         # Create models in database
         if not (dprov_machine or dprov_instance_source):
@@ -519,7 +519,7 @@ def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client,
                                  "match; this may be OK if image was previously migrated with --clean, or if iRODS "
                                  "transfer was previously used to migrate image")
             except AttributeError:
-                    logging.warn("Warning: either source or destination image missing a checksum")
+                logging.warn("Warning: either source or destination image missing a checksum")
     else:
         raise Exception("Glance image on destination provider is not in an uploadable or usable status")
     return True

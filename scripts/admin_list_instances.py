@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 import argparse
 
-from service.tasks.driver import get_idempotent_deploy_chain
-from service.driver import get_esh_driver
 from service.driver import get_account_driver
-from core.models import Provider, Identity, Instance, InstanceStatusHistory
-from core.models.instance import _get_status_name_for_provider, _convert_timestamp
+from core.models import Provider, Instance
 import django
 django.setup()
 
@@ -61,22 +58,19 @@ def print_instances(provider, users=[], status_list=[]):
             continue
         for instance in instance_list:
             instance_status = instance.extra.get('status')
-            task = instance.extra.get('task')
             metadata = instance.extra.get('metadata', {})
             tmp_status = metadata.get('tmp_status', '')
             created = instance.extra.get('created', "N/A")
             updated = instance.extra.get('updated', "N/A")
-            status_name = _get_status_name_for_provider(
-                provider,
-                instance_status,
-                task,
-                tmp_status)
             try:
                 last_history = Instance.objects.get(
                     provider_alias=instance.id).get_last_history()
             except:
                 last_history = "N/A (Instance not in this DB)"
-            print "Tenant:%s Instance:%s Status: (%s - %s) Created:%s Updated:%s, Last History:%s" % (username, instance.id, instance_status, tmp_status, created, updated, last_history)
+            print "Tenant:%s Instance:%s Status: (%s - %s) Created:%s Updated:%s, Last History:%s" % (
+                username, instance.id, instance_status, tmp_status, created,
+                updated, last_history)
+
 
 if __name__ == "__main__":
     main()

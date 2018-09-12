@@ -56,7 +56,10 @@ class DirectOpenstackAccount(AccountCreationPlugin):
         from core.plugins import AllocationSourcePluginManager
         identities = Identity.objects.filter(provider=provider, created_by__username=username)
         if not identities.count():
-            raise AccountCreationConflict("Expected an identity to have been created for %s on Provider %s during the /token_update method. Contact support for help!" % (username, provider))
+            raise AccountCreationConflict(
+                "Expected an identity to have been created for %s on "
+                "Provider %s during the /token_update method. Contact "
+                "support for help!" % (username, provider))
         for identity in identities:
             user = identity.created_by
             try:
@@ -76,7 +79,7 @@ class DirectOpenstackAccount(AccountCreationPlugin):
                 if not has_projects and membership:
                     group = membership.group
                     logger.info('Creating new project for %s: "%s"', user, project_name)
-                    project = Project.objects.create(
+                    Project.objects.create(
                         name=project_name,
                         created_by=user,
                         owner=group,
@@ -278,9 +281,10 @@ class XsedeGroup(AtmosphereAccountCreationPlugin):
         tacc_projects = self.tas_driver.find_projects_for(tacc_username)
         for tacc_project in tacc_projects:
             tacc_projectname = tacc_project['chargeCode']
-            tacc_leader_username = tacc_project.get('pi', {})\
-                .get('username', '')
-            is_leader = tacc_leader_username == tacc_username
+            # TODO: should is_leader be used in the dict created below?
+            # tacc_leader_username = tacc_project.get('pi', {})\
+            #     .get('username', '')
+            # is_leader = tacc_leader_username == tacc_username
             credentials_list.append({
                 'account_user': username,
                 'username': tacc_username,

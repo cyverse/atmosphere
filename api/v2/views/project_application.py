@@ -1,8 +1,4 @@
-from django.db.models import Q
-from django.utils import timezone
-
-from core.models import ProjectApplication, Provider, Application
-
+from core.models import ProjectApplication
 from api.v2.serializers.details import ProjectApplicationSerializer
 from api.v2.views.base import AuthModelViewSet
 

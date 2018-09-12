@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 import argparse
-import subprocess
-import logging
 
 import django; django.setup()
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
-from core.models import Provider, Identity, MachineRequest
+from core.models import Provider, MachineRequest
 
 
 def main():

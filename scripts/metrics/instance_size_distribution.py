@@ -2,8 +2,6 @@
 
 from collections import OrderedDict
 import argparse
-import subprocess
-import logging
 
 import django
 django.setup()
@@ -11,7 +9,7 @@ django.setup()
 from dateutil.parser import parse
 
 from django.db.models import Q
-from django.utils.timezone import datetime, timedelta, now
+from django.utils.timezone import timedelta, now
 from core.models import Instance, Size, Provider
 
 
@@ -32,13 +30,10 @@ def main():
         raise Exception("Required argument 'provider' is missing. Please provide the DB ID of the provider to continue.")
     else:
         provider = Provider.objects.get(id=args.provider)
-    is_now = True
     try:
         date_value = parse(args.date)
         if not date_value:
             date_value = now()
-        else:
-            is_now = False
     except Exception:
         date_value = now()
     size_distribution = instance_size_distribution(

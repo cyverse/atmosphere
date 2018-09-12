@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import requests
 from django.utils import timezone
-from datetime import timedelta, datetime
+from datetime import datetime
 import django
 django.setup()
 

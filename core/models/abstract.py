@@ -4,16 +4,12 @@
   See the respective sub-classes for complete implementation details.
 """
 from uuid import uuid4
-
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 
 from core.exceptions import InvalidMembership, ProviderLimitExceeded
 from core.query import only_current
-from core.models.identity import Identity
 from core.models.instance_source import InstanceSource
-from core.models.provider import Provider
 from core.models.status_type import StatusType
 from core.models.user import AtmosphereUser as User
 

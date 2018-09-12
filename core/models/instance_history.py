@@ -143,7 +143,10 @@ class InstanceStatusHistory(models.Model):
             extra['display_error'] = deploy_fault_message
             extra['traceback'] = deploy_fault_trace
         elif deploy_fault_message or deploy_fault_trace:
-            logger.warn("Invalid metadata: Expected 'deploy_fault_message'(%s) AND 'deploy_fault_trace'(%s), but received only one", deploy_fault_message, deploy_fault_trace)
+            logger.warn(
+                "Invalid metadata: Expected 'deploy_fault_message'(%s) "
+                "AND 'deploy_fault_trace'(%s), but received only one",
+                deploy_fault_message, deploy_fault_trace)
 
         return extra
 

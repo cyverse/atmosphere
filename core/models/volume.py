@@ -1,11 +1,6 @@
-from datetime import datetime
-
 from django.db import models, transaction, DatabaseError
 from django.db.models import Q
 from django.utils import timezone
-
-import pytz
-
 from threepio import logger
 
 from core.models.abstract import BaseSource
@@ -62,10 +57,8 @@ class Volume(BaseSource):
         """
         ownership_query = Q(instance_source__created_by=user)
         project_query = Q(project__owner__memberships__user=user)
-        if is_leader == False:
-            project_query &= Q(project__owner__memberships__is_leader=False)
-        elif is_leader == True:
-            project_query &= Q(project__owner__memberships__is_leader=True)
+        if is_leader is not None:
+            project_query &= Q(project__owner__memberships__is_leader=is_leader)
         membership_query = Q(instance_source__created_by__memberships__group__user=user)
         return Volume.objects.filter(membership_query | project_query | ownership_query).distinct()
 
@@ -175,7 +168,7 @@ class Volume(BaseSource):
                             last_history.end_date = new_history.start_date
                             last_history.save()
                         new_history.save()
-                    except DatabaseError as dbe:
+                    except DatabaseError:
                         logger.exception(
                             "volume_status_history: Lock is already acquired by"
                             "another transaction.")

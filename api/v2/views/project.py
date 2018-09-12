@@ -1,6 +1,6 @@
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ValidationError
-from core.models import Project, Group
+from core.models import Project
 from rest_framework import filters
 
 from core.query import only_current

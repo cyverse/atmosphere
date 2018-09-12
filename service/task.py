@@ -4,7 +4,7 @@ Atmosphere service tasks methods
 """
 from threepio import logger
 
-from service.exceptions import DeviceBusyException, VolumeMountConflict, InstanceDoesNotExist
+from service.exceptions import VolumeMountConflict, InstanceDoesNotExist
 
 from service.tasks.driver import deploy_init_to
 from service.tasks.driver import destroy_instance
@@ -73,7 +73,7 @@ def attach_volume(core_identity, driver, instance_id, volume_id, device_location
         init_task.link(mount_chain)
         print_task_chain(init_task)
         init_task.apply_async()
-    except Exception as e:
+    except Exception:
         raise VolumeMountConflict(instance_id, volume_id)
     return mount_location
 
@@ -153,7 +153,7 @@ def mount_volume(core_identity, driver, instance_id, volume_id, device=None,
         mount_chain.apply_async()
     except VolumeMountConflict:
         raise
-    except Exception as e:
+    except Exception:
         logger.exception("Exc occurred")
         raise VolumeMountConflict(instance_id, volume_id)
     return mount_location

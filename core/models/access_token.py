@@ -1,6 +1,4 @@
 from django.db import models
-from django.utils import timezone
-
 from django_cyverse_auth.models import Token
 
 

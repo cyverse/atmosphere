@@ -4,14 +4,12 @@ from hashlib import md5
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager
 from django.core import validators
 from django.core.mail import send_mail
-from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 from core.plugins import ValidationPluginManager, ExpirationPluginManager, DefaultQuotaPluginManager, AccountCreationPluginManager
 from core.query import only_current
-from core.exceptions import InvalidUser
 from threepio import logger
 from django.utils.translation import ugettext_lazy as _
 
@@ -88,13 +86,13 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
     # END-rip.
 
     @staticmethod
-    def users_for_instance(instance_id, leader_only=False):
+    def users_for_instance(instance_id, is_leader=None):
         """
         is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
         """
         instance_query = Q(memberships__group__projects__instances__provider_alias=instance_id)
-        if leader_only == True:
-            instance_query &= Q(memberships__is_leader=True)
+        if is_leader is not None:
+            instance_query &= Q(memberships__is_leader=is_leader)
         return AtmosphereUser.objects.filter(instance_query).distinct()
 
     def is_admin(self):

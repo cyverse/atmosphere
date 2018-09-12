@@ -4,9 +4,7 @@
 from hashlib import md5
 from datetime import datetime, timedelta
 
-from django.db import (
-    models, transaction, DatabaseError
-)
+from django.db import models
 from django.db.models import (
     Q, ObjectDoesNotExist
 )
@@ -31,7 +29,6 @@ from core.models.size import (
 )
 from core.models.tag import Tag
 from core.models.managers import ActiveInstancesManager
-from django.conf import settings
 from service.mock import MockInstance
 
 
@@ -95,10 +92,8 @@ class Instance(models.Model):
         """
         ownership_query = Q(created_by=user)
         project_query = Q(project__owner__memberships__user=user)
-        if is_leader == False:
-            project_query &= Q(project__owner__memberships__is_leader=False)
-        elif is_leader == True:
-            project_query &= Q(project__owner__memberships__is_leader=True)
+        if is_leader is not None:
+            project_query &= Q(project__owner__memberships__is_leader=is_leader)
         membership_query = Q(created_by__memberships__group__user=user)
         return Instance.objects.filter(membership_query | project_query | ownership_query).distinct()
 
@@ -140,7 +135,7 @@ class Instance(models.Model):
             str_builder += "%s on %s" % (next_history.status.name, next_history.start_date.strftime("%m/%d/%Y %H:%M:%S"))
             try:
                 next_history = next_history.next()
-            except (LookupError, ValueError) as exc:
+            except (LookupError, ValueError):
                 next_history = None
         if self.end_date:
             str_builder += " -> destroyed on %s" % (self.end_date.strftime("%m/%d/%Y %H:%M:%S"))

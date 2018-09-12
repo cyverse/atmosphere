@@ -1,6 +1,5 @@
 from core.models import Project, Instance
 from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
 from api.v2.serializers.summaries import ProjectSummarySerializer
 from .instance import InstanceSerializer
 

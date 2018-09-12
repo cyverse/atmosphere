@@ -36,7 +36,7 @@ def import_instance_tags(instance_tags_json):
                 [tag['name'] for tag in instance_tag['tags']])
             instance.save()
             added = added + 1
-        except Instance.DoesNotExist as dne:
+        except Instance.DoesNotExist:
             logging.warn(
                 'Could not import tags for instance <%s> - DB Record does not exist' %
                 instance_tag['instance'])

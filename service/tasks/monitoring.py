@@ -14,14 +14,14 @@ from core.query import (
 from core.models.group import Group
 from core.models.size import Size, convert_esh_size
 from core.models.volume import Volume, convert_esh_volume
-from core.models.instance import Instance, convert_esh_instance
+from core.models.instance import convert_esh_instance
 from core.models.provider import Provider
-from core.models.machine import convert_glance_image, get_or_create_provider_machine, ProviderMachine, ProviderMachineMembership
+from core.models.machine import convert_glance_image, ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest
 from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
 from core.models.application_version import ApplicationVersion
-from core.models import Credential, IdentityMembership
+from core.models import Credential
 
 from service.machine import (
     update_db_membership_for_group,
@@ -224,7 +224,9 @@ def monitor_machines_for(provider_id, limit_machines=[], print_logs=False, dry_r
         #        into DB relationships: ApplicationVersionMembership, ProviderMachineMembership
         update_image_membership(account_driver, cloud_machine, db_machine)
 
-        #STEP 3: if ENFORCING -- occasionally 're-distribute' any ACLs that are *listed on DB but not on cloud* -- removals should be done explicitly, outside of this function
+        # STEP 3: if ENFORCING -- occasionally 're-distribute' any ACLs that
+        # are *listed on DB but not on cloud* -- removals should be done
+        # explicitly, outside of this function
         if settings.ENFORCING:
             distribute_image_membership(account_driver, cloud_machine, provider)
 
@@ -278,11 +280,11 @@ def _get_all_access_list(account_driver, db_machine, cloud_machine):
         owner_set.add(image_owner)
 
     if hasattr(cloud_machine, 'id'):
-       image_id = cloud_machine.id
+        image_id = cloud_machine.id
     elif type(cloud_machine) == dict:
-       image_id = cloud_machine.get('id')
+        image_id = cloud_machine.get('id')
     else:
-       raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
+        raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
 
     existing_members = account_driver.get_image_members(image_id, None)
     # Extend to include based on projects already granted access to the image
@@ -323,7 +325,9 @@ def update_image_membership(account_driver, cloud_machine, db_machine):
     #       to point to Identity for a 1-to-1 mapping.
     groups = Group.objects.filter(name__in=shared_project_names)
 
-    # THIS IS A HACK - some images have been 'compromised' in this event, reset the access list _back_ to the last-known-good configuration, based on a machine request.
+    # THIS IS A HACK - some images have been 'compromised' in this event,
+    # reset the access list _back_ to the last-known-good configuration, based
+    # on a machine request.
     has_machine_request = MachineRequest.objects.filter(
         new_machine__instance_source__identifier=cloud_machine.id,
         status__name='completed').last()
@@ -472,11 +476,11 @@ def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
     """
     from core.models import Identity
     if hasattr(cloud_machine, 'id'):
-       image_id = cloud_machine.id
+        image_id = cloud_machine.id
     elif type(cloud_machine) == dict:
-       image_id = cloud_machine.get('id')
+        image_id = cloud_machine.get('id')
     else:
-       raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
+        raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
 
     cloud_membership = account_driver.image_manager.shared_images_for(
         image_id=image_id)
@@ -511,7 +515,6 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
     """
     for version in application.active_versions():
         for machine in version.active_machines():
-            provider = machine.instance_source.provider
             account_driver = memoized_driver(machine, account_drivers)
             try:
                 image = account_driver.image_manager.get_image(image_id=machine.identifier)
@@ -520,7 +523,7 @@ def make_machines_public(application, account_drivers={}, dry_run=False):
                 continue
 
             image_is_public = image.is_public if hasattr(image,'is_public') else image.get('visibility','') == 'public'
-            if image and image_is_public == False:
+            if image and not image_is_public:
                 celery_logger.info("Making Machine %s public" % image.id)
                 if not dry_run:
                     account_driver.image_manager.glance.images.update(image.id, visibility='public')
@@ -664,7 +667,7 @@ def monitor_instances_for(provider_id, users=None,
                         identity.uuid,
                         identity.created_by) for inst in running_instances]
                 seen_instances.extend(core_running_instances)
-            except Exception as exc:
+            except Exception:
                 celery_logger.exception(
                     "Could not convert running instances for %s" %
                     tenant_name)
@@ -673,9 +676,7 @@ def monitor_instances_for(provider_id, users=None,
             # No running instances.
             core_running_instances = []
         # Using the 'known' list of running instances, cleanup the DB
-        core_instances = _cleanup_missing_instances(
-            identity,
-            core_running_instances)
+        _cleanup_missing_instances(identity, core_running_instances)
     if print_logs:
         _exit_stdout_logging(console_handler)
     # return seen_instances  NOTE: this has been commented out to avoid PicklingError!
@@ -720,7 +721,10 @@ def monitor_volumes_for(provider_id, print_logs=False):
             tenant_name = tenant.name if tenant else tenant_id
             try:
                 if not tenant:
-                    celery_logger.warn("Warning: tenant_id %s found on volume %s, but did not exist from the account driver perspective.", tenant_id, cloud_volume)
+                    celery_logger.warn(
+                        "Warning: tenant_id %s found on volume %s, "
+                        "but did not exist from the account driver "
+                        "perspective.", tenant_id, cloud_volume)
                     raise ObjectDoesNotExist()
                 identity = Identity.objects.filter(
                     contains_credential('ex_project_name', tenant_name), provider=provider
@@ -900,7 +904,7 @@ def _share_image(account_driver, cloud_machine, identity, members, dry_run=False
         raise Exception("Safety Check -- You should not be here")
     tenant_name = missing_tenant[0]
     cloud_machine_is_public = cloud_machine.is_public if hasattr(cloud_machine,'is_public') else cloud_machine.get('visibility','') == 'public'
-    if cloud_machine_is_public == True:
+    if cloud_machine_is_public:
         celery_logger.info("Making Machine %s private" % cloud_machine.id)
         if not dry_run:
             account_driver.image_manager.glance.images.update(cloud_machine.id, visibility='shared')

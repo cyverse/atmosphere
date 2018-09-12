@@ -212,7 +212,7 @@ class VolumeSnapshotDetail(AuthAPIView):
         snapshot = esh_driver._connection.get_snapshot(snapshot_id)
         if not snapshot:
             return snapshot_not_found(snapshot_id)
-        delete_success = esh_driver._connection.ex_delete_snapshot(snapshot)
+        esh_driver._connection.ex_delete_snapshot(snapshot)
         # NOTE: Always false until icehouse...
         #    return failure_response(
         #        status.HTTP_400_BAD_REQUEST,
@@ -274,7 +274,7 @@ class VolumeList(AuthAPIView):
         """
         user = request.user
         try:
-            membership = IdentityMembership.objects.get(
+            IdentityMembership.objects.get(
                 identity__uuid=identity_uuid,
                 member__memberships__user=user)
         except:
@@ -552,13 +552,11 @@ class BootVolume(AuthAPIView):
             return None
 
     def post(self, request, provider_uuid, identity_uuid, volume_id=None):
-        user = request.user
         data = request.data
 
         missing_keys = valid_launch_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
-        source = None
         name = data.pop('name')
         size_id = data.pop('size')
         key_name = self._select_source_key(data)

@@ -1,5 +1,5 @@
 from core.models import License, LicenseType, AtmosphereUser
-from api.v2.serializers.fields import ModelRelatedField
+from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.summaries import LicenseTypeSummarySerializer
 from rest_framework import serializers
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField

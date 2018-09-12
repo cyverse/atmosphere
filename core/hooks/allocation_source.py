@@ -14,7 +14,11 @@ from core.models.allocation_source import get_allocation_source_object
 #FIXME: MARKED FOR DELETION according to julianp
 def listen_before_allocation_snapshot_changes(sender, instance, raw, **kwargs):
     """
-    DEV NOTE: This is a *pre_save* signal. As such, the arguments are slightly different and the object in the database matching the data will be the "before", while the data coming into the function should be considered the "after". For more details about pre_save signals: https://docs.djangoproject.com/en/dev/ref/signals/#pre-save
+    DEV NOTE: This is a *pre_save* signal. As such, the arguments are slightly
+    different and the object in the database matching the data will be the
+    "before", while the data coming into the function should be considered the
+    "after". For more details about pre_save signals:
+    https://docs.djangoproject.com/en/dev/ref/signals/#pre-save
 
     This listener expects:
     EventType - 'allocation_source_snapshot'
@@ -97,7 +101,10 @@ def listen_for_allocation_threshold_met(sender, instance, created, **kwargs):
     }
     The method should fire off emails to the users who should be informed of the new threshold value.
     """
-    # FIXME+TODO: next version: Fire and respond to the `clear_allocation_threshold_met` for a given allocation_source_name (This event should be generated any time you `.save()` and update the `compute_allowed` for an AllocationSource
+    # FIXME+TODO: next version: Fire and respond to the
+    # `clear_allocation_threshold_met` for a given allocation_source_name
+    # (This event should be generated any time you `.save()` and update the
+    # `compute_allowed` for an AllocationSource
     event = instance
     if event.name != 'allocation_source_threshold_met':
         return None
@@ -412,7 +419,7 @@ def listen_for_user_allocation_source_created(sender, instance, created, **kwarg
            The method should assign a user to an allocation source
         """
     event = instance
-    from core.models import EventTable, AtmosphereUser, AllocationSource
+    from core.models import AtmosphereUser, AllocationSource
     if event.name != 'user_allocation_source_created':
         return None
     logger.info('user_allocation_source_created: %s' % event.__dict__)

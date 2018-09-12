@@ -1,5 +1,4 @@
 import django_filters
-import pytz
 from django.utils import timezone
 from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError, ConnectionFailure
 from rest_framework import exceptions

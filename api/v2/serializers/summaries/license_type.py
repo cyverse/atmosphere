@@ -1,4 +1,4 @@
-from core.models import License, LicenseType
+from core.models import LicenseType
 from rest_framework import serializers
 
 

@@ -1,8 +1,7 @@
 from threepio import logger
 
 from django.core.exceptions import ValidationError
-from core.models.quota import get_quota, has_storage_count_quota,\
-    has_storage_quota
+from core.models.quota import get_quota, has_storage_count_quota
 from core.models.identity import Identity
 from core.models.volume import Volume
 from core.models.instance_source import InstanceSource
@@ -95,7 +94,6 @@ def create_volume_or_fail(name, size, user, provider, identity,
                               snapshot=snapshot, image=image,
                               raise_exception=True)
     identifier = esh_volume.id
-    start_date = esh_volume.extra.get('created_at')
     source = InstanceSource.objects.create(
         identifier=identifier,
         provider=provider,

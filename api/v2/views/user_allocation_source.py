@@ -27,12 +27,6 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         # user = self.get_object()
         return UserAllocationSource.objects.all()  # filter(user__uuid=user)
 
-    # @detail_route(methods=['get'])
-    # def user(self,request,pk=None):
-    #     user = AtmosphereUser.objects.filter(uuid=pk).last()
-    #     return Response([AllocationSourceSerializer(i.allocation_source,context={'request':request}).data for i in UserAllocationSource.objects.filter(user=user)])
-    #
-
     def create(self, request):
         request_user = request.user
         request_data = request.data

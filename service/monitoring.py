@@ -6,15 +6,13 @@ import pytz
 from django.db.models import Q
 from django.utils import timezone
 from threepio import logger
-from core.models import AtmosphereUser as User
 from core.models import AccountProvider
 from core.models.credential import Credential
-from core.models import IdentityMembership, Identity, InstanceStatusHistory
+from core.models import InstanceStatusHistory
 from core.models.instance import Instance as CoreInstance
 from core.models.instance import (
     convert_esh_instance, _esh_instance_size_to_core
 )
-from core.models.size import convert_esh_size
 from service.cache import get_cached_instances, get_cached_driver
 from service.instance import suspend_instance, stop_instance, destroy_instance, shelve_instance, offload_instance
 from django.conf import settings
@@ -253,7 +251,6 @@ def _get_instance_owner_map(provider, users=None):
     """
     from service.driver import get_account_driver
 
-    admin_driver = get_cached_driver(provider=provider)
     accounts = get_account_driver(provider=provider, raise_exception=True)
     all_identities = _select_identities(provider, users)
     acct_providers = AccountProvider.objects.filter(provider=provider)

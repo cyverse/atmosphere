@@ -1,9 +1,11 @@
 from django.utils import timezone
 from django.db.models import Q
-
+from rtwo.exceptions import (
+    LibcloudInvalidCredsError, ConnectionFailure, LibcloudBadResponseError
+)
 from rest_framework import status
 from rest_framework.response import Response
-
+from socket import error as socket_error
 from threepio import logger
 
 from core.exceptions import ProviderNotActive
@@ -25,8 +27,6 @@ from service.exceptions import (
     SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
     VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist,
     UnderThresholdError, ActionNotAllowed, Unauthorized,
-    # Technically owned by another
-    socket_error, ConnectionFailure, LibcloudInvalidCredsError, LibcloudBadResponseError
     )
 from service.instance import (
     run_instance_action,
@@ -491,7 +491,7 @@ class InstanceAction(AuthAPIView):
             return connection_failure(provider_uuid, identity_uuid)
         except ProviderNotActive as pna:
             return inactive_provider(pna)
-        except InstanceDoesNotExist as dne:
+        except InstanceDoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 'Instance %s no longer exists' % (instance_id,))
@@ -751,7 +751,7 @@ class Instance(AuthAPIView):
             return connection_failure(provider_uuid, identity_uuid)
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
-        except InstanceDoesNotExist as dne:
+        except InstanceDoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 "Instance %s does not exist" % instance_id)

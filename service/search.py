@@ -7,10 +7,7 @@ import operator
 
 from django.db.models import Q
 
-from core.models.machine import compare_core_machines, filter_core_machine,\
-    ProviderMachine
-from core.models.provider import Provider
-from core.models.application import Application
+from core.models.machine import ProviderMachine
 from core.query import only_current_source
 from functools import reduce
 

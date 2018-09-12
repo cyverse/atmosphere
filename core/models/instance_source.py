@@ -71,7 +71,6 @@ class InstanceSource(models.Model):
         2. Provider is Active
         3. Provider NOT End dated (Or end dated later than NOW)
         """
-        now_time = timezone.now()
         return InstanceSource.objects.filter(
             *InstanceSource._current_source_query_args())
 

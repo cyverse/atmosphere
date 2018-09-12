@@ -1,1 +1,1 @@
-from behaving.personas.steps import *
+from behaving.personas.steps import * # noqa

@@ -1,4 +1,4 @@
-from django.test import TestCase, override_settings
+from django.test import TestCase
 import mock
 
 from jetstream.plugins.auth.validation import XsedeProjectRequired

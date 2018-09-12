@@ -7,7 +7,7 @@ from django.utils.timezone import datetime, now
 from threepio import logger
 
 from core.models import Provider, Identity
-from service.driver import get_account_driver, get_esh_driver
+from service.driver import get_account_driver
 
 
 def glance_write_machine(provider_machine):

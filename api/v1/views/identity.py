@@ -3,7 +3,6 @@ from rest_framework.response import Response
 
 from threepio import logger
 
-from core.models.group import Group
 from core.models.identity import Identity as CoreIdentity
 from core.models.provider import Provider
 

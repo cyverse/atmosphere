@@ -2,18 +2,12 @@
 """
 Core application tasks
 """
-
 from celery.decorators import task
-
 from django.core.mail import EmailMessage
-from django.utils import timezone
-
 from django.conf import settings
 from threepio import celery_logger, email_logger
 
 from core.models.status_type import get_status_type
-from core.models.application import Application
-from core.query import only_current_apps
 
 
 @task(name="send_email")

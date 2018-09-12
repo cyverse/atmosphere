@@ -149,7 +149,10 @@ class TASAPIDriver(object):
             raise ValueError(exc_message)
 
         if resp_status != 'success' or resp.status_code != 200:
-            exc_message = ("Report %s produced an Invalid Response - Expected 200 and 'success' response: %s - %s" % (report_id, resp.status_code, resp_status))
+            exc_message = (
+                "Report %s produced an Invalid Response - Expected 200 and "
+                "'success' response: %s - %s" % (report_id, resp.status_code,
+                                                 resp_status))
             logger.exception(exc_message)
             raise Exception(exc_message)
 
@@ -287,7 +290,7 @@ def get_or_create_allocation_source(api_allocation):
                                                   uuid=created_event_uuid,
                                                   payload=payload)
         assert isinstance(created_event, EventTable)
-    except IntegrityError as e:
+    except IntegrityError:
         # This is totally fine. No really. This should fail if it already exists and we should ignore it.
         pass
 
@@ -298,7 +301,7 @@ def get_or_create_allocation_source(api_allocation):
         compute_allowed_event = EventTable.objects.create(
             name='allocation_source_compute_allowed_changed', uuid=compute_event_uuid, payload=payload)
         assert isinstance(compute_allowed_event, EventTable)
-    except IntegrityError as e:
+    except IntegrityError:
         # This is totally fine. No really. This should fail if it already exists and we should ignore it.
         pass
 
@@ -351,7 +354,7 @@ def fill_user_allocation_sources():
     for user in AtmosphereUser.objects.order_by('username'):
         try:
             resources = fill_user_allocation_source_for(driver, user)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error filling user allocation source for %s" % user)
             resources = []
         allocation_resources[user.username] = resources
@@ -479,5 +482,3 @@ def _validate_tas_data(data):
             % (data['status'], data)
         )
     return True
-
-

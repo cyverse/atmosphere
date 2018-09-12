@@ -4,13 +4,11 @@ from django.test import override_settings
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from rest_framework.test import APIClient
-
 from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from api.tests.factories import (
-    UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory,
-    ApplicationVersionFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
-    SizeFactory, AllocationSourceFactory)
+    UserFactory, AnonymousUserFactory, InstanceFactory,
+    InstanceHistoryFactory, InstanceStatusFactory, ProviderMachineFactory,
+    IdentityFactory, ProviderFactory, SizeFactory, AllocationSourceFactory)
 from api.v2.views import InstanceViewSet
 from core.models import (
     InstanceAllocationSourceSnapshot,

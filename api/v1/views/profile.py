@@ -5,7 +5,6 @@ Atmosphere service instance rest api.
 from rest_framework.response import Response
 from rest_framework import status
 from django.conf import settings
-from django.utils import timezone
 
 from core.exceptions import InvalidUser
 from api.v1.views.base import AuthAPIView
@@ -49,7 +48,7 @@ class Profile(AuthAPIView):
 
         # User is valid, build out any new accounts
         if settings.AUTO_CREATE_NEW_ACCOUNTS:
-            new_identities = create_new_accounts(user.username)
+            create_new_accounts(user.username)
 
         response = Response(serialized_data)
         return response

@@ -1,8 +1,6 @@
 """
 Atmosphere api size.
 """
-from django.utils import timezone
-
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -34,7 +32,6 @@ class SizeList(AuthAPIView):
         """
         # TODO: Decide how we should pass this in (I.E. GET query string?)
         active = False
-        user = request.user
         try:
             esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         except ProviderNotActive as pna:
@@ -74,7 +71,6 @@ class Size(AuthAPIView):
         Lookup the size information (Lookup using the given provider/identity)
         Update on server DB (If applicable)
         """
-        user = request.user
         try:
             esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
         except ProviderNotActive as pna:

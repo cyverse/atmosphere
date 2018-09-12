@@ -4,15 +4,12 @@ NOTE: At this point create options do not have a hard-set requirement for 'CoreI
 Delete/remove operations do. This should be investigated further..
 """
 from operator import attrgetter
-import sys
-import re
 import time
 
 from django.conf import settings
 from django.utils.timezone import datetime, timedelta
 from celery.decorators import task
 from celery.task import current
-from celery.result import allow_join_result
 
 from rtwo.exceptions import LibcloudInvalidCredsError, LibcloudBadResponseError
 
@@ -46,7 +43,7 @@ def _update_status_log(instance, status_update):
     now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         user = instance._node.extra['metadata']['creator']
-    except KeyError as no_user:
+    except KeyError:
         user = "Unknown -- Metadata missing"
     size_alias = instance._node.extra['flavorId']
     machine_alias = instance._node.extra['imageId']
@@ -128,7 +125,7 @@ def _eager_override(task_class, run_method, args, kwargs):
         try:
             result = run_method(*args, **kwargs)
             return result
-        except Exception as exc:
+        except Exception:
             celery_logger.exception("Encountered error while running eager")
         attempts += 1
         celery_logger.info("Waiting %d seconds" % delay)
@@ -273,7 +270,7 @@ def clear_empty_ips_for(username, core_provider_id, core_identity_uuid):
     tenant_name = creds['ex_tenant_name']
     celery_logger.info("Checking Identity %s" % tenant_name)
     # Attempt to clean floating IPs
-    num_ips_removed = _remove_extra_floating_ips(driver, tenant_name)
+    _remove_extra_floating_ips(driver, tenant_name)
     # Test for active/inactive_instances instances
     try:
         instances = driver.list_instances()
@@ -866,7 +863,7 @@ def deploy_ready_test(driverCls, provider, identity, instance_id, core_identity_
     # USE ANSIBLE
     try:
         username = identity.user.username
-        playbook_results = ansible_ready_to_deploy(instance.ip, username, instance_id)
+        ansible_ready_to_deploy(instance.ip, username, instance_id)
         _update_status_log(instance, "Ansible Finished (ready test) for %s." % instance.ip)
         celery_logger.debug("deploy_ready_test task finished at %s." % datetime.now())
     except AnsibleDeployException as exc:
@@ -1278,12 +1275,9 @@ def update_membership_for(provider_uuid):
             pm = pm[0]
         app_manager = pm.application_version.application.applicationmembership_set
         if img.get('visibility','') is not 'public':
-            # Lookup members
-            image_members = acct_driver.image_manager.shared_images_for(
-                image_id=img.id)
-            # add machine to each member
-            #(Who owns the cred:ex_project_name) in MachineMembership
-            # for member in image_members:
+            # Note this case was never handled and is an error, this comment
+            # was added during a linting cleanup, fixing this is out of scope
+            pass
         else:
             members = app_manager.all()
             # if MachineMembership exists, remove it (No longer private)
@@ -1316,7 +1310,7 @@ def test_instance_links(alias, uri):
     vnc_address = 'http://%s:5904' % uri
     try:
         vnc_success = test_link(vnc_address)
-    except Exception as e:
+    except Exception:
         celery_logger.exception("Bad vnc address: %s" % vnc_address)
         vnc_success = False
     return {alias: {'vnc': vnc_success}}

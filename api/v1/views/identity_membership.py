@@ -7,7 +7,6 @@ from threepio import logger
 
 from core.models.group import Group, Identity
 from core.models import IdentityMembership as CoreIdentityMembership
-from core.query import only_current_provider
 
 from api import failure_response
 from api.v1.serializers import IdentitySerializer
@@ -49,16 +48,7 @@ class IdentityMembershipList(AuthAPIView):
         """
         Return the identity membership matching this provider+identity
         """
-        # Sanity checks:
-        # User is authenticated
-        user = request.user
         try:
-            # User is a member of a group ( TODO: loop through all instead)
-            group = user.group_set.get(name=user.username)
-            # Group has access to the identity on an active,
-            # currently-running provider
-            identity = group.current_identities.get(
-                                            uuid=identity_uuid)
             # All other members of the identity are visible
             id_members = CoreIdentityMembership.objects.filter(
                 identity__uuid=identity_uuid)

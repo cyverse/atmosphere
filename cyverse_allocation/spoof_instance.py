@@ -71,10 +71,11 @@ class UserWorkflow:
             'username': self.user.username
         }
 
-        user_allocation_source_event = EventTable.objects.create(name='user_allocation_source_assigned',
-                                                                 payload=new_user_allocation_source,
-                                                                 entity_id=new_user_allocation_source['username'],
-                                                                 timestamp=timestamp)
+        EventTable.objects.create(
+            name='user_allocation_source_assigned',
+            payload=new_user_allocation_source,
+            entity_id=new_user_allocation_source['username'],
+            timestamp=timestamp)
 
     def assign_allocation_source_to_instance(self, allocation_source, instance, timestamp=None):
 
@@ -91,10 +92,11 @@ class UserWorkflow:
             "instance_id": instance.provider_alias
         }
 
-        instance_allocation_event = EventTable.objects.create(name='instance_allocation_source_changed',
-                                                              payload=payload,
-                                                              entity_id=self.user.username,
-                                                              timestamp=timestamp)
+        EventTable.objects.create(
+            name='instance_allocation_source_changed',
+            payload=payload,
+            entity_id=self.user.username,
+            timestamp=timestamp)
 
     def create_instance_status_history(self, instance, start_date=None, status=None ,cpu=None, end_date=None):
         # Spoof InstanceStatusHistory
@@ -173,4 +175,3 @@ def change_renewal_strategy(allocation_source, renewal_strategy, timestamp=None)
                               payload = renewal_strategy_change_payload,
                               entity_id = renewal_strategy_change_payload['source_id'],
                               timestamp = timestamp)
-

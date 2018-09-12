@@ -1,11 +1,8 @@
 import factory
-import uuid
-from core.models import ProviderMachine, InstanceSource
+from core.models import ProviderMachine
 from .version_factory import ApplicationVersionFactory
 from .image_factory import ImageFactory
-from .provider_factory import ProviderFactory
 from .instance_source_factory import InstanceSourceFactory
-from .version_factory import ApplicationVersionFactory
 
 
 class ProviderMachineFactory(factory.DjangoModelFactory):

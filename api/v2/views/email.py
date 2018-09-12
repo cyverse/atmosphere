@@ -12,8 +12,7 @@ from rest_framework import status
 from api import permissions
 from api.v2.exceptions import failure_response
 
-from core.email import lookupEmail, resource_request_email, support_email, email_admin, request_data
-from core.models import AtmosphereUser as User
+from core.email import resource_request_email, email_admin, request_data
 from core.models import Instance, Volume
 
 class EmailViewSet(ViewSet):
@@ -71,7 +70,7 @@ class VolumeSupportEmailViewSet(EmailViewSet):
         context.update(request_data(self.request))
 
         message = render_to_string("volume_report.html", context=context)
-        email_success = email_admin(self.request, subject, message, 
+        email_success = email_admin(self.request, subject, message,
                 request_tracker=True)
         email_response = {"email_sent": email_success}
         if not email_success:
@@ -107,7 +106,7 @@ class InstanceSupportEmailViewSet(EmailViewSet):
 
         message = render_to_string("instance_report.html", context=context)
         email_success = email_admin(self.request, subject, message,
-                request_tracker=True) 
+                request_tracker=True)
         email_response = {"email_sent": email_success}
         if not email_success:
             return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
@@ -144,7 +143,7 @@ class FeedbackEmailViewSet(EmailViewSet):
         context.update(request_data(self.request))
 
         body = render_to_string("feedback.html", context=context)
-        email_success = email_admin(self.request, subject, body, 
+        email_success = email_admin(self.request, subject, body,
                 request_tracker=True)
         if email_success:
             resp_status = status.HTTP_200_OK

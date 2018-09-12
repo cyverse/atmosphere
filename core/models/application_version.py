@@ -322,11 +322,11 @@ def create_app_version(
     last_version = app.latest_version
     if last_version:
         # DEFAULT: Use kwargs.. Otherwise: Inherit information from last
-        if change_log != None:
+        if change_log is not None:
             app_version.change_log = change_log
         else:
             app_version.change_log=last_version.change_log
-        if allow_imaging != None:
+        if allow_imaging is not None:
             app_version.allow_imaging = allow_imaging
         else:
             app_version.allow_imaging=last_version.allow_imaging
@@ -334,9 +334,9 @@ def create_app_version(
         transfer_licenses(last_version, app_version)
         transfer_membership(last_version, app_version)
     else:
-        if change_log == None:
+        if change_log is None:
             change_log = "New Application %s - Version %s" % (app.name, app_version.name)
-        if allow_imaging == None:
+        if allow_imaging is None:
             allow_imaging = True
         app_version.change_log = change_log
         app_version.allow_imaging = allow_imaging

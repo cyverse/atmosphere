@@ -6,7 +6,7 @@ from core.models import BootScript
 
 from api.v2.serializers.summaries import (
     ImageVersionSummarySerializer, BootScriptSummarySerializer)
-from api.v2.serializers.fields.base import ModelRelatedField
+from core.serializers.fields import ModelRelatedField
 
 
 class ImageVersionBootScriptSerializer(serializers.HyperlinkedModelSerializer):

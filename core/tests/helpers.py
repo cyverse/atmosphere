@@ -3,14 +3,9 @@ These helper classes are written to make it easier to write 'mock test cases'
 for Core objects
 """
 from core.models import (
-    Application, ApplicationVersion,
-    AtmosphereUser, Group,
-    Identity, IdentityMembership,
-    Instance, InstanceSource, InstanceStatusHistory,
-    MachineRequest, Provider,
-    ProviderType, PlatformType,
-    ProviderMachine, Size, Quota,
-    PatternMatch
+    Application, ApplicationVersion, AtmosphereUser, Group, Identity,
+    IdentityMembership, Instance, InstanceSource, InstanceStatusHistory,
+    Provider, ProviderType, PlatformType, ProviderMachine, Size, Quota
 )
 from uuid import uuid4
 
@@ -252,19 +247,6 @@ class CoreMachineRequestHelper(object):
                 "The test provider specified '%s' is not a valid provider"
                 % provider)
         self.provider = self.AVAILABLE_PROVIDERS[provider]
-
-    def to_core_machine_request(self):
-        provider_machine = self.instance.provider_machine
-
-        status, _ = StatusType.objects.get_or_create(name='pending')
-        return MachineRequest.objects.get_or_create(
-            created_by=self.user, membership=self.identity_member,
-            instance=self.instance, status=status,
-            parent_machine=provider_machine,
-            new_machine_provider=provider_machine.provider,
-            new_application_name=self.new_application_name,
-            new_machine_owner=self.user, new_application_visibility='public',
-            new_version_forked=self.forked, start_date=self.start_date)[0]
 
 
 class CoreApplicationHelper(object):

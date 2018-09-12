@@ -4,10 +4,9 @@ from rest_framework.validators import UniqueTogetherValidator
 from core.models import ApplicationVersionLicense as ImageVersionLicense
 from core.models import ApplicationVersion as ImageVersion
 from core.models import License
-
 from api.v2.serializers.summaries import (
     ImageVersionSummarySerializer, LicenseSummarySerializer)
-from api.v2.serializers.fields.base import ModelRelatedField
+from core.serializers.fields import ModelRelatedField
 
 
 class ImageVersionLicenseSerializer(serializers.HyperlinkedModelSerializer):

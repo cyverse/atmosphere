@@ -11,7 +11,7 @@ from threepio import logger
 from django.conf import settings
 
 from core import query
-from core.models.provider import Provider, AccountProvider
+from core.models.provider import Provider
 from core.models.identity import Identity
 from core.models.tag import Tag, updateTags
 from core.models.application_version import ApplicationVersion
@@ -135,10 +135,8 @@ class Application(models.Model):
         """
         ownership_query = Q(created_by=user)
         project_query = Q(projects__owner__memberships__user=user)
-        if is_leader == False:
-            project_query &= Q(projects__owner__memberships__is_leader=False)
-        elif is_leader == True:
-            project_query &= Q(projects__owner__memberships__is_leader=True)
+        if is_leader is not None:
+            project_query &= Q(projects__owner__memberships__is_leader=is_leader)
         membership_query = Q(created_by__memberships__group__user=user)
         return Application.objects.filter(membership_query | project_query | ownership_query).distinct()
 
@@ -172,11 +170,15 @@ class Application(models.Model):
             # This query is not the most clear. Here's an explanation:
             # Include all images created by the user or active images in the
             # users providers that are either shared with the user or public
-            queryset = Application.objects.select_related('created_by').prefetch_related('versions__machines__instance_source__provider', 'versions__machines__members', 'versions__membership').filter(
-                    query.created_by_user(user) |
-                    (query.only_current_apps() &
-                     query.in_users_providers(user) &
-                     (query.images_shared_with_user_by_ids(user) | is_public)))
+            queryset = Application.objects.select_related(
+                'created_by').prefetch_related(
+                    'versions__machines__instance_source__provider',
+                    'versions__machines__members',
+                    'versions__membership').filter(
+                        query.created_by_user(user)
+                        | (query.only_current_apps() & query.in_users_providers(
+                            user) & (query.images_shared_with_user_by_ids(user)
+                                     | is_public)))
         return queryset.distinct()
 
     def _current_versions(self):

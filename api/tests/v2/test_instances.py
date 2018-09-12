@@ -6,14 +6,13 @@ from django.utils import timezone
 
 from rest_framework.test import APIClient
 
-from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
+from rest_framework.test import APITestCase
 from api.tests.factories import (
-    GroupFactory, UserFactory, AnonymousUserFactory, InstanceFactory, InstanceHistoryFactory, InstanceStatusFactory, SizeFactory,
-    ImageFactory, ApplicationVersionFactory, InstanceSourceFactory, ProviderMachineFactory, IdentityFactory, ProviderFactory,
-    IdentityMembershipFactory, QuotaFactory)
+    UserFactory, AnonymousUserFactory, InstanceFactory,
+    InstanceHistoryFactory, InstanceStatusFactory, ProviderMachineFactory,
+    IdentityFactory, ProviderFactory)
 from .base import APISanityTestCase
 from api.v2.views import InstanceViewSet
-from core.models import AtmosphereUser
 
 
 class InstanceTests(APITestCase, APISanityTestCase):

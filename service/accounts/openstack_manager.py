@@ -38,12 +38,10 @@ from chromogenic.drivers.openstack import ImageManager
 
 from django.conf import settings
 
-from core.query import contains_credential
-from core.models import GroupMembership
 from core.models.identity import Identity
 
 from service.accounts.base import BaseAccountDriver
-from service.networking import get_topology_cls, ExternalRouter, _get_unique_id
+from service.networking import get_topology_cls, ExternalRouter
 from service.exceptions import TimeoutError
 
 from atmosphere.settings import DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
@@ -62,7 +60,7 @@ def timeout_after(seconds):
         signal.alarm(seconds)
         try:
             result = func(*args, **kwargs)
-        except TimeoutError as exc:
+        except TimeoutError:
             raise
         finally:
             signal.alarm(0)
@@ -417,7 +415,6 @@ class AccountDriver(BaseAccountDriver):
             user_matches = [u for u in self.user_manager.keystone.users.list(**kwargs) if u.name == username]
             if not user_matches or len(user_matches) > 1:
                 raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
-            user = user_matches[0]  # Not used
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain_id': 'default'})
@@ -436,7 +433,7 @@ class AccountDriver(BaseAccountDriver):
                 nova.security_group.create("default", project_name)
             self.network_manager.rename_security_group(
                 project, security_group_name=security_group_name)
-        except ConnectionError as ce:
+        except ConnectionError:
             logger.exception(
                 "Failed to establish connection."
                 " Security group creation FAILED")
@@ -672,8 +669,6 @@ class AccountDriver(BaseAccountDriver):
         3. Delete network based on topology
         """
 
-        identity_creds = self.parse_identity(identity)
-        project_name = identity_creds["tenant_name"]
         neutron = self.get_openstack_client(identity, 'neutron')
         topology_name = self.get_config('network', 'topology', None)
         if not topology_name:
@@ -694,10 +689,7 @@ class AccountDriver(BaseAccountDriver):
         # Prepare args
 
         identity_creds = self.parse_identity(identity)
-        username = identity_creds["username"]
         project_name = identity_creds["tenant_name"]
-        neutron = self.get_openstack_client(identity, 'neutron')
-        dns_nameservers = self.dns_nameservers_for(identity)
         network = self.network_manager.find_network(
             "%s-net" % project_name)
         # Use `network.name` from here
@@ -1435,10 +1427,8 @@ class AccountDriver(BaseAccountDriver):
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):
             auth_url_prefix = "/v2.0/"
-            auth_version = 'v2.0'
         elif ex_auth_version.startswith('3'):
             auth_url_prefix = "/v3/"
-            auth_version = 'v3'
         os_args["auth_url"] = os_args.get("auth_url")\
             .replace("/tokens", "").replace('/v2.0', '').replace('/v3', '')
 

@@ -1,5 +1,4 @@
 from rest_framework import exceptions as rest_exceptions
-from rest_framework.response import Response
 from api.v2.serializers.details import MachineRequestSerializer,\
     UserMachineRequestSerializer
 from api.v2.views.base import BaseRequestViewSet
@@ -12,10 +11,9 @@ from django.utils import timezone
 from django.conf import settings
 
 from core import exceptions as core_exceptions
-from core.email import send_denied_resource_email
 from core.models import (
     MachineRequest, IdentityMembership, AtmosphereUser,
-    Provider, ProviderMachine, Group, Tag
+    Provider, ProviderMachine, Tag
 )
 from core.models.status_type import StatusType
 from core.email import requestImaging
@@ -43,8 +41,12 @@ class MachineRequestViewSet(BaseRequestViewSet):
             "%s should include an `admin_serializer_class` attribute."
             % self.__class__.__name__
         )
-        # NOTE: Special case! If we are querying for 'user-facing-view' _as a staff user_ we will see something different than normal users. This line will keep consistency, but is admittedly fragile.
-        # A better solution would be to _include_ ?admin=true or some other queryparam when the admin_serializer_class is desired _or_ splitting into two endpoints.
+        # NOTE: Special case! If we are querying for 'user-facing-view' _as a
+        # staff user_ we will see something different than normal users. This
+        # line will keep consistency, but is admittedly fragile. A better
+        # solution would be to _include_ ?admin=true or some other queryparam
+        # when the admin_serializer_class is desired _or_ splitting into two
+        # endpoints.
         if self.request.query_params.get('new_machine_owner__username','') != '':
             return self.serializer_class
 
@@ -62,8 +64,12 @@ class MachineRequestViewSet(BaseRequestViewSet):
                     Q(start_date__gt=timezone.now() - timedelta(days=7))
                 )
             )
-            # NOTE: Special case! If we are querying for 'user-facing-view' _as a staff user_ we will get back all the results rather than only our own. This line will keep consistency, but is admittedly fragile.
-            # A better solution would be to _include_ ?admin=true or some other queryparam when the entire machine-request-list is desired _or_ splitting into two endpoints.
+            # NOTE: Special case! If we are querying for 'user-facing-view'
+            # _as a staff user_ we will get back all the results rather than
+            # only our own. This line will keep consistency, but is admittedly
+            # fragile. A better solution would be to _include_ ?admin=true or
+            # some other queryparam when the entire machine-request-list is
+            # desired _or_ splitting into two endpoints.
             if self.request.query_params.get('new_machine_owner__username','') == '' and request_user.is_staff:
                 return all_active.order_by('-start_date')
             return all_active.filter(

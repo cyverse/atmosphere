@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
@@ -10,7 +8,6 @@ from threepio import logger
 
 from core import email
 from core import models
-from core import tasks
 from core.events.serializers.quota_assigned import QuotaAssignedSerializer
 
 def private_object(modeladmin, request, queryset):
@@ -97,7 +94,7 @@ class AllocationSourceAdmin(admin.ModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
-        from api.v2.views import AllocationSourceViewSet, UserAllocationSourceViewSet
+        from api.v2.views import AllocationSourceViewSet
         request.data = {"renewal_strategy": obj.renewal_strategy,
                         "name": obj.name,
                         "compute_allowed": obj.compute_allowed}

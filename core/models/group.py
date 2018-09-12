@@ -6,9 +6,7 @@ to manage users via the membership relationship
 import uuid
 
 from django.db import models
-from django.db.models.signals import post_save
 from django.utils import timezone
-from django.utils.timezone import datetime, timedelta
 from django.contrib.auth.models import Group as DjangoGroup
 
 from threepio import logger
@@ -16,7 +14,6 @@ from threepio import logger
 from core.models.application import Application
 from core.models.identity import Identity
 from core.models.provider import Provider
-from core.models.quota import Quota
 from core.models.user import AtmosphereUser
 
 from core.query import (

@@ -1,14 +1,9 @@
 import pickle
 import collections
-import numpy
 import redis
 
 from threepio import logger
-from django.utils import timezone
-from dateutil import rrule
-from core.models import (
-    Instance, InstanceStatusHistory
-)
+from core.models import Instance
 
 
 METRICS_CACHE_DURATION = 4*24*60*60  # 4 days (persist over the weekend)
