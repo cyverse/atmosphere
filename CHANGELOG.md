@@ -45,10 +45,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#655](https://github.com/cyverse/atmosphere/pull/655))
   - Prefer importing settings from django.conf
     ([#658](https://github.com/cyverse/atmosphere/pull/658))
+  - Added timeout of 5 sec to tas api for user validation, and refactored to
+    make validation more explicit in the absence of the old selected_identity
+    notion ([#639](https://github.com/cyverse/atmosphere/pull/639))
 
 ### Removed
   - Remove code/vars related to old allocation system
     ([#656](https://github.com/cyverse/atmosphere/pull/656))
+  - Removed references to selected_identity
+    ([#639](https://github.com/cyverse/atmosphere/pull/639))
 
 ### Fixed
   - Consecutive test runs would fail because django-memoize was intercepting
@@ -75,16 +80,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#631](https://github.com/cyverse/atmosphere/pull/631))
   - Projects can be deleted if they only contain links/applications
     ([#640](https://github.com/cyverse/atmosphere/pull/640))
-  - Added timeout of 5 sec to tas api for user validation, and refactored to
-    make validation more explicit in the absence of the old selected_identity
-    notion ([#639](https://github.com/cyverse/atmosphere/pull/639))
 
 ### Removed
   - In the general feedback email we no longer include the users selected
     provider, as it's no longer relevant
     ([#603](https://github.com/cyverse/atmosphere/pull/603))
-  - Removed references to selected_identity
-    ([#639](https://github.com/cyverse/atmosphere/pull/639))
 
 ### Fixed
   - Deleting a project via api/v2/projects no longer deletes enddated
