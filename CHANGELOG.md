@@ -66,6 +66,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#655](https://github.com/cyverse/atmosphere/pull/655))
   - Reincluded/fixed broken tests
     ([#657](https://github.com/cyverse/atmosphere/pull/657))
+  - In application_to_provider,py, determine correct upload method based
+    on Glance client version specified in main function
+    ([#667](https://github.com/cyverse/atmosphere/pull/667))
 
 ## [v33-0](https://github.com/cyverse/atmosphere/compare/v32-2...v33-0) - 2018-08-06
 ### Changed
