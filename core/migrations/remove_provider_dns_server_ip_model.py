@@ -20,7 +20,5 @@ class Migration(migrations.Migration):
             model_name='providerdnsserverip',
             name='provider',
         ),
-        migrations.DeleteModel(
-            name='ProviderDNSServerIP',
-        ),
+        migrations.DeleteModel(name='ProviderDNSServerIP', ),
     ]

@@ -9,18 +9,21 @@ class ExpirationPlugin(object):
     def is_expired(self, user):
         raise NotImplementedError(
             "Validation plugins must implement a validate_user function that "
-            "takes a single argument: 'user'")
+            "takes a single argument: 'user'"
+        )
 
 
 class NeverExpire(ExpirationPlugin):
     def is_expired(self, user):
         return False
 
+
 # This plugin reports all accounts as expired. This is useful for testing the
 # UI, without having to make any changes to models.
 class AlwaysExpire(ExpirationPlugin):
     def is_expired(self, user):
         return True
+
 
 class LDAPPasswordExpired(ExpirationPlugin):
     """
@@ -39,14 +42,15 @@ class LDAPPasswordExpired(ExpirationPlugin):
         if not expiry_dict:
             logger.error(
                 "LDAP password expiration map is missing --"
-                " check django_cyverse_auth: %s" % ldap_user)
+                " check django_cyverse_auth: %s" % ldap_user
+            )
             return True
         expiry_date = expiry_dict.get('expires_on')
         if not expiry_date:
             logger.error(
                 "LDAP password expiration date is missing -- "
-                "check django_cyverse_auth: %s" % ldap_user)
+                "check django_cyverse_auth: %s" % ldap_user
+            )
             return True
-        _is_expired = expiry_date.replace(
-            tzinfo=pytz.UTC) < timezone.now()
+        _is_expired = expiry_date.replace(tzinfo=pytz.UTC) < timezone.now()
         return _is_expired

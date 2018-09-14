@@ -3,8 +3,8 @@ from rest_framework import serializers
 from django.utils import timezone
 
 from core.models import (
-    AtmosphereUser, EventTable,
-    Identity, Quota, ResourceRequest)
+    AtmosphereUser, EventTable, Identity, Quota, ResourceRequest
+)
 from core.serializers.fields import ModelRelatedField
 
 
@@ -12,23 +12,24 @@ from core.serializers.fields import ModelRelatedField
 class AtmosphereUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = AtmosphereUser
-        fields = ("username",)
+        fields = ("username", )
 
 
 class QuotaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Quota
         fields = (
-            "cpu", "memory", "storage",
-            "instance_count", "storage_count",
-            "snapshot_count", "floating_ip_count",
-            "port_count")
+            "cpu", "memory", "storage", "instance_count", "storage_count",
+            "snapshot_count", "floating_ip_count", "port_count"
+        )
 
 
 class IdentitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Identity
         fields = ("uuid", "created_by", "provider")
+
+
 # END-TODO:
 
 
@@ -38,6 +39,7 @@ class EventSerializer(serializers.Serializer):
     EventSerializers are responsible for validation
     EventSerializers will save events to the EventTable
     """
+
     def save(self):
         """
         On save:
@@ -52,6 +54,7 @@ class EventSerializer(serializers.Serializer):
             ```
         """
         raise NotImplemented("Implement this in the sub-class")
+
     pass
 
 
@@ -59,11 +62,13 @@ class QuotaAssignedSerializer(EventSerializer):
     quota = ModelRelatedField(
         queryset=Quota.objects.all(),
         serializer_class=QuotaSerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
     identity = ModelRelatedField(
         queryset=Identity.objects.all(),
         serializer_class=IdentitySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
     update_method = serializers.CharField(default="API")
     timestamp = serializers.DateTimeField(default=timezone.now)
 
@@ -74,7 +79,10 @@ class QuotaAssignedSerializer(EventSerializer):
         elif value == 'admin':
             return "Admin"
         else:
-            raise serializers.ValidationError("Invalid update_method (%s). Accepted values: API, Admin" % value)
+            raise serializers.ValidationError(
+                "Invalid update_method (%s). Accepted values: API, Admin" %
+                value
+            )
         return value
 
     def save(self):
@@ -90,20 +98,21 @@ class QuotaAssignedSerializer(EventSerializer):
         }
         # Create the event in EventTable
         event = EventTable.create_event(
-            name="quota_assigned",
-            entity_id=entity_id,
-            payload=event_payload)
+            name="quota_assigned", entity_id=entity_id, payload=event_payload
+        )
         return event
 
 
 class QuotaAssignedByResourceRequestSerializer(QuotaAssignedSerializer):
     resource_request = serializers.PrimaryKeyRelatedField(
-        queryset=ResourceRequest.objects.all())
+        queryset=ResourceRequest.objects.all()
+    )
     approved_by = ModelRelatedField(
         lookup_field='username',
         queryset=AtmosphereUser.objects.all(),
         serializer_class=AtmosphereUserSerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
 
     def save(self):
         serialized_data = self.validated_data
@@ -119,7 +128,6 @@ class QuotaAssignedByResourceRequestSerializer(QuotaAssignedSerializer):
         }
 
         event = EventTable.create_event(
-                name="quota_assigned",
-                entity_id=entity_id,
-                payload=event_payload)
+            name="quota_assigned", entity_id=entity_id, payload=event_payload
+        )
         return event

@@ -28,7 +28,9 @@ class PandasExcelRenderer(CSVRenderer):
         sio = StringIO()
         writer = pd.ExcelWriter(sio, engine='xlsxwriter')
         if 'excel_writer_hook' not in renderer_context:
-            raise Exception("Implementation error -- Using PandasExcelRenderer without including 'excel_writer_hook' in renderer_context")
+            raise Exception(
+                "Implementation error -- Using PandasExcelRenderer without including 'excel_writer_hook' in renderer_context"
+            )
 
         callback = renderer_context.get('excel_writer_hook')
         writer = callback(raw_dataframe, writer)
@@ -36,8 +38,11 @@ class PandasExcelRenderer(CSVRenderer):
         # StringIO to response:
         sio.seek(0)
         workbook = sio.getvalue()
-        response = StreamingHttpResponse(workbook, content_type='application/vnd.ms-excel')
-        drf_response['Content-Disposition'] = 'attachment; filename="%s"' % filename
+        response = StreamingHttpResponse(
+            workbook, content_type='application/vnd.ms-excel'
+        )
+        drf_response['Content-Disposition'
+                    ] = 'attachment; filename="%s"' % filename
         return response
 
 
@@ -73,8 +78,8 @@ class BrowsableAPIRenderer(renderers.BrowsableAPIRenderer):
     def get_rendered_html_form(self, data, view, method, request):
         if method in ['PUT', 'POST']:
             return ""
-        return super(BrowsableAPIRenderer, self).get_rendered_html_form(
-            data, view, method, request)
+        return super(BrowsableAPIRenderer,
+                     self).get_rendered_html_form(data, view, method, request)
 
     def get_context(self, *args, **kwargs):
         ctx = super(BrowsableAPIRenderer, self).get_context(*args, **kwargs)

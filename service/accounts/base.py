@@ -28,11 +28,12 @@ class BaseAccountDriver(object):
         """
         return self._list_all_images(*args, **kwargs)
 
-    def get_image(self, identifier, force=False, *get_method_args, **get_method_kwargs):
+    def get_image(
+        self, identifier, force=False, *get_method_args, **get_method_kwargs
+    ):
         return self._get_image(
-                identifier,
-                *get_method_args,
-                **get_method_kwargs)
+            identifier, *get_method_args, **get_method_kwargs
+        )
 
 
 class CachedAccountDriver(object):
@@ -63,7 +64,8 @@ class CachedAccountDriver(object):
             self._list_all_images,
             resource_prefix=get_namespace,
             force=force,
-            **kwargs)
+            **kwargs
+        )
 
     def get_image(self, identifier, force=False, *args, **kwargs):
         get_namespace = self.namespace + "_image_" + identifier
@@ -73,11 +75,11 @@ class CachedAccountDriver(object):
             self._get_image,
             force=force,
             *args,
-            **kwargs)
+            **kwargs
+        )
 
 
 class CacheDriver():
-
     def __init__(self, namespace, timeout_sec=2 * 60):
         self.namespace = namespace
         self.timeout_sec = timeout_sec
@@ -89,43 +91,44 @@ class CacheDriver():
             redis_connection = redis.StrictRedis()
 
     def cache_resource(
-            self,
-            identifier,
-            keyname,
-            get_method,
-            force=False,
-            *get_method_args,
-            **get_method_kwargs):
+        self,
+        identifier,
+        keyname,
+        get_method,
+        force=False,
+        *get_method_args,
+        **get_method_kwargs
+    ):
         """
         ReCache resources on first call/cache miss/force=True
         Returned cached resources whenever possible.
         If 'resource_prefix' is set:
             set individual resources in the list.
         """
-        resource = None  # self.get_object(keyname)
+        resource = None    # self.get_object(keyname)
         if not resource or force:
             resource = get_method(
-                identifier,
-                *get_method_args,
-                **get_method_kwargs)
+                identifier, *get_method_args, **get_method_kwargs
+            )
             self.set_object(keyname, resource)
         return resource
 
     def cache_resource_list(
-            self,
-            list_namespace,
-            list_method,
-            resource_prefix=None,
-            resource_attr='id',
-            force=False,
-            **list_method_kwargs):
+        self,
+        list_namespace,
+        list_method,
+        resource_prefix=None,
+        resource_attr='id',
+        force=False,
+        **list_method_kwargs
+    ):
         """
         ReCache resources on first call/cache miss/force=True
         Returned cached resources whenever possible.
         If 'resource_prefix' is set:
             set individual resources in the list.
         """
-        resources = None  # self.get_object(list_namespace)
+        resources = None    # self.get_object(list_namespace)
         if not resources or force:
             resources = list_method(**list_method_kwargs)
             # Also set every individual resource in cache
@@ -133,11 +136,9 @@ class CacheDriver():
                 for resource in resources:
                     self.set_object(
                         "%s_%s" %
-                        (resource_prefix,
-                         getattr(
-                             resource,
-                             resource_attr)),
-                        resource)
+                        (resource_prefix, getattr(resource, resource_attr)),
+                        resource
+                    )
             self.set_object(list_namespace, resources)
         return resources
 

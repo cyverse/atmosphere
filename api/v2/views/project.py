@@ -14,8 +14,12 @@ import django_filters
 
 
 class ProjectFilter(filters.FilterSet):
-    identity_id = django_filters.CharFilter('owner__identity_memberships__identity__id')
-    identity_uuid = django_filters.CharFilter('owner__identity_memberships__identity__uuid')
+    identity_id = django_filters.CharFilter(
+        'owner__identity_memberships__identity__id'
+    )
+    identity_uuid = django_filters.CharFilter(
+        'owner__identity_memberships__identity__uuid'
+    )
 
     class Meta:
         model = Project
@@ -23,7 +27,6 @@ class ProjectFilter(filters.FilterSet):
 
 
 class ProjectViewSet(MultipleFieldLookup, AuthModelViewSet):
-
     """
     API endpoint that allows projects to be viewed or edited.
     """
@@ -40,13 +43,15 @@ class ProjectViewSet(MultipleFieldLookup, AuthModelViewSet):
             raise ValidationError(
                 "Cannot delete a project when it contains instances."
                 " To delete a project, all instances must be moved "
-                "to another project or deleted")
-        elif project.volumes.filter(
-                instance_source__end_date__isnull=True).count() > 0:
+                "to another project or deleted"
+            )
+        elif project.volumes.filter(instance_source__end_date__isnull=True
+                                   ).count() > 0:
             raise ValidationError(
                 "Cannot delete a project when it contains volumes."
                 " To delete a project, all volumes must be moved "
-                "to another project or deleted")
+                "to another project or deleted"
+            )
         project.delete()
 
     def perform_create(self, serializer):
@@ -54,8 +59,8 @@ class ProjectViewSet(MultipleFieldLookup, AuthModelViewSet):
         group = serializer.validated_data['owner']
         if not group.user_set.filter(id=user.id).exists():
             raise ValidationError(
-                "%s is not a member of group %s"
-                % (user.username, group.name))
+                "%s is not a member of group %s" % (user.username, group.name)
+            )
         serializer.save()
 
     def get_queryset(self):
@@ -64,8 +69,7 @@ class ProjectViewSet(MultipleFieldLookup, AuthModelViewSet):
         """
         user = self.request.user
         group_names = user.memberships.values_list('group__name', flat=True)
-        qs = Project.objects.filter(only_current(),
-                                    owner__name__in=group_names)
+        qs = Project.objects.filter(only_current(), owner__name__in=group_names)
         qs = qs.select_related('owner')\
             .prefetch_related('applications', 'instances', 'volumes', 'links')
         return qs

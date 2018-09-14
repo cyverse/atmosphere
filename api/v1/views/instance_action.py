@@ -1,4 +1,3 @@
-
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,14 +11,15 @@ from api.v1.serializers import InstanceActionSerializer
 
 
 class InstanceActionList(APIView):
-
     """
     Paginated list of all instance history for specific user.
     """
 
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,
-                          CloudAdminRequired,)
+    permission_classes = (
+        ApiAuthRequired,
+        InMaintenance,
+        CloudAdminRequired,
+    )
 
     def get(self, request):
         """
@@ -28,20 +28,22 @@ class InstanceActionList(APIView):
         """
         instance_actions = InstanceAction.objects.all()
         serialized_data = InstanceActionSerializer(
-            instance_actions, many=True).data
+            instance_actions, many=True
+        ).data
         response = Response(serialized_data)
         return response
 
 
 class InstanceActionDetail(APIView):
-
     """
     Instance history for specific instance.
     """
 
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,
-                          CloudAdminRequired,)
+    permission_classes = (
+        ApiAuthRequired,
+        InMaintenance,
+        CloudAdminRequired,
+    )
 
     def get(self, request, action_id):
         """
@@ -51,9 +53,10 @@ class InstanceActionDetail(APIView):
         try:
             instance_action = InstanceAction.objects.get(id=action_id)
         except InstanceAction.DoesNotExist:
-            return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    'Instance action ID=%s not found' %
-                                    action_id)
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                'Instance action ID=%s not found' % action_id
+            )
         serialized_data = InstanceActionSerializer(instance_action).data
         response = Response(serialized_data)
         return response

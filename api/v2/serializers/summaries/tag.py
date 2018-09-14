@@ -5,9 +5,7 @@ from core.models import Tag
 
 
 class TagSummarySerializer(serializers.HyperlinkedModelSerializer):
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:tag-detail',
-    )
+    url = UUIDHyperlinkedIdentityField(view_name='api:v2:tag-detail', )
     allow_access = serializers.SerializerMethodField()
 
     def _get_request_user(self):

@@ -4,7 +4,6 @@ from rest_framework import serializers
 
 
 class TagRelatedField(serializers.SlugRelatedField):
-
     def to_native(self, tag):
         return super(TagRelatedField, self).to_native(tag)
 

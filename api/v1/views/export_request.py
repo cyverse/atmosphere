@@ -18,7 +18,6 @@ from api.v1.views.base import AuthAPIView
 
 
 class ExportRequestList(AuthAPIView):
-
     """
     Starts the process of bundling a running instance
     """
@@ -27,7 +26,8 @@ class ExportRequestList(AuthAPIView):
         """
         """
         all_user_reqs = CoreExportRequest.objects.filter(
-            export_owner=request.user)
+            export_owner=request.user
+        )
         serialized_data = ExportRequestSerializer(all_user_reqs).data
         response = Response(serialized_data)
         return response
@@ -57,7 +57,6 @@ class ExportRequestList(AuthAPIView):
 
 
 class ExportRequest(AuthAPIView):
-
     """
     Represents:
         Calls to modify the single exportrequest
@@ -67,12 +66,12 @@ class ExportRequest(AuthAPIView):
         """
         """
         try:
-            export_request = CoreExportRequest.objects.get(
-                id=export_request_id)
+            export_request = CoreExportRequest.objects.get(id=export_request_id)
         except CoreExportRequest.DoesNotExist:
             return Response(
                 "No machine request with id %s" % export_request_id,
-                status=status.HTTP_404_NOT_FOUND)
+                status=status.HTTP_404_NOT_FOUND
+            )
         serialized_data = ExportRequestSerializer(export_request).data
         response = Response(serialized_data)
         return response
@@ -80,14 +79,15 @@ class ExportRequest(AuthAPIView):
     def patch(self, request, provider_uuid, identity_uuid, export_request_id):
         data = request.data
         try:
-            export_request = CoreExportRequest.objects.get(
-                id=export_request_id)
+            export_request = CoreExportRequest.objects.get(id=export_request_id)
         except CoreExportRequest.DoesNotExist:
             return Response(
                 "No export request with id %s" % export_request_id,
-                status=status.HTTP_404_NOT_FOUND)
-        serializer = ExportRequestSerializer(export_request,
-                                             data=data, partial=True)
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = ExportRequestSerializer(
+            export_request, data=data, partial=True
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -96,15 +96,16 @@ class ExportRequest(AuthAPIView):
     def put(self, request, provider_uuid, identity_uuid, export_request_id):
         data = request.data
         try:
-            export_request = CoreExportRequest.objects.get(
-                id=export_request_id)
+            export_request = CoreExportRequest.objects.get(id=export_request_id)
         except CoreExportRequest.DoesNotExist:
             return Response(
                 'No export request with id %s' % export_request_id,
-                status=status.HTTP_404_NOT_FOUND)
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        serializer = ExportRequestSerializer(export_request,
-                                             data=data, partial=True)
+        serializer = ExportRequestSerializer(
+            export_request, data=data, partial=True
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

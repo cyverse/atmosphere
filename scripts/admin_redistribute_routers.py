@@ -12,7 +12,8 @@ NOTES:This is the only script that will (re)assign router names to identities.
       After the routers have been re-distributed, you should be able to resume/start your instance without incident.
 """
 import argparse
-import django; django.setup()
+import django
+django.setup()
 from core.models import Provider, Identity
 from service.monitoring import _get_instance_owner_map
 
@@ -26,11 +27,12 @@ def main(args):
 
 def redistribute_routers(provider_id, users=[], redistribute=False):
     for provider in Provider.objects.filter(id=provider_id):
-        router_map = provider.get_router_distribution()  # Print 'before'
+        router_map = provider.get_router_distribution()    # Print 'before'
         instance_map = _get_instance_owner_map(provider, users=users)
 
         if redistribute:
-            needs_router = provider.identity_set.all().order_by('created_by__username')
+            needs_router = provider.identity_set.all(
+            ).order_by('created_by__username')
             router_map = {key: 0 for key in router_map.keys()}
         else:
             needs_router = provider.missing_routers()
@@ -47,21 +49,36 @@ def redistribute_routers(provider_id, users=[], redistribute=False):
             # Select next available router for the identity
             selected_router = provider.select_router(router_map)
             # Save happens here:
-            Identity.update_credential(identity, 'router_name', selected_router, replace=True)
+            Identity.update_credential(
+                identity, 'router_name', selected_router, replace=True
+            )
             router_map[selected_router] += 1
-        provider.get_router_distribution()  # Print 'after'
+        provider.get_router_distribution()    # Print 'after'
     return
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Distribute router_name to all identities")
-    parser.add_argument("--redistribute", action='store_true',
-                        help="Provider ID to redistribute router_name.")
-    parser.add_argument("--provider", dest="provider", type=int,
-                        help="Provider ID to redistribute router_name.")
-    parser.add_argument("--users", dest="users", type=str,
-                        help="Provide a list of users (comma-separated) to limit the redistribution to that subset.")
+        description="Distribute router_name to all identities"
+    )
+    parser.add_argument(
+        "--redistribute",
+        action='store_true',
+        help="Provider ID to redistribute router_name."
+    )
+    parser.add_argument(
+        "--provider",
+        dest="provider",
+        type=int,
+        help="Provider ID to redistribute router_name."
+    )
+    parser.add_argument(
+        "--users",
+        dest="users",
+        type=str,
+        help=
+        "Provide a list of users (comma-separated) to limit the redistribution to that subset."
+    )
     args = parser.parse_args()
     if not args.provider:
         parser.print_help()

@@ -24,13 +24,11 @@ class PluginManager(object):
         the local.py settings file.
         """
         if cls.plugin_required and not plugin_path:
-            raise ImproperlyConfigured(
-                    cls.plugin_required_message)
+            raise ImproperlyConfigured(cls.plugin_required_message)
 
         plugin = load_plugin_class(plugin_path)
         if cls.plugin_required and not plugin:
-            raise ImproperlyConfigured(
-                    cls.plugin_required_message)
+            raise ImproperlyConfigured(cls.plugin_required_message)
         return plugin
 
 
@@ -57,8 +55,9 @@ To restore 'basic' functionality, please set settings.MACHINE_VALIDATION_PLUGIN 
             machine_validator = MachineValidationPluginCls(account_driver)
         except:
             logger.exception(
-                "Failed to initialize MachineValidation plugin %s"
-                % MachineValidationPluginCls)
+                "Failed to initialize MachineValidation plugin %s" %
+                MachineValidationPluginCls
+            )
             raise
         return machine_validator
 
@@ -79,8 +78,7 @@ class PluginListManager(object):
             fn = load_plugin_class(plugin_path)
             plugin_class_list.append(fn)
         if cls.plugin_required and not plugin_class_list:
-            raise ImproperlyConfigured(
-                    cls.plugin_required_message)
+            raise ImproperlyConfigured(cls.plugin_required_message)
         return plugin_class_list
 
 
@@ -102,16 +100,22 @@ class DefaultQuotaPluginManager(PluginListManager):
             try:
                 inspect.getcallargs(
                     getattr(plugin, 'get_default_quota'),
-                    user=user, provider=provider)
+                    user=user,
+                    provider=provider
+                )
             except AttributeError:
                 logger.info(
-                    "Validation plugin %s missing method 'get_default_quota'"
-                    % DefaultQuotaPlugin)
+                    "Validation plugin %s missing method 'get_default_quota'" %
+                    DefaultQuotaPlugin
+                )
             except TypeError:
                 logger.info(
                     "Validation plugin %s does not accept kwargs `user` & `provider`"
-                    % DefaultQuotaPlugin)
-            _default_quota = plugin.get_default_quota(user=user, provider=provider)
+                    % DefaultQuotaPlugin
+                )
+            _default_quota = plugin.get_default_quota(
+                user=user, provider=provider
+            )
             if _default_quota:
                 return _default_quota
         return _default_quota
@@ -129,7 +133,7 @@ class AllocationSourcePluginManager(PluginListManager):
     Provide a plugin to create more complicated rules for default quotas
     """
     list_of_classes = getattr(settings, 'ALLOCATION_SOURCE_PLUGINS', [])
-    plugin_required = True  # For now...
+    plugin_required = True    # For now...
 
     @classmethod
     def ensure_user_allocation_sources(cls, user, provider=None):
@@ -149,16 +153,22 @@ class AllocationSourcePluginManager(PluginListManager):
             try:
                 inspect.getcallargs(
                     getattr(plugin, 'ensure_user_allocation_source'),
-                    user=user, provider=provider)
+                    user=user,
+                    provider=provider
+                )
             except AttributeError:
                 logger.info(
                     "Allocation Source plugin %s missing method 'ensure_user_allocation_source'",
-                    AllocationSourcePlugin)
+                    AllocationSourcePlugin
+                )
             except TypeError:
                 logger.info(
                     "Allocation Source plugin %s does not accept kwargs `user` & `provider`",
-                    AllocationSourcePlugin)
-            _has_valid_allocation_sources = plugin.ensure_user_allocation_source(user=user, provider=provider)
+                    AllocationSourcePlugin
+                )
+            _has_valid_allocation_sources = plugin.ensure_user_allocation_source(
+                user=user, provider=provider
+            )
             if _has_valid_allocation_sources:
                 return _has_valid_allocation_sources
         return _has_valid_allocation_sources
@@ -186,18 +196,25 @@ class AllocationSourcePluginManager(PluginListManager):
             try:
                 inspect.getcallargs(
                     getattr(plugin, 'get_enforcement_override'),
-                    user=user, allocation_source=allocation_source, provider=provider)
+                    user=user,
+                    allocation_source=allocation_source,
+                    provider=provider
+                )
             except AttributeError:
                 logger.info(
                     "Allocation Source plugin %s missing method 'get_enforcement_override'",
-                    AllocationSourcePlugin)
+                    AllocationSourcePlugin
+                )
             except TypeError:
                 logger.info(
                     "Allocation Source plugin %s does not accept kwargs `user`, `allocation_source`, & `provider`",
-                    AllocationSourcePlugin)
-            _enforcement_override_choice = plugin.get_enforcement_override(user=user,
-                                                                           allocation_source=allocation_source,
-                                                                           provider=provider)
+                    AllocationSourcePlugin
+                )
+            _enforcement_override_choice = plugin.get_enforcement_override(
+                user=user,
+                allocation_source=allocation_source,
+                provider=provider
+            )
             if _enforcement_override_choice != EnforcementOverrideChoice.NO_OVERRIDE:
                 return _enforcement_override_choice
         return _enforcement_override_choice
@@ -223,7 +240,9 @@ To restore 'basic' functionality, please set settings.ACCOUNT_CREATION_PLUGINS t
         accounts = []
         for AccountCreationPluginCls in cls.load_plugins(cls.list_of_classes):
             plugin = AccountCreationPluginCls()
-            created = plugin.create_accounts(provider=provider, username=username, force=force)
+            created = plugin.create_accounts(
+                provider=provider, username=username, force=force
+            )
             if created:
                 accounts.extend(created)
         return accounts
@@ -236,7 +255,9 @@ To restore 'basic' functionality, please set settings.ACCOUNT_CREATION_PLUGINS t
         accounts = []
         for AccountCreationPluginCls in cls.load_plugins(cls.list_of_classes):
             plugin = AccountCreationPluginCls()
-            deleted = plugin.delete_accounts(provider=provider, username=username)
+            deleted = plugin.delete_accounts(
+                provider=provider, username=username
+            )
             if deleted:
                 accounts.extend(deleted)
         return accounts
@@ -264,17 +285,17 @@ class ValidationPluginManager(PluginListManager):
         for ValidationPlugin in cls.load_plugins(cls.list_of_classes):
             plugin = ValidationPlugin()
             try:
-                inspect.getcallargs(
-                    getattr(plugin, 'validate_user'),
-                    user=user)
+                inspect.getcallargs(getattr(plugin, 'validate_user'), user=user)
             except AttributeError:
                 logger.info(
-                    "Validation plugin %s missing method 'validate_user'"
-                    % ValidationPlugin)
+                    "Validation plugin %s missing method 'validate_user'" %
+                    ValidationPlugin
+                )
             except TypeError:
                 logger.info(
-                    "Validation plugin %s does not accept kwarg `user`"
-                    % ValidationPlugin)
+                    "Validation plugin %s does not accept kwarg `user`" %
+                    ValidationPlugin
+                )
             _is_valid = plugin.validate_user(user=user)
             if _is_valid:
                 return True
@@ -300,21 +321,25 @@ class ExpirationPluginManager(PluginListManager):
         for ExpirationPlugin in cls.load_plugins(cls.list_of_classes):
             plugin = ExpirationPlugin()
             try:
-                inspect.getcallargs(
-                    getattr(plugin, 'is_expired'),
-                    user=user)
+                inspect.getcallargs(getattr(plugin, 'is_expired'), user=user)
             except AttributeError:
                 logger.info(
-                    "Expiration plugin %s does not have a 'is_expired' method"
-                    % ExpirationPlugin)
+                    "Expiration plugin %s does not have a 'is_expired' method" %
+                    ExpirationPlugin
+                )
             except TypeError:
-                logger.info("Expiration plugin %s does not accept kwarg `user`"
-                            % ExpirationPlugin)
+                logger.info(
+                    "Expiration plugin %s does not accept kwarg `user`" %
+                    ExpirationPlugin
+                )
             try:
                 # TODO: Set a reasonable timeout but don't let it hold this indefinitely
                 _is_expired = plugin.is_expired(user=user)
             except Exception as exc:
-                logger.info("Expiration plugin %s encountered an error: %s" % (ExpirationPlugin, exc))
+                logger.info(
+                    "Expiration plugin %s encountered an error: %s" %
+                    (ExpirationPlugin, exc)
+                )
                 _is_expired = True
 
             if _is_expired:

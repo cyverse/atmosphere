@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from core.models.user import AtmosphereUser
+
 # from threepio import logger
 
 
@@ -25,11 +26,10 @@ class MatchType(models.Model):
     name = models.CharField(max_length=128)
 
     def __unicode__(self):
-        return "%s" % (self.name,)
+        return "%s" % (self.name, )
 
 
 class PatternMatch(models.Model):
-
     """
     pattern - the actual string to be matched on
     type - logic to use for matching the string
@@ -82,8 +82,6 @@ def create_pattern_match(pattern, pattern_type, created_by):
         match_type = MatchType.objects.get(name="Username")
     else:
         raise ValueError("Received invalid pattern_type: %s" % pattern_type)
-    pattern = PatternMatch(
-        pattern=pattern,
-        type=match_type)
+    pattern = PatternMatch(pattern=pattern, type=match_type)
     pattern.save()
     return pattern

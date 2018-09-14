@@ -6,16 +6,15 @@ from core.models import License
 
 
 class LicenseViewSet(MultipleFieldLookup, AuthModelViewSet):
-
     """
     API endpoint that allows licenses to be viewed or edited.
     """
 
     queryset = License.objects.none()
-    permission_classes = (permissions.CanEditOrReadOnly,)
+    permission_classes = (permissions.CanEditOrReadOnly, )
     serializer_class = LicenseSerializer
-    filter_fields = ('title',)
-    search_fields = ('^title',)
+    filter_fields = ('title', )
+    search_fields = ('^title', )
     lookup_fields = ("id", "uuid")
 
     def get_queryset(self):

@@ -12,7 +12,6 @@ from core.models.application import Application
 
 
 class ScriptType(models.Model):
-
     """
     ScriptType objects are created by developers,
     they should NOT be added/removed unless there
@@ -30,7 +29,6 @@ class ScriptType(models.Model):
 
 
 class BootScript(models.Model):
-
     """
     BootScripts can be created as an isolated unit, before they are associated
     with a specific application or instance.
@@ -58,7 +56,7 @@ class BootScript(models.Model):
     def get_text(self, clean=True):
         raw_text = ""
         if self.script_type.name == 'Raw Text':
-            raw_text = self.script_text.strip()  # Remove whitespace
+            raw_text = self.script_text.strip()    # Remove whitespace
         elif self.script_type.name == 'URL':
             raw_text = self._text_from_url()
         if clean:
@@ -77,7 +75,10 @@ class BootScript(models.Model):
         elif type(raw_text) == str:
             return raw_text.decode('unicode_escape').encode('ascii', 'ignore')
         else:
-            raise TypeError("Expected type of 'raw_text' to be unicode/str. Found: %s" % type(raw_text))
+            raise TypeError(
+                "Expected type of 'raw_text' to be unicode/str. Found: %s" %
+                type(raw_text)
+            )
 
     def _text_from_url(self):
         """
@@ -98,10 +99,10 @@ class ApplicationVersionBootScript(models.Model):
     """
     Represents the M2M table auto-created by 'applicationversion.bootscripts'
     """
-    image_version = models.ForeignKey("ApplicationVersion",
-                                      db_column='applicationversion_id')
-    boot_script = models.ForeignKey(BootScript,
-                                    db_column="bootscript_id")
+    image_version = models.ForeignKey(
+        "ApplicationVersion", db_column='applicationversion_id'
+    )
+    boot_script = models.ForeignKey(BootScript, db_column="bootscript_id")
 
     def __unicode__(self):
         return "(ApplicationVersion:%s - BootScript:%s) " %\
@@ -115,13 +116,11 @@ class ApplicationVersionBootScript(models.Model):
 
 # Useful
 def get_scripts_for_user(username):
-    return BootScript.objects.filter(
-        created_by__username=username)
+    return BootScript.objects.filter(created_by__username=username)
 
 
 def get_scripts_for_application(application_uuid):
-    return BootScript.objects.filter(
-        applications__uuid=application_uuid)
+    return BootScript.objects.filter(applications__uuid=application_uuid)
 
 
 def _save_scripts_to_application(application, boot_script_list):
@@ -146,9 +145,9 @@ def _save_scripts_to_instance(instance, boot_script_list):
     for script_id in boot_script_list:
         try:
             if type(script_id) == int:
-                query=Q(id=script_id)
+                query = Q(id=script_id)
             else:
-                query=Q(uuid=script_id)
+                query = Q(uuid=script_id)
             script = BootScript.objects.get(query)
         except BootScript.DoesNotExist:
             # This 2nd-attempt can be removed when API v1 is removed

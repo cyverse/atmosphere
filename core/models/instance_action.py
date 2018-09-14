@@ -36,8 +36,9 @@ class InstanceAction(models.Model):
             inst = Instance.objects.get(**instance_kwargs)
             return inst
         except Instance.DoesNotExist:
-            logger.info("Asking for actions on non-existent instance: %s "
-                        % instance_id)
+            logger.info(
+                "Asking for actions on non-existent instance: %s " % instance_id
+            )
             return None
 
     @classmethod
@@ -51,7 +52,8 @@ class InstanceAction(models.Model):
             return cls.objects.none()
         # Filter down to what the *provider* will let you do to the *instance*
         valid_actions = cls.filter_by_provider(
-            instance.created_by_identity.provider.id, queryset)
+            instance.created_by_identity.provider.id, queryset
+        )
         # THEN Filter down to what the *instance* will let you do
         valid_actions = cls.valid_instance_actions(instance, valid_actions)
         return valid_actions
@@ -61,9 +63,7 @@ class InstanceAction(models.Model):
         # TODO: Filter actions down to those available for a specific provider
         if not queryset:
             queryset = cls.objects.all()
-        kwargs = {
-            'provider_actions__enabled': True
-            }
+        kwargs = {'provider_actions__enabled': True}
         if type(provider_id) == int:
             kwargs['provider_actions__provider__id'] = provider_id
         elif type(provider_id) in [str, uuid.UUID]:
@@ -74,16 +74,20 @@ class InstanceAction(models.Model):
     def verify_actions_exist(cls, all_actions):
         from core.models import Provider, ProviderInstanceAction
         for action in all_actions:
-            action_exists = InstanceAction.objects.filter(name=action).count() > 0
+            action_exists = InstanceAction.objects.filter(name=action
+                                                         ).count() > 0
             if not action_exists:
                 instance_action = InstanceAction.objects.create(
-                    name=action, key=action,
-                    description="%s an instance" % action)
+                    name=action,
+                    key=action,
+                    description="%s an instance" % action
+                )
                 for provider in Provider.objects.all():
                     ProviderInstanceAction.objects.create(
                         provider=provider,
                         instance_action=instance_action,
-                        enabled=True)
+                        enabled=True
+                    )
         return
 
     @classmethod
@@ -96,7 +100,9 @@ class InstanceAction(models.Model):
         last_activity = last_history.activity
         if last_status in ['initializing', 'networking', 'deploying']:
             last_status = 'active'
-        if last_activity in ['shelving_image_uploading', 'shelving_image_pending_upload']:
+        if last_activity in [
+            'shelving_image_uploading', 'shelving_image_pending_upload'
+        ]:
             last_status = 'shelved'
         all_actions = []
         # Basic Actions: Terminate will work in (almost) every case.
@@ -153,7 +159,8 @@ class InstanceAction(models.Model):
         if len(all_actions) == 2:
             logger.debug(
                 "Edge case Warning: Status/activity=(%s/%s) returns "
-                "no updates to actions" % (last_status, last_activity))
+                "no updates to actions" % (last_status, last_activity)
+            )
         cls.verify_actions_exist(all_actions)
 
         if not queryset:

@@ -24,16 +24,10 @@ class ResourceRequestSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ResourceRequest
         fields = (
-            'id',
-            'uuid',
-            'url',
-            'request',
-            'description',
-            'status',
-            'created_by',
-            'admin_message',
-            'start_date'
+            'id', 'uuid', 'url', 'request', 'description', 'status',
+            'created_by', 'admin_message', 'start_date'
         )
+
 
 class AdminResourceRequestSerializer(ResourceRequestSerializer):
     url = UUIDHyperlinkedIdentityField(

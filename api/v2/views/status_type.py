@@ -6,7 +6,6 @@ from api.v2.views.mixins import MultipleFieldLookup
 
 
 class StatusTypeViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
-
     """
     API endpoint that allows status types to be viewed.
     """

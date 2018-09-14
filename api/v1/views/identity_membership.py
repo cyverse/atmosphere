@@ -14,7 +14,6 @@ from api.v1.views.base import AuthAPIView
 
 
 class IdentityMembershipList(AuthAPIView):
-
     """
     A List of people who are members of this identity.
     """
@@ -32,13 +31,14 @@ class IdentityMembershipList(AuthAPIView):
         except ObjectDoesNotExist as odne:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                '%s does not exist.' % odne.message.split()[0])
+                '%s does not exist.' % odne.message.split()[0]
+            )
         if not identity.can_share(user):
             return failure_response(
                 status.HTTP_401_UNAUTHORIZED,
                 "User %s cannot remove sharing from identity %s. "
-                "This incident will be reported"
-                % (user, identity_uuid))
+                "This incident will be reported" % (user, identity_uuid)
+            )
         id_member = identity.share(group)
         serializer = IdentitySerializer(id_member.identity)
         serialized_data = serializer.data
@@ -51,11 +51,13 @@ class IdentityMembershipList(AuthAPIView):
         try:
             # All other members of the identity are visible
             id_members = CoreIdentityMembership.objects.filter(
-                identity__uuid=identity_uuid)
+                identity__uuid=identity_uuid
+            )
         except ObjectDoesNotExist as odne:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                '%s does not exist.' % odne.message.split()[0])
+                '%s does not exist.' % odne.message.split()[0]
+            )
         id_list = [id_member.identity for id_member in id_members[:1]]
         serializer = IdentitySerializer(id_list, many=True)
         serialized_data = serializer.data
@@ -63,13 +65,13 @@ class IdentityMembershipList(AuthAPIView):
 
 
 class IdentityMembership(AuthAPIView):
-
     """
     IdentityMembership details for a specific group/identity combination.
     """
 
-    def delete(self, request, provider_uuid,
-               identity_uuid, group_name, format=None):
+    def delete(
+        self, request, provider_uuid, identity_uuid, group_name, format=None
+    ):
         """
         Unshare the identity.
         """
@@ -78,18 +80,18 @@ class IdentityMembership(AuthAPIView):
             identity = Identity.objects.get(uuid=identity_uuid)
         except Identity.DoesNotExist:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "Identity does not exist.")
+                status.HTTP_404_NOT_FOUND, "Identity does not exist."
+            )
         if not identity.can_share(user):
             logger.error(
                 "User %s cannot remove sharing from identity %s. "
-                "This incident will be reported"
-                % (user, identity_uuid))
+                "This incident will be reported" % (user, identity_uuid)
+            )
             return failure_response(
                 status.HTTP_401_UNAUTHORIZED,
                 "User %s cannot remove sharing from identity %s. "
-                "This incident will be reported"
-                % (user, identity_uuid))
+                "This incident will be reported" % (user, identity_uuid)
+            )
         group = Group.objects.get(name=group_name)
         id_member = identity.unshare(group)
         serializer = IdentitySerializer(id_member.identity)

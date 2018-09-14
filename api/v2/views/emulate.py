@@ -19,7 +19,7 @@ from threepio import logger
 
 class TokenEmulateViewSet(ViewSet):
     lookup_field = 'username'
-    permission_classes = (permissions.IsAdminOrReadOnly,)
+    permission_classes = (permissions.IsAdminOrReadOnly, )
     required_keys = []
 
     def retrieve(self, *args, **kwargs):
@@ -30,8 +30,13 @@ class TokenEmulateViewSet(ViewSet):
             token_key='EMULATED-' + str(uuid4()),
             remote_ip=self.request.META['REMOTE_ADDR'],
             token_expire=expireDate,
-            issuer="DRF-EmulatedToken-%s" % user.username)
-        serialized_data = TokenSerializer(new_token, context={'request':self.request}).data
+            issuer="DRF-EmulatedToken-%s" % user.username
+        )
+        serialized_data = TokenSerializer(
+            new_token, context={
+                'request': self.request
+            }
+        ).data
         return Response(serialized_data, status=status.HTTP_201_CREATED)
 
 
@@ -49,8 +54,9 @@ class SessionEmulateViewSet(TokenEmulateViewSet):
 
 def emulate_session(request, username=None):
     try:
-        logger.info("Emulate attempt: %s wants to be %s"
-                    % (request.user, username))
+        logger.info(
+            "Emulate attempt: %s wants to be %s" % (request.user, username)
+        )
         logger.info(request.session.__dict__)
         if not username and 'emulator' in request.session:
             logger.info("Clearing emulation attributes from user")
@@ -61,34 +67,38 @@ def emulate_session(request, username=None):
         try:
             user = AtmosphereUser.objects.get(username=username)
         except AtmosphereUser.DoesNotExist:
-            logger.info("Emulate attempt failed. User <%s> does not exist"
-                        % username)
-            return HttpResponseRedirect(
-                settings.REDIRECT_URL +
-                "/api/v2")
+            logger.info(
+                "Emulate attempt failed. User <%s> does not exist" % username
+            )
+            return HttpResponseRedirect(settings.REDIRECT_URL + "/api/v2")
 
         logger.info("Emulate success, creating tokens for %s" % username)
         expireDate = timezone.now() + secrets.TOKEN_EXPIRY_TIME
         token = get_or_create_token(
             user,
-            token_key='EMULATED-'+str(uuid4()),
+            token_key='EMULATED-' + str(uuid4()),
             token_expire=expireDate,
             remote_ip=request.META['REMOTE_ADDR'],
-            issuer="DRF-EmulatedSession-%s" % user.username)
+            issuer="DRF-EmulatedSession-%s" % user.username
+        )
         token.save()
         # Keep original emulator if it exists, or use the last known username
         original_emulator = request.session.get(
-            'emulator', request.session['username'])
+            'emulator', request.session['username']
+        )
         request.session['emulator'] = original_emulator
         # Set the username to the user to be emulated
         # to whom the token also belongs
         request.session['username'] = username
         request.session['token'] = token.key
-        logger.info("Returning emulated user - %s - to api root "
-                    % username)
+        logger.info("Returning emulated user - %s - to api root " % username)
         logger.info(request.session.__dict__)
         logger.info(request.user)
-        serialized_data = TokenSerializer(token, context={'request': request}).data
+        serialized_data = TokenSerializer(
+            token, context={
+                'request': request
+            }
+        ).data
         return Response(serialized_data, status=status.HTTP_201_CREATED)
     except Exception as e:
         logger.warn("Emulate request failed")

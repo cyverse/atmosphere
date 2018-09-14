@@ -33,9 +33,13 @@ def after_scenario(context, scenario):
 def before_step(context, step):
     if hasattr(context, 'frozen_current_time'):
         if not hasattr(context, 'freezer'):
-            context.freezer = freezegun.freeze_time(context.frozen_current_time, tick=context.freeze_time_with_tick)
+            context.freezer = freezegun.freeze_time(
+                context.frozen_current_time, tick=context.freeze_time_with_tick
+            )
         else:
-            context.freezer.time_to_freeze = dateutil.parser.parse(context.frozen_current_time)
+            context.freezer.time_to_freeze = dateutil.parser.parse(
+                context.frozen_current_time
+            )
             context.freezer.tick = context.freeze_time_with_tick
         context.freezer.start()
 

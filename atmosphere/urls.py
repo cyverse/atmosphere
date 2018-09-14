@@ -16,7 +16,10 @@ urlpatterns = [
     url(r'', include("core.urls", namespace="core")),
 
     # Authentication endpoints
-    url(r'', include("django_cyverse_auth.urls", namespace="django_cyverse_auth")),
+    url(
+        r'',
+        include("django_cyverse_auth.urls", namespace="django_cyverse_auth")
+    ),
 
     # API Layer endpoints
     url(r'^api/', include("api.urls", namespace="api")),
@@ -25,24 +28,22 @@ urlpatterns = [
     url(r'^auth$', Authentication.as_view(), name='token-auth'),
 
     # DRF API Login/Logout
-    url(r'^api-auth/',
-        include('rest_framework.urls', namespace='rest_framework')),
+    url(
+        r'^api-auth/',
+        include('rest_framework.urls', namespace='rest_framework')
+    ),
 
     # Token login (Used internally by DRF?)
-    url(r'^api-token-auth/',
-        ObtainAuthToken.as_view()),
+    url(r'^api-token-auth/', ObtainAuthToken.as_view()),
 
     # DB Admin Panel for admin users
     url(r'^admin/', include(admin.site.urls))
 ]
 
-
 if settings.DEBUG and 'debug_toolbar.middleware.DebugToolbarMiddleware' in settings.MIDDLEWARE_CLASSES:
     try:
         import debug_toolbar
-        urlpatterns += (
-            url(r'^__debug__/', include(debug_toolbar.urls)),
-            )
+        urlpatterns += (url(r'^__debug__/', include(debug_toolbar.urls)), )
     except ImportError:
         pass
 

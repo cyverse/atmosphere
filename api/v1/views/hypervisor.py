@@ -15,7 +15,6 @@ from api.v1.views.base import AuthAPIView
 
 
 class HypervisorList(AuthAPIView):
-
     """
     List all available Hypervisors
     """
@@ -33,7 +32,8 @@ class HypervisorList(AuthAPIView):
         if not hasattr(esh_driver._connection, 'ex_list_hypervisor_nodes'):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "The Hypervisor List cannot be retrieved for this provider.")
+                "The Hypervisor List cannot be retrieved for this provider."
+            )
         try:
             esh_hypervisor_list =\
                 esh_driver._connection.ex_list_hypervisor_nodes()
@@ -48,11 +48,11 @@ class HypervisorList(AuthAPIView):
         except Exception as exc:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "Error encountered retrieving hypervisor list:%s" % exc)
+                "Error encountered retrieving hypervisor list:%s" % exc
+            )
 
 
 class HypervisorDetail(AuthAPIView):
-
     """
     View a single Hypervisor
     """
@@ -73,7 +73,8 @@ class HypervisorDetail(AuthAPIView):
         if not hasattr(esh_driver._connection, 'ex_detail_hypervisor_node'):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "Hypervisor Details cannot be retrieved for this provider.")
+                "Hypervisor Details cannot be retrieved for this provider."
+            )
         try:
             hypervisor = esh_driver._connection\
                 .ex_detail_hypervisor_node(hypervisor_id)
@@ -85,4 +86,5 @@ class HypervisorDetail(AuthAPIView):
         except Exception as exc:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "Error encountered retrieving hypervisor details:%s" % exc)
+                "Error encountered retrieving hypervisor details:%s" % exc
+            )

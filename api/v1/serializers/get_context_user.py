@@ -21,11 +21,12 @@ def get_context_user(serializer, kwargs, required=False):
     if user:
         # NOTE: Converting str to atmosphere user is easier when debugging
         if isinstance(user, str):
-            user = AtmosphereUser.objects.get(
-                username=user)
+            user = AtmosphereUser.objects.get(username=user)
         elif type(user) not in [AnonymousUser, AtmosphereUser]:
-            raise Exception("This Serializer REQUIRES the \"user\" "
-                            "to be of type str or AtmosphereUser")
+            raise Exception(
+                "This Serializer REQUIRES the \"user\" "
+                "to be of type str or AtmosphereUser"
+            )
     elif request:
         user = request.user
     #    logger.debug("%s initialized with user %s"

@@ -43,16 +43,20 @@ class TACCUserForXSEDEUsername(models.Model):
 def _get_tacc_user_for_xsede_username(request):
     context = {}
 
-    form_class = modelform_factory(TACCUserForXSEDEUsername,
-                                   fields=['xsede_username'],
-                                   widgets={'xsede_username': TextInput})
+    form_class = modelform_factory(
+        TACCUserForXSEDEUsername,
+        fields=['xsede_username'],
+        widgets={'xsede_username': TextInput}
+    )
 
     if request.method == 'POST':
         request.POST = request.POST.copy()
         form = form_class(request.POST)
         form.is_valid()
         xsede_username = form.cleaned_data['xsede_username']
-        info, header, rows = _execute_tas_api_query(TACC_USERNAME_FOR_XSEDE_USERNAME, xsede_username)
+        info, header, rows = _execute_tas_api_query(
+            TACC_USERNAME_FOR_XSEDE_USERNAME, xsede_username
+        )
         context['info'] = info
         context['header'] = header
         context['rows'] = rows
@@ -82,16 +86,18 @@ class ActiveAllocations(models.Model):
 def _get_active_allocations(request):
     context = {}
 
-    form_class = modelform_factory(ActiveAllocations,
-                                   fields=['resource'],
-                                   widgets={'resource': TextInput})
+    form_class = modelform_factory(
+        ActiveAllocations, fields=['resource'], widgets={'resource': TextInput}
+    )
 
     if request.method == 'POST':
         request.POST = request.POST.copy()
         form = form_class(request.POST)
         form.is_valid()
         resource = form.cleaned_data['resource']
-        info, header, rows = _execute_tas_api_query(ACTIVE_ALLOCATIONS, resource)
+        info, header, rows = _execute_tas_api_query(
+            ACTIVE_ALLOCATIONS, resource
+        )
         context['info'] = info
         context['header'] = header
         context['rows'] = rows
@@ -121,16 +127,20 @@ class ProjectsWithActiveAllocation(models.Model):
 def _get_projects_with_active_allocation(request):
     context = {}
 
-    form_class = modelform_factory(ProjectsWithActiveAllocation,
-                                   fields=['resource'],
-                                   widgets={'resource': TextInput})
+    form_class = modelform_factory(
+        ProjectsWithActiveAllocation,
+        fields=['resource'],
+        widgets={'resource': TextInput}
+    )
 
     if request.method == 'POST':
         request.POST = request.POST.copy()
         form = form_class(request.POST)
         form.is_valid()
         resource = form.cleaned_data['resource']
-        info, header, rows = _execute_tas_api_query(PROJECTS_WITH_ACTIVE_ALLOCATION, resource)
+        info, header, rows = _execute_tas_api_query(
+            PROJECTS_WITH_ACTIVE_ALLOCATION, resource
+        )
         context['info'] = info
         context['header'] = header
         context['rows'] = rows
@@ -144,7 +154,9 @@ def _get_projects_with_active_allocation(request):
 
 
 class ProjectsForUser(models.Model):
-    tacc_username = models.CharField('TACC Username', max_length=255, default='jlf599')
+    tacc_username = models.CharField(
+        'TACC Username', max_length=255, default='jlf599'
+    )
 
     class Meta:
         app_label = 'jetstream'
@@ -160,16 +172,20 @@ class ProjectsForUser(models.Model):
 def _get_projects_for_user(request):
     context = {}
 
-    form_class = modelform_factory(ProjectsForUser,
-                                   fields=['tacc_username'],
-                                   widgets={'tacc_username': TextInput})
+    form_class = modelform_factory(
+        ProjectsForUser,
+        fields=['tacc_username'],
+        widgets={'tacc_username': TextInput}
+    )
 
     if request.method == 'POST':
         request.POST = request.POST.copy()
         form = form_class(request.POST)
         form.is_valid()
         tacc_username = form.cleaned_data['tacc_username']
-        info, header, rows = _execute_tas_api_query(PROJECTS_FOR_USER, tacc_username)
+        info, header, rows = _execute_tas_api_query(
+            PROJECTS_FOR_USER, tacc_username
+        )
         context['info'] = info
         context['header'] = header
         context['rows'] = rows
@@ -183,7 +199,9 @@ def _get_projects_for_user(request):
 
 
 class UsersForProject(models.Model):
-    project_charge_code = models.CharField('Project Charge Code', max_length=255, default='TG-TRA160003')
+    project_charge_code = models.CharField(
+        'Project Charge Code', max_length=255, default='TG-TRA160003'
+    )
 
     class Meta:
         app_label = 'jetstream'
@@ -199,16 +217,20 @@ class UsersForProject(models.Model):
 def _get_users_for_project(request):
     context = {}
 
-    form_class = modelform_factory(UsersForProject,
-                                   fields=['project_charge_code'],
-                                   widgets={'project_charge_code': TextInput})
+    form_class = modelform_factory(
+        UsersForProject,
+        fields=['project_charge_code'],
+        widgets={'project_charge_code': TextInput}
+    )
 
     if request.method == 'POST':
         request.POST = request.POST.copy()
         form = form_class(request.POST)
         form.is_valid()
         project_charge_code = form.cleaned_data['project_charge_code']
-        info, header, rows = _execute_tas_api_query(USERS_FOR_PROJECT, project_charge_code)
+        info, header, rows = _execute_tas_api_query(
+            USERS_FOR_PROJECT, project_charge_code
+        )
         context['info'] = info
         context['header'] = header
         context['rows'] = rows
@@ -237,7 +259,9 @@ def _execute_tas_api_query(query_type, query=None):
         logging.debug('status: %s', status)
         message = data.get('message', None)
         logging.debug('message: %s', message)
-        info = 'Response: {}, status: {}, message: {}'.format(response.__repr__(), status, message)
+        info = 'Response: {}, status: {}, message: {}'.format(
+            response.__repr__(), status, message
+        )
         result = data.get('result')
         logging.debug('result: %s', result)
         if result is None:
@@ -249,7 +273,9 @@ def _execute_tas_api_query(query_type, query=None):
         elif isinstance(result, collections.Sequence):
             result_headers = copy.copy(result[0].keys())
             hard_coded_headers = []
-            trimmed_result_headers = list(set(result_headers) - set(hard_coded_headers))
+            trimmed_result_headers = list(
+                set(result_headers) - set(hard_coded_headers)
+            )
             header = hard_coded_headers + trimmed_result_headers
             rows = [[row.get(key) for key in header] for row in result]
         else:
@@ -259,4 +285,7 @@ def _execute_tas_api_query(query_type, query=None):
     return info, header, rows
 
 
-__all__ = ['TACCUserForXSEDEUsername', 'ActiveAllocations', 'ProjectsWithActiveAllocation']
+__all__ = [
+    'TACCUserForXSEDEUsername', 'ActiveAllocations',
+    'ProjectsWithActiveAllocation'
+]

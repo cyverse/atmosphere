@@ -10,7 +10,6 @@ from core.models.volume import Volume
 
 
 class Project(models.Model):
-
     """
     A Project is an abstract container of (0-to-many):
       * Application
@@ -24,10 +23,12 @@ class Project(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     owner = models.ForeignKey(Group, related_name="projects")
     created_by = models.ForeignKey('AtmosphereUser', related_name="projects")
-    applications = models.ManyToManyField(Application, related_name="projects",
-                                          blank=True)
-    links = models.ManyToManyField(ExternalLink, related_name="projects",
-                                          blank=True)
+    applications = models.ManyToManyField(
+        Application, related_name="projects", blank=True
+    )
+    links = models.ManyToManyField(
+        ExternalLink, related_name="projects", blank=True
+    )
 
     @staticmethod
     def shared_with_user(user, is_leader=None):
@@ -42,17 +43,21 @@ class Project(models.Model):
 
     def active_volumes(self):
         return self.volumes.model.active_volumes.filter(
-            pk__in=self.volumes.values_list("id"))
+            pk__in=self.volumes.values_list("id")
+        )
 
     def active_instances(self):
         return self.instances.model.active_instances.filter(
-            pk__in=self.instances.values_list("id"))
+            pk__in=self.instances.values_list("id")
+        )
 
     def has_shared_resources(self, current_user=None):
         if not current_user:
             current_user = self.created_by
-        has_shared_volumes = self.active_volumes().filter(~Q(instance_source__created_by=current_user)).count() > 0
-        has_shared_instances = self.active_instances().filter(~Q(created_by=current_user)).count() > 0
+        has_shared_volumes = self.active_volumes(
+        ).filter(~Q(instance_source__created_by=current_user)).count() > 0
+        has_shared_instances = self.active_instances(
+        ).filter(~Q(created_by=current_user)).count() > 0
         return has_shared_volumes or has_shared_instances
 
     def get_users(self):
@@ -62,7 +67,9 @@ class Project(models.Model):
         from core.models import AtmosphereUser
         leaders = self.owner.get_leaders()
         if not leaders:
-            leaders = AtmosphereUser.objects.filter(username=self.created_by.username)
+            leaders = AtmosphereUser.objects.filter(
+                username=self.created_by.username
+            )
         return leaders
 
     def __unicode__(self):
@@ -71,11 +78,15 @@ class Project(models.Model):
 
     def has_running_resources(self):
         now_date = timezone.now()
-        if any(not instance.end_date or instance.end_date >= now_date
-               for instance in self.instances.all()):
+        if any(
+            not instance.end_date or instance.end_date >= now_date
+            for instance in self.instances.all()
+        ):
             return True
-        if any(not volume.end_date or volume.end_date >= now_date
-               for volume in self.volumes.all()):
+        if any(
+            not volume.end_date or volume.end_date >= now_date
+            for volume in self.volumes.all()
+        ):
             return True
 
     def remove_object(self, related_obj):
@@ -109,15 +120,16 @@ class Project(models.Model):
             self._test_project_ownership(application.created_by)
             self.applications.add(related_obj)
         else:
-            raise Exception("Invalid type for Object %s: %s"
-                            % (related_obj, type(related_obj)))
+            raise Exception(
+                "Invalid type for Object %s: %s" %
+                (related_obj, type(related_obj))
+            )
 
     def _test_project_ownership(self, user):
         group = self.owner
         if user in group.user_set.all():
             return True
-        raise Exception(
-            "User:%s does NOT belong to Group:%s" % (user, group))
+        raise Exception("User:%s does NOT belong to Group:%s" % (user, group))
 
     def copy_objects(self, to_project):
         """

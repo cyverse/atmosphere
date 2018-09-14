@@ -8,7 +8,6 @@ from core.models import Credential
 
 
 class CredentialViewSet(MultipleFieldLookup, AuthModelViewSet):
-
     """
     API endpoint that allows providers to be viewed or edited.
     NOTE: we have *INTENTIONALLY* left out the ability to *UPDATE* or *DELETE* a allocation.
@@ -17,9 +16,7 @@ class CredentialViewSet(MultipleFieldLookup, AuthModelViewSet):
     lookup_fields = ("id", "uuid")
     queryset = Credential.objects.all()
     serializer_class = CredentialSerializer
-    permission_classes = (
-        CanEditOrReadOnly,
-    )
+    permission_classes = (CanEditOrReadOnly, )
     http_method_names = ['get', 'head', 'options', 'trace']
 
     def get_queryset(self):

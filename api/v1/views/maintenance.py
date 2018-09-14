@@ -15,7 +15,6 @@ from api.v1.views.base import AuthOptionalAPIView
 
 
 class MaintenanceRecordList(AuthOptionalAPIView):
-
     """
     A list of all maintenance.
     Use ?active=True to get current maintenenace.
@@ -37,18 +36,17 @@ class MaintenanceRecordList(AuthOptionalAPIView):
                         records |= CoreMaintenanceRecord.active(p)
                     else:
                         records |= CoreMaintenanceRecord.objects.filter(
-                            provider=p)
+                            provider=p
+                        )
         if active_records:
             global_records = CoreMaintenanceRecord.active()
         else:
-            global_records = CoreMaintenanceRecord.objects.filter(
-                provider=None)
+            global_records = CoreMaintenanceRecord.objects.filter(provider=None)
         records |= global_records
         return Response(MaintenanceRecordSerializer(records, many=True).data)
 
 
 class MaintenanceRecord(AuthOptionalAPIView):
-
     """
     Represents a maintenance record.
     """
@@ -60,8 +58,10 @@ class MaintenanceRecord(AuthOptionalAPIView):
         try:
             mach_request = CoreMaintenanceRecord.objects.get(id=record_id)
         except CoreMaintenanceRecord.DoesNotExist:
-            return Response('No maintenance record with id %s' % record_id,
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                'No maintenance record with id %s' % record_id,
+                status=status.HTTP_404_NOT_FOUND
+            )
         return Response(MaintenanceRecordSerializer(mach_request).data)
 
     def patch(self, request, record_id):
@@ -72,12 +72,14 @@ class MaintenanceRecord(AuthOptionalAPIView):
         try:
             record = CoreMaintenanceRecord.objects.get(id=record_id)
         except CoreMaintenanceRecord.DoesNotExist:
-            return Response('No maintenance record with id %s' % record_id,
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                'No maintenance record with id %s' % record_id,
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        serializer = MaintenanceRecordSerializer(record,
-                                                 data=data,
-                                                 partial=True)
+        serializer = MaintenanceRecordSerializer(
+            record, data=data, partial=True
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -93,10 +95,11 @@ class MaintenanceRecord(AuthOptionalAPIView):
         except CoreMaintenanceRecord.DoesNotExist:
             return Response(
                 'No maintenance record with id %s' % record_id,
-                status=status.HTTP_404_NOT_FOUND)
-        serializer = MaintenanceRecordSerializer(record,
-                                                 data=data,
-                                                 partial=True)
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = MaintenanceRecordSerializer(
+            record, data=data, partial=True
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

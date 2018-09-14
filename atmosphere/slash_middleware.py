@@ -9,7 +9,6 @@ from django.core import urlresolvers
 
 
 class RemoveCSRFMiddleware(object):
-
     """
     This middleware disables CSRF from the DRF endpoints (Namespaced by /api/...)
     """
@@ -22,7 +21,6 @@ class RemoveCSRFMiddleware(object):
 
 
 class RemoveSlashMiddleware(object):
-
     """
     This middleware works like django's built in APPEND_SLASH, but in reverse. Eg
     It removes all ending slashes from a URL, and if that doesn't resolve, it will add one slash and try again.
@@ -58,9 +56,9 @@ class RemoveSlashMiddleware(object):
         know how.)
         """
         if request.get_host():
-            new_url = "%s://%s%s" % ('https',
-                                     request.get_host(),
-                                     urlquote(new_path))
+            new_url = "%s://%s%s" % (
+                'https', request.get_host(), urlquote(new_path)
+            )
         else:
             new_url = urlquote(new_path)
         if request.GET:
@@ -78,5 +76,6 @@ def _is_valid_path(path, urlconf=None):
         return True
     except urlresolvers.Resolver404:
         return False
+
 
 """ Author contact: sepero 111 @ gmail . com """

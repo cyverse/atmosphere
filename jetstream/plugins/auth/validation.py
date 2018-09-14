@@ -26,8 +26,15 @@ class XsedeProjectRequired(ValidationPlugin):
             logger.exception('User is invalid: %s', user)
             return False
         except TASAPIException:
-            logger.exception('Some other error happened while trying to validate user: %s', user)
+            logger.exception(
+                'Some other error happened while trying to validate user: %s',
+                user
+            )
             active_allocation_count = UserAllocationSource.objects.filter(
-                only_current_user_allocations() & Q(user=user)).count()
-            logger.debug('user: %s, active_allocation_count: %d', user, active_allocation_count)
+                only_current_user_allocations() & Q(user=user)
+            ).count()
+            logger.debug(
+                'user: %s, active_allocation_count: %d', user,
+                active_allocation_count
+            )
             return active_allocation_count > 0

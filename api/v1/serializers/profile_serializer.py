@@ -3,7 +3,6 @@ from rest_framework import serializers
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-
     """
     """
     # TODO:Need to validate provider/identity membership on id change

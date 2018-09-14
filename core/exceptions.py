@@ -32,7 +32,6 @@ class RequestLimitExceeded(Exception):
 
 
 class ProviderLimitExceeded(Exception):
-
     """
     A limit was exceeded for the specific provider
     """
@@ -43,7 +42,9 @@ class ProviderNotActive(Exception):
     """
     The provider that was requested is not active
     """
+
     def __init__(self, provider, *args, **kwargs):
         self.message = "Cannot create driver on an inactive provider: %s" \
                        % (provider.location,)
+
     pass

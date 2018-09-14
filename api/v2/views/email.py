@@ -15,8 +15,9 @@ from api.v2.exceptions import failure_response
 from core.email import resource_request_email, email_admin, request_data
 from core.models import Instance, Volume
 
+
 class EmailViewSet(ViewSet):
-    permission_classes = (permissions.ApiAuthRequired,)
+    permission_classes = (permissions.ApiAuthRequired, )
     required_keys = []
 
     def create(self, *args, **kwargs):
@@ -26,7 +27,8 @@ class EmailViewSet(ViewSet):
         if missing_keys:
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
-                "Missing required POST data variables : %s" % missing_keys)
+                "Missing required POST data variables : %s" % missing_keys
+            )
         # Inject SERVER_URL settings
         data['server'] = settings.SERVER_URL
         result = self._email(user, data)
@@ -36,10 +38,12 @@ class EmailViewSet(ViewSet):
         """
         Return any missing required post key names.
         """
-        return [key for key in required_keys
-                # Key must exist and have a non-empty value.
-                if key not in data or
-                (isinstance(data[key], str) and len(data[key]) > 0)]
+        return [
+            key for key in required_keys
+        # Key must exist and have a non-empty value.
+            if key not in data or
+            (isinstance(data[key], str) and len(data[key]) > 0)
+        ]
 
     def _email(self, user, data):
         raise NotImplemented("This function to be implemented by the subclass")
@@ -54,7 +58,7 @@ class VolumeSupportEmailViewSet(EmailViewSet):
 
         Returns a response.
         """
-        subject = "Volume Instance Report from %s" % user.username;
+        subject = "Volume Instance Report from %s" % user.username
         volume = Volume.objects \
                 .filter(id=data["volume"])[0]
 
@@ -70,12 +74,14 @@ class VolumeSupportEmailViewSet(EmailViewSet):
         context.update(request_data(self.request))
 
         message = render_to_string("volume_report.html", context=context)
-        email_success = email_admin(self.request, subject, message,
-                request_tracker=True)
+        email_success = email_admin(
+            self.request, subject, message, request_tracker=True
+        )
         email_response = {"email_sent": email_success}
         if not email_success:
             return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
         return Response(email_response, status=status.HTTP_200_OK)
+
 
 class InstanceSupportEmailViewSet(EmailViewSet):
     required_keys = ["message", "instance"]
@@ -86,7 +92,7 @@ class InstanceSupportEmailViewSet(EmailViewSet):
 
         Returns a response.
         """
-        subject = "Atmosphere Instance Report from %s" % user.username;
+        subject = "Atmosphere Instance Report from %s" % user.username
         instance = Instance.objects.filter(id=data["instance"])[0]
         last_status = instance.instancestatushistory_set \
                               .order_by('start_date')  \
@@ -105,12 +111,14 @@ class InstanceSupportEmailViewSet(EmailViewSet):
         context.update(request_data(self.request))
 
         message = render_to_string("instance_report.html", context=context)
-        email_success = email_admin(self.request, subject, message,
-                request_tracker=True)
+        email_success = email_admin(
+            self.request, subject, message, request_tracker=True
+        )
         email_response = {"email_sent": email_success}
         if not email_success:
             return Response(email_response, status=status.HTTP_400_BAD_REQUEST)
         return Response(email_response, status=status.HTTP_200_OK)
+
 
 class FeedbackEmailViewSet(EmailViewSet):
     required_keys = ["message"]
@@ -143,22 +151,35 @@ class FeedbackEmailViewSet(EmailViewSet):
         context.update(request_data(self.request))
 
         body = render_to_string("feedback.html", context=context)
-        email_success = email_admin(self.request, subject, body,
-                request_tracker=True)
+        email_success = email_admin(
+            self.request, subject, body, request_tracker=True
+        )
         if email_success:
             resp_status = status.HTTP_200_OK
-            email_response = {'result':
-                    {'code': 'success',
-                        'meta': '',
-                        'value': (
-                            'Thank you for your feedback! '
-                            'Support has been notified.')}}
+            email_response = {
+                'result':
+                    {
+                        'code':
+                            'success',
+                        'meta':
+                            '',
+                        'value':
+                            (
+                                'Thank you for your feedback! '
+                                'Support has been notified.'
+                            )
+                    }
+            }
         else:
             resp_status = status.HTTP_400_BAD_REQUEST
-            email_response = {'result':
-                    {'code': 'failed',
-                     'meta': '',
-                     'value': 'Failed to send feedback!'}}
+            email_response = {
+                'result':
+                    {
+                        'code': 'failed',
+                        'meta': '',
+                        'value': 'Failed to send feedback!'
+                    }
+            }
         return Response(email_response, status=resp_status)
 
 
@@ -167,7 +188,8 @@ class ResourceEmailViewSet(EmailViewSet):
 
     def _email(self, user, data):
         email_response = resource_request_email(
-            self.request, user.username, data["quota"], data["reason"])
+            self.request, user.username, data["quota"], data["reason"]
+        )
         if email_response.get('email_sent', False):
             return Response(email_response, status=status.HTTP_200_OK)
         else:

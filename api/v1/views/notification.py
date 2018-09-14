@@ -15,7 +15,6 @@ from api.v1.views.base import MaintenanceAPIView
 
 
 class NotificationList(MaintenanceAPIView):
-
     """
     Represents:
         A List of Instance
@@ -43,22 +42,21 @@ class NotificationList(MaintenanceAPIView):
         error_list = []
         if not instance:
             error_list.append(
-                "The token %s did not match a core instance."
-                % instance_token)
+                "The token %s did not match a core instance." % instance_token
+            )
             instance = CoreInstance.objects.filter(
-                ip_address=request.META['REMOTE_ADDR'])
+                ip_address=request.META['REMOTE_ADDR']
+            )
             # TODO: AND filter no end_date
         if not instance:
             error_list.append(
-                "The IP Address %s did not match a new core instance."
-                % request.META['REMOTE_ADDR'])
-            return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                str(error_list))
+                "The IP Address %s did not match a new core instance." %
+                request.META['REMOTE_ADDR']
+            )
+            return failure_response(status.HTTP_404_NOT_FOUND, str(error_list))
         # Get out of the filter
         instance = instance[0]
-        ip_address = vm_info.get('public-ipv4',
-                                 request.META.get('REMOTE_ADDR'))
+        ip_address = vm_info.get('public-ipv4', request.META.get('REMOTE_ADDR'))
         if ip_address:
             instance.ip_address = ip_address
             instance.save()
@@ -67,8 +65,10 @@ class NotificationList(MaintenanceAPIView):
         instance_id = vm_info.get('instance-id', instance.provider_alias)
         # Only send email if the provider isn't OpenStack.
         if instance.created_by_identity.provider.type.name != "OpenStack":
-            send_instance_email(username, instance_id, instance_name,
-                                ip_address, launch_time, linuxusername)
+            send_instance_email(
+                username, instance_id, instance_name, ip_address, launch_time,
+                linuxusername
+            )
 
     def post(self, request):
         """

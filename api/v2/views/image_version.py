@@ -16,15 +16,14 @@ class ImageVersionFilter(django_filters.FilterSet):
 
 
 class ImageVersionViewSet(AuthOptionalViewSet):
-
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
     queryset = ImageVersion.objects.all()
     serializer_class = ImageVersionSerializer
     search_fields = ('application__id', 'application__created_by__username')
-    ordering_fields = ('start_date',)
-    ordering = ('start_date',)
+    ordering_fields = ('start_date', )
+    ordering = ('start_date', )
     filter_class = ImageVersionFilter
     filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
 

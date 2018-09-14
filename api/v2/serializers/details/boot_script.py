@@ -21,7 +21,8 @@ class StrategyCharField(serializers.CharField):
         elif data == 'always':
             return True
         raise serializers.ValidationError(
-            "Unexpected strategy value (%s) Expected: ['once', 'always']" % data)
+            "Unexpected strategy value (%s) Expected: ['once', 'always']" % data
+        )
 
     def to_representation(self, value):
         as_string = "once"
@@ -29,9 +30,11 @@ class StrategyCharField(serializers.CharField):
             as_string = "always"
         return super(StrategyCharField, self).to_representation(as_string)
 
+
 class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
     created_by = serializers.SlugRelatedField(
-        slug_field='username', queryset=AtmosphereUser.objects.all(),
+        slug_field='username',
+        queryset=AtmosphereUser.objects.all(),
         required=False
     )
     text = serializers.CharField(source='script_text')
@@ -39,10 +42,9 @@ class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
     type = serializers.SlugRelatedField(
         source='script_type',
         slug_field='name',
-        queryset=ScriptType.objects.all())
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:bootscript-detail',
+        queryset=ScriptType.objects.all()
     )
+    url = UUIDHyperlinkedIdentityField(view_name='api:v2:bootscript-detail', )
 
     def create(self, validated_data):
         if 'created_by' not in validated_data:
@@ -53,4 +55,7 @@ class BootScriptSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = BootScript
-        fields = ('id', 'url', 'uuid', 'created_by', 'title', 'text', 'type', 'strategy', 'wait_for_deploy')
+        fields = (
+            'id', 'url', 'uuid', 'created_by', 'title', 'text', 'type',
+            'strategy', 'wait_for_deploy'
+        )

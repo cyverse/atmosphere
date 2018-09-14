@@ -2,9 +2,10 @@ from rest_framework.test import APITestCase, APIRequestFactory,\
     force_authenticate
 from api.v2.views import ProjectViewSet
 from .base import APISanityTestCase
-from api.tests.factories import (ProjectFactory, UserFactory,
-                                 AnonymousUserFactory, GroupFactory,
-                                 GroupMembershipFactory, InstanceFactory)
+from api.tests.factories import (
+    ProjectFactory, UserFactory, AnonymousUserFactory, GroupFactory,
+    GroupMembershipFactory, InstanceFactory
+)
 from django.core.urlresolvers import reverse
 from core.models import Project, Instance
 from django.utils import timezone
@@ -21,37 +22,42 @@ class ProjectTests(APITestCase, APISanityTestCase):
         self.user = UserFactory.create()
         self.group = GroupFactory.create(name=self.user.username)
         self.membership = GroupMembershipFactory.create(
-            user=self.user,
-            group=self.group,
-            is_leader=True)
+            user=self.user, group=self.group, is_leader=True
+        )
         self.group.user_set.add(self.user)
-        self.project = ProjectFactory.create(owner=self.group, created_by=self.user)
-        self.enddated_instance = InstanceFactory.create(created_by=self.user,
-                end_date=timezone.now(),
-                project=self.project)
+        self.project = ProjectFactory.create(
+            owner=self.group, created_by=self.user
+        )
+        self.enddated_instance = InstanceFactory.create(
+            created_by=self.user, end_date=timezone.now(), project=self.project
+        )
 
         self.user2 = UserFactory.create()
         self.group2 = GroupFactory.create(name=self.user2.username)
         self.membership2 = GroupMembershipFactory.create(
-            user=self.user2,
-            group=self.group2,
-            is_leader=True)
+            user=self.user2, group=self.group2, is_leader=True
+        )
         self.group2.user_set.add(self.user2)
-        self.project2 = ProjectFactory.create(owner=self.group2, created_by=self.user2)
+        self.project2 = ProjectFactory.create(
+            owner=self.group2, created_by=self.user2
+        )
 
         self.not_user = UserFactory.create()
         self.not_group = GroupFactory.create(name=self.not_user.username)
         self.not_membership = GroupMembershipFactory.create(
-            user=self.not_user,
-            group=self.not_group,
-            is_leader=True)
+            user=self.not_user, group=self.not_group, is_leader=True
+        )
         self.not_group.user_set.add(self.not_user)
-        self.not_project = ProjectFactory.create(owner=self.not_group, created_by=self.not_user)
+        self.not_project = ProjectFactory.create(
+            owner=self.not_group, created_by=self.not_user
+        )
 
-        self.unsaved_project = ProjectFactory.build(owner=self.group, created_by=self.user)
+        self.unsaved_project = ProjectFactory.build(
+            owner=self.group, created_by=self.user
+        )
 
         list_url = reverse('api:v2:project-list')
-        detail_url = reverse('api:v2:project-detail', args=(self.project.id,))
+        detail_url = reverse('api:v2:project-detail', args=(self.project.id, ))
 
         self.create_view = ProjectViewSet.as_view({'post': 'create'})
         self.delete_view = ProjectViewSet.as_view({'delete': 'destroy'})
@@ -61,11 +67,13 @@ class ProjectTests(APITestCase, APISanityTestCase):
 
         self.factory = APIRequestFactory()
         self.bad_create_request = self.factory.post(list_url)
-        self.create_request = self.factory.post(list_url, {
-            'name': self.unsaved_project.name,
-            'description': self.unsaved_project.description,
-            'owner': self.group.name
-        })
+        self.create_request = self.factory.post(
+            list_url, {
+                'name': self.unsaved_project.name,
+                'description': self.unsaved_project.description,
+                'owner': self.group.name
+            }
+        )
         self.delete_request = self.factory.delete(detail_url)
         self.detail_request = self.factory.get(detail_url)
         self.list_request = self.factory.get(list_url)
@@ -73,7 +81,9 @@ class ProjectTests(APITestCase, APISanityTestCase):
             'name': 'updated name',
             'description': 'updated description'
         }
-        self.update_request = self.factory.patch(detail_url, self.updated_project_data)
+        self.update_request = self.factory.patch(
+            detail_url, self.updated_project_data
+        )
 
     def test_list_is_not_public(self):
         force_authenticate(self.list_request, user=self.anonymous_user)
@@ -90,8 +100,9 @@ class ProjectTests(APITestCase, APISanityTestCase):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(
             len(project_data), EXPECTED_FIELD_COUNT,
-            "Number of fields does not match (%s != %s)"
-            % (len(project_data), EXPECTED_FIELD_COUNT))
+            "Number of fields does not match (%s != %s)" %
+            (len(project_data), EXPECTED_FIELD_COUNT)
+        )
         self.assertEquals(project_data['id'], self.project.id)
         self.assertIn('url', project_data)
         self.assertEquals(project_data['name'], self.project.name)
@@ -121,7 +132,9 @@ class ProjectTests(APITestCase, APISanityTestCase):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(
             len(data), EXPECTED_FIELD_COUNT,
-            "Number of fields does not match (%s != %s)" % (len(data), EXPECTED_FIELD_COUNT))
+            "Number of fields does not match (%s != %s)" %
+            (len(data), EXPECTED_FIELD_COUNT)
+        )
         self.assertEquals(data['id'], self.project.id)
         self.assertIn('url', data)
         self.assertEquals(data['name'], self.project.name)
@@ -149,21 +162,17 @@ class ProjectTests(APITestCase, APISanityTestCase):
         data = response.data
 
         self.assertEquals(response.status_code, 400)
-        self.assertEquals(
-            len(data), 2,
-            "Unexpected error response: %s" % data)
-        self.assertIn(
-            'name', data,
-            "Unexpected error response: %s" % data)
-        self.assertIn(
-            'owner', data,
-            "Unexpected error response: %s" % data)
+        self.assertEquals(len(data), 2, "Unexpected error response: %s" % data)
+        self.assertIn('name', data, "Unexpected error response: %s" % data)
+        self.assertIn('owner', data, "Unexpected error response: %s" % data)
         self.assertEquals(
             data['owner'], [u'This field is required.'],
-            "Unexpected error response: %s" % data)
+            "Unexpected error response: %s" % data
+        )
         self.assertEquals(
             data['name'], [u'This field is required.'],
-            "Unexpected error response: %s" % data)
+            "Unexpected error response: %s" % data
+        )
 
     def test_create_project_as_authenticated_user(self):
         current_count = Project.objects.count()
@@ -171,8 +180,9 @@ class ProjectTests(APITestCase, APISanityTestCase):
         response = self.create_view(self.create_request)
         self.assertEquals(
             response.status_code, 201,
-            "Response did not result in a 201-created: (%s) %s"
-            % (response.status_code, response.data))
+            "Response did not result in a 201-created: (%s) %s" %
+            (response.status_code, response.data)
+        )
         self.assertEquals(Project.objects.count(), current_count + 1)
 
     def test_update_project_fails_for_anonymous_user(self):
@@ -185,22 +195,24 @@ class ProjectTests(APITestCase, APISanityTestCase):
         response = self.update_view(self.update_request, pk=self.not_project.id)
         self.assertEquals(
             response.status_code, 404,
-            "Encountered an unexpected status_code: (%s) %s"
-            % (response.status_code, response.data))
+            "Encountered an unexpected status_code: (%s) %s" %
+            (response.status_code, response.data)
+        )
 
     def test_update_project_for_valid_user(self):
         current_count = Project.objects.count()
         force_authenticate(self.update_request, user=self.user)
         response = self.update_view(self.update_request, pk=self.project.id)
         self.assertEquals(
-            response.status_code, 200,
-            "Project update failed: (%s) %s" % (response.status_code, response.data))
+            response.status_code, 200, "Project update failed: (%s) %s" %
+            (response.status_code, response.data)
+        )
         self.assertEquals(Project.objects.count(), current_count)
         project = Project.objects.first()
         self.assertEquals(project.name, self.updated_project_data['name'])
         self.assertEquals(
-            project.description,
-            self.updated_project_data['description'])
+            project.description, self.updated_project_data['description']
+        )
 
     def test_anonymous_user_cannot_delete_project(self):
         force_authenticate(self.delete_request, user=self.anonymous_user)

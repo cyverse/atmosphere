@@ -5,14 +5,13 @@ from api.v2.views.base import AuthModelViewSet
 
 
 class ImageTagViewSet(AuthModelViewSet):
-
     """
     API endpoint that allows instance tags to be viewed
     """
     queryset = ImageTag.objects.all()
     serializer_class = ImageTagSerializer
 
-    filter_fields = ('application__id',)
+    filter_fields = ('application__id', )
 
     def get_queryset(self):
         """

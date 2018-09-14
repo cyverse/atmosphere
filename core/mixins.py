@@ -19,12 +19,14 @@ class ModelChangedMixin(object):
     """
     Mixin for detecting changes to a model
     """
+
     def __init__(self, *args, **kwargs):
         super(ModelChangedMixin, self).__init__(*args, **kwargs)
         self.original_state = self.to_dict()
         identifier = "{0}_model_changed".format(self.__class__.__name__)
         post_save.connect(
-            on_changed, sender=self.__class__, dispatch_uid=identifier)
+            on_changed, sender=self.__class__, dispatch_uid=identifier
+        )
 
     def to_dict(self):
         """

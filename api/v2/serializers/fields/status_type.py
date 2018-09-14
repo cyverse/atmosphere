@@ -4,14 +4,13 @@ from core.models import StatusType
 
 
 class StatusTypeRelatedField(serializers.RelatedField):
-
     def get_queryset(self):
         return StatusType.objects.all()
 
     def to_representation(self, status_type):
         serializer = StatusTypeSummarySerializer(
-            status_type,
-            context=self.context)
+            status_type, context=self.context
+        )
         return serializer.data
 
     def to_internal_value(self, data):
@@ -25,6 +24,5 @@ class StatusTypeRelatedField(serializers.RelatedField):
             return queryset.get(id=identity)
         except:
             raise exceptions.ValidationError(
-                "StatusType with id '%s' does not exist."
-                % identity
+                "StatusType with id '%s' does not exist." % identity
             )

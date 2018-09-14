@@ -19,22 +19,26 @@ class Command(BaseCommand):
         parser.add_argument(
             "--title",
             default=default_title,
-            help="Title of maintenance record")
+            help="Title of maintenance record"
+        )
         parser.add_argument(
             "--message",
             default=default_message,
-            help="Use this as the message of maintenance record")
+            help="Use this as the message of maintenance record"
+        )
         parser.add_argument(
             "--start-date",
             default=default_start_date,
             help="Start date of maintenance record, default is now. Many "
-                 "time formats are accepted. Use --dry-run to ensure "
-                 "correct time.")
+            "time formats are accepted. Use --dry-run to ensure "
+            "correct time."
+        )
         parser.add_argument(
             "--dry-run",
             action="store_true",
             default=False,
-            help="Only print what would occur")
+            help="Only print what would occur"
+        )
 
     def handle_start(self, **options):
         start_date = options['start_date']
@@ -47,14 +51,17 @@ class Command(BaseCommand):
         record = MaintenanceRecord(
             title=options['title'],
             message=options['message'],
-            start_date=start_date)
+            start_date=start_date
+        )
         if options['dry_run']:
-            self.stdout.write("{}: {}".format(
-                self.style.NOTICE("Dry run"), record))
+            self.stdout.write(
+                "{}: {}".format(self.style.NOTICE("Dry run"), record)
+            )
         else:
             record.save()
-            self.stdout.write("{}: {}".format(
-                self.style.SUCCESS("Record created"), record))
+            self.stdout.write(
+                "{}: {}".format(self.style.SUCCESS("Record created"), record)
+            )
 
     def handle_stop(self, **options):
         records = MaintenanceRecord.active()
@@ -66,13 +73,17 @@ class Command(BaseCommand):
         for record in records:
             record.end_date = timezone.now()
             if options['dry_run']:
-                self.stdout.write("{}: {}".format(
-                    self.style.NOTICE("Dry run"), record))
+                self.stdout.write(
+                    "{}: {}".format(self.style.NOTICE("Dry run"), record)
+                )
                 continue
             else:
                 record.save()
-                self.stdout.write("{}: {}".format(
-                    self.style.SUCCESS("Record enddated"), record))
+                self.stdout.write(
+                    "{}: {}".format(
+                        self.style.SUCCESS("Record enddated"), record
+                    )
+                )
 
     def handle_show(self, **options):
         records = MaintenanceRecord.active()
@@ -95,11 +106,12 @@ def _default_title():
     git_directory = os.path.join(settings.PROJECT_ROOT, ".git")
     branch_name = git_branch(git_directory=git_directory)
 
-    return "{0}/{1} ({2}) Maintenance".format(now.month, now.day,
-                                              branch_name)
+    return "{0}/{1} ({2}) Maintenance".format(now.month, now.day, branch_name)
+
 
 def _default_message():
     return "Atmosphere is down for a Scheduled Maintenance"
+
 
 def _raise_unknown(*args, **options):
     cmd = options['command']

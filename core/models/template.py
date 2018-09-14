@@ -20,7 +20,9 @@ class EmailTemplate(SingletonModel):
     keys should NOT be added/removed unless there
     are corresponding logic-choices in core code.
     """
-    email_address = models.EmailField(max_length=254, default=b'support@cyverse.org')
+    email_address = models.EmailField(
+        max_length=254, default=b'support@cyverse.org'
+    )
     email_header = models.TextField(default=b'')
     email_footer = models.TextField(default=b'CyVerse Atmosphere Team')
     links = models.ManyToManyField("HelpLink", related_name='email_templates')
@@ -34,6 +36,7 @@ class EmailTemplate(SingletonModel):
     class Meta:
         db_table = 'email_template'
         app_label = 'core'
+
 
 class HelpLink(models.Model):
     """

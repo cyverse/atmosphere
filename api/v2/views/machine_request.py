@@ -12,8 +12,8 @@ from django.conf import settings
 
 from core import exceptions as core_exceptions
 from core.models import (
-    MachineRequest, IdentityMembership, AtmosphereUser,
-    Provider, ProviderMachine, Tag
+    MachineRequest, IdentityMembership, AtmosphereUser, Provider,
+    ProviderMachine, Tag
 )
 from core.models.status_type import StatusType
 from core.email import requestImaging
@@ -28,9 +28,11 @@ class MachineRequestViewSet(BaseRequestViewSet):
     model = MachineRequest
     serializer_class = UserMachineRequestSerializer
     admin_serializer_class = MachineRequestSerializer
-    filter_fields = ('status__id', 'status__name', 'new_machine_owner__username')
+    filter_fields = (
+        'status__id', 'status__name', 'new_machine_owner__username'
+    )
     ordering_fields = ('start_date', 'end_date', 'new_machine_owner__username')
-    ordering = ('-start_date',)
+    ordering = ('-start_date', )
 
     def get_serializer_class(self):
         """
@@ -38,8 +40,8 @@ class MachineRequestViewSet(BaseRequestViewSet):
         given the users privileges.
         """
         assert self.admin_serializer_class is not None, (
-            "%s should include an `admin_serializer_class` attribute."
-            % self.__class__.__name__
+            "%s should include an `admin_serializer_class` attribute." %
+            self.__class__.__name__
         )
         # NOTE: Special case! If we are querying for 'user-facing-view' _as a
         # staff user_ we will see something different than normal users. This
@@ -47,7 +49,9 @@ class MachineRequestViewSet(BaseRequestViewSet):
         # solution would be to _include_ ?admin=true or some other queryparam
         # when the admin_serializer_class is desired _or_ splitting into two
         # endpoints.
-        if self.request.query_params.get('new_machine_owner__username','') != '':
+        if self.request.query_params.get(
+            'new_machine_owner__username', ''
+        ) != '':
             return self.serializer_class
 
         http_method = self.request._request.method
@@ -70,11 +74,12 @@ class MachineRequestViewSet(BaseRequestViewSet):
             # fragile. A better solution would be to _include_ ?admin=true or
             # some other queryparam when the entire machine-request-list is
             # desired _or_ splitting into two endpoints.
-            if self.request.query_params.get('new_machine_owner__username','') == '' and request_user.is_staff:
+            if self.request.query_params.get(
+                'new_machine_owner__username', ''
+            ) == '' and request_user.is_staff:
                 return all_active.order_by('-start_date')
-            return all_active.filter(
-                created_by=request_user
-                ).order_by('-start_date')
+            return all_active.filter(created_by=request_user
+                                    ).order_by('-start_date')
         return super(MachineRequestViewSet, self).get_queryset()
 
     def _get_new_provider(self):
@@ -86,11 +91,13 @@ class MachineRequestViewSet(BaseRequestViewSet):
         """
         try:
             new_provider = Provider.objects.get(
-                location=settings.REPLICATION_PROVIDER_LOCATION)
+                location=settings.REPLICATION_PROVIDER_LOCATION
+            )
             return new_provider
         except:
-            raise Exception("settings.REPLICATION_PROVIDER_LOCATION could not be set. Contact a developer.")
-
+            raise Exception(
+                "settings.REPLICATION_PROVIDER_LOCATION could not be set. Contact a developer."
+            )
 
     def filter_tags(self, user, tag_names):
         new_tag_names = []
@@ -108,13 +115,12 @@ class MachineRequestViewSet(BaseRequestViewSet):
         request_user = self.request.user
         q = MachineRequest.objects.filter(
             (
-                Q(created_by__id=request_user.id) &
-                Q(instance_id=serializer.validated_data['instance'].id) &
-                ~Q(status__name="failed") &
-                ~Q(status__name="denied") &
-                ~Q(status__name="completed") &
-                ~Q(status__name="closed")
-            ))
+                Q(created_by__id=request_user.id
+                 ) & Q(instance_id=serializer.validated_data['instance'].id
+                      ) & ~Q(status__name="failed") & ~Q(status__name="denied")
+                & ~Q(status__name="completed") & ~Q(status__name="closed")
+            )
+        )
 
         if len(q) > 0:
             message = "Only one active request is allowed per provider."
@@ -127,7 +133,7 @@ class MachineRequestViewSet(BaseRequestViewSet):
         access_list = access_list_usernames.split(",")
         visibility = serializer.initial_data.get("new_application_visibility")
         new_provider = self._get_new_provider()
-        if  visibility in ["select", "private"]:
+        if visibility in ["select", "private"]:
             share_with_admins(access_list, parent_machine.provider.uuid)
             share_with_self(access_list, request_user.username)
             access_list = remove_duplicate_users(access_list)
@@ -140,18 +146,26 @@ class MachineRequestViewSet(BaseRequestViewSet):
         if new_machine_provider.count():
             new_machine_provider = new_machine_provider[0]
         else:
-            raise rest_exceptions.ParseError(detail="Could not retrieve new machine provider.")
+            raise rest_exceptions.ParseError(
+                detail="Could not retrieve new machine provider."
+            )
 
         if new_machine_owner.count():
             new_machine_owner = new_machine_owner[0]
         else:
-            raise rest_exceptions.ParseError(detail="Could not retrieve new machine owner.")
+            raise rest_exceptions.ParseError(
+                detail="Could not retrieve new machine owner."
+            )
 
         if parent_machine.count():
             parent_machine = parent_machine[0]
         else:
-            raise rest_exceptions.ParseError(detail="Could not retrieve parent machine.")
-        new_tags = self.filter_tags(request_user, serializer.validated_data.get("new_version_tags",""))
+            raise rest_exceptions.ParseError(
+                detail="Could not retrieve parent machine."
+            )
+        new_tags = self.filter_tags(
+            request_user, serializer.validated_data.get("new_version_tags", "")
+        )
         try:
             membership = IdentityMembership.objects.get(identity=identity_id)
             instance = serializer.save(
@@ -162,30 +176,32 @@ class MachineRequestViewSet(BaseRequestViewSet):
                 new_machine_owner=request_user,
                 new_version_tags=new_tags,
                 access_list=access_list,
-                old_status="pending",  # TODO: Is this required or will it default to pending?
+                old_status=
+                "pending",    # TODO: Is this required or will it default to pending?
                 parent_machine=parent_machine
             )
             instance.migrate_access_to_membership_list(access_list)
             self.submit_action(instance)
-        except (core_exceptions.ProviderLimitExceeded,
-                core_exceptions.RequestLimitExceeded):
+        except (
+            core_exceptions.ProviderLimitExceeded,
+            core_exceptions.RequestLimitExceeded
+        ):
             message = "Only one active request is allowed per provider."
             raise rest_exceptions.MethodNotAllowed('create', detail=message)
         except core_exceptions.InvalidMembership:
             message = (
-                "The user '%s' is not a valid member."
-                % request_user.username
+                "The user '%s' is not a valid member." % request_user.username
             )
             raise rest_exceptions.ParseError(detail=message)
         except IdentityMembership.DoesNotExist:
             message = (
-                "The identity '%s' does not have a membership"
-                % identity_id
+                "The identity '%s' does not have a membership" % identity_id
             )
             raise rest_exceptions.ParseError(detail=message)
         except Exception as e:
             message = {
-                "An error was encoutered when submitting the request: %s" % e.message
+                "An error was encoutered when submitting the request: %s" %
+                e.message
             }
             logger.exception(e)
             raise rest_exceptions.ParseError(detail=message)

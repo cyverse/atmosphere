@@ -4,7 +4,6 @@ from .user_factory import UserFactory
 
 
 class ImageFactory(factory.DjangoModelFactory):
-
     class Meta:
         model = Image
 

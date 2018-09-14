@@ -27,7 +27,9 @@ class TestOfflineUserValidation(TestCase):
 
         # Simulate offline TAS api by throwing requests.exceptions.ReadTimeout
         with mock.patch('jetstream.tas_api.requests.get') as mock_requests_get:
-            mock_requests_get.side_effect = ReadTimeout("Unknown network failure")
+            mock_requests_get.side_effect = ReadTimeout(
+                "Unknown network failure"
+            )
             self.assertTrue(plugin.validate_user(self.user))
 
     def test_offline_validation_when_user_has_no_allocations(self):
@@ -39,5 +41,7 @@ class TestOfflineUserValidation(TestCase):
 
         # Simulate offline TAS api by throwing requests.exceptions.ReadTimeout
         with mock.patch('jetstream.tas_api.requests.get') as mock_requests_get:
-            mock_requests_get.side_effect = ReadTimeout("Unknown network failure")
+            mock_requests_get.side_effect = ReadTimeout(
+                "Unknown network failure"
+            )
             self.assertFalse(plugin.validate_user(self.user))

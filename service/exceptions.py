@@ -19,18 +19,15 @@ class Unauthorized(ServiceException):
         self.status_code = 401
         super(Unauthorized, self).__init__()
 
-class ActionNotAllowed(ServiceException):
 
+class ActionNotAllowed(ServiceException):
     def __init__(self, message):
         self.message = message
         self.status_code = 409
         super(ActionNotAllowed, self).__init__()
 
 
-
-
 class AccountCreationConflict(ServiceException):
-
     def __init__(self, message):
         self.message = message
         super(AccountCreationConflict, self).__init__()
@@ -39,9 +36,7 @@ class AccountCreationConflict(ServiceException):
         return "%s" % (self.message, )
 
 
-
 class InstanceLaunchConflict(ServiceException):
-
     def __init__(self, message):
         self.message = message
         super(InstanceLaunchConflict, self).__init__()
@@ -61,7 +56,6 @@ class InstanceDoesNotExist(ServiceException):
 
 
 class UnderThresholdError(ServiceException):
-
     def __init__(self, message):
         self.message = message
         self.status_code = 400
@@ -69,10 +63,11 @@ class UnderThresholdError(ServiceException):
 
 
 class SecurityGroupNotCreated(ServiceException):
-
     def __init__(self):
-        self.message = ("Gateway Timeout! Security Group(s) could not be "
-                        "created. Please try again later")
+        self.message = (
+            "Gateway Timeout! Security Group(s) could not be "
+            "created. Please try again later"
+        )
         self.status_code = 504
         super(SecurityGroupNotCreated, self).__init__()
 
@@ -81,7 +76,6 @@ class SecurityGroupNotCreated(ServiceException):
 
 
 class HypervisorCapacityError(ServiceException):
-
     def __init__(self, hypervisor, message):
         self.hypervisor = hypervisor
         self.message = message
@@ -98,8 +92,8 @@ class AllocationBlacklistedError(ServiceException):
     def __str__(self):
         return "%s" % (self.message, )
 
-class OverAllocationError(ServiceException):
 
+class OverAllocationError(ServiceException):
     def __init__(self, source_name, amount_exceeded):
         self.overage = amount_exceeded
         self.message = "Time allocation exceeded: "\
@@ -114,9 +108,14 @@ class OverAllocationError(ServiceException):
 
 
 class OverQuotaError(ServiceException):
-
-    def __init__(self, resource=None, requested=None,
-                 used=None, limit=None, message=None):
+    def __init__(
+        self,
+        resource=None,
+        requested=None,
+        used=None,
+        limit=None,
+        message=None
+    ):
         if not message:
             self.message = "Quota exceeded: Requested %s %s but already used "\
                            "%s/%s %s."\
@@ -130,7 +129,6 @@ class OverQuotaError(ServiceException):
 
 
 class DeviceBusyException(ServiceException):
-
     def __init__(self, mount_loc, process_list):
         self.process_list = process_list
         proc_str = ''
@@ -148,7 +146,6 @@ class DeviceBusyException(ServiceException):
 
 
 class SizeNotAvailable(ServiceException):
-
     def __init__(self, message):
         if not message:
             message = "Size Not Available."
@@ -160,7 +157,6 @@ class SizeNotAvailable(ServiceException):
 
 
 class VolumeDetachConflict(ServiceException):
-
     def __init__(self, message):
         self.message = message
         super(VolumeDetachConflict, self).__init__()
@@ -170,7 +166,6 @@ class VolumeDetachConflict(ServiceException):
 
 
 class VolumeAttachConflict(ServiceException):
-
     def __init__(self, instance_id=None, volume_id=None, message=None):
         if not message:
             message = "Volume %s is still attached to instance %s"\
@@ -195,7 +190,6 @@ class NotFound(ServiceException):
 
 
 class VolumeMountConflict(ServiceException):
-
     def __init__(self, instance_id, volume_id, extra=None):
         self.message = "Volume %s could not be auto-mounted to %s. %s"\
             " See Available Volumes -> Mounting a Volume "\
@@ -217,4 +211,3 @@ class NonZeroDeploymentException(Exception):
 
 class TimeoutError(Exception):
     pass
-

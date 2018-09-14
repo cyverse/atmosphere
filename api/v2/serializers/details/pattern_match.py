@@ -1,23 +1,22 @@
 from rest_framework import serializers
 
 from core.serializers.fields import ModelRelatedField
-from api.v2.serializers.summaries import (
-    UserSummarySerializer
-)
+from api.v2.serializers.summaries import (UserSummarySerializer)
 from core.models.pattern_match import PatternMatch, MatchType
 from core.models.user import AtmosphereUser
 
 
 class PatternMatchSerializer(serializers.HyperlinkedModelSerializer):
     type = serializers.SlugRelatedField(
-        queryset=MatchType.objects.all(),
-        slug_field='name')
+        queryset=MatchType.objects.all(), slug_field='name'
+    )
     created_by = ModelRelatedField(
         lookup_field="username",
         default=serializers.CurrentUserDefault(),
         queryset=AtmosphereUser.objects.all(),
         serializer_class=UserSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:patternmatch-detail',
     )

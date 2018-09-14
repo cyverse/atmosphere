@@ -9,7 +9,6 @@ import requests
 
 from rest_framework.exceptions import NotFound
 
-
 from threepio import logger
 
 # The hyper-stats service fetches metrics every minute
@@ -43,8 +42,10 @@ def create_request_uri(uuid, params):
         metric = "{}({})".format(params.get("fun"), metric)
 
     #: Check for default resolution
-    if (params.get("res", DEFAULT_RESOLUTION) != DEFAULT_RESOLUTION and
-            params.get("field") != "*"):
+    if (
+        params.get("res", DEFAULT_RESOLUTION) != DEFAULT_RESOLUTION
+        and params.get("field") != "*"
+    ):
         res = '"{}min"'.format(params["res"])
 
         target = summarize.format(metric=metric, resolution=res)
@@ -71,10 +72,7 @@ def create_request_uri(uuid, params):
 
 
 def params_to_fields(params):
-    fields = {
-        "field": "*",
-        "res": DEFAULT_RESOLUTION
-    }
+    fields = {"field": "*", "res": DEFAULT_RESOLUTION}
 
     #: Check for a valid field
     if getattr(params, "field", None) is None:
@@ -117,7 +115,9 @@ def get_instance_metrics(instance, params=None):
         if redis_cache.exists(key):
             instance_metrics = json.loads(redis_cache.get(key))
         else:
-            instance_metrics = request_instance_metrics(instance.provider_alias, params=params)
+            instance_metrics = request_instance_metrics(
+                instance.provider_alias, params=params
+            )
             redis_cache.set(key, json.dumps(instance_metrics))
             redis_cache.expire(key, CACHE_DURATION)
     except Exception:

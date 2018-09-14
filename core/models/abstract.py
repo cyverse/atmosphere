@@ -46,15 +46,18 @@ class BaseRequest(models.Model):
         """
         if not self.pk and self.is_active(self.membership):
             # temporary workaround to exclude ResourceRequests from the ProviderLimitExceeded check
-            if "ResourceRequest" in str(type(self)): # THIS IS A HACK REMOVE THIS
+            if "ResourceRequest" in str(type(self)
+                                       ):    # THIS IS A HACK REMOVE THIS
                 super(BaseRequest, self).save(*args, **kwargs)
                 return
             raise ProviderLimitExceeded(
-                "The number of open requests has been exceeded.")
+                "The number of open requests has been exceeded."
+            )
 
         if not self.membership.is_member(self.created_by):
             raise InvalidMembership(
-                "This membership does not belong to the user")
+                "This membership does not belong to the user"
+            )
 
         super(BaseRequest, self).save(*args, **kwargs)
 
@@ -71,8 +74,8 @@ class BaseRequest(models.Model):
         Return if a request is active for the identity_membership
         """
         return cls.objects.filter(
-            membership=identity_membership,
-            status__name__in=UNRESOLVED_STATES).count() > 0
+            membership=identity_membership, status__name__in=UNRESOLVED_STATES
+        ).count() > 0
 
     @classmethod
     def get_unresolved(cls):
@@ -161,8 +164,9 @@ class BaseHistory(models.Model):
     )
 
     field_name = models.CharField(max_length=255)
-    operation = models.CharField(max_length=255,
-                                 choices=OPERATIONS, default=UPDATE)
+    operation = models.CharField(
+        max_length=255, choices=OPERATIONS, default=UPDATE
+    )
     current_value = models.TextField()
     previous_value = models.TextField()
     timestamp = models.DateTimeField(default=timezone.now)

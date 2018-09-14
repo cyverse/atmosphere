@@ -5,7 +5,8 @@ from core.models import ApplicationVersionLicense as ImageVersionLicense
 from core.models import ApplicationVersion as ImageVersion
 from core.models import License
 from api.v2.serializers.summaries import (
-    ImageVersionSummarySerializer, LicenseSummarySerializer)
+    ImageVersionSummarySerializer, LicenseSummarySerializer
+)
 from core.serializers.fields import ModelRelatedField
 
 
@@ -14,16 +15,19 @@ class ImageVersionLicenseSerializer(serializers.HyperlinkedModelSerializer):
         queryset=ImageVersion.objects.all(),
         serializer_class=ImageVersionSummarySerializer,
         style={'base_template': 'input.html'},
-        required=False)
+        required=False
+    )
     license = ModelRelatedField(
         queryset=License.objects.all(),
         serializer_class=LicenseSummarySerializer,
         style={'base_template': 'input.html'},
         lookup_field='uuid',
-        required=False)
+        required=False
+    )
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:imageversion_license-detail',
     )
+
     class Meta:
         model = ImageVersionLicense
         validators = [
@@ -32,9 +36,4 @@ class ImageVersionLicenseSerializer(serializers.HyperlinkedModelSerializer):
                 fields=('image_version', 'license')
             )
         ]
-        fields = (
-            'id',
-            'url',
-            'image_version',
-            'license'
-        )
+        fields = ('id', 'url', 'image_version', 'license')

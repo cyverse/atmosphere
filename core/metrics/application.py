@@ -5,11 +5,12 @@ import redis
 from threepio import logger
 from core.models import Instance
 
+METRICS_CACHE_DURATION = 4 * 24 * 60 * 60    # 4 days (persist over the weekend)
 
-METRICS_CACHE_DURATION = 4*24*60*60  # 4 days (persist over the weekend)
 
-
-def _get_summarized_application_metrics(application, force=False, read_only=False):
+def _get_summarized_application_metrics(
+    application, force=False, read_only=False
+):
     metrics = collections.OrderedDict()
     redis_cache = redis.StrictRedis()
     key = "metrics-application-summary-%s" % (application.id)
@@ -41,21 +42,26 @@ def calculate_summarized_application_metrics(app):
         .filter(instance__source__providermachine__application_version__application__id=app.id).count()
     num_bookmarked = app.bookmarks.count()
     num_in_projects = app.projects.count()
-    app_instances = Instance.objects.filter(source__providermachine__application_version__application__id=app.id)
+    app_instances = Instance.objects.filter(
+        source__providermachine__application_version__application__id=app.id
+    )
     total_launched = app_instances.count()
-    total_successful = app_instances.filter(instancestatushistory__status__name='active').distinct().count()
+    total_successful = app_instances.filter(
+        instancestatushistory__status__name='active'
+    ).distinct().count()
     success_pct = 0.0
     if total_launched != 0:
-        success_pct = total_successful/float(total_launched) * 100
+        success_pct = total_successful / float(total_launched) * 100
 
     application_metrics = {
         'forks': num_forks,
         'bookmarks': num_bookmarked,
         'projects': num_in_projects,
-        'instances': {
-            'total': total_launched,
-            'success': total_successful,
-            'percent': success_pct,
-        }
+        'instances':
+            {
+                'total': total_launched,
+                'success': total_successful,
+                'percent': success_pct,
+            }
     }
     return application_metrics

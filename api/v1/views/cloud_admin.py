@@ -31,14 +31,15 @@ def _get_administrator_account(user, admin_uuid):
 
 
 class CloudAdminImagingRequestList(APIView):
-
     """
     Cloud Administration API for handling Imaging Requests
     """
 
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,
-                          CloudAdminRequired,)
+    permission_classes = (
+        ApiAuthRequired,
+        InMaintenance,
+        CloudAdminRequired,
+    )
 
     def get(self, request):
         user = request.user
@@ -50,18 +51,18 @@ class CloudAdminImagingRequestList(APIView):
 
 
 class CloudAdminImagingRequest(APIView):
-
     """
     This is the staff portal for machine requests
     A staff member can view any machine request by its ID
     """
 
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,
-                          CloudAdminRequired,)
+    permission_classes = (
+        ApiAuthRequired,
+        InMaintenance,
+        CloudAdminRequired,
+    )
 
-    def get(self, request,
-            machine_request_id, action=None):
+    def get(self, request, machine_request_id, action=None):
         """
         OPT 1 for approval: via GET with /approve or /deny
         This is a convenient way to approve requests remotely
@@ -71,11 +72,13 @@ class CloudAdminImagingRequest(APIView):
         try:
             machine_request = CoreMachineRequest.objects.get(
                 instance__source__provider__cloudadministrator__user=user,
-                id=machine_request_id)
+                id=machine_request_id
+            )
         except CoreMachineRequest.DoesNotExist:
-            return Response('No machine request with id %s'
-                            % machine_request_id,
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                'No machine request with id %s' % machine_request_id,
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         if not action:
             serializer = MachineRequestSerializer(machine_request)
@@ -94,8 +97,7 @@ class CloudAdminImagingRequest(APIView):
         serializer = MachineRequestSerializer(machine_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def patch(self, request,
-              cloud_admin_uuid, machine_request_id, action=None):
+    def patch(self, request, cloud_admin_uuid, machine_request_id, action=None):
         """
         OPT2 for approval: sending a PATCH to the machine request with
           {"status":"approve/deny"}
@@ -106,11 +108,13 @@ class CloudAdminImagingRequest(APIView):
         try:
             machine_request = CoreMachineRequest.objects.get(
                 instance__source__provider__cloudadministrator__user=user,
-                id=machine_request_id)
+                id=machine_request_id
+            )
         except CoreMachineRequest.DoesNotExist:
-            return Response('No machine request with id %s'
-                            % machine_request_id,
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                'No machine request with id %s' % machine_request_id,
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         data = request.data
         # Behavior will remove 'status' if its being updated.
@@ -123,7 +127,8 @@ class CloudAdminImagingRequest(APIView):
             if machine_request.old_status == 'completed':
                 return Response(
                     "Cannot update status of 'completed' request",
-                    status=status.HTTP_409_conflict)
+                    status=status.HTTP_409_conflict
+                )
             elif _status in ['approve', 'continue']:
                 data.pop('status')
                 start_request = True
@@ -131,12 +136,15 @@ class CloudAdminImagingRequest(APIView):
                 return Response(
                     "Bad Status Value: %s. "
                     "Available choices for a status update are: "
-                    "approve, continue, deny, skip")
+                    "approve, continue, deny, skip"
+                )
         serializer = MachineRequestSerializer(
-            machine_request, data=data, partial=True)
+            machine_request, data=data, partial=True
+        )
         if not serializer.is_valid():
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
         # Only run task if status is 'approve'
         machine_request = serializer.save()
         mr_data = serializer.data
@@ -146,14 +154,15 @@ class CloudAdminImagingRequest(APIView):
 
 
 class CloudAdminAccountList(APIView):
-
     """
     This API is used to provide account management.
     provider_uuid -- The id of the provider whose account you want to manage.
     """
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,
-                          CloudAdminRequired,)
+    permission_classes = (
+        ApiAuthRequired,
+        InMaintenance,
+        CloudAdminRequired,
+    )
 
     def get(self, request):
         """
@@ -178,21 +187,24 @@ class CloudAdminAccountList(APIView):
         try:
             provider_uuid = data['provider']
             provider = Provider.objects.get(
-                cloudadministrator__user=user,
-                uuid=provider_uuid)
+                cloudadministrator__user=user, uuid=provider_uuid
+            )
         except KeyError:
             return Response(
                 "Missing 'provider' key, Expected UUID. Received no value.",
-                status=status.HTTP_409_conflict)
+                status=status.HTTP_409_conflict
+            )
         except Exception:
             return Response(
                 "Provider with UUID %s does not exist" % provider_uuid,
-                status=status.HTTP_409_conflict)
+                status=status.HTTP_409_conflict
+            )
         driver = get_account_driver(provider)
         missing_args = driver.clean_credentials(data)
         if missing_args:
-            raise Exception("Cannot create account. Missing credentials: %s"
-                            % missing_args)
+            raise Exception(
+                "Cannot create account. Missing credentials: %s" % missing_args
+            )
         identity = driver.create_account(**data)
         serializer = IdentitySerializer(identity)
 
@@ -201,15 +213,16 @@ class CloudAdminAccountList(APIView):
 
 
 class CloudAdminAccount(APIView):
-
     """
     This API is used to Enable/Disable a specific identity on
     your Cloud Provider.
     """
 
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,
-                          CloudAdminRequired,)
+    permission_classes = (
+        ApiAuthRequired,
+        InMaintenance,
+        CloudAdminRequired,
+    )
 
     def get(self, request, username):
         """
@@ -219,13 +232,13 @@ class CloudAdminAccount(APIView):
         user = request.user
         memberships = IdentityMembership.objects.filter(
             identity__provider__cloudadministrator__user=user,
-            identity__created_by__username=username).order_by('member__name')
+            identity__created_by__username=username
+        ).order_by('member__name')
         serializer = AccountSerializer(memberships, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CloudAdminInstanceActionList(APIView):
-
     """
     This API is used to provide account management.
     provider_uuid -- The id of the provider whose account you want to manage.
@@ -239,7 +252,8 @@ class CloudAdminInstanceActionList(APIView):
             provider__cloudadministrator__user=request.user,
         )
         serializer = ProviderInstanceActionSerializer(
-            p_instance_actions, many=True)
+            p_instance_actions, many=True
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
@@ -255,15 +269,16 @@ class CloudAdminInstanceActionList(APIView):
 
 
 class CloudAdminInstanceAction(APIView):
-
     """
     This API is used to provide account management.
     provider_uuid -- The id of the provider whose account you want to manage.
     """
 
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,
-                          CloudAdminRequired,)
+    permission_classes = (
+        ApiAuthRequired,
+        InMaintenance,
+        CloudAdminRequired,
+    )
 
     def get(self, request, provider_instance_action_id):
         """
@@ -271,7 +286,8 @@ class CloudAdminInstanceAction(APIView):
         """
         try:
             p_instance_action = ProviderInstanceAction.objects.get(
-                id=provider_instance_action_id)
+                id=provider_instance_action_id
+            )
         except ProviderInstanceAction.DoesNotExist:
             return Response("Bad ID", status=status.HTTP_400_BAD_REQUEST)
         serializer = ProviderInstanceActionSerializer(p_instance_action)
@@ -284,11 +300,13 @@ class CloudAdminInstanceAction(APIView):
         data = request.data
         try:
             p_instance_action = ProviderInstanceAction.objects.get(
-                id=provider_instance_action_id)
+                id=provider_instance_action_id
+            )
         except ProviderInstanceAction.DoesNotExist:
             return Response("Bad ID", status=status.HTTP_400_BAD_REQUEST)
         serializer = PATCH_ProviderInstanceActionSerializer(
-            p_instance_action, data=data, partial=True)
+            p_instance_action, data=data, partial=True
+        )
         if serializer.is_valid():
             p_instance_action = serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)

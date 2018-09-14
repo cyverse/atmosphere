@@ -60,7 +60,6 @@ def _get_default_quota(key, default_value=-1):
 
 
 class Quota(models.Model):
-
     """
     Quota limits the amount of resources that can be used for a User/Group
     Quotas are set at the Identity Level in IdentityMembership
@@ -68,19 +67,32 @@ class Quota(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     # Quotas generally defined on all Providers
     cpu = models.IntegerField(
-        null=True,
-        blank=True,
-        default=_get_default_cpu)  # In CPU Units
-    memory = models.IntegerField(null=True, blank=True, default=_get_default_memory)  # In GB
-    storage = models.IntegerField(null=True, blank=True, default=_get_default_storage)  # In GB
+        null=True, blank=True, default=_get_default_cpu
+    )    # In CPU Units
+    memory = models.IntegerField(
+        null=True, blank=True, default=_get_default_memory
+    )    # In GB
+    storage = models.IntegerField(
+        null=True, blank=True, default=_get_default_storage
+    )    # In GB
     # Compute quota (Depends on Provider)
-    instance_count = models.IntegerField(null=True, blank=True, default=_get_default_instance_count)
+    instance_count = models.IntegerField(
+        null=True, blank=True, default=_get_default_instance_count
+    )
     # Volume quota (Depends on Provider)
-    snapshot_count = models.IntegerField(null=True, blank=True, default=_get_default_snapshot_count)
-    storage_count = models.IntegerField(null=True, blank=True, default=_get_default_storage_count)
+    snapshot_count = models.IntegerField(
+        null=True, blank=True, default=_get_default_snapshot_count
+    )
+    storage_count = models.IntegerField(
+        null=True, blank=True, default=_get_default_storage_count
+    )
     # Networking quota (Depends on Provider)
-    floating_ip_count = models.IntegerField(null=True, blank=True, default=_get_default_floating_ip_count)
-    port_count = models.IntegerField(null=True, blank=True, default=_get_default_port_count)
+    floating_ip_count = models.IntegerField(
+        null=True, blank=True, default=_get_default_floating_ip_count
+    )
+    port_count = models.IntegerField(
+        null=True, blank=True, default=_get_default_port_count
+    )
 
     def __unicode__(self):
         str_builder = "ID:%s UUID:%s - " % (self.id, self.uuid)
@@ -113,8 +125,8 @@ class Quota(models.Model):
         from django.db.models import Max
         if not Quota.objects.all():
             return self.unreachable_quota()
-        max_quota_by_type = Quota.objects.all().aggregate(
-            Max(by_type))['%s__max' % by_type]
+        max_quota_by_type = Quota.objects.all().aggregate(Max(by_type)
+                                                         )['%s__max' % by_type]
         quota = Quota.objects.filter(cpu=max_quota_by_type)[0]
         if quota.cpu <= self._meta.get_field('cpu').default:
             return self.unreachable_quota()
@@ -122,13 +134,11 @@ class Quota(models.Model):
 
     @classmethod
     def default_quota(self):
-        return Quota.objects.get_or_create(
-            **Quota.default_dict())[0]
+        return Quota.objects.get_or_create(**Quota.default_dict())[0]
 
     @classmethod
     def unreachable_quota(self):
-        return Quota.objects.get_or_create(
-            **Quota.unreachable_dict())[0]
+        return Quota.objects.get_or_create(**Quota.unreachable_dict())[0]
 
     @classmethod
     def unreachable_dict(cls):
@@ -146,14 +156,22 @@ class Quota(models.Model):
     @classmethod
     def default_dict(cls):
         return {
-            'cpu': cls._meta.get_field('cpu').default(),
-            'memory': cls._meta.get_field('memory').default(),
-            'storage': cls._meta.get_field('storage').default(),
-            'floating_ip_count': cls._meta.get_field('floating_ip_count').default(),
-            'port_count': cls._meta.get_field('port_count').default(),
-            'instance_count': cls._meta.get_field('instance_count').default(),
-            'storage_count': cls._meta.get_field('storage_count').default(),
-            'snapshot_count': cls._meta.get_field('snapshot_count').default(),
+            'cpu':
+                cls._meta.get_field('cpu').default(),
+            'memory':
+                cls._meta.get_field('memory').default(),
+            'storage':
+                cls._meta.get_field('storage').default(),
+            'floating_ip_count':
+                cls._meta.get_field('floating_ip_count').default(),
+            'port_count':
+                cls._meta.get_field('port_count').default(),
+            'instance_count':
+                cls._meta.get_field('instance_count').default(),
+            'storage_count':
+                cls._meta.get_field('storage_count').default(),
+            'snapshot_count':
+                cls._meta.get_field('snapshot_count').default(),
         }
 
     class Meta:
@@ -200,7 +218,7 @@ def has_mem_quota(driver, quota, new_size=0, raise_exc=True):
     # Always True if ram is null
     if not quota.memory or quota.memory < 0:
         return True
-    total_size = new_size/1024.0
+    total_size = new_size / 1024.0
     _pre_cache_sizes(driver)
     instances = driver.list_instances()
     for inst in instances:
@@ -213,7 +231,10 @@ def has_mem_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.memory:
         return True
     if raise_exc:
-        _raise_quota_error('Memory', (total_size - new_size)/1024.0, new_size/1024.0, quota.memory)
+        _raise_quota_error(
+            'Memory', (total_size - new_size) / 1024.0, new_size / 1024.0,
+            quota.memory
+        )
     return False
 
 
@@ -233,7 +254,9 @@ def has_instance_count_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.instance_count:
         return True
     if raise_exc:
-        _raise_quota_error('Instance', total_size - new_size, new_size, quota.instance_count)
+        _raise_quota_error(
+            'Instance', total_size - new_size, new_size, quota.instance_count
+        )
     return False
 
 
@@ -254,17 +277,24 @@ def has_port_count_quota(identity, driver, quota, new_size=0, raise_exc=True):
         network_driver = _to_network_driver(identity)
         port_list = network_driver.list_ports()
     except Exception as exc:
-        logger.warn("Could not verify quota due to failed call to network_driver.list_ports() - %s" % exc)
+        logger.warn(
+            "Could not verify quota due to failed call to network_driver.list_ports() - %s"
+            % exc
+        )
         return True
     project_id = network_driver.get_tenant_id()
-    fixed_ips = [port for port in port_list if
-                 'compute:' in port['device_owner'] and port.get('project_id', project_id) == project_id]
+    fixed_ips = [
+        port for port in port_list if 'compute:' in port['device_owner']
+        and port.get('project_id', project_id) == project_id
+    ]
     total_size = new_size
     total_size += len(fixed_ips)
     if total_size <= quota.port_count:
         return True
     if raise_exc:
-        _raise_quota_error('Fixed IP', total_size - new_size, new_size, quota.port_count)
+        _raise_quota_error(
+            'Fixed IP', total_size - new_size, new_size, quota.port_count
+        )
     return False
 
 
@@ -285,7 +315,10 @@ def has_floating_ip_count_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.floating_ip_count:
         return True
     if raise_exc:
-        _raise_quota_error('Floating IP', total_size - new_size, new_size, quota.floating_ip_count)
+        _raise_quota_error(
+            'Floating IP', total_size - new_size, new_size,
+            quota.floating_ip_count
+        )
     return False
 
 
@@ -307,9 +340,10 @@ def has_storage_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.storage:
         return True
     if raise_exc:
-        _raise_quota_error('Storage Size', total_size - new_size, new_size, quota.storage)
+        _raise_quota_error(
+            'Storage Size', total_size - new_size, new_size, quota.storage
+        )
     return False
-
 
 
 def has_snapshot_count_quota(driver, quota, new_size=0, raise_exc=True):
@@ -328,7 +362,9 @@ def has_snapshot_count_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.snapshot_count:
         return True
     if raise_exc:
-        _raise_quota_error('Snapshot', total_size - new_size, new_size, quota.snapshot_count)
+        _raise_quota_error(
+            'Snapshot', total_size - new_size, new_size, quota.snapshot_count
+        )
     return False
 
 
@@ -348,14 +384,17 @@ def has_storage_count_quota(driver, quota, new_size=0, raise_exc=True):
     if total_size <= quota.storage_count:
         return True
     if raise_exc:
-        _raise_quota_error('Volume', total_size - new_size, new_size, quota.storage_count)
+        _raise_quota_error(
+            'Volume', total_size - new_size, new_size, quota.storage_count
+        )
     return False
 
 
 def _raise_quota_error(resource_name, current_count, new_count, limit_count):
     raise ValidationError(
-        "%s Quota Exceeded: Using %s + Requested %s but limited to %s"
-        % (resource_name, current_count, new_count, limit_count))
+        "%s Quota Exceeded: Using %s + Requested %s but limited to %s" %
+        (resource_name, current_count, new_count, limit_count)
+    )
 
 
 def _pre_cache_sizes(driver):
@@ -367,6 +406,7 @@ def _pre_cache_sizes(driver):
     if not cached_sizes:
         driver.list_sizes()
     return
+
 
 def get_quota(identity_uuid):
     try:

@@ -3,7 +3,6 @@ from rest_framework import serializers
 
 
 class QuotaSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Quota
-        exclude = ("id",)
+        exclude = ("id", )

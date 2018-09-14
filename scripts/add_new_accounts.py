@@ -22,28 +22,47 @@ libcloud.security.VERIFY_SSL_CERT = False
 def get_usernames(provider):
     """
     """
-    return Identity.objects.filter(provider=provider).values_list('created_by__username', flat=True)
+    return Identity.objects.filter(provider=provider).values_list(
+        'created_by__username', flat=True
+    )
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--provider", type=int,
-                        help="Atmosphere provider ID"
-                        " to use when importing users.")
-    parser.add_argument("--provider-id", type=int,
-                        help="Atmosphere provider ID"
-                        " to use when importing users."
-                        " DEPRECATION WARNING -- THIS WILL BE REMOVED SOON!")
-    parser.add_argument("--provider-list",
-                        action="store_true",
-                        help="List of provider names and IDs")
-    parser.add_argument("--rebuild", action="store_true",
-                        help="Rebuild all accounts that are in the provider")
-    parser.add_argument("--group",
-                        help="LDAP group of usernames to import.")
-    parser.add_argument("--users",
-                        help="usernames to add to Atmosphere. (comma separated list with no spaces)")
-    parser.add_argument("--admin", action="store_true",
-                        help="Users addded as admin and staff users.")
+    parser.add_argument(
+        "--provider",
+        type=int,
+        help="Atmosphere provider ID"
+        " to use when importing users."
+    )
+    parser.add_argument(
+        "--provider-id",
+        type=int,
+        help="Atmosphere provider ID"
+        " to use when importing users."
+        " DEPRECATION WARNING -- THIS WILL BE REMOVED SOON!"
+    )
+    parser.add_argument(
+        "--provider-list",
+        action="store_true",
+        help="List of provider names and IDs"
+    )
+    parser.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="Rebuild all accounts that are in the provider"
+    )
+    parser.add_argument("--group", help="LDAP group of usernames to import.")
+    parser.add_argument(
+        "--users",
+        help=
+        "usernames to add to Atmosphere. (comma separated list with no spaces)"
+    )
+    parser.add_argument(
+        "--admin",
+        action="store_true",
+        help="Users addded as admin and staff users."
+    )
     args = parser.parse_args()
 
     if args.provider_list:
@@ -59,7 +78,9 @@ def main():
     if args.provider:
         provider = Provider.objects.get(id=args.provider)
     else:
-        raise Exception("Missing required argument: --provider <id>. use --provider-list to get a list of provider ID+names")
+        raise Exception(
+            "Missing required argument: --provider <id>. use --provider-list to get a list of provider ID+names"
+        )
     print "Using Provider: %s" % provider
     try:
         acct_driver = get_account_driver(provider, raise_exception=True)
@@ -73,23 +94,28 @@ def main():
         usernames = get_members(args.group)
     elif args.users:
         usernames = args.users.split(",")
-    else: # if not args.users
+    else:    # if not args.users
         if not args.rebuild:
             print "Retrieving all 'atmo-user' members in LDAP."
             usernames = get_members('atmo-user')
         else:
             print "Rebuilding all existing users."
             usernames = get_usernames(provider)
-    return run_create_accounts(acct_driver, provider, usernames,
-                               args.rebuild, args.admin)
+    return run_create_accounts(
+        acct_driver, provider, usernames, args.rebuild, args.admin
+    )
 
 
-def run_create_accounts(acct_driver, provider, usernames, rebuild=False, admin=False):
+def run_create_accounts(
+    acct_driver, provider, usernames, rebuild=False, admin=False
+):
     user_total = 0
     identity_total = 0
     for username in sorted(usernames):
         User.objects.get_or_create(username=username)
-        new_identities = AccountCreationPluginManager.create_accounts(provider, username, force=rebuild)
+        new_identities = AccountCreationPluginManager.create_accounts(
+            provider, username, force=rebuild
+        )
         if new_identities:
             count = len(new_identities)
             print "%s new identities identity_total for %s." % (count, username)
@@ -97,7 +123,9 @@ def run_create_accounts(acct_driver, provider, usernames, rebuild=False, admin=F
             user_total += 1
         if admin:
             make_admin(username)
-    print "%s Total identities identity_total for %s users" % (identity_total, user_total)
+    print "%s Total identities identity_total for %s users" % (
+        identity_total, user_total
+    )
 
 
 def make_admin(username):

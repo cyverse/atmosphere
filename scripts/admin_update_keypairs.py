@@ -30,7 +30,8 @@ def main():
             try:
                 (keypair, created) = os_accounts.get_or_create_keypair(
                     creds['username'], creds['password'], creds['tenant_name'],
-                    keyname, public_key)
+                    keyname, public_key
+                )
             except KeystoneUnauthorized as exc:
                 print "Could not create keypair for %s. Error message: %s"\
                     % (creds['username'], exc.message)
@@ -39,6 +40,7 @@ def main():
                     % (keypair, creds['username'])
                 count += 1
         print 'Keypairs added for %s accounts on %s' % (count, prov)
+
 
 if __name__ == "__main__":
     main()

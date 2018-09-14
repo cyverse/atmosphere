@@ -26,12 +26,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ApplicationTag',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
             ],
             options={
                 'db_table': 'application_tags',
@@ -41,12 +44,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ApplicationVersionBootScript',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
             ],
             options={
                 'db_table': 'application_version_boot_scripts',
@@ -56,12 +62,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ApplicationVersionLicense',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
             ],
             options={
                 'db_table': 'application_version_licenses',
@@ -71,12 +80,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='InstanceTag',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
             ],
             options={
                 'db_table': 'instance_tags',
@@ -86,12 +98,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProjectApplication',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
             ],
             options={
                 'db_table': 'project_applications',
@@ -101,12 +116,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProjectExternalLink',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
             ],
             options={
                 'db_table': 'project_links',
@@ -116,12 +134,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProjectInstance',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
             ],
             options={
                 'db_table': 'project_instances',
@@ -131,12 +152,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProjectVolume',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
             ],
             options={
                 'db_table': 'project_volumes',
@@ -146,68 +170,106 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='AtmosphereUser',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('password',
-                 models.CharField(max_length=128, verbose_name='password')),
-                ('last_login',
-                 models.DateTimeField(
-                     blank=True, null=True, verbose_name='last login')),
-                ('is_superuser',
-                 models.BooleanField(
-                     default=False,
-                     help_text=
-                     'Designates that this user has all permissions without explicitly assigning them.',
-                     verbose_name='superuser status')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'password',
+                    models.CharField(max_length=128, verbose_name='password')
+                ),
+                (
+                    'last_login',
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name='last login'
+                    )
+                ),
+                (
+                    'is_superuser',
+                    models.BooleanField(
+                        default=False,
+                        help_text=
+                        'Designates that this user has all permissions without explicitly assigning them.',
+                        verbose_name='superuser status'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
-                ('username',
-                 models.CharField(
-                     error_messages={
-                         b'unique': 'A user with that username already exists.'
-                     },
-                     help_text=
-                     'Required. 256 characters or fewer. Letters, digits and @/./+/-/_ only.',
-                     max_length=256,
-                     unique=True,
-                     validators=[
-                         django.core.validators.RegexValidator(
-                             b'^[\\w.@+-]+$',
-                             'Enter a valid username. This value may contain only letters, numbers and @/./+/-/_ characters.'
-                         )
-                     ],
-                     verbose_name='username')),
-                ('first_name',
-                 models.CharField(
-                     blank=True, max_length=64, verbose_name='first name')),
-                ('last_name',
-                 models.CharField(
-                     blank=True, max_length=256, verbose_name='last name')),
-                ('email',
-                 models.EmailField(
-                     blank=True, max_length=254, verbose_name='email address')),
-                ('is_staff',
-                 models.BooleanField(
-                     default=False,
-                     help_text=
-                     'Designates whether the user can log into this admin site.',
-                     verbose_name='staff status')),
-                ('is_active',
-                 models.BooleanField(
-                     default=True,
-                     help_text=
-                     'Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
-                     verbose_name='active')),
-                ('date_joined',
-                 models.DateTimeField(
-                     default=django.utils.timezone.now,
-                     verbose_name='date joined')),
+                (
+                    'username',
+                    models.CharField(
+                        error_messages={
+                            b'unique':
+                                'A user with that username already exists.'
+                        },
+                        help_text=
+                        'Required. 256 characters or fewer. Letters, digits and @/./+/-/_ only.',
+                        max_length=256,
+                        unique=True,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                b'^[\\w.@+-]+$',
+                                'Enter a valid username. This value may contain only letters, numbers and @/./+/-/_ characters.'
+                            )
+                        ],
+                        verbose_name='username'
+                    )
+                ),
+                (
+                    'first_name',
+                    models.CharField(
+                        blank=True, max_length=64, verbose_name='first name'
+                    )
+                ),
+                (
+                    'last_name',
+                    models.CharField(
+                        blank=True, max_length=256, verbose_name='last name'
+                    )
+                ),
+                (
+                    'email',
+                    models.EmailField(
+                        blank=True,
+                        max_length=254,
+                        verbose_name='email address'
+                    )
+                ),
+                (
+                    'is_staff',
+                    models.BooleanField(
+                        default=False,
+                        help_text=
+                        'Designates whether the user can log into this admin site.',
+                        verbose_name='staff status'
+                    )
+                ),
+                (
+                    'is_active',
+                    models.BooleanField(
+                        default=True,
+                        help_text=
+                        'Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
+                        verbose_name='active'
+                    )
+                ),
+                (
+                    'date_joined',
+                    models.DateTimeField(
+                        default=django.utils.timezone.now,
+                        verbose_name='date joined'
+                    )
+                ),
             ],
             options={
                 'db_table': 'atmosphere_user',
@@ -219,12 +281,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='AccountProvider',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
             ],
             options={
                 'db_table': 'provider_admin',
@@ -233,19 +298,29 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Allocation',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
-                ('threshold',
-                 models.IntegerField(blank=True, default=-1, null=True)),
-                ('delta', models.IntegerField(
-                    blank=True, default=-1, null=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
+                (
+                    'threshold',
+                    models.IntegerField(blank=True, default=-1, null=True)
+                ),
+                (
+                    'delta',
+                    models.IntegerField(blank=True, default=-1, null=True)
+                ),
             ],
             options={
                 'db_table': 'allocation',
@@ -254,22 +329,32 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='AllocationSource',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('name', models.CharField(max_length=255, unique=True)),
                 ('compute_allowed', models.IntegerField()),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
-                ('renewal_strategy',
-                 models.CharField(default=b'default', max_length=255)),
+                (
+                    'renewal_strategy',
+                    models.CharField(default=b'default', max_length=255)
+                ),
             ],
             options={
                 'db_table': 'allocation_source',
@@ -278,27 +363,42 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='AllocationSourceSnapshot',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('updated', models.DateTimeField(auto_now=True)),
-                ('last_renewed',
-                 models.DateTimeField(default=django.utils.timezone.now)),
-                ('global_burn_rate',
-                 models.DecimalField(decimal_places=3, max_digits=19)),
-                ('compute_used',
-                 models.DecimalField(decimal_places=3, max_digits=19)),
-                ('compute_allowed',
-                 models.DecimalField(
-                     decimal_places=3, default=0, max_digits=19)),
-                ('allocation_source',
-                 models.OneToOneField(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='snapshot',
-                     to='core.AllocationSource')),
+                (
+                    'last_renewed',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
+                (
+                    'global_burn_rate',
+                    models.DecimalField(decimal_places=3, max_digits=19)
+                ),
+                (
+                    'compute_used',
+                    models.DecimalField(decimal_places=3, max_digits=19)
+                ),
+                (
+                    'compute_allowed',
+                    models.DecimalField(
+                        decimal_places=3, default=0, max_digits=19
+                    )
+                ),
+                (
+                    'allocation_source',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='snapshot',
+                        to='core.AllocationSource'
+                    )
+                ),
             ],
             options={
                 'db_table': 'allocation_source_snapshot',
@@ -307,12 +407,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='AllocationStrategy',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
             ],
             options={
                 'db_table': 'allocation_strategy',
@@ -321,23 +424,34 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Application',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('name', models.CharField(max_length=256)),
-                ('icon',
-                 models.ImageField(
-                     blank=True, null=True, upload_to=b'applications')),
+                (
+                    'icon',
+                    models.ImageField(
+                        blank=True, null=True, upload_to=b'applications'
+                    )
+                ),
                 ('description', models.TextField(blank=True, null=True)),
                 ('private', models.BooleanField(default=False)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
             ],
             options={
@@ -347,20 +461,29 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ApplicationBookmark',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
-                ('application',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='bookmarks',
-                     to='core.Application')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
+                (
+                    'application',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='bookmarks',
+                        to='core.Application'
+                    )
+                ),
             ],
             options={
                 'db_table': 'application_bookmark',
@@ -369,17 +492,23 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ApplicationMembership',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('can_edit', models.BooleanField(default=False)),
-                ('application',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.Application')),
+                (
+                    'application',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.Application'
+                    )
+                ),
             ],
             options={
                 'db_table': 'application_membership',
@@ -388,21 +517,29 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ApplicationScore',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('score', models.IntegerField(default=0)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
-                ('application',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='scores',
-                     to='core.Application')),
+                (
+                    'application',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='scores',
+                        to='core.Application'
+                    )
+                ),
             ],
             options={
                 'db_table': 'application_score',
@@ -411,12 +548,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ApplicationThreshold',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('memory_min', models.IntegerField(default=0)),
                 ('cpu_min', models.IntegerField(default=0)),
             ],
@@ -427,30 +567,44 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ApplicationVersion',
             fields=[
-                ('id',
-                 models.UUIDField(
-                     default=uuid.uuid4,
-                     editable=False,
-                     primary_key=True,
-                     serialize=False,
-                     unique=True)),
+                (
+                    'id',
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                        unique=True
+                    )
+                ),
                 ('name', models.CharField(max_length=256)),
                 ('change_log', models.TextField(blank=True, null=True)),
                 ('allow_imaging', models.BooleanField(default=True)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
-                ('system_files',
-                 models.TextField(blank=True, default=b'', null=True)),
-                ('installed_software',
-                 models.TextField(blank=True, default=b'', null=True)),
-                ('excluded_files',
-                 models.TextField(blank=True, default=b'', null=True)),
-                ('application',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='versions',
-                     to='core.Application')),
+                (
+                    'system_files',
+                    models.TextField(blank=True, default=b'', null=True)
+                ),
+                (
+                    'installed_software',
+                    models.TextField(blank=True, default=b'', null=True)
+                ),
+                (
+                    'excluded_files',
+                    models.TextField(blank=True, default=b'', null=True)
+                ),
+                (
+                    'application',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='versions',
+                        to='core.Application'
+                    )
+                ),
             ],
             options={
                 'db_table': 'application_version',
@@ -459,12 +613,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ApplicationVersionMembership',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('can_share', models.BooleanField(default=False)),
             ],
             options={
@@ -474,21 +631,30 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='BootScript',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('title', models.CharField(max_length=128)),
                 ('script_text', models.TextField()),
                 ('run_every_deploy', models.BooleanField(default=False)),
-                ('applications',
-                 models.ManyToManyField(
-                     related_name='scripts', to='core.Application')),
+                (
+                    'applications',
+                    models.ManyToManyField(
+                        related_name='scripts', to='core.Application'
+                    )
+                ),
             ],
             options={
                 'db_table': 'boot_script',
@@ -497,15 +663,21 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='CloudAdministrator',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
             ],
             options={
                 'db_table': 'cloud_administrator',
@@ -514,12 +686,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='CountingBehavior',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=255)),
             ],
             options={
@@ -529,15 +704,21 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Credential',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('key', models.CharField(max_length=256)),
                 ('value', models.CharField(max_length=256)),
             ],
@@ -548,18 +729,26 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='EmailTemplate',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('email_address',
-                 models.EmailField(
-                     default=b'support@cyverse.org', max_length=254)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'email_address',
+                    models.EmailField(
+                        default=b'support@cyverse.org', max_length=254
+                    )
+                ),
                 ('email_header', models.TextField(default=b'')),
-                ('email_footer',
-                 models.TextField(default=b'CyVerse Atmosphere Team')),
+                (
+                    'email_footer',
+                    models.TextField(default=b'CyVerse Atmosphere Team')
+                ),
             ],
             options={
                 'db_table': 'email_template',
@@ -568,22 +757,35 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='EventTable',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(blank=True, default=uuid.uuid4, unique=True)),
-                ('entity_id',
-                 models.CharField(
-                     blank=True, db_index=True, default=b'', max_length=255)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        blank=True, default=uuid.uuid4, unique=True
+                    )
+                ),
+                (
+                    'entity_id',
+                    models.CharField(
+                        blank=True, db_index=True, default=b'', max_length=255
+                    )
+                ),
                 ('name', models.CharField(db_index=True, max_length=128)),
                 ('payload', django.contrib.postgres.fields.jsonb.JSONField()),
-                ('timestamp',
-                 models.DateTimeField(
-                     db_index=True, default=django.utils.timezone.now)),
+                (
+                    'timestamp',
+                    models.DateTimeField(
+                        db_index=True, default=django.utils.timezone.now
+                    )
+                ),
             ],
             options={
                 'db_table': 'event_table',
@@ -592,19 +794,26 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ExportRequest',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('status', models.CharField(max_length=256)),
                 ('export_name', models.CharField(max_length=256)),
                 ('export_format', models.CharField(max_length=256)),
-                ('export_file',
-                 models.CharField(blank=True, max_length=256, null=True)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'export_file',
+                    models.CharField(blank=True, max_length=256, null=True)
+                ),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
             ],
             options={
@@ -614,13 +823,16 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ExternalLink',
             fields=[
-                ('id',
-                 models.UUIDField(
-                     default=uuid.uuid4,
-                     editable=False,
-                     primary_key=True,
-                     serialize=False,
-                     unique=True)),
+                (
+                    'id',
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                        unique=True
+                    )
+                ),
                 ('title', models.CharField(max_length=256)),
                 ('link', models.URLField(max_length=256)),
                 ('description', models.TextField(blank=True, null=True)),
@@ -632,23 +844,32 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Group',
             fields=[
-                ('group_ptr',
-                 models.OneToOneField(
-                     auto_created=True,
-                     on_delete=django.db.models.deletion.CASCADE,
-                     parent_link=True,
-                     primary_key=True,
-                     serialize=False,
-                     to='auth.Group')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
-                ('applications',
-                 models.ManyToManyField(
-                     blank=True,
-                     related_name='members',
-                     through='core.ApplicationMembership',
-                     to='core.Application')),
+                (
+                    'group_ptr',
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        serialize=False,
+                        to='auth.Group'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
+                (
+                    'applications',
+                    models.ManyToManyField(
+                        blank=True,
+                        related_name='members',
+                        through='core.ApplicationMembership',
+                        to='core.Application'
+                    )
+                ),
             ],
             options={
                 'db_table': 'group',
@@ -658,17 +879,26 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='HelpLink',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('link_key',
-                 models.CharField(editable=False, max_length=256, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'link_key',
+                    models.CharField(
+                        editable=False, max_length=256, unique=True
+                    )
+                ),
                 ('topic', models.CharField(max_length=256)),
-                ('context', models.TextField(
-                    blank=True, default=b'', null=True)),
+                (
+                    'context',
+                    models.TextField(blank=True, default=b'', null=True)
+                ),
                 ('href', models.TextField()),
                 ('created_date', models.DateTimeField(auto_now_add=True)),
                 ('modified_date', models.DateTimeField(auto_now=True)),
@@ -677,15 +907,21 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Identity',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
             ],
             options={
                 'db_table': 'identity',
@@ -695,32 +931,47 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='IdentityMembership',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
-                ('allocation',
-                 models.ForeignKey(
-                     blank=True,
-                     null=True,
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.Allocation')),
-                ('identity',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='identity_memberships',
-                     to='core.Identity')),
-                ('member',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='identity_memberships',
-                     to='core.Group')),
+                (
+                    'allocation',
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.Allocation'
+                    )
+                ),
+                (
+                    'identity',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='identity_memberships',
+                        to='core.Identity'
+                    )
+                ),
+                (
+                    'member',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='identity_memberships',
+                        to='core.Group'
+                    )
+                ),
             ],
             options={
                 'db_table': 'identity_membership',
@@ -729,24 +980,35 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Instance',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=256)),
-                ('token', models.CharField(
-                    blank=True, max_length=36, null=True)),
-                ('provider_alias', models.CharField(
-                    max_length=256, unique=True)),
-                ('ip_address',
-                 models.GenericIPAddressField(null=True, unpack_ipv4=True)),
+                (
+                    'token',
+                    models.CharField(blank=True, max_length=36, null=True)
+                ),
+                (
+                    'provider_alias',
+                    models.CharField(max_length=256, unique=True)
+                ),
+                (
+                    'ip_address',
+                    models.GenericIPAddressField(null=True, unpack_ipv4=True)
+                ),
                 ('shell', models.BooleanField(default=False)),
                 ('vnc', models.BooleanField(default=False)),
                 ('web_desktop', models.BooleanField(default=False)),
-                ('password',
-                 models.CharField(blank=True, max_length=64, null=True)),
+                (
+                    'password',
+                    models.CharField(blank=True, max_length=64, null=True)
+                ),
                 ('start_date', models.DateTimeField()),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
             ],
@@ -757,14 +1019,21 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='InstanceAction',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('key',
-                 models.CharField(editable=False, max_length=256, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'key',
+                    models.CharField(
+                        editable=False, max_length=256, unique=True
+                    )
+                ),
                 ('name', models.CharField(max_length=256)),
                 ('description', models.TextField(blank=True, null=True)),
             ],
@@ -772,21 +1041,30 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='InstanceAllocationSourceSnapshot',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('updated', models.DateTimeField(auto_now=True)),
-                ('allocation_source',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.AllocationSource')),
-                ('instance',
-                 models.OneToOneField(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.Instance')),
+                (
+                    'allocation_source',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.AllocationSource'
+                    )
+                ),
+                (
+                    'instance',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.Instance'
+                    )
+                ),
             ],
             options={
                 'db_table': 'instance_allocation_source_snapshot',
@@ -795,23 +1073,35 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='InstanceMembership',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
-                ('instance',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.Instance')),
-                ('owner',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.Group')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
+                (
+                    'instance',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.Instance'
+                    )
+                ),
+                (
+                    'owner',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.Group'
+                    )
+                ),
             ],
             options={
                 'db_table': 'instance_membership',
@@ -820,18 +1110,26 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='InstanceSource',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('identifier', models.CharField(max_length=256)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
             ],
             options={
@@ -841,12 +1139,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='InstanceStatus',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=128)),
             ],
             options={
@@ -856,24 +1157,37 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='InstanceStatusHistory',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
-                ('activity',
-                 models.CharField(blank=True, max_length=36, null=True)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
+                (
+                    'activity',
+                    models.CharField(blank=True, max_length=36, null=True)
+                ),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
-                ('instance',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.Instance')),
+                (
+                    'instance',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.Instance'
+                    )
+                ),
             ],
             options={
                 'db_table': 'instance_status_history',
@@ -882,19 +1196,28 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Leadership',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
-                ('group',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.Group')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
+                (
+                    'group',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.Group'
+                    )
+                ),
             ],
             options={
                 'db_table': 'group_leaders',
@@ -903,15 +1226,21 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='License',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('title', models.CharField(max_length=256)),
                 ('license_text', models.TextField()),
             ],
@@ -922,12 +1251,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='LicenseType',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=128)),
                 ('description', models.TextField(blank=True, null=True)),
             ],
@@ -938,45 +1270,77 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='MachineRequest',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
-                ('admin_message',
-                 models.CharField(blank=True, default=b'', max_length=1024)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
+                (
+                    'admin_message',
+                    models.CharField(blank=True, default=b'', max_length=1024)
+                ),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
-                ('old_status',
-                 models.TextField(blank=True, default=b'', null=True)),
+                (
+                    'old_status',
+                    models.TextField(blank=True, default=b'', null=True)
+                ),
                 ('new_application_name', models.CharField(max_length=256)),
-                ('new_application_description',
-                 models.TextField(default=b'Description Missing')),
-                ('new_application_visibility',
-                 models.CharField(default=b'private', max_length=256)),
-                ('access_list',
-                 models.TextField(blank=True, default=b'', null=True)),
-                ('system_files',
-                 models.TextField(blank=True, default=b'', null=True)),
-                ('installed_software',
-                 models.TextField(blank=True, default=b'', null=True)),
-                ('exclude_files',
-                 models.TextField(blank=True, default=b'', null=True)),
-                ('new_version_name',
-                 models.CharField(default=b'1.0', max_length=256)),
-                ('new_version_change_log',
-                 models.TextField(default=b'Changelog Missing')),
-                ('new_version_tags',
-                 models.TextField(blank=True, default=b'', null=True)),
+                (
+                    'new_application_description',
+                    models.TextField(default=b'Description Missing')
+                ),
+                (
+                    'new_application_visibility',
+                    models.CharField(default=b'private', max_length=256)
+                ),
+                (
+                    'access_list',
+                    models.TextField(blank=True, default=b'', null=True)
+                ),
+                (
+                    'system_files',
+                    models.TextField(blank=True, default=b'', null=True)
+                ),
+                (
+                    'installed_software',
+                    models.TextField(blank=True, default=b'', null=True)
+                ),
+                (
+                    'exclude_files',
+                    models.TextField(blank=True, default=b'', null=True)
+                ),
+                (
+                    'new_version_name',
+                    models.CharField(default=b'1.0', max_length=256)
+                ),
+                (
+                    'new_version_change_log',
+                    models.TextField(default=b'Changelog Missing')
+                ),
+                (
+                    'new_version_tags',
+                    models.TextField(blank=True, default=b'', null=True)
+                ),
                 ('new_version_memory_min', models.IntegerField(default=0)),
                 ('new_version_cpu_min', models.IntegerField(default=0)),
-                ('new_version_allow_imaging',
-                 models.BooleanField(default=True)),
+                (
+                    'new_version_allow_imaging',
+                    models.BooleanField(default=True)
+                ),
                 ('new_version_forked', models.BooleanField(default=True)),
             ],
             options={
@@ -986,12 +1350,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='MaintenanceRecord',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('start_date', models.DateTimeField()),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
                 ('title', models.CharField(max_length=256)),
@@ -1005,30 +1372,38 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='MatchType',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=128)),
             ],
         ),
         migrations.CreateModel(
             name='NodeController',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('alias', models.CharField(max_length=256)),
                 ('hostname', models.CharField(max_length=256)),
                 ('port', models.IntegerField(default=22)),
                 ('private_ssh_key', models.TextField()),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
             ],
             options={
@@ -1038,12 +1413,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='PatternMatch',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('pattern', models.CharField(max_length=256)),
             ],
             options={
@@ -1053,15 +1431,20 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='PlatformType',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=256)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
             ],
             options={
@@ -1071,37 +1454,58 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Project',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('name', models.CharField(max_length=256)),
                 ('description', models.TextField(blank=True)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
-                ('applications',
-                 models.ManyToManyField(
-                     blank=True, related_name='projects',
-                     to='core.Application')),
-                ('instances',
-                 models.ManyToManyField(
-                     blank=True, related_name='projects', to='core.Instance')),
-                ('links',
-                 models.ManyToManyField(
-                     blank=True,
-                     related_name='projects',
-                     to='core.ExternalLink')),
-                ('owner',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='projects',
-                     to='core.Group')),
+                (
+                    'applications',
+                    models.ManyToManyField(
+                        blank=True,
+                        related_name='projects',
+                        to='core.Application'
+                    )
+                ),
+                (
+                    'instances',
+                    models.ManyToManyField(
+                        blank=True, related_name='projects', to='core.Instance'
+                    )
+                ),
+                (
+                    'links',
+                    models.ManyToManyField(
+                        blank=True,
+                        related_name='projects',
+                        to='core.ExternalLink'
+                    )
+                ),
+                (
+                    'owner',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='projects',
+                        to='core.Group'
+                    )
+                ),
             ],
             options={
                 'db_table': 'project',
@@ -1110,28 +1514,40 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Provider',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('location', models.CharField(max_length=256)),
                 ('description', models.TextField(blank=True)),
                 ('active', models.BooleanField(default=True)),
                 ('public', models.BooleanField(default=False)),
                 ('auto_imaging', models.BooleanField(default=False)),
-                ('timezone',
-                 models.CharField(
-                     default=b'America/Phoenix',
-                     max_length=128,
-                     validators=[core.validators.validate_timezone])),
-                ('cloud_config',
-                 django.contrib.postgres.fields.jsonb.JSONField(
-                     blank=True, null=True)),
+                (
+                    'timezone',
+                    models.CharField(
+                        default=b'America/Phoenix',
+                        max_length=128,
+                        validators=[core.validators.validate_timezone]
+                    )
+                ),
+                (
+                    'cloud_config',
+                    django.contrib.postgres.fields.jsonb.JSONField(
+                        blank=True, null=True
+                    )
+                ),
                 ('start_date', models.DateTimeField(auto_now_add=True)),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
             ],
@@ -1142,15 +1558,21 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProviderCredential',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('key', models.CharField(max_length=256)),
                 ('value', models.CharField(max_length=256)),
             ],
@@ -1161,14 +1583,19 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProviderDNSServerIP',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('ip_address',
-                 models.GenericIPAddressField(null=True, unpack_ipv4=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'ip_address',
+                    models.GenericIPAddressField(null=True, unpack_ipv4=True)
+                ),
                 ('order', models.IntegerField()),
             ],
             options={
@@ -1178,18 +1605,24 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProviderInstanceAction',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('enabled', models.BooleanField(default=True)),
-                ('instance_action',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='provider_actions',
-                     to='core.InstanceAction')),
+                (
+                    'instance_action',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='provider_actions',
+                        to='core.InstanceAction'
+                    )
+                ),
             ],
             options={
                 'db_table': 'provider_instance_action',
@@ -1198,22 +1631,31 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProviderMachine',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('application_version',
-                 models.ForeignKey(
-                     null=True,
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='machines',
-                     to='core.ApplicationVersion')),
-                ('instance_source',
-                 models.OneToOneField(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.InstanceSource')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'application_version',
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='machines',
+                        to='core.ApplicationVersion'
+                    )
+                ),
+                (
+                    'instance_source',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.InstanceSource'
+                    )
+                ),
             ],
             options={
                 'db_table': 'provider_machine',
@@ -1222,21 +1664,30 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProviderMachineMembership',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('can_share', models.BooleanField(default=False)),
-                ('group',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.Group')),
-                ('provider_machine',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.ProviderMachine')),
+                (
+                    'group',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.Group'
+                    )
+                ),
+                (
+                    'provider_machine',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.ProviderMachine'
+                    )
+                ),
             ],
             options={
                 'db_table': 'provider_machine_membership',
@@ -1245,15 +1696,20 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProviderType',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=256)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
             ],
             options={
@@ -1263,55 +1719,86 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Quota',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
-                ('cpu',
-                 models.IntegerField(
-                     blank=True,
-                     default=core.models.quota._get_default_cpu,
-                     null=True)),
-                ('memory',
-                 models.IntegerField(
-                     blank=True,
-                     default=core.models.quota._get_default_memory,
-                     null=True)),
-                ('storage',
-                 models.IntegerField(
-                     blank=True,
-                     default=core.models.quota._get_default_storage,
-                     null=True)),
-                ('instance_count',
-                 models.IntegerField(
-                     blank=True,
-                     default=core.models.quota._get_default_instance_count,
-                     null=True)),
-                ('snapshot_count',
-                 models.IntegerField(
-                     blank=True,
-                     default=core.models.quota._get_default_snapshot_count,
-                     null=True)),
-                ('storage_count',
-                 models.IntegerField(
-                     blank=True,
-                     default=core.models.quota._get_default_storage_count,
-                     null=True)),
-                ('floating_ip_count',
-                 models.IntegerField(
-                     blank=True,
-                     default=core.models.quota._get_default_floating_ip_count,
-                     null=True)),
-                ('port_count',
-                 models.IntegerField(
-                     blank=True,
-                     default=core.models.quota._get_default_port_count,
-                     null=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
+                (
+                    'cpu',
+                    models.IntegerField(
+                        blank=True,
+                        default=core.models.quota._get_default_cpu,
+                        null=True
+                    )
+                ),
+                (
+                    'memory',
+                    models.IntegerField(
+                        blank=True,
+                        default=core.models.quota._get_default_memory,
+                        null=True
+                    )
+                ),
+                (
+                    'storage',
+                    models.IntegerField(
+                        blank=True,
+                        default=core.models.quota._get_default_storage,
+                        null=True
+                    )
+                ),
+                (
+                    'instance_count',
+                    models.IntegerField(
+                        blank=True,
+                        default=core.models.quota._get_default_instance_count,
+                        null=True
+                    )
+                ),
+                (
+                    'snapshot_count',
+                    models.IntegerField(
+                        blank=True,
+                        default=core.models.quota._get_default_snapshot_count,
+                        null=True
+                    )
+                ),
+                (
+                    'storage_count',
+                    models.IntegerField(
+                        blank=True,
+                        default=core.models.quota._get_default_storage_count,
+                        null=True
+                    )
+                ),
+                (
+                    'floating_ip_count',
+                    models.IntegerField(
+                        blank=True,
+                        default=core.models.quota.
+                        _get_default_floating_ip_count,
+                        null=True
+                    )
+                ),
+                (
+                    'port_count',
+                    models.IntegerField(
+                        blank=True,
+                        default=core.models.quota._get_default_port_count,
+                        null=True
+                    )
+                ),
             ],
             options={
                 'db_table': 'quota',
@@ -1320,12 +1807,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='RefreshBehavior',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=255)),
             ],
             options={
@@ -1335,28 +1825,43 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ResourceRequest',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
-                ('admin_message',
-                 models.CharField(blank=True, default=b'', max_length=1024)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
+                (
+                    'admin_message',
+                    models.CharField(blank=True, default=b'', max_length=1024)
+                ),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
                 ('request', models.TextField()),
-                ('description',
-                 models.CharField(blank=True, default=b'', max_length=1024)),
-                ('allocation',
-                 models.ForeignKey(
-                     null=True,
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.Allocation')),
+                (
+                    'description',
+                    models.CharField(blank=True, default=b'', max_length=1024)
+                ),
+                (
+                    'allocation',
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.Allocation'
+                    )
+                ),
             ],
             options={
                 'db_table': 'resource_request',
@@ -1365,12 +1870,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='RulesBehavior',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=255)),
             ],
             options={
@@ -1380,12 +1888,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ScriptType',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=128)),
                 ('description', models.TextField(blank=True, null=True)),
             ],
@@ -1396,23 +1907,31 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Size',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('alias', models.CharField(max_length=256)),
                 ('name', models.CharField(max_length=256)),
                 ('cpu', models.IntegerField()),
                 ('disk', models.IntegerField()),
                 ('root', models.IntegerField()),
                 ('mem', models.IntegerField()),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
             ],
             options={
@@ -1422,16 +1941,22 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='SSHKey',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=256)),
-                ('uuid',
-                 models.CharField(
-                     default=uuid.uuid4, max_length=36, unique=True)),
+                (
+                    'uuid',
+                    models.CharField(
+                        default=uuid.uuid4, max_length=36, unique=True
+                    )
+                ),
                 ('pub_key', models.TextField()),
             ],
             options={
@@ -1441,20 +1966,30 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='StatusType',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('name', models.CharField(max_length=32)),
-                ('description',
-                 models.CharField(blank=True, default=b'', max_length=256)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'description',
+                    models.CharField(blank=True, default=b'', max_length=256)
+                ),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
             ],
             options={
@@ -1464,15 +1999,20 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='T',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('V', models.CharField(max_length=36)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(null=True)),
             ],
             options={
@@ -1482,15 +2022,21 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Tag',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('uuid',
-                 models.UUIDField(
-                     default=uuid.uuid4, editable=False, unique=True)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'uuid',
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, unique=True
+                    )
+                ),
                 ('name', models.SlugField(max_length=128)),
                 ('description', models.CharField(max_length=1024)),
             ],
@@ -1501,22 +2047,32 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='UserAllocationSnapshot',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('compute_used',
-                 models.DecimalField(decimal_places=3, max_digits=19)),
-                ('burn_rate',
-                 models.DecimalField(decimal_places=3, max_digits=19)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'compute_used',
+                    models.DecimalField(decimal_places=3, max_digits=19)
+                ),
+                (
+                    'burn_rate',
+                    models.DecimalField(decimal_places=3, max_digits=19)
+                ),
                 ('updated', models.DateTimeField(auto_now=True)),
-                ('allocation_source',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='user_allocation_snapshots',
-                     to='core.AllocationSource')),
+                (
+                    'allocation_source',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='user_allocation_snapshots',
+                        to='core.AllocationSource'
+                    )
+                ),
             ],
             options={
                 'db_table': 'user_allocation_snapshot',
@@ -1525,17 +2081,23 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='UserAllocationSource',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('allocation_source',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     related_name='users',
-                     to='core.AllocationSource')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'allocation_source',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='users',
+                        to='core.AllocationSource'
+                    )
+                ),
             ],
             options={
                 'db_table': 'user_allocation_source',
@@ -1544,19 +2106,25 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Volume',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('size', models.IntegerField()),
                 ('name', models.CharField(max_length=256)),
                 ('description', models.TextField(blank=True, null=True)),
-                ('instance_source',
-                 models.OneToOneField(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.InstanceSource')),
+                (
+                    'instance_source',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.InstanceSource'
+                    )
+                ),
             ],
             options={
                 'db_table': 'volume',
@@ -1565,12 +2133,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='VolumeStatus',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=128)),
             ],
             options={
@@ -1580,27 +2151,42 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='VolumeStatusHistory',
             fields=[
-                ('id',
-                 models.AutoField(
-                     auto_created=True,
-                     primary_key=True,
-                     serialize=False,
-                     verbose_name='ID')),
-                ('device',
-                 models.CharField(blank=True, max_length=128, null=True)),
-                ('instance_alias',
-                 models.CharField(blank=True, max_length=36, null=True)),
-                ('start_date',
-                 models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'device',
+                    models.CharField(blank=True, max_length=128, null=True)
+                ),
+                (
+                    'instance_alias',
+                    models.CharField(blank=True, max_length=36, null=True)
+                ),
+                (
+                    'start_date',
+                    models.DateTimeField(default=django.utils.timezone.now)
+                ),
                 ('end_date', models.DateTimeField(blank=True, null=True)),
-                ('status',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.VolumeStatus')),
-                ('volume',
-                 models.ForeignKey(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     to='core.Volume')),
+                (
+                    'status',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.VolumeStatus'
+                    )
+                ),
+                (
+                    'volume',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='core.Volume'
+                    )
+                ),
             ],
             options={
                 'db_table': 'volume_status_history',
@@ -1609,13 +2195,16 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProviderConfiguration',
             fields=[
-                ('provider',
-                 models.OneToOneField(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     primary_key=True,
-                     related_name='configuration',
-                     serialize=False,
-                     to='core.Provider')),
+                (
+                    'provider',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        primary_key=True,
+                        related_name='configuration',
+                        serialize=False,
+                        to='core.Provider'
+                    )
+                ),
             ],
             options={
                 'db_table': 'provider_configuration',
@@ -1624,22 +2213,33 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='UserProfile',
             fields=[
-                ('user',
-                 models.OneToOneField(
-                     on_delete=django.db.models.deletion.CASCADE,
-                     primary_key=True,
-                     serialize=False,
-                     to=settings.AUTH_USER_MODEL)),
+                (
+                    'user',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        primary_key=True,
+                        serialize=False,
+                        to=settings.AUTH_USER_MODEL
+                    )
+                ),
                 ('send_emails', models.BooleanField(default=True)),
                 ('quick_launch', models.BooleanField(default=True)),
-                ('vnc_resolution',
-                 models.CharField(default=b'800x600', max_length=255)),
-                ('default_size',
-                 models.CharField(default=b'm1.small', max_length=255)),
-                ('background',
-                 models.CharField(default=b'default', max_length=255)),
-                ('icon_set', models.CharField(
-                    default=b'default', max_length=255)),
+                (
+                    'vnc_resolution',
+                    models.CharField(default=b'800x600', max_length=255)
+                ),
+                (
+                    'default_size',
+                    models.CharField(default=b'm1.small', max_length=255)
+                ),
+                (
+                    'background',
+                    models.CharField(default=b'default', max_length=255)
+                ),
+                (
+                    'icon_set',
+                    models.CharField(default=b'default', max_length=255)
+                ),
             ],
             options={
                 'db_table': 'user_profile',
@@ -1650,7 +2250,8 @@ class Migration(migrations.Migration):
             name='user',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='userallocationsnapshot',
@@ -1658,7 +2259,8 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='user_allocation_snapshots',
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='tag',
@@ -1667,7 +2269,8 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AlterUniqueTogether(
             name='statustype',
@@ -1678,28 +2281,31 @@ class Migration(migrations.Migration):
             name='atmo_user',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='size',
             name='provider',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Provider'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='resourcerequest',
             name='created_by',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='resourcerequest',
             name='membership',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.IdentityMembership'),
+                to='core.IdentityMembership'
+            ),
         ),
         migrations.AddField(
             model_name='resourcerequest',
@@ -1707,14 +2313,16 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.Quota'),
+                to='core.Quota'
+            ),
         ),
         migrations.AddField(
             model_name='resourcerequest',
             name='status',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.StatusType'),
+                to='core.StatusType'
+            ),
         ),
         migrations.AddField(
             model_name='providerinstanceaction',
@@ -1722,7 +2330,8 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='provider_actions',
-                to='core.Provider'),
+                to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='providerdnsserverip',
@@ -1730,14 +2339,15 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='dns_server_ips',
-                to='core.Provider'),
+                to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='providercredential',
             name='provider',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Provider'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='provider',
@@ -1747,7 +2357,8 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='admin_providers',
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='provider',
@@ -1756,48 +2367,54 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.InstanceAction'),
+                to='core.InstanceAction'
+            ),
         ),
         migrations.AddField(
             model_name='provider',
             name='type',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.ProviderType'),
+                to='core.ProviderType'
+            ),
         ),
         migrations.AddField(
             model_name='provider',
             name='virtualization',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.PlatformType'),
+                to='core.PlatformType'
+            ),
         ),
         migrations.AddField(
             model_name='project',
             name='volumes',
             field=models.ManyToManyField(
-                blank=True, related_name='projects', to='core.Volume'),
+                blank=True, related_name='projects', to='core.Volume'
+            ),
         ),
         migrations.AddField(
             model_name='patternmatch',
             name='created_by',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='patternmatch',
             name='type',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.MatchType'),
+                to='core.MatchType'
+            ),
         ),
         migrations.AddField(
             model_name='nodecontroller',
             name='provider',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Provider'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='maintenancerecord',
@@ -1806,28 +2423,31 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.Provider'),
+                to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='machinerequest',
             name='created_by',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='machinerequest',
             name='instance',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Instance'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Instance'
+            ),
         ),
         migrations.AddField(
             model_name='machinerequest',
             name='membership',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.IdentityMembership'),
+                to='core.IdentityMembership'
+            ),
         ),
         migrations.AddField(
             model_name='machinerequest',
@@ -1836,7 +2456,8 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.ApplicationVersion'),
+                to='core.ApplicationVersion'
+            ),
         ),
         migrations.AddField(
             model_name='machinerequest',
@@ -1845,7 +2466,8 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.ProviderMachine'),
+                to='core.ProviderMachine'
+            ),
         ),
         migrations.AddField(
             model_name='machinerequest',
@@ -1853,14 +2475,15 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='new_image_owner',
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='machinerequest',
             name='new_machine_provider',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Provider'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='machinerequest',
@@ -1883,14 +2506,16 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='ancestor_machine',
-                to='core.ProviderMachine'),
+                to='core.ProviderMachine'
+            ),
         ),
         migrations.AddField(
             model_name='machinerequest',
             name='status',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.StatusType'),
+                to='core.StatusType'
+            ),
         ),
         migrations.AddField(
             model_name='license',
@@ -1902,21 +2527,24 @@ class Migration(migrations.Migration):
             name='created_by',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='license',
             name='license_type',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.LicenseType'),
+                to='core.LicenseType'
+            ),
         ),
         migrations.AddField(
             model_name='leadership',
             name='user',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='instancestatushistory',
@@ -1925,14 +2553,16 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.Size'),
+                to='core.Size'
+            ),
         ),
         migrations.AddField(
             model_name='instancestatushistory',
             name='status',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.InstanceStatus'),
+                to='core.InstanceStatus'
+            ),
         ),
         migrations.AddField(
             model_name='instancesource',
@@ -1942,7 +2572,8 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='source_set',
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='instancesource',
@@ -1951,21 +2582,23 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.Identity'),
+                to='core.Identity'
+            ),
         ),
         migrations.AddField(
             model_name='instancesource',
             name='provider',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Provider'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='instance',
             name='created_by',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='instance',
@@ -1973,7 +2606,8 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.Identity'),
+                to='core.Identity'
+            ),
         ),
         migrations.AddField(
             model_name='instance',
@@ -1981,7 +2615,8 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='instances',
-                to='core.InstanceSource'),
+                to='core.InstanceSource'
+            ),
         ),
         migrations.AddField(
             model_name='instance',
@@ -1993,20 +2628,22 @@ class Migration(migrations.Migration):
             name='created_by',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='identity',
             name='provider',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Provider'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='identity',
             name='quota',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to='core.Quota'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Quota'
+            ),
         ),
         migrations.AddField(
             model_name='group',
@@ -2014,7 +2651,8 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 through='core.IdentityMembership',
-                to='core.Identity'),
+                to='core.Identity'
+            ),
         ),
         migrations.AddField(
             model_name='group',
@@ -2022,13 +2660,15 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 through='core.InstanceMembership',
-                to='core.Instance'),
+                to='core.Instance'
+            ),
         ),
         migrations.AddField(
             model_name='group',
             name='leaders',
             field=models.ManyToManyField(
-                through='core.Leadership', to=settings.AUTH_USER_MODEL),
+                through='core.Leadership', to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='group',
@@ -2037,81 +2677,91 @@ class Migration(migrations.Migration):
                 blank=True,
                 related_name='members',
                 through='core.ProviderMachineMembership',
-                to='core.ProviderMachine'),
+                to='core.ProviderMachine'
+            ),
         ),
         migrations.AddField(
             model_name='externallink',
             name='created_by',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='exportrequest',
             name='export_owner',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='exportrequest',
             name='source',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.InstanceSource'),
+                to='core.InstanceSource'
+            ),
         ),
         migrations.AddField(
             model_name='emailtemplate',
             name='links',
             field=models.ManyToManyField(
-                related_name='email_templates', to='core.HelpLink'),
+                related_name='email_templates', to='core.HelpLink'
+            ),
         ),
         migrations.AddField(
             model_name='credential',
             name='identity',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Identity'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Identity'
+            ),
         ),
         migrations.AddField(
             model_name='cloudadministrator',
             name='provider',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Provider'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='cloudadministrator',
             name='user',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='bootscript',
             name='created_by',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='bootscript',
             name='instances',
             field=models.ManyToManyField(
-                related_name='scripts', to='core.Instance'),
+                related_name='scripts', to='core.Instance'
+            ),
         ),
         migrations.AddField(
             model_name='bootscript',
             name='script_type',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.ScriptType'),
+                to='core.ScriptType'
+            ),
         ),
         migrations.AddField(
             model_name='applicationversionmembership',
             name='group',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to='core.Group'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Group'
+            ),
         ),
         migrations.AddField(
             model_name='applicationversionmembership',
@@ -2119,7 +2769,8 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 db_column=b'application_version_id',
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.ApplicationVersion'),
+                to='core.ApplicationVersion'
+            ),
         ),
         migrations.AddField(
             model_name='applicationversion',
@@ -2127,14 +2778,16 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 related_name='application_versions',
-                to='core.BootScript'),
+                to='core.BootScript'
+            ),
         ),
         migrations.AddField(
             model_name='applicationversion',
             name='created_by',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='applicationversion',
@@ -2142,7 +2795,8 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.Identity'),
+                to='core.Identity'
+            ),
         ),
         migrations.AddField(
             model_name='applicationversion',
@@ -2150,7 +2804,8 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 related_name='application_versions',
-                to='core.License'),
+                to='core.License'
+            ),
         ),
         migrations.AddField(
             model_name='applicationversion',
@@ -2159,7 +2814,8 @@ class Migration(migrations.Migration):
                 blank=True,
                 related_name='application_versions',
                 through='core.ApplicationVersionMembership',
-                to='core.Group'),
+                to='core.Group'
+            ),
         ),
         migrations.AddField(
             model_name='applicationversion',
@@ -2168,7 +2824,8 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.ApplicationVersion'),
+                to='core.ApplicationVersion'
+            ),
         ),
         migrations.AddField(
             model_name='applicationthreshold',
@@ -2178,20 +2835,23 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='threshold',
-                to='core.ApplicationVersion'),
+                to='core.ApplicationVersion'
+            ),
         ),
         migrations.AddField(
             model_name='applicationscore',
             name='user',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='applicationmembership',
             name='group',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to='core.Group'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Group'
+            ),
         ),
         migrations.AddField(
             model_name='applicationbookmark',
@@ -2199,14 +2859,16 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name='bookmarks',
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='application',
             name='created_by',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL),
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='application',
@@ -2214,7 +2876,8 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.Identity'),
+                to='core.Identity'
+            ),
         ),
         migrations.AddField(
             model_name='application',
@@ -2226,14 +2889,15 @@ class Migration(migrations.Migration):
             name='counting_behavior',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.CountingBehavior'),
+                to='core.CountingBehavior'
+            ),
         ),
         migrations.AddField(
             model_name='allocationstrategy',
             name='provider',
             field=models.OneToOneField(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Provider'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='allocationstrategy',
@@ -2249,15 +2913,15 @@ class Migration(migrations.Migration):
             model_name='accountprovider',
             name='identity',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Identity'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Identity'
+            ),
         ),
         migrations.AddField(
             model_name='accountprovider',
             name='provider',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to='core.Provider'),
+                on_delete=django.db.models.deletion.CASCADE, to='core.Provider'
+            ),
         ),
         migrations.AddField(
             model_name='atmosphereuser',
@@ -2269,7 +2933,8 @@ class Migration(migrations.Migration):
                 related_name='user_set',
                 related_query_name='user',
                 to='auth.Group',
-                verbose_name='groups'),
+                verbose_name='groups'
+            ),
         ),
         migrations.AddField(
             model_name='atmosphereuser',
@@ -2278,7 +2943,8 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='core.Identity'),
+                to='core.Identity'
+            ),
         ),
         migrations.AddField(
             model_name='atmosphereuser',
@@ -2289,7 +2955,8 @@ class Migration(migrations.Migration):
                 related_name='user_set',
                 related_query_name='user',
                 to='auth.Permission',
-                verbose_name='user permissions'),
+                verbose_name='user permissions'
+            ),
         ),
         migrations.AlterUniqueTogether(
             name='userallocationsource',
@@ -2309,8 +2976,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='providerdnsserverip',
-            unique_together=set([('provider', 'ip_address'), ('provider',
-                                                              'order')]),
+            unique_together=set(
+                [('provider', 'ip_address'), ('provider', 'order')]
+            ),
         ),
         migrations.AlterUniqueTogether(
             name='instancesource',

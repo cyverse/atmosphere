@@ -20,7 +20,6 @@ from api.v1.views.base import AuthAPIView
 
 
 class Occupancy(AuthAPIView):
-
     """
     Returns occupancy data for the specific provider.
     """
@@ -33,24 +32,24 @@ class Occupancy(AuthAPIView):
             provider = Provider.get_active(provider_uuid)
         except Provider.DoesNotExist:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "The provider does not exist.")
+                status.HTTP_404_NOT_FOUND, "The provider does not exist."
+            )
         admin_driver = get_admin_driver(provider)
         if not admin_driver:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "The driver cannot be retrieved for this provider.")
+                "The driver cannot be retrieved for this provider."
+            )
         meta_driver = admin_driver.meta(admin_driver=admin_driver)
         esh_size_list = meta_driver.occupancy()
-        core_size_list = [convert_esh_size(size, provider_uuid)
-                          for size in esh_size_list]
-        serialized_data = ProviderSizeSerializer(core_size_list,
-                                                 many=True).data
+        core_size_list = [
+            convert_esh_size(size, provider_uuid) for size in esh_size_list
+        ]
+        serialized_data = ProviderSizeSerializer(core_size_list, many=True).data
         return Response(serialized_data)
 
 
 class Hypervisor(AuthAPIView):
-
     """
     Returns hypervisor statistics for the specific provider.
     """
@@ -60,17 +59,19 @@ class Hypervisor(AuthAPIView):
             provider = Provider.get_active(provider_uuid)
         except Provider.DoesNotExist:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "The provider does not exist.")
+                status.HTTP_404_NOT_FOUND, "The provider does not exist."
+            )
         admin_driver = get_admin_driver(provider)
         if not admin_driver:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "The driver cannot be retrieved for this provider.")
+                "The driver cannot be retrieved for this provider."
+            )
         if not hasattr(admin_driver._connection, "ex_hypervisor_statistics"):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "Occupancy statistics cannot be retrieved for this provider.")
+                "Occupancy statistics cannot be retrieved for this provider."
+            )
         try:
             stats = admin_driver._connection.ex_hypervisor_statistics()
             return Response(stats)
@@ -79,5 +80,5 @@ class Hypervisor(AuthAPIView):
         except Exception as exc:
             return failure_response(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Error occurred while retrieving statistics: %s" %
-                exc)
+                "Error occurred while retrieving statistics: %s" % exc
+            )

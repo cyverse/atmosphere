@@ -8,8 +8,7 @@ from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 class ExternalLinkSerializer(serializers.HyperlinkedModelSerializer):
     created_by = UserSummarySerializer(read_only=True)
     url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:externallink-detail',
-        uuid_field='id'
+        view_name='api:v2:externallink-detail', uuid_field='id'
     )
 
     class Meta:
@@ -20,6 +19,6 @@ class ExternalLinkSerializer(serializers.HyperlinkedModelSerializer):
             'title',
             'description',
             'link',
-            # Adtl. Fields
+        # Adtl. Fields
             'created_by'
         )

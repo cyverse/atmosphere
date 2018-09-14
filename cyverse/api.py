@@ -14,18 +14,16 @@ def grouper_api_get(path, query_params=None, search_user=None):
         query_params += "&user=%s" % search_user
     url += query_params
     logger.info("REQ: %s" % url)
-    resp = requests.get(
-        url,
-        headers={"Accept": "application/json"})
+    resp = requests.get(url, headers={"Accept": "application/json"})
     if resp.status_code != 200:
         raise Exception(
             "Invalid Response - "
-            "Expected 200 Response: %s" % resp.__dict__)
+            "Expected 200 Response: %s" % resp.__dict__
+        )
     try:
         data = resp.json()
     except ValueError as exc:
-        raise Exception(
-            "JSON Decode error -- %s" % exc)
+        raise Exception("JSON Decode error -- %s" % exc)
     return (resp, data)
 
 

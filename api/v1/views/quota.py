@@ -13,7 +13,6 @@ from core.models import Quota
 
 
 class QuotaList(AuthAPIView):
-
     """
     Lists or creates new Quotas
     """
@@ -41,7 +40,6 @@ class QuotaList(AuthAPIView):
 
 
 class QuotaDetail(AuthAPIView):
-
     """
     Fetches or updates a Quota
     """

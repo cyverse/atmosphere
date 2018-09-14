@@ -18,8 +18,7 @@ class ModelRelatedField(serializers.RelatedField):
 
     def get_queryset(self):
         assert self.queryset is not None, (
-            "%s should have a `queryset` attribute."
-            % self.__class__.__name__
+            "%s should have a `queryset` attribute." % self.__class__.__name__
         )
         if callable(self.queryset):
             return self.queryset(self)
@@ -28,8 +27,8 @@ class ModelRelatedField(serializers.RelatedField):
 
     def to_representation(self, model):
         assert self.serializer_class is not None, (
-            "%s should have a `serializer_class` attribute."
-            % self.__class__.__name__
+            "%s should have a `serializer_class` attribute." %
+            self.__class__.__name__
         )
         serializer = self.serializer_class(model, context=self.context)
         return serializer.data
@@ -42,9 +41,8 @@ class ModelRelatedField(serializers.RelatedField):
             identifier = data
         try:
             return queryset.get(**{self.lookup_field: identifier})
-        except (TypeError, ValueError,
-                ProgrammingError, ObjectDoesNotExist):
+        except (TypeError, ValueError, ProgrammingError, ObjectDoesNotExist):
             raise exceptions.ValidationError(
-                "%s with Field: %s '%s' does not exist."
-                % (self.queryset.model.__name__, self.lookup_field, identifier)
+                "%s with Field: %s '%s' does not exist." %
+                (self.queryset.model.__name__, self.lookup_field, identifier)
             )

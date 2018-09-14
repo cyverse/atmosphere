@@ -12,7 +12,8 @@ def no_special_characters(value):
     if any(char in invalid_chars for char in value):
         raise serializers.ValidationError(
             "The value '%s' contains one or more "
-            "special characters that are invalid." % value)
+            "special characters that are invalid." % value
+        )
 
 
 # This is an example of a Class-based validator

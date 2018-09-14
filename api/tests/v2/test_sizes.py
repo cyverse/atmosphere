@@ -17,17 +17,15 @@ class SizeTests(APITestCase, APISanityTestCase):
         self.user = UserFactory.create()
         self.provider = ProviderFactory.create()
         self.user_identity = IdentityFactory.create_identity(
-            created_by=self.user,
-            provider=self.provider)
-        self.size = SizeFactory.create(provider=self.provider,
-                                       cpu=10,
-                                       disk=20,
-                                       root=0,
-                                       mem=126)
+            created_by=self.user, provider=self.provider
+        )
+        self.size = SizeFactory.create(
+            provider=self.provider, cpu=10, disk=20, root=0, mem=126
+        )
         self.list_view = SizeViewSet.as_view({'get': 'list'})
         factory = APIRequestFactory()
 
-        list_url = reverse(self.url_route+'-list')
+        list_url = reverse(self.url_route + '-list')
         self.list_request = factory.get(list_url)
 
     def test_is_public(self):

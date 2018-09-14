@@ -14,17 +14,19 @@ from api.v1.serializers import TokenSerializer
 
 class Authentication(APIView):
 
-    permission_classes = (ApiAuthIgnore,)
+    permission_classes = (ApiAuthIgnore, )
 
     def get(self, request):
         user = request.user
         if not user.is_authenticated():
-            return Response("Logged-in User or POST required "
-                            "to retrieve AuthToken",
-                            status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                "Logged-in User or POST required "
+                "to retrieve AuthToken",
+                status=status.HTTP_403_FORBIDDEN
+            )
         token = lookupSessionToken(request)
         if not token:
-            token_key = request.session.pop('token_key',None)
+            token_key = request.session.pop('token_key', None)
             token = get_or_create_token(user, token_key, issuer="DRF")
         serialized_data = TokenSerializer(token).data
         return Response(serialized_data, status=status.HTTP_200_OK)
@@ -38,7 +40,11 @@ class Authentication(APIView):
         if not username:
             return invalid_auth("Username missing")
 
-        auth_kwargs = {"username":username, "password":password, "request":request}
+        auth_kwargs = {
+            "username": username,
+            "password": password,
+            "request": request
+        }
         if project_name and auth_url:
             auth_kwargs['project_name'] = project_name
             auth_kwargs['auth_url'] = auth_url
@@ -47,10 +53,14 @@ class Authentication(APIView):
             return invalid_auth("Username/Password combination was invalid")
 
         login(request, user)
-        issuer_backend = request.session.get('_auth_user_backend', '').split('.')[-1]
+        issuer_backend = request.session.get('_auth_user_backend',
+                                             '').split('.')[-1]
         return self._create_token(
-            request, user, request.session.pop('token_key', None),
-            issuer=issuer_backend)
+            request,
+            user,
+            request.session.pop('token_key', None),
+            issuer=issuer_backend
+        )
 
     def _create_token(self, request, user, token_key, issuer="DRF"):
         token = get_or_create_token(user, token_key, issuer=issuer)

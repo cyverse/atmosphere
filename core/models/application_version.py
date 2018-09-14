@@ -15,8 +15,8 @@ from core.models.license import License
 from core.models.identity import Identity
 from core.query import only_current_source, only_current, only_current_machines_in_version
 
-class ApplicationVersion(models.Model):
 
+class ApplicationVersion(models.Model):
     """
     As an Application is Updated/Forked, it may be replicated
     across server different providermachines/volumes.
@@ -31,7 +31,9 @@ class ApplicationVersion(models.Model):
     NOTE: Using this as the 'model' for DB moving to ID==UUID format.
     """
     # Required
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, unique=True, editable=False)
+    id = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, unique=True, editable=False
+    )
     application = models.ForeignKey("Application", related_name="versions")
     # NOTE: Parent is 'null' when this version was created by a STAFF user
     # (For Ex: imported an image, etc.)
@@ -52,16 +54,18 @@ class ApplicationVersion(models.Model):
     installed_software = models.TextField(default='', null=True, blank=True)
     excluded_files = models.TextField(default='', null=True, blank=True)
     doc_object_id = models.TextField(default='', null=True, blank=True)
-    licenses = models.ManyToManyField(License,
-            blank=True, related_name='application_versions')
+    licenses = models.ManyToManyField(
+        License, blank=True, related_name='application_versions'
+    )
     boot_scripts = models.ManyToManyField(
-        "BootScript",
-        blank=True,
-        related_name='application_versions')
-    membership = models.ManyToManyField('Group',
-                                        related_name='application_versions',
-                                        through='ApplicationVersionMembership',
-                                        blank=True)
+        "BootScript", blank=True, related_name='application_versions'
+    )
+    membership = models.ManyToManyField(
+        'Group',
+        related_name='application_versions',
+        through='ApplicationVersionMembership',
+        blank=True
+    )
 
     class Meta:
         db_table = 'application_version'
@@ -70,9 +74,10 @@ class ApplicationVersion(models.Model):
 
     # NOTE: Created_by, created_by_ident will be == Application (EVERY TIME!)
     def __unicode__(self):
-        return "%s - %s - %s" % (self.application.name,
-                               self.name,
-                               self.start_date if not self.end_date else "END-DATED")
+        return "%s - %s - %s" % (
+            self.application.name, self.name,
+            self.start_date if not self.end_date else "END-DATED"
+        )
 
     def get_threshold(self):
         #TODO: except ObjectDoesNotExist to avoid core import loop
@@ -106,14 +111,15 @@ class ApplicationVersion(models.Model):
         """
         provider_id_list = user.identity_set.values_list('provider', flat=True)
         account_providers_list = AccountProvider.objects.filter(
-            provider__id__in=provider_id_list)
+            provider__id__in=provider_id_list
+        )
         admin_users = [ap.identity.created_by for ap in account_providers_list]
         version_ids = []
         for user in admin_users:
             version_ids.extend(
-                user.applicationversion_set.values_list('id', flat=True))
-        admin_list = ApplicationVersion.objects.filter(
-            id__in=version_ids)
+                user.applicationversion_set.values_list('id', flat=True)
+            )
+        admin_list = ApplicationVersion.objects.filter(id__in=version_ids)
         return admin_list
 
     @classmethod
@@ -122,13 +128,15 @@ class ApplicationVersion(models.Model):
         public_set = ApplicationVersion.objects.filter(
             only_current(),
             only_current_machines_in_version(),
-            application__private=False)
+            application__private=False
+        )
         if not isinstance(request_user, AnonymousUser):
             # NOTE: Showing 'my pms EVEN if they are end-dated.
             my_set = ApplicationVersion.objects.filter(
                 Q(created_by=request_user) |
                 Q(application__created_by=request_user) |
-                Q(machines__instance_source__created_by=request_user))
+                Q(machines__instance_source__created_by=request_user)
+            )
             all_group_ids = request_user.memberships.values('group__id')
 
             # FIXME: This call can be slow/hang when _large_ number of users
@@ -136,9 +144,10 @@ class ApplicationVersion(models.Model):
             #        *Membership table(s) directly and select values.
             # Showing non-end dated, shared ApplicationVersions
             shared_set = ApplicationVersion.objects.filter(
-                only_current(), only_current_machines_in_version(), Q(
-                    membership=all_group_ids) | Q(
-                    machines__members__in=all_group_ids))
+                only_current(), only_current_machines_in_version(),
+                Q(membership=all_group_ids) |
+                Q(machines__members__in=all_group_ids)
+            )
 
             if request_user.is_staff:
                 admin_set = cls.get_admin_image_versions(request_user)
@@ -154,8 +163,8 @@ class ApplicationVersion(models.Model):
     @property
     def machine_ids(self):
         return self.machines.values_list(
-            'instance_source__identifier',
-            flat=True)
+            'instance_source__identifier', flat=True
+        )
 
     @property
     def str_id(self):
@@ -166,8 +175,10 @@ class ApplicationVersion(models.Model):
         return self.icon.url if self.icon else None
 
     def is_owner(self, atmo_user):
-        return (self.created_by == atmo_user |
-                self.application.created_by == atmo_user)
+        return (
+            self.created_by == atmo_user | self.application.created_by ==
+            atmo_user
+        )
 
     def change_owner(self, identity, user=None, propagate=True):
         if not user:
@@ -176,7 +187,10 @@ class ApplicationVersion(models.Model):
         self.created_by_identity = identity
         self.save()
         if propagate:
-           [m.instance_source.change_owner(identity, user) for m in self.machines.all()]
+            [
+                m.instance_source.change_owner(identity, user)
+                for m in self.machines.all()
+            ]
 
 
 class ApplicationVersionMembership(models.Model):
@@ -189,8 +203,9 @@ class ApplicationVersionMembership(models.Model):
     NOTE: There IS underlying cloud implementation 9/10 times.
     That should be 'hooked' in here!
     """
-    image_version = models.ForeignKey(ApplicationVersion,
-                                      db_column='application_version_id')
+    image_version = models.ForeignKey(
+        ApplicationVersion, db_column='application_version_id'
+    )
     group = models.ForeignKey('Group')
     can_share = models.BooleanField(default=False)
 
@@ -214,8 +229,10 @@ def get_version_for_machine(provider_uuid, identifier, fuzzy=False):
     if fuzzy:
         query = Q(machines__instance_source__identifier=identifier)
     else:
-        query = Q(machines__instance_source__provider__uuid=provider_uuid,
-                  machines__instance_source__identifier=identifier)
+        query = Q(
+            machines__instance_source__provider__uuid=provider_uuid,
+            machines__instance_source__identifier=identifier
+        )
     try:
         return ApplicationVersion.objects.filter(query).distinct().first()
     except ApplicationVersion.DoesNotExist:
@@ -225,16 +242,15 @@ def get_version_for_machine(provider_uuid, identifier, fuzzy=False):
 def get_app_version(app, version, created_by=None, created_by_identity=None):
     try:
         app_version = ApplicationVersion.objects.get(
-            name=version,
-            application=app)
+            name=version, application=app
+        )
         return app_version
     except ApplicationVersion.DoesNotExist:
         app_version = create_app_version(
-            app,
-            version,
-            created_by,
-            created_by_identity)
+            app, version, created_by, created_by_identity
+        )
         return app_version
+
 
 def test_machine_in_version(app, version_name, new_machine_id):
     """
@@ -247,13 +263,15 @@ def test_machine_in_version(app, version_name, new_machine_id):
         return None
     try:
         app_version = ApplicationVersion.objects.get(
-            application=app,
-            name=version_name)
+            application=app, name=version_name
+        )
         if app_version.machines.count() == 0 or app_version.machines.filter(
-                instance_source__identifier=new_machine_id).count() > 0:
+            instance_source__identifier=new_machine_id
+        ).count() > 0:
             return app_version
     except DoesNotExist:
         return None
+
 
 def create_unique_version(app, version, created_by, created_by_identity):
     while True:
@@ -268,17 +286,16 @@ def create_unique_version(app, version, created_by, created_by_identity):
         except IntegrityError:
             # duplicate_found
             logger.warn(
-                "Version %s is taken for Application %s" %
-                (version, app))
+                "Version %s is taken for Application %s" % (version, app)
+            )
             if not version:
                 version = "1"
             version += ".0"
 
 
 def merge_duplicated_app_versions(
-        master_version,
-        copy_versions=[],
-        delete_copies=True):
+    master_version, copy_versions=[], delete_copies=True
+):
     """
     This function will merge together versions
     that were created by the 'convert_esh_machine' process.
@@ -297,11 +314,14 @@ def merge_duplicated_app_versions(
 
 
 def create_app_version(
-        app,
-        name,
-        created_by=None,
-        created_by_identity=None,
-        change_log=None, allow_imaging=None, provider_machine_id=None):
+    app,
+    name,
+    created_by=None,
+    created_by_identity=None,
+    change_log=None,
+    allow_imaging=None,
+    provider_machine_id=None
+):
     if not created_by:
         created_by = app.created_by
     if not created_by_identity:
@@ -315,27 +335,27 @@ def create_app_version(
         app_version.save()
     else:
         app_version = create_unique_version(
-            app,
-            name,
-            created_by,
-            created_by_identity)
+            app, name, created_by, created_by_identity
+        )
     last_version = app.latest_version
     if last_version:
         # DEFAULT: Use kwargs.. Otherwise: Inherit information from last
         if change_log is not None:
             app_version.change_log = change_log
         else:
-            app_version.change_log=last_version.change_log
+            app_version.change_log = last_version.change_log
         if allow_imaging is not None:
             app_version.allow_imaging = allow_imaging
         else:
-            app_version.allow_imaging=last_version.allow_imaging
+            app_version.allow_imaging = last_version.allow_imaging
         app_version.save()
         transfer_licenses(last_version, app_version)
         transfer_membership(last_version, app_version)
     else:
         if change_log is None:
-            change_log = "New Application %s - Version %s" % (app.name, app_version.name)
+            change_log = "New Application %s - Version %s" % (
+                app.name, app_version.name
+            )
         if allow_imaging is None:
             allow_imaging = True
         app_version.change_log = change_log
@@ -354,11 +374,10 @@ def transfer_membership(parent_version, new_version):
     if parent_version.membership.count():
         for member in parent_version.membership.all():
             old_membership = ApplicationVersionMembership.objects.get(
-                group=member, image_version=parent_version)
+                group=member, image_version=parent_version
+            )
             membership, _ = ApplicationVersionMembership.objects.get_or_create(
                 image_version=new_version,
                 group=old_membership.group,
-                can_share=old_membership.can_share)
-
-
-
+                can_share=old_membership.can_share
+            )

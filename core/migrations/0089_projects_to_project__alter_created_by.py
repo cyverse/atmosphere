@@ -7,8 +7,8 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
-def move_projects_to_project(apps,schema_editor):
-    Project = apps.get_model('core','Project')
+def move_projects_to_project(apps, schema_editor):
+    Project = apps.get_model('core', 'Project')
     for project in Project.objects.all():
         for instance in project.instances.all():
             instance.project = project
@@ -29,11 +29,15 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='project',
             name='created_by',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='projects', to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name='projects',
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.RunPython(
-            move_projects_to_project,
-            reverse_code=migrations.RunPython.noop),
+            move_projects_to_project, reverse_code=migrations.RunPython.noop
+        ),
         migrations.RemoveField(
             model_name='project',
             name='instances',

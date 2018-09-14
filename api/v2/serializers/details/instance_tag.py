@@ -5,7 +5,6 @@ from .tag import TagSerializer
 
 
 class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return Instance.objects.all()
 
@@ -14,13 +13,12 @@ class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
         # important! We have to use the SuperSummary because there are non-end_dated
         # instances that don't have a valid size (size='Unknown')
         serializer = InstanceSuperSummarySerializer(
-            instance,
-            context=self.context)
+            instance, context=self.context
+        )
         return serializer.data
 
 
 class TagRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return Tag.objects.all()
 
@@ -36,11 +34,7 @@ class InstanceTagSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:instancetag-detail',
     )
+
     class Meta:
         model = InstanceTag
-        fields = (
-            'id',
-            'url',
-            'instance',
-            'tag'
-        )
+        fields = ('id', 'url', 'instance', 'tag')

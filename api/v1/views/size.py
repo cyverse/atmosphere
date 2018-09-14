@@ -20,7 +20,6 @@ from api.v1.views.base import AuthAPIView
 
 
 class SizeList(AuthAPIView):
-
     """
     List all active sizes.
     """
@@ -37,9 +36,7 @@ class SizeList(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -51,8 +48,9 @@ class SizeList(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
-        all_size_list = [convert_esh_size(size, provider_uuid)
-                         for size in esh_size_list]
+        all_size_list = [
+            convert_esh_size(size, provider_uuid) for size in esh_size_list
+        ]
         if active:
             all_size_list = [s for s in all_size_list if s.active()]
         serialized_data = ProviderSizeSerializer(all_size_list, many=True).data
@@ -61,7 +59,6 @@ class SizeList(AuthAPIView):
 
 
 class Size(AuthAPIView):
-
     """
     View a single size.
     """
@@ -76,17 +73,15 @@ class Size(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         esh_size = esh_driver.get_size(size_alias)
         if not esh_size:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                'Size %s not found' % (size_alias,))
+                status.HTTP_404_NOT_FOUND, 'Size %s not found' % (size_alias, )
+            )
         core_size = convert_esh_size(esh_size, provider_uuid)
         serialized_data = ProviderSizeSerializer(core_size).data
         response = Response(serialized_data)

@@ -13,7 +13,6 @@ from core.models.user import create_new_accounts
 
 
 class Profile(AuthAPIView):
-
     """
     Profile can be thought of as the 'entry-point' to the Atmosphere APIs.
     Once authentiated, a user can find their default provider and identity.
@@ -30,21 +29,24 @@ class Profile(AuthAPIView):
         if not user.is_enabled:
             return Response(
                 "The account <{}> has been disabled by an Administrator. "
-                "Please contact your Cloud Administrator for more information."
-                .format(user.username), status=403)
+                "Please contact your Cloud Administrator for more information.".
+                format(user.username),
+                status=403
+            )
 
         profile = user.userprofile
         try:
             serialized_data = ProfileSerializer(profile).data
         except InvalidUser as exc:
-            return Response(exc.message,
-                            status=status.HTTP_403_FORBIDDEN)
+            return Response(exc.message, status=status.HTTP_403_FORBIDDEN)
 
         if not user.is_valid():
             return Response(
                 "This account <{}> is invalid. "
-                "Please contact your Cloud Administrator for more information."
-                .format(user.username), status=403)
+                "Please contact your Cloud Administrator for more information.".
+                format(user.username),
+                status=403
+            )
 
         # User is valid, build out any new accounts
         if settings.AUTO_CREATE_NEW_ACCOUNTS:
@@ -62,9 +64,7 @@ class Profile(AuthAPIView):
         user = request.user
         profile = user.userprofile
         mutable_data = request.data.copy()
-        serializer = ProfileSerializer(profile,
-                                       data=mutable_data,
-                                       partial=True)
+        serializer = ProfileSerializer(profile, data=mutable_data, partial=True)
         if serializer.is_valid():
             serializer.save()
             response = Response(serializer.data)

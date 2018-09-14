@@ -7,7 +7,6 @@ from api.tests.factories import UserFactory, AnonymousUserFactory,\
 from core.models import Identity
 from django.core.urlresolvers import reverse
 
-
 EXPECTED_FIELD_COUNT = 11
 
 
@@ -25,16 +24,17 @@ class IdentityTests(APITestCase, APISanityTestCase):
         self.provider = ProviderFactory.create()
         self.quota = QuotaFactory.create()
         self.identity = IdentityFactory.create(
-            provider=self.provider,
-            quota=self.quota,
-            created_by=self.user)
+            provider=self.provider, quota=self.quota, created_by=self.user
+        )
         IdentityMembershipFactory.create(
             member=self.group,
             identity=self.identity,
         )
 
         factory = APIRequestFactory()
-        detail_url = reverse('api:v2:identity-detail', args=(self.identity.id,))
+        detail_url = reverse(
+            'api:v2:identity-detail', args=(self.identity.id, )
+        )
         self.detail_request = factory.get(detail_url)
 
         list_url = reverse('api:v2:identity-list')
@@ -59,8 +59,9 @@ class IdentityTests(APITestCase, APISanityTestCase):
 
         self.assertEquals(
             len(identity_data), EXPECTED_FIELD_COUNT,
-            "The number of arguments has changed for GET /identity (%s!=%s)"
-            % (len(identity_data), EXPECTED_FIELD_COUNT))
+            "The number of arguments has changed for GET /identity (%s!=%s)" %
+            (len(identity_data), EXPECTED_FIELD_COUNT)
+        )
         self.assertIn('id', identity_data)
         self.assertIn('uuid', identity_data)
         self.assertIn('url', identity_data)
@@ -117,12 +118,16 @@ class IdentityTests(APITestCase, APISanityTestCase):
         # Build a request to patch quota for a user
         new_quota = QuotaFactory.create(cpu=999)
         url = "{base_url}?username={username}".format(
-                base_url=reverse('api:v2:identity-detail', args=(self.identity.id,)),
-                username=self.user.username)
+            base_url=reverse(
+                'api:v2:identity-detail', args=(self.identity.id, )
+            ),
+            username=self.user.username
+        )
         request = APIRequestFactory().patch(
-                url,
-                {'quota': {'id': new_quota.id}},
-                format='json')
+            url, {'quota': {
+                'id': new_quota.id
+            }}, format='json'
+        )
 
         # Make the patch request as the staff user
         force_authenticate(request, user=self.staff_user)

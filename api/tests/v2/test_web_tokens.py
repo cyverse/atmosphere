@@ -14,7 +14,9 @@ class WebTokenTests(APITestCase):
         """
         Url config correctly resolves uuids
         """
-        match = resolve('/api/v2/web_tokens/d71e6b24-841e-4b77-a819-01098579e6a9')
+        match = resolve(
+            '/api/v2/web_tokens/d71e6b24-841e-4b77-a819-01098579e6a9'
+        )
 
         # Assert that a match exists (that the result is truthy)
         self.assertTrue(match)
@@ -26,9 +28,8 @@ class WebTokenTests(APITestCase):
         response = create_get_request(query_params={})
         self.assertEqual(response.status_code, 400)
 
-        messages = [ err["message"] for err in response.data['errors'] ]
-        self.assertIn(
-            'Invalid or missing "client" query paramater', messages)
+        messages = [err["message"] for err in response.data['errors']]
+        self.assertIn('Invalid or missing "client" query paramater', messages)
 
     def test_api_with_request_for_web_desktop(self):
         """
@@ -55,7 +56,8 @@ def create_an_instance(user=None, ip_address=None):
     import uuid
     from api.tests.factories import (
         UserFactory, InstanceFactory, ProviderMachineFactory, IdentityFactory,
-        ProviderFactory)
+        ProviderFactory
+    )
     from django.utils import timezone
 
     if not user:
@@ -63,12 +65,14 @@ def create_an_instance(user=None, ip_address=None):
     staff_user = UserFactory.create(is_staff=True, is_superuser=True)
     provider = ProviderFactory.create()
     user_identity = IdentityFactory.create_identity(
-        created_by=user,
-        provider=provider)
+        created_by=user, provider=provider
+    )
     staff_user_identity = IdentityFactory.create_identity(
-        created_by=staff_user,
-        provider=provider)
-    machine = ProviderMachineFactory.create_provider_machine(staff_user, staff_user_identity)
+        created_by=staff_user, provider=provider
+    )
+    machine = ProviderMachineFactory.create_provider_machine(
+        staff_user, staff_user_identity
+    )
     start_date = timezone.now()
     return InstanceFactory.create(
         name="",
@@ -77,7 +81,9 @@ def create_an_instance(user=None, ip_address=None):
         ip_address=ip_address,
         created_by=user,
         created_by_identity=user_identity,
-        start_date=start_date)
+        start_date=start_date
+    )
+
 
 def create_get_request(user=None, instance=None, query_params=None):
     if not query_params:
@@ -85,16 +91,15 @@ def create_get_request(user=None, instance=None, query_params=None):
     if not user:
         user = UserFactory.create()
     if not instance:
-        ip_address="{}.{}.{}.{}".format(
-                random.randint(1,255),
-                random.randint(1,255),
-                random.randint(1,255),
-                random.randint(1,255))
+        ip_address = "{}.{}.{}.{}".format(
+            random.randint(1, 255), random.randint(1, 255),
+            random.randint(1, 255), random.randint(1, 255)
+        )
         instance = create_an_instance(user=user, ip_address=ip_address)
     view = WebTokenView.as_view()
 
     # Construct url
-    base_url = reverse('api:v2:web_token', args=(instance.provider_alias,))
+    base_url = reverse('api:v2:web_token', args=(instance.provider_alias, ))
     encoded_params = urllib.urlencode(query_params)
     url = "{}?{}".format(base_url, encoded_params)
 

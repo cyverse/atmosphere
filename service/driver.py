@@ -19,38 +19,43 @@ from rtwo.drivers.common import _connect_to_keystone_v3, _token_to_keystone_scop
 from service.mock import AtmosphereMockDriver
 from service.exceptions import ServiceException
 
-class AtmosphereNetworkManager(NetworkManager):
 
+class AtmosphereNetworkManager(NetworkManager):
     @staticmethod
     def create_manager(core_identity):
         all_creds = core_identity.get_all_credentials()
         project_name = core_identity.project_name()
         domain_name = all_creds.get('domain_name', 'default')
-        auth_url = all_creds.get('auth_url','')
-        if '/v' not in auth_url:  # Add /v3 if no version specified in auth_url
+        auth_url = all_creds.get('auth_url', '')
+        if '/v' not in auth_url:    # Add /v3 if no version specified in auth_url
             auth_url += '/v3'
-        if '/v2' in auth_url:  # Remove this when "Legacy cloud" support is removed
+        if '/v2' in auth_url:    # Remove this when "Legacy cloud" support is removed
             username = all_creds['key']
             password = all_creds['secret']
-            auth_url = all_creds.pop('auth_url').replace("/tokens","")
+            auth_url = all_creds.pop('auth_url').replace("/tokens", "")
             network_driver = NetworkManager(
                 auth_url=auth_url,
                 username=username,
                 password=password,
                 tenant_name=project_name,
-                **all_creds)
+                **all_creds
+            )
             return network_driver
         elif 'ex_force_auth_token' in all_creds:
             auth_token = all_creds['ex_force_auth_token']
             (auth, sess, token) = _token_to_keystone_scoped_project(
-                auth_url, auth_token,
-                project_name, domain_name)
+                auth_url, auth_token, project_name, domain_name
+            )
         else:
-            username = all_creds.get('key','')
-            password = all_creds.get('secret','')
+            username = all_creds.get('key', '')
+            password = all_creds.get('secret', '')
             (auth, sess, token) = _connect_to_keystone_v3(
-                auth_url, username, password,
-                project_name, domain_name=domain_name)
+                auth_url,
+                username,
+                password,
+                project_name,
+                domain_name=domain_name
+            )
         network_driver = NetworkManager(session=sess)
         return network_driver
 
@@ -62,7 +67,6 @@ OSProvider.set_meta()
 
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver as fetch_driver
-
 
 PROVIDER_DEFAULTS = {
     "openstack": {
@@ -81,8 +85,8 @@ def create_libcloud_driver(identity, provider_type=Provider.OPENSTACK):
     # check that the provider is active
     if not provider.is_active():
         raise ServiceException(
-            "Provider %s is NOT active. Driver not created."
-            % (provider,))
+            "Provider %s is NOT active. Driver not created." % (provider, )
+        )
 
     creds = provider.get_credentials()
     # TODO: The auth_url and region region_name key should be updated to
@@ -124,10 +128,12 @@ def get_admin_driver(provider):
     """
     try:
         return get_esh_driver(
-            provider.accountprovider_set.all().first().identity)
+            provider.accountprovider_set.all().first().identity
+        )
     except:
-        logger.info("Admin driver for provider %s not found." %
-                    (provider.location))
+        logger.info(
+            "Admin driver for provider %s not found." % (provider.location)
+        )
         return None
 
 
@@ -152,39 +158,45 @@ def get_account_driver(provider, raise_exception=False):
             provider_str = "Provider with UUID %s" % provider
         else:
             provider_str = "Provider %s" % provider.location
-        logger.exception("Account driver for provider %s not found." %
-                         (provider_str))
+        logger.exception(
+            "Account driver for provider %s not found." % (provider_str)
+        )
         if raise_exception:
             raise
         return None
 
 
 ESH_MAP = {
-    'mock': {
-        'provider': MockProvider,
-        'identity': MockIdentity,
-        'driver': AtmosphereMockDriver
-    },
-    'openstack': {
-        'provider': OSProvider,
-        'identity': OSIdentity,
-        'driver': OSDriver
-    },
-    'eucalyptus': {
-        'provider': EucaProvider,
-        'identity': EucaIdentity,
-        'driver': EucaDriver
-    },
-    'ec2_us_east': {
-        'provider': AWSUSEastProvider,
-        'identity': AWSIdentity,
-        'driver': AWSDriver
-    },
-    'ec2_us_west': {
-        'provider': AWSUSWestProvider,
-        'identity': AWSIdentity,
-        'driver': AWSDriver
-    },
+    'mock':
+        {
+            'provider': MockProvider,
+            'identity': MockIdentity,
+            'driver': AtmosphereMockDriver
+        },
+    'openstack':
+        {
+            'provider': OSProvider,
+            'identity': OSIdentity,
+            'driver': OSDriver
+        },
+    'eucalyptus':
+        {
+            'provider': EucaProvider,
+            'identity': EucaIdentity,
+            'driver': EucaDriver
+        },
+    'ec2_us_east':
+        {
+            'provider': AWSUSEastProvider,
+            'identity': AWSIdentity,
+            'driver': AWSDriver
+        },
+    'ec2_us_west':
+        {
+            'provider': AWSUSWestProvider,
+            'identity': AWSIdentity,
+            'driver': AWSDriver
+        },
 }
 
 
@@ -238,8 +250,9 @@ def get_esh_driver(core_identity, username=None, identity_kwargs={}, **kwargs):
         raise
 
 
-def prepare_driver(request, provider_uuid, identity_uuid,
-                   raise_exception=False):
+def prepare_driver(
+    request, provider_uuid, identity_uuid, raise_exception=False
+):
     """
     Return an rtwo.EshDriver for the given provider_uuid
     and identity_uuid.
@@ -256,7 +269,8 @@ def prepare_driver(request, provider_uuid, identity_uuid,
         if raise_exception:
             raise ValueError(
                 "User %s is NOT the owner of Identity UUID: %s" %
-                (request.user.username, core_identity.uuid))
+                (request.user.username, core_identity.uuid)
+            )
         return None
 
 
@@ -275,20 +289,21 @@ def _retrieve_source(esh_driver, new_source_alias, source_hint=None):
     if source:
         return source
     if source_hint:
-        raise Exception("Source %s Identifier %s was Not Found and/or"
-                        " Does Not Exist" % (source_hint, new_source_alias))
+        raise Exception(
+            "Source %s Identifier %s was Not Found and/or"
+            " Does Not Exist" % (source_hint, new_source_alias)
+        )
     else:
-        raise Exception("No Source found for Identifier %s"
-                        % (source_hint, ))
+        raise Exception("No Source found for Identifier %s" % (source_hint, ))
 
 
 def get_occupancy(core_provider):
     admin_driver = get_admin_driver(core_provider)
     if not admin_driver:
-        raise Exception(
-            "The driver cannot be retrieved for this provider.")
+        raise Exception("The driver cannot be retrieved for this provider.")
     meta_driver = admin_driver.meta(admin_driver=admin_driver)
     esh_size_list = meta_driver.occupancy()
-    core_size_list = [convert_esh_size(size, core_provider.uuid)
-                      for size in esh_size_list]
+    core_size_list = [
+        convert_esh_size(size, core_provider.uuid) for size in esh_size_list
+    ]
     return core_size_list

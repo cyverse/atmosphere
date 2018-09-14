@@ -38,14 +38,22 @@ class UserResourceRequestTests(APITestCase):
 
         # The resource requests returned were created by user_a
         for resource_request in response.data["results"]:
-            self.assertEqual(resource_request["created_by"]["username"], user_a.username)
+            self.assertEqual(
+                resource_request["created_by"]["username"], user_a.username
+            )
 
     def test_user_not_allowed_to_approve(self):
         """
         Users cannot approve their own requests
         """
         update_status, _ = StatusType.objects.get_or_create(name='approved')
-        response = submit_patch_with_payload({'status': {'id': update_status.pk}})
+        response = submit_patch_with_payload(
+            {
+                'status': {
+                    'id': update_status.pk
+                }
+            }
+        )
         self.assertEqual(response.status_code, 403)
 
     def test_user_not_allowed_to_deny(self):
@@ -53,7 +61,13 @@ class UserResourceRequestTests(APITestCase):
         Users cannot deny their own requests
         """
         update_status, _ = StatusType.objects.get_or_create(name='denied')
-        response = submit_patch_with_payload({'status': {'id': update_status.pk}})
+        response = submit_patch_with_payload(
+            {
+                'status': {
+                    'id': update_status.pk
+                }
+            }
+        )
         self.assertEqual(response.status_code, 403)
 
     def test_user_closing_their_request(self):
@@ -66,15 +80,25 @@ class UserResourceRequestTests(APITestCase):
 
         # Close their request
         response = submit_patch_with_payload(
-                {'status': {'id': update_status.pk}},
-                user=user, resource_request=resource_request)
+            {
+                'status': {
+                    'id': update_status.pk
+                }
+            },
+            user=user,
+            resource_request=resource_request
+        )
 
         # Assert api success
         self.assertEqual(response.status_code, 200)
 
         # Assert that the resource request was actually closed
-        updated_resource_request = ResourceRequest.objects.get(pk=resource_request.pk)
-        self.assertEqual(updated_resource_request.status.name, update_status.name)
+        updated_resource_request = ResourceRequest.objects.get(
+            pk=resource_request.pk
+        )
+        self.assertEqual(
+            updated_resource_request.status.name, update_status.name
+        )
 
     def test_user_cannot_update_admin_message(self):
         """
@@ -85,15 +109,24 @@ class UserResourceRequestTests(APITestCase):
 
         # Attempt to update the admin message
         response = submit_patch_with_payload(
-                {"admin_message": "idk why anyone would do this"},
-                user=user, resource_request=resource_request)
+            {
+                "admin_message": "idk why anyone would do this"
+            },
+            user=user,
+            resource_request=resource_request
+        )
 
         # Assert that they don't have permission
         self.assertEqual(response.status_code, 403)
 
         # Assert that the resource request wasn't changed
-        updated_resource_request = ResourceRequest.objects.get(pk=resource_request.pk)
-        self.assertEqual(updated_resource_request.admin_message, resource_request.admin_message)
+        updated_resource_request = ResourceRequest.objects.get(
+            pk=resource_request.pk
+        )
+        self.assertEqual(
+            updated_resource_request.admin_message,
+            resource_request.admin_message
+        )
 
     def test_user_can_submit_resource_request(self):
         """
@@ -103,11 +136,16 @@ class UserResourceRequestTests(APITestCase):
         url = reverse('api:v2:resourcerequest-list')
         view = ResourceRequestViewSet.as_view({'post': 'create'})
         factory = APIRequestFactory()
-        request = factory.post(url, {
-            'request': "100000 AU",
-            'description': 'Make world better place',
-            'admin_url': 'https://local.atmo.cloud/application/admin/resource_requests/'
-        })
+        request = factory.post(
+            url, {
+                'request':
+                    "100000 AU",
+                'description':
+                    'Make world better place',
+                'admin_url':
+                    'https://local.atmo.cloud/application/admin/resource_requests/'
+            }
+        )
         force_authenticate(request, user=user)
         response = view(request)
 
@@ -123,37 +161,49 @@ class AdminResourceRequestTests(APITestCase):
         user = AtmosphereUser.objects.create(username='user')
         resource_request = create_request_for_user(user)
         update_status, _ = StatusType.objects.get_or_create(name='approved')
-        staff_user = AtmosphereUser.objects.create(username='staff_user', is_staff=True)
+        staff_user = AtmosphereUser.objects.create(
+            username='staff_user', is_staff=True
+        )
 
         # Approve user request
         response = submit_patch_with_payload(
-                {'status': {'id': update_status.pk}},
-                user=staff_user, resource_request=resource_request,
-                view_path='api:v2:admin:resourcerequest-detail',
-                viewset=AdminResourceRequestViewSet)
+            {
+                'status': {
+                    'id': update_status.pk
+                }
+            },
+            user=staff_user,
+            resource_request=resource_request,
+            view_path='api:v2:admin:resourcerequest-detail',
+            viewset=AdminResourceRequestViewSet
+        )
 
         # Assert api success
         self.assertEqual(response.status_code, 200)
 
         # Assert that the resource request was actually approved
-        updated_resource_request = ResourceRequest.objects.get(pk=resource_request.pk)
-        self.assertEqual(updated_resource_request.status.name, update_status.name)
+        updated_resource_request = ResourceRequest.objects.get(
+            pk=resource_request.pk
+        )
+        self.assertEqual(
+            updated_resource_request.status.name, update_status.name
+        )
 
 
 def create_request_for_user(user):
     status, _ = StatusType.objects.get_or_create(name='pending')
     return ResourceRequest.objects.create(
-                created_by=user,
-                description="test",
-                status=status,
-                request="test")
+        created_by=user, description="test", status=status, request="test"
+    )
 
 
-def submit_patch_with_payload(payload,
-                              user=None,
-                              resource_request=None,
-                              view_path='api:v2:resourcerequest-detail',
-                              viewset=ResourceRequestViewSet):
+def submit_patch_with_payload(
+    payload,
+    user=None,
+    resource_request=None,
+    view_path='api:v2:resourcerequest-detail',
+    viewset=ResourceRequestViewSet
+):
     """
     Submits a patch to update the a user and their resource request.
     Returns the response.

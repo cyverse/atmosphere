@@ -45,7 +45,7 @@ class ImageMetricSerializer(serializers.HyperlinkedModelSerializer):
             'url',
             'uuid',
             'name',
-            # Adtl. Fields
+        # Adtl. Fields
             'metrics',
             'is_featured',
         )

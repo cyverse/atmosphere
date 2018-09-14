@@ -31,13 +31,15 @@ openstack = ProviderType.objects.get_or_create(name='OpenStack')[0]
 url_validator = URLValidator()
 
 
-def require_input(question,
-                  validate_answer=None,
-                  default=None,
-                  blank=False,
-                  allow_falsy=False,
-                  use_validated_answer=False,
-                  hide_answer=False):
+def require_input(
+    question,
+    validate_answer=None,
+    default=None,
+    blank=False,
+    allow_falsy=False,
+    use_validated_answer=False,
+    hide_answer=False
+):
     try:
         while True:
             if not hide_answer:
@@ -63,8 +65,9 @@ def require_input(question,
         sys.exit(1)
 
 
-def review_information(provider_info, admin_info, provider_credentials,
-                       cloud_config):
+def review_information(
+    provider_info, admin_info, provider_credentials, cloud_config
+):
     """
     """
     print "1. Provider Information"
@@ -79,11 +82,13 @@ def review_information(provider_info, admin_info, provider_credentials,
     #print jsonfile_text
     while True:
         review_completed = raw_input(
-            "Does everything above look correct? [Yes]/No")
+            "Does everything above look correct? [Yes]/No"
+        )
         if not review_completed or review_completed.lower() == 'yes':
             return "complete"
         delete_section = raw_input(
-            "What section should be removed? 1, 2, 3, exit, [back]")
+            "What section should be removed? 1, 2, 3, exit, [back]"
+        )
         if not delete_section or 'back' in delete_section:
             break
         if 'exit' in delete_section:
@@ -183,14 +188,16 @@ def read_openrc_file(filename):
         os_environ['OS_PASSWORD'] = require_input(
             "Please enter your OpenStack Password for project %s as user %s: " %
             (os_project, os_username),
-            hide_answer=True)
+            hide_answer=True
+        )
     if not os_environ:
         print("Please specify a non-empty openrc file.")
         sys.exit(1)
     parse_results = urlparse(os_environ['OS_AUTH_URL'])
     server_hostport = parse_results.port
-    server_hostname = parse_results.netloc.replace(":" + str(server_hostport),
-                                                   '')
+    server_hostname = parse_results.netloc.replace(
+        ":" + str(server_hostport), ''
+    )
     server_scheme = parse_results.scheme
     provider_info = {
         "name": None,
@@ -203,7 +210,8 @@ def read_openrc_file(filename):
         project_key_name = 'OS_PROJECT_NAME'
     else:
         raise ValueError(
-            "Could not determine tenant or project from openrc file.")
+            "Could not determine tenant or project from openrc file."
+        )
     admin_info = {
         "username": os_environ["OS_USERNAME"],
         "tenant": os_environ[project_key_name],
@@ -211,13 +219,13 @@ def read_openrc_file(filename):
     }
     credential_info = {
         "admin_url":
-        "%s://%s:%s" % (server_scheme, server_hostname, "35357"),
+            "%s://%s:%s" % (server_scheme, server_hostname, "35357"),
         "auth_url":
-        "%s://%s:%s" % (server_scheme, server_hostname, "5000"),
+            "%s://%s:%s" % (server_scheme, server_hostname, "5000"),
         "ex_force_auth_version":
-        "2.0_password" if '/v2.0' in parse_results.path else '3.x_password',
+            "2.0_password" if '/v2.0' in parse_results.path else '3.x_password',
         "region_name":
-        os_environ["OS_REGION_NAME"]
+            os_environ["OS_REGION_NAME"]
     }
     return provider_info, admin_info, credential_info
 
@@ -226,7 +234,8 @@ def get_provider_info(provider_info={}):
     # 1.  Collect name
     if not provider_info.get('name'):
         provider_info['name'] = require_input(
-            "What is the name of your new provider? : ")
+            "What is the name of your new provider? : "
+        )
     if not provider_info.get('public'):
         print "Images on Public providers are advertised on Troposphere UI without authentication."
         print "Generally, users will have an identity created on each public provider."
@@ -236,7 +245,8 @@ def get_provider_info(provider_info={}):
             yes_no_truth,
             default='no',
             allow_falsy=True,
-            use_validated_answer=True)
+            use_validated_answer=True
+        )
     # 2.  Collect platform type
     if not provider_info.get('platform'):
         # NOTE: Platform Type is no longer a required attribute. For now, default all providers to use KVM
@@ -302,7 +312,8 @@ def set_deploy_config(deploy_config):
         print "What is the hostname format for the instances deployed by your provider? (Default selection will use IP address as hostname)"
         hostname_format = require_input(
             "hostname_format for the provider (Default: <Use IP Address>): ",
-            default='%(one)s.%(two)s.%(three)s.%(four)s')
+            default='%(one)s.%(two)s.%(three)s.%(four)s'
+        )
     deploy_config.update({'hostname_format': hostname_format})
     return deploy_config
 
@@ -313,13 +324,15 @@ def set_network_config(provider_credentials, net_config):
         print "What is the list of security rules for the provider? (Default: Uses the setting `DEFAULT_RULES`)"
         net_config['default_security_rules'] = require_input(
             "default_security_rules for provider: (Should be a list)",
-            default=settings.DEFAULT_RULES)
+            default=settings.DEFAULT_RULES
+        )
 
     if not net_config.get('dns_nameservers'):
         print "What is the list of DNS Nameservers for the provider? (Default: Uses google DNS servers [8.8.8.8, 8.8.4.4])"
         net_config['dns_nameservers'] = require_input(
             "dns_nameservers for provider: (Should be a list)",
-            default=settings.DEFAULT_NAMESERVERS)
+            default=settings.DEFAULT_NAMESERVERS
+        )
 
     if not net_config.get('topology'):
         print "Which Network Topology should be used for your provider? (Default: External Network)"
@@ -330,25 +343,30 @@ def set_network_config(provider_credentials, net_config):
         topology_choice = require_input(
             "Select the topology name by number: ",
             lambda answer: choices[int(answer)] if int(answer) < len(choices) else None,
-            default='1')
+            default='1'
+        )
         topology = choices[int(topology_choice)]
         topology_name = topology.name
     else:
         topology_name = net_config['topology']
 
     if 'public_routers' not in provider_credentials and topology_name == 'External Router Topology':
-        print("List one or more external/public routers that Atmosphere "
-              "instances will connect to in order to communicate. "
-              "(Ex: public-router,atmosphere-router)")
+        print(
+            "List one or more external/public routers that Atmosphere "
+            "instances will connect to in order to communicate. "
+            "(Ex: public-router,atmosphere-router)"
+        )
         provider_credentials['public_routers'] = require_input(
             "List of public routers (comma-separated, Default: public_router): ",
             get_comma_list,
-            default='public_router')
+            default='public_router'
+        )
 
     elif 'network_name' not in provider_credentials and topology_name == 'External Network Topology':
         print "External/public network that Atmosphere instances will connect to in order to communicate. (Default: public)"
         provider_credentials['network_name'] = require_input(
-            "External network name: ", default='public')
+            "External network name: ", default='public'
+        )
 
     net_config['topology'] = topology_name
     return net_config
@@ -359,32 +377,38 @@ def set_user_config(user_config):
     if not admin_role_name:
         print "What is the role name for 'admin' in your provider? (Default: admin)"
         admin_role_name = require_input(
-            "admin role_name for the provider: ", default='admin')
+            "admin role_name for the provider: ", default='admin'
+        )
 
     user_role_name = user_config.get('user_role_name')
     if not user_role_name:
         print "What is the role name for default membership in your provider? (Default: _member_)"
         user_role_name = require_input(
-            "user_role_name for the provider: ", default='_member_')
+            "user_role_name for the provider: ", default='_member_'
+        )
 
     domain = user_config.get('domain')
     if not domain:
         print "What is the domain name for your provider? (Default: default)"
         domain = require_input(
-            "domain name for the provider: ", default='default')
+            "domain name for the provider: ", default='default'
+        )
 
     secret = user_config.get('secret')
     if not secret or len(secret) < 32:
         secret = require_input(
             "What secret would you like to use to create " +
             "user accounts? (32 character minimum) ",
-            lambda answer: len(answer) >= 32)
-    user_config.update({
-        'admin_role_name': admin_role_name,
-        'user_role_name': user_role_name,
-        'domain': domain,
-        'secret': secret,
-    })
+            lambda answer: len(answer) >= 32
+        )
+    user_config.update(
+        {
+            'admin_role_name': admin_role_name,
+            'user_role_name': user_role_name,
+            'domain': domain,
+            'secret': secret,
+        }
+    )
     return user_config
 
 
@@ -405,14 +429,16 @@ def get_provider_credentials(credential_info={}):
     if not credential_info.get('region_name'):
         print "What is the region_name for the provider?"
         credential_info['region_name'] = require_input(
-            "region_name for the provider: ")
+            "region_name for the provider: "
+        )
 
     if not credential_info.get('ex_force_auth_version'):
         print "What is the Authentication Scheme (Openstack ONLY -- Default:'2.0_password')?"
         ex_force_auth_version = require_input(
             "ex_force_auth_version for the provider: ",
             lambda answer: answer in ['2.0_password', '3.x_password'],
-            default='2.0_password')
+            default='2.0_password'
+        )
         credential_info['ex_force_auth_version'] = ex_force_auth_version
     # Verify that 'admin_url' is properly set.
     auth_version = credential_info['ex_force_auth_version']
@@ -450,13 +476,16 @@ def create_admin(provider, admin_info):
         )    # FIXME: This will need to be more explicit, look for AccountProvider?
     except Identity.DoesNotExist:
         new_identity = Identity.objects.create(
-            provider=provider, created_by=user, quota=Quota.default_quota())
+            provider=provider, created_by=user, quota=Quota.default_quota()
+        )
     new_identity.credential_set.get_or_create(key='key', value=username)
     new_identity.credential_set.get_or_create(key='secret', value=password)
     new_identity.credential_set.get_or_create(
-        key='ex_tenant_name', value=tenant)
+        key='ex_tenant_name', value=tenant
+    )
     new_identity.credential_set.get_or_create(
-        key='ex_project_name', value=tenant)
+        key='ex_project_name', value=tenant
+    )
 
     quota = Quota.objects.filter(**Quota.default_dict()).first()
     if not quota:
@@ -466,9 +495,11 @@ def create_admin(provider, admin_info):
     user.save()
 
     AccountProvider.objects.get_or_create(
-        provider=provider, identity=new_identity)
+        provider=provider, identity=new_identity
+    )
     IdentityMembership.objects.get_or_create(
-        identity=new_identity, member=group)
+        identity=new_identity, member=group
+    )
 
     return new_identity
 
@@ -493,12 +524,14 @@ def create_provider(provider_info, provider_credentials={}, cloud_config={}):
         virtualization=provider_info['platform'],
         type=prov_type,
         cloud_config=cloud_config,
-        public=provider_info["public"])
+        public=provider_info["public"]
+    )
     # 3b. Associate all InstanceActions
     instance_actions = InstanceAction.objects.all()
     for action in instance_actions:
         ProviderInstanceAction.objects.get_or_create(
-            provider=new_provider, instance_action=action, enabled=True)
+            provider=new_provider, instance_action=action, enabled=True
+        )
     # 4.  Create a new provider
     print "Created a new provider: %s" % (new_provider.location)
     # 5. Add the provider specific credentials
@@ -528,8 +561,10 @@ def _create_provider_and_identity(arguments):
     if not arguments.json:
         print "Warning: no JSON file was presented. Please use or copy extras/json_data/new_provider_cloud_config.json"
         return
-    (json_provider_info, json_admin_info, json_provider_credentials,
-     json_cloud_config) = read_json_file(arguments.json)
+    (
+        json_provider_info, json_admin_info, json_provider_credentials,
+        json_cloud_config
+    ) = read_json_file(arguments.json)
     provider_info.update(json_provider_info)
     admin_info.update(json_admin_info)
     provider_credentials.update(json_provider_credentials)
@@ -540,16 +575,18 @@ def _create_provider_and_identity(arguments):
         get_admin_info(admin_info)
         get_provider_credentials(provider_credentials)
         get_cloud_config(provider_credentials, cloud_config)
-        selection = review_information(provider_info, admin_info,
-                                       provider_credentials, cloud_config)
+        selection = review_information(
+            provider_info, admin_info, provider_credentials, cloud_config
+        )
         if selection == 'exit':
             return
         elif selection != 'complete':
             continue
         if not provider_info or not admin_info or not provider_credentials or not cloud_config:
             continue
-        new_provider = create_provider(provider_info, provider_credentials,
-                                       cloud_config)
+        new_provider = create_provider(
+            provider_info, provider_credentials, cloud_config
+        )
         new_identity = create_admin(new_provider, admin_info)
         is_valid = validate_new_provider(new_provider, new_identity)
         if is_valid:
@@ -581,14 +618,17 @@ def validate_new_provider(new_provider, new_identity):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Add a new cloud provider and adminstrator")
+        description="Add a new cloud provider and adminstrator"
+    )
 
     parser.add_argument(
         "--from-openrc",
         dest="openrc",
-        help="Add a new provider from an openrc file.")
+        help="Add a new provider from an openrc file."
+    )
     parser.add_argument(
-        "--from-json", dest="json", help="Add a new provider from a json file.")
+        "--from-json", dest="json", help="Add a new provider from a json file."
+    )
 
     arguments = parser.parse_args()
     new_identity = _create_provider_and_identity(arguments)

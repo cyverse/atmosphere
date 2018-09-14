@@ -5,13 +5,12 @@ from api.v2.views.base import AuthModelViewSet
 
 
 class InstanceTagViewSet(AuthModelViewSet):
-
     """
     API endpoint that allows instance tags to be viewed
     """
     queryset = InstanceTag.objects.all()
     serializer_class = InstanceTagSerializer
-    filter_fields = ('instance__id',)
+    filter_fields = ('instance__id', )
 
     def get_queryset(self):
         """

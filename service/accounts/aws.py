@@ -53,24 +53,30 @@ class AccountDriver():
             id_member = IdentityMembership.objects.filter(
                 identity__provider=self.aws_prov,
                 member__name=username,
-                identity__credential__value__in=[
-                    key, secret]).distinct()[0]
+                identity__credential__value__in=[key, secret]
+            ).distinct()[0]
             return id_member.identity
         except (IndexError, IdentityMembership.DoesNotExist):
             # Remove the user line when quota model is fixed
             default_quota = Quota().defaults()
-            quota = Quota.objects.filter(cpu=default_quota['cpu'],
-                                         memory=default_quota['memory'],
-                                         storage=default_quota['storage'])[0]
+            quota = Quota.objects.filter(
+                cpu=default_quota['cpu'],
+                memory=default_quota['memory'],
+                storage=default_quota['storage']
+            )[0]
             # Create the Identity
             identity = Identity.objects.get_or_create(
-                created_by=user, provider=self.aws_prov)[0]
+                created_by=user, provider=self.aws_prov
+            )[0]
             Credential.objects.get_or_create(
-                identity=identity, key='key', value=key)[0]
+                identity=identity, key='key', value=key
+            )[0]
             Credential.objects.get_or_create(
-                identity=identity, key='secret', value=secret)[0]
+                identity=identity, key='secret', value=secret
+            )[0]
             # Link it to the usergroup
             id_member = IdentityMembership.objects.get_or_create(
-                identity=identity, member=group, quota=quota)[0]
+                identity=identity, member=group, quota=quota
+            )[0]
             # Return the identity
             return id_member.identity

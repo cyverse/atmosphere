@@ -9,9 +9,10 @@ from .boot_script_related_field import BootScriptRelatedField
 from .license_related_field import LicenseRelatedField
 from .account_serializer import AccountSerializer
 from .provider_serializer import (
-        ProviderSerializer, ProviderInstanceActionSerializer,
-        PATCH_ProviderInstanceActionSerializer,
-        POST_ProviderInstanceActionSerializer)
+    ProviderSerializer, ProviderInstanceActionSerializer,
+    PATCH_ProviderInstanceActionSerializer,
+    POST_ProviderInstanceActionSerializer
+)
 from .cleaned_identity_serializer import CleanedIdentitySerializer
 from .boot_script_serializer import BootScriptSerializer
 from .credential_serializer import CredentialDetailSerializer
@@ -24,7 +25,8 @@ from .machine_request_serializer import MachineRequestSerializer
 from .maintenance_record_serializer import MaintenanceRecordSerializer
 from .identity_detail_serializer import IdentityDetailSerializer
 from .cloud_admin_serializer import (
-    CloudAdminSerializer, CloudAdminActionListSerializer)
+    CloudAdminSerializer, CloudAdminActionListSerializer
+)
 from .profile_serializer import ProfileSerializer
 from .provider_machine_serializer import ProviderMachineSerializer
 from .group_serializer import GroupSerializer
@@ -35,28 +37,29 @@ from .provider_size_serializer import ProviderSizeSerializer
 from .provider_type_serializer import ProviderTypeSerializer
 from .tag_serializer import TagSerializer, TagSerializer_POST
 from .instance_status_history_serializer import (
-    InstanceStatusHistorySerializer)
+    InstanceStatusHistorySerializer
+)
 from core.models.user import AtmosphereUser
 from .quota_serializer import QuotaSerializer
 from .identity_serializer import IdentitySerializer
 from .token_serializer import TokenSerializer
 
 __all__ = (
-    get_context_user, get_projects_for_obj, ProjectsField,
-    NewThresholdField, TagRelatedField, IdentityRelatedField,
-    InstanceRelatedField, BootScriptRelatedField, LicenseRelatedField,
-    AccountSerializer, ProviderSerializer,
-    ProviderInstanceActionSerializer, PATCH_ProviderInstanceActionSerializer,
+    get_context_user, get_projects_for_obj, ProjectsField, NewThresholdField,
+    TagRelatedField, IdentityRelatedField, InstanceRelatedField,
+    BootScriptRelatedField, LicenseRelatedField, AccountSerializer,
+    ProviderSerializer, ProviderInstanceActionSerializer,
+    PATCH_ProviderInstanceActionSerializer,
     POST_ProviderInstanceActionSerializer, CleanedIdentitySerializer,
-    BootScriptSerializer, CredentialDetailSerializer,
-    InstanceSerializer, InstanceActionSerializer, InstanceHistorySerializer,
+    BootScriptSerializer, CredentialDetailSerializer, InstanceSerializer,
+    InstanceActionSerializer, InstanceHistorySerializer,
     ExportRequestSerializer, LicenseSerializer, POST_LicenseSerializer,
     MachineRequestSerializer, MaintenanceRecordSerializer,
     IdentityDetailSerializer, CloudAdminSerializer,
     CloudAdminActionListSerializer, ProfileSerializer,
-    ProviderMachineSerializer, GroupSerializer,
-    VolumeSerializer, NoProjectSerializer,
-    ProjectSerializer, ProviderSizeSerializer, ProviderTypeSerializer,
-    TagSerializer, TagSerializer_POST, InstanceStatusHistorySerializer,
-    AtmosphereUser,
-    QuotaSerializer, IdentitySerializer, TokenSerializer)
+    ProviderMachineSerializer, GroupSerializer, VolumeSerializer,
+    NoProjectSerializer, ProjectSerializer, ProviderSizeSerializer,
+    ProviderTypeSerializer, TagSerializer, TagSerializer_POST,
+    InstanceStatusHistorySerializer, AtmosphereUser, QuotaSerializer,
+    IdentitySerializer, TokenSerializer
+)

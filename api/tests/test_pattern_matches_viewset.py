@@ -6,6 +6,7 @@ class PatternMatchesViewsetTest(object):
     A mixin which should be added to a TestCase, tests that a url pattern maps
     to a viewset.
     """
+
     def test_pattern_matches_viewset(self, url_pattern, view_set):
         """
         Assert that the url maps to the given viewset

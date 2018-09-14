@@ -43,7 +43,7 @@ from .resource_request import ResourceRequestViewSet, AdminResourceRequestViewSe
 from .reporting import ReportingViewSet
 from .size import SizeViewSet
 from .status_type import StatusTypeViewSet
-from .email import  InstanceSupportEmailViewSet, VolumeSupportEmailViewSet, FeedbackEmailViewSet, ResourceEmailViewSet
+from .email import InstanceSupportEmailViewSet, VolumeSupportEmailViewSet, FeedbackEmailViewSet, ResourceEmailViewSet
 from .emulate import TokenEmulateViewSet, SessionEmulateViewSet
 from .tag import TagViewSet
 from .token import TokenViewSet

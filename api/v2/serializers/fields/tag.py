@@ -4,7 +4,6 @@ from api.v2.serializers.summaries import TagSummarySerializer
 
 
 class TagRelatedField(serializers.RelatedField):
-
     def __init__(self, **kwargs):
         kwargs['read_only'] = True
         super(TagRelatedField, self).__init__(**kwargs)

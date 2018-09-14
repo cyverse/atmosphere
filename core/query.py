@@ -3,24 +3,18 @@ from django.utils import timezone
 
 
 def provider_contains_credential(key, value):
-    return (
-        Q(providercredential__key=key) &
-        Q(providercredential__value=value)
-    )
+    return (Q(providercredential__key=key) & Q(providercredential__value=value))
 
 
 def contains_credential(key, value):
-    return (
-        Q(credential__key=key) &
-        Q(credential__value=value)
-    )
+    return (Q(credential__key=key) & Q(credential__value=value))
 
 
 def inactive_versions():
     return (
-        # Contains at least one version without an end-date OR
+    # Contains at least one version without an end-date OR
         (Q(num_versions__gt=0) & Q(versions__end_date__isnull=True)) |
-        # conatins at least one machine without an end-date
+    # conatins at least one machine without an end-date
         (
             Q(num_machines__gt=0) &
             Q(versions__machines__instance_source__end_date__isnull=True)
@@ -65,23 +59,26 @@ def only_current_instances(now_time=None, restrict_start=False):
     """
     Filter the current instances.
     """
+
     def _active_source():
         """
         An instance.source is active if the provider is active and un-end-dated.
         """
-        return (Q(source__provider__end_date__isnull=True) |
-                Q(source__provider__end_date__gt=now_time))
+        return (
+            Q(source__provider__end_date__isnull=True) |
+            Q(source__provider__end_date__gt=now_time)
+        )
 
     if not now_time:
         now_time = timezone.now()
     return only_current(restrict_start=restrict_start) & _active_source()
 
 
-
 def only_current_machines(now_time=None):
     """
     Filters the current provider_machines.
     """
+
     def _active_provider():
         return (
                 Q(providermachine__instance_source__provider__end_date__isnull=True) | \
@@ -115,6 +112,7 @@ def only_current_apps(now_time=None):
         return (Q(end_date__isnull=True) | \
                 Q(end_date__gt=now_time)) & \
             Q(start_date__lt=now_time)
+
     def _versions_in_range():
         """
         Return all applications that:
@@ -126,6 +124,7 @@ def only_current_apps(now_time=None):
         return (Q(versions__end_date__isnull=True) | \
                 Q(versions__end_date__gt=now_time)) & \
             Q(versions__start_date__lt=now_time)
+
     def _machines_in_range():
         """
         Return all applications that:
@@ -137,6 +136,7 @@ def only_current_apps(now_time=None):
         return (Q(versions__machines__instance_source__end_date__isnull=True) | \
                 Q(versions__machines__instance_source__end_date__gt=now_time)) & \
             Q(versions__machines__instance_source__start_date__lt=now_time)
+
     def _active_machines():
         """
         This method should eliminate any application such-that:
@@ -144,15 +144,18 @@ def only_current_apps(now_time=None):
         * ALL machines (in all versions) of the app have an inactive provider
         """
         pass
+
     def _active_versions():
         """
         This method should eliminate any application such-that:
         * ALL versions of this application have been end dated.
         """
         pass
+
     if not now_time:
         now_time = timezone.now()
-    return _in_range() & _versions_in_range() & _machines_in_range() & _active_provider()
+    return _in_range() & _versions_in_range() & _machines_in_range(
+    ) & _active_provider()
 
 
 def only_current_machines_in_version(now_time=None):
@@ -160,10 +163,12 @@ def only_current_machines_in_version(now_time=None):
         return (Q(machines__instance_source__provider__end_date__isnull=True) | \
                 Q(machines__instance_source__provider__end_date__gt=now_time)) &\
                     Q(machines__instance_source__provider__active=True)
+
     def _in_range():
         return (Q(machines__instance_source__end_date__isnull=True) | \
          Q(machines__instance_source__end_date__gt=now_time)) & \
             Q(machines__instance_source__start_date__lt=now_time)
+
     if not now_time:
         now_time = timezone.now()
     return _in_range() & _active_provider()
@@ -173,9 +178,12 @@ def only_current_source(now_time=None):
     """
     Filters the current instance_sources.
     """
+
     def current_provider():
-        return (Q(instance_source__provider__end_date__isnull=True) |
-                Q(instance_source__provider__end_date__gt=now_time))
+        return (
+            Q(instance_source__provider__end_date__isnull=True) |
+            Q(instance_source__provider__end_date__gt=now_time)
+        )
 
     def _in_range():
         return (Q(instance_source__end_date__isnull=True) |
@@ -189,9 +197,12 @@ def only_current_source(now_time=None):
 
 def only_current_user_allocations():
     now_time = timezone.now()
-    return (Q(allocation_source__end_date__isnull=True) |
-            (Q(allocation_source__end_date__gt=now_time) &
-             Q(allocation_source__start_date__lt=now_time)))
+    return (
+        Q(allocation_source__end_date__isnull=True) | (
+            Q(allocation_source__end_date__gt=now_time) &
+            Q(allocation_source__start_date__lt=now_time)
+        )
+    )
 
 
 def only_public_providers(now_time=None):
@@ -202,13 +213,16 @@ def source_in_range(now_time=None):
     """
     Filters current instance_sources ignoring provider.
     """
+
     def _in_range():
         return (Q(instance_source__end_date__isnull=True) |
                 Q(instance_source__end_date__gt=now_time)) &\
             Q(instance_source__start_date__lt=now_time)
+
     if not now_time:
         now_time = timezone.now()
     return _in_range()
+
 
 def only_current(now_time=None, restrict_start=False):
     """
@@ -228,7 +242,7 @@ def only_active_provider_memberships(user=None, now_time=None):
     query = (
         Q(identity__provider__end_date__isnull=True) |
         Q(identity__provider__end_date__gt=now_time)
-        ) & Q(identity__provider__active=True)
+    ) & Q(identity__provider__active=True)
     if user:
         query = query & Q(member__user__username=user.username)
     return query
@@ -240,10 +254,8 @@ def only_active_memberships(user=None, now_time=None):
     query = (
         Q(identity__provider__end_date__isnull=True) |
         Q(identity__provider__end_date__gt=now_time)
-        ) & (
-        Q(end_date__isnull=True) |
-        Q(end_date__gt=now_time)
-        ) & Q(identity__provider__active=True)
+    ) & (Q(end_date__isnull=True) |
+         Q(end_date__gt=now_time)) & Q(identity__provider__active=True)
     if user:
         query = query & Q(member__user__username=user.username)
     return query
@@ -254,9 +266,11 @@ def user_provider_machine_set(user):
     A query specifically for 'ProviderMachine'
     Will return the provider machines created by 'user'
     """
-    query = (Q(instance_source__provider_id__in=user.provider_ids()) |
-             Q(application_version__application__created_by=user) |
-             Q(instance_source__created_by=user))
+    query = (
+        Q(instance_source__provider_id__in=user.provider_ids()) |
+        Q(application_version__application__created_by=user) |
+        Q(instance_source__created_by=user)
+    )
     return query
 
 
@@ -286,8 +300,11 @@ def images_shared_with_user(user):
     Images with versions or machines belonging to the user's groups
     """
     group_ids = list(user.group_ids())
-    return (Q(versions__machines__members__id__in=group_ids) |
-        Q(versions__membership__id__in=group_ids))
+    return (
+        Q(versions__machines__members__id__in=group_ids) |
+        Q(versions__membership__id__in=group_ids)
+    )
+
 
 def images_shared_with_user_by_ids(user):
     """
@@ -299,26 +316,38 @@ def images_shared_with_user_by_ids(user):
     # __in is expensive. Use it only when you have to
     if len(group_ids) > 1:
         version_ids = list(
-            ApplicationVersion.objects.filter(
-                membership__in=group_ids).values_list('id',flat=True))
+            ApplicationVersion.objects.filter(membership__in=group_ids
+                                             ).values_list('id', flat=True)
+        )
         machine_ids = list(
-            ProviderMachine.objects.filter(
-                members__in=group_ids).values_list('id',flat=True))
-        return (Q(versions__machines__id__in=machine_ids) | Q(versions__id__in=version_ids))
+            ProviderMachine.objects.filter(members__in=group_ids
+                                          ).values_list('id', flat=True)
+        )
+        return (
+            Q(versions__machines__id__in=machine_ids) |
+            Q(versions__id__in=version_ids)
+        )
     group = group_ids[0] if group_ids else -1
     version_ids = list(
-        ApplicationVersion.objects.filter(
-            membership=group).values_list('id',flat=True))
+        ApplicationVersion.objects.filter(membership=group
+                                         ).values_list('id', flat=True)
+    )
     machine_ids = list(
-        ProviderMachine.objects.filter(
-            members=group).values_list('id',flat=True))
-    return (Q(versions__machines__id__in=machine_ids) | Q(versions__id__in=version_ids))
+        ProviderMachine.objects.filter(members=group
+                                      ).values_list('id', flat=True)
+    )
+    return (
+        Q(versions__machines__id__in=machine_ids) |
+        Q(versions__id__in=version_ids)
+    )
+
 
 def created_by_user(user):
     """
     Images created by a username
     """
     return Q(created_by__username__exact=user.username)
+
 
 def in_users_providers(user):
     """
@@ -327,9 +356,9 @@ def in_users_providers(user):
     provider_ids = list(user.current_providers)
     return Q(versions__machines__instance_source__provider__in=provider_ids)
 
+
 def provider_credential(key, value):
     """
     Use this query to determine if `Provider` contains credential key/value
     """
-    return (Q(providercredential__key=key) &
-        Q(providercredential__value=value))
+    return (Q(providercredential__key=key) & Q(providercredential__value=value))

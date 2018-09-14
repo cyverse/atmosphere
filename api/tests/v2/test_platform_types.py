@@ -20,12 +20,12 @@ class PlatformTypeTests(APITestCase, APISanityTestCase):
 
         self.detail_view = ViewSet.as_view({'get': 'retrieve'})
         detail_url = reverse(
-            self.url_route+'-detail', args=(self.platform_type.id,))
+            self.url_route + '-detail', args=(self.platform_type.id, )
+        )
         self.detail_request = factory.get(detail_url)
 
         self.list_view = ViewSet.as_view({'get': 'list'})
-        list_url = reverse(
-            self.url_route+'-list')
+        list_url = reverse(self.url_route + '-list')
         self.list_request = factory.get(list_url)
 
     def test_list_is_not_public(self):
@@ -52,17 +52,23 @@ class PlatformTypeTests(APITestCase, APISanityTestCase):
 
     def test_is_not_public(self):
         force_authenticate(self.detail_request, user=self.anonymous_user)
-        response = self.detail_view(self.detail_request, pk=self.platform_type.id)
+        response = self.detail_view(
+            self.detail_request, pk=self.platform_type.id
+        )
         self.assertEquals(response.status_code, 403)
 
     def test_is_visible_to_authenticated_user(self):
         force_authenticate(self.detail_request, user=self.user)
-        response = self.detail_view(self.detail_request, pk=self.platform_type.id)
+        response = self.detail_view(
+            self.detail_request, pk=self.platform_type.id
+        )
         self.assertEquals(response.status_code, 200)
 
     def test_response_contains_expected_fields(self):
         force_authenticate(self.detail_request, user=self.user)
-        response = self.detail_view(self.detail_request, pk=self.platform_type.id)
+        response = self.detail_view(
+            self.detail_request, pk=self.platform_type.id
+        )
         data = response.data
 
         self.assertEquals(len(data), 5)

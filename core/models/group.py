@@ -17,33 +17,36 @@ from core.models.provider import Provider
 from core.models.user import AtmosphereUser
 
 from core.query import (
-        only_current, only_active_memberships, only_current_provider
-    )
+    only_current, only_active_memberships, only_current_provider
+)
 
 
 class Group(DjangoGroup):
-
     """
     Extend the Django Group model to support 'membership'
     """
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    identities = models.ManyToManyField(Identity, through='IdentityMembership',
-                                        blank=True)
-    instances = models.ManyToManyField('Instance',
-                                       through='InstanceMembership',
-                                       blank=True)
-    applications = models.ManyToManyField(Application,
-                                          related_name='members',
-                                          through='ApplicationMembership',
-                                          blank=True)
+    identities = models.ManyToManyField(
+        Identity, through='IdentityMembership', blank=True
+    )
+    instances = models.ManyToManyField(
+        'Instance', through='InstanceMembership', blank=True
+    )
+    applications = models.ManyToManyField(
+        Application,
+        related_name='members',
+        through='ApplicationMembership',
+        blank=True
+    )
     provider_machines = models.ManyToManyField(
         'ProviderMachine',
         related_name='members',
         through='ProviderMachineMembership',
-        blank=True)
+        blank=True
+    )
 
     def __unicode__(self):
-        return "AtmosphereGroup %s" % (self.name,)
+        return "AtmosphereGroup %s" % (self.name, )
 
     def is_leader(self, test_user):
         return any(user for user in self.leaders if user == test_user)
@@ -75,7 +78,9 @@ class Group(DjangoGroup):
 
     @property
     def identitymembership_set(self):
-        logger.warn("WARNING - THIS FIELD DEPRECATED for `identity_memberships` REPLACE THE REFERENCE USING THIS LINE")
+        logger.warn(
+            "WARNING - THIS FIELD DEPRECATED for `identity_memberships` REPLACE THE REFERENCE USING THIS LINE"
+        )
         return self.identity_memberships
 
     @property
@@ -84,7 +89,9 @@ class Group(DjangoGroup):
 
     @staticmethod
     def for_identity(identity_uuid):
-        return Group.objects.filter(identity_memberships__identity__uuid=identity_uuid)
+        return Group.objects.filter(
+            identity_memberships__identity__uuid=identity_uuid
+        )
 
     @property
     def current_identities(self):
@@ -92,7 +99,9 @@ class Group(DjangoGroup):
 
     @property
     def current_providers(self):
-        return Provider.shared_with_group(self).filter(only_current(), active=True)
+        return Provider.shared_with_group(self).filter(
+            only_current(), active=True
+        )
 
     @classmethod
     def check_membership(cls, test_user, membership_groups):
@@ -103,8 +112,10 @@ class Group(DjangoGroup):
         RETURNS:
           True/False - If any of the users groups grants membership access.
         """
-        return any(membership.group for membership
-                   in test_user.memberships.all() if membership.group in membership_groups)
+        return any(
+            membership.group for membership in test_user.memberships.all()
+            if membership.group in membership_groups
+        )
 
     @classmethod
     def check_access(cls, user, groupname):
@@ -121,17 +132,16 @@ class Group(DjangoGroup):
         group = Group.objects.get_or_create(name=group_name)[0]
         group.user_set.add(user)
 
-        member = GroupMembership.objects.get_or_create(user=user, group=group)[0]
+        member = GroupMembership.objects.get_or_create(
+            user=user, group=group
+        )[0]
         if is_leader:
             member.is_leader = True
             member.save()
         return (user, group)
 
     def json(self):
-        return {
-            'id': self.id,
-            'name': self.name
-        }
+        return {'id': self.id, 'name': self.name}
 
     class Meta:
         db_table = 'group'
@@ -145,10 +155,9 @@ class GroupMembership(models.Model):
     is_leader = models.BooleanField(default=False)
 
     def __unicode__(self):
-        return "%s is a %s of %s"  % (
-            self.user,
-            "leader" if self.is_leader else "member",
-            self.group)
+        return "%s is a %s of %s" % (
+            self.user, "leader" if self.is_leader else "member", self.group
+        )
 
     class Meta:
         db_table = 'group_members'
@@ -163,7 +172,6 @@ def get_user_group(username):
 
 
 class IdentityMembership(models.Model):
-
     """
     IdentityMembership allows group 'API access' to use a specific provider
     The identity is given a quota on how many resources can be allocated
@@ -190,7 +198,7 @@ class IdentityMembership(models.Model):
             return False
         if self.end_date:
             now = timezone.now()
-            return not(self.end_date < now)
+            return not (self.end_date < now)
         return True
 
     def get_quota_dict(self):
@@ -224,7 +232,6 @@ class IdentityMembership(models.Model):
 
 
 class InstanceMembership(models.Model):
-
     """
     InstanceMembership allows group to see Instances in the frontend/API calls.
     InstanceMembership is the equivilant of
@@ -244,5 +251,3 @@ class InstanceMembership(models.Model):
         db_table = 'instance_membership'
         app_label = 'core'
         unique_together = ('instance', 'owner')
-
-

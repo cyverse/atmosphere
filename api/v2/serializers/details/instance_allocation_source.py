@@ -9,15 +9,19 @@ from api.v2.serializers.details import (
 )
 
 
-class InstanceAllocationSourceSerializer(serializers.HyperlinkedModelSerializer):
+class InstanceAllocationSourceSerializer(
+    serializers.HyperlinkedModelSerializer
+):
     allocation_source = ModelRelatedField(
         queryset=AllocationSource.objects.all(),
-        serializer_class= AllocationSourceSerializer,
-        style={'base_template': 'input.html'})
+        serializer_class=AllocationSourceSerializer,
+        style={'base_template': 'input.html'}
+    )
     instance = ModelRelatedField(
         queryset=Instance.objects.all(),
         serializer_class=InstanceSerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:instance-allocation-source-detail',
     )
@@ -28,11 +32,6 @@ class InstanceAllocationSourceSerializer(serializers.HyperlinkedModelSerializer)
             UniqueTogetherValidator(
                 queryset=InstanceAllocationSourceSnapshot.objects.all(),
                 fields=('instance', 'allocation_source')
-                ),
+            ),
         ]
-        fields = (
-            'id',
-            'url',
-            'instance',
-            'allocation_source'
-        )
+        fields = ('id', 'url', 'instance', 'allocation_source')

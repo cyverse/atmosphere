@@ -6,7 +6,6 @@ from core.models.pattern_match import PatternMatch
 
 
 class LicenseType(models.Model):
-
     """
     LicenseType objects are created by developers,
     they should NOT be added/removed unless there
@@ -24,7 +23,6 @@ class LicenseType(models.Model):
 
 
 class License(models.Model):
-
     """
     """
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
@@ -50,8 +48,9 @@ class ApplicationVersionLicense(models.Model):
     """
     Represents the M2M table auto-created by 'application_version.licenses'
     """
-    image_version = models.ForeignKey("ApplicationVersion",
-                                      db_column='applicationversion_id')
+    image_version = models.ForeignKey(
+        "ApplicationVersion", db_column='applicationversion_id'
+    )
     license = models.ForeignKey(License)
 
     def __unicode__(self):

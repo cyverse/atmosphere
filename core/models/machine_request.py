@@ -28,13 +28,12 @@ from functools import reduce
 
 UNRESOLVED_STATES = ["pending", "processing", "validated", "failed"]
 
-class MachineRequest(BaseRequest):
 
+class MachineRequest(BaseRequest):
     """
     Storage container for the MachineRequestThread to start/restart the Queue
     Provides a Parent-Child relationship between the new image and ancestor(s)
     """
-
 
     # The instance to image.
     instance = models.ForeignKey("Instance")
@@ -42,21 +41,25 @@ class MachineRequest(BaseRequest):
     old_status = models.TextField(default="", null=True, blank=True)
 
     # Machine imaging Metadata
-    parent_machine = models.ForeignKey(ProviderMachine,
-                                       related_name="ancestor_machine")
+    parent_machine = models.ForeignKey(
+        ProviderMachine, related_name="ancestor_machine"
+    )
 
     # Data for the new machine, version and app...
     # Application specific:
     new_application_name = models.CharField(max_length=256)
     new_application_description = models.TextField(
-        default='Description Missing')
+        default='Description Missing'
+    )
     new_application_visibility = models.CharField(
-        max_length=256, default='private')  # Choices:Public, Private, Select
-    new_application_access_list = models.ManyToManyField("PatternMatch", blank=True)
+        max_length=256, default='private'
+    )    # Choices:Public, Private, Select
+    new_application_access_list = models.ManyToManyField(
+        "PatternMatch", blank=True
+    )
     access_list = models.TextField(
-        default='',
-        blank=True,
-        null=True)  # DEPRECATED in API v2
+        default='', blank=True, null=True
+    )    # DEPRECATED in API v2
     # SPECIFIC to 'forked=False'
 
     # Specific to ApplicationVersion && ProviderMachine
@@ -66,7 +69,8 @@ class MachineRequest(BaseRequest):
     new_version_name = models.CharField(max_length=256, default='1.0')
     new_version_change_log = models.TextField(default='Changelog Missing')
     new_version_tags = models.TextField(
-        default='', blank=True, null=True)  # Re-rename to new_application_tags
+        default='', blank=True, null=True
+    )    # Re-rename to new_application_tags
     new_version_memory_min = models.IntegerField(default=0)
     new_version_cpu_min = models.IntegerField(default=0)
     new_version_allow_imaging = models.BooleanField(default=True)
@@ -77,7 +81,7 @@ class MachineRequest(BaseRequest):
 
     new_machine_provider = models.ForeignKey(Provider)
     new_machine_owner = models.ForeignKey(User, related_name="new_image_owner")
-    
+
     # Date time stamps
     #start_date = models.DateTimeField(default=timezone.now)
     #end_date = models.DateTimeField(null=True, blank=True)
@@ -88,25 +92,26 @@ class MachineRequest(BaseRequest):
     # across different clouds.
     # However, it might be good to have the "Original machine"..
     # similar to the 'created_by/created_by_identity' dilemma
-    new_machine = models.ForeignKey(ProviderMachine,
-                                    null=True, blank=True)
-    new_application_version = models.ForeignKey(ApplicationVersion,
-                                                null=True, blank=True)
+    new_machine = models.ForeignKey(ProviderMachine, null=True, blank=True)
+    new_application_version = models.ForeignKey(
+        ApplicationVersion, null=True, blank=True
+    )
 
     def save(self, *args, **kwargs):
         if not self.pk and self.is_active(self.instance):
             raise RequestLimitExceeded(
-                    "The number of open requests for "
-                    "instance %s has been exceeded."
-                    % self.instance.provider_alias)
+                "The number of open requests for "
+                "instance %s has been exceeded." % self.instance.provider_alias
+            )
         Model.save(self, *args, **kwargs)
 
     @classmethod
     def is_active(cls, instance):
         """
         """
-        return cls.objects.filter(instance=instance,
-                status__name__in=UNRESOLVED_STATES).count() > 0
+        return cls.objects.filter(
+            instance=instance, status__name__in=UNRESOLVED_STATES
+        ).count() > 0
 
     def _recover_from_error(self, status=None):
         if not status:
@@ -116,15 +121,12 @@ class MachineRequest(BaseRequest):
             return False, status
         # Hide the 'error' message from view
         if 'exception' in status.lower():
-            return True, status[
-                status.find("(") + 1:status.find(")")]
+            return True, status[status.find("(") + 1:status.find(")")]
         return False, status
-
 
     @property
     def clean_old_status(self):
         return self._recover_from_error()[1]
-
 
     def clean(self):
         """
@@ -140,13 +142,14 @@ class MachineRequest(BaseRequest):
                 raise ValidationError(
                     "Application name cannot be set unless a new application "
                     "is being created. Remove the Application name to update "
-                    "-OR- fork the existing application")
+                    "-OR- fork the existing application"
+                )
 
         # General Validation && AutoCompletion
         if self.access_list:
             self.new_version_membership = _match_membership_to_access(
-                self.access_list,
-                self.new_version_membership)
+                self.access_list, self.new_version_membership
+            )
 
         # Automatically set 'end date' when completed
         #TODO: verify this should be 'old_status' or change it to a StatusType
@@ -154,8 +157,10 @@ class MachineRequest(BaseRequest):
             self.end_date = timezone.now()
 
     def new_version_threshold(self):
-        return {'memory': self.new_version_memory_min,
-                'cpu': self.new_version_cpu_min}
+        return {
+            'memory': self.new_version_memory_min,
+            'cpu': self.new_version_cpu_min
+        }
 
     def get_request_status(self):
         return self.status.name
@@ -175,13 +180,15 @@ class MachineRequest(BaseRequest):
     def update_threshold(self):
         application_version = self.get_version()
         existing_threshold = ApplicationThreshold.objects.filter(
-            application_version=application_version)
+            application_version=application_version
+        )
 
         if existing_threshold:
             threshold = existing_threshold[0]
         else:
             threshold = ApplicationThreshold(
-                application_version=application_version)
+                application_version=application_version
+            )
 
         threshold.memory_min = self.new_version_memory_min
         threshold.cpu_min = self.new_version_cpu_min
@@ -198,11 +205,15 @@ class MachineRequest(BaseRequest):
             # 'User' -> User -> Group -> Membership
             user = User.objects.filter(username=user).first()
             if not user:
-                logger.warn("WARNING: User %s does not have a user object" % user)
+                logger.warn(
+                    "WARNING: User %s does not have a user object" % user
+                )
                 continue
             memberships_qs = user.memberships.select_related('group')
             if not memberships_qs:
-                logger.warn("WARNING: User %s does not have a group object" % user)
+                logger.warn(
+                    "WARNING: User %s does not have a group object" % user
+                )
                 continue
             for membership in memberships_qs:
                 group = membership.group
@@ -221,9 +232,10 @@ class MachineRequest(BaseRequest):
     def fix_metadata(self, im):
         if not self.new_machine:
             raise Exception(
-                "New machine missing from machine request. Cannot Fix.")
-        (orig_managerCls, orig_creds,
-         dest_managerCls, dest_creds) = self.prepare_manager()
+                "New machine missing from machine request. Cannot Fix."
+            )
+        (orig_managerCls, orig_creds, dest_managerCls,
+         dest_creds) = self.prepare_manager()
         im = dest_managerCls(**dest_creds)
         old_mach_id = self.instance.source.identifier
         new_mach_id = self.new_machine.identifier
@@ -240,9 +252,14 @@ class MachineRequest(BaseRequest):
             raise Exception(
                 "Kernel/Ramdisk information MISSING "
                 "from previous machine. "
-                "Fix NOT required")
+                "Fix NOT required"
+            )
         properties.update(
-            {'kernel_id': previous_kernel, 'ramdisk_id': previous_ramdisk})
+            {
+                'kernel_id': previous_kernel,
+                'ramdisk_id': previous_ramdisk
+            }
+        )
         im.update_image(new_mach, properties=properties)
 
     def old_provider(self):
@@ -300,7 +317,8 @@ class MachineRequest(BaseRequest):
         old_admin = old_provider.get_admin_identity().get_credentials()
         if 'ex_force_auth_version' not in old_creds:
             old_creds['ex_force_auth_version'] = '2.0_password'
-        if old_creds['ex_force_auth_version'] != '2.0_password' and 'domain_name' not in old_creds:
+        if old_creds['ex_force_auth_version'
+                    ] != '2.0_password' and 'domain_name' not in old_creds:
             old_creds['domain_name'] = 'default'
         old_creds.update(old_admin)
 
@@ -313,7 +331,9 @@ class MachineRequest(BaseRequest):
                 new_creds['ex_force_auth_version'] = '2.0_password'
             new_admin = new_provider.get_admin_identity().get_credentials()
             new_creds.update(new_admin)
-        if new_creds.get('ex_force_auth_version','') != '2.0_password' and 'domain_name' not in new_creds:
+        if new_creds.get(
+            'ex_force_auth_version', ''
+        ) != '2.0_password' and 'domain_name' not in new_creds:
             new_creds['domain_name'] = 'default'
 
         return (old_creds, new_creds)
@@ -360,19 +380,19 @@ class MachineRequest(BaseRequest):
 
     def _extract_file_location(self, download_dir):
         id_owner = self.instance.created_by_identity
-        tenant_cred = id_owner.credential_set.filter(
-            key='ex_tenant_name')
+        tenant_cred = id_owner.credential_set.filter(key='ex_tenant_name')
         if not tenant_cred:
-            tenant_cred = id_owner.credential_set.filter(
-                key='ex_project_name')
+            tenant_cred = id_owner.credential_set.filter(key='ex_project_name')
         if not tenant_cred:
-            raise Exception("You should not be here! Update the key "
-                            "used for openstack tenant names!")
+            raise Exception(
+                "You should not be here! Update the key "
+                "used for openstack tenant names!"
+            )
         tenant_cred = tenant_cred[0]
+        download_location = os.path.join(download_dir, tenant_cred.value)
         download_location = os.path.join(
-            download_dir, tenant_cred.value)
-        download_location = os.path.join(
-            download_location, '%s.qcow2' % self.new_application_name)
+            download_location, '%s.qcow2' % self.new_application_name
+        )
         return download_location
 
     def get_imaging_args(self, debug=False):
@@ -385,17 +405,17 @@ class MachineRequest(BaseRequest):
         from chromogenic.drivers.eucalyptus import \
             ImageManager as EucaImageManager
 
-        (orig_managerCls, orig_creds,
-         dest_managerCls, dest_creds) = self.prepare_manager()
+        (orig_managerCls, orig_creds, dest_managerCls,
+         dest_creds) = self.prepare_manager()
 
         download_dir = secrets.LOCAL_STORAGE
 
         imaging_args = {
             "visibility": self.new_application_visibility,
             "instance_id": self.instance.provider_alias,
-            #NOTE: THERE IS AN ASSUMPTION MADE HERE!
-            # ASSUMPTION: the Creator's username == the LINUX username that was also created for them!
-            #FIXME if the ASSUMPTION above changes!
+        #NOTE: THERE IS AN ASSUMPTION MADE HERE!
+        # ASSUMPTION: the Creator's username == the LINUX username that was also created for them!
+        #FIXME if the ASSUMPTION above changes!
             "created_by": self.instance.created_by.username,
             "machine_request": self,
             "remove_image": True,
@@ -416,10 +436,17 @@ class MachineRequest(BaseRequest):
             # you want to debug a glance image
             # Usually, this will contain the new_machine.identifier,
             # but possibly the instances boot-source will be required for debug
-            imaging_args['parent_image_id'] = self.new_machine.identifier if self.new_machine else self.instance.source.identifier
-            imaging_args['upload_image'] = False  # Set to False to keep Snapshot or parent_image_id in glance
-            imaging_args['remove_image'] = False  # Set to False to keep Snapshot or parent_image_id in glance
-            imaging_args['remove_local_image'] = False  # Set to False to keep downloaded file
+            imaging_args[
+                'parent_image_id'
+            ] = self.new_machine.identifier if self.new_machine else self.instance.source.identifier
+            imaging_args[
+                'upload_image'
+            ] = False    # Set to False to keep Snapshot or parent_image_id in glance
+            imaging_args[
+                'remove_image'
+            ] = False    # Set to False to keep Snapshot or parent_image_id in glance
+            imaging_args['remove_local_image'
+                        ] = False    # Set to False to keep downloaded file
             # NOTE: If you run with the debug setup above,
             # the *only* operation that will be completed
             # is the *download* the instance/image
@@ -453,8 +480,8 @@ class MachineRequest(BaseRequest):
         private_users = self.parse_access_list()
         exclude = self.get_exclude_files()
         # Create image on image manager
-        (orig_managerCls, orig_creds,
-         dest_managerCls, dest_creds) = self.prepare_manager()
+        (orig_managerCls, orig_creds, dest_managerCls,
+         dest_creds) = self.prepare_manager()
         node_scp_info = self.get_euca_node_info(orig_managerCls, orig_creds)
         return {
             "public": public_image,
@@ -465,11 +492,7 @@ class MachineRequest(BaseRequest):
         }
 
     def get_euca_node_info(self, euca_managerCls, euca_creds):
-        node_dict = {
-            'hostname': '',
-            'port': '',
-            'private_key': ''
-        }
+        node_dict = {'hostname': '', 'port': '', 'private_key': ''}
         instance_id = self.instance.provider_alias
         # Prepare and use the manager
         euca_manager = euca_managerCls(**euca_creds)
@@ -524,11 +547,12 @@ def _create_new_application(machine_request, new_image_id, tags=[]):
         new_image_id,
         machine_request.new_application_name,
         owner_ident,
-        # new_app.Private = False when machine_request.is_public = True
+    # new_app.Private = False when machine_request.is_public = True
         not machine_request.is_public(),
         machine_request.new_machine_version,
         machine_request.new_machine_description,
-        tags)
+        tags
+    )
     return new_app
 
 

@@ -15,7 +15,6 @@ from api.v1.views.base import AuthAPIView
 
 
 class ProviderList(AuthAPIView):
-
     """Providers represent the different Cloud configurations
     hosted on Atmosphere.
 
@@ -31,14 +30,13 @@ class ProviderList(AuthAPIView):
             providers = user.current_providers.order_by('id')
         except CoreProvider.DoesNotExist:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "The provider does not exist.")
+                status.HTTP_404_NOT_FOUND, "The provider does not exist."
+            )
         serialized_data = ProviderSerializer(providers, many=True).data
         return Response(serialized_data)
 
 
 class Provider(APIView):
-
     """Providers represent the different Cloud configurations hosted
     on Atmosphere.
 
@@ -52,12 +50,11 @@ class Provider(APIView):
         """
         user = request.user
         try:
-            provider = user.current_providers.get(
-                uuid=provider_uuid)
+            provider = user.current_providers.get(uuid=provider_uuid)
         except CoreProvider.DoesNotExist:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "The provider does not exist.")
+                status.HTTP_404_NOT_FOUND, "The provider does not exist."
+            )
         serialized_data = ProviderSerializer(provider).data
         return Response(serialized_data)
 
@@ -66,16 +63,16 @@ class Provider(APIView):
         data = request.data
         try:
             provider = CoreProvider.objects.get(
-                cloudadministrator__user=user,
-                uuid=provider_uuid)
+                cloudadministrator__user=user, uuid=provider_uuid
+            )
         except CoreProvider.DoesNotExist:
             return failure_response(
-                status.HTTP_404_NOT_FOUND,
-                "The provider does not exist.")
-        serializer = ProviderSerializer(provider, data=data,
-                                        partial=True)
+                status.HTTP_404_NOT_FOUND, "The provider does not exist."
+            )
+        serializer = ProviderSerializer(provider, data=data, partial=True)
 
         if not serializer.is_valid():
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
         return Response(serializer.data)

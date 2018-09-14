@@ -5,8 +5,9 @@ Collection of models
 from django.db.models import ObjectDoesNotExist
 from core.models.access_token import AccessToken
 from core.models.allocation_source import (
-        AllocationSource, UserAllocationSource, UserAllocationSnapshot,
-        InstanceAllocationSourceSnapshot, AllocationSourceSnapshot)
+    AllocationSource, UserAllocationSource, UserAllocationSnapshot,
+    InstanceAllocationSourceSnapshot, AllocationSourceSnapshot
+)
 from core.models.application import Application, ApplicationMembership,\
     ApplicationScore, ApplicationBookmark, ApplicationThreshold
 from core.models.application_pattern_match import ApplicationPatternMatch
@@ -24,9 +25,10 @@ from core.models.profile import UserProfile
 from core.models.project import Project
 from core.models.project_application import ProjectApplication
 from core.models.project_link import ProjectExternalLink
-from core.models.provider import (AccountProvider, ProviderType, PlatformType,
-                                  Provider, ProviderInstanceAction,
-                                  ProviderConfiguration)
+from core.models.provider import (
+    AccountProvider, ProviderType, PlatformType, Provider,
+    ProviderInstanceAction, ProviderConfiguration
+)
 from core.models.license import LicenseType, License, ApplicationVersionLicense
 from core.models.machine import ProviderMachine, ProviderMachineMembership
 from core.models.machine_request import MachineRequest

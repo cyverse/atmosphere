@@ -36,9 +36,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            promote_project_leaders,
-            migrations.RunPython.noop),
-        migrations.RunPython(
-            set_project_authors,
-            migrations.RunPython.noop),
+            promote_project_leaders, migrations.RunPython.noop
+        ),
+        migrations.RunPython(set_project_authors, migrations.RunPython.noop),
     ]

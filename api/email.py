@@ -12,17 +12,21 @@ from api import failure_response
 
 from web.emails import feedback_email, quota_request_email, support_email
 
+
 class Feedback(APIView):
     """
     Post feedback via RESTful API
     """
+
     @api_auth_token_required
     def post(self, request):
         """
         Creates a new feedback email and sends it to admins
         """
         data = request.data
-        required = ['message',]
+        required = [
+            'message',
+        ]
         missing_keys = valid_post_data(data, required)
         if missing_keys:
             return keys_not_found(missing_keys)
@@ -38,6 +42,7 @@ class QuotaEmail(APIView):
     """
     Post Quota Email via RESTful API
     """
+
     @api_auth_token_required
     def post(self, request):
         """
@@ -60,13 +65,14 @@ class SupportEmail(APIView):
     """
     Post Support Email via RESTful API
     """
+
     @api_auth_token_required
     def post(self, request):
         """
         Creates a new support email and sends it to admins
         """
         data = request.data
-        required = ['message','subject']
+        required = ['message', 'subject']
         missing_keys = valid_post_data(data, required)
         if missing_keys:
             return keys_not_found(missing_keys)
@@ -86,4 +92,5 @@ def valid_post_data(data, required_keys):
 def keys_not_found(missing_keys):
     return failure_response(
         status.HTTP_400_BAD_REQUEST,
-        'Missing required POST data variables : %s' % missing_keys)
+        'Missing required POST data variables : %s' % missing_keys
+    )

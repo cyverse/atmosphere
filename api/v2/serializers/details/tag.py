@@ -7,9 +7,7 @@ from core.models import Tag
 
 class TagSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSummarySerializer(read_only=True)
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:tag-detail',
-    )
+    url = UUIDHyperlinkedIdentityField(view_name='api:v2:tag-detail', )
     allow_access = serializers.SerializerMethodField()
 
     def _get_request_user(self):
@@ -24,5 +22,5 @@ class TagSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Tag
         fields = (
-            'id', 'uuid', 'url', 'name',
-            'description', 'user', 'allow_access')
+            'id', 'uuid', 'url', 'name', 'description', 'user', 'allow_access'
+        )

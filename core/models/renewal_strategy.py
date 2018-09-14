@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class RenewalStrategy(models.Model):
     """
         Representation of a Renewal Strategy

@@ -5,11 +5,13 @@ from django.db.models import Q, Max
 
 from core.models import EventTable, AtmosphereUser
 from core.models.allocation_source import (
-    UserAllocationSource, AllocationSourceSnapshot,
-    AllocationSource, UserAllocationSnapshot
+    UserAllocationSource, AllocationSourceSnapshot, AllocationSource,
+    UserAllocationSnapshot
 )
 from core.models.allocation_source import total_usage
-from .allocation import (TASAPIDriver, fill_user_allocation_sources, select_valid_allocation)
+from .allocation import (
+    TASAPIDriver, fill_user_allocation_sources, select_valid_allocation
+)
 from .exceptions import TASPluginException
 from .models import TASAllocationReport
 
@@ -37,7 +39,9 @@ def create_reports():
     all_reports = []
     end_date = timezone.now()
     logger.debug('create_reports - end_date: %s', end_date)
-    max_report_end_date = TASAllocationReport.objects.all().aggregate(Max('end_date'))
+    max_report_end_date = TASAllocationReport.objects.all().aggregate(
+        Max('end_date')
+    )
 
     if not max_report_end_date:
         last_report_date = end_date
@@ -49,7 +53,9 @@ def create_reports():
         allocation_name = item.allocation_source.name
         logger.debug('create_reports - allocation_name: %s', allocation_name)
         logger.debug('create_reports - item.user: %s', item.user)
-        project_report = _create_reports_for(item.user, allocation_name, end_date)
+        project_report = _create_reports_for(
+            item.user, allocation_name, end_date
+        )
         if project_report:
             all_reports.append(project_report)
 
@@ -57,8 +63,9 @@ def create_reports():
 
     # filter user_allocation_source_removed events which are created after the last report date
 
-    for event in EventTable.objects.filter(name="user_allocation_source_deleted",
-                                           timestamp__gte=last_report_date).order_by('timestamp'):
+    for event in EventTable.objects.filter(
+        name="user_allocation_source_deleted", timestamp__gte=last_report_date
+    ).order_by('timestamp'):
 
         user = AtmosphereUser.objects.get(username=event.entity_id)
         allocation_name = event.payload['allocation_source_name']
@@ -70,20 +77,23 @@ def create_reports():
 
 
 def _create_reports_for(user, allocation_name, end_date):
-    logger.debug('_create_reports_for - user: %s, allocation_name: %s, end_date: %s', user, allocation_name, end_date)
+    logger.debug(
+        '_create_reports_for - user: %s, allocation_name: %s, end_date: %s',
+        user, allocation_name, end_date
+    )
     driver = TASAPIDriver()
     tacc_username = driver.get_tacc_username(user)
     if not tacc_username:
-        logger.error("No TACC username for user: '{}' which came from allocation id: {}".format(user,
-                                                                                                allocation_name))
+        logger.error(
+            "No TACC username for user: '{}' which came from allocation id: {}".
+            format(user, allocation_name)
+        )
         return
     project_name = driver.get_allocation_project_name(allocation_name)
     try:
         project_report = _create_tas_report_for(
-            user,
-            tacc_username,
-            project_name,
-            end_date)
+            user, tacc_username, project_name, end_date
+        )
         return project_report
     except TASPluginException:
         logger.exception(
@@ -106,8 +116,7 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
         raise TASPluginException("OpenStack/TACC Project missing")
 
     last_report = TASAllocationReport.objects.filter(
-        project_name=tacc_project_name,
-        user=user
+        project_name=tacc_project_name, user=user
     ).order_by('end_date').last()
     if not last_report:
         start_date = user.date_joined
@@ -115,14 +124,16 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
         start_date = last_report.end_date
 
     compute_used = total_usage(
-        user.username, start_date,
+        user.username,
+        start_date,
         allocation_source_name=tacc_project_name,
-        end_date=end_date)
+        end_date=end_date
+    )
 
     if compute_used < 0:
         raise TASPluginException(
-            "Compute usage was not accurately calculated for user:%s"
-            % user)
+            "Compute usage was not accurately calculated for user:%s" % user
+        )
 
     new_report = TASAllocationReport.objects.create(
         user=user,
@@ -131,7 +142,8 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
         compute_used=compute_used,
         start_date=start_date,
         end_date=end_date,
-        tacc_api=settings.TACC_API_URL)
+        tacc_api=settings.TACC_API_URL
+    )
     logger.info("Created New Report:%s" % new_report)
     return new_report
 
@@ -147,12 +159,15 @@ def report_allocations_to_tas():
 
 def send_reports():
     failed_reports = 0
-    reports_to_send = TASAllocationReport.objects.filter(Q(compute_used__gt=0, success=False)).order_by(
-        'user__username', 'start_date')
+    reports_to_send = TASAllocationReport.objects.filter(
+        Q(compute_used__gt=0, success=False)
+    ).order_by('user__username', 'start_date')
     count = reports_to_send.count()
     logger.info('send_reports - count: %d', count)
     for current_report_index, tas_report in enumerate(reports_to_send):
-        logger.debug('send_reports - current_report_index: %d', current_report_index)
+        logger.debug(
+            'send_reports - current_report_index: %d', current_report_index
+        )
         try:
             tas_report.send()
         except TASPluginException:
@@ -162,7 +177,9 @@ def send_reports():
             failed_reports += 1
             continue
     if failed_reports != 0:
-        raise Exception("%s/%s reports failed to send to TAS" % (failed_reports, count))
+        raise Exception(
+            "%s/%s reports failed to send to TAS" % (failed_reports, count)
+        )
 
 
 @task(name="update_snapshot")
@@ -178,7 +195,9 @@ def update_snapshot(start_date=None, end_date=None):
         total_burn_rate = 0
         allocation_source_name = project['chargeCode']
         try:
-            allocation_source = AllocationSource.objects.filter(name=allocation_source_name).order_by('id').last()
+            allocation_source = AllocationSource.objects.filter(
+                name=allocation_source_name
+            ).order_by('id').last()
 
             if not allocation_source:
                 continue
@@ -193,10 +212,13 @@ def update_snapshot(start_date=None, end_date=None):
                 start_date = created_or_updated_event.payload['start_date']
 
             for user in allocation_source.all_users:
-                compute_used, burn_rate = total_usage(user.username, start_date,
-                                                      allocation_source_name=allocation_source.name,
-                                                      end_date=end_date,
-                                                      burn_rate=True)
+                compute_used, burn_rate = total_usage(
+                    user.username,
+                    start_date,
+                    allocation_source_name=allocation_source.name,
+                    end_date=end_date,
+                    burn_rate=True
+                )
                 total_burn_rate += burn_rate
                 UserAllocationSnapshot.objects.update_or_create(
                     allocation_source_id=allocation_source.id,

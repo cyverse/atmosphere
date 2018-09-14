@@ -5,9 +5,7 @@ from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 
 class QuotaSerializer(serializers.HyperlinkedModelSerializer):
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:quota-detail',
-    )
+    url = UUIDHyperlinkedIdentityField(view_name='api:v2:quota-detail', )
 
     def validate_cpu(self, value):
         return self._is_positive_int('cpu', value)
@@ -24,19 +22,26 @@ class QuotaSerializer(serializers.HyperlinkedModelSerializer):
     def _is_positive_int(self, key, value):
         if type(value) != int or value < 1:
             raise serializers.ValidationError(
-                "Value of %s should be >= 1" % key)
+                "Value of %s should be >= 1" % key
+            )
         return value
 
     class Meta:
         model = Quota
         fields = (
-            'id', 'uuid', 'url',
-            # general
-            'cpu', 'memory', 'storage',
-            # compute
+            'id',
+            'uuid',
+            'url',
+        # general
+            'cpu',
+            'memory',
+            'storage',
+        # compute
             'instance_count',
-            # volume
-            'snapshot_count', 'storage_count',
-            # networking
-            'floating_ip_count', 'port_count',
-            )
+        # volume
+            'snapshot_count',
+            'storage_count',
+        # networking
+            'floating_ip_count',
+            'port_count',
+        )

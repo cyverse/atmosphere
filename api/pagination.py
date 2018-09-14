@@ -23,13 +23,14 @@ def _get_count(queryset):
     except (AttributeError, TypeError):
         return len(queryset)
 
+
 class StandardResultsSetPagination(PageNumberPagination):
     max_page_size = 1000
     page_size = 100
     page_size_query_param = 'page_size'
 
-class OptionalPagination(PageNumberPagination):
 
+class OptionalPagination(PageNumberPagination):
     """
     Defaults to no pagination but supports pagination
     """
@@ -43,7 +44,8 @@ class OptionalPagination(PageNumberPagination):
             self.page_size = _get_count(queryset)
 
         return super(OptionalPagination, self).paginate_queryset(
-            queryset, request, view=view)
+            queryset, request, view=view
+        )
 
     def has_page(self, request):
         """

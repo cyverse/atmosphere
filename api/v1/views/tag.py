@@ -13,7 +13,6 @@ from api.v1.views.base import AuthAPIView, AuthOptionalAPIView
 
 
 class TagList(AuthOptionalAPIView):
-
     """
     Tags are a easy way to allow users to group several images as similar
     based on a feature/program of the application.
@@ -36,15 +35,18 @@ class TagList(AuthOptionalAPIView):
         """
         user = request.user
         data = request.data.copy()
-        name = data.get('name','')
+        name = data.get('name', '')
         if not name:
-            return Response(["Invalid POST - Expected data 'name' missing."],
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                ["Invalid POST - Expected data 'name' missing."],
+                status=status.HTTP_400_BAD_REQUEST
+            )
         same_name_tags = CoreTag.objects.filter(name__iexact=name)
         if same_name_tags:
-            return Response(['A tag with this name already exists: %s'
-                             % same_name_tags],
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                ['A tag with this name already exists: %s' % same_name_tags],
+                status=status.HTTP_400_BAD_REQUEST
+            )
         data['user'] = user.username
         data['name'] = name.lower()
         serializer = TagSerializer_POST(data=data)
@@ -55,7 +57,6 @@ class TagList(AuthOptionalAPIView):
 
 
 class Tag(AuthAPIView):
-
     """
     Tags are a easy way to allow users to group several images as similar
     based on a feature/program of the application.
@@ -70,8 +71,9 @@ class Tag(AuthAPIView):
         try:
             tag = CoreTag.objects.get(name__iexact=tag_slug)
         except CoreTag.DoesNotExist:
-            return failure_response(status.HTTP_404_NOT_FOUND,
-                                    'Tag %s does not exist' % tag_slug)
+            return failure_response(
+                status.HTTP_404_NOT_FOUND, 'Tag %s does not exist' % tag_slug
+            )
         if tag.in_use():
             instance_count = tag.instance_set.count()
             app_count = tag.application_set.count()
@@ -80,8 +82,9 @@ class Tag(AuthAPIView):
                 "Tag cannot be deleted while it is in use by"
                 "%s instances and %s applications. "
                 "To delete the tag, first remove "
-                "the tag from ALL objects using it"
-                % (instance_count, app_count))
+                "the tag from ALL objects using it" %
+                (instance_count, app_count)
+            )
         tag.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -92,8 +95,9 @@ class Tag(AuthAPIView):
         try:
             tag = CoreTag.objects.get(name__iexact=tag_slug)
         except CoreTag.DoesNotExist:
-            return Response(['Tag does not exist'],
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                ['Tag does not exist'], status=status.HTTP_404_NOT_FOUND
+            )
         serializer = TagSerializer(tag)
         return Response(serializer.data)
 
@@ -110,11 +114,14 @@ class Tag(AuthAPIView):
         user = request.user
         tag = CoreTag.objects.get(name__iexact=tag_slug)
         if not user.is_staff and user != tag.user:
-            return Response([
-                "Only the tag creator can update a tag."
-                "Contact support if you need to change "
-                "a tag that is not yours."],
-                status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                [
+                    "Only the tag creator can update a tag."
+                    "Contact support if you need to change "
+                    "a tag that is not yours."
+                ],
+                status=status.HTTP_400_BAD_REQUEST
+            )
         # Allowed to update tags..
         data = request.data.copy()
         if tag.user:

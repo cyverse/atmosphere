@@ -16,6 +16,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='instancestatushistory',
             name='extra',
-            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, null=True),
+            field=django.contrib.postgres.fields.jsonb.JSONField(
+                blank=True, null=True
+            ),
         ),
     ]

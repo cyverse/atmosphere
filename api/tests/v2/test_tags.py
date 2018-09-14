@@ -8,6 +8,7 @@ from .base import APISanityTestCase
 
 EXPECTED_FIELD_COUNT = 6
 
+
 class TagTests(APITestCase, APISanityTestCase):
     url_route = "api:v2:tag"
 
@@ -26,27 +27,30 @@ class TagTests(APITestCase, APISanityTestCase):
 
         self.factory = APIRequestFactory()
 
-
         self.create_view = TagViewSet.as_view({'post': 'create'})
         self.delete_view = TagViewSet.as_view({'delete': 'destroy'})
         self.detail_view = TagViewSet.as_view({'get': 'retrieve'})
         self.list_view = TagViewSet.as_view({'get': 'list'})
         self.update_view = TagViewSet.as_view({'put': 'update'})
 
-        detail_url = reverse(self.url_route + '-detail', args=(self.tag.id,))
+        detail_url = reverse(self.url_route + '-detail', args=(self.tag.id, ))
         list_url = reverse(self.url_route + '-list')
 
-        self.create_request = self.factory.post(list_url, {
-            'name': self.unsaved_tag.name,
-            'description': self.unsaved_tag.description
-        })
+        self.create_request = self.factory.post(
+            list_url, {
+                'name': self.unsaved_tag.name,
+                'description': self.unsaved_tag.description
+            }
+        )
         self.delete_request = self.factory.delete(detail_url)
         self.detail_request = self.factory.get(detail_url)
         self.list_request = self.factory.get(list_url)
-        self.update_request = self.factory.put(detail_url, {
-            'name': self.updated_tag_data['name'],
-            'description': self.updated_tag_data['description']
-        })
+        self.update_request = self.factory.put(
+            detail_url, {
+                'name': self.updated_tag_data['name'],
+                'description': self.updated_tag_data['description']
+            }
+        )
 
     def test_list_does_not_require_authenticated_user(self):
         force_authenticate(self.list_request, user=self.anonymous_user)
@@ -67,8 +71,8 @@ class TagTests(APITestCase, APISanityTestCase):
 
         self.assertEquals(
             len(data), EXPECTED_FIELD_COUNT,
-            "The number of arguments has changed for GET /tags (%s!=%s)"
-            % (len(data), EXPECTED_FIELD_COUNT)
+            "The number of arguments has changed for GET /tags (%s!=%s)" %
+            (len(data), EXPECTED_FIELD_COUNT)
         )
         self.assertEquals(data['id'], self.tags[0].id)
         self.assertEquals(data['uuid'], str(self.tags[0].uuid))
@@ -89,8 +93,8 @@ class TagTests(APITestCase, APISanityTestCase):
 
         self.assertEquals(
             len(data), EXPECTED_FIELD_COUNT,
-            "The number of arguments has changed for GET /tags/%s (%s!=%s)"
-            % (self.tag.id, len(data), EXPECTED_FIELD_COUNT)
+            "The number of arguments has changed for GET /tags/%s (%s!=%s)" %
+            (self.tag.id, len(data), EXPECTED_FIELD_COUNT)
         )
         self.assertEquals(data['id'], self.tag.id)
         self.assertEquals(data['uuid'], str(self.tag.uuid))
@@ -135,11 +139,14 @@ class TagTests(APITestCase, APISanityTestCase):
         response = self.create_view(self.create_request)
         self.assertEquals(
             response.status_code, 201,
-            "Expected 201-response. Received (%s): %s"
-            % (response.status_code, response.data))
-        self.assertIn('id', response.data,
-            "Expected new tag ID as part of 201 response. Recieved: %s"
-            % response.data)
+            "Expected 201-response. Received (%s): %s" %
+            (response.status_code, response.data)
+        )
+        self.assertIn(
+            'id', response.data,
+            "Expected new tag ID as part of 201 response. Recieved: %s" %
+            response.data
+        )
         tag_id = response.data.get('id')
         self.assertEquals(Tag.objects.count(), current_count + 1)
         tag = Tag.objects.get(id=tag_id)
@@ -163,6 +170,4 @@ class TagTests(APITestCase, APISanityTestCase):
         self.assertEquals(Tag.objects.count(), current_count)
         tag = Tag.objects.get(id=self.tag.id)
         self.assertEquals(tag.name, self.updated_tag_data['name'])
-        self.assertEquals(
-            tag.description,
-            self.updated_tag_data['description'])
+        self.assertEquals(tag.description, self.updated_tag_data['description'])

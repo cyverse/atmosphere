@@ -7,6 +7,7 @@ from api.v1.views import Profile
 from api.tests.factories import UserFactory
 from core.models import AtmosphereUser
 
+
 class ProfileTests(TestCase):
     @override_settings(AUTO_CREATE_NEW_ACCOUNTS=True)
     def test_external_accounts_are_created(self):
@@ -20,7 +21,9 @@ class ProfileTests(TestCase):
         request = factory.get(url)
         force_authenticate(request, user=user)
 
-        with mock.patch("api.v1.views.profile.create_new_accounts") as mock_create_new_accounts:
+        with mock.patch(
+            "api.v1.views.profile.create_new_accounts"
+        ) as mock_create_new_accounts:
             view(request)
             mock_create_new_accounts.assert_called_once()
 

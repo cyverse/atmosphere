@@ -95,20 +95,33 @@ class AccountDriver():
 
         identity = self.create_identity(
             euca_user['username'],
-            euca_user['access_key'], euca_user['secret_key'],
-            max_quota=max_quota, account_admin=account_admin)
+            euca_user['access_key'],
+            euca_user['secret_key'],
+            max_quota=max_quota,
+            account_admin=account_admin
+        )
         return identity
 
-    def create_identity(self, username, access_key, secret_key,
-                        max_quota=False, account_admin=False):
+    def create_identity(
+        self,
+        username,
+        access_key,
+        secret_key,
+        max_quota=False,
+        account_admin=False
+    ):
         """
         max_quota - Set this user to have the maximum quota,
                     instead of the default quota
         """
         identity = Identity.create_identity(
-            username, self.core_provider.location,
-            max_quota=max_quota, account_admin=account_admin,
-            cred_key=access_key, cred_secret=secret_key)
+            username,
+            self.core_provider.location,
+            max_quota=max_quota,
+            account_admin=account_admin,
+            cred_key=access_key,
+            cred_secret=secret_key
+        )
 
         return identity
 
@@ -134,7 +147,8 @@ class AccountDriver():
 
     def delete_identity(self, username):
         ident = Identity.objects.get(
-            created_by__username=username, provider=self.core_provider)
+            created_by__username=username, provider=self.core_provider
+        )
         return ident.delete()
 
     def delete_user(self, username):

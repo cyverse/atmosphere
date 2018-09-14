@@ -8,8 +8,8 @@ from core.models import Provider, Instance, InstanceStatusHistory
 import django
 django.setup()
 provs = Provider.get_active()
-for instance in Instance.objects.filter(
-        source__provider__in=provs).order_by('created_by'):
+for instance in Instance.objects.filter(source__provider__in=provs
+                                       ).order_by('created_by'):
     prev_history = None
     try:
         last_history = instance.instancestatushistory_set.latest('pk')
@@ -19,7 +19,9 @@ for instance in Instance.objects.filter(
         if not history.end_date and history.id != last_history.id:
             print "Provider: %s" % instance.source.provider.location
             print "Owner: %s" % instance.created_by.username
-            print "Instance: %s Bad History: %s" % (instance.provider_alias, history)
+            print "Instance: %s Bad History: %s" % (
+                instance.provider_alias, history
+            )
             history.end_date = history.start_date
             history.save()
     prev_history = None

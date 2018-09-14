@@ -11,9 +11,8 @@ from django.utils import timezone
 
 
 class ActiveInstancesManager(models.Manager):
-
     def get_queryset(self):
         now_time = timezone.now()
-        return super(
-            ActiveInstancesManager,
-            self) .get_queryset().filter(only_current_instances(now_time))
+        return super(ActiveInstancesManager, self).get_queryset().filter(
+            only_current_instances(now_time)
+        )

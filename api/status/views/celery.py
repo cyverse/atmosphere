@@ -9,11 +9,11 @@ def _is_celery_running():
     Verify whether or not celery workers are running
     return True/False
     """
-    ps = subprocess.Popen(
-        ['ps', 'aux'], stdout=subprocess.PIPE)
+    ps = subprocess.Popen(['ps', 'aux'], stdout=subprocess.PIPE)
     try:
         output = subprocess.check_output(
-            ['grep', '[c]elery worker'], stdin=ps.stdout)
+            ['grep', '[c]elery worker'], stdin=ps.stdout
+        )
         return output is not ""
     except subprocess.CalledProcessError:
         # Grep returns exit-code 1 if no match
@@ -21,7 +21,6 @@ def _is_celery_running():
 
 
 class CeleryViewSet(ViewSet):
-
     """
     API endpoint that prints the status of celery
     """

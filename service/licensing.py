@@ -23,7 +23,8 @@ def create_license(title, description, created_by, allow_imaging=True):
         license_type=license_type,
         license_text=description,
         allow_imaging=allow_imaging,
-        created_by=created_by)
+        created_by=created_by
+    )
     new_license.save()
     return new_license
 

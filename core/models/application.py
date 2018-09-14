@@ -18,8 +18,8 @@ from core.models.application_version import ApplicationVersion
 
 import json
 
-class Application(models.Model):
 
+class Application(models.Model):
     """
     An application is a collection of ApplicationVersions.
     Each version can contain one or many providermachines.
@@ -53,22 +53,22 @@ class Application(models.Model):
 
         all_users = AtmosphereUser.objects.none()
         for pattern_match in self.access_list.filter(allow_access=True):
-                all_users |= pattern_match.validate_users()
+            all_users |= pattern_match.validate_users()
         for pattern_match in self.access_list.filter(allow_access=False):
-                all_users &= pattern_match.validate_users()
+            all_users &= pattern_match.validate_users()
         return all_users
 
     @property
     def all_versions(self):
-        version_set = ApplicationVersion.objects.filter(
-            application=self)
+        version_set = ApplicationVersion.objects.filter(application=self)
         return version_set
 
     @property
     def all_machines(self):
         from core.models import ProviderMachine
         providermachine_set = ProviderMachine.objects.filter(
-            application_version__application=self)
+            application_version__application=self
+        )
         return providermachine_set
 
     @property
@@ -87,8 +87,8 @@ class Application(models.Model):
             self.save()
 
     def active_versions(self, now_time=None):
-        return self.versions.filter(
-            query.only_current(now_time)).order_by('start_date')
+        return self.versions.filter(query.only_current(now_time)
+                                   ).order_by('start_date')
 
     def get_icon_url(self):
         return self.icon.url if self.icon else None
@@ -110,21 +110,26 @@ class Application(models.Model):
         self.created_by_identity = identity
         self.save()
         if propagate:
-           [v.change_owner(identity, user, propagate=propagate) for v in self.versions.all()]
+            [
+                v.change_owner(identity, user, propagate=propagate)
+                for v in self.versions.all()
+            ]
 
     @classmethod
     def public_apps(cls):
         public_images = Application.objects.filter(
-            query.only_current_apps(), private=False)
+            query.only_current_apps(), private=False
+        )
         return public_images
 
     @classmethod
     def shared_with(cls, user):
         group_ids = user.group_ids()
         shared_images = Application.objects.filter(
-            query.only_current_apps(),
-            (Q(versions__machines__members__id__in=group_ids) |
-             Q(versions__membership__id__in=group_ids))
+            query.only_current_apps(), (
+                Q(versions__machines__members__id__in=group_ids) |
+                Q(versions__membership__id__in=group_ids)
+            )
         )
         return shared_images
 
@@ -136,9 +141,13 @@ class Application(models.Model):
         ownership_query = Q(created_by=user)
         project_query = Q(projects__owner__memberships__user=user)
         if is_leader is not None:
-            project_query &= Q(projects__owner__memberships__is_leader=is_leader)
+            project_query &= Q(
+                projects__owner__memberships__is_leader=is_leader
+            )
         membership_query = Q(created_by__memberships__group__user=user)
-        return Application.objects.filter(membership_query | project_query | ownership_query).distinct()
+        return Application.objects.filter(
+            membership_query | project_query | ownership_query
+        ).distinct()
 
     @classmethod
     def admin_apps(cls, user):
@@ -148,7 +157,8 @@ class Application(models.Model):
         provider_ids = user.provider_ids()
         admin_images = Application.objects.filter(
             query.only_current(),
-            versions__machines__instance_source__provider__id__in=provider_ids)
+            versions__machines__instance_source__provider__id__in=provider_ids
+        )
         return admin_images
 
     @classmethod
@@ -157,28 +167,36 @@ class Application(models.Model):
         is_public = Q(private=False)
         if not user or isinstance(user, AnonymousUser):
             # Images that are not endated and are public
-            return Application.objects.filter(query.only_current_apps() & is_public,
-                versions__machines__instance_source__provider__public=True).distinct()
+            return Application.objects.filter(
+                query.only_current_apps() & is_public,
+                versions__machines__instance_source__provider__public=True
+            ).distinct()
         if not isinstance(user, AtmosphereUser):
-            raise Exception("Expected user to be of type AtmosphereUser"
-                            " - Received %s" % type(user))
+            raise Exception(
+                "Expected user to be of type AtmosphereUser"
+                " - Received %s" % type(user)
+            )
         queryset = None
         if user.is_staff:
             # Any image on a provider in the staff's provider list
-            queryset = Application.objects.filter(query.in_users_providers(user))
+            queryset = Application.objects.filter(
+                query.in_users_providers(user)
+            )
         else:
             # This query is not the most clear. Here's an explanation:
             # Include all images created by the user or active images in the
             # users providers that are either shared with the user or public
             queryset = Application.objects.select_related(
-                'created_by').prefetch_related(
-                    'versions__machines__instance_source__provider',
-                    'versions__machines__members',
-                    'versions__membership').filter(
-                        query.created_by_user(user)
-                        | (query.only_current_apps() & query.in_users_providers(
-                            user) & (query.images_shared_with_user_by_ids(user)
-                                     | is_public)))
+                'created_by'
+            ).prefetch_related(
+                'versions__machines__instance_source__provider',
+                'versions__machines__members', 'versions__membership'
+            ).filter(
+                query.created_by_user(user) | (
+                    query.only_current_apps() & query.in_users_providers(user) &
+                    (query.images_shared_with_user_by_ids(user) | is_public)
+                )
+            )
         return queryset.distinct()
 
     def _current_versions(self):
@@ -188,8 +206,7 @@ class Application(models.Model):
                 * The ApplicationVersion has not exceeded its end_date
         """
         version_set = self.all_versions
-        active_versions = version_set.filter(
-            query.only_current())
+        active_versions = version_set.filter(query.only_current())
         return active_versions
 
     def _current_machines(self, request_user=None):
@@ -202,14 +219,16 @@ class Application(models.Model):
         """
         providermachine_set = self.all_machines
         pms = providermachine_set.filter(
-            query.only_current_source(),
-            instance_source__provider__active=True)
+            query.only_current_source(), instance_source__provider__active=True
+        )
         if request_user:
             if isinstance(request_user, AnonymousUser):
                 providers = Provider.objects.filter(public=True)
             else:
-                providers = [identity.provider for identity in
-                             request_user.identity_set.all()]
+                providers = [
+                    identity.provider
+                    for identity in request_user.identity_set.all()
+                ]
             pms = pms.filter(instance_source__provider__in=providers)
         return pms
 
@@ -218,7 +237,7 @@ class Application(models.Model):
         providermachine_set = self.all_machines
         first = providermachine_set.filter(
             query.only_current_source()
-            ).order_by('instance_source__start_date').first()
+        ).order_by('instance_source__start_date').first()
         return first
 
     def last_machine(self):
@@ -226,13 +245,11 @@ class Application(models.Model):
         # Out of all non-end dated machines in this application
         last = providermachine_set.filter(
             query.only_current_source()
-            ).order_by('instance_source__start_date').last()
+        ).order_by('instance_source__start_date').last()
         return last
 
     def get_projects(self, user):
-        projects = self.projects.filter(
-            query.only_current(),
-            owner=user)
+        projects = self.projects.filter(query.only_current(), owner=user)
         return projects
 
     def update_images(self, **updates):
@@ -265,15 +282,15 @@ class Application(models.Model):
             request_user = AtmosphereUser.objects.get(username=request_user)
         if isinstance(request_user, AnonymousUser):
             return False
-        user_bookmarks = [bookmark.application for bookmark
-                          in request_user.bookmarks.all()]
+        user_bookmarks = [
+            bookmark.application for bookmark in request_user.bookmarks.all()
+        ]
         return self in user_bookmarks
 
     def get_members(self):
         members = list(self.applicationmembership_set.all())
         for provider_machine in self._current_machines():
-            members.extend(
-                provider_machine.providermachinemembership_set.all())
+            members.extend(provider_machine.providermachinemembership_set.all())
         return members
 
     def get_scores(self):
@@ -336,7 +353,6 @@ class Application(models.Model):
 
 
 class ApplicationMembership(models.Model):
-
     """
     Members of a private image can view & launch its respective machines. If
     the can_modify flag is set, then members also have ownership--they can make
@@ -366,9 +382,7 @@ def _get_owner_identity(provider, created_by=None):
     If the identity cannot be found, the AccountProvider will be the author.
     """
     if created_by:
-        return _user_identity_lookup(
-            str(provider.uuid),
-            created_by.username)
+        return _user_identity_lookup(str(provider.uuid), created_by.username)
     else:
         return provider.get_admin_identity()
 
@@ -381,14 +395,16 @@ def _get_app_by_name(provider_uuid, name):
     try:
         app = Application.objects.get(
             versions__machines__instance_source__provider__uuid=provider_uuid,
-            name=name)
+            name=name
+        )
         return app
     except Application.DoesNotExist:
         return None
     except Application.MultipleObjectsReturned:
         logger.warn(
             "Possible Application Conflict: Multiple applications named:"
-            "%s. Check this query for more details" % name)
+            "%s. Check this query for more details" % name
+        )
         return None
 
 
@@ -402,7 +418,8 @@ def _get_app_by_identifier(provider_uuid, identifier):
         # Attempt #1: to retrieve application based on identifier
         app = Application.objects.get(
             versions__machines__instance_source__provider__uuid=provider_uuid,
-            versions__machines__instance_source__identifier=identifier)
+            versions__machines__instance_source__identifier=identifier
+        )
         return app
     except Application.DoesNotExist:
         return None
@@ -419,9 +436,7 @@ def get_application(provider_uuid, identifier, app_name, app_uuid=None):
 
 
 def _generate_app_uuid(identifier):
-    app_uuid = uuid5(
-        settings.ATMOSPHERE_NAMESPACE_UUID,
-        str(identifier))
+    app_uuid = uuid5(settings.ATMOSPHERE_NAMESPACE_UUID, str(identifier))
     return str(app_uuid)
 
 
@@ -433,8 +448,7 @@ def _get_app_by_uuid(identifier, app_uuid):
         app_uuid = _generate_app_uuid(identifier)
     app_uuid = str(app_uuid)
     try:
-        app = Application.objects.get(
-            uuid=app_uuid)
+        app = Application.objects.get(uuid=app_uuid)
         return app
     except Application.DoesNotExist:
         return None
@@ -445,14 +459,19 @@ def _get_app_by_uuid(identifier, app_uuid):
 def _user_identity_lookup(provider_uuid, username):
     try:
         return Identity.objects.filter(
-            provider__uuid=provider_uuid,
-            created_by__username=username).first()
+            provider__uuid=provider_uuid, created_by__username=username
+        ).first()
     except Identity.DoesNotExist:
         return None
 
 
-def update_application(application, new_name=None, new_tags=None,
-                       access_list=None, new_description=None):
+def update_application(
+    application,
+    new_name=None,
+    new_tags=None,
+    access_list=None,
+    new_description=None
+):
     """
     This is a dumb way of doing things. Fix this.
     """
@@ -473,16 +492,17 @@ def update_application(application, new_name=None, new_tags=None,
 
 
 def create_application(
-        provider_uuid,
-        identifier,
-        name=None,
-        created_by_identity=None,
-        created_by=None,
-        description=None,
-        private=False,
-        tags=None,
-        access_list=None,
-        uuid=None):
+    provider_uuid,
+    identifier,
+    name=None,
+    created_by_identity=None,
+    created_by=None,
+    description=None,
+    private=False,
+    tags=None,
+    access_list=None,
+    uuid=None
+):
     """
     Create application & Initial ApplicationVersion.
     Build information (Based on MachineRequest or API inputs..)
@@ -534,13 +554,15 @@ def create_application(
             created_by=created_by_identity.created_by,
             created_by_identity=created_by_identity,
             private=private,
-            uuid=uuid)
+            uuid=uuid
+        )
     if tags:
         updateTags(application, tags, created_by_identity.created_by)
     if access_list:
         for pattern_match in access_list:
             application.access_list.add(pattern_match)
     return application
+
 
 #FIXME: This class marked for removal
 class ApplicationScore(models.Model):
@@ -572,14 +594,17 @@ class ApplicationScore(models.Model):
     def last_vote(cls, application, user):
         votes_cast = ApplicationScore.objects.filter(
             Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            application=application, user=user)
+            application=application,
+            user=user
+        )
         return votes_cast[0] if votes_cast else None
 
     @classmethod
     def get_scores(cls, application):
         scores = ApplicationScore.objects.filter(
             Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            application=application)
+            application=application
+        )
         ups = downs = 0
         for app_score in scores:
             if app_score.score > 0:
@@ -595,9 +620,9 @@ class ApplicationScore(models.Model):
         if prev_vote:
             prev_vote.end_date = timezone.now()
             prev_vote.save()
-        return ApplicationScore.objects.create(application=application,
-                                               user=user,
-                                               score=-1)
+        return ApplicationScore.objects.create(
+            application=application, user=user, score=-1
+        )
 
     @classmethod
     def novote(cls, application, user):
@@ -605,9 +630,9 @@ class ApplicationScore(models.Model):
         if prev_vote:
             prev_vote.end_date = timezone.now()
             prev_vote.save()
-        return ApplicationScore.objects.create(application=application,
-                                               user=user,
-                                               score=0)
+        return ApplicationScore.objects.create(
+            application=application, user=user, score=0
+        )
 
     @classmethod
     def upvote(cls, application, user):
@@ -615,9 +640,9 @@ class ApplicationScore(models.Model):
         if prev_vote:
             prev_vote.end_date = timezone.now()
             prev_vote.save()
-        return ApplicationScore.objects.create(application=application,
-                                               user=user,
-                                               score=1)
+        return ApplicationScore.objects.create(
+            application=application, user=user, score=1
+        )
 
 
 class ApplicationBookmark(models.Model):
@@ -639,17 +664,15 @@ class ApplicationThreshold(models.Model):
     required to launch the VM. (This is optional)
     """
     application_version = models.OneToOneField(
-        ApplicationVersion,
-        related_name="threshold",
-        blank=True,
-        null=True)
+        ApplicationVersion, related_name="threshold", blank=True, null=True
+    )
     memory_min = models.IntegerField(default=0)
     cpu_min = models.IntegerField(default=0)
 
     def __unicode__(self):
-        return "%s requires >%s MB memory, >%s CPU" % (self.application_version,
-                                                           self.memory_min,
-                                                           self.cpu_min)
+        return "%s requires >%s MB memory, >%s CPU" % (
+            self.application_version, self.memory_min, self.cpu_min
+        )
 
     class Meta:
         db_table = 'application_threshold'

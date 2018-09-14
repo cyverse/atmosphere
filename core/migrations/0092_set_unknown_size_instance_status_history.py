@@ -9,9 +9,13 @@ def set_unknown_size_entries(apps, schema_editor):
     InstanceStatusHistory = apps.get_model("core", "InstanceStatusHistory")
     Size = apps.get_model("core", "Size")
 
-    for instance_history_entry in InstanceStatusHistory.objects.filter(size__isnull=True):
+    for instance_history_entry in InstanceStatusHistory.objects.filter(
+        size__isnull=True
+    ):
         provider = instance_history_entry.instance.created_by_identity.provider
-        unknown_size = Size.objects.filter(provider=provider, name__iexact='unknown').first()
+        unknown_size = Size.objects.filter(
+            provider=provider, name__iexact='unknown'
+        ).first()
         if not unknown_size:
             unknown_size = Size.objects.create(
                 alias="unknown",
@@ -25,12 +29,11 @@ def set_unknown_size_entries(apps, schema_editor):
         instance_history_entry.size = unknown_size
         instance_history_entry.save()
 
+
 class Migration(migrations.Migration):
 
     dependencies = [
         ('core', '0091_remove_quota_and_allocation_from_resource_request'),
     ]
 
-    operations = [
-        migrations.RunPython(set_unknown_size_entries)
-    ]
+    operations = [migrations.RunPython(set_unknown_size_entries)]

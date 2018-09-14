@@ -20,10 +20,13 @@ def main():
 
 def get_statistics(past_time):
     now = timezone.now()
-    print "Checking statistics from %s to %s" % (past_time.strftime('%Y-%m-%d'), now.strftime('%Y-%m-%d'))
+    print "Checking statistics from %s to %s" % (
+        past_time.strftime('%Y-%m-%d'), now.strftime('%Y-%m-%d')
+    )
     resp = requests.get(
-        "http://wesley.iplantc.org/api/leaderboard?from=%s&until=%s"
-        % (past_time.strftime('%Y-%m-%d'), now.strftime('%Y-%m-%d')))
+        "http://wesley.iplantc.org/api/leaderboard?from=%s&until=%s" %
+        (past_time.strftime('%Y-%m-%d'), now.strftime('%Y-%m-%d'))
+    )
     json_data = resp.json()
     print_statistics(json_data)
 
@@ -67,22 +70,22 @@ def print_time(seconds):
 
 def most_launched(json_data, count=20):
     sorted_json = sort_and_filter(
-        json_data,
-        sort_key=lambda obj: obj['instance_count'])
+        json_data, sort_key=lambda obj: obj['instance_count']
+    )
     return sorted_json[:count]
 
 
 def most_uptime(json_data, count=20):
     sorted_json = sort_and_filter(
-        json_data,
-        sort_key=lambda obj: obj['total_uptime'])
+        json_data, sort_key=lambda obj: obj['total_uptime']
+    )
     return sorted_json[:count]
 
 
 def most_time(json_data, count=20):
     sorted_json = sort_and_filter(
-        json_data,
-        sort_key=lambda obj: obj['total_cpu_time'])
+        json_data, sort_key=lambda obj: obj['total_cpu_time']
+    )
     return sorted_json[:count]
 
 
@@ -134,7 +137,9 @@ def total_launched(json_data):
     return {
         'total_cpu_time': total_cpu_time,
         'total_uptime': total_uptime,
-        'total_count': total_count}
+        'total_count': total_count
+    }
+
 
 if __name__ == "__main__":
     main()

@@ -5,13 +5,14 @@ from urlparse import urlparse
 
 
 class ProviderCredentialSerializer(serializers.ModelSerializer):
-
     def validate_version(self, key, value):
         """
         Ensure version is 'valid'
         """
         if value not in ['2.0_password', '3.x_password']:
-            raise serializers.ValidationError("Key: %s - value represents an invalid version" % key)
+            raise serializers.ValidationError(
+                "Key: %s - value represents an invalid version" % key
+            )
         return value
 
     def validate_text(self, key, value):
@@ -27,7 +28,8 @@ class ProviderCredentialSerializer(serializers.ModelSerializer):
         if not parse_result.scheme:
             raise serializers.ValidationError(
                 "Key: %s expects Valid URL - Value %s throws Error: "
-                "Missing scheme (http(s)://)" % (key, url_value))
+                "Missing scheme (http(s)://)" % (key, url_value)
+            )
         return url_value
 
     def validate(self, data):
@@ -37,15 +39,18 @@ class ProviderCredentialSerializer(serializers.ModelSerializer):
         """
         if data['key'] in ['admin_url', 'auth_url']:
             self.validate_url(data['key'], data['value'])
-        elif data['key'] in ['public_routers', 'network_name', 'router_name', 'region_name', 'domain_name']:
+        elif data['key'] in [
+            'public_routers', 'network_name', 'router_name', 'region_name',
+            'domain_name'
+        ]:
             self.validate_text(data['key'], data['value'])
         elif data['key'] in ['ex_force_auth_version']:
             self.validate_version(data['key'], data['value'])
         else:
             raise serializers.ValidationError(
                 "Key %s is not supported as a ProviderCredential. "
-                "Contact a developer for more information."
-                % data['key'])
+                "Contact a developer for more information." % data['key']
+            )
         return data
 
     class Meta:

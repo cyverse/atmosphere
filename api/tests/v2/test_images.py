@@ -3,13 +3,8 @@ from rest_framework.test import APITestCase, APIRequestFactory,\
 from api.v2.views import ImageViewSet as ViewSet
 from .base import APISanityTestCase
 from api.tests.factories import (
-    AnonymousUserFactory,
-    ApplicationVersionFactory,
-    ProviderFactory,
-    IdentityFactory,
-    ImageFactory,
-    ProviderMachineFactory,
-    UserFactory
+    AnonymousUserFactory, ApplicationVersionFactory, ProviderFactory,
+    IdentityFactory, ImageFactory, ProviderMachineFactory, UserFactory
 )
 from django.core.urlresolvers import reverse
 
@@ -25,42 +20,46 @@ class ApplicationTests(APITestCase, APISanityTestCase):
         self.user = UserFactory.create()
         self.provider = ProviderFactory.create()
         self.user_identity = IdentityFactory.create_identity(
-            created_by=self.user,
-            provider=self.provider)
+            created_by=self.user, provider=self.provider
+        )
         self.private_image = ImageFactory.create(
-            created_by=self.user,
-            private=True)
+            created_by=self.user, private=True
+        )
         self.private_version = ApplicationVersionFactory.create_version(
-            self.user, self.user_identity,
-            application=self.private_image
+            self.user, self.user_identity, application=self.private_image
         )
         self.private_machine = ProviderMachineFactory.create_provider_machine(
-            self.user, self.user_identity,
+            self.user,
+            self.user_identity,
             application=self.private_image,
-            version=self.private_version)
+            version=self.private_version
+        )
 
         self.staff_user = UserFactory.create(is_staff=True)
         self.staff_user_identity = IdentityFactory.create_identity(
-            created_by=self.staff_user,
-            provider=self.provider)
+            created_by=self.staff_user, provider=self.provider
+        )
         self.public_image = ImageFactory.create(
-            created_by=self.staff_user,
-            private=False)
+            created_by=self.staff_user, private=False
+        )
         self.public_version = ApplicationVersionFactory.create_version(
-            self.staff_user, self.staff_user_identity,
+            self.staff_user,
+            self.staff_user_identity,
             application=self.public_image
         )
         self.public_machine = ProviderMachineFactory.create_provider_machine(
-            self.staff_user, self.staff_user_identity,
+            self.staff_user,
+            self.staff_user_identity,
             application=self.public_image,
-            version=self.public_version)
+            version=self.public_version
+        )
 
         self.list_view = ViewSet.as_view({'get': 'list'})
-        list_url = reverse(self.url_route+'-list')
+        list_url = reverse(self.url_route + '-list')
         self.list_request = factory.get(list_url)
 
         self.detail_view = ViewSet.as_view({'get': 'retrieve'})
-        detail_url = reverse(self.url_route+'-detail', args=(self.user.id,))
+        detail_url = reverse(self.url_route + '-detail', args=(self.user.id, ))
         self.detail_request = factory.get(detail_url)
 
         # force_authenticate(self.list_request, user=self.user)
@@ -79,13 +78,17 @@ class ApplicationTests(APITestCase, APISanityTestCase):
     def test_list_response_contains_expected_fields(self):
         force_authenticate(self.list_request, user=self.user)
         response = self.list_view(self.list_request)
-        self.assertTrue(response.data.get('results'), "Expected paginated results in list_view: %s" % response.data)
+        self.assertTrue(
+            response.data.get('results'),
+            "Expected paginated results in list_view: %s" % response.data
+        )
         data = response.data.get('results')[0]
 
         self.assertEquals(
             len(data), EXPECTED_FIELD_COUNT,
             "The number of arguments has changed for GET /application (%s!=%s)"
-            % (len(data), EXPECTED_FIELD_COUNT))
+            % (len(data), EXPECTED_FIELD_COUNT)
+        )
         self.assertIn('id', data)
         self.assertIn('url', data)
         self.assertIn('uuid', data)
@@ -103,13 +106,16 @@ class ApplicationTests(APITestCase, APISanityTestCase):
 
     def test_details_response_contains_expected_fields(self):
         force_authenticate(self.detail_request, user=self.user)
-        response = self.detail_view(self.detail_request, pk=self.private_image.id)
+        response = self.detail_view(
+            self.detail_request, pk=self.private_image.id
+        )
         data = response.data
 
         self.assertEquals(
             len(data), EXPECTED_FIELD_COUNT,
             "The number of arguments has changed for GET /application/%s (%s!=%s)"
-            % (self.private_image.id, data.keys(), EXPECTED_FIELD_COUNT))
+            % (self.private_image.id, data.keys(), EXPECTED_FIELD_COUNT)
+        )
         self.assertIn('id', data)
         self.assertIn('url', data)
         self.assertIn('uuid', data)
@@ -127,14 +133,20 @@ class ApplicationTests(APITestCase, APISanityTestCase):
 
     def test_details_is_visible_to_anonymous_user(self):
         force_authenticate(self.detail_request, user=self.anonymous_user)
-        response = self.detail_view(self.detail_request, pk=self.public_image.id)
+        response = self.detail_view(
+            self.detail_request, pk=self.public_image.id
+        )
         self.assertEquals(response.status_code, 404)
 
     def test_details_is_visible_to_authenticated_user(self):
         force_authenticate(self.detail_request, user=self.user)
-        response = self.detail_view(self.detail_request, pk=self.public_image.id)
+        response = self.detail_view(
+            self.detail_request, pk=self.public_image.id
+        )
         self.assertEquals(response.status_code, 200)
-        response = self.detail_view(self.detail_request, pk=self.private_image.id)
+        response = self.detail_view(
+            self.detail_request, pk=self.private_image.id
+        )
         self.assertEquals(response.status_code, 200)
 
     def test_create_endpoint_does_not_exist(self):

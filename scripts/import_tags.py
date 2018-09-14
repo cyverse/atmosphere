@@ -31,20 +31,24 @@ def import_instance_tags(instance_tags_json):
     for instance_tag in instance_tags:
         try:
             instance = Instance.objects.get(
-                instance_id=instance_tag['instance'])
+                instance_id=instance_tag['instance']
+            )
             instance.instance_tags = ','.join(
-                [tag['name'] for tag in instance_tag['tags']])
+                [tag['name'] for tag in instance_tag['tags']]
+            )
             instance.save()
             added = added + 1
         except Instance.DoesNotExist:
             logging.warn(
-                'Could not import tags for instance <%s> - DB Record does not exist' %
-                instance_tag['instance'])
+                'Could not import tags for instance <%s> - DB Record does not exist'
+                % instance_tag['instance']
+            )
             skipped = skipped + 1
     total = added + skipped
     logging.info(
         '%s Records imported. %s Records added, %s Records skipped' %
-        (total, added, skipped))
+        (total, added, skipped)
+    )
     return
 
 
@@ -67,19 +71,22 @@ def main():
     f.close()
     return
 
+
 usage = "usage: %prog [command] filename"
 parser = OptionParser(usage=usage)
 parser.add_option(
     "--import",
     action="store_false",
     dest="export",
-    help="Override the current DB with the Instance Tag JSON file provided")
+    help="Override the current DB with the Instance Tag JSON file provided"
+)
 parser.add_option(
     "--export",
     action="store_true",
     dest="export",
     default=True,
-    help="Export the current DB instance tags to empty file provided")
+    help="Export the current DB instance tags to empty file provided"
+)
 
 if __name__ == '__main__':
     main()

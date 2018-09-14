@@ -13,10 +13,9 @@ from core.models import IdentityMembership, CloudAdministrator
 from core.models.status_type import StatusType
 
 from api.permissions import (
-        ApiAuthOptional, ApiAuthRequired, EnabledUserRequired, InMaintenance,
-        CloudAdminRequired, ProjectLeaderRequired,
-        UserListAdminQueryable
-    )
+    ApiAuthOptional, ApiAuthRequired, EnabledUserRequired, InMaintenance,
+    CloudAdminRequired, ProjectLeaderRequired, UserListAdminQueryable
+)
 from api.v2.views.mixins import MultipleFieldLookup
 
 
@@ -24,10 +23,13 @@ def unresolved_requests_only(fn):
     """
     Only allow an unresolved request to be processed.
     """
+
     @wraps(fn)
     def wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
-        staff_can_act = request.user.is_staff or request.user.is_superuser or CloudAdministrator.objects.filter(user=request.user.id).exists()
+        staff_can_act = request.user.is_staff or request.user.is_superuser or CloudAdministrator.objects.filter(
+            user=request.user.id
+        ).exists()
         user_can_act = request.user == getattr(instance, 'created_by')
         if not (user_can_act or staff_can_act):
             message = (
@@ -36,68 +38,84 @@ def unresolved_requests_only(fn):
                 % self.request.method
             )
             raise exceptions.NotAuthenticated(detail=message)
-        if not staff_can_act and (hasattr(instance, "is_closed") and instance.is_closed()):
+        if not staff_can_act and (
+            hasattr(instance, "is_closed") and instance.is_closed()
+        ):
             message = (
                 "Method '%s' not allowed: "
                 "the request has already been resolved "
-                "and cannot be modified by a non-staff user."
-                % self.request.method
+                "and cannot be modified by a non-staff user." %
+                self.request.method
             )
-            raise exceptions.MethodNotAllowed(self.request.method,
-                                              detail=message)
+            raise exceptions.MethodNotAllowed(
+                self.request.method, detail=message
+            )
         else:
             return fn(self, request, *args, **kwargs)
+
     return wrapper
 
 
 class AuthViewSet(ViewSet):
-    http_method_names = ['get', 'put', 'patch', 'post',
-                         'delete', 'head', 'options', 'trace']
-    permission_classes = (InMaintenance,
-                          EnabledUserRequired,
-                          ApiAuthRequired,
-                          ProjectLeaderRequired)
+    http_method_names = [
+        'get', 'put', 'patch', 'post', 'delete', 'head', 'options', 'trace'
+    ]
+    permission_classes = (
+        InMaintenance, EnabledUserRequired, ApiAuthRequired,
+        ProjectLeaderRequired
+    )
 
 
 class AuthModelViewSet(ModelViewSet):
-    http_method_names = ['get', 'put', 'patch', 'post',
-                         'delete', 'head', 'options', 'trace']
-    permission_classes = (InMaintenance,
-                          EnabledUserRequired,
-                          ApiAuthRequired,)
+    http_method_names = [
+        'get', 'put', 'patch', 'post', 'delete', 'head', 'options', 'trace'
+    ]
+    permission_classes = (
+        InMaintenance,
+        EnabledUserRequired,
+        ApiAuthRequired,
+    )
 
 
 class AdminViewSet(AuthViewSet):
-    permission_classes = (InMaintenance,
-                          CloudAdminRequired,
-                          EnabledUserRequired,
-                          ApiAuthRequired,)
+    permission_classes = (
+        InMaintenance,
+        CloudAdminRequired,
+        EnabledUserRequired,
+        ApiAuthRequired,
+    )
 
 
 class AdminModelViewSet(AuthModelViewSet):
-    permission_classes = (InMaintenance,
-                          CloudAdminRequired,
-                          EnabledUserRequired,
-                          ApiAuthRequired,)
+    permission_classes = (
+        InMaintenance,
+        CloudAdminRequired,
+        EnabledUserRequired,
+        ApiAuthRequired,
+    )
 
 
 class UserListAdminQueryAndUpdate():
-    permission_classes = (InMaintenance,
-                          EnabledUserRequired,
-                          ApiAuthRequired,
-                          UserListAdminQueryable)
+    permission_classes = (
+        InMaintenance, EnabledUserRequired, ApiAuthRequired,
+        UserListAdminQueryable
+    )
 
 
 class AuthOptionalViewSet(ModelViewSet):
 
-    permission_classes = (InMaintenance,
-                          ApiAuthOptional,)
+    permission_classes = (
+        InMaintenance,
+        ApiAuthOptional,
+    )
 
 
 class AuthReadOnlyViewSet(ReadOnlyModelViewSet):
 
-    permission_classes = (InMaintenance,
-                          ApiAuthOptional,)
+    permission_classes = (
+        InMaintenance,
+        ApiAuthOptional,
+    )
 
 
 class OwnerUpdateViewSet(AuthModelViewSet):
@@ -106,17 +124,19 @@ class OwnerUpdateViewSet(AuthModelViewSet):
     and an owner (or admin) should be allowed to PUT or PATCH
     """
 
-    http_method_names = ['get', 'put', 'patch', 'post',
-                         'delete', 'head', 'options', 'trace']
+    http_method_names = [
+        'get', 'put', 'patch', 'post', 'delete', 'head', 'options', 'trace'
+    ]
 
     @property
     def allowed_methods(self):
-        raise Exception("The @property-method 'allowed_methods' should be"
-                        " handled by the subclass of OwnerUpdateViewSet")
+        raise Exception(
+            "The @property-method 'allowed_methods' should be"
+            " handled by the subclass of OwnerUpdateViewSet"
+        )
 
 
 class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
-
     """
     Base class ViewSet to handle requests
     """
@@ -130,14 +150,14 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         Return users requests or all the requests if the user is an admin.
         """
         assert self.model is not None, (
-            "%s should include a `model` attribute."
-            % self.__class__.__name__
+            "%s should include a `model` attribute." % self.__class__.__name__
         )
         #FIXME: Require an additional flag to show a staff user all objects.
         # Otherwise, staff users are advsersely affected//cannot see the same as "normal users"
         if self.request.user.is_staff:
             return self.model.objects.all().order_by('-start_date')
-        return self.model.objects.filter(created_by=self.request.user).order_by('-start_date')
+        return self.model.objects.filter(created_by=self.request.user
+                                        ).order_by('-start_date')
 
     def get_serializer_class(self):
         """
@@ -145,8 +165,8 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         given the users privileges.
         """
         assert self.admin_serializer_class is not None, (
-            "%s should include an `admin_serializer_class` attribute."
-            % self.__class__.__name__
+            "%s should include an `admin_serializer_class` attribute." %
+            self.__class__.__name__
         )
         http_method = self.request._request.method
         if http_method != 'POST' and self.request.user.is_staff:
@@ -167,24 +187,28 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
                 created_by=self.request.user
             )
             if serializer.initial_data.get("admin_url"):
-                admin_url = serializer.initial_data.get("admin_url") + str(instance.id)
+                admin_url = serializer.initial_data.get("admin_url") + str(
+                    instance.id
+                )
                 self.submit_action(instance, options={"admin_url": admin_url})
             else:
                 self.submit_action(instance)
-        except (core_exceptions.ProviderLimitExceeded,  # NOTE: DEPRECATED -- REMOVE SOON, USE BELOW.
-                core_exceptions.RequestLimitExceeded):
+        except (
+            core_exceptions.
+            ProviderLimitExceeded,    # NOTE: DEPRECATED -- REMOVE SOON, USE BELOW.
+            core_exceptions.RequestLimitExceeded
+        ):
             message = "Only one active request is allowed per provider."
             raise exceptions.MethodNotAllowed('create', detail=message)
         except core_exceptions.InvalidMembership:
             message = (
-                "The user '%s' is not a valid member."
-                % self.request.user.username
+                "The user '%s' is not a valid member." %
+                self.request.user.username
             )
             raise exceptions.ParseError(detail=message)
         except IdentityMembership.DoesNotExist:
             message = (
-                "The identity '%s' does not have a membership"
-                % identity_id
+                "The identity '%s' does not have a membership" % identity_id
             )
             raise exceptions.ParseError(detail=message)
         except Exception as e:
@@ -199,7 +223,8 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             message = {
-                "An error was encoutered when closing the request: %s" % e.message
+                "An error was encoutered when closing the request: %s" %
+                e.message
             }
             logger.exception(e)
             raise exceptions.ParseError(detail=message)
@@ -212,7 +237,8 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         request_obj = self.get_object()
         SerializerCls = self.get_serializer_class()
         serializer = SerializerCls(
-            request_obj, context={'request': self.request})
+            request_obj, context={'request': self.request}
+        )
         if not request_obj:
             raise ValidationError(
                 "Request unknown. "
@@ -221,8 +247,7 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         if not serializer.is_valid():
             raise ValidationError(
                 "Serializer could not be validated: %s"
-                "Could not approve request."
-                % (serializer.errors,)
+                "Could not approve request." % (serializer.errors, )
             )
         approve_status, _ = StatusType.objects.get_or_create(name='approved')
         request_obj = serializer.save(status=approve_status)
@@ -240,19 +265,18 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         request_obj = self.get_object()
         SerializerCls = self.get_serializer_class()
         if not request_obj:
-            raise ValidationError(
-                "Request unknown. "
-                "Could not deny request."
-            )
+            raise ValidationError("Request unknown. " "Could not deny request.")
         # Mocking a validation of data...
         serializer = SerializerCls(
-            request_obj, data={}, partial=True,
-            context={'request': self.request})
+            request_obj,
+            data={},
+            partial=True,
+            context={'request': self.request}
+        )
         if not serializer.is_valid():
             raise ValidationError(
                 "Serializer could not be validated: %s"
-                "Could not deny request."
-                % (serializer.errors,)
+                "Could not deny request." % (serializer.errors, )
             )
         deny_status, _ = StatusType.objects.get_or_create(name='denied')
         request_obj = serializer.save(status=deny_status)
@@ -285,14 +309,19 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         try:
             if identity_id is not None:
                 membership = IdentityMembership.objects.get(
-                    identity=identity_id)
+                    identity=identity_id
+                )
 
             if membership:
-                instance = serializer.save(end_date=timezone.now(),
-                                           membership=membership)
+                instance = serializer.save(
+                    end_date=timezone.now(), membership=membership
+                )
             else:
                 if self.request.method == "PATCH":
-                    instance = serializer.save(status=StatusType.objects.get(id=serializer.initial_data['status']))
+                    instance = serializer.save(
+                        status=StatusType.objects.
+                        get(id=serializer.initial_data['status'])
+                    )
                 else:
                     instance = serializer.save()
             if instance.is_approved():
@@ -303,29 +332,31 @@ class BaseRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
 
             if instance.is_denied():
                 self.deny_action(instance)
-        except (core_exceptions.ProviderLimitExceeded,  # NOTE: DEPRECATED -- REMOVE SOON, USE BELOW.
-                core_exceptions.RequestLimitExceeded):
+        except (
+            core_exceptions.
+            ProviderLimitExceeded,    # NOTE: DEPRECATED -- REMOVE SOON, USE BELOW.
+            core_exceptions.RequestLimitExceeded
+        ):
             message = "Only one active request is allowed per provider."
             raise exceptions.MethodNotAllowed('create', detail=message)
         except core_exceptions.InvalidMembership:
             message = (
-                "The user '%s' is not a valid member."
-                % self.request.user.username
+                "The user '%s' is not a valid member." %
+                self.request.user.username
             )
             raise exceptions.ParseError(detail=message)
         except IdentityMembership.DoesNotExist:
             message = (
-                "The identity '%s' does not have a membership"
-                % identity_id
+                "The identity '%s' does not have a membership" % identity_id
             )
             raise exceptions.ParseError(detail=message)
         except Exception as e:
             message = {
-                "An error was encoutered when updating the request: %s" % e.message
+                "An error was encoutered when updating the request: %s" %
+                e.message
             }
             logger.exception(e)
             raise exceptions.ParseError(detail=message)
-
 
     @unresolved_requests_only
     def update(self, request, *args, **kwargs):

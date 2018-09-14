@@ -7,7 +7,6 @@ from api.v2.views.mixins import MultipleFieldLookup
 
 
 class ImageBookmarkViewSet(MultipleFieldLookup, AuthModelViewSet):
-
     """
     API endpoint that allows instance actions to be viewed or edited.
     """
@@ -25,6 +24,9 @@ class ImageBookmarkViewSet(MultipleFieldLookup, AuthModelViewSet):
         Filter projects by current user
         """
         user = self.request.user
-        application_ids = list(Application.shared_with_user(user).values_list('id', flat=True))
+        application_ids = list(
+            Application.shared_with_user(user).values_list('id', flat=True)
+        )
         return ImageBookmark.objects.filter(user=user).filter(
-            Q(application__id__in=application_ids)).distinct()
+            Q(application__id__in=application_ids)
+        ).distinct()
