@@ -202,3 +202,4 @@ wcwidth==0.1.7            # via prompt-toolkit
 wheel==0.29.0
 wrapt==1.10.10
 xlsxwriter==0.9.8
+yapf==0.24.0

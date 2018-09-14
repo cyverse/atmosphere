@@ -21,3 +21,4 @@ json_delta
 freezegun
 pathlib
 vulture
+yapf
