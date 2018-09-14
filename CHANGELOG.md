@@ -50,6 +50,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     notion ([#639](https://github.com/cyverse/atmosphere/pull/639))
   - Linter runs more strict. Many changes were made to satisfy linter.
     ([#664](https://github.com/cyverse/atmosphere/pull/664))
+  - Upgrade chromogenic from 0.4.18 to 0.4.20
+    ([#670](https://github.com/cyverse/atmosphere/pull/670))
 
 ### Removed
   - Remove code/vars related to old allocation system
