@@ -132,13 +132,19 @@ class Application(models.Model):
     def shared_with_user(user, is_leader=None):
         """
         is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
+
+        This query should return:
+        - All public images
+        - All private images created by 'user'
+        - All private images shared with 'user'
         """
+        public_query = Q(private=False)
         ownership_query = Q(created_by=user)
         project_query = Q(projects__owner__memberships__user=user)
         if is_leader is not None:
             project_query &= Q(projects__owner__memberships__is_leader=is_leader)
         membership_query = Q(created_by__memberships__group__user=user)
-        return Application.objects.filter(membership_query | project_query | ownership_query).distinct()
+        return Application.objects.filter(query.only_current_apps()).filter(public_query | membership_query | project_query | ownership_query).distinct()
 
     @classmethod
     def admin_apps(cls, user):

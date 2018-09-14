@@ -7,6 +7,7 @@ from .project_factory import ProjectFactory
 from .identity_factory import IdentityFactory
 from .identity_membership_factory import IdentityMembershipFactory
 from .image_factory import ImageFactory
+from .image_bookmark_factory import ImageBookmarkFactory
 from .instance_factory import InstanceFactory
 from .instance_history_factory import InstanceHistoryFactory, InstanceStatusFactory
 from .version_factory import ApplicationVersionFactory
