@@ -42,7 +42,7 @@ defusedxml==0.5.0
 deprecation==1.0.1
 django-celery-beat==1.0.1
 django-cors-headers==2.1.0
-django-cyverse-auth==1.1.4
+django-cyverse-auth==1.1.6
 django-debug-toolbar==1.8
 django-filter==1.0.4
 django-jenkins==0.110.0
