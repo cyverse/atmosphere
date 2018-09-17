@@ -52,6 +52,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#664](https://github.com/cyverse/atmosphere/pull/664))
   - Upgrade chromogenic from 0.4.18 to 0.4.20
     ([#670](https://github.com/cyverse/atmosphere/pull/670))
+  - Upgrade django-cyverse-auth to 1.1.6 from 1.1.4
+  ([#671](https://github.com/cyverse/atmosphere/pull/671))
 
 ### Removed
   - Remove code/vars related to old allocation system
