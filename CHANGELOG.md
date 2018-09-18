@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Fixed
   - Fix reference to deleted model ProviderDNSServerIP
     ([#673](https://github.com/cyverse/atmosphere/pull/673))
+  - Upgrade to django-cyverse-auth 1.1.7 from 1.1.6 to avoid error in OAuth
+    ([#674](https://github.com/cyverse/atmosphere/pull/674))
 
 ## [v34-0](https://github.com/cyverse/atmosphere/compare/v33-0...v34-0) - 2018-09-17
 ### Added
