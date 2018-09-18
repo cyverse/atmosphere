@@ -25,6 +25,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-0...HEAD) - YYYY-MM-DD
+### Fixed
+  - Fix reference to deleted model ProviderDNSServerIP
+    ([#673](https://github.com/cyverse/atmosphere/pull/673))
+
 ## [v34-0](https://github.com/cyverse/atmosphere/compare/v33-0...v34-0) - 2018-09-17
 ### Added
   - Added AccessTokens model, API view, and serializers to enable new feature
