@@ -56,6 +56,8 @@
     - ./configure
     - pip-sync dev_requirements.txt
     - ./travis/check_for_dead_code_with_vulture.sh
+    # Check that code is formatted
+    - yapf --diff -p -- $(git ls-files | grep '\.py$')
     - prospector --profile prospector_profile.yaml --messages-only -- $(git ls-files | grep '\.py$')
     - coverage run manage.py test --keepdb --noinput --settings=atmosphere.settings
     - coverage run --append manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION} --settings=atmosphere.settings --format rerun --outfile rerun_failing.features
