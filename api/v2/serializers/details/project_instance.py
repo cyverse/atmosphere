@@ -5,7 +5,6 @@ from .instance import InstanceSerializer
 
 
 class ProjectRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return Project.objects.all()
 
@@ -16,7 +15,6 @@ class ProjectRelatedField(serializers.PrimaryKeyRelatedField):
 
 
 class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return Instance.objects.all()
 
@@ -28,7 +26,10 @@ class InstanceRelatedField(serializers.PrimaryKeyRelatedField):
 
 class ProjectInstanceSerializer(serializers.ModelSerializer):
     project = ProjectRelatedField(queryset=Project.objects.none())
-    instance = InstanceRelatedField(source="pk", queryset=Instance.objects.none())
+    instance = InstanceRelatedField(
+        source="pk", queryset=Instance.objects.none()
+    )
+
     # Could not fix 'ImproperlyConfiguredError'
     # url = serializers.HyperlinkedIdentityField(
     #     lookup_field="id",
@@ -37,8 +38,4 @@ class ProjectInstanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Instance
-        fields = (
-            'id',
-            'project',
-            'instance'
-        )
+        fields = ('id', 'project', 'instance')

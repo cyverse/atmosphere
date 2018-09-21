@@ -7,8 +7,7 @@ from api.v2.views.mixins import MultipleFieldLookup
 
 
 class ImageVersionFilter(django_filters.FilterSet):
-    version_id = django_filters.CharFilter(
-        'application_versions__id')
+    version_id = django_filters.CharFilter('application_versions__id')
 
     class Meta:
         model = BootScript
@@ -16,7 +15,6 @@ class ImageVersionFilter(django_filters.FilterSet):
 
 
 class BootScriptViewSet(MultipleFieldLookup, AuthModelViewSet):
-
     """
     API endpoint that allows scripts to be viewed or edited.
     """
@@ -24,7 +22,7 @@ class BootScriptViewSet(MultipleFieldLookup, AuthModelViewSet):
     queryset = BootScript.objects.none()
     serializer_class = BootScriptSerializer
     filter_class = ImageVersionFilter
-    search_fields = ('^title',)
+    search_fields = ('^title', )
     lookup_fields = ('id', 'uuid')
 
     def get_queryset(self):

@@ -10,6 +10,7 @@ class MaintenanceRecordFilterBackend(filters.BaseFilterBackend):
     """
     Filter MaintenanceRecords using the request_user and 'query_params'
     """
+
     def filter_queryset(self, request, queryset, view):
         request_params = request.query_params
         active = request_params.get('active')
@@ -18,13 +19,18 @@ class MaintenanceRecordFilterBackend(filters.BaseFilterBackend):
             queryset = MaintenanceRecord.active()
         return queryset
 
-class MaintenanceRecordViewSet(AuthOptionalViewSet):
 
+class MaintenanceRecordViewSet(AuthOptionalViewSet):
     """
     API endpoint that allows records to be viewed or edited.
     """
-    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
+    http_method_names = [
+        'get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'
+    ]
     queryset = MaintenanceRecord.objects.order_by('-start_date')
-    permission_classes = (CanEditOrReadOnly,)
+    permission_classes = (CanEditOrReadOnly, )
     serializer_class = MaintenanceRecordSerializer
-    filter_backends = (filters.DjangoFilterBackend, filters.SearchFilter, MaintenanceRecordFilterBackend)
+    filter_backends = (
+        filters.DjangoFilterBackend, filters.SearchFilter,
+        MaintenanceRecordFilterBackend
+    )

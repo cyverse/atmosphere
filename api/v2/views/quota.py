@@ -10,7 +10,6 @@ from core.models import Quota
 
 
 class QuotaViewSet(MultipleFieldLookup, AuthModelViewSet):
-
     """
     API endpoint that allows providers to be viewed or edited.
     NOTE: we have *INTENTIONALLY* left out the ability to *UPDATE* or *DELETE* a quota.
@@ -21,9 +20,7 @@ class QuotaViewSet(MultipleFieldLookup, AuthModelViewSet):
     queryset = Quota.objects.all()
     serializer_class = QuotaSerializer
     pagination_class = OptionalPagination
-    permission_classes = (
-        CloudAdminRequired,
-    )
+    permission_classes = (CloudAdminRequired, )
     http_method_names = ['get', 'post', 'head', 'options', 'trace']
 
     def create(self, request, *args, **kwargs):

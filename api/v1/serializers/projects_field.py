@@ -5,7 +5,6 @@ from rest_framework import serializers
 
 
 class ProjectsField(serializers.Field):
-
     def to_representation(self, project_mgr):
         request_user = self.parent.request_user
         if isinstance(request_user, AnonymousUser):

@@ -6,7 +6,8 @@ and then offload all data into the specified file location.
 """
 import argparse
 
-import django; django.setup()
+import django
+django.setup()
 from django.conf import settings
 
 from django.core.urlresolvers import reverse
@@ -15,13 +16,17 @@ from api.v2.views import ReportingViewSet
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 
-def generate_report(username, start_date, end_date, provider_ids, name, file_location):
+def generate_report(
+    username, start_date, end_date, provider_ids, name, file_location
+):
     reporting_url = reverse('api:v2:reporting-list')
-    reporting_url += "?format=xlsx&start_date={}&end_date={}".format(start_date, end_date)
+    reporting_url += "?format=xlsx&start_date={}&end_date={}".format(
+        start_date, end_date
+    )
     if name:
-        reporting_url +="&name=%s" % (name,)
+        reporting_url += "&name=%s" % (name, )
     for provider_id in provider_ids:
-        reporting_url += "&provider_id="+provider_id
+        reporting_url += "&provider_id=" + provider_id
     view = ReportingViewSet.as_view({'get': 'list'})
     user = AtmosphereUser.objects.get(username=username)
     factory = APIRequestFactory()
@@ -39,22 +44,40 @@ def generate_report(username, start_date, end_date, provider_ids, name, file_loc
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--provider-ids", required=True,
-                        help="Atmosphere provider IDs"
-                        " to get metrics from (Comma separated list)")
-    parser.add_argument("--provider-list",
-                        action="store_true",
-                        help="List of provider names and IDs")
-    parser.add_argument("--username", required=True,
-                        help="Username to query the API with (Must be a staff user)")
-    parser.add_argument("--name",
-                        help="Application name to query API with (case-insensitive 'contains' search)")
-    parser.add_argument("--start-date", required=True,
-                        help="Formatted start date (YYYY-MM-DD) required to query the API")
-    parser.add_argument("--end-date", required=True,
-                        help="Formatted end date (YYYY-MM-DD) required to query the API")
-    parser.add_argument("--file-location", required=True,
-                        help="Location to deliver the file")
+    parser.add_argument(
+        "--provider-ids",
+        required=True,
+        help="Atmosphere provider IDs"
+        " to get metrics from (Comma separated list)"
+    )
+    parser.add_argument(
+        "--provider-list",
+        action="store_true",
+        help="List of provider names and IDs"
+    )
+    parser.add_argument(
+        "--username",
+        required=True,
+        help="Username to query the API with (Must be a staff user)"
+    )
+    parser.add_argument(
+        "--name",
+        help=
+        "Application name to query API with (case-insensitive 'contains' search)"
+    )
+    parser.add_argument(
+        "--start-date",
+        required=True,
+        help="Formatted start date (YYYY-MM-DD) required to query the API"
+    )
+    parser.add_argument(
+        "--end-date",
+        required=True,
+        help="Formatted end date (YYYY-MM-DD) required to query the API"
+    )
+    parser.add_argument(
+        "--file-location", required=True, help="Location to deliver the file"
+    )
     args = parser.parse_args()
 
     if args.provider_list:
@@ -65,8 +88,11 @@ def main():
 
     try:
         provider_ids = args.provider_ids.split(",")
-        generate_report(args.username, args.start_date, args.end_date, provider_ids, args.name, args.file_location)
-        print "Report completed: %s" % (args.file_location,)
+        generate_report(
+            args.username, args.start_date, args.end_date, provider_ids,
+            args.name, args.file_location
+        )
+        print "Report completed: %s" % (args.file_location, )
     except Exception as exc:
         print "Failed to generate report: %s" % exc
 

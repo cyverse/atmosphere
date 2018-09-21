@@ -6,8 +6,8 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from core.models.boot_script import (
-    BootScript as CoreBootScript,
-    get_scripts_for_user)
+    BootScript as CoreBootScript, get_scripts_for_user
+)
 
 from api import failure_response
 from api.v1.serializers import BootScriptSerializer
@@ -15,7 +15,6 @@ from api.v1.views.base import AuthAPIView
 
 
 class BootScriptList(AuthAPIView):
-
     """
     BootScripts represent a script to be deployed on an instance and/or
     application after Atmosphere has finished deploying the instance.
@@ -40,13 +39,10 @@ class BootScriptList(AuthAPIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-        return failure_response(
-            status.HTTP_400_BAD_REQUEST,
-            serializer.errors)
+        return failure_response(status.HTTP_400_BAD_REQUEST, serializer.errors)
 
 
 class BootScript(AuthAPIView):
-
     """
     BootScripts represent the different Cloud configurations hosted
     on Atmosphere.
@@ -64,7 +60,8 @@ class BootScript(AuthAPIView):
         except CoreBootScript.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "BootScript of id %s does not exist." % script_id)
+                "BootScript of id %s does not exist." % script_id
+            )
         serialized_data = BootScriptSerializer(script).data
         return Response(serialized_data)
 
@@ -85,11 +82,10 @@ class BootScript(AuthAPIView):
         except CoreBootScript.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "BootScript of id %s does not exist." % script_id)
+                "BootScript of id %s does not exist." % script_id
+            )
         serializer = BootScriptSerializer(script, data=data, partial=partial)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-        return failure_response(
-            status.HTTP_400_BAD_REQUEST,
-            serializer.errors)
+        return failure_response(status.HTTP_400_BAD_REQUEST, serializer.errors)

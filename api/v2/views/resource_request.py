@@ -11,7 +11,6 @@ from api.v2.views.mixins import MultipleFieldLookup
 
 
 class AdminResourceRequestViewSet(MultipleFieldLookup, AdminModelViewSet):
-
     """
     API endpoint that allows admins to view/update user requests
     """
@@ -44,7 +43,8 @@ class AdminResourceRequestViewSet(MultipleFieldLookup, AdminModelViewSet):
         email.send_approved_resource_email(
             user=instance.created_by,
             request=instance.request,
-            reason=instance.admin_message)
+            reason=instance.admin_message
+        )
 
     def deny_action(self, instance):
         """
@@ -55,7 +55,8 @@ class AdminResourceRequestViewSet(MultipleFieldLookup, AdminModelViewSet):
         email.send_denied_resource_email(
             user=instance.created_by,
             request=instance.request,
-            reason=instance.admin_message)
+            reason=instance.admin_message
+        )
 
     def perform_update(self, serializer):
         """
@@ -107,7 +108,9 @@ class ResourceRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
     API endpoint that allows users to view or close their requests
     """
     lookup_fields = ("id", "uuid")
-    permission_classes = AuthModelViewSet.permission_classes + (UserUpdatePermission,)
+    permission_classes = AuthModelViewSet.permission_classes + (
+        UserUpdatePermission,
+    )
     queryset = ResourceRequest.objects.none()
     model = ResourceRequest
     serializer_class = ResourceRequestSerializer
@@ -127,18 +130,17 @@ class ResourceRequestViewSet(MultipleFieldLookup, AuthModelViewSet):
         Create a resource request
         """
         status, _ = StatusType.objects.get_or_create(name='pending')
-        instance = serializer.save(
-            created_by=self.request.user,
-            status=status
-        )
+        instance = serializer.save(created_by=self.request.user, status=status)
         options = {}
         if serializer.initial_data.get("admin_url"):
-            options={"admin_url": serializer.initial_data.get("admin_url") + str(instance.id)}
-        email.resource_request_email(self.request,
-                                     self.request.user.username,
-                                     instance.request,
-                                     instance.description,
-                                     options)
+            options = {
+                "admin_url":
+                    serializer.initial_data.get("admin_url") + str(instance.id)
+            }
+        email.resource_request_email(
+            self.request, self.request.user.username, instance.request,
+            instance.description, options
+        )
 
     def perform_destroy(self, serializer):
         """

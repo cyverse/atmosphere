@@ -8,17 +8,18 @@ from api.v2.views.mixins import MultipleFieldLookup
 
 
 class TokenViewSet(MultipleFieldLookup, AuthOptionalViewSet):
-
     """
     API endpoint that allows tags to be viewed or edited.
     """
     lookup_field = 'key'
     lookup_value_regex = "[^/]+"
-    lookup_fields = ("key",)
+    lookup_fields = ("key", )
     queryset = Token.objects.all()
     serializer_class = TokenSerializer
-    permission_classes = (ApiAuthRequired,
-                          InMaintenance,)
+    permission_classes = (
+        ApiAuthRequired,
+        InMaintenance,
+    )
 
     def get_queryset(self):
         """

@@ -4,7 +4,6 @@ from threepio import logger
 
 from service.driver import get_esh_driver, get_admin_driver
 
-
 admin_drivers = {}
 drivers = {}
 connection = None
@@ -51,14 +50,19 @@ def _get_cached(key, data_method, scrub_method, force=False):
             _invalidate(key)
         data = r.get(key)
     except redis.exceptions.ConnectionError:
-        logger.error("EXTERNAL SERVICE redis-server IS NOT RUNNING! "
-                     "Somebody should turn it on!")
+        logger.error(
+            "EXTERNAL SERVICE redis-server IS NOT RUNNING! "
+            "Somebody should turn it on!"
+        )
         data = None
     if not data:
         data = data_method()
         scrub_method(data)
-        logger.debug("Updated redis({0}) using {1} and {2}".format(
-            key, data_method, scrub_method))
+        logger.debug(
+            "Updated redis({0}) using {1} and {2}".format(
+                key, data_method, scrub_method
+            )
+        )
         r.set(key, pickle.dumps(data))
         r.expire(key, 30)
         return data
@@ -84,21 +88,22 @@ def _validate_parameters(provider, identity):
 
 def get_cached_driver(provider=None, identity=None, force=True):
     _validate_parameters(provider, identity)
-    return _get_cached_driver(provider=provider,
-                              identity=identity,
-                              force=force)
+    return _get_cached_driver(provider=provider, identity=identity, force=force)
 
 
 def get_cached_instances(provider=None, identity=None, force=False):
     _validate_parameters(provider, identity)
-    cached_driver = _get_cached_driver(provider=provider, identity=identity,
-                                       force=force)
+    cached_driver = _get_cached_driver(
+        provider=provider, identity=identity, force=force
+    )
     cached_driver.list_sizes()
     #NOTE: THIS IS A HACK -- The 'admin' user should be able to see "All the things" -- HOWEVER
     # In the current implementation of liberty on jetstream, a call to 'list_all_tenants'
     # Made by a user with a single tenant will produce *IDENTICAL* results to that same call made by admin.
     # THIS IS CONSIDERED HARMFUL! So we have blocked all users except the admin accounts from making this call.
-    if identity and identity.created_by and identity.created_by.username in ['atmoadmin', 'admin']:
+    if identity and identity.created_by and identity.created_by.username in [
+        'atmoadmin', 'admin'
+    ]:
         instances_method = cached_driver.list_all_instances
     else:
         instances_method = cached_driver.list_instances
@@ -106,68 +111,67 @@ def get_cached_instances(provider=None, identity=None, force=False):
     if provider:
         key = INSTANCES_KEY_PROVIDER.format(provider.id)
     else:
-        key = INSTANCES_KEY_IDENTITY.format(identity.created_by.username,
-                                            identity.id)
-    return _get_cached(key,
-                       instances_method,
-                       _scrub,
-                       force=force)
+        key = INSTANCES_KEY_IDENTITY.format(
+            identity.created_by.username, identity.id
+        )
+    return _get_cached(key, instances_method, _scrub, force=force)
 
 
 def invalidate_cached_instances(provider=None, identity=None):
     if provider:
         key = INSTANCES_KEY_PROVIDER.format(provider.id)
     else:
-        key = INSTANCES_KEY_IDENTITY.format(identity.created_by.username,
-                                            identity.id)
+        key = INSTANCES_KEY_IDENTITY.format(
+            identity.created_by.username, identity.id
+        )
     _invalidate(key)
 
 
 def get_cached_volumes(provider=None, identity=None, force=False):
     _validate_parameters(provider, identity)
-    cached_driver = _get_cached_driver(provider=provider, identity=identity,
-                                       force=force)
+    cached_driver = _get_cached_driver(
+        provider=provider, identity=identity, force=force
+    )
     volumes_method = cached_driver.list_all_volumes
     if provider:
         key = VOLUMES_KEY_PROVIDER.format(provider.id)
     else:
-        key = VOLUMES_KEY_IDENTITY.format(identity.created_by.username,
-                                          identity.id)
-    return _get_cached(key,
-                       volumes_method,
-                       _scrub,
-                       force=force)
+        key = VOLUMES_KEY_IDENTITY.format(
+            identity.created_by.username, identity.id
+        )
+    return _get_cached(key, volumes_method, _scrub, force=force)
 
 
 def invalidate_cached_volumes(provider=None, identity=None):
     if provider:
         key = VOLUMES_KEY_PROVIDER.format(provider.id)
     else:
-        key = VOLUMES_KEY_IDENTITY.format(identity.created_by.username,
-                                          identity.id)
+        key = VOLUMES_KEY_IDENTITY.format(
+            identity.created_by.username, identity.id
+        )
     _invalidate(key)
 
 
 def get_cached_machines(provider=None, identity=None, force=False):
     _validate_parameters(provider, identity)
-    cached_driver = _get_cached_driver(provider=provider, identity=identity,
-                                       force=force)
+    cached_driver = _get_cached_driver(
+        provider=provider, identity=identity, force=force
+    )
     machines_method = cached_driver.list_machines
     if provider:
         key = MACHINES_KEY_PROVIDER.format(provider.id)
     else:
-        key = MACHINES_KEY_IDENTITY.format(identity.created_by.username,
-                                           identity.id)
-    return _get_cached(key,
-                       machines_method,
-                       _scrub,
-                       force=force)
+        key = MACHINES_KEY_IDENTITY.format(
+            identity.created_by.username, identity.id
+        )
+    return _get_cached(key, machines_method, _scrub, force=force)
 
 
 def invalidate_cached_machines(provider=None, identity=None):
     if provider:
         key = MACHINES_KEY_PROVIDER.format(provider.id)
     else:
-        key = MACHINES_KEY_IDENTITY.format(identity.created_by.username,
-                                           identity.id)
+        key = MACHINES_KEY_IDENTITY.format(
+            identity.created_by.username, identity.id
+        )
     _invalidate(key)

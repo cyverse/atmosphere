@@ -22,15 +22,12 @@ def verify_expected_output(test_client, api_out, expected_out):
 
 
 def reuse_instance(
-        test_client,
-        full_instance_url,
-        machine_alias,
-        instance_name):
+    test_client, full_instance_url, machine_alias, instance_name
+):
     # Launch a new one
     instance_list_resp = test_client.api_client.get(full_instance_url)
     # Ensure it worked
-    test_client.assertEqual(instance_list_resp.status_code,
-                            status.HTTP_200_OK)
+    test_client.assertEqual(instance_list_resp.status_code, status.HTTP_200_OK)
     test_client.assertIsNotNone(instance_list_resp.data)
     instance_id = None
     instance_ip = None
@@ -46,10 +43,16 @@ def reuse_instance(
     return (instance_id, instance_ip)
 
 
-def standup_instance(test_client, full_instance_url,
-                     machine_alias, size_alias, name,
-                     delete_before=False, delete_after=False,
-                     first_launch=False):
+def standup_instance(
+    test_client,
+    full_instance_url,
+    machine_alias,
+    size_alias,
+    name,
+    delete_before=False,
+    delete_after=False,
+    first_launch=False
+):
     """
     * Select a machine (Base/Random?)
     * Select a size (Smallest)
@@ -61,8 +64,9 @@ def standup_instance(test_client, full_instance_url,
     if delete_before:
         remove_all_instances(test_client, full_instance_url)
     # Reuse if possible
-    instance_id, ip_addr = reuse_instance(test_client, full_instance_url,
-                                          machine_alias, name)
+    instance_id, ip_addr = reuse_instance(
+        test_client, full_instance_url, machine_alias, name
+    )
     if instance_id and ip_addr:
         print "Using Instance %s instead of launching" % instance_id
         return instance_id, ip_addr
@@ -71,19 +75,19 @@ def standup_instance(test_client, full_instance_url,
         "machine_alias": machine_alias,
         "size_alias": size_alias,
         "name": name,
-        "tags": ['test_instance', 'test', 'testing']}
+        "tags": ['test_instance', 'test', 'testing']
+    }
     if first_launch:
         launch_data['delay'] = 20 * 60
     # Launch a new one
     instance_launch_resp = test_client.api_client.post(
-        full_instance_url,
-        launch_data,
-        format='json')
+        full_instance_url, launch_data, format='json'
+    )
     print "Instance deployment complete."
     # Launch is complete.
     test_client.assertEqual(
-        instance_launch_resp.status_code,
-        status.HTTP_201_CREATED)
+        instance_launch_resp.status_code, status.HTTP_201_CREATED
+    )
     test_client.assertIsNotNone(instance_launch_resp.data)
     test_client.assertIsNotNone(instance_launch_resp.data.get('alias'))
     instance_id = instance_launch_resp.data['alias']
@@ -96,9 +100,7 @@ def remove_instance(test_client, instance_url, instance_alias):
     """
     Terminate the instance
     """
-    new_instance_url = urljoin(
-        instance_url,
-        '%s/' % instance_alias)
+    new_instance_url = urljoin(instance_url, '%s/' % instance_alias)
     delete_resp = test_client.api_client.delete(new_instance_url)
     test_client.assertEqual(delete_resp.status_code, status.HTTP_200_OK)
 

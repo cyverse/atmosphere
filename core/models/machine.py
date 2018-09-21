@@ -14,9 +14,8 @@ from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource, update_instance_source_size
 from core.models.application import create_application, get_application, Application
 from core.models.application_version import (
-        ApplicationVersion,
-        create_app_version,
-        get_version_for_machine)
+    ApplicationVersion, create_app_version, get_version_for_machine
+)
 from core.models.identity import Identity
 from core.models.provider import Provider
 from core.query import contains_credential
@@ -32,9 +31,8 @@ class ProviderMachine(BaseSource):
     """
     esh = None
     application_version = models.ForeignKey(
-        ApplicationVersion,
-        related_name="machines",
-        null=True)
+        ApplicationVersion, related_name="machines", null=True
+    )
 
     @property
     def application(self):
@@ -55,7 +53,8 @@ class ProviderMachine(BaseSource):
         """
         return ProviderMachine.objects.filter(
             instance_source__identifier=identifier,
-            instance_source__provider=provider).count()
+            instance_source__provider=provider
+        ).count()
 
     @classmethod
     def _split_cloud_name(cls, machine_name):
@@ -65,16 +64,18 @@ class ProviderMachine(BaseSource):
 
         if len(split_list) == 1:
             logger.warn(
-                "Version separator(%s) was not found: %s"
-                % (version_sep, machine_name))
+                "Version separator(%s) was not found: %s" %
+                (version_sep, machine_name)
+            )
             split_list = [split_list[0], '']
         elif len(split_list) > 2:
             logger.warn(
-                "Version separator(%s) is ambiguous: %s"
-                % (version_sep, machine_name))
+                "Version separator(%s) is ambiguous: %s" %
+                (version_sep, machine_name)
+            )
             version_parts = [
-                s.strip() for s in
-                machine_name.rpartition(version_sep)]
+                s.strip() for s in machine_name.rpartition(version_sep)
+            ]
             split_list = [version_parts[0], version_parts[2]]
         return split_list
 
@@ -86,13 +87,15 @@ class ProviderMachine(BaseSource):
         if not version:
             raise ValueError("Version is None")
         return "%s %s%s" % (
-            application.name,
-            settings.APPLICATION_VERSION_SEPARATOR,
-            version.name)
+            application.name, settings.APPLICATION_VERSION_SEPARATOR,
+            version.name
+        )
 
     def is_owner(self, atmo_user):
-        return (self.application_version.created_by == atmo_user or
-                self.application_version.application.created_by == atmo_user)
+        return (
+            self.application_version.created_by == atmo_user
+            or self.application_version.application.created_by == atmo_user
+        )
 
     def to_dict(self):
         machine = {
@@ -124,7 +127,8 @@ class ProviderMachine(BaseSource):
         except Exception:
             logger.exception(
                 "Image Update Failed for %s on Provider %s" %
-                (self.identifier, self.instance_source.provider))
+                (self.identifier, self.instance_source.provider)
+            )
 
     def update_version(self, app_version):
         self.application_version = app_version
@@ -132,9 +136,9 @@ class ProviderMachine(BaseSource):
 
     def is_end_dated(self):
         return (
-            self.end_date or
-            self.application_version.end_date or
-            self.application.end_date)
+            self.end_date or self.application_version.end_date
+            or self.application.end_date
+        )
 
     def icon_url(self):
         return self.application.icon.url if self.application.icon else None
@@ -155,7 +159,7 @@ class ProviderMachine(BaseSource):
 
     def find_machine_owner(self):
         if self.provider.location == 'EUCALYPTUS':
-            pass  # Parse the XML manifest
+            pass    # Parse the XML manifest
         return ""
 
     def esh_architecture(self):
@@ -189,7 +193,6 @@ class ProviderMachine(BaseSource):
 
 
 class ProviderMachineMembership(models.Model):
-
     """
     Members of a specific image and provider combination.
     Members can view & launch respective machines.
@@ -230,18 +233,21 @@ def get_cached_machine(provider_alias, provider_id):
     if not ProviderMachine.cached_machines:
         build_cached_machines()
     cached_mach = ProviderMachine.cached_machines.get(
-        (int(provider_id), provider_alias))
+        (int(provider_id), provider_alias)
+    )
     if not cached_mach:
-        logger.warn("Cache does not have machine %s on provider %s"
-                    % (provider_alias, provider_id))
+        logger.warn(
+            "Cache does not have machine %s on provider %s" %
+            (provider_alias, provider_id)
+        )
     return cached_mach
-
 
 
 def is_replicated_version(image_id):
     if not getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
         return False
-    if ProviderMachine.objects.filter(instance_source__identifier=image_id).count() > 0:
+    if ProviderMachine.objects.filter(instance_source__identifier=image_id
+                                     ).count() > 0:
         return True
 
 
@@ -250,8 +256,10 @@ def replicate_app_kwargs(image_id):
     Copy the latest kwargs from the current app
     """
     try:
-        app = Application.objects.get(versions__machines__instance_source__identifier=image_id)
-        tag_list = list(app.tags.values_list('name',flat=True))
+        app = Application.objects.get(
+            versions__machines__instance_source__identifier=image_id
+        )
+        tag_list = list(app.tags.values_list('name', flat=True))
         json_tags = json.dumps(tag_list)
         return {
             'uuid': app.uuid,
@@ -267,9 +275,14 @@ def _lookup_image_owner_identity(account_driver, glance_image):
     owner = account_driver.get_project_by_id(glance_image.get('owner'))
     if not owner:
         return None
-    matches = Identity.objects.filter(contains_credential('ex_project_name', owner.name))
+    matches = Identity.objects.filter(
+        contains_credential('ex_project_name', owner.name)
+    )
     if matches.count() > 1:
-        logger.warn("Project %s is ambiguous -- exists on more than one Identity." % owner.name)
+        logger.warn(
+            "Project %s is ambiguous -- exists on more than one Identity." %
+            owner.name
+        )
         return None
     return matches.first()
 
@@ -283,13 +296,13 @@ def _application_and_version_from_metadata(account_driver, glance_image):
     from core.models import AtmosphereUser
     app_kwargs = {}
     version_kwargs = {}
-    default_version_name = '1.0'  # could be configurable if controversial
+    default_version_name = '1.0'    # could be configurable if controversial
     provider_uuid = str(account_driver.core_provider.uuid)
     application_owner = glance_image.get('application_owner')
-    user = AtmosphereUser.objects.filter(
-            username=application_owner).first()
+    user = AtmosphereUser.objects.filter(username=application_owner).first()
     identity = Identity.objects.filter(
-        provider__uuid=provider_uuid, created_by=user).first()
+        provider__uuid=provider_uuid, created_by=user
+    ).first()
 
     if not identity:
         identity = _lookup_image_owner_identity(account_driver, glance_image)
@@ -299,25 +312,33 @@ def _application_and_version_from_metadata(account_driver, glance_image):
         user = identity.created_by
 
     if hasattr(glance_image, 'id'):
-       image_id = glance_image.id
+        image_id = glance_image.id
     elif type(glance_image) == dict:
-       image_id = glance_image.get('id')
+        image_id = glance_image.get('id')
     else:
-       raise ValueError("Unexpected glance_image: %s" % glance_image)
+        raise ValueError("Unexpected glance_image: %s" % glance_image)
 
     metadata_tags = glance_image.get('application_tags')
     app_kwargs = {
-        'provider_uuid': provider_uuid,
-        'identifier': image_id,
-        'name': glance_image.get(
-            'application_name',
-            glance_image.get('name', '')),
-        'created_by_identity': identity,
-        'created_by': user,
-        'description': glance_image.get('application_description', "").replace("_LINEBREAK_", "\n"),
-        'private': glance_image.visibility.lower() != 'public',
-        'tags': ast.literal_eval(metadata_tags) if metadata_tags else [],
-        'uuid': glance_image.get('application_uuid')
+        'provider_uuid':
+            provider_uuid,
+        'identifier':
+            image_id,
+        'name':
+            glance_image.get('application_name', glance_image.get('name', '')),
+        'created_by_identity':
+            identity,
+        'created_by':
+            user,
+        'description':
+            glance_image.get('application_description',
+                             "").replace("_LINEBREAK_", "\n"),
+        'private':
+            glance_image.visibility.lower() != 'public',
+        'tags':
+            ast.literal_eval(metadata_tags) if metadata_tags else [],
+        'uuid':
+            glance_image.get('application_uuid')
     }
     version_kwargs = {
         'name': glance_image.get('version_name', default_version_name),
@@ -327,7 +348,10 @@ def _application_and_version_from_metadata(account_driver, glance_image):
     }
     return (app_kwargs, version_kwargs)
 
-def convert_glance_image(account_driver, glance_image, provider_uuid, owner=None):
+
+def convert_glance_image(
+    account_driver, glance_image, provider_uuid, owner=None
+):
     """
     Guaranteed Return of ProviderMachine.
     1. Load provider machine from DB and return
@@ -338,19 +362,22 @@ def convert_glance_image(account_driver, glance_image, provider_uuid, owner=None
     2b. Using application from 2. Create provider machine
     """
     if hasattr(glance_image, 'id'):
-       image_id = glance_image.id
+        image_id = glance_image.id
     elif type(glance_image) == dict:
-       image_id = glance_image.get('id')
+        image_id = glance_image.get('id')
     else:
-       raise ValueError("Unexpected glance_image: %s" % glance_image)
+        raise ValueError("Unexpected glance_image: %s" % glance_image)
 
     provider_machine = get_provider_machine(image_id, provider_uuid)
     if provider_machine:
         if provider_machine.is_end_dated():
             return (None, False)
-        update_instance_source_size(provider_machine.instance_source, glance_image.get('size'))
+        update_instance_source_size(
+            provider_machine.instance_source, glance_image.get('size')
+        )
         return (provider_machine, False)
-    (app_kwargs, version_kwargs) = _application_and_version_from_metadata(account_driver, glance_image)
+    (app_kwargs, version_kwargs
+    ) = _application_and_version_from_metadata(account_driver, glance_image)
     # TODO: use version_kwargs in method below?
     version = get_version_for_machine(provider_uuid, image_id, fuzzy=True)
     if version:
@@ -369,15 +396,22 @@ def convert_glance_image(account_driver, glance_image, provider_uuid, owner=None
         'version': version
     }
     provider_machine = create_provider_machine(
-        image_id, provider_uuid,
-        app, **machine_kwargs)
-    update_instance_source_size(provider_machine.instance_source, glance_image.get('size'))
+        image_id, provider_uuid, app, **machine_kwargs
+    )
+    update_instance_source_size(
+        provider_machine.instance_source, glance_image.get('size')
+    )
     return (provider_machine, True)
 
 
-def get_or_create_provider_machine(image_id, machine_name,
-                                   provider_uuid, app=None, version=None,
-                                   version_name="1.0"):
+def get_or_create_provider_machine(
+    image_id,
+    machine_name,
+    provider_uuid,
+    app=None,
+    version=None,
+    version_name="1.0"
+):
     """
     Guaranteed Return of ProviderMachine.
     1. Load provider machine from DB
@@ -400,15 +434,15 @@ def get_or_create_provider_machine(image_id, machine_name,
     if not version:
         version = get_version_for_machine(provider_uuid, image_id, fuzzy=True)
         if not version:
-            version = create_app_version(app, version_name, provider_machine_id=image_id)
+            version = create_app_version(
+                app, version_name, provider_machine_id=image_id
+            )
     if type(version) in [models.QuerySet, list]:
         version = version[0]
 
     return create_provider_machine(
-        image_id,
-        provider_uuid,
-        app,
-        version=version)
+        image_id, provider_uuid, app, version=version
+    )
 
 
 def _extract_tenant_name(identity):
@@ -416,10 +450,12 @@ def _extract_tenant_name(identity):
     if not tenant_name:
         tenant_name = identity.get_credential('ex_project_name')
     if not tenant_name:
-        raise Exception("Cannot update application owner without knowing the"
-                        " tenant ID of the new owner. Please update your"
-                        " identity, or the credential key fields above"
-                        " this line.")
+        raise Exception(
+            "Cannot update application owner without knowing the"
+            " tenant ID of the new owner. Please update your"
+            " identity, or the credential key fields above"
+            " this line."
+        )
     return tenant_name
 
 
@@ -444,9 +480,11 @@ def update_application_owner(application, identity):
             continue
         tenant_id = accounts.get_project(tenant_name).id
         glance_update_machine_metadata(
-            provider_machine,
-            {'owner': tenant_id,
-             'application_owner': tenant_name})
+            provider_machine, {
+                'owner': tenant_id,
+                'application_owner': tenant_name
+            }
+        )
         print "App data saved for %s" % image_id
         accounts.image_manager.share_image(image, tenant_name)
         print "Shared access to %s with %s" % (image_id, tenant_name)
@@ -467,12 +505,13 @@ def read_cloud_machine_hook(new_machine, provider_uuid, identifier):
     else:
         logger.warn(
             "machine data for %s is likely incomplete."
-            " Create a new hook for %s." %
-            provider)
+            " Create a new hook for %s." % provider
+        )
 
 
-def create_provider_machine(identifier, provider_uuid, app,
-                            created_by_identity=None, version=None):
+def create_provider_machine(
+    identifier, provider_uuid, app, created_by_identity=None, version=None
+):
     # Attempt to match machine by provider alias
     # Admin identity used until the real owner can be identified.
     provider = Provider.objects.get(uuid=provider_uuid)
@@ -481,8 +520,8 @@ def create_provider_machine(identifier, provider_uuid, app,
 
     try:
         source = InstanceSource.objects.get(
-            provider=provider,
-            identifier=identifier)
+            provider=provider, identifier=identifier
+        )
         source.created_by_identity = created_by_identity
         source.created_by = created_by_identity.created_by
     except InstanceSource.DoesNotExist:
@@ -511,17 +550,18 @@ def create_provider_machine(identifier, provider_uuid, app,
 def _username_lookup(provider_uuid, username):
     try:
         return Identity.objects.get(
-            provider__uuid=provider_uuid,
-            created_by__username=username)
+            provider__uuid=provider_uuid, created_by__username=username
+        )
     except Identity.DoesNotExist:
         return None
 
 
 def update_provider_machine(
-        provider_machine,
-        new_created_by_identity=None,
-        new_created_by=None,
-        new_application_version=None):
+    provider_machine,
+    new_created_by_identity=None,
+    new_created_by=None,
+    new_application_version=None
+):
     """
     Used to explicitly 'update' + call the 'provider_machine_write_hook'
     * Glance updates, metadata updates, etc.
@@ -554,8 +594,8 @@ def provider_machine_write_hook(provider_machine):
     else:
         logger.warn(
             "Create a new write hook for %s"
-            " to keep cloud objects up to date." %
-            provider)
+            " to keep cloud objects up to date." % provider
+        )
 
 
 def add_to_cache(provider_machine):
@@ -574,22 +614,31 @@ def update_provider_machine_metadata(provider_machine_id, metadata={}):
     provider_machine = find_provider_machine(provider_machine_id)
     return update_machine_metadata(provider_machine, metadata)
 
+
 def find_provider_machine(identifier):
     try:
         if type(identifier) == int:
             machine = ProviderMachine.objects.get(pk=identifier)
         else:
-            machine = ProviderMachine.objects.get(instance_source__identifier=identifier)
+            machine = ProviderMachine.objects.get(
+                instance_source__identifier=identifier
+            )
         return machine
     except ProviderMachine.DoesNotExist:
         return None
     except MultipleObjectsReturned:
-        raise MultipleObjectsReturned("Identifier %s is ambiguous. Use the 'pk' value")
+        raise MultipleObjectsReturned(
+            "Identifier %s is ambiguous. Use the 'pk' value"
+        )
+
 
 def get_provider_machine(identifier, provider_uuid):
     try:
         source = InstanceSource.objects.get(
-            provider__uuid=provider_uuid, identifier=identifier, providermachine__isnull=False)
+            provider__uuid=provider_uuid,
+            identifier=identifier,
+            providermachine__isnull=False
+        )
         return source.providermachine
     except DoesNotExist:
         return None
@@ -606,7 +655,8 @@ def _load_machine(esh_machine, provider_uuid):
     # Using what we know about our (possibly new) application
     # and load (or possibly create) the provider machine
     provider_machine = get_or_create_provider_machine(
-        alias, name, provider_uuid, app=app)
+        alias, name, provider_uuid, app=app
+    )
     lc_machine = esh_machine._image
     image_size = lc_machine.extra.get('image_size')
     update_instance_source_size(provider_machine.instance_source, image_size)
@@ -614,8 +664,8 @@ def _load_machine(esh_machine, provider_uuid):
 
 
 def convert_esh_machine(
-        esh_driver, esh_machine,
-        provider_uuid, user, identifier=None):
+    esh_driver, esh_machine, provider_uuid, user, identifier=None
+):
     """
     Takes as input an (rtwo) driver and machine, and a core provider id
     Returns as output a core ProviderMachine
@@ -642,10 +692,8 @@ def _check_project(core_application, user):
 
 def _convert_from_instance(esh_driver, provider_uuid, image_id):
     provider_machine = get_or_create_provider_machine(
-        image_id,
-        'Imported Machine %s' %
-        image_id,
-        provider_uuid)
+        image_id, 'Imported Machine %s' % image_id, provider_uuid
+    )
     return provider_machine
 
 
@@ -664,8 +712,8 @@ def compare_core_machines(mach_1, mach_2):
         return 1
     else:
         return cmp(
-            mach_1.instance_source.identifier,
-            mach_2.instance_source.identifier)
+            mach_1.instance_source.identifier, mach_2.instance_source.identifier
+        )
 
 
 def filter_core_machine(provider_machine):
@@ -679,7 +727,7 @@ def filter_core_machine(provider_machine):
     if provider_machine.instance_source.end_date or\
        provider_machine.application.end_date:
         if provider_machine.instance_source.end_date:
-            return not(provider_machine.instance_source.end_date < now)
+            return not (provider_machine.instance_source.end_date < now)
         if provider_machine.application.end_date:
-            return not(provider_machine.application.end_date < now)
+            return not (provider_machine.application.end_date < now)
     return True

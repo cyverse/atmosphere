@@ -5,7 +5,6 @@ from .volume import VolumeSerializer
 
 
 class ProjectRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return Project.objects.all()
 
@@ -16,7 +15,6 @@ class ProjectRelatedField(serializers.PrimaryKeyRelatedField):
 
 
 class VolumeRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return Volume.objects.all()
 
@@ -29,6 +27,7 @@ class VolumeRelatedField(serializers.PrimaryKeyRelatedField):
 class ProjectVolumeSerializer(serializers.HyperlinkedModelSerializer):
     project = ProjectRelatedField(queryset=Project.objects.none())
     volume = VolumeRelatedField(source="pk", queryset=Volume.objects.none())
+
     # Could not fix 'ImproperlyConfiguredError'
     # url = serializers.HyperlinkedIdentityField(
     #     view_name='api:v2:projectvolume-detail',
@@ -36,11 +35,7 @@ class ProjectVolumeSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Volume
-        fields = (
-            'id',
-            'project',
-            'volume'
-        )
+        fields = ('id', 'project', 'volume')
 
     def create(self, validated_data):
         validated_data['pk'].project = validated_data['project']

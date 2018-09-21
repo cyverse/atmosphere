@@ -12,19 +12,30 @@ MATCH_ALL = False
 def main():
     global MATCH_ALL
     parser = argparse.ArgumentParser()
-    parser.add_argument("--match-all", action="store_true",
-                        help="Everything in the status-list must match")
-    parser.add_argument("--provider-list", action="store_true",
-                        help="List of provider names and IDs")
-    parser.add_argument("--provider-id", type=int,
-                        help="Atmosphere provider ID"
-                        " to use when importing users.")
+    parser.add_argument(
+        "--match-all",
+        action="store_true",
+        help="Everything in the status-list must match"
+    )
+    parser.add_argument(
+        "--provider-list",
+        action="store_true",
+        help="List of provider names and IDs"
+    )
+    parser.add_argument(
+        "--provider-id",
+        type=int,
+        help="Atmosphere provider ID"
+        " to use when importing users."
+    )
     parser.add_argument(
         "--status-list",
-        help="List of status to match on instances. (comma separated)")
+        help="List of status to match on instances. (comma separated)"
+    )
     parser.add_argument(
         "--users",
-        help="LDAP usernames to match on instances. (comma separated)")
+        help="LDAP usernames to match on instances. (comma separated)"
+    )
     args = parser.parse_args()
     MATCH_ALL = args.match_all
     if args.provider_list:
@@ -50,8 +61,8 @@ def main():
 def print_instances(provider, users=[], status_list=[]):
     accounts = get_account_driver(provider)
     tenant_instances_map = accounts.tenant_instances_map(
-        status_list=status_list,
-        match_all=MATCH_ALL)
+        status_list=status_list, match_all=MATCH_ALL
+    )
     for tenant, instance_list in tenant_instances_map.iteritems():
         username = tenant.name
         if users and username not in users:
@@ -63,13 +74,14 @@ def print_instances(provider, users=[], status_list=[]):
             created = instance.extra.get('created', "N/A")
             updated = instance.extra.get('updated', "N/A")
             try:
-                last_history = Instance.objects.get(
-                    provider_alias=instance.id).get_last_history()
+                last_history = Instance.objects.get(provider_alias=instance.id
+                                                   ).get_last_history()
             except:
                 last_history = "N/A (Instance not in this DB)"
             print "Tenant:%s Instance:%s Status: (%s - %s) Created:%s Updated:%s, Last History:%s" % (
                 username, instance.id, instance_status, tmp_status, created,
-                updated, last_history)
+                updated, last_history
+            )
 
 
 if __name__ == "__main__":

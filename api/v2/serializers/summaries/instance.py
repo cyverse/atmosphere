@@ -9,19 +9,17 @@ from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
     identity = IdentitySummarySerializer(source='created_by_identity')
     user = serializers.SlugRelatedField(
-        slug_field="username",
-        source='created_by',
-        read_only=True)
+        slug_field="username", source='created_by', read_only=True
+    )
     provider = serializers.PrimaryKeyRelatedField(
-        source='created_by_identity.provider',
-        read_only=True)
+        source='created_by_identity.provider', read_only=True
+    )
     status = serializers.CharField(source='esh_status', read_only=True)
     size = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     uuid = serializers.CharField(source='provider_alias')
     url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:instance-detail',
-        uuid_field='provider_alias'
+        view_name='api:v2:instance-detail', uuid_field='provider_alias'
     )
 
     def get_size(self, obj):
@@ -62,17 +60,17 @@ class InstanceSummarySerializer(serializers.HyperlinkedModelSerializer):
 
 class InstanceSuperSummarySerializer(serializers.HyperlinkedModelSerializer):
     user = serializers.PrimaryKeyRelatedField(
-        source='created_by',
-        read_only=True)
+        source='created_by', read_only=True
+    )
     provider = serializers.PrimaryKeyRelatedField(
-        source='created_by_identity.provider',
-        read_only=True)
+        source='created_by_identity.provider', read_only=True
+    )
     status = serializers.CharField(source='esh_status', read_only=True)
     uuid = serializers.CharField(source='provider_alias')
     url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:instance-detail',
-        uuid_field='provider_alias'
+        view_name='api:v2:instance-detail', uuid_field='provider_alias'
     )
+
     class Meta:
         model = Instance
         fields = (

@@ -15,8 +15,8 @@ from core.validators import validate_timezone
 from uuid import uuid4
 from threepio import logger
 
-class PlatformType(models.Model):
 
+class PlatformType(models.Model):
     """
     Keep track of Virtualization Platform via type
     """
@@ -26,9 +26,7 @@ class PlatformType(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
 
     def json(self):
-        return {
-            'name': self.name
-        }
+        return {'name': self.name}
 
     class Meta:
         db_table = 'platform_type'
@@ -39,7 +37,6 @@ class PlatformType(models.Model):
 
 
 class ProviderType(models.Model):
-
     """
     Keep track of Provider via type
     """
@@ -48,9 +45,7 @@ class ProviderType(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
 
     def json(self):
-        return {
-            'name': self.name
-        }
+        return {'name': self.name}
 
     class Meta:
         db_table = 'provider_type'
@@ -72,10 +67,8 @@ class Provider(models.Model):
     # CONSTANTS
     # ALLOWED STATES - The states allowed when OverAllocation is hit by Instance.
     ALLOWED_STATES = [
-        "Suspend",
-        "Stop",
-        "Terminate",
-        "Shelve", "Shelve Offload"]
+        "Suspend", "Stop", "Terminate", "Shelve", "Shelve Offload"
+    ]
 
     # Fields
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
@@ -90,11 +83,17 @@ class Provider(models.Model):
     timezone = models.CharField(
         max_length=128,
         validators=[validate_timezone],
-        default='America/Phoenix')
+        default='America/Phoenix'
+    )
     over_allocation_action = models.ForeignKey(
-        "InstanceAction", blank=True, null=True)
-    cloud_config = JSONField(blank=True, null=True)  # Structure will be tightened up in the future
-    cloud_admin = models.ForeignKey("AtmosphereUser", related_name="admin_providers", blank=True, null=True)
+        "InstanceAction", blank=True, null=True
+    )
+    cloud_config = JSONField(
+        blank=True, null=True
+    )    # Structure will be tightened up in the future
+    cloud_admin = models.ForeignKey(
+        "AtmosphereUser", related_name="admin_providers", blank=True, null=True
+    )
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(blank=True, null=True)
 
@@ -104,15 +103,16 @@ class Provider(models.Model):
         password = identity.get_credential('secret')
         projectName = identity.project_name()
         return {
-            'admin': {
-                "username": username,
-                "password": password,
-                "tenant": projectName
-            },
+            'admin':
+                {
+                    "username": username,
+                    "password": password,
+                    "tenant": projectName
+                },
             "credential": self.get_credentials(),
             "provider": {
-                      "public": self.public,
-                      },
+                "public": self.public,
+            },
             "cloud_config": self.cloud_config
         }
 
@@ -127,7 +127,8 @@ class Provider(models.Model):
             raise ValidationError(
                 "Instance action %s is not in ALLOWED_STATES for "
                 "Over allocation action. ALLOWED_STATES=%s" %
-                (self.over_allocation_action.name, Provider.ALLOWED_STATES))
+                (self.over_allocation_action.name, Provider.ALLOWED_STATES)
+            )
 
     @staticmethod
     def shared_with_group(group):
@@ -141,9 +142,14 @@ class Provider(models.Model):
         """
         is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
         """
-        project_query = Q(identity__identity_memberships__member__memberships__user=user)
+        project_query = Q(
+            identity__identity_memberships__member__memberships__user=user
+        )
         if is_leader is not None:
-            project_query &= Q(identity__identity_memberships__member__memberships__is_leader=is_leader)
+            project_query &= Q(
+                identity__identity_memberships__member__memberships__is_leader=
+                is_leader
+            )
         return Provider.objects.filter(project_query)
 
     @classmethod
@@ -153,30 +159,39 @@ class Provider(models.Model):
         Provider.DoesNotExist.
         """
         active_providers = cls.objects.filter(
-            Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            active=True)
+            Q(end_date=None) | Q(end_date__gt=timezone.now()), active=True
+        )
         if type_name:
             active_providers = active_providers.filter(
-                type__name__iexact=type_name)
+                type__name__iexact=type_name
+            )
         if provider_uuid:
             # no longer a list
             active_providers = active_providers.get(uuid=provider_uuid)
         return active_providers
 
-    def get_config(self, section, config_key, default_value=None, raise_exc=True):
+    def get_config(
+        self, section, config_key, default_value=None, raise_exc=True
+    ):
         try:
             value = self.cloud_config[section][config_key]
         except (KeyError, TypeError):
-            logger.error("Cloud config ['%s']['%s'] is missing -- using default value (%s)" % (section, config_key, default_value))
+            logger.error(
+                "Cloud config ['%s']['%s'] is missing -- using default value (%s)"
+                % (section, config_key, default_value)
+            )
             if not default_value and raise_exc:
-                raise Exception("Cloud config ['%s']['%s'] is missing -- no default value provided" % (section, config_key))
+                raise Exception(
+                    "Cloud config ['%s']['%s'] is missing -- no default value provided"
+                    % (section, config_key)
+                )
             value = default_value
         return value
 
     def get_esh_credentials(self, esh_provider):
         cred_map = self.get_credentials()
         if isinstance(esh_provider, OSProvider):
-            cred_map['ex_force_auth_url'] = cred_map.pop('auth_url','')
+            cred_map['ex_force_auth_url'] = cred_map.pop('auth_url', '')
             if cred_map.get('ex_force_auth_version','2.0_password') == '2.0_password'\
                     and cred_map['ex_force_auth_url'] and '/v2.0/tokens' not in cred_map['ex_force_auth_url']:
                 cred_map['ex_force_auth_url'] += '/v2.0/tokens'
@@ -216,7 +231,7 @@ class Provider(models.Model):
             return False
         if self.end_date:
             now = timezone.now()
-            return not(self.end_date < now)
+            return not (self.end_date < now)
         return True
 
     def get_location(self):
@@ -290,7 +305,9 @@ class Provider(models.Model):
             router_count_map = {rtr: 0 for rtr in router_list}
         query = Q(credential__key='router_name')
         includes_router = self.identity_set.filter(query)
-        for entry in includes_router.values_list('credential__value', flat=True):
+        for entry in includes_router.values_list(
+            'credential__value', flat=True
+        ):
             if entry in router_count_map:
                 router_count_map[entry] = router_count_map[entry] + 1
             else:
@@ -301,7 +318,7 @@ class Provider(models.Model):
                 logger.info("Skipping unknown router: %s" % key)
                 del router_count_map[key]
 
-        logger.info( "Current distribution of routers:")
+        logger.info("Current distribution of routers:")
         for entry, count in router_count_map.items():
             logger.info("%s: %s" % (entry, count))
 
@@ -309,7 +326,9 @@ class Provider(models.Model):
 
     def missing_routers(self):
         query = Q(credential__key='router_name')
-        needs_router = self.identity_set.filter(~query).order_by('created_by__username')
+        needs_router = self.identity_set.filter(~query).order_by(
+            'created_by__username'
+        )
         return needs_router
 
     def list_users(self):
@@ -318,14 +337,20 @@ class Provider(models.Model):
         """
         from core.models.user import AtmosphereUser
         users_on_provider = self.identity_set.values_list(
-            'created_by__username',
-            flat=True)
+            'created_by__username', flat=True
+        )
         return AtmosphereUser.objects.filter(username__in=users_on_provider)
 
     def list_admin_names(self):
         from core.models import Credential
-        identity_ids = self.accountprovider_set.values_list('identity__id', flat=True)
-        return Credential.objects.filter(identity__id__in=identity_ids, key='key').values_list('value', flat=True)
+        identity_ids = self.accountprovider_set.values_list(
+            'identity__id', flat=True
+        )
+        return Credential.objects.filter(
+            identity__id__in=identity_ids, key='key'
+        ).values_list(
+            'value', flat=True
+        )
 
     @property
     def admin(self):
@@ -337,8 +362,8 @@ class Provider(models.Model):
     def list_admins(self):
         from core.models.identity import Identity
         identity_ids = self.accountprovider_set.values_list(
-            'identity',
-            flat=True)
+            'identity', flat=True
+        )
         return Identity.objects.filter(id__in=identity_ids)
 
     def get_admin_identity(self):
@@ -361,7 +386,10 @@ class ProviderConfiguration(models.Model):
     Values changed here will affect how the API processes
     certain requests.
     """
-    provider = models.OneToOneField(Provider, primary_key=True, related_name="configuration")
+    provider = models.OneToOneField(
+        Provider, primary_key=True, related_name="configuration"
+    )
+
     #TODO: These variables could be migrated from Provider:
     # allow_imaging = models.BooleanField(default=False) # NEW! rather than abusing 'public'
     # auto_imaging = models.BooleanField(default=False)
@@ -378,7 +406,9 @@ class ProviderConfiguration(models.Model):
 
 class ProviderInstanceAction(models.Model):
     provider = models.ForeignKey(Provider, related_name='provider_actions')
-    instance_action = models.ForeignKey("InstanceAction", related_name='provider_actions')
+    instance_action = models.ForeignKey(
+        "InstanceAction", related_name='provider_actions'
+    )
     #FIXME: enabled could *always* be 'true' when present, and 'false' when not present..
     enabled = models.BooleanField(default=True)
 
@@ -389,11 +419,10 @@ class ProviderInstanceAction(models.Model):
     class Meta:
         db_table = 'provider_instance_action'
         app_label = 'core'
-        unique_together = (("provider", "instance_action"),)
+        unique_together = (("provider", "instance_action"), )
 
 
 class AccountProvider(models.Model):
-
     """
     This model is reserved exclusively for accounts that can see everything on
     a given provider.
@@ -427,12 +456,19 @@ class AccountProvider(models.Model):
 # Save Hooks Here:
 
 
-def get_or_create_provider_configuration(sender, provider_instance=None, created=False, **kwargs):
+def get_or_create_provider_configuration(
+    sender, provider_instance=None, created=False, **kwargs
+):
     if not provider_instance:
         return
-    prof = ProviderConfiguration.objects.get_or_create(provider=provider_instance)
+    prof = ProviderConfiguration.objects.get_or_create(
+        provider=provider_instance
+    )
     if prof[1] is True:
-        logger.debug("Creating Provider Configuration for %s" % provider_instance)
+        logger.debug(
+            "Creating Provider Configuration for %s" % provider_instance
+        )
+
 
 # Instantiate the hooks:
 post_save.connect(get_or_create_provider_configuration, sender=Provider)

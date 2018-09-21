@@ -16,12 +16,14 @@ class APISanityTestCase(object):
         list_response = self.list_view(self.list_request)
         self.assertIn(
             'count', list_response.data,
-            "Expected list response to be paginated, received: %s"
-            % list_response.data)
+            "Expected list response to be paginated, received: %s" %
+            list_response.data
+        )
         self.assertIn(
             'results', list_response.data,
-            "Expected list response to be paginated, received: %s"
-            % list_response.data)
+            "Expected list response to be paginated, received: %s" %
+            list_response.data
+        )
 
     def test_detail_endpoints_invalid_data(self):
         """
@@ -30,15 +32,15 @@ class APISanityTestCase(object):
         """
         url_route = self.url_route + "-detail"
         self.assertTrue(
-            url_route,
-            "APISanityTestCase expects a `url_route` to be defined")
+            url_route, "APISanityTestCase expects a `url_route` to be defined"
+        )
         self.assertTrue(
-            self.user,
-            "APISanityTestCase expects a `self.user` to be defined")
+            self.user, "APISanityTestCase expects a `self.user` to be defined"
+        )
 
         client = APIClient()
         client.force_authenticate(user=self.user)
-        null_url = reverse(url_route, args=("null",))
+        null_url = reverse(url_route, args=("null", ))
         response = client.get(null_url)
         self.assertEquals(response.status_code, 404)
 
@@ -50,18 +52,20 @@ class APISanityTestCase(object):
         response = client.get(url)
         self.assertEquals(response.status_code, 404)
 
-        url = reverse(url_route, args=("1234",))
+        url = reverse(url_route, args=("1234", ))
         response = client.get(url)
         self.assertEquals(response.status_code, 404)
 
-        url = reverse(url_route, args=("1-2-3-4",))
+        url = reverse(url_route, args=("1-2-3-4", ))
         response = client.get(url)
         self.assertEquals(response.status_code, 404)
 
-        url = reverse(url_route, args=("beefbeefbeef",))
+        url = reverse(url_route, args=("beefbeefbeef", ))
         response = client.get(url)
         self.assertEquals(response.status_code, 404)
 
-        url = reverse(url_route, args=("deadbeef-dead-dead-dead-beefbeefbeef",))
+        url = reverse(
+            url_route, args=("deadbeef-dead-dead-dead-beefbeefbeef", )
+        )
         response = client.get(url)
         self.assertEquals(response.status_code, 404)

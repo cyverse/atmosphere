@@ -17,7 +17,6 @@ def search(providers, identity, query):
 
 
 class BaseSearchProvider():
-
     """
     BaseSearchProvider lists a basic set of expected functionality for
     search providers.
@@ -32,7 +31,6 @@ class BaseSearchProvider():
 
 
 class CoreSearchProvider(BaseSearchProvider):
-
     """
     Search core.models.machine ProviderMachine.
     """
@@ -40,17 +38,22 @@ class CoreSearchProvider(BaseSearchProvider):
     @classmethod
     def search(cls, identity, query):
         return ProviderMachine.objects.filter(
-            # Privately owned OR public machines
-            Q(application__private=True,
-              instance_source__created_by_identity=identity)
-            | Q(application__private=False, instance_source__provider=identity.provider),
-            # AND query matches on:
-            # app tag name OR
-            # app tag desc OR
-            # app name OR
-            # app desc
-            Q(application__tags__name__icontains=query)
-            | Q(application__tags__description__icontains=query)
-            | Q(application__name__icontains=query)
-            | Q(application__description__icontains=query),
-            *only_current_source())
+        # Privately owned OR public machines
+            Q(
+                application__private=True,
+                instance_source__created_by_identity=identity
+            ) | Q(
+                application__private=False,
+                instance_source__provider=identity.provider
+            ),
+        # AND query matches on:
+        # app tag name OR
+        # app tag desc OR
+        # app name OR
+        # app desc
+            Q(application__tags__name__icontains=query) |
+            Q(application__tags__description__icontains=query) |
+            Q(application__name__icontains=query) |
+            Q(application__description__icontains=query),
+            *only_current_source()
+        )

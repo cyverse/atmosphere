@@ -12,13 +12,14 @@ class LicenseSerializer(serializers.HyperlinkedModelSerializer):
         source='license_type',
         queryset=LicenseType.objects.all(),
         serializer_class=LicenseTypeSummarySerializer,
-        style={'base_template': 'input.html'})
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:license-detail',
+        style={'base_template': 'input.html'}
     )
+    url = UUIDHyperlinkedIdentityField(view_name='api:v2:license-detail', )
     created_by = serializers.SlugRelatedField(
-        slug_field='username', queryset=AtmosphereUser.objects.all(),
-        required=False)
+        slug_field='username',
+        queryset=AtmosphereUser.objects.all(),
+        required=False
+    )
 
     def is_valid(self, raise_exception=False):
         """
@@ -28,8 +29,8 @@ class LicenseSerializer(serializers.HyperlinkedModelSerializer):
             LicenseType.objects.get_or_create(name="Raw Text")
         elif 'url' in raw_type:
             LicenseType.objects.get_or_create(name="URL")
-        return super(LicenseSerializer, self).is_valid(
-                raise_exception=raise_exception)
+        return super(LicenseSerializer,
+                     self).is_valid(raise_exception=raise_exception)
 
     def create(self, validated_data):
 

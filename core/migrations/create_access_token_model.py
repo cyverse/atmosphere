@@ -14,15 +14,27 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.DeleteModel(
-            name='AccessToken',
-        ),
+        migrations.DeleteModel(name='AccessToken', ),
         migrations.CreateModel(
             name='AccessToken',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
                 ('name', models.CharField(max_length=128)),
-                ('token', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='django_cyverse_auth.Token')),
+                (
+                    'token',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='django_cyverse_auth.Token'
+                    )
+                ),
             ],
             options={
                 'db_table': 'access_token',

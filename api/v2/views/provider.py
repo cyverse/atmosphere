@@ -35,7 +35,8 @@ class ProviderViewSet(MultipleFieldLookup, AuthOptionalViewSet):
         # publically available, active, and non-end dated
         if (type(user) == AnonymousUser):
             return Provider.objects.filter(
-                only_current(), active=True, public=True)
+                only_current(), active=True, public=True
+            )
         providers = user.current_providers
         # NOTE: This does _NOT_ filter out providers that are InMaintenance.
         return providers
@@ -43,7 +44,9 @@ class ProviderViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     @detail_route()
     def sizes(self, *args, **kwargs):
         provider = self.get_object()
-        self.get_queryset = super(viewsets.ReadOnlyModelViewSet, self).get_queryset
+        self.get_queryset = super(
+            viewsets.ReadOnlyModelViewSet, self
+        ).get_queryset
         self.queryset = provider.size_set.get_queryset()
         self.serializer_class = SizeSummarySerializer
         return self.list(self, *args, **kwargs)

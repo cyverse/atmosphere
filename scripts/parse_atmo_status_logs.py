@@ -11,12 +11,10 @@ def _parse_logs(filename):
         csvreader = csv.reader(the_file, delimiter=',')
         for row in csvreader:
             try:
-                (timestamp,
-                 username,
-                 instance_id,
-                 machine_id,
-                 size_id,
-                 status_name) = row
+                (
+                    timestamp, username, instance_id, machine_id, size_id,
+                    status_name
+                ) = row
             except:
                 print 'Could not parse row:\n%s' % row
                 continue
@@ -24,8 +22,8 @@ def _parse_logs(filename):
                 pending_instances[(username, machine_id, size_id)] = row
             else:
                 first_row = pending_instances.pop(
-                    (username, machine_id, size_id),
-                    None)
+                    (username, machine_id, size_id), None
+                )
                 user_instance_history = user_history.get(username, {})
                 instance_history = user_instance_history.get(instance_id, [])
                 if first_row:
@@ -64,5 +62,7 @@ def _parse_logs(filename):
 
 def get_time(time_str):
     return datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
+
+
 if __name__ == "__main__":
     _parse_logs("logs/atmosphere_status.log")

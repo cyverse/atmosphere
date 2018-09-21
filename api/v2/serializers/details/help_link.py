@@ -10,9 +10,4 @@ class HelpLinkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HelpLink
-        fields = (
-            'link_key',
-            'topic',
-            'context',
-            'href'
-        )
+        fields = ('link_key', 'topic', 'context', 'href')

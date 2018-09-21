@@ -16,13 +16,14 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
             'url',
             'username',
             'end_date',
-            # 'first_name',
-            # 'last_name',
-            # 'email',
-            # 'is_staff',
-            # 'is_superuser',
-            # 'date_joined'
+        # 'first_name',
+        # 'last_name',
+        # 'email',
+        # 'is_staff',
+        # 'is_superuser',
+        # 'date_joined'
         )
+
 
 class AdminUserSerializer(serializers.HyperlinkedModelSerializer):
     url = UUIDHyperlinkedIdentityField(
@@ -41,7 +42,7 @@ class AdminUserSerializer(serializers.HyperlinkedModelSerializer):
             'is_staff',
             'is_superuser',
             'email',
-            # 'first_name',
-            # 'last_name',
-            # 'date_joined'
+        # 'first_name',
+        # 'last_name',
+        # 'date_joined'
         )

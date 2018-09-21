@@ -14,8 +14,12 @@ from api.v2.views.mixins import MultipleFieldLookup
 
 
 class IdentityFilter(filters.FilterSet):
-    project_id = django_filters.CharFilter('identity_memberships__member__projects__id')
-    project_uuid = django_filters.CharFilter('identity_memberships__member__projects__uuid')
+    project_id = django_filters.CharFilter(
+        'identity_memberships__member__projects__id'
+    )
+    project_uuid = django_filters.CharFilter(
+        'identity_memberships__member__projects__uuid'
+    )
     group_id = django_filters.CharFilter('identity_memberships__member__id')
 
     class Meta:
@@ -23,7 +27,9 @@ class IdentityFilter(filters.FilterSet):
         fields = ["project_id", "project_uuid", "group_id"]
 
 
-class IdentityViewSet(MultipleFieldLookup, UserListAdminQueryAndUpdate, ModelViewSet):
+class IdentityViewSet(
+    MultipleFieldLookup, UserListAdminQueryAndUpdate, ModelViewSet
+):
     """
     API endpoint that allows providers to be viewed or edited.
     """
@@ -44,9 +50,7 @@ class IdentityViewSet(MultipleFieldLookup, UserListAdminQueryAndUpdate, ModelVie
             kwargs = {"uuid": pk}
         identity = Identity.objects.get(**kwargs)
         export_data = identity.export()
-        return Response(
-            export_data,
-            status=status.HTTP_200_OK)
+        return Response(export_data, status=status.HTTP_200_OK)
 
     def get_queryset(self):
         """
@@ -59,7 +63,8 @@ class IdentityViewSet(MultipleFieldLookup, UserListAdminQueryAndUpdate, ModelVie
             idents = Identity.objects.all()
         if 'username' in self.request.GET:
             target_username = self.request.GET.get('username')
-            user = AtmosphereUser.objects.filter(username=target_username).first()
+            user = AtmosphereUser.objects.filter(username=target_username
+                                                ).first()
             idents = Identity.shared_with_user(user)
 
         return idents.filter(only_current_provider())

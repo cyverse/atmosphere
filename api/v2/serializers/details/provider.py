@@ -3,6 +3,7 @@ from rest_framework import serializers
 from api.v2.serializers.summaries import SizeSummarySerializer
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
+
 class ProviderTypeSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:providertype-detail',
@@ -25,9 +26,7 @@ class PlatformTypeSerializer(serializers.HyperlinkedModelSerializer):
 
 class ProviderSerializer(serializers.HyperlinkedModelSerializer):
     name = serializers.CharField(source='location')
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:provider-detail',
-    )
+    url = UUIDHyperlinkedIdentityField(view_name='api:v2:provider-detail', )
     type = ProviderTypeSerializer()
     virtualization = PlatformTypeSerializer()
     sizes = SizeSummarySerializer(source='size_set', many=True)

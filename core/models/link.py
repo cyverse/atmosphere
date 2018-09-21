@@ -10,7 +10,6 @@ from core.query import only_current
 
 
 class ExternalLink(models.Model):
-
     """
     An External Link is like a 'Bookmark', ExternalLinks are
     completely managed by end-users.
@@ -18,8 +17,9 @@ class ExternalLink(models.Model):
     NOTE: Using this as the 'model' for DB moving to ID==UUID format.
     """
     # Required
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4,
-                          unique=True, editable=False)
+    id = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, unique=True, editable=False
+    )
     title = models.CharField(max_length=256)
     link = models.URLField(max_length=256)
     # Optional/default available
@@ -35,8 +35,11 @@ class ExternalLink(models.Model):
         ownership_query = Q(created_by=user)
         project_query = Q(projects__owner__memberships__user=user)
         if is_leader is not None:
-            project_query &= Q(projects__owner__memberships__is_leader=is_leader)
-        return ExternalLink.objects.filter(project_query | ownership_query).distinct()
+            project_query &= Q(
+                projects__owner__memberships__is_leader=is_leader
+            )
+        return ExternalLink.objects.filter(project_query |
+                                           ownership_query).distinct()
 
     def get_projects(self, user):
         projects = self.projects.filter(

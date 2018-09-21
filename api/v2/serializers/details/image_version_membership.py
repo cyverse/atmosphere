@@ -6,7 +6,8 @@ from core.models import ApplicationVersion as ImageVersion
 from core.models import Group as Membership
 
 from api.v2.serializers.summaries import (
-    ImageVersionSummarySerializer, GroupSummarySerializer)
+    ImageVersionSummarySerializer, GroupSummarySerializer
+)
 from core.serializers.fields import ModelRelatedField
 
 
@@ -15,14 +16,16 @@ class ImageVersionMembershipSerializer(serializers.HyperlinkedModelSerializer):
         queryset=ImageVersion.objects.all(),
         serializer_class=ImageVersionSummarySerializer,
         style={'base_template': 'input.html'},
-        required=False)
+        required=False
+    )
     #NOTE: When complete, return here to disambiguate between 'membership'&&'group'
     group = ModelRelatedField(
         queryset=Membership.objects.all(),
         serializer_class=GroupSummarySerializer,
         style={'base_template': 'input.html'},
         lookup_field='uuid',
-        required=False)
+        required=False
+    )
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:imageversion_membership-detail',
     )
@@ -35,9 +38,4 @@ class ImageVersionMembershipSerializer(serializers.HyperlinkedModelSerializer):
                 fields=('image_version', 'group')
             )
         ]
-        fields = (
-            'id',
-            'url',
-            'image_version',
-            'group'
-        )
+        fields = ('id', 'url', 'image_version', 'group')

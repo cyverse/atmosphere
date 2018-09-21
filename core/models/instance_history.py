@@ -14,7 +14,6 @@ from threepio import logger
 
 
 class InstanceStatus(models.Model):
-
     """
     Used to enumerate the types of actions
     (I.e. Stopped, Suspended, Active, Deleted)
@@ -44,7 +43,6 @@ class InstanceStatus(models.Model):
 
 
 class InstanceStatusHistory(models.Model):
-
     """
     Used to keep track of each change in instance status
     (Useful for time management)
@@ -65,13 +63,23 @@ class InstanceStatusHistory(models.Model):
         Given that you are a node on a linked-list, traverse yourself backwards
         """
         if self.instance.start_date == self.start_date:
-            raise LookupError("This is the first state of instance %s" % self.instance)
+            raise LookupError(
+                "This is the first state of instance %s" % self.instance
+            )
         try:
-            history = self.instance.instancestatushistory_set.get(start_date=self.end_date)
+            history = self.instance.instancestatushistory_set.get(
+                start_date=self.end_date
+            )
             if history.id == self.id:
-                raise ValueError("There was no matching transaction for Instance:%s end-date:%s" % (self.instance, self.end_date))
+                raise ValueError(
+                    "There was no matching transaction for Instance:%s end-date:%s"
+                    % (self.instance, self.end_date)
+                )
         except ObjectDoesNotExist:
-            raise ValueError("There was no matching transaction for Instance:%s end-date:%s" % (self.instance, self.end_date))
+            raise ValueError(
+                "There was no matching transaction for Instance:%s end-date:%s"
+                % (self.instance, self.end_date)
+            )
 
     def next(self):
         """
@@ -80,22 +88,44 @@ class InstanceStatusHistory(models.Model):
         # In this situation, the instance is presumably still running.
         if not self.end_date:
             if self.instance.end_date:
-                raise ValueError("Whoa! The instance %s has been terminated, but status %s has not! This could leak time" % (self.instance,self))
-            raise LookupError("This is the final state of instance %s" % self.instance)
+                raise ValueError(
+                    "Whoa! The instance %s has been terminated, but status %s has not! This could leak time"
+                    % (self.instance, self)
+                )
+            raise LookupError(
+                "This is the final state of instance %s" % self.instance
+            )
         # In this situation, the end_date of the final history is an exact match to the instance's end-date.
         if self.instance.end_date == self.end_date:
-            raise LookupError("This is the final state of instance %s" % self.instance)
+            raise LookupError(
+                "This is the final state of instance %s" % self.instance
+            )
         # In this situation, the end_date of the final history is "a little off" from the instance's end-date.
         if self == self.instance.get_last_history():
-            raise LookupError("This is the final state of instance %s" % self.instance)
+            raise LookupError(
+                "This is the final state of instance %s" % self.instance
+            )
         try:
-            return self.instance.instancestatushistory_set.get(start_date=self.end_date)
+            return self.instance.instancestatushistory_set.get(
+                start_date=self.end_date
+            )
         except ObjectDoesNotExist:
-            raise ValueError("There was no matching transaction for Instance:%s end-date:%s" % (self.instance, self.end_date))
+            raise ValueError(
+                "There was no matching transaction for Instance:%s end-date:%s"
+                % (self.instance, self.end_date)
+            )
 
     @classmethod
-    def transaction(cls, status_name, activity, instance, size,
-                    extra=None, start_time=None, last_history=None):
+    def transaction(
+        cls,
+        status_name,
+        activity,
+        instance,
+        size,
+        extra=None,
+        start_time=None,
+        last_history=None
+    ):
         try:
             with transaction.atomic():
                 if not last_history:
@@ -104,34 +134,49 @@ class InstanceStatusHistory(models.Model):
                         raise ValueError(
                             "A previous history is required "
                             "to perform a transaction. Instance:%s" %
-                            (instance,))
+                            (instance, )
+                        )
                     elif last_history.end_date:
-                        raise ValueError("Old history already has end date: %s"
-                                         % last_history)
+                        raise ValueError(
+                            "Old history already has end date: %s" %
+                            last_history
+                        )
                 last_history.end_date = start_time
                 last_history.save()
                 new_history = InstanceStatusHistory.create_history(
-                    status_name, instance, size, start_date=start_time, activity=activity, extra=extra)
+                    status_name,
+                    instance,
+                    size,
+                    start_date=start_time,
+                    activity=activity,
+                    extra=extra
+                )
                 logger.info(
                     "Status Update - User:%s Instance:%s "
-                    "Old:%s New:%s Time:%s" %
-                    (instance.created_by,
-                     instance.provider_alias,
-                     last_history.status.name,
-                     new_history.status.name,
-                     new_history.start_date))
+                    "Old:%s New:%s Time:%s" % (
+                        instance.created_by, instance.provider_alias,
+                        last_history.status.name, new_history.status.name,
+                        new_history.start_date
+                    )
+                )
                 new_history.save()
             return new_history
         except DatabaseError:
             logger.exception(
                 "instance_status_history: Lock is already acquired by"
-                "another transaction.")
+                "another transaction."
+            )
 
     @staticmethod
-    def _build_extra(status_name=None, fault=None, deploy_fault_message=None, deploy_fault_trace=None):
+    def _build_extra(
+        status_name=None,
+        fault=None,
+        deploy_fault_message=None,
+        deploy_fault_trace=None
+    ):
         extra = {}
         # Only compute this for deploy_error or user_deploy_error (seen as active)
-        if status_name not in ['active','deploy_error']:
+        if status_name not in ['active', 'deploy_error']:
             return extra
         if fault:
             if type(fault) == dict:
@@ -146,20 +191,33 @@ class InstanceStatusHistory(models.Model):
             logger.warn(
                 "Invalid metadata: Expected 'deploy_fault_message'(%s) "
                 "AND 'deploy_fault_trace'(%s), but received only one",
-                deploy_fault_message, deploy_fault_trace)
+                deploy_fault_message, deploy_fault_trace
+            )
 
         return extra
 
     @classmethod
-    def create_history(cls, status_name, instance, size,
-                       start_date=None, end_date=None, activity=None,
-                       extra=None):
+    def create_history(
+        cls,
+        status_name,
+        instance,
+        size,
+        start_date=None,
+        end_date=None,
+        activity=None,
+        extra=None
+    ):
         """
         Creates a new (Unsaved!) InstanceStatusHistory
         """
         status, _ = InstanceStatus.objects.get_or_create(name=status_name)
         new_history = InstanceStatusHistory(
-            instance=instance, size=size, status=status, activity=activity, extra=extra)
+            instance=instance,
+            size=size,
+            status=status,
+            activity=activity,
+            extra=extra
+        )
         if start_date:
             new_history.start_date = start_date
             logger.debug("Created new history object: %s " % (new_history))
@@ -211,9 +269,8 @@ class InstanceStatusHistory(models.Model):
         all_history = cls.objects.filter(instance=instance)
         if start_date and end_date:
             all_history = all_history.filter(
-                start_date__range=[
-                    start_date,
-                    end_date])
+                start_date__range=[start_date, end_date]
+            )
         elif start_date:
             all_history = all_history.filter(start_date__gt=start_date)
         elif end_date:
@@ -226,9 +283,9 @@ class InstanceStatusHistory(models.Model):
         return self.end_date if self.end_date else now_time
 
     def __unicode__(self):
-        return "%s (FROM:%s TO:%s)" % (self.status,
-                                       self.start_date,
-                                       self.end_date if self.end_date else '')
+        return "%s (FROM:%s TO:%s)" % (
+            self.status, self.start_date, self.end_date if self.end_date else ''
+        )
 
     def is_active(self):
         """

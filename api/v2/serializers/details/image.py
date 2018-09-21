@@ -4,9 +4,7 @@ from rest_framework import serializers
 from api.v2.serializers.summaries import UserSummarySerializer, PatternMatchSummarySerializer
 from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.fields import (
-    ImageVersionRelatedField,
-    TagRelatedField,
-    filter_current_user_queryset
+    ImageVersionRelatedField, TagRelatedField, filter_current_user_queryset
 )
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
@@ -29,14 +27,13 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
         many=True,
         queryset=filter_current_user_queryset,
         serializer_class=PatternMatchSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
     tags = TagRelatedField(many=True)
     versions = ImageVersionRelatedField(many=True)
     icon = serializers.CharField(source="get_icon_url", read_only=True)
     is_public = SwapBooleanField(source='private')
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:application-detail',
-    )
+    url = UUIDHyperlinkedIdentityField(view_name='api:v2:application-detail', )
     metrics_url = UUIDHyperlinkedIdentityField(
         view_name='api:v2:applicationmetric-detail',
     )
@@ -48,7 +45,7 @@ class ImageSerializer(serializers.HyperlinkedModelSerializer):
             'url',
             'uuid',
             'name',
-            # Adtl. Fields
+        # Adtl. Fields
             'metrics_url',
             'created_by',
             'description',

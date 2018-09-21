@@ -18,6 +18,7 @@ class VersionFilter(django_filters.FilterSet):
             Q(image_version__created_by__username=value) |
             Q(image_version__application__created_by__username=value)
         )
+
     def filter_by_uuid(self, queryset, name, value):
         # NOTE: Remove this *HACK* once django_filters supports UUID as PK fields
         return queryset.filter(image_version__id=value)
@@ -28,7 +29,6 @@ class VersionFilter(django_filters.FilterSet):
 
 
 class ImageVersionMembershipViewSet(AuthModelViewSet):
-
     """
     API endpoint that allows version tags to be viewed
     """
@@ -41,10 +41,13 @@ class ImageVersionMembershipViewSet(AuthModelViewSet):
         Filter out tags for deleted versions
         """
         return ImageVersionMembership.objects.filter(
-            image_version__created_by=self.request.user)
+            image_version__created_by=self.request.user
+        )
 
     def perform_destroy(self, instance):
-        remove_membership_task.apply_async(args=(instance.image_version, instance.group))
+        remove_membership_task.apply_async(
+            args=(instance.image_version, instance.group)
+        )
         instance.delete()
 
     def perform_create(self, serializer):
@@ -52,4 +55,3 @@ class ImageVersionMembershipViewSet(AuthModelViewSet):
         group = serializer.validated_data['group']
         add_membership_task.apply_async(args=(image_version, group))
         serializer.save()
-

@@ -4,22 +4,21 @@ from django.core.exceptions import ValidationError
 
 from core.models import IdentityMembership, Identity
 from core.models.quota import (
-    has_floating_ip_count_quota,
-    has_port_count_quota,
-    has_instance_count_quota,
-    has_cpu_quota,
-    has_mem_quota,
-    has_storage_quota,
-    has_storage_count_quota,
+    has_floating_ip_count_quota, has_port_count_quota, has_instance_count_quota,
+    has_cpu_quota, has_mem_quota, has_storage_quota, has_storage_count_quota,
     has_snapshot_count_quota
-    )
+)
 from service.cache import get_cached_driver
 from service.driver import get_account_driver
 
 
 def check_over_instance_quota(
-        username, identity_uuid, esh_size=None,
-        include_networking=False, raise_exc=True):
+    username,
+    identity_uuid,
+    esh_size=None,
+    include_networking=False,
+    raise_exc=True
+):
     """
     Checks quota based on current limits (and an instance of size, if passed).
     param - esh_size - if included, update the CPU and Memory totals & increase instance_count
@@ -34,7 +33,8 @@ def check_over_instance_quota(
     """
     memberships_available = IdentityMembership.objects.filter(
         identity__uuid=identity_uuid,
-        member__memberships__user__username=username)
+        member__memberships__user__username=username
+    )
     if memberships_available:
         membership = memberships_available.first()
     identity = membership.identity
@@ -63,8 +63,12 @@ def check_over_instance_quota(
 
 
 def check_over_storage_quota(
-        username, identity_uuid,
-        new_snapshot_size=0, new_volume_size=0, raise_exc=True):
+    username,
+    identity_uuid,
+    new_snapshot_size=0,
+    new_volume_size=0,
+    raise_exc=True
+):
     """
     Checks quota based on current limits.
     param - new_snapshot_size - if included and non-zero, increase snapshot_count
@@ -77,7 +81,8 @@ def check_over_storage_quota(
     """
     memberships_available = IdentityMembership.objects.filter(
         identity__uuid=identity_uuid,
-        member__memberships__user__username=username)
+        member__memberships__user__username=username
+    )
     if memberships_available:
         membership = memberships_available.first()
     identity = membership.identity
@@ -131,7 +136,7 @@ def _get_hard_limits(identity):
     Lookup the OpenStack "Hard Limits" based on the account provider
     """
     accounts = get_account_driver(identity.provider)
-    defaults = {"ram": 999, "cpu": 99}  # Used when all else fails.
+    defaults = {"ram": 999, "cpu": 99}    # Used when all else fails.
     limits = {}
     limits.update(defaults)
     username = identity.get_credential('key')
@@ -143,10 +148,13 @@ def _get_hard_limits(identity):
 
 
 def set_openstack_quota(
-        identity, user_quota=None, compute=True, volume=True, network=True):
+    identity, user_quota=None, compute=True, volume=True, network=True
+):
     if not identity.provider.get_type_name().lower() == 'openstack':
-        raise Exception("Cannot set provider quota on type: %s"
-                        % identity.provider.get_type_name())
+        raise Exception(
+            "Cannot set provider quota on type: %s" %
+            identity.provider.get_type_name()
+        )
     if not user_quota:
         user_quota = identity.quota
     if not user_quota:
@@ -161,10 +169,11 @@ def set_openstack_quota(
         volume_quota = _set_volume_quota(user_quota, identity)
 
     return {
-        'account': {
-            'identity': identity.project_name(),
-            'quota': str(user_quota),
-        },
+        'account':
+            {
+                'identity': identity.project_name(),
+                'quota': str(user_quota),
+            },
         'compute': compute_quota,
         'network': network_quota,
         'volume': volume_quota,
@@ -185,17 +194,20 @@ def _set_network_quota(user_quota, identity):
     network_values = {
         'port': user_quota.port_count,
         'floatingip': user_quota.floating_ip_count,
-        # INTENTIONALLY SKIPPED/IGNORED
-        # 'subnet', 'router', 'network',
-        # 'security_group', 'security_group_rules'
+    # INTENTIONALLY SKIPPED/IGNORED
+    # 'subnet', 'router', 'network',
+    # 'security_group', 'security_group_rules'
     }
     username = identity.created_by.username
-    logger.info("Updating network quota for %s to %s"
-                % (username, network_values))
+    logger.info(
+        "Updating network quota for %s to %s" % (username, network_values)
+    )
     ad = get_account_driver(identity.provider)
     tenant = ad.get_project(username)
     admin_driver = ad.admin_driver
-    result = admin_driver._connection._neutron_update_quota(tenant.id, network_values)
+    result = admin_driver._connection._neutron_update_quota(
+        tenant.id, network_values
+    )
     logger.info("Updated quota for %s to %s" % (username, result))
     return result
 
@@ -211,7 +223,9 @@ def _set_volume_quota(user_quota, identity):
     ad = get_account_driver(identity.provider)
     admin_driver = ad.admin_driver
     tenant = ad.get_project(username)
-    result = admin_driver._connection._cinder_update_quota(tenant.id, volume_values)
+    result = admin_driver._connection._cinder_update_quota(
+        tenant.id, volume_values
+    )
     logger.info("Updated quota for %s to %s" % (username, result))
     return result
 
@@ -220,7 +234,9 @@ def _set_compute_quota(user_quota, identity):
     # Use THESE values...
     compute_values = {
         'cores': user_quota.cpu,
-        'ram': user_quota.memory*1024,  # NOTE: Value is stored in GB, Openstack (Liberty) expects MB
+        'ram':
+            user_quota.memory *
+            1024,    # NOTE: Value is stored in GB, Openstack (Liberty) expects MB
         'floating_ips': user_quota.floating_ip_count,
         'fixed_ips': user_quota.port_count,
         'instances': user_quota.instance_count,
@@ -244,17 +260,27 @@ def _set_compute_quota(user_quota, identity):
     if creds.get('ex_force_auth_version', '2.0_password') != "2.0_password":
         # FIXME: Remove 'use_tenant_id' when legacy clouds are no-longer in use.
         try:
-            result = admin_driver._connection.ex_update_quota(tenant.id, compute_values, use_tenant_id=use_tenant_id)
+            result = admin_driver._connection.ex_update_quota(
+                tenant.id, compute_values, use_tenant_id=use_tenant_id
+            )
         except Exception:
-            logger.exception("Could not set a user-quota, trying to set tenant-quota")
+            logger.exception(
+                "Could not set a user-quota, trying to set tenant-quota"
+            )
             raise
     else:
         # For CyVerse old clouds, run the top method. don't use try/except.
         try:
             result = admin_driver._connection.ex_update_quota_for_user(
-                tenant.id, ks_user.id, compute_values, use_tenant_id=use_tenant_id)
+                tenant.id,
+                ks_user.id,
+                compute_values,
+                use_tenant_id=use_tenant_id
+            )
         except Exception:
-            logger.exception("Could not set a user-quota, trying to set tenant-quota")
+            logger.exception(
+                "Could not set a user-quota, trying to set tenant-quota"
+            )
             raise
         logger.info("Updated quota for %s to %s" % (username, result))
     return result

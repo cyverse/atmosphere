@@ -19,7 +19,7 @@ class UserTests(APITestCase, APISanityTestCase):
         self.list_view = UserViewSet.as_view({'get': 'list'})
         self.detail_view = UserViewSet.as_view({'get': 'retrieve'})
 
-        detail_url = reverse(self.url_route + '-detail', args=(self.user.id,))
+        detail_url = reverse(self.url_route + '-detail', args=(self.user.id, ))
         list_url = reverse(self.url_route + '-list')
 
         self.detail_request = factory.get(detail_url)

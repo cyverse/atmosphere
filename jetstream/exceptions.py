@@ -24,6 +24,7 @@ class NoAccountForUsernameException(TASAPIException):
     """
     pass
 
+
 class TASPluginException(Exception):
     """
     This exception is raised when something has changed with the Jetstream

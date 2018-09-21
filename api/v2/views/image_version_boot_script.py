@@ -6,6 +6,7 @@ from core.models import ApplicationVersionBootScript as ImageVersionBootScript
 from api.v2.serializers.details import ImageVersionBootScriptSerializer
 from api.v2.views.base import AuthModelViewSet
 
+
 class VersionFilter(django_filters.FilterSet):
     version_id = django_filters.CharFilter(method='filter_by_uuid')
     created_by = django_filters.CharFilter(method='filter_owner')
@@ -15,6 +16,7 @@ class VersionFilter(django_filters.FilterSet):
             Q(image_version__created_by__username=value) |
             Q(image_version__application__created_by__username=value)
         )
+
     def filter_by_uuid(self, queryset, name, value):
         # NOTE: Remove this *HACK* once django_filters supports UUID as PK fields
         return queryset.filter(image_version__id=value)
@@ -25,7 +27,6 @@ class VersionFilter(django_filters.FilterSet):
 
 
 class ImageVersionBootScriptViewSet(AuthModelViewSet):
-
     """
     API endpoint that allows version tags to be viewed
     """
@@ -38,4 +39,5 @@ class ImageVersionBootScriptViewSet(AuthModelViewSet):
         Filter out tags for deleted versions
         """
         return ImageVersionBootScript.objects.filter(
-            image_version__created_by=self.request.user)
+            image_version__created_by=self.request.user
+        )

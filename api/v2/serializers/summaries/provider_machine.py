@@ -8,7 +8,8 @@ class ProviderMachineSummarySerializer(serializers.HyperlinkedModelSerializer):
     provider = ProviderSummarySerializer(source='instance_source.provider')
     version = serializers.ReadOnlyField(source='application_version.name')
     owner = serializers.ReadOnlyField(
-        source='application_version.application.created_by.username')
+        source='application_version.application.created_by.username'
+    )
     start_date = serializers.DateTimeField(source='instance_source.start_date')
     end_date = serializers.DateTimeField(source='instance_source.end_date')
     uuid = serializers.ReadOnlyField(source='instance_source.identifier')
@@ -21,6 +22,6 @@ class ProviderMachineSummarySerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ProviderMachine
         fields = (
-            'id', 'uuid', 'url',
-            'provider', 'version', 'owner',
-            'size_gb', 'start_date', 'end_date')
+            'id', 'uuid', 'url', 'provider', 'version', 'owner', 'size_gb',
+            'start_date', 'end_date'
+        )

@@ -9,4 +9,8 @@ class CleanedIdentitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Identity
-        fields = ('id', 'created_by', 'provider', )
+        fields = (
+            'id',
+            'created_by',
+            'provider',
+        )

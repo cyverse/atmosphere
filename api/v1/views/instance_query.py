@@ -30,27 +30,56 @@ def ip_request(req):
                 instances = Instance.objects.filter(provider_alias=instance_id)
 
         if len(instances) > 0:
-            _json = json.dumps({'result':
-                                {'code': 'success',
-                                 'meta': '',
-                                 'value': ('Thank you for your feedback!'
-                                           'Support has been notified.')}})
+            _json = json.dumps(
+                {
+                    'result':
+                        {
+                            'code':
+                                'success',
+                            'meta':
+                                '',
+                            'value':
+                                (
+                                    'Thank you for your feedback!'
+                                    'Support has been notified.'
+                                )
+                        }
+                }
+            )
             status = 200
         else:
-            _json = json.dumps({'result':
-                                {'code': 'failed',
-                                 'meta': '',
-                                 'value': ('No instance found '
-                                           'with requested IP address')}})
+            _json = json.dumps(
+                {
+                    'result':
+                        {
+                            'code':
+                                'failed',
+                            'meta':
+                                '',
+                            'value':
+                                (
+                                    'No instance found '
+                                    'with requested IP address'
+                                )
+                        }
+                }
+            )
             status = 404
     except Exception as e:
         logger.debug("IP request failed")
         logger.debug("%s %s %s" % (e, str(e), e.message))
-        _json = json.dumps({'result':
-                            {'code': 'failed',
-                             'meta': '',
-                             'value': 'An error occured'}})
+        _json = json.dumps(
+            {
+                'result':
+                    {
+                        'code': 'failed',
+                        'meta': '',
+                        'value': 'An error occured'
+                    }
+            }
+        )
         status = 500
-    response = HttpResponse(_json,
-                            status=status, content_type='application/json')
+    response = HttpResponse(
+        _json, status=status, content_type='application/json'
+    )
     return response

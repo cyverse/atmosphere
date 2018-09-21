@@ -1,9 +1,0 @@
-#!/bin/bash
-set -e
-TEST_RUNNER=./run_tests.sh
-
-exec $TEST_RUNNER
-
-if [ $? -ne 0 ]; then
-    exit 1
-fi

@@ -9,15 +9,18 @@ class VolumeSerializer(serializers.ModelSerializer):
     attach_data = serializers.ReadOnlyField(source='esh_attach_data')
     mount_location = serializers.ReadOnlyField()
     created_by = serializers.ReadOnlyField(
-        source="instance_source.created_by.username")
-    provider = serializers.ReadOnlyField(
-        source="instance_source.provider.uuid")
+        source="instance_source.created_by.username"
+    )
+    provider = serializers.ReadOnlyField(source="instance_source.provider.uuid")
     identity = CleanedIdentitySerializer(
-        source="instance_source.created_by_identity")
+        source="instance_source.created_by_identity"
+    )
     alias = serializers.ReadOnlyField(source='instance_source.identifier')
     start_date = serializers.ReadOnlyField(source='instance_source.start_date')
     end_date = serializers.ReadOnlyField(source='instance_source.end_date')
-    project = serializers.ReadOnlyField(source='project.id')  # FIXME: TEST THIS WORKS AS EXPECTED
+    project = serializers.ReadOnlyField(
+        source='project.id'
+    )    # FIXME: TEST THIS WORKS AS EXPECTED
 
     def __init__(self, *args, **kwargs):
         user = get_context_user(self, kwargs)
@@ -26,4 +29,4 @@ class VolumeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Volume
-        exclude = ("instance_source",)
+        exclude = ("instance_source", )

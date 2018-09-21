@@ -12,14 +12,18 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
     alias_hash = serializers.SerializerMethodField()
     created_by = serializers.CharField(
         read_only=True,
-        source='application_version.application.created_by.username')
+        source='application_version.application.created_by.username'
+    )
     created_by_identity = CleanedIdentitySerializer(
-        source='instance_source.created_by_identity')
+        source='instance_source.created_by_identity'
+    )
     icon = serializers.CharField(read_only=True, source='icon_url')
     private = serializers.CharField(
-        read_only=True, source='application_version.application.private')
-    architecture = serializers.CharField(read_only=True,
-                                         source='esh_architecture')
+        read_only=True, source='application_version.application.private'
+    )
+    architecture = serializers.CharField(
+        read_only=True, source='esh_architecture'
+    )
     ownerid = serializers.CharField(read_only=True, source='esh_ownerid')
     state = serializers.CharField(read_only=True, source='esh_state')
     # Writeable fields
@@ -28,27 +32,29 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
         slug_field='name',
         source='application_version.application.tags.all',
         many=True,
-        queryset=Tag.objects.all())
+        queryset=Tag.objects.all()
+    )
     allow_imaging = serializers.BooleanField(
-        source='application_version.allow_imaging',
-        read_only=True)
+        source='application_version.allow_imaging', read_only=True
+    )
     licenses = LicenseSerializer(
-        source='licenses.all',
-        many=True,
-        read_only=True)
+        source='licenses.all', many=True, read_only=True
+    )
     description = serializers.CharField(
-        source='application_version.application.description')
+        source='application_version.application.description'
+    )
     start_date = serializers.ReadOnlyField(source='instance_source.start_date')
     end_date = serializers.ReadOnlyField(source='instance_source.end_date')
     featured = serializers.BooleanField(
-        source='application_version.application.featured')
+        source='application_version.application.featured'
+    )
     identifier = serializers.ReadOnlyField(source="instance_source.identifier")
     version = serializers.CharField(
-        source="application_version.name",
-        read_only=True)
+        source="application_version.name", read_only=True
+    )
     application_name = serializers.CharField(
-        source='application_version.application.name',
-        read_only=True)
+        source='application_version.application.name', read_only=True
+    )
 
     def __init__(self, *args, **kwargs):
         self.request_user = kwargs.pop('request_user', None)
@@ -59,4 +65,8 @@ class ProviderMachineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProviderMachine
-        exclude = ('id', 'instance_source', 'licenses',)
+        exclude = (
+            'id',
+            'instance_source',
+            'licenses',
+        )

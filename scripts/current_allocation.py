@@ -25,14 +25,21 @@ def main():
     Add a user to openstack.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--provider-id", type=int, required=True,
-                        help="Atmosphere provider ID"
-                        " to use when importing users.")
-    parser.add_argument("--users",
-                        help="LDAP usernames to import. (comma separated)")
+    parser.add_argument(
+        "--provider-id",
+        type=int,
+        required=True,
+        help="Atmosphere provider ID"
+        " to use when importing users."
+    )
+    parser.add_argument(
+        "--users", help="LDAP usernames to import. (comma separated)"
+    )
     parser.add_argument(
         "--end",
-        help="End date to use for monitoring. Expects Log formatting: YYYY-MM-DD HH:MM:SS")
+        help=
+        "End date to use for monitoring. Expects Log formatting: YYYY-MM-DD HH:MM:SS"
+    )
     args = parser.parse_args()
     openstack_prov = Provider.objects.get(id=args.provider_id)
     users = args.users.split(',') if args.users else None
@@ -44,8 +51,10 @@ def main():
         print >> sys.stderr, "ERROR: End date '%s'"\
             " does not match Expected format: 'YYYY-MM-DD HH:MM:SS'"
         return 1
-    monitor_instances_for(openstack_prov.id, users=users,
-                          print_logs=True, end_date=end_date)
+    monitor_instances_for(
+        openstack_prov.id, users=users, print_logs=True, end_date=end_date
+    )
+
 
 if __name__ == "__main__":
     main()

@@ -16,7 +16,7 @@ class JetstreamAllocationSourcePlugin(object):
         :return: Whether the user has valid allocation sources
         :rtype: bool
         """
-        return True  # TODO: Implement this
+        return True    # TODO: Implement this
 
     def get_enforcement_override(self, user, allocation_source, provider=None):
         """Returns whether (and how) to override the enforcement for a particular user, allocation source and provider
@@ -44,9 +44,13 @@ def _get_enforcement_override(allocation_source):
         """
     assert isinstance(allocation_source, AllocationSource)
     import core.plugins
-    if allocation_source.name in getattr(settings, 'ALLOCATION_OVERRIDES_NEVER_ENFORCE', []):
+    if allocation_source.name in getattr(
+        settings, 'ALLOCATION_OVERRIDES_NEVER_ENFORCE', []
+    ):
         return core.plugins.EnforcementOverrideChoice.NEVER_ENFORCE
-    if allocation_source.name in getattr(settings, 'ALLOCATION_OVERRIDES_ALWAYS_ENFORCE', []):
+    if allocation_source.name in getattr(
+        settings, 'ALLOCATION_OVERRIDES_ALWAYS_ENFORCE', []
+    ):
         return core.plugins.EnforcementOverrideChoice.ALWAYS_ENFORCE
     return core.plugins.EnforcementOverrideChoice.NO_OVERRIDE
 

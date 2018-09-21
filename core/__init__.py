@@ -8,7 +8,6 @@ from abc import ABCMeta, abstractmethod
 
 
 class Persist():
-
     """
     Persist is an Abstract class-interface
     Classes extending/implementing Persist are expected to implement:

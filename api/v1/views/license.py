@@ -13,21 +13,22 @@ from api.v1.views.base import AuthAPIView
 
 
 class LicenseList(AuthAPIView):
-
     def get(self, request):
         user = request.user
         licenses = CoreLicense.objects.filter(created_by=user)
         serialized_data = LicenseSerializer(
-            licenses, many=True,
-            context={"request": request}).data
+            licenses, many=True, context={
+                "request": request
+            }
+        ).data
         return Response(serialized_data)
 
     def post(self, request):
         data = request.data
         data['created_by'] = request.user
         serializer = POST_LicenseSerializer(
-            data=data,
-            context={"request": request})
+            data=data, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -36,12 +37,13 @@ class LicenseList(AuthAPIView):
 
 
 class License(AuthAPIView):
-
     def get(self, request, license_id):
         license = get_object_or_404(CoreLicense, id=license_id)
         serialized_data = LicenseSerializer(
-            license,
-            context={"request": request}).data
+            license, context={
+                "request": request
+            }
+        ).data
         return Response(serialized_data)
 
     def put(self, request, license_id):
@@ -54,8 +56,8 @@ class License(AuthAPIView):
         data = request.data
         license = get_object_or_404(CoreLicense, id=license_id)
         serializer = LicenseSerializer(
-            license, context={"request": request},
-            data=data, partial=partial)
+            license, context={"request": request}, data=data, partial=partial
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)

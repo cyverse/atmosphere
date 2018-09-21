@@ -16,11 +16,23 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='instance',
             name='project',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='instances', to='core.Project'),
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name='instances',
+                to='core.Project'
+            ),
         ),
         migrations.AlterField(
             model_name='volume',
             name='project',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='volumes', to='core.Project'),
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name='volumes',
+                to='core.Project'
+            ),
         ),
     ]

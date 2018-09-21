@@ -5,14 +5,13 @@ from api.v2.views.base import AuthModelViewSet
 
 
 class ProjectExternalLinkViewSet(AuthModelViewSet):
-
     """
     API endpoint that allows link actions to be viewed or edited.
     """
 
     queryset = ProjectExternalLink.objects.all()
     serializer_class = ProjectExternalLinkSerializer
-    filter_fields = ('project__id',)
+    filter_fields = ('project__id', )
 
     def get_queryset(self):
         """

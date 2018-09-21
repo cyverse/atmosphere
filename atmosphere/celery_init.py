@@ -2,7 +2,6 @@ from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
 
-
 cwd_path = os.path.dirname(os.path.dirname(__file__))
 os.environ.setdefault('PYTHONPATH', cwd_path)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'atmosphere.settings')
@@ -13,7 +12,6 @@ os.environ.setdefault('PYTHONOPTIMIZE', '1')
 
 app = Celery('atmosphere')
 #app.conf.update(event_serializer='pickle', task_serializer='pickle', accept_content=['pickle'], result_serializer='pickle')
-
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
@@ -40,7 +38,10 @@ app.conf.worker_task_log_format = settings.CELERYD_TASK_LOG_FORMAT
 app.conf.worker_log_format = settings.CELERYD_LOG_FORMAT
 
 from kombu import serialization
-serialization.registry._disabled_content_types.discard(u'application/x-python-serialize')
+serialization.registry._disabled_content_types.discard(
+    u'application/x-python-serialize'
+)
+
 
 @app.task(bind=True)
 def debug_task(self):

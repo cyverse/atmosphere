@@ -12,11 +12,12 @@ def git_info(git_directory=None):
         return None
     try:
         proc = Popen(
-            "git --git-dir {} log -1 --format=format:%H%ci".format(
-                git_directory),
+            "git --git-dir {} log -1 --format=format:%H%ci".
+            format(git_directory),
             shell=True,
             stdout=PIPE,
-            stderr=PIPE)
+            stderr=PIPE
+        )
         return proc.communicate()[0]
     except OSError:
         return None
@@ -27,19 +28,22 @@ def git_branch(git_directory=None):
         return None
     try:
         proc = Popen(
-            ("git --git-dir {} rev-parse --symbolic-full-name "
-             "--abbrev-ref HEAD").format(git_directory),
+            (
+                "git --git-dir {} rev-parse --symbolic-full-name "
+                "--abbrev-ref HEAD"
+            ).format(git_directory),
             shell=True,
             stdout=PIPE,
-            stderr=PIPE)
+            stderr=PIPE
+        )
         return proc.communicate()[0].replace("\n", "")
     except OSError:
         return None
 
 
-def git_version_lookup(git_directory=None,
-                       git_branch_name=None,
-                       git_head_info=None):
+def git_version_lookup(
+    git_directory=None, git_branch_name=None, git_head_info=None
+):
     """
     Generate a summary from git on the version
     """

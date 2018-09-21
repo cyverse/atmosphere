@@ -6,7 +6,6 @@ from core.models.provider import Provider
 
 
 class Size(models.Model):
-
     """
     """
     # Special field that is filled out when converting an esh_size
@@ -59,14 +58,9 @@ class Size(models.Model):
         return "alias=%s \
                 (id=%s|name=%s) - %s - \
                 cpu: %s mem: %s disk: %s end date: %s" % (
-            self.alias,
-            self.id,
-            self.name,
-            self.provider_id,
-            self.cpu,
-            self.mem,
-            self.disk,
-            self.end_date)
+            self.alias, self.id, self.name, self.provider_id, self.cpu,
+            self.mem, self.disk, self.end_date
+        )
 
 
 def convert_esh_size(esh_size, provider_uuid):
@@ -77,14 +71,15 @@ def convert_esh_size(esh_size, provider_uuid):
         core_size = Size.objects.get(alias=alias, provider__uuid=provider_uuid)
         core_size = _update_from_cloud_size(core_size, esh_size)
     except AttributeError:
-        raise Exception("The 'contract' for an esh_size has likely changed -- check _update_from_cloud_size'")
+        raise Exception(
+            "The 'contract' for an esh_size has likely changed -- check _update_from_cloud_size'"
+        )
     except Size.DoesNotExist:
         # Gather up the additional, necessary information to create a DB repr
         try:
             provider = Provider.objects.get(uuid=provider_uuid)
         except Provider.DoesNotExist:
-            raise Exception("Provider UUID: %s does not exist."
-                            % provider_uuid)
+            raise Exception("Provider UUID: %s does not exist." % provider_uuid)
         core_size = _create_from_cloud_size(esh_size, provider)
     # Attach esh after the save!
     core_size.esh = esh_size
@@ -129,5 +124,6 @@ def create_size(name, alias, cpu, mem, disk, root, provider_uuid):
         mem=mem,
         disk=disk,
         root=root,
-        provider=provider)
+        provider=provider
+    )
     return size

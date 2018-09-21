@@ -8,7 +8,6 @@ from django.db import models
 
 
 class VersionNumber(object):
-
     @classmethod
     def string_to_version(cls, version_str):
         return VersionNumber(*version_str.split('.'))
@@ -18,7 +17,8 @@ class VersionNumber(object):
         if any([i < 0 or i > 255 for i in self.number]):
             raise ValueError(
                 "Version number components must between 0 and 255,"
-                " inclusive")
+                " inclusive"
+            )
 
     def __int__(self):
         """
@@ -46,7 +46,6 @@ class VersionNumber(object):
 
 
 class VersionNumberField(models.Field):
-
     """
     A version number. Stored as a integer. Retrieved as a VersionNumber. Like
     magic. Major, minor, patch, build must not exceed 255

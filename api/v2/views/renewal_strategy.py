@@ -4,7 +4,6 @@ from cyverse_allocation.cyverse_rules_engine_setup import renewal_strategies
 
 
 class RenewalStrategyViewSet(AuthReadOnlyViewSet):
-
     """
     API endpoint that allows status types to be viewed.
     """
@@ -14,4 +13,4 @@ class RenewalStrategyViewSet(AuthReadOnlyViewSet):
     serializer_class = RenewalStrategySerializer
 
     def get_queryset(self):
-        return [(k,v) for k,v in renewal_strategies.iteritems()]
+        return [(k, v) for k, v in renewal_strategies.iteritems()]

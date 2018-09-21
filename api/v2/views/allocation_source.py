@@ -20,9 +20,14 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
     """
     queryset = AllocationSource.objects.all()
     serializer_class = AllocationSourceSerializer
-    search_fields = ('^name',)
-    lookup_fields = ('id', 'uuid',)
-    http_method_names = ['options', 'head', 'get', 'post', 'put', 'patch', 'delete']
+    search_fields = ('^name', )
+    lookup_fields = (
+        'id',
+        'uuid',
+    )
+    http_method_names = [
+        'options', 'head', 'get', 'post', 'put', 'patch', 'delete'
+    ]
 
     def get_queryset(self):
         """
@@ -42,7 +47,9 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         Get allocation sources for user
         """
         sources = UserAllocationSource.objects.filter(user__username=username)
-        return AllocationSource.objects.filter(id__in=sources.values_list('allocation_source'))
+        return AllocationSource.objects.filter(
+            id__in=sources.values_list('allocation_source')
+        )
 
     def create(self, request):
         """
@@ -56,38 +63,37 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         request_data = request.data
 
         if not request_data.items():
-            return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Request Data is missing")
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST, "Request Data is missing"
+            )
 
         try:
             self._validate_user(request_user)
         except Exception as exc:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                exc.message)
+            return failure_response(status.HTTP_400_BAD_REQUEST, exc.message)
 
         try:
             self._validate_params(request_data)
         except Exception as exc:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                exc.message)
+            return failure_response(status.HTTP_400_BAD_REQUEST, exc.message)
 
         try:
             allocation_source = self._create_allocation_source(request_data)
             # CHANGE SERIALIZER CLASS
 
             serialized_allocation_source = AllocationSourceSerializer(
-                allocation_source, context={'request': self.request})
+                allocation_source, context={'request': self.request}
+            )
             return Response(
                 serialized_allocation_source.data,
-                status=status.HTTP_201_CREATED)
+                status=status.HTTP_201_CREATED
+            )
 
         except Exception as exc:
             logger.exception(
-                "Encountered exception while creating Allocation Source")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+                "Encountered exception while creating Allocation Source"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
     def update(self, request, pk, *args, **fields):
 
@@ -97,20 +103,20 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         request_user = request.user
         request_data = request.data
         request_data['source_id'] = pk
-        request_data['allocation_source_name'] = AllocationSource.objects.filter(uuid=pk).last().name
+        request_data['allocation_source_name'
+                    ] = AllocationSource.objects.filter(uuid=pk).last().name
 
         # check for data
         if not request_data.items():
-            return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Request Data is missing")
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST, "Request Data is missing"
+            )
 
         # validate user
         try:
             self._validate_user(request_user)
         except Exception as exc:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                exc.message)
+            return failure_response(status.HTTP_400_BAD_REQUEST, exc.message)
 
         # validate patched fields and update allocation source model
         try:
@@ -118,7 +124,8 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
             # create payload
             payload = {}
-            payload['allocation_source_name'] = request_data['allocation_source_name']
+            payload['allocation_source_name'] = request_data[
+                'allocation_source_name']
 
             # events to call
             events = []
@@ -132,37 +139,45 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
             if 'renewal_strategy' in request_data:
                 payload_renewal_strategy = payload.copy()
-                payload_renewal_strategy['renewal_strategy'] = request_data['renewal_strategy']
-                events.append((
-                    'allocation_source_renewal_strategy_changed',
-                    payload_renewal_strategy))
+                payload_renewal_strategy['renewal_strategy'] = request_data[
+                    'renewal_strategy']
+                events.append(
+                    (
+                        'allocation_source_renewal_strategy_changed',
+                        payload_renewal_strategy
+                    )
+                )
 
             if 'compute_allowed' in request_data:
                 payload_compute_allowed = payload.copy()
 
-                payload_compute_allowed['compute_allowed'] = request_data['compute_allowed']
-                events.append((
-                    'allocation_source_compute_allowed_changed',
-                    payload_compute_allowed))
+                payload_compute_allowed['compute_allowed'] = request_data[
+                    'compute_allowed']
+                events.append(
+                    (
+                        'allocation_source_compute_allowed_changed',
+                        payload_compute_allowed
+                    )
+                )
 
         except Exception as exc:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                exc.message)
+            return failure_response(status.HTTP_400_BAD_REQUEST, exc.message)
         try:
             allocation_source = self._update_allocation_source(
-                events, request_data)
+                events, request_data
+            )
             serialized_allocation_source = AllocationSourceSerializer(
-                allocation_source, context={'request': self.request})
+                allocation_source, context={'request': self.request}
+            )
             return Response(
-                serialized_allocation_source.data,
-                status=status.HTTP_200_OK)
+                serialized_allocation_source.data, status=status.HTTP_200_OK
+            )
 
         except Exception as exc:
             logger.exception(
-                "Encountered exception while updating Allocation Source")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+                "Encountered exception while updating Allocation Source"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
     def perform_destroy(self, allocation_source, request=None):
 
@@ -177,42 +192,43 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         try:
             self._validate_user(request_user)
         except Exception as exc:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                exc.message)
+            return failure_response(status.HTTP_400_BAD_REQUEST, exc.message)
 
         # validate patched fields and update allocation source model
         try:
             self._validate_params(request_data)
             # create payload
             payload = {}
-            payload['allocation_source_name'] = str(request_data['allocation_source_name'])
-            payload['delete_date'] = str(timezone.now().strftime("%Y-%m-%dT%H:%M:%S+00:00"))
+            payload['allocation_source_name'] = str(
+                request_data['allocation_source_name']
+            )
+            payload['delete_date'] = str(
+                timezone.now().strftime("%Y-%m-%dT%H:%M:%S+00:00")
+            )
 
             EventTable.create_event(
-                'allocation_source_removed',
-                payload,
-                payload['allocation_source_name'])
+                'allocation_source_removed', payload,
+                payload['allocation_source_name']
+            )
 
         except Exception as exc:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                exc.message)
+            return failure_response(status.HTTP_400_BAD_REQUEST, exc.message)
 
         try:
             allocation_source = allocation_source
 
             serialized_allocation_source = AllocationSourceSerializer(
-                allocation_source, context={'request': self.request})
+                allocation_source, context={'request': self.request}
+            )
             return Response(
-                serialized_allocation_source.data,
-                status=status.HTTP_200_OK)
+                serialized_allocation_source.data, status=status.HTTP_200_OK
+            )
 
         except Exception as exc:
             logger.exception(
-                "Encountered exception while removing Allocation Source")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+                "Encountered exception while removing Allocation Source"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
     # biz logic for actions
 
@@ -227,7 +243,8 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         creation_event = EventTable(
             name='allocation_source_created_or_renewed',
             entity_id=payload['allocation_source_name'],
-            payload=payload)
+            payload=payload
+        )
 
         creation_event.save()
 
@@ -237,12 +254,12 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
         for event_name, payload in events:
             EventTable.create_event(
-                event_name,
-                payload,
-                request_data['allocation_source_name']
+                event_name, payload, request_data['allocation_source_name']
             )
 
-        return AllocationSource.objects.filter(name=request_data['allocation_source_name']).last()
+        return AllocationSource.objects.filter(
+            name=request_data['allocation_source_name']
+        ).last()
 
     def _validate_params(self, data):
 
@@ -256,7 +273,9 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
             self._for_validate_renewal_strategy(data['renewal_strategy'])
 
         if 'compute_allowed' in data:
-            self._for_validate_compute_allowed(int(data['compute_allowed']), data.get('source_id'))
+            self._for_validate_compute_allowed(
+                int(data['compute_allowed']), data.get('source_id')
+            )
 
     # Common Validation
 
@@ -276,7 +295,9 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         if source_id:
             allocation_source = get_allocation_source_object(source_id)
             if compute_allowed < allocation_source.compute_used:
-                raise Exception('Compute allowed cannot be less than compute used')
+                raise Exception(
+                    'Compute allowed cannot be less than compute used'
+                )
 
         return True
 
@@ -284,7 +305,8 @@ class AllocationSourceViewSet(MultipleFieldLookup, AuthModelViewSet):
         # raise Exception('Error with Renewal Strategy')
         if renewal_strategy not in ['default', 'workshop', 'biweekly']:
             raise Exception(
-                'Renewal Strategy %s is not valid' % (renewal_strategy))
+                'Renewal Strategy %s is not valid' % (renewal_strategy)
+            )
         return True
 
     def _for_validate_allocation_source(self, source_id):

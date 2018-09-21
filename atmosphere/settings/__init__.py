@@ -14,7 +14,6 @@ import os.path
 import threepio
 import atmosphere
 
-
 # Debug Mode
 DEBUG = True
 
@@ -23,11 +22,12 @@ ENFORCING = False
 
 CHECK_THRESHOLD = False
 
-BLACKLIST_TAGS = ["Featured",]
+BLACKLIST_TAGS = [
+    "Featured",
+]
 
 SETTINGS_ROOT = os.path.abspath(os.path.dirname(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                            '../..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 APPEND_SLASH = False
 SERVER_URL = 'https://MYHOSTNAMEHERE'
 # IF on the root directory, this should be BLANK, else: /path/to/web (NO
@@ -39,26 +39,25 @@ REDIRECT_URL = ''
 ALLOWED_HOSTS = [unicode(SERVER_URL.replace('https://', ''))]
 
 # NOTE: first admin will be sender of atmo emails.
-ADMINS = (
-    ('AT LEAST ONE ADMIN REQUIRED', 'sends-email@if-debug-false.com'),
-)
+ADMINS = (('AT LEAST ONE ADMIN REQUIRED', 'sends-email@if-debug-false.com'), )
 
 # Set this value to be different if you want to separate where 'support' related email is sent.
 ATMO_SUPPORT = ADMINS
-ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"),)
+ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"), )
 
 # Django uses this one..
 MANAGERS = ADMINS
 
 DATABASES = {
-    'default': {
-        'NAME': 'atmosphere',
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'USER': 'atmo_prod',
-        'PASSWORD': 'atmosphere',
-        'HOST': 'localhost',
-        'PORT': '5432'
-    },
+    'default':
+        {
+            'NAME': 'atmosphere',
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'USER': 'atmo_prod',
+            'PASSWORD': 'atmosphere',
+            'HOST': 'localhost',
+            'PORT': '5432'
+        },
 }
 INSTALLED_APPS = (
     # contrib apps
@@ -74,7 +73,6 @@ INSTALLED_APPS = (
     'django_filters',
     'django_celery_beat',
     'memoize',
-
     'corsheaders',
     # 3rd party apps (Development Only)
     #'django_jenkins',
@@ -127,7 +125,6 @@ MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
     # corsheaders.middleware.CorsMiddleware Must be ahead of
     # configuration CommonMiddleware for an edge case.
-
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.gzip.GZipMiddleware',
@@ -146,30 +143,29 @@ WSGI_APPLICATION = 'atmosphere.wsgi.application'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.jinja2.Jinja2',
-        'DIRS': [
-            os.path.join(PROJECT_ROOT, 'core/templates/core/email')
-        ],
+        'DIRS': [os.path.join(PROJECT_ROOT, 'core/templates/core/email')],
     },
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            os.path.join(PROJECT_ROOT, 'templates'),
-        ],
+        'DIRS': [os.path.join(PROJECT_ROOT, 'templates'), ],
         'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                # Insert your TEMPLATE_CONTEXT_PROCESSORS here or use this
-                # list if you haven't customized them:
-                'django.contrib.auth.context_processors.auth',
-                'django.template.context_processors.debug',
-                'django.template.context_processors.i18n',
-                'django.template.context_processors.media',
-                'django.template.context_processors.static',
-                'django.template.context_processors.tz',
-                'django.contrib.messages.context_processors.messages',
-            ],
-            'debug': False
-        },
+        'OPTIONS':
+            {
+                'context_processors':
+                    [
+    # Insert your TEMPLATE_CONTEXT_PROCESSORS here or use this
+    # list if you haven't customized them:
+                        'django.contrib.auth.context_processors.auth',
+                        'django.template.context_processors.debug',
+                        'django.template.context_processors.i18n',
+                        'django.template.context_processors.media',
+                        'django.template.context_processors.static',
+                        'django.template.context_processors.tz',
+                        'django.contrib.messages.context_processors.messages',
+                    ],
+                'debug':
+                    False
+            },
     },
 ]
 
@@ -197,12 +193,12 @@ AUTH_SERVER_URL = SERVER_URL + REDIRECT_URL + '/auth'
 DEPLOY_SERVER_URL = SERVER_URL.replace("https", "http")
 
 # These DEFAULT variables can be overridden per provider..
-DEFAULT_NAMESERVERS = ['8.8.8.8','8.8.4.4.']
+DEFAULT_NAMESERVERS = ['8.8.8.8', '8.8.4.4.']
 DEFAULT_RULES = [
     ("ICMP", -1, -1),
     # FTP Access
-    ("UDP", 20, 20),  # FTP data transfer
-    ("TCP", 20, 21),  # FTP control
+    ("UDP", 20, 20),    # FTP data transfer
+    ("TCP", 20, 21),    # FTP control
     # SSH & Telnet Access
     ("TCP", 22, 23),
     ("UDP", 22, 23),
@@ -260,9 +256,10 @@ def check_and_touch(file_path):
         os.utime(file_path, None)
     return
 
+
 # logging
 LOGGING_LEVEL = logging.DEBUG
-DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
+DEP_LOGGING_LEVEL = logging.INFO    # Logging level for dependencies.
 
 # Filenames
 
@@ -270,10 +267,10 @@ DEP_LOGGING_LEVEL = logging.INFO  # Logging level for dependencies.
 def create_log_path(filename):
     return os.path.abspath(
         os.path.join(
-            os.path.dirname(atmosphere.__file__),
-            '..',
-            'logs',
-            filename))
+            os.path.dirname(atmosphere.__file__), '..', 'logs', filename
+        )
+    )
+
 
 LOG_FILENAME = create_log_path("atmosphere.log")
 API_LOG_FILENAME = create_log_path("atmosphere_api.log")
@@ -281,7 +278,6 @@ AUTH_LOG_FILENAME = create_log_path('atmosphere_auth.log')
 EMAIL_LOG_FILENAME = create_log_path('atmosphere_email.log')
 STATUS_LOG_FILENAME = create_log_path('atmosphere_status.log')
 DEPLOY_LOG_FILENAME = create_log_path('atmosphere_deploy.log')
-
 
 check_and_touch(LOG_FILENAME)
 check_and_touch(API_LOG_FILENAME)
@@ -313,10 +309,12 @@ status_fh.setFormatter(formatter)
 ####
 # Logger Initialization
 ####
-threepio.initialize("atmosphere",
-                    log_filename=LOG_FILENAME,
-                    app_logging_level=LOGGING_LEVEL,
-                    dep_logging_level=DEP_LOGGING_LEVEL)
+threepio.initialize(
+    "atmosphere",
+    log_filename=LOG_FILENAME,
+    app_logging_level=LOGGING_LEVEL,
+    dep_logging_level=DEP_LOGGING_LEVEL
+)
 # Add handler to the remaining loggers
 threepio.status_logger = threepio\
         .initialize("atmosphere_status",
@@ -360,7 +358,6 @@ threepio.celery_logger = threepio\
                     dep_logging_level=DEP_LOGGING_LEVEL,
                     global_logger=False)
 
-
 # Directory that the app (One level above this file) exists
 # (TEST if this is necessary)
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -369,45 +366,48 @@ if 'PYTHONPATH' in os.environ:
 else:
     os.environ['PYTHONPATH'] = root_dir
 
-
 # REST FRAMEWORK
 REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': (
-        # Included Renderers (In order of preference)
-        'api.renderers.BrowsableAPIRenderer',
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework_jsonp.renderers.JSONPRenderer',
-        'api.renderers.PNGRenderer',
-        'api.renderers.JPEGRenderer',
-        'api.renderers.PandasExcelRenderer',
-        # Easily enabled if/when support is desired
-        #'rest_framework.renderers.AdminRenderer',
-        #'rest_framework_yaml.renderers.YAMLRenderer',
-        #'rest_framework_xml.renderers.XMLRenderer',
-    ),
-    'TEST_REQUEST_RENDERER_CLASSES': (
-        'rest_framework.renderers.MultiPartRenderer',
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.TemplateHTMLRenderer',
-        'api.renderers.PandasExcelRenderer',
-    ),
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'django_cyverse_auth.token.TokenAuthentication', # Generic Tokens
-        # 'django_cyverse_auth.token.JWTTokenAuthentication',  # WSO2+JWT
-        'django_cyverse_auth.token.OAuthTokenAuthentication',  # CAS
-        #'django_cyverse_auth.token.GlobusOAuthTokenAuthentication',  # Globus
-        # 'django_cyverse_auth.token.TokenAuthentication',  # Generic Tokens
-        'rest_framework.authentication.SessionAuthentication',  # Session
-    ),
-    'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardResultsSetPagination',
-    'DEFAULT_FILTER_BACKENDS': (
-        'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter',
-        'rest_framework.filters.OrderingFilter'
-    )
+    'DEFAULT_RENDERER_CLASSES':
+        (
+    # Included Renderers (In order of preference)
+            'api.renderers.BrowsableAPIRenderer',
+            'rest_framework.renderers.JSONRenderer',
+            'rest_framework_jsonp.renderers.JSONPRenderer',
+            'api.renderers.PNGRenderer',
+            'api.renderers.JPEGRenderer',
+            'api.renderers.PandasExcelRenderer',
+    # Easily enabled if/when support is desired
+    #'rest_framework.renderers.AdminRenderer',
+    #'rest_framework_yaml.renderers.YAMLRenderer',
+    #'rest_framework_xml.renderers.XMLRenderer',
+        ),
+    'TEST_REQUEST_RENDERER_CLASSES':
+        (
+            'rest_framework.renderers.MultiPartRenderer',
+            'rest_framework.renderers.JSONRenderer',
+            'rest_framework.renderers.TemplateHTMLRenderer',
+            'api.renderers.PandasExcelRenderer',
+        ),
+    'DEFAULT_AUTHENTICATION_CLASSES':
+        (
+            'django_cyverse_auth.token.TokenAuthentication',    # Generic Tokens
+    # 'django_cyverse_auth.token.JWTTokenAuthentication',  # WSO2+JWT
+            'django_cyverse_auth.token.OAuthTokenAuthentication',    # CAS
+    #'django_cyverse_auth.token.GlobusOAuthTokenAuthentication',  # Globus
+    # 'django_cyverse_auth.token.TokenAuthentication',  # Generic Tokens
+            'rest_framework.authentication.SessionAuthentication',    # Session
+        ),
+    'DEFAULT_PAGINATION_CLASS':
+        'api.pagination.StandardResultsSetPagination',
+    'DEFAULT_FILTER_BACKENDS':
+        (
+            'django_filters.rest_framework.DjangoFilterBackend',
+            'rest_framework.filters.SearchFilter',
+            'rest_framework.filters.OrderingFilter'
+        )
 }
 LOGIN_REDIRECT_URL = "/api/v1"
-
 
 # CASLIB
 SERVER_URL = SERVER_URL + REDIRECT_URL
@@ -429,7 +429,9 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERYD_SEND_EVENTS = True
 
-CELERY_ACCEPT_CONTENT = ['pickle',]
+CELERY_ACCEPT_CONTENT = [
+    'pickle',
+]
 CELERY_TASK_SERIALIZER = "pickle"
 CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_EVENT_SERIALIZER = "pickle"
@@ -443,7 +445,7 @@ CELERY_ENABLE_UTC = True
 CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_SEND_EVENTS = True
-CELERY_TASK_RESULT_EXPIRES = 3 * 60 * 60  # Store results for 3 hours
+CELERY_TASK_RESULT_EXPIRES = 3 * 60 * 60    # Store results for 3 hours
 CELERYD_MAX_TASKS_PER_CHILD = 10
 CELERYD_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
     "/%(processName)s [PID:%(process)d]"\
@@ -457,51 +459,78 @@ CELERYD_TASK_LOG_FORMAT = "[%(asctime)s: %(name)s-%(levelname)s"\
 CELERYBEAT_CHDIR = PROJECT_ROOT
 
 CELERYBEAT_SCHEDULE = {
-    "check_image_membership": {
-        "task": "check_image_membership",
-        "schedule": timedelta(minutes=60),
-        "options": {"expires": 10 * 60, "time_limit": 2 * 60}
-    },
-    "prune_machines": {
-        "task": "prune_machines",
-        # Every day of the week @ 12am (Midnight)
-        "schedule": crontab(hour="0", minute="0", day_of_week="*"),
-        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
-    },
-    "monitor_machines": {
-        "task": "monitor_machines",
-        # Every day of the week @ 1am
-        "schedule": crontab(hour="1", minute="0", day_of_week="*"),
-        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
-    },
-    "monitor_volumes": {
-        "task": "monitor_volumes",
-        "schedule": timedelta(minutes=30),
-        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
-    },
-    "monitor_sizes": {
-        "task": "monitor_sizes",
-        "schedule": timedelta(minutes=30),
-        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
-    },
-    "monitor_instances": {
-        "task": "monitor_instances",
-        "schedule": timedelta(minutes=15),
-        "options": {"expires": 10 * 60, "time_limit": 10 * 60}
-    },
-    "clear_empty_ips": {
-        "task": "clear_empty_ips",
-        "schedule": crontab(hour="1", minute="0", day_of_week="*"),
-        "options": {"expires": 60 * 60}
-    },
+    "check_image_membership":
+        {
+            "task": "check_image_membership",
+            "schedule": timedelta(minutes=60),
+            "options": {
+                "expires": 10 * 60,
+                "time_limit": 2 * 60
+            }
+        },
+    "prune_machines":
+        {
+            "task": "prune_machines",
+    # Every day of the week @ 12am (Midnight)
+            "schedule": crontab(hour="0", minute="0", day_of_week="*"),
+            "options": {
+                "expires": 10 * 60,
+                "time_limit": 10 * 60
+            }
+        },
+    "monitor_machines":
+        {
+            "task": "monitor_machines",
+    # Every day of the week @ 1am
+            "schedule": crontab(hour="1", minute="0", day_of_week="*"),
+            "options": {
+                "expires": 10 * 60,
+                "time_limit": 10 * 60
+            }
+        },
+    "monitor_volumes":
+        {
+            "task": "monitor_volumes",
+            "schedule": timedelta(minutes=30),
+            "options": {
+                "expires": 10 * 60,
+                "time_limit": 10 * 60
+            }
+        },
+    "monitor_sizes":
+        {
+            "task": "monitor_sizes",
+            "schedule": timedelta(minutes=30),
+            "options": {
+                "expires": 10 * 60,
+                "time_limit": 10 * 60
+            }
+        },
+    "monitor_instances":
+        {
+            "task": "monitor_instances",
+            "schedule": timedelta(minutes=15),
+            "options": {
+                "expires": 10 * 60,
+                "time_limit": 10 * 60
+            }
+        },
+    "clear_empty_ips":
+        {
+            "task": "clear_empty_ips",
+            "schedule": crontab(hour="1", minute="0", day_of_week="*"),
+            "options": {
+                "expires": 60 * 60
+            }
+        },
 }
 
 #     # Django-Celery Development settings
 # CELERY_EAGER_PROPAGATES_EXCEPTIONS = True  # Issue #75
-
 """
 For generating a unique SECRET_KEY -- Used by Django in various ways.
 """
+
 # This Method will generate SECRET_KEY and write it to file..
 
 
@@ -510,10 +539,12 @@ def generate_secret_key(secret_key_path):
     from datetime import datetime
     chars = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
     secret_value = get_random_string(50, chars)
-    comment_block = "\"\"\"\nThis file was Auto-Generated on %s\n\"\"\"\n" % datetime.now()
+    comment_block = "\"\"\"\nThis file was Auto-Generated on %s\n\"\"\"\n" % datetime.now(
+    )
     with open(secret_key_path, "w") as key_file:
         key_file.write(comment_block)
         key_file.write("SECRET_KEY=\"%s\"\n" % secret_value)
+
 
 # This import will Use an existing SECRET_KEY, or Generate your SECRET_KEY
 # if it doesn't exist yet.
@@ -523,12 +554,12 @@ except ImportError:
     SETTINGS_DIR = os.path.abspath(os.path.dirname(__file__))
     generate_secret_key(os.path.join(SETTINGS_DIR, 'secret_key.py'))
     try:
-        from .secret_key import SECRET_KEY # noqa
+        from .secret_key import SECRET_KEY    # noqa
     except ImportError:
         raise Exception(
-            "__init__.py could not generate a SECRET_KEY in secret_key.py")
-
+            "__init__.py could not generate a SECRET_KEY in secret_key.py"
+        )
 """
 Import local settings specific to the server, and secrets not checked into Git.
 """
-from atmosphere.settings.local import * # noqa
+from atmosphere.settings.local import *    # noqa

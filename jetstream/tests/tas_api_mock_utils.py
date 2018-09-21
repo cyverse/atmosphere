@@ -18,17 +18,32 @@ def _get_tas_projects(context):
 def _get_xsede_to_tacc_username(context, url):
     xsede_username = url.split('/v1/users/xsede/')[-1]
     if xsede_username not in context.xsede_to_tacc_username_mapping:
-        data = {'status': 'error', 'message': 'No user found for XSEDE username {}'.format(xsede_username),
-                'result': None}
+        data = {
+            'status':
+                'error',
+            'message':
+                'No user found for XSEDE username {}'.format(xsede_username),
+            'result':
+                None
+        }
     else:
-        data = {'status': 'success', 'message': None, 'result': context.xsede_to_tacc_username_mapping[xsede_username]}
+        data = {
+            'status': 'success',
+            'message': None,
+            'result': context.xsede_to_tacc_username_mapping[xsede_username]
+        }
     return data
 
 
 def _get_user_projects(context, url):
     tacc_username = url.split('/v1/projects/username/')[-1]
-    project_names = list(context.tacc_username_to_tas_project_mapping.get(tacc_username, []))
-    user_projects = [project for project in context.tas_projects if project['chargeCode'] in project_names]
+    project_names = list(
+        context.tacc_username_to_tas_project_mapping.get(tacc_username, [])
+    )
+    user_projects = [
+        project for project in context.tas_projects
+        if project['chargeCode'] in project_names
+    ]
     data = {'status': 'success', 'message': None, 'result': user_projects}
     return data
 
@@ -47,7 +62,7 @@ def _make_mock_tacc_api_get(context, is_tas_up=True):
             data = _get_tas_projects(context)
         elif '/v1/users/xsede/' in url:
             data = _get_xsede_to_tacc_username(context, url)
-        elif '/v1/projects/username/' in url:  # This can return 'Inactive', 'Active', and 'Approved' allocations. Maybe more.
+        elif '/v1/projects/username/' in url:    # This can return 'Inactive', 'Active', and 'Approved' allocations. Maybe more.
             data = _get_user_projects(context, url)
         else:
             raise ValueError('Unknown URL: {}'.format(url))

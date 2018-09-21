@@ -22,8 +22,9 @@ def get_provider(user, provider_uuid):
     except Provider.DoesNotExist:
         logger.warn(
             "Provider %s DoesNotExist and/or has not "
-            "been shared with any of the groups for User:%s"
-            % (provider_uuid, user))
+            "been shared with any of the groups for User:%s" %
+            (provider_uuid, user)
+        )
         return None
 
 
@@ -47,8 +48,8 @@ def get_identity(user, identity_uuid):
         identity_list = get_identity_list(user)
         if not identity_list:
             raise CoreIdentity.DoesNotExist(
-                "No identities found for user %s" %
-                user.username)
+                "No identities found for user %s" % user.username
+            )
         identity = identity_list.get(uuid=identity_uuid)
         return identity
     except CoreIdentity.DoesNotExist:
@@ -57,7 +58,6 @@ def get_identity(user, identity_uuid):
 
 
 class IdentityDetail(AuthAPIView):
-
     """
     The identity contains every credential necessary for atmosphere
     to connect 'The Provider' with a specific user.
@@ -73,13 +73,13 @@ class IdentityDetail(AuthAPIView):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 "The requested Identity ID %s was not found on an active"
-                "provider" % identity_uuid)
+                "provider" % identity_uuid
+            )
         serialized_data = IdentityDetailSerializer(identity).data
         return Response(serialized_data)
 
 
 class IdentityDetailList(AuthAPIView):
-
     """
     The identity contains every credential necessary for atmosphere
     to connect 'The Provider' with a specific user.
@@ -96,7 +96,6 @@ class IdentityDetailList(AuthAPIView):
 
 
 class IdentityList(AuthAPIView):
-
     """
     The identity contains every credential necessary for atmosphere
     to connect 'The Provider' with a specific user.
@@ -117,7 +116,6 @@ class IdentityList(AuthAPIView):
 
 
 class Identity(AuthAPIView):
-
     """
     The identity contains every credential necessary for atmosphere
     to connect 'The Provider' with a specific user.

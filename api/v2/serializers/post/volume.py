@@ -1,5 +1,4 @@
-from core.models import (
-    InstanceSource, Volume, Identity, Project)
+from core.models import (InstanceSource, Volume, Identity, Project)
 from rest_framework import serializers
 
 
@@ -11,16 +10,24 @@ class VolumeSerializer(serializers.ModelSerializer):
     re-serialized with a GET/Details Serializer.
     """
     identity = serializers.SlugRelatedField(
-        source='created_by_identity', slug_field='uuid',
-        queryset=Identity.objects.all())
+        source='created_by_identity',
+        slug_field='uuid',
+        queryset=Identity.objects.all()
+    )
     name = serializers.CharField()
     project = serializers.SlugRelatedField(
-        source="projects", slug_field="uuid", queryset=Project.objects.all(),
-        required=False, allow_null=True)
-    snapshot_id = serializers.CharField(write_only=True, allow_blank=True,
-                                        required=False)
-    image_id = serializers.CharField(write_only=True, allow_blank=True,
-                                     required=False)
+        source="projects",
+        slug_field="uuid",
+        queryset=Project.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    snapshot_id = serializers.CharField(
+        write_only=True, allow_blank=True, required=False
+    )
+    image_id = serializers.CharField(
+        write_only=True, allow_blank=True, required=False
+    )
 
     def create(self, validated_data):
         name = validated_data.get('name')
@@ -37,7 +44,8 @@ class VolumeSerializer(serializers.ModelSerializer):
             identifier=identifier,
             provider=provider,
             created_by=user,
-            created_by_identity=identity)
+            created_by_identity=identity
+        )
 
         kwargs = {
             "name": name,
@@ -56,10 +64,11 @@ class VolumeSerializer(serializers.ModelSerializer):
             if raise_exception:
                 raise serializers.ValidationError(
                     "The 'project' argument (%s) should be a UUID, not an Int."
-                    % project)
+                    % project
+                )
             return False
-        return super(VolumeSerializer, self).is_valid(
-            raise_exception=raise_exception)
+        return super(VolumeSerializer,
+                     self).is_valid(raise_exception=raise_exception)
 
     def validate(self, data):
         image_id = data.get('image_id')
@@ -68,20 +77,21 @@ class VolumeSerializer(serializers.ModelSerializer):
         #: Only allow one at a time
         if snapshot_id and image_id:
             raise serializers.ValidationError(
-                "Use either `snapshot_id` or `image_id` not both.")
+                "Use either `snapshot_id` or `image_id` not both."
+            )
         return data
 
     class Meta:
         model = Volume
         fields = (
-            # Required
+        # Required
             'description',
             'identity',
             'name',
             'size',
-            # Optional
+        # Optional
             'project',
-            # Optional + one or the other
+        # Optional + one or the other
             'image_id',
             'snapshot_id',
         )

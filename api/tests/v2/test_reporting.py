@@ -40,9 +40,11 @@ class ReportingTests(APITestCase):
         force_authenticate(request, user=self.user)
         response = self.view(request)
         self.assertEquals(response.status_code, 400)
-        self.assertEqual(response.data['errors'][0]['message'],
-                         "The reporting API should be accessed via the query parameters:"
-                         " ['start_date', 'end_date', 'provider_id']")
+        self.assertEqual(
+            response.data['errors'][0]['message'],
+            "The reporting API should be accessed via the query parameters:"
+            " ['start_date', 'end_date', 'provider_id']"
+        )
 
     def test_invalid_query_params(self):
         factory = APIRequestFactory()
@@ -56,7 +58,10 @@ class ReportingTests(APITestCase):
             force_authenticate(request, user=self.user)
             response = self.view(request)
             self.assertEquals(response.status_code, 400)
-            self.assertEqual(response.data['errors'][0]['message'], 'Invalid filter parameters')
+            self.assertEqual(
+                response.data['errors'][0]['message'],
+                'Invalid filter parameters'
+            )
 
     @skip('skip for now')
     def test_access_invalid_provider(self):

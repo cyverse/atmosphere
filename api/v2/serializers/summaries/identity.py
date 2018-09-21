@@ -7,9 +7,7 @@ class IdentitySummarySerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.CharField(read_only=True)
     provider = serializers.PrimaryKeyRelatedField(read_only=True)
     key = serializers.SerializerMethodField()
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:identity-detail',
-    )
+    url = UUIDHyperlinkedIdentityField(view_name='api:v2:identity-detail', )
 
     def get_key(self, identity):
         return identity.get_key()

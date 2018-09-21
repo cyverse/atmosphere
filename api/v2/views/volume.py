@@ -20,16 +20,19 @@ from service.exceptions import OverQuotaError
 from threepio import logger
 
 UPDATE_METHODS = ("PUT", "PATCH")
-CREATE_METHODS = ("POST",)
+CREATE_METHODS = ("POST", )
 
-VOLUME_EXCEPTIONS = (OverQuotaError, ConnectionFailure, LibcloudBadResponseError)
+VOLUME_EXCEPTIONS = (
+    OverQuotaError, ConnectionFailure, LibcloudBadResponseError
+)
 
 
 class VolumeFilter(django_filters.FilterSet):
     min_size = django_filters.NumberFilter(name="size__gte")
     max_size = django_filters.NumberFilter(name="size__lte")
     provider_id = django_filters.NumberFilter(
-        name="instance_source__created_by_identity__provider__id")
+        name="instance_source__created_by_identity__provider__id"
+    )
 
     class Meta:
         model = Volume
@@ -37,15 +40,15 @@ class VolumeFilter(django_filters.FilterSet):
 
 
 class VolumeViewSet(MultipleFieldLookup, AuthModelViewSet):
-
     """
     API endpoint that allows providers to be viewed or edited.
     """
     lookup_fields = ("id", "instance_source__identifier")
     serializer_class = VolumeSerializer
     filter_class = VolumeFilter
-    http_method_names = ('get', 'post', 'put', 'patch', 'delete',
-                         'head', 'options', 'trace')
+    http_method_names = (
+        'get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'
+    )
 
     def get_serializer_class(self):
         if self.request.method in UPDATE_METHODS:
@@ -104,24 +107,36 @@ class VolumeViewSet(MultipleFieldLookup, AuthModelViewSet):
         provider = identity.provider
         try:
             core_volume = create_volume_or_fail(
-                name, size, self.request.user,
-                provider, identity,
+                name,
+                size,
+                self.request.user,
+                provider,
+                identity,
                 description=description,
                 project=project,
                 image_id=image_id,
-                snapshot_id=snapshot_id)
+                snapshot_id=snapshot_id
+            )
             #NOTE: This is normally where 'perform_create()' would end
             # but we swap out the VolumeSerializer Class at this point.
             serialized_volume = VolumeSerializer(
-                core_volume, context={'request': self.request},
-                data={}, partial=True)
+                core_volume,
+                context={'request': self.request},
+                data={},
+                partial=True
+            )
             if not serialized_volume.is_valid():
-                return Response(serialized_volume.errors,
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    serialized_volume.errors,
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             serialized_volume.save()
             headers = self.get_success_headers(serialized_volume.data)
             return Response(
-                serialized_volume.data, status=status.HTTP_201_CREATED, headers=headers)
+                serialized_volume.data,
+                status=status.HTTP_201_CREATED,
+                headers=headers
+            )
         except LibcloudInvalidCredsError as e:
             raise exceptions.PermissionDenied(detail=e.message)
         except ProviderNotActive as pna:
@@ -129,8 +144,10 @@ class VolumeViewSet(MultipleFieldLookup, AuthModelViewSet):
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)
         except Exception as exc:
-            logger.exception("Error occurred creating a v2 volume -- User:%s"
-                             % self.request.user)
+            logger.exception(
+                "Error occurred creating a v2 volume -- User:%s" %
+                self.request.user
+            )
             return Response(exc.message, status=status.HTTP_409_CONFLICT)
 
     def perform_destroy(self, instance):
@@ -145,6 +162,8 @@ class VolumeViewSet(MultipleFieldLookup, AuthModelViewSet):
         except VOLUME_EXCEPTIONS as e:
             raise exceptions.ParseError(detail=e.message)
         except Exception as exc:
-            logger.exception("Error occurred deleting a v2 volume -- User:%s"
-                             % self.request.user)
+            logger.exception(
+                "Error occurred deleting a v2 volume -- User:%s" %
+                self.request.user
+            )
             return Response(exc.message, status=status.HTTP_409_CONFLICT)

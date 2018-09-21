@@ -12,11 +12,13 @@ from core.models.volume import convert_esh_volume
 from service.cache import get_cached_driver
 
 
-@task(name="create_volume_snapshot",
-      default_retry_delay=15,
-      soft_time_limit=15,
-      max_retries=3,
-      ignore_results=True)
+@task(
+    name="create_volume_snapshot",
+    default_retry_delay=15,
+    soft_time_limit=15,
+    max_retries=3,
+    ignore_results=True
+)
 def create_volume_snapshot(identity_uuid, volume_id, name, description):
     """
     Create a new volume snapshot
@@ -31,7 +33,8 @@ def create_volume_snapshot(identity_uuid, volume_id, name, description):
             raise Exception("No volume found for id=%s." % volume_id)
 
         snapshot = driver._connection.ex_create_snapshot(
-            esh_volume, name, description)
+            esh_volume, name, description
+        )
 
         if not snapshot:
             raise Exception("The snapshot could not be created.")
@@ -43,11 +46,13 @@ def create_volume_snapshot(identity_uuid, volume_id, name, description):
         raise
 
 
-@task(name="delete_volume_snapshot",
-      default_retry_delay=15,
-      soft_time_limit=15,
-      max_retries=3,
-      ignore_results=True)
+@task(
+    name="delete_volume_snapshot",
+    default_retry_delay=15,
+    soft_time_limit=15,
+    max_retries=3,
+    ignore_results=True
+)
 def delete_volume_snapshot(identity_uuid, snapshot_id):
     """
     Delete an existing volume snapshot
@@ -63,8 +68,9 @@ def delete_volume_snapshot(identity_uuid, snapshot_id):
         success = driver._connection.ex_delete_snapshot(snapshot)
 
         if not success:
-            raise Exception("Unable to delete snapshot with id=%s" %
-                            snapshot_id)
+            raise Exception(
+                "Unable to delete snapshot with id=%s" % snapshot_id
+            )
     except SoftTimeLimitExceeded as e:
         delete_volume_snapshot.retry(exc=e)
     except Identity.DoesNotExist:
@@ -72,13 +78,16 @@ def delete_volume_snapshot(identity_uuid, snapshot_id):
         raise
 
 
-@task(name="create_volume_from_image",
-      default_retry_delay=15,
-      soft_time_limit=15,
-      max_retries=3,
-      ignore_results=True)
-def create_volume_from_image(identity_uuid, image_id, size_id, name,
-                             description, metadata):
+@task(
+    name="create_volume_from_image",
+    default_retry_delay=15,
+    soft_time_limit=15,
+    max_retries=3,
+    ignore_results=True
+)
+def create_volume_from_image(
+    identity_uuid, image_id, size_id, name, description, metadata
+):
     """
     Create a new volume from an image
     """
@@ -96,15 +105,20 @@ def create_volume_from_image(identity_uuid, image_id, size_id, name,
             raise Exception("No size found for id=%s." % size_id)
 
         success, esh_volume = driver._connection.create_volume(
-            size.id, name, description=description, metadata=metadata,
-            image=image)
+            size.id,
+            name,
+            description=description,
+            metadata=metadata,
+            image=image
+        )
 
         if not success:
             raise Exception("Could not create volume from image")
 
         # Save the new volume to the database
         convert_esh_volume(
-            esh_volume, identity.provider.uuid, identity_uuid, user)
+            esh_volume, identity.provider.uuid, identity_uuid, user
+        )
     except SoftTimeLimitExceeded as e:
         create_volume_from_image.retry(exc=e)
     except Identity.DoesNotExist:
@@ -112,13 +126,16 @@ def create_volume_from_image(identity_uuid, image_id, size_id, name,
         raise
 
 
-@task(name="create_volume_from_snapshot",
-      default_retry_delay=15,
-      soft_time_limit=15,
-      max_retries=3,
-      ignore_results=True)
-def create_volume_from_snapshot(identity_uuid, snapshot_id, size_id, name,
-                                description, metadata):
+@task(
+    name="create_volume_from_snapshot",
+    default_retry_delay=15,
+    soft_time_limit=15,
+    max_retries=3,
+    ignore_results=True
+)
+def create_volume_from_snapshot(
+    identity_uuid, snapshot_id, size_id, name, description, metadata
+):
     """
     Create a new volume for the snapshot
 
@@ -137,8 +154,12 @@ def create_volume_from_snapshot(identity_uuid, snapshot_id, size_id, name,
             raise Exception("No size found for id=%s." % size_id)
 
         success, esh_volume = driver._connection.create_volume(
-            snapshot.size, name, description=description, metadata=metadata,
-            snapshot=snapshot)
+            snapshot.size,
+            name,
+            description=description,
+            metadata=metadata,
+            snapshot=snapshot
+        )
 
         if not success:
             raise Exception("Could not create volume from snapshot")
@@ -146,7 +167,8 @@ def create_volume_from_snapshot(identity_uuid, snapshot_id, size_id, name,
         # Save the new volume to the database
         convert_esh_volume(
             esh_volume, identity.provider.uuid, identity_uuid,
-            identity.created_by)
+            identity.created_by
+        )
     except SoftTimeLimitExceeded as e:
         create_volume_from_snapshot.retry(exc=e)
     except Identity.DoesNotExist:

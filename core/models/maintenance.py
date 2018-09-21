@@ -9,7 +9,6 @@ from core.models.provider import Provider
 
 
 class MaintenanceRecord(models.Model):
-
     """
     Maintenace can be activated through the database
     """
@@ -25,14 +24,17 @@ class MaintenanceRecord(models.Model):
         now = timezone.now()
         records = MaintenanceRecord.objects.filter(
             Q(start_date__lte=now),
-            Q(end_date__gt=now) | Q(end_date__isnull=True))
+            Q(end_date__gt=now) | Q(end_date__isnull=True)
+        )
         if provider:
             if isinstance(provider, collections.Iterable):
-                records = records.filter(Q(provider__in=provider)
-                                         | Q(provider__isnull=True))
+                records = records.filter(
+                    Q(provider__in=provider) | Q(provider__isnull=True)
+                )
             else:
-                records = records.filter(Q(provider__exact=provider)
-                                         | Q(provider__isnull=True))
+                records = records.filter(
+                    Q(provider__exact=provider) | Q(provider__isnull=True)
+                )
         else:
             records = records.filter(Q(provider__isnull=True))
         return records
@@ -68,10 +70,7 @@ class MaintenanceRecord(models.Model):
 
     def __unicode__(self):
         return '%s (Maintenance Times: %s - %s Login disabled: %s)' % (
-            self.title,
-            self.start_date,
-            self.end_date,
-            self.disable_login
+            self.title, self.start_date, self.end_date, self.disable_login
         )
 
     class Meta:

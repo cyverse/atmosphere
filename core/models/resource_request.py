@@ -9,7 +9,6 @@ from core.models.status_type import StatusType
 
 
 class ResourceRequest(models.Model):
-
     """
     A model to store a user's request for resourcees
     """

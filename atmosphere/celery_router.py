@@ -20,10 +20,10 @@ class PredeclareRouter(object):
             channel = conn.default_channel
             for queue in queues.itervalues():
                 queue(channel).declare()
+
+
 DEPLOY_TASKS = [
-    "_deploy_instance",
-    "_deploy_instance_for_user",
-    "check_web_desktop_task",
+    "_deploy_instance", "_deploy_instance_for_user", "check_web_desktop_task",
     "_deploy_init_to", "service.tasks.driver._deploy_init_to",
     "deploy_ready_test", "service.tasks.driver.deploy_ready_test",
     "check_process_task", "service.tasks.driver.check_process_task",
@@ -32,29 +32,41 @@ DEPLOY_TASKS = [
     "unmount_volume_task", "service.tasks.volume.unmount_volume_task"
 ]
 EMAIL_TASKS = [
-    "send_email", "core.tasks.email.send_email",
+    "send_email",
+    "core.tasks.email.send_email",
 ]
 IMAGING_TASKS = [
     # Atmosphere specific
-    "prep_instance_for_snapshot", "service.tasks.machine.prep_instance_for_snapshot",
-    "process_request", "service.tasks.machine.process_request",
-    "imaging_complete", "validate_new_image",
+    "prep_instance_for_snapshot",
+    "service.tasks.machine.prep_instance_for_snapshot",
+    "process_request",
+    "service.tasks.machine.process_request",
+    "imaging_complete",
+    "validate_new_image",
     # Chromogenic
-    "migrate_instance_task", "chromogenic.tasks.migrate_instance_task",
-    "machine_imaging_task", "chromogenic.tasks.machine_imaging_task",
+    "migrate_instance_task",
+    "chromogenic.tasks.migrate_instance_task",
+    "machine_imaging_task",
+    "chromogenic.tasks.machine_imaging_task",
     "chromogenic.tasks.migrate_instance_task",
     "chromogenic.tasks.machine_imaging_task",
     "service.tasks.machine.process_request",
-
 ]
 PERIODIC_TASKS = [
-    "monitor_instances", "monitor_instances_for",
-    "monitor_machines", "monitor_machines_for",
-    "monitor_sizes", "monitor_sizes_for",
-    "monitor_volumes", "monitor_volumes_for",
-    "prune_machines", "prune_machines_for",
-    "check_image_membership", "update_membership_for",
-    "clear_empty_ips", "clear_empty_ips_for",
+    "monitor_instances",
+    "monitor_instances_for",
+    "monitor_machines",
+    "monitor_machines_for",
+    "monitor_sizes",
+    "monitor_sizes_for",
+    "monitor_volumes",
+    "monitor_volumes_for",
+    "prune_machines",
+    "prune_machines_for",
+    "check_image_membership",
+    "update_membership_for",
+    "clear_empty_ips",
+    "clear_empty_ips_for",
     "remove_empty_networks",
     "remove_empty_networks_for",
     #JETSTREAM_SPECIFIC PERIODIC TASKS
@@ -71,7 +83,6 @@ SHORT_TASKS = [
 
 
 class CloudRouter(PredeclareRouter):
-
     """
     This router will:
     * Log routes for tasks as they are added to the system
@@ -91,11 +102,13 @@ class CloudRouter(PredeclareRouter):
         if the_route:
             logger.info(
                 "ROUTE: Assigning Route %s for Celery AsyncTask: %r %r %r" %
-                (the_route, task, args, kwargs))
+                (the_route, task, args, kwargs)
+            )
         else:
             logger.info(
-                "ROUTE: Assigning Route Default for Celery AsyncTask: %r %r %r" %
-                (task, args, kwargs))
+                "ROUTE: Assigning Route Default for Celery AsyncTask: %r %r %r"
+                % (task, args, kwargs)
+            )
         return the_route
 
     def prepare_route(self, task_name):
@@ -110,6 +123,7 @@ class CloudRouter(PredeclareRouter):
         elif task_name in DEPLOY_TASKS:
             return {"queue": "ssh_deploy", "routing_key": "long.deployment"}
         else:
-            logger.info("ROUTE: Could not place a routing key for TASK:%s"
-                    % task_name)
+            logger.info(
+                "ROUTE: Could not place a routing key for TASK:%s" % task_name
+            )
             return {"queue": "default", "routing_key": "default"}

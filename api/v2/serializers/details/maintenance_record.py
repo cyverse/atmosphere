@@ -10,7 +10,9 @@ class MaintenanceRecordSerializer(serializers.HyperlinkedModelSerializer):
         queryset=Provider.objects.all(),
         serializer_class=ProviderSummarySerializer,
         style={'base_template': 'input.html'},
-        required=False, allow_null=True)
+        required=False,
+        allow_null=True
+    )
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:maintenancerecord-detail',
         read_only=True,
@@ -18,4 +20,7 @@ class MaintenanceRecordSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = MaintenanceRecord
-        fields = ('id', 'url', 'start_date', 'end_date', 'title', 'message', 'provider', 'disable_login')
+        fields = (
+            'id', 'url', 'start_date', 'end_date', 'title', 'message',
+            'provider', 'disable_login'
+        )

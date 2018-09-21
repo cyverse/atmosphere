@@ -1,9 +1,9 @@
 from core.models import ProviderMachine
 from rest_framework import serializers
 from api.v2.serializers.summaries import (
-        ImageSummarySerializer, ImageVersionSummarySerializer,
-        ProviderSummarySerializer, UserSummarySerializer,
-        LicenseSummarySerializer)
+    ImageSummarySerializer, ImageVersionSummarySerializer,
+    ProviderSummarySerializer, UserSummarySerializer, LicenseSummarySerializer
+)
 from api.v2.serializers.fields.base import InstanceSourceHyperlinkedIdentityField
 
 
@@ -16,13 +16,13 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
     created_by = UserSummarySerializer(source='instance_source.created_by')
     size_gb = serializers.ReadOnlyField(source='instance_source.size_gb')
     start_date = serializers.DateTimeField(source='instance_source.start_date')
-    end_date = serializers.DateTimeField(source='instance_source.end_date',
-                                         allow_null=True)
-    licenses = LicenseSummarySerializer(many=True, read_only=True)  # NEW
+    end_date = serializers.DateTimeField(
+        source='instance_source.end_date', allow_null=True
+    )
+    licenses = LicenseSummarySerializer(many=True, read_only=True)    # NEW
     members = serializers.SlugRelatedField(
-        slug_field='name',
-        read_only=True,
-        many=True)  # NEW
+        slug_field='name', read_only=True, many=True
+    )    # NEW
     # NOTE: this is still using ID instead of UUID -- due to abstract classes
     # and use of getattr in L271 of rest_framework/relations.py, this is a
     # 'kink' that has not been worked out yet.
@@ -32,9 +32,10 @@ class ProviderMachineSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = ProviderMachine
-        fields = ('id', 'uuid', 'url', 'provider', 'image',
-                  'licenses', 'members', 'version', 'size_gb',
-                  'created_by', 'start_date', 'end_date')
+        fields = (
+            'id', 'uuid', 'url', 'provider', 'image', 'licenses', 'members',
+            'version', 'size_gb', 'created_by', 'start_date', 'end_date'
+        )
 
     def update(self, instance, validated_data):
         if 'instance_source' in validated_data:

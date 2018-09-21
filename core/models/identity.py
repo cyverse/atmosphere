@@ -13,7 +13,6 @@ from core.models.quota import Quota
 
 
 class Identity(models.Model):
-
     """
     An Identity is the minimal set of credentials necessary
     to authenticate against a single provider
@@ -29,7 +28,8 @@ class Identity(models.Model):
         """
         Given an instance, find the identity that created it.
         """
-        return Identity.objects.filter(instance__provider_alias=instance_id).first()
+        return Identity.objects.filter(instance__provider_alias=instance_id
+                                      ).first()
 
     @classmethod
     def delete_identity(cls, username, provider_location):
@@ -39,8 +39,7 @@ class Identity(models.Model):
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
         group = Group.objects.get(name=username)
-        my_ids = Identity.objects.filter(
-            created_by=user, provider=provider)
+        my_ids = Identity.objects.filter(created_by=user, provider=provider)
         for ident in my_ids:
             membership_set = ident.identity_memberships.all()
             membership_set.delete()
@@ -64,8 +63,11 @@ class Identity(models.Model):
         ownership_query = Q(created_by=user)
         project_query = Q(identity_memberships__member__memberships__user=user)
         if is_leader:
-            project_query &= Q(identity_memberships__member__memberships__is_leader=True)
-        return Identity.objects.filter(project_query | ownership_query).distinct()
+            project_query &= Q(
+                identity_memberships__member__memberships__is_leader=True
+            )
+        return Identity.objects.filter(project_query |
+                                       ownership_query).distinct()
 
     @classmethod
     def destroy_account(cls, username, provider_location):
@@ -74,8 +76,7 @@ class Identity(models.Model):
 
         provider = Provider.objects.get(location__iexact=provider_location)
         user = AtmosphereUser.objects.get(username=username)
-        my_ids = Identity.objects.filter(
-            created_by=user, provider=provider)
+        my_ids = Identity.objects.filter(created_by=user, provider=provider)
         for ident in my_ids:
             ident.delete()
         Identity._destroy_group_membership(user)
@@ -134,7 +135,9 @@ class Identity(models.Model):
             return True
         # Check 2
         shared = False
-        memberships = django_user.memberships.select_related('group').get(is_leader=True, user=django_user)
+        memberships = django_user.memberships.select_related('group').get(
+            is_leader=True, user=django_user
+        )
         for membership in memberships:
             group = membership.group
             id_member = group.identity_memberships.get(identity=self)
@@ -146,13 +149,17 @@ class Identity(models.Model):
                 return True
         # User can't share.. Log the attempt for record-keeping
         if shared:
-            logger.info("FAILED SHARE ATTEMPT: User:%s Identity:%s "
-                        "Reason: You are not a leader of any group that "
-                        "contains the actual owner of the identity (%s)."
-                        % (django_user, self, original_owner))
+            logger.info(
+                "FAILED SHARE ATTEMPT: User:%s Identity:%s "
+                "Reason: You are not a leader of any group that "
+                "contains the actual owner of the identity (%s)." %
+                (django_user, self, original_owner)
+            )
         else:
-            logger.info("FAILED SHARE ATTEMPT: User:%s Identity:%s "
-                        % (django_user, self))
+            logger.info(
+                "FAILED SHARE ATTEMPT: User:%s Identity:%s " %
+                (django_user, self)
+            )
 
         return False
 
@@ -161,13 +168,14 @@ class Identity(models.Model):
         """
         from core.models import IdentityMembership
         existing_membership = IdentityMembership.objects.filter(
-            member=core_group, identity=self)
+            member=core_group, identity=self
+        )
         if existing_membership:
             return existing_membership[0]
 
         new_membership = IdentityMembership.objects.get_or_create(
-            member=core_group,
-            identity=self)[0]
+            member=core_group, identity=self
+        )[0]
         return new_membership
 
     def unshare(self, core_group):
@@ -183,12 +191,15 @@ class Identity(models.Model):
         """
         from core.models import IdentityMembership
         existing_membership = IdentityMembership.objects.filter(
-            member=core_group, identity=self)
+            member=core_group, identity=self
+        )
         return existing_membership[0].delete()
 
     def get_membership(self):
         from core.models import Group
-        identity_members = self.identity_memberships.values_list('member', flat=True)
+        identity_members = self.identity_memberships.values_list(
+            'member', flat=True
+        )
         groups = Group.objects.filter(id__in=identity_members)
         return groups
 
@@ -208,9 +219,19 @@ class Identity(models.Model):
         return credentials
 
     @classmethod
-    def build_account(cls, account_user, group_name, username, provider_location,
-                        quota=None, allocation=None,
-                        is_leader=False, max_quota=False, account_admin=False, **kwarg_creds):
+    def build_account(
+        cls,
+        account_user,
+        group_name,
+        username,
+        provider_location,
+        quota=None,
+        allocation=None,
+        is_leader=False,
+        max_quota=False,
+        account_admin=False,
+        **kwarg_creds
+    ):
         """
         DEPRECATED: POST to v2/identities API to create an identity.
         """
@@ -226,12 +247,14 @@ class Identity(models.Model):
         # upon creation. If the value is not passed in, we can ask the provider to select
         # the router with the least 'usage' to ensure an "eventually consistent" distribution
         # of users->routers.
-        topologyClsName = provider.get_config('network', 'topology', raise_exc=False)
+        topologyClsName = provider.get_config(
+            'network', 'topology', raise_exc=False
+        )
         if topologyClsName == 'External Router Topology' and 'router_name' not in credentials:
             credentials['router_name'] = provider.select_router()
 
-        (user, group) = Group.create_usergroup(
-            account_user, group_name, is_leader)
+        (user,
+         group) = Group.create_usergroup(account_user, group_name, is_leader)
 
         identity = cls._get_identity(user, group, provider, quota, credentials)
         # NOTE: This specific query will need to be modified if we want
@@ -244,7 +267,8 @@ class Identity(models.Model):
         if account_admin:
             AccountProvider.objects.get_or_create(
                 provider=id_membership.identity.provider,
-                identity=id_membership.identity)[0]
+                identity=id_membership.identity
+            )[0]
 
         # 4. Save the user to activate profile on first-time use
         # FIXME: only call .save() if 'no profile' test is True.
@@ -262,7 +286,9 @@ class Identity(models.Model):
         """
         credentials_match_query = (
             contains_credential('key', credentials['key']) &
-            contains_credential('ex_project_name', credentials['ex_project_name'])
+            contains_credential(
+                'ex_project_name', credentials['ex_project_name']
+            )
         )
         identity_qs = Identity.objects\
             .filter(created_by=user, provider=provider)\
@@ -273,7 +299,9 @@ class Identity(models.Model):
 
         identity = identity_qs.first()
         if not identity:
-            identity = cls._create_identity(user, group, provider, quota, credentials)
+            identity = cls._create_identity(
+                user, group, provider, quota, credentials
+            )
 
         # 2. Make sure that all kwargs exist as credentials
         # NOTE: Because we assume a matching username and
@@ -290,10 +318,8 @@ class Identity(models.Model):
         if not quota:
             quota = Quota.default_quota()
         identity = Identity.objects.create(
-            created_by=user,
-            provider=provider,
-            quota=quota,
-            uuid=str(new_uuid))
+            created_by=user, provider=provider, quota=quota, uuid=str(new_uuid)
+        )
         for (c_key, c_value) in credentials.items():
             Identity.update_credential(identity, c_key, c_value)
         return identity
@@ -302,22 +328,26 @@ class Identity(models.Model):
     def update_credential(cls, identity, c_key, c_value, replace=False):
         from core.models import Credential
         test_key_exists = Credential.objects.filter(
-            identity=identity,
-            key=c_key)
+            identity=identity, key=c_key
+        )
         if len(test_key_exists) > 1:
             if not replace:
-                raise ValueError("Found multiple entries for Credential: %s on Identity: %s" % (c_key, identity))
+                raise ValueError(
+                    "Found multiple entries for Credential: %s on Identity: %s"
+                    % (c_key, identity)
+                )
             test_key_exists.delete()
         elif test_key_exists:
             # Single selection
             test_key_exists = test_key_exists.get()
             if test_key_exists.value != c_value:
                 logger.debug(
-                    "Conflicting Key Error: Key:%s Value:%s %s Value:%s" %
-                    (c_key, test_key_exists.value,
-                     "(to replace with new value, set replace=True) New"
-                     if not replace else "Replacement",
-                     c_value))
+                    "Conflicting Key Error: Key:%s Value:%s %s Value:%s" % (
+                        c_key, test_key_exists.value,
+                        "(to replace with new value, set replace=True) New"
+                        if not replace else "Replacement", c_value
+                    )
+                )
             # No Dupes... But should we really throw an Exception here?
             if not replace:
                 return test_key_exists
@@ -325,9 +355,8 @@ class Identity(models.Model):
             test_key_exists.save()
             return test_key_exists
         return Credential.objects.get_or_create(
-            identity=identity,
-            key=c_key,
-            value=c_value)[0]
+            identity=identity, key=c_key, value=c_value
+        )[0]
 
     def provider_uuid(self):
         return self.provider.uuid
@@ -335,8 +364,8 @@ class Identity(models.Model):
     def is_active(self, user=None):
         if user:
             return self.identity_memberships.filter(
-                only_active_memberships(),
-                member__user=user).count() > 0
+                only_active_memberships(), member__user=user
+            ).count() > 0
         return self.provider.is_active()
 
     def creator_name(self):
@@ -345,8 +374,8 @@ class Identity(models.Model):
     def get_key(self):
         creds = self.get_credentials()
         return "Username: %s, Project:%s" % (
-            creds.get('key'),
-            self.project_name(creds=creds))
+            creds.get('key'), self.project_name(creds=creds)
+        )
 
     def project_name(self, creds=None):
         if creds is None:
@@ -398,11 +427,14 @@ class Identity(models.Model):
 
     def json(self):
         return {
-            'id': self.id,
-            'creator': self.created_by.username,
-            'provider': self.provider.json(),
-            'credentials': [cred.json() for cred
-                            in self.credential_set.order_by('key')],
+            'id':
+                self.id,
+            'creator':
+                self.created_by.username,
+            'provider':
+                self.provider.json(),
+            'credentials':
+                [cred.json() for cred in self.credential_set.order_by('key')],
         }
 
     def __unicode__(self):

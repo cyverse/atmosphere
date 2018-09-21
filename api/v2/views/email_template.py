@@ -13,11 +13,10 @@ from api.v2.serializers.details import EmailTemplateSerializer
 
 
 class EmailTemplateViewSet(ViewSet):
-
     """
     API endpoint that allows scripts to be viewed or edited.
     """
-    permission_classes = (permissions.ApiAuthRequired,)
+    permission_classes = (permissions.ApiAuthRequired, )
     serializer_class = EmailTemplateSerializer
     queryset = EmailTemplate.objects.all()
 
@@ -39,5 +38,6 @@ class EmailTemplateViewSet(ViewSet):
             serializer.save()
             return Response(serializer.data)
         else:
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )

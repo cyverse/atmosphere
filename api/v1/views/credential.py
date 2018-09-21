@@ -20,8 +20,7 @@ def get_identity_list(user, provider=None):
         group = Group.objects.get(name=user.username)
         if provider:
             # Implicit: Active,non-end dated providers.
-            identity_list = group.current_identities.filter(
-                provider=provider)
+            identity_list = group.current_identities.filter(provider=provider)
         else:
             identity_list = group.current_identities.all()
         return identity_list
@@ -39,7 +38,8 @@ def get_identity(user, identity_uuid):
         identity_list = get_identity_list(user)
         if not identity_list:
             raise CoreIdentity.DoesNotExist(
-                "No identities found for user %s" % user.username)
+                "No identities found for user %s" % user.username
+            )
         identity = identity_list.get(uuid=identity_uuid)
         return identity
     except CoreIdentity.DoesNotExist:
@@ -48,7 +48,6 @@ def get_identity(user, identity_uuid):
 
 
 class CredentialDetail(AuthAPIView):
-
     """
     The identity contains every credential necessary for atmosphere
     to connect 'The Provider' with a specific user.
@@ -64,13 +63,13 @@ class CredentialDetail(AuthAPIView):
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
                 "The requested Identity ID %s was not found "
-                "on an active provider" % identity_uuid)
+                "on an active provider" % identity_uuid
+            )
         serialized_data = CredentialDetailSerializer(identity).data
         return Response(serialized_data)
 
 
 class CredentialList(AuthAPIView):
-
     """
     The identity contains every credential necessary for atmosphere
     to connect 'The Provider' with a specific user.
@@ -82,6 +81,5 @@ class CredentialList(AuthAPIView):
         Authentication Required, all identities available to the user
         """
         identities = get_identity_list(request.user)
-        serialized_data = CredentialDetailSerializer(identities,
-                                                     many=True).data
+        serialized_data = CredentialDetailSerializer(identities, many=True).data
         return Response(serialized_data)

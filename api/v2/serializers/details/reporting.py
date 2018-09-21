@@ -3,16 +3,20 @@ from rest_framework import serializers
 from api.v2.serializers.summaries import (
     SizeSummarySerializer,
 )
-from core.models import (
-    Instance
-)
+from core.models import (Instance)
 
 
 class InstanceReportingSerializer(serializers.ModelSerializer):
     instance_id = serializers.CharField(source="provider_alias", read_only=True)
-    username = serializers.CharField(source="created_by.username", read_only=True)
-    staff_user = serializers.CharField(source="created_by.is_staff", read_only=True)
-    provider = serializers.CharField(source='created_by_identity.provider.location', read_only=True)
+    username = serializers.CharField(
+        source="created_by.username", read_only=True
+    )
+    staff_user = serializers.CharField(
+        source="created_by.is_staff", read_only=True
+    )
+    provider = serializers.CharField(
+        source='created_by_identity.provider.location', read_only=True
+    )
     size = serializers.SerializerMethodField()
     image_name = serializers.SerializerMethodField()
     version_name = serializers.SerializerMethodField()
@@ -34,7 +38,8 @@ class InstanceReportingSerializer(serializers.ModelSerializer):
     def get_is_featured_image(self, instance):
         try:
             application = self.get_application(instance)
-            return application.tags.filter(name__icontains='featured').count() > 0
+            return application.tags.filter(name__icontains='featured'
+                                          ).count() > 0
         except Exception:
             return False
 
@@ -66,43 +71,47 @@ class InstanceReportingSerializer(serializers.ModelSerializer):
             return None
 
     def get_end_date(self, instance):
-        return instance.end_date.strftime("%x %X") if instance.end_date else None
+        return instance.end_date.strftime(
+            "%x %X"
+        ) if instance.end_date else None
 
     def get_start_date(self, instance):
         return instance.start_date.strftime("%x %X")
 
     def get_hit_active_or_aborted_or_error(self, instance):
         return 1 if (
-            self.get_hit_active(instance) or
-            self.get_hit_aborted(instance) or
-            self.get_hit_error(instance)
+            self.get_hit_active(instance) or self.get_hit_aborted(instance)
+            or self.get_hit_error(instance)
         ) else 0
 
     def get_hit_active_or_aborted(self, instance):
         return 1 if (
-            self.get_hit_active(instance) or
-            self.get_hit_aborted(instance)
+            self.get_hit_active(instance) or self.get_hit_aborted(instance)
         ) else 0
 
     def get_hit_aborted(self, instance):
         return (
-            not self.get_hit_active(instance) and
-            not self.get_hit_deploy_error(instance) and
-            not self.get_hit_error(instance)
+            not self.get_hit_active(instance)
+            and not self.get_hit_deploy_error(instance)
+            and not self.get_hit_error(instance)
         )
 
     def get_hit_active(self, instance):
-        return instance.instancestatushistory_set.filter(status__name='active').count() > 0
+        return instance.instancestatushistory_set.filter(status__name='active'
+                                                        ).count() > 0
 
     def get_hit_deploy_error(self, instance):
         if self.get_hit_active(instance):
             return False
-        return instance.instancestatushistory_set.filter(status__name='deploy_error').count() > 0
+        return instance.instancestatushistory_set.filter(
+            status__name='deploy_error'
+        ).count() > 0
 
     def get_hit_error(self, instance):
         if self.get_hit_active(instance):
             return False
-        return instance.instancestatushistory_set.filter(status__name='error').count() > 0
+        return instance.instancestatushistory_set.filter(status__name='error'
+                                                        ).count() > 0
 
     class Meta:
         model = Instance

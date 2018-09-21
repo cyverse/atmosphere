@@ -16,8 +16,9 @@ from threepio import logger
 
 class MetricViewSet(GenericViewSet):
 
-    permission_classes = (permissions.InMaintenance,
-                          permissions.ApiAuthRequired)
+    permission_classes = (
+        permissions.InMaintenance, permissions.ApiAuthRequired
+    )
 
     queryset = Instance.objects.all()
 
@@ -39,6 +40,5 @@ class MetricViewSet(GenericViewSet):
             instance_metrics = get_instance_metrics(instance, params)
         except Exception as exc:
             logger.exception("Failed to retrieve instance metrics")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
         return Response(instance_metrics)

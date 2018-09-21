@@ -15,6 +15,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='instancesource',
             name='size_bytes',
-            field=models.DecimalField(max_digits=14, decimal_places=0, default=0),
+            field=models.DecimalField(
+                max_digits=14, decimal_places=0, default=0
+            ),
         ),
     ]

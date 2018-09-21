@@ -13,35 +13,40 @@ class InstanceSerializer(serializers.ModelSerializer):
     alias = serializers.CharField(read_only=True, source='provider_alias')
     alias_hash = serializers.CharField(read_only=True, source='hash_alias')
     application_name = serializers.CharField(
-        read_only=True, source='esh_source_name')
+        read_only=True, source='esh_source_name'
+    )
     application_uuid = serializers.CharField(read_only=True)
     created_by = serializers.SlugRelatedField(
-        slug_field='username',
-        read_only=True)
+        slug_field='username', read_only=True
+    )
     status = serializers.CharField(read_only=True, source='esh_status')
     activity = serializers.CharField(read_only=True, source='esh_activity')
     fault = serializers.ReadOnlyField(source='esh_fault')
     size_alias = serializers.CharField(read_only=True, source='esh_size')
     machine_alias = serializers.CharField(read_only=True, source='esh_source')
-    machine_name = serializers.CharField(read_only=True,
-                                         source='esh_source_name')
-    machine_alias_hash = serializers.CharField(read_only=True,
-                                               source='hash_machine_alias')
+    machine_name = serializers.CharField(
+        read_only=True, source='esh_source_name'
+    )
+    machine_alias_hash = serializers.CharField(
+        read_only=True, source='hash_machine_alias'
+    )
     ip_address = serializers.CharField(read_only=True)
     start_date = serializers.DateTimeField(read_only=True)
     end_date = serializers.DateTimeField(read_only=True)
     token = serializers.CharField(read_only=True)
     has_shell = serializers.BooleanField(read_only=True, source='shell')
     has_vnc = serializers.BooleanField(read_only=True, source='vnc')
-    identity = CleanedIdentitySerializer(source="created_by_identity",
-                                         read_only=True)
+    identity = CleanedIdentitySerializer(
+        source="created_by_identity", read_only=True
+    )
     # Writeable fields
     name = serializers.CharField()
     tags = TagRelatedField(
         slug_field='name',
         required=False,
         many=True,
-        queryset=Tag.objects.all())
+        queryset=Tag.objects.all()
+    )
     project = serializers.ReadOnlyField(source='project.id')
     scripts = BootScriptSerializer(many=True, required=False)
 
@@ -52,11 +57,12 @@ class InstanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Instance
-        exclude = ('source', 'provider_alias',
-                   'shell', 'vnc', 'password', 'created_by_identity')
+        exclude = (
+            'source', 'provider_alias', 'shell', 'vnc', 'password',
+            'created_by_identity'
+        )
 
 
 class InstanceActionSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = InstanceAction

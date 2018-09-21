@@ -5,7 +5,6 @@ from core.models import BootScript, ScriptType
 
 
 class BootScriptFactory(factory.DjangoModelFactory):
-
     class Meta:
         model = BootScript
 
@@ -14,4 +13,6 @@ class BootScriptFactory(factory.DjangoModelFactory):
 
 
 class BootScriptRawTextFactory(BootScriptFactory):
-    script_type = factory.LazyAttribute(lambda _: ScriptType.objects.get_or_create(name='Raw Text')[0])
+    script_type = factory.LazyAttribute(
+        lambda _: ScriptType.objects.get_or_create(name='Raw Text')[0]
+    )

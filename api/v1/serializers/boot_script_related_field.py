@@ -4,7 +4,6 @@ from .boot_script_serializer import BootScriptSerializer
 
 
 class BootScriptRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return BootScript.objects.all()
 
@@ -12,4 +11,3 @@ class BootScriptRelatedField(serializers.PrimaryKeyRelatedField):
         script = BootScript.objects.get(pk=value.pk)
         serializer = BootScriptSerializer(script, context=self.context)
         return serializer.data
-

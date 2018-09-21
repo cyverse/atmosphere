@@ -12,25 +12,40 @@ SLEEP_MIN = 30
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--provider-list", action="store_true",
-                        help="List of provider names and IDs")
-    parser.add_argument("--provider-id", type=int,
-                        help="Atmosphere provider ID"
-                        " to use when importing users.")
+    parser.add_argument(
+        "--provider-list",
+        action="store_true",
+        help="List of provider names and IDs"
+    )
+    parser.add_argument(
+        "--provider-id",
+        type=int,
+        help="Atmosphere provider ID"
+        " to use when importing users."
+    )
     parser.add_argument(
         "--users",
         type=str,
         help="List of Users to take action on (Comma-separated)."
-        " (Default: All Users)")
-    parser.add_argument("--action",
-                        help="Atmosphere Action to take [Suspend/Stop/Shelve]"
-                        " (Default:Suspend)")
-    parser.add_argument("--sleep", type=int,
-                        help="# of seconds to sleep after taking action"
-                        " (Default:30sec)")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="A 'dry-run' so you know what will happen,"
-                             " before it happens")
+        " (Default: All Users)"
+    )
+    parser.add_argument(
+        "--action",
+        help="Atmosphere Action to take [Suspend/Stop/Shelve]"
+        " (Default:Suspend)"
+    )
+    parser.add_argument(
+        "--sleep",
+        type=int,
+        help="# of seconds to sleep after taking action"
+        " (Default:30sec)"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="A 'dry-run' so you know what will happen,"
+        " before it happens"
+    )
     args = parser.parse_args()
 
     users = []
@@ -101,11 +116,8 @@ def make_user_instances(instance_list, all_tenants, users):
 
 
 def start_instance_maintenances(
-        provider,
-        action,
-        users=[],
-        sleep_time=None,
-        dry_run=False):
+    provider, action, users=[], sleep_time=None, dry_run=False
+):
     accounts = get_account_driver(provider)
     all_insts = accounts.list_all_instances()
     all_tenants = accounts.list_projects()
@@ -127,13 +139,17 @@ def start_instance_maintenances(
                 continue
             finished = False
             identity = Identity.objects.get(
-                created_by__username=instance.username,
-                provider=provider)
-            print 'Performing Instance Maintenance - %s - %s' % (instance.id, host)
+                created_by__username=instance.username, provider=provider
+            )
+            print 'Performing Instance Maintenance - %s - %s' % (
+                instance.id, host
+            )
             try:
                 _execute_action(identity, instance, action, dry_run)
             except Exception as e:
-                print "Could not %s Instance %s - Error %s" % (action, instance.id, e)
+                print "Could not %s Instance %s - Error %s" % (
+                    action, instance.id, e
+                )
                 continue
         print "Waiting %s seconds" % sleep_time
         if not dry_run:
@@ -145,22 +161,21 @@ def _execute_action(identity, instance, action, dry_run=False):
     if action == 'stop':
         if not dry_run:
             stop_instance(
-                driver,
-                instance,
-                identity.provider.id,
-                identity.id,
-                identity.created_by)
-        print "Shutoff instanceance %s" % (instance.id,)
+                driver, instance, identity.provider.id, identity.id,
+                identity.created_by
+            )
+        print "Shutoff instanceance %s" % (instance.id, )
     elif action == 'suspend':
-        print "Attempt to suspend instanceance %s in state %s" % (instance.id, instance._node.extra['status'])
+        print "Attempt to suspend instanceance %s in state %s" % (
+            instance.id, instance._node.extra['status']
+        )
         if not dry_run:
             suspend_instance(
-                driver,
-                instance,
-                identity.provider.id,
-                identity.id,
-                identity.created_by)
+                driver, instance, identity.provider.id, identity.id,
+                identity.created_by
+            )
         print "Suspended instanceance %s" % (instance.id)
+
 
 if __name__ == "__main__":
     main()

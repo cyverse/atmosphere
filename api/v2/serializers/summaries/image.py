@@ -5,34 +5,36 @@ from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
 
 class ImageSuperSummarySerializer(serializers.HyperlinkedModelSerializer):
     user = serializers.PrimaryKeyRelatedField(
-        source='created_by',
-        read_only=True)
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:application-detail',
+        source='created_by', read_only=True
     )
+    url = UUIDHyperlinkedIdentityField(view_name='api:v2:application-detail', )
 
     class Meta:
         model = Image
-        fields = ('id', 'url', 'uuid', 'name', 'description', 'icon',
-                  'start_date', 'end_date', 'user')
+        fields = (
+            'id', 'url', 'uuid', 'name', 'description', 'icon', 'start_date',
+            'end_date', 'user'
+        )
 
 
 class ImageSummarySerializer(serializers.HyperlinkedModelSerializer):
     user = serializers.PrimaryKeyRelatedField(
-        source='created_by',
-        read_only=True)
+        source='created_by', read_only=True
+    )
     tags = serializers.SerializerMethodField()
 
-    url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:application-detail',
-    )
+    url = UUIDHyperlinkedIdentityField(view_name='api:v2:application-detail', )
 
     def get_tags(self, obj):
         from api.v2.serializers.details import TagSerializer
-        serializer = TagSerializer(obj.tags.all(), many=True, context=self.context)
+        serializer = TagSerializer(
+            obj.tags.all(), many=True, context=self.context
+        )
         return serializer.data
 
     class Meta:
         model = Image
-        fields = ('id', 'url', 'uuid', 'name', 'description', 'icon',
-                  'tags', 'start_date', 'end_date', 'user')
+        fields = (
+            'id', 'url', 'uuid', 'name', 'description', 'icon', 'tags',
+            'start_date', 'end_date', 'user'
+        )

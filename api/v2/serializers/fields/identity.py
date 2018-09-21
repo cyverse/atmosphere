@@ -2,8 +2,8 @@ from rest_framework import exceptions, serializers
 from api.v2.serializers.summaries import IdentitySummarySerializer
 from core.models import Identity
 
-class IdentityRelatedField(serializers.RelatedField):
 
+class IdentityRelatedField(serializers.RelatedField):
     def get_queryset(self):
         return Identity.objects.all()
 
@@ -21,6 +21,5 @@ class IdentityRelatedField(serializers.RelatedField):
             return queryset.get(id=identity)
         except:
             raise exceptions.ValidationError(
-                "Identity with id '%s' does not exist."
-                % identity
+                "Identity with id '%s' does not exist." % identity
             )

@@ -7,6 +7,7 @@ from atmosphere.settings import BLACKLIST_TAGS
 from django.db import models
 import uuid
 
+
 class Tag(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     name = models.SlugField(max_length=128)
@@ -23,8 +24,9 @@ class Tag(models.Model):
         tag_name = self.name.lower()
         if user and (user.is_staff or user.is_superuser):
             return True
-        in_black_list = any(tag_name == black_tag.lower()
-                            for black_tag in BLACKLIST_TAGS)
+        in_black_list = any(
+            tag_name == black_tag.lower() for black_tag in BLACKLIST_TAGS
+        )
         return not in_black_list
 
     def in_use(self):
@@ -35,7 +37,7 @@ class Tag(models.Model):
         return False
 
     def __unicode__(self):
-        return "%s" % (self.name,)
+        return "%s" % (self.name, )
 
     def json(self):
         return {
@@ -66,8 +68,7 @@ def updateTags(coreObject, tags, user=None):
         if isinstance(tag, basestring):
             tag = find_or_create_tag(tag, user)
         elif not isinstance(tag, Tag):
-            raise TypeError("Expected list of str or Tag, found %s"
-                            % type(tag))
+            raise TypeError("Expected list of str or Tag, found %s" % type(tag))
         coreObject.tags.add(tag)
     return coreObject
 

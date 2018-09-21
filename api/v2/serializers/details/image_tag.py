@@ -5,7 +5,6 @@ from .tag import TagSerializer
 
 
 class ImageRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return Image.objects.all()
 
@@ -16,7 +15,6 @@ class ImageRelatedField(serializers.PrimaryKeyRelatedField):
 
 
 class TagRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return Tag.objects.all()
 
@@ -28,17 +26,13 @@ class TagRelatedField(serializers.PrimaryKeyRelatedField):
 
 class ImageTagSerializer(serializers.HyperlinkedModelSerializer):
     image = ImageRelatedField(
-        source='application',
-        queryset=Image.objects.none())
+        source='application', queryset=Image.objects.none()
+    )
     tag = TagRelatedField(queryset=Tag.objects.none())
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:applicationtag-detail',
     )
+
     class Meta:
         model = ImageTag
-        fields = (
-            'id',
-            'url',
-            'image',
-            'tag'
-        )
+        fields = ('id', 'url', 'image', 'tag')

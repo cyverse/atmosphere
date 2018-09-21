@@ -7,7 +7,9 @@ from core.models.event_table import EventTable
 
 
 class CyverseTestRenewalVariables(BaseVariables):
-    def __init__(self, allocation_source, current_time, last_renewal_event_date):
+    def __init__(
+        self, allocation_source, current_time, last_renewal_event_date
+    ):
         self.allocation_source = allocation_source
         self.current_time = current_time
         self.last_renewal_event_date = last_renewal_event_date
@@ -18,7 +20,10 @@ class CyverseTestRenewalVariables(BaseVariables):
 
     @boolean_rule_variable
     def is_valid(self):
-        if (not self.allocation_source.end_date or (self.allocation_source.end_date > self.current_time)):
+        if (
+            not self.allocation_source.end_date
+            or (self.allocation_source.end_date > self.current_time)
+        ):
             return True
         return False
 
@@ -35,8 +40,7 @@ class CyverseTestRenewalVariables(BaseVariables):
 
     @numeric_rule_variable
     def days_since_renewed(self):
-        return (
-            self.current_time - self.last_renewal_event_date).days
+        return (self.current_time - self.last_renewal_event_date).days
 
     @numeric_rule_variable
     def today_calendar_day(self):
@@ -46,11 +50,18 @@ class CyverseTestRenewalVariables(BaseVariables):
 class CyverseTestRenewalActions(BaseActions):
     def __init__(self, allocation_source, current_time):
         if not isinstance(allocation_source, AllocationSource):
-            raise Exception('Please provide Allocation Source instance for renewal')
+            raise Exception(
+                'Please provide Allocation Source instance for renewal'
+            )
         self.allocation_source = allocation_source
         self.current_time = current_time
 
-    @rule_action(params={"strategy_name": FIELD_TEXT, "compute_allowed": FIELD_NUMERIC})
+    @rule_action(
+        params={
+            "strategy_name": FIELD_TEXT,
+            "compute_allowed": FIELD_NUMERIC
+        }
+    )
     def renew_allocation_source(self, strategy_name, compute_allowed):
         total_compute_allowed = compute_allowed
 
@@ -66,10 +77,12 @@ class CyverseTestRenewalActions(BaseActions):
             "compute_allowed": total_compute_allowed
         }
 
-        EventTable.objects.create(name='allocation_source_created_or_renewed',
-                                  payload=payload,
-                                  entity_id=allocation_source_name,
-                                  timestamp=self.current_time)
+        EventTable.objects.create(
+            name='allocation_source_created_or_renewed',
+            payload=payload,
+            entity_id=allocation_source_name,
+            timestamp=self.current_time
+        )
 
     @rule_action()
     def cannot_renew_allocation_source(self):
@@ -127,7 +140,9 @@ def _create_conditions_for(strategy_name, strategy_config):
 
     if period_type == 'on_calendar_day':
         calendar_day_to_renew_on = period_param
-        assert type(calendar_day_to_renew_on) == int, 'Invalid calendar day: Must be an integer'
+        assert type(
+            calendar_day_to_renew_on
+        ) == int, 'Invalid calendar day: Must be an integer'
         assert 0 < calendar_day_to_renew_on <= 31, 'Invalid calendar day: Must be an integer from 1 to 31'
         # TODO: What happens when the cron job doesn't fire on the first of the month?
         # Add a condition to check if it's been more than a month since last renewal?
@@ -150,7 +165,9 @@ def _create_conditions_for(strategy_name, strategy_config):
 
     if period_type == 'days':
         renewed_in_days = period_param
-        assert type(renewed_in_days) == int, 'Invalid number of days: Must be an integer'
+        assert type(
+            renewed_in_days
+        ) == int, 'Invalid number of days: Must be an integer'
         conditions.append(
             {
                 "name": "days_since_renewed",
@@ -187,34 +204,34 @@ def _create_actions_for(strategy_name, strategy_config):
 
 # RENEWAL STRATEGY CONFIGURATION
 renewal_strategies = {
-
-    'default': {
-        'id': 1,
-        'compute_allowed': 168,
-        'period_type': 'on_calendar_day',
-        'period_param': 1
-    },
-
-    'bi-weekly': {
-        'id': 2,
-        'compute_allowed': 84,
-        'period_type': 'days',
-        'period_param': 14
-    },
-
-    'workshop': {
-        'id': 3,
-        'compute_allowed': 0,
-        'period_type': 'days',
-        'period_param': 7
-    },
-
-    'custom': {
-        'id': 4,
-        'compute_allowed': 0,
-        'period_type': None,
-        'period_param': None
-    },
+    'default':
+        {
+            'id': 1,
+            'compute_allowed': 168,
+            'period_type': 'on_calendar_day',
+            'period_param': 1
+        },
+    'bi-weekly':
+        {
+            'id': 2,
+            'compute_allowed': 84,
+            'period_type': 'days',
+            'period_param': 14
+        },
+    'workshop':
+        {
+            'id': 3,
+            'compute_allowed': 0,
+            'period_type': 'days',
+            'period_param': 7
+        },
+    'custom':
+        {
+            'id': 4,
+            'compute_allowed': 0,
+            'period_type': None,
+            'period_param': None
+        },
 }
 
 # MAIN RULES JSON

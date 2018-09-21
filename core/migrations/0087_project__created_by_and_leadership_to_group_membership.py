@@ -26,21 +26,37 @@ class Migration(migrations.Migration):
             name='groupmembership',
             table='group_members',
         ),
-        # Part 2:
+    # Part 2:
         migrations.AddField(
             model_name='instance',
             name='project',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='core.Project'),
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to='core.Project'
+            ),
         ),
         migrations.AddField(
             model_name='volume',
             name='project',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='core.Project'),
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to='core.Project'
+            ),
         ),
         migrations.AddField(
             model_name='project',
             name='created_by',
-            field=models.ForeignKey(null=True, blank=True, on_delete=django.db.models.deletion.CASCADE, related_name='projects', to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(
+                null=True,
+                blank=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name='projects',
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
             model_name='groupmembership',
@@ -50,11 +66,19 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='groupmembership',
             name='group',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='memberships', to='core.Group'),
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name='memberships',
+                to='core.Group'
+            ),
         ),
         migrations.AlterField(
             model_name='groupmembership',
             name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='memberships', to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name='memberships',
+                to=settings.AUTH_USER_MODEL
+            ),
         ),
     ]

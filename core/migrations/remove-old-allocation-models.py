@@ -12,9 +12,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.DeleteModel(
-            name='Allocation',
-        ),
+        migrations.DeleteModel(name='Allocation', ),
         migrations.RemoveField(
             model_name='allocationstrategy',
             name='counting_behavior',
@@ -31,16 +29,8 @@ class Migration(migrations.Migration):
             model_name='allocationstrategy',
             name='rules_behaviors',
         ),
-        migrations.DeleteModel(
-            name='AllocationStrategy',
-        ),
-        migrations.DeleteModel(
-            name='CountingBehavior',
-        ),
-        migrations.DeleteModel(
-            name='RefreshBehavior',
-        ),
-        migrations.DeleteModel(
-            name='RulesBehavior',
-        ),
+        migrations.DeleteModel(name='AllocationStrategy', ),
+        migrations.DeleteModel(name='CountingBehavior', ),
+        migrations.DeleteModel(name='RefreshBehavior', ),
+        migrations.DeleteModel(name='RulesBehavior', ),
     ]

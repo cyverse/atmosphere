@@ -8,18 +8,18 @@ from urlparse import urlparse
 import glanceclient
 from django.db.models import ObjectDoesNotExist
 from rtwo.exceptions import (
-    NovaOverLimit,
-    KeystoneUnauthorized,
-    NeutronClientException,
-    GlanceClientException,
-    GlanceForbidden)
+    NovaOverLimit, KeystoneUnauthorized, NeutronClientException,
+    GlanceClientException, GlanceForbidden
+)
 
 # FIXME: Add this exception to rtwo before merge.
 try:
     from keystoneclient.exceptions import NotFound as KeystoneNotFound
 except:
+
     class KeystoneNotFound(Exception):
         pass
+
 
 from rtwo.drivers.common import _connect_to_keystone_v2, _connect_to_glance_by_auth
 
@@ -48,26 +48,28 @@ from atmosphere.settings import DEFAULT_PASSWORD_UPDATE, DEFAULT_RULES
 
 
 def timeout_after(seconds):
-  def real_timeout(func):
-    def wrapper(*args, **kwargs):
-        import signal
+    def real_timeout(func):
+        def wrapper(*args, **kwargs):
+            import signal
 
-        def handler(signum, frame):
-            raise TimeoutError()
+            def handler(signum, frame):
+                raise TimeoutError()
 
-        # set the timeout handler
-        signal.signal(signal.SIGALRM, handler)
-        signal.alarm(seconds)
-        try:
-            result = func(*args, **kwargs)
-        except TimeoutError:
-            raise
-        finally:
-            signal.alarm(0)
+            # set the timeout handler
+            signal.signal(signal.SIGALRM, handler)
+            signal.alarm(seconds)
+            try:
+                result = func(*args, **kwargs)
+            except TimeoutError:
+                raise
+            finally:
+                signal.alarm(0)
 
-        return result
-    return wrapper
-  return real_timeout
+            return result
+
+        return wrapper
+
+    return real_timeout
 
 
 class AccountDriver(BaseAccountDriver):
@@ -84,7 +86,7 @@ class AccountDriver(BaseAccountDriver):
         for key, val in export_data.iteritems():
             str_builder += "export %s=%s\n" % (key, val)
         if filename:
-            with open(filename,'w') as the_file:
+            with open(filename, 'w') as the_file:
                 the_file.write(str_builder)
         return str_builder
 
@@ -98,16 +100,19 @@ class AccountDriver(BaseAccountDriver):
         all_creds = identity.get_all_credentials()
         tenant_name = all_creds.get('ex_project_name', "<PROJECT MISSING>")
         username = all_creds.get('key', "<USERNAME MISSING>")
-        password = all_creds.get('secret',"<PASSWORD MISSING>")
+        password = all_creds.get('secret', "<PASSWORD MISSING>")
         project_domain = all_creds.get('project_domain', 'default')
         user_domain = all_creds.get('user_domain', 'default')
         region_name = all_creds.get('region_name', 'RegionOne')
-        keystone_auth_version = all_creds.get('ex_force_auth_version', '2.0_password').replace('/v2.0/tokens', '')
+        keystone_auth_version = all_creds.get(
+            'ex_force_auth_version', '2.0_password'
+        ).replace('/v2.0/tokens', '')
         is_v2 = '2' in keystone_auth_version
         is_v3 = '3' in keystone_auth_version
         version_prefix = "/v2.0" if is_v2 else '/v3'
         #auth_url = all_creds.get('auth_url', '<AUTH URL MISSING>') + version_prefix
-        admin_url = all_creds.get('admin_url', '<ADMIN URL MISSING>').replace('/v2.0/tokens', '') + version_prefix
+        admin_url = all_creds.get('admin_url', '<ADMIN URL MISSING>'
+                                 ).replace('/v2.0/tokens', '') + version_prefix
         export_data = {
             "OS_REGION_NAME": region_name,
             "OS_AUTH_URL": admin_url,
@@ -116,19 +121,20 @@ class AccountDriver(BaseAccountDriver):
             "OS_TENANT_NAME": tenant_name,
         }
         if is_v3:
-            export_data.update({
-                "OS_IDENTITY_API_VERSION": 3,
-                "OS_PROJECT_NAME": tenant_name,
-                "OS_PROJECT_DOMAIN_NAME": project_domain,
-                "OS_USER_DOMAIN_NAME": user_domain,
-            })
+            export_data.update(
+                {
+                    "OS_IDENTITY_API_VERSION": 3,
+                    "OS_PROJECT_NAME": tenant_name,
+                    "OS_PROJECT_DOMAIN_NAME": project_domain,
+                    "OS_USER_DOMAIN_NAME": user_domain,
+                }
+            )
         return export_data
 
     def add_owner_to_machine(self, cloud_machines, cloud_machines_dict):
         for warlock_image in cloud_machines:
             glance_img_match = [
-                glance_img for glance_img
-                in cloud_machines_dict
+                glance_img for glance_img in cloud_machines_dict
                 if glance_img['id'] == warlock_image.id
             ]
             if not glance_img_match:
@@ -141,7 +147,8 @@ class AccountDriver(BaseAccountDriver):
 
     def clear_cache(self):
         self.admin_driver.provider.machineCls.invalidate_provider_cache(
-                self.admin_driver.provider)
+            self.admin_driver.provider
+        )
         return self.admin_driver
 
     def _init_by_provider(self, provider, *args, **kwargs):
@@ -154,7 +161,9 @@ class AccountDriver(BaseAccountDriver):
         self.cloud_config = provider.cloud_config
         self.provider_creds = provider_creds
         if not provider.admin:
-            raise Exception("Cannot create an account driver yet - A provider admin account has not been created")
+            raise Exception(
+                "Cannot create an account driver yet - A provider admin account has not been created"
+            )
         admin_identity = provider.admin
         admin_creds = admin_identity.get_credentials()
         self.admin_driver = get_esh_driver(admin_identity)
@@ -177,9 +186,11 @@ class AccountDriver(BaseAccountDriver):
         if 'location' in all_creds:
             self.namespace = "Atmosphere_OpenStack:%s" % all_creds['location']
         else:
-            logger.info("Using default namespace.. Could cause conflicts if "
-                        "switching between providers. To avoid ambiguity, "
-                        "provide the kwarg: location='provider_prefix'")
+            logger.info(
+                "Using default namespace.. Could cause conflicts if "
+                "switching between providers. To avoid ambiguity, "
+                "provide the kwarg: location='provider_prefix'"
+            )
         # Build credentials for each manager
         self.credentials = all_creds
 
@@ -189,8 +200,9 @@ class AccountDriver(BaseAccountDriver):
         elif ex_auth_version.startswith('3'):
             self.identity_version = 3
         else:
-            raise Exception("Could not determine identity_version of %s"
-                            % ex_auth_version)
+            raise Exception(
+                "Could not determine identity_version of %s" % ex_auth_version
+            )
 
         user_creds = self._build_user_creds(all_creds)
         image_creds = self._build_image_creds(all_creds)
@@ -225,63 +237,106 @@ class AccountDriver(BaseAccountDriver):
         try:
             value = self.cloud_config[section][config_key]
         except (KeyError, TypeError):
-            logger.error("Cloud config ['%s']['%s'] is missing -- using default value (%s)" % (section, config_key, default_value))
+            logger.error(
+                "Cloud config ['%s']['%s'] is missing -- using default value (%s)"
+                % (section, config_key, default_value)
+            )
             value = default_value
         return value
 
-    def create_account(self, account_user, group_name, username, password=None, project_name=None,
-                       role_name=None, quota=None, is_leader=False, max_quota=False):
+    def create_account(
+        self,
+        account_user,
+        group_name,
+        username,
+        password=None,
+        project_name=None,
+        role_name=None,
+        quota=None,
+        is_leader=False,
+        max_quota=False
+    ):
         """
         Create (And Update "latest changes") to an account
 
         """
         if not self.core_provider:
-            raise Exception("AccountDriver not initialized by provider,"
-                            " cannot create identity. For account creation use"
-                            " build_account()")
+            raise Exception(
+                "AccountDriver not initialized by provider,"
+                " cannot create identity. For account creation use"
+                " build_account()"
+            )
 
         try:
             # Don't try to create an identity on the provider if the AtmosphereUser does not exist.
-            user = core.models.AtmosphereUser.objects.get_by_natural_key(account_user)
+            user = core.models.AtmosphereUser.objects.get_by_natural_key(
+                account_user
+            )
             assert isinstance(user, core.models.AtmosphereUser)
         except Exception as e:
-            logger.exception('Do not create an account on for username "%s" because the user does not exist', account_user)
+            logger.exception(
+                'Do not create an account on for username "%s" because the user does not exist',
+                account_user
+            )
             raise AccountCreationConflict(
-                'AccountDriver tried to create an account for ({}), but {}'.format(account_user, e))
+                'AccountDriver tried to create an account for ({}), but {}'.
+                format(account_user, e)
+            )
 
         if username in self.core_provider.list_admin_names():
             return
         try:
             (username, password, project) = self.build_account(
-                username, password, project_name, role_name, max_quota)
+                username, password, project_name, role_name, max_quota
+            )
         except (KeystoneUnauthorized, KeystoneauthUnauthorized) as exc:
             logger.exception("Encountered error creating account - %s" % exc)
             raise AccountCreationConflict(
                 "AccountDriver is trying to create an account, (%s)"
                 "but the password does not match. "
-                "This conflict should be addressed by hand."
-                % (username, ))
+                "This conflict should be addressed by hand." % (username, )
+            )
 
         try:
-            has_allocations = core.plugins.AllocationSourcePluginManager.ensure_user_allocation_sources(user)
+            has_allocations = core.plugins.AllocationSourcePluginManager.ensure_user_allocation_sources(
+                user
+            )
             if not has_allocations:
-                raise ValueError('User "{}" has no valid allocations'.format(user))
+                raise ValueError(
+                    'User "{}" has no valid allocations'.format(user)
+                )
         except Exception as e:
-            logger.exception('Encountered error while ensuring user has valid Allocation Sources: "%s"', user)
+            logger.exception(
+                'Encountered error while ensuring user has valid Allocation Sources: "%s"',
+                user
+            )
             raise AccountCreationConflict(
                 'AccountDriver is trying to create an account: {} '
-                'but while ensuring user has valid Allocation Sources there was a problem: {}'.format(user, e))
+                'but while ensuring user has valid Allocation Sources there was a problem: {}'
+                .format(user, e)
+            )
 
         ident = self.create_identity(
-                account_user, group_name,
-                username, password, project.name,
-                quota=quota,
-                max_quota=max_quota,
-                is_leader=is_leader)
+            account_user,
+            group_name,
+            username,
+            password,
+            project.name,
+            quota=quota,
+            max_quota=max_quota,
+            is_leader=is_leader
+        )
         return ident
 
-    def build_account(self, username, password,
-                      project_name=None, role_name=None, max_quota=False, domain_name='default'):
+    def build_account(
+        self,
+        username,
+        password,
+        project_name=None,
+        role_name=None,
+        max_quota=False,
+        domain_name='default'
+    ):
         finished = False
         # Attempt account creation
         while not finished:
@@ -294,21 +349,28 @@ class AccountDriver(BaseAccountDriver):
                 project_kwargs = {}
                 if self.identity_version > 2:
                     project_kwargs.update({'domain_id': domain_name})
-                project = self.user_manager.get_project(project_name, **project_kwargs)
+                project = self.user_manager.get_project(
+                    project_name, **project_kwargs
+                )
                 if not project:
                     if self.identity_version > 2:
                         project_kwargs = {'domain': domain_name}
-                    project = self.user_manager.create_project(project_name, **project_kwargs)
+                    project = self.user_manager.create_project(
+                        project_name, **project_kwargs
+                    )
                 # 2. Create User (And add them to the project)
                 user = self.get_user(username)
                 if not user:
-                    logger.info("Creating account: %s - %s - %s"
-                                % (username, password, project))
+                    logger.info(
+                        "Creating account: %s - %s - %s" %
+                        (username, password, project)
+                    )
                     user_kwargs = {}
                     if self.identity_version > 2:
                         user_kwargs.update({'domain': domain_name})
-                    user = self.user_manager.create_user(username, password,
-                                                         project, **user_kwargs)
+                    user = self.user_manager.create_user(
+                        username, password, project, **user_kwargs
+                    )
                 # 3.1 Include the admin in the project
                 # TODO: providercredential initialization of
                 #  "default_admin_role"
@@ -316,26 +378,35 @@ class AccountDriver(BaseAccountDriver):
 
                 # 3.2 Check the user has been given an appropriate role
                 if not role_name:
-                    role_name = self.get_config('user', 'user_role_name', settings.DEFAULT_KEYSTONE_ROLE)
+                    role_name = self.get_config(
+                        'user', 'user_role_name', settings.DEFAULT_KEYSTONE_ROLE
+                    )
                 try:
                     self.user_manager.add_project_membership(
-                        project_name, username, role_name, domain_name)
+                        project_name, username, role_name, domain_name
+                    )
                 except:
-                    raise Exception("Could not add role %s to user %s for project %s -- Check 'user_role_name'"
-                                    % (role_name, username, project_name))
+                    raise Exception(
+                        "Could not add role %s to user %s for project %s -- Check 'user_role_name'"
+                        % (role_name, username, project_name)
+                    )
 
                 # 4. Create a keypair to use when launching with atmosphere
                 self.init_keypair(user.name, password, project.name)
                 finished = True
 
             except ConnectionError:
-                logger.exception("Connection reset by peer. "
-                                 "Waiting for one minute.")
-                time.sleep(60)  # Wait one minute
+                logger.exception(
+                    "Connection reset by peer. "
+                    "Waiting for one minute."
+                )
+                time.sleep(60)    # Wait one minute
             except NovaOverLimit:
-                logger.exception("OverLimit on POST requests. "
-                                 "Waiting for one minute.")
-                time.sleep(60)  # Wait one minute
+                logger.exception(
+                    "OverLimit on POST requests. "
+                    "Waiting for one minute."
+                )
+                time.sleep(60)    # Wait one minute
         return (username, password, project)
 
     def change_password(self, identity, new_password, old_password=None):
@@ -358,12 +429,15 @@ class AccountDriver(BaseAccountDriver):
         except ObjectDoesNotExist:
             raise Exception(
                 "The 'key' for a secret has changed! "
-                "Ask a programmer for help!")
+                "Ask a programmer for help!"
+            )
 
     def update_password_for(self, identity, new_password, strategy=None):
         identity_creds = self.parse_identity(identity)
         username = identity_creds["username"]
-        return self.update_password_for_user(username, new_password, strategy=strategy)
+        return self.update_password_for_user(
+            username, new_password, strategy=strategy
+        )
 
     def update_password_for_user(self, username, new_password, strategy=None):
 
@@ -373,13 +447,14 @@ class AccountDriver(BaseAccountDriver):
         if not strategy\
                 or strategy == 'keystone_password_update':
             return self.keystone_password_update(username, new_password)
-        if strategy in ['openstack_sdk_password_update',
-                        'openstack_password_update']:
+        if strategy in [
+            'openstack_sdk_password_update', 'openstack_password_update'
+        ]:
             return self.openstack_sdk_password_update(username, new_password)
         else:
             raise ValueError(
-                "Invalid 'Update Password' strategy: %s"
-                % strategy)
+                "Invalid 'Update Password' strategy: %s" % strategy
+            )
 
     def keystone_password_update(self, username, new_password):
         keystone = self.user_manager.keystone
@@ -388,21 +463,26 @@ class AccountDriver(BaseAccountDriver):
 
     def openstack_sdk_password_update(self, username, new_password):
         user_id = self.get_user(username).id
-        return self.openstack_sdk.identity.update_user(user_id, password=new_password)
+        return self.openstack_sdk.identity.update_user(
+            user_id, password=new_password
+        )
 
     def init_keypair(self, username, password, project_name):
         keyname = settings.ATMOSPHERE_KEYPAIR_NAME
         with open(settings.ATMOSPHERE_KEYPAIR_FILE, "r") as pub_key_file:
             public_key = pub_key_file.read()
-        return self.get_or_create_keypair(username, password, project_name,
-                                          keyname, public_key)
+        return self.get_or_create_keypair(
+            username, password, project_name, keyname, public_key
+        )
 
     def init_security_group(self, core_identity, security_group_name=None):
         # 4.1. Update the account quota to hold a larger number of
         # roles than what is necessary
         # user = user_matches[0]
         # -- User:Keystone rev.
-        rules_list = self.get_config('network', 'default_security_rules', DEFAULT_RULES)
+        rules_list = self.get_config(
+            'network', 'default_security_rules', DEFAULT_RULES
+        )
         identity_creds = self.parse_identity(core_identity)
         username = identity_creds["username"]
         password = identity_creds["password"]
@@ -412,13 +492,20 @@ class AccountDriver(BaseAccountDriver):
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain': 'default'})
-            user_matches = [u for u in self.user_manager.keystone.users.list(**kwargs) if u.name == username]
+            user_matches = [
+                u for u in self.user_manager.keystone.users.list(**kwargs)
+                if u.name == username
+            ]
             if not user_matches or len(user_matches) > 1:
-                raise Exception("User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!")
+                raise Exception(
+                    "User maps to *MORE* than one account on openstack default domain! Ask a programmer for help here!"
+                )
         kwargs = {}
         if self.identity_version > 2:
             kwargs.update({'domain_id': 'default'})
-        project = self.user_manager.keystone_projects().find(name=project_name, **kwargs)
+        project = self.user_manager.keystone_projects().find(
+            name=project_name, **kwargs
+        )
         nc = self.user_manager.nova
         rule_max = max(len(rules_list), 100)
         nc.quotas.update(project.id, security_group_rules=rule_max)
@@ -426,54 +513,68 @@ class AccountDriver(BaseAccountDriver):
         # name
         try:
             # Create the default security group
-            nova = self.user_manager.build_nova(username, password,
-                                                project_name)
+            nova = self.user_manager.build_nova(
+                username, password, project_name
+            )
             sec_groups = nova.security_groups.list()
             if not sec_groups:
                 nova.security_group.create("default", project_name)
             self.network_manager.rename_security_group(
-                project, security_group_name=security_group_name)
+                project, security_group_name=security_group_name
+            )
         except ConnectionError:
             logger.exception(
                 "Failed to establish connection."
-                " Security group creation FAILED")
+                " Security group creation FAILED"
+            )
             return None
         except NeutronClientException as nce:
             if nce.status_code != 404:
-                logger.exception("Encountered unknown exception while renaming"
-                                 " the security group")
+                logger.exception(
+                    "Encountered unknown exception while renaming"
+                    " the security group"
+                )
             return None
         # Start creating security group
         return self.user_manager.build_security_group(
-            username, password, project.name,
-            security_group_name, rules_list)
+            username, password, project.name, security_group_name, rules_list
+        )
 
-    def add_rules_to_security_groups(self, core_identity_list,
-                                     security_group_name, rules_list):
+    def add_rules_to_security_groups(
+        self, core_identity_list, security_group_name, rules_list
+    ):
         for identity in core_identity_list:
             creds = self.parse_identity(identity)
             sec_group = self.user_manager.find_security_group(
                 creds["username"], creds["password"], creds["tenant_name"],
-                security_group_name)
+                security_group_name
+            )
             if not sec_group:
-                raise Exception("No security gruop found matching name %s"
-                                % security_group_name)
+                raise Exception(
+                    "No security gruop found matching name %s" %
+                    security_group_name
+                )
             self.user_manager.add_security_group_rules(
                 creds["username"], creds["password"], creds["tenant_name"],
-                security_group_name, rules_list)
+                security_group_name, rules_list
+            )
 
-    def get_or_create_keypair(self, username, password, project_name,
-                              keyname, public_key):
+    def get_or_create_keypair(
+        self, username, password, project_name, keyname, public_key
+    ):
         """
         keyname - Name of the keypair
         public_key - Contents of public key in OpenSSH format
         """
         if self.identity_version == 2:
-            nova = self.user_manager.build_nova(username, password,
-                                                project_name)
+            nova = self.user_manager.build_nova(
+                username, password, project_name
+            )
             keypairs = nova.keypairs.list()
         else:
-            clients = self.get_openstack_clients(username, password, project_name)
+            clients = self.get_openstack_clients(
+                username, password, project_name
+            )
             osdk = clients["openstack_sdk"]
             keypairs = [kp for kp in osdk.compute.keypairs()]
         #FIXME: This isn't working for CyVerse Cloud.
@@ -482,30 +583,36 @@ class AccountDriver(BaseAccountDriver):
                 if kp.public_key.strip() != public_key.strip():
                     raise Exception(
                         "Mismatched public key found for keypair named: %s"
-                        ". Expected:\n%s\nFound:\n%s"
-                        % (keyname, public_key, kp.public_key))
+                        ". Expected:\n%s\nFound:\n%s" %
+                        (keyname, public_key, kp.public_key)
+                    )
                 return (kp, False)
-        return (self.create_keypair(
-            username, password, project_name, keyname, public_key), True)
+        return (
+            self.create_keypair(
+                username, password, project_name, keyname, public_key
+            ), True
+        )
 
-    def create_keypair(self, username, password,
-                       project_name, keyname, public_key):
+    def create_keypair(
+        self, username, password, project_name, keyname, public_key
+    ):
         """
         keyname - Name of the keypair
         public_key - Contents of public key in OpenSSH format
         """
         if self.identity_version == 2:
-            nova = self.user_manager.build_nova(username, password,
-                                                project_name)
-            keypair = nova.keypairs.create(
-                    keyname,
-                    public_key=public_key)
+            nova = self.user_manager.build_nova(
+                username, password, project_name
+            )
+            keypair = nova.keypairs.create(keyname, public_key=public_key)
         else:
-            clients = self.get_openstack_clients(username, password, project_name)
+            clients = self.get_openstack_clients(
+                username, password, project_name
+            )
             osdk = clients["openstack_sdk"]
             keypair = osdk.compute.create_keypair(
-                name=keyname,
-                public_key=public_key)
+                name=keyname, public_key=public_key
+            )
         return keypair
 
     def get_image_members(self, image_id, status="approved"):
@@ -554,29 +661,33 @@ class AccountDriver(BaseAccountDriver):
         domain_id = all_creds.get('domain_name', 'default')
         project_name = identity.project_name()
         clients = self.get_openstack_clients(username, password, project_name)
-        project = self.user_manager.get_project(project_name, domain_id=domain_id)
+        project = self.user_manager.get_project(
+            project_name, domain_id=domain_id
+        )
         glance = clients["glance"]
-        glance.image_members.update(
-            glance_image.id,
-            project.id,
-            'accepted')
-        logger.info("Added Cloud Access: %s-%s"
-                    % (glance_image, project_name))
+        glance.image_members.update(glance_image.id, project.id, 'accepted')
+        logger.info("Added Cloud Access: %s-%s" % (glance_image, project_name))
         return project
-
-
 
     def rebuild_security_groups(self, core_identity, rules_list=None):
         creds = self.parse_identity(core_identity)
         if not rules_list:
-            rules_list = self.get_config('network', 'default_security_rules', DEFAULT_RULES)
+            rules_list = self.get_config(
+                'network', 'default_security_rules', DEFAULT_RULES
+            )
         return self.user_manager.build_security_group(
-            creds["username"], creds["password"], creds["tenant_name"],
-            creds["tenant_name"], rules_list, rebuild=True)
+            creds["username"],
+            creds["password"],
+            creds["tenant_name"],
+            creds["tenant_name"],
+            rules_list,
+            rebuild=True
+        )
 
     def parse_identity(self, core_identity):
         identity_creds = self._libcloud_to_openstack(
-            core_identity.get_credentials())
+            core_identity.get_credentials()
+        )
         return identity_creds
 
     def clean_credentials(self, credential_dict):
@@ -598,21 +709,40 @@ class AccountDriver(BaseAccountDriver):
                 missing_creds.append(c)
         return missing_creds
 
-    def create_identity(self, account_user, group_name, username, password, project_name,
-                        quota=None, max_quota=False, account_admin=False, is_leader=False):
+    def create_identity(
+        self,
+        account_user,
+        group_name,
+        username,
+        password,
+        project_name,
+        quota=None,
+        max_quota=False,
+        account_admin=False,
+        is_leader=False
+    ):
 
         if not self.core_provider:
-            raise Exception("AccountDriver not initialized by provider, "
-                            "cannot create identity")
+            raise Exception(
+                "AccountDriver not initialized by provider, "
+                "cannot create identity"
+            )
         identity = Identity.build_account(
-            account_user, group_name, username, self.core_provider.location,
+            account_user,
+            group_name,
+            username,
+            self.core_provider.location,
             quota=quota,
-            # Flags..
-            max_quota=max_quota, account_admin=account_admin, is_leader=is_leader,
-            # Pass in credentials with cred_ namespace
-            cred_key=username, cred_secret=password,
+        # Flags..
+            max_quota=max_quota,
+            account_admin=account_admin,
+            is_leader=is_leader,
+        # Pass in credentials with cred_ namespace
+            cred_key=username,
+            cred_secret=password,
             cred_ex_tenant_name=project_name,
-            cred_ex_project_name=project_name)
+            cred_ex_project_name=project_name
+        )
 
         # Return the identity
         return identity
@@ -626,13 +756,16 @@ class AccountDriver(BaseAccountDriver):
         project_name = identity_creds["tenant_name"]
         project = self.user_manager.keystone_projects().find(name=project_name)
         sec_group_r = self.network_manager.neutron.list_security_groups(
-            tenant_id=project.id)
+            tenant_id=project.id
+        )
         sec_groups = sec_group_r["security_groups"]
         for sec_group in sec_groups:
             self.network_manager.neutron.delete_security_group(sec_group["id"])
         return True
 
-    def initialize_network_strategy(self, topology_name, identity, network_driver, neutron):
+    def initialize_network_strategy(
+        self, topology_name, identity, network_driver, neutron
+    ):
         """
         Select a network topology and initialize it with the identity/provider specific information required.
         """
@@ -644,13 +777,16 @@ class AccountDriver(BaseAccountDriver):
             NetworkTopologyStrategyCls = get_topology_cls(topology_name)
 
         try:
-            network_strategy = NetworkTopologyStrategyCls(identity, network_driver, neutron)
+            network_strategy = NetworkTopologyStrategyCls(
+                identity, network_driver, neutron
+            )
             # validate should raise exception if mis-configured.
             network_strategy.validate(identity)
         except:
             logger.exception(
                 "Error initializing Network Topology - %s + %s " %
-                (NetworkTopologyStrategyCls, identity))
+                (NetworkTopologyStrategyCls, identity)
+            )
             raise
         return network_strategy
 
@@ -669,9 +805,11 @@ class AccountDriver(BaseAccountDriver):
         if not topology_name:
             logger.error(
                 "Network topology not selected -- "
-                "Will attempt to use the last known default: ExternalRouter.")
+                "Will attempt to use the last known default: ExternalRouter."
+            )
         network_strategy = self.initialize_network_strategy(
-            topology_name, identity, self.network_manager, neutron)
+            topology_name, identity, self.network_manager, neutron
+        )
         skip_network = options.get("skip_network", False)
         return network_strategy.delete(skip_network=skip_network)
 
@@ -685,24 +823,22 @@ class AccountDriver(BaseAccountDriver):
 
         identity_creds = self.parse_identity(identity)
         project_name = identity_creds["tenant_name"]
-        network = self.network_manager.find_network(
-            "%s-net" % project_name)
+        network = self.network_manager.find_network("%s-net" % project_name)
         # Use `network.name` from here
-        subnet = self.network_manager.find_subnet(
-            "%s-subnet" % project_name)
-        router = self.network_manager.find_router(
-            "%s-router" % project_name)
+        subnet = self.network_manager.find_subnet("%s-subnet" % project_name)
+        router = self.network_manager.find_router("%s-router" % project_name)
         # gateway = self.network_manager.find_router_gateway(
         #     "%s-router" % project_name)
         interface = None
         if router and subnet:
             interface = self.network_manager.find_router_interface(
-            router[0], subnet[0])
+                router[0], subnet[0]
+            )
         network_resources = {
             'network': network,
             'subnet': subnet,
             'router': router,
-            #'gateway': gateway,
+        #'gateway': gateway,
             'interface': interface,
         }
         return network_resources
@@ -729,32 +865,42 @@ class AccountDriver(BaseAccountDriver):
         if not topology_name:
             logger.error(
                 "Network topology not selected -- "
-                "Will attempt to use the last known default: ExternalRouter.")
+                "Will attempt to use the last known default: ExternalRouter."
+            )
         network_strategy = self.initialize_network_strategy(
-            topology_name, identity, self.network_manager, neutron)
+            topology_name, identity, self.network_manager, neutron
+        )
 
         network_strategy.validate(identity)
         network_resources = network_strategy.create(
-            username=username, subnet_pool_id=subnet_pool_id, dns_nameservers=dns_nameservers)
+            username=username,
+            subnet_pool_id=subnet_pool_id,
+            dns_nameservers=dns_nameservers
+        )
         network_strategy.post_create_hook(network_resources)
         return network_resources
 
     def delete_account(self, identity, account_user, group_name, **kwargs):
         self.os_delete_account(identity)
         #NOTE: This might be *too* destructive, may change this classmethod
-        return Identity.destroy_account(account_user, self.core_provider.location)
+        return Identity.destroy_account(
+            account_user, self.core_provider.location
+        )
 
     def delete_all_roles(self, username, project_name):
         project = self.user_manager.get_project(project_name)
         if hasattr(project, 'remove_user'):
             return self.user_manager.delete_all_roles(username, project_name)
         user = self.user_manager.get_user(username)
-        roles_assigned = self.user_manager.keystone.role_assignments.list(project=project)
+        roles_assigned = self.user_manager.keystone.role_assignments.list(
+            project=project
+        )
         #FIXME: This doesn't work yet.
         for ra in roles_assigned:
             try:
                 self.user_manager.keystone.roles.revoke(
-                    ra.role['id'], user=user.id, project=project.id)
+                    ra.role['id'], user=user.id, project=project.id
+                )
             except KeystoneNotFound:
                 pass
         return roles_assigned
@@ -797,8 +943,10 @@ class AccountDriver(BaseAccountDriver):
 
     def sha_v2_hashpass(self, username, cloud_pass):
         if not cloud_pass or len(cloud_pass) < 32:
-            raise ValueError("Cloud config ['user']['secret'] is required and " +
-                    "must be of length 32 or more")
+            raise ValueError(
+                "Cloud config ['user']['secret'] is required and " +
+                "must be of length 32 or more"
+            )
 
         if not username:
             raise ValueError("Missing username, cannot create hash")
@@ -841,10 +989,8 @@ class AccountDriver(BaseAccountDriver):
         return self.image_manager.list_images(*args, **kwargs)
 
     def tenant_instances_map(
-            self,
-            status_list=[],
-            match_all=False,
-            include_empty=False):
+        self, status_list=[], match_all=False, include_empty=False
+    ):
         """
         Maps 'Tenant' objects to all the 'owned instances' as listed by the admin driver
         Optional fields:
@@ -866,7 +1012,8 @@ class AccountDriver(BaseAccountDriver):
                 project = [p for p in all_projects if p.id == tenant_id][0]
             except (ValueError, KeyError):
                 raise Exception(
-                    "The implementaion for recovering a tenant id has changed. Update the code base above this line!")
+                    "The implementaion for recovering a tenant id has changed. Update the code base above this line!"
+                )
 
             metadata = instance._node.extra.get('metadata', {})
             instance_status = instance.extra.get('status')
@@ -876,26 +1023,27 @@ class AccountDriver(BaseAccountDriver):
                 if match_all:
                     truth = all(
                         True if (
-                            status_name and status_name in [
-                                instance_status,
-                                task,
-                                tmp_status]) else False for status_name in status_list)
+                            status_name and status_name in
+                            [instance_status, task, tmp_status]
+                        ) else False for status_name in status_list
+                    )
                 else:
                     truth = any(
                         True if (
-                            status_name and status_name in [
-                                instance_status,
-                                task,
-                                tmp_status]) else False for status_name in status_list)
+                            status_name and status_name in
+                            [instance_status, task, tmp_status]
+                        ) else False for status_name in status_list
+                    )
                 if not truth:
                     logger.info(
-                        "Found an instance:%s for tenant:%s but skipped because %s could be found in the list: (%s - %s - %s)" %
-                        (instance.id,
-                         project.name,
-                         "none of the status_names" if not match_all else "not all of the status names",
-                         instance_status,
-                         task,
-                         tmp_status))
+                        "Found an instance:%s for tenant:%s but skipped because %s could be found in the list: (%s - %s - %s)"
+                        % (
+                            instance.id, project.name,
+                            "none of the status_names"
+                            if not match_all else "not all of the status names",
+                            instance_status, task, tmp_status
+                        )
+                    )
                     continue
             instance_list = project_map.get(project, [])
             instance_list.append(instance)
@@ -910,8 +1058,10 @@ class AccountDriver(BaseAccountDriver):
         return all_images
 
     def list_all_snapshots(self, **kwargs):
-        return [img for img in self.list_all_images(**kwargs)
-                if 'snapshot' in img.get('image_type', 'image').lower()]
+        return [
+            img for img in self.list_all_images(**kwargs)
+            if 'snapshot' in img.get('image_type', 'image').lower()
+        ]
 
     def get_project_by_id(self, project_id):
         return self.user_manager.get_project_by_id(project_id)
@@ -927,10 +1077,16 @@ class AccountDriver(BaseAccountDriver):
         return tenant_id_map
 
     def create_trust(
-            self,
-            trustee_project_name, trustee_username, trustee_domain_name,
-            trustor_project_name, trustor_username, trustor_domain_name,
-            roles=[], impersonation=True):
+        self,
+        trustee_project_name,
+        trustee_username,
+        trustee_domain_name,
+        trustor_project_name,
+        trustor_username,
+        trustor_domain_name,
+        roles=[],
+        impersonation=True
+    ):
         """
         Trustee == Consumer
         Trustor == Resource Owner
@@ -943,25 +1099,32 @@ class AccountDriver(BaseAccountDriver):
         """
         default_roles = [{"name": "admin"}]
         trustor_domain = self.openstack_sdk.identity.find_domain(
-            trustor_domain_name)
+            trustor_domain_name
+        )
         if not trustor_domain:
-            raise ValueError("Could not find trustor domain named %s"
-                             % trustor_domain_name)
+            raise ValueError(
+                "Could not find trustor domain named %s" % trustor_domain_name
+            )
 
         trustee_domain = self.openstack_sdk.identity.find_domain(
-            trustee_domain_name)
+            trustee_domain_name
+        )
         if not trustee_domain:
-            raise ValueError("Could not find trustee domain named %s"
-                             % trustee_domain_name)
+            raise ValueError(
+                "Could not find trustee domain named %s" % trustee_domain_name
+            )
 
         trustee_user = self.get_user(
-            trustee_username, domain_id=trustee_domain.id)
+            trustee_username, domain_id=trustee_domain.id
+        )
         # trustee_project = self.get_project(
         #    trustee_username, domain_name=trustee_domain.id)
         trustor_user = self.get_user(
-            trustor_username, domain_id=trustor_domain.id)
+            trustor_username, domain_id=trustor_domain.id
+        )
         trustor_project = self.get_project(
-            trustor_project_name, domain_id=trustor_domain.id)
+            trustor_project_name, domain_id=trustor_domain.id
+        )
 
         if not roles:
             roles = default_roles
@@ -972,7 +1135,8 @@ class AccountDriver(BaseAccountDriver):
             trustor_user_id=trustor_user.id,
             trustee_user_id=trustee_user.id,
             roles=roles,
-            domain_id=trustee_domain.id)
+            domain_id=trustee_domain.id
+        )
         return new_trust
 
     def list_trusts(self):
@@ -1006,23 +1170,37 @@ class AccountDriver(BaseAccountDriver):
         if self.identity_version > 2:
             list_kwargs = self._parse_domain_kwargs(list_kwargs)
         role_list = self.list_roles(**list_kwargs)
-        found_roles = [role for role in role_list if role.id == role_name_or_id or role.name == role_name_or_id]
+        found_roles = [
+            role for role in role_list
+            if role.id == role_name_or_id or role.name == role_name_or_id
+        ]
         if not found_roles:
             return None
         if len(found_roles) > 1:
-            raise Exception("role name/id %s matched more than one value -- Fix the code" % (role_name_or_id,))
+            raise Exception(
+                "role name/id %s matched more than one value -- Fix the code" %
+                (role_name_or_id, )
+            )
         return found_roles[0]
 
     def get_user(self, user_name_or_id, **list_kwargs):
         user_list = self.list_users(**list_kwargs)
-        found_users = [user for user in user_list if user.id == user_name_or_id or user.name == user_name_or_id]
+        found_users = [
+            user for user in user_list
+            if user.id == user_name_or_id or user.name == user_name_or_id
+        ]
         if not found_users:
             return None
         if len(found_users) > 1:
-            raise Exception("User name/id %s matched more than one value -- Fix the code" % (user_name_or_id,))
+            raise Exception(
+                "User name/id %s matched more than one value -- Fix the code" %
+                (user_name_or_id, )
+            )
         return found_users[0]
 
-    def _parse_domain_kwargs(self, kwargs, domain_override='domain_id', default_domain='default'):
+    def _parse_domain_kwargs(
+        self, kwargs, domain_override='domain_id', default_domain='default'
+    ):
         """
         CLI's replace domain_name with the actual domain.
         We replicate that functionality to avoid operator-frustration.
@@ -1035,13 +1213,14 @@ class AccountDriver(BaseAccountDriver):
                 kwargs.pop(domain_key)
             return kwargs
         if domain_key not in kwargs:
-            kwargs[domain_key] = default_domain # Set to default domain
+            kwargs[domain_key] = default_domain    # Set to default domain
 
         domain_name_or_id = kwargs.get(domain_key)
         domain = self.openstack_sdk.identity.find_domain(domain_name_or_id)
         if not domain:
-            raise ValueError("Could not find domain %s by name or id."
-                             % domain_name_or_id)
+            raise ValueError(
+                "Could not find domain %s by name or id." % domain_name_or_id
+            )
         kwargs.pop(domain_key, '')
         kwargs[domain_override] = domain.id
         return kwargs
@@ -1072,7 +1251,9 @@ class AccountDriver(BaseAccountDriver):
             limits['keypairs'] = absolute_limits['maxTotalKeypairs']
             limits['ram'] = absolute_limits['maxTotalRAMSize']
         except:
-            logger.exception("The method for 'reading' absolute limits has changed!")
+            logger.exception(
+                "The method for 'reading' absolute limits has changed!"
+            )
 
         return limits
 
@@ -1082,13 +1263,13 @@ class AccountDriver(BaseAccountDriver):
             user_id = self.get_user(username).id
         except:
             logger.exception("Failed to find user %s" % username)
-            raise ValueError ("Unknown user %s" % username)
+            raise ValueError("Unknown user %s" % username)
 
         try:
             project_id = self.get_project(project_name).id
         except:
             logger.exception("Failed to find project %s" % project_name)
-            raise ValueError ("Unknown project %s" % project_name)
+            raise ValueError("Unknown project %s" % project_name)
 
         user_limits = self._ex_list_quota_for_user(user_id, project_id)
 
@@ -1102,20 +1283,20 @@ class AccountDriver(BaseAccountDriver):
             limits['keypairs'] = user_quota['key_pairs']
             limits['ram'] = user_quota['ram']
         except:
-            logger.exception("The method for 'reading' absolute limits has changed!")
+            logger.exception(
+                "The method for 'reading' absolute limits has changed!"
+            )
 
         return limits
 
     def _ex_list_quota_for_user(self, user_id, tenant_id):
         """
         """
-        server_resp = self.admin_driver._connection.connection.request('/os-quota-sets/%s?user_id=%s'
-                                             % (tenant_id, user_id))
+        server_resp = self.admin_driver._connection.connection.request(
+            '/os-quota-sets/%s?user_id=%s' % (tenant_id, user_id)
+        )
         quota_obj = server_resp.object
         return quota_obj
-
-
-
 
     def list_usergroup_names(self):
         return [user.name for (user, project) in self.list_usergroups()]
@@ -1137,7 +1318,6 @@ class AccountDriver(BaseAccountDriver):
                     break
         return usergroups
 
-
     def _get_horizon_url(self, tenant_id):
         parsed_url = urlparse(self.provider_creds["auth_url"])
         return "https://%s/horizon/auth/switch/%s/?next=/horizon/project/" %\
@@ -1146,7 +1326,8 @@ class AccountDriver(BaseAccountDriver):
     def get_openstack_clients(self, username, password=None, tenant_name=None):
         # Build credentials for each manager
         all_creds = self._get_openstack_credentials(
-            username, password, tenant_name)
+            username, password, tenant_name
+        )
         # Initialize managers with respective credentials
         all_clients = self.get_user_clients(all_creds)
         openstack_sdk = self.get_openstack_sdk_client(all_creds)
@@ -1154,12 +1335,14 @@ class AccountDriver(BaseAccountDriver):
         glance = self.get_glance_client(all_creds)
         tenant = self.get_project(tenant_name)
         tenant_id = tenant.id if tenant else None
-        all_clients.update({
-            "glance": glance,
-            "neutron": neutron,
-            "openstack_sdk": openstack_sdk,
-            "horizon": self._get_horizon_url(tenant_id)
-        })
+        all_clients.update(
+            {
+                "glance": glance,
+                "neutron": neutron,
+                "openstack_sdk": openstack_sdk,
+                "horizon": self._get_horizon_url(tenant_id)
+            }
+        )
         return all_clients
 
     def get_openstack_client(self, identity, client_name):
@@ -1168,7 +1351,8 @@ class AccountDriver(BaseAccountDriver):
         password = identity_creds["password"]
         project_name = identity_creds["tenant_name"]
         all_creds = self._get_openstack_credentials(
-            username, password, project_name)
+            username, password, project_name
+        )
 
         if client_name == 'neutron':
             return self.get_neutron_client(all_creds)
@@ -1191,12 +1375,17 @@ class AccountDriver(BaseAccountDriver):
         keystone = _connect_to_keystone_v2(**all_creds)
         mgr_keystone = self.user_manager.keystone
         glance_service = mgr_keystone.services.find(type='image')
-        glance_endpoint_obj = mgr_keystone.endpoints.find(service_id=glance_service.id)
+        glance_endpoint_obj = mgr_keystone.endpoints.find(
+            service_id=glance_service.id
+        )
         glance_endpoint = glance_endpoint_obj.publicurl
-        return _connect_to_glance_by_auth(endpoint=glance_endpoint, session=keystone.session)
+        return _connect_to_glance_by_auth(
+            endpoint=glance_endpoint, session=keystone.session
+        )
 
     def get_glance_client(self, all_creds):
-        if 'ex_force_auth_version' in all_creds and all_creds['ex_force_auth_version'] == '2.0_password':
+        if 'ex_force_auth_version' in all_creds and all_creds[
+            'ex_force_auth_version'] == '2.0_password':
             return self.get_legacy_glance_client(all_creds)
         # Remove lines above when legacy cloud compatability is removed
         image_creds = self._build_image_creds(all_creds)
@@ -1210,20 +1399,18 @@ class AccountDriver(BaseAccountDriver):
 
     def get_user_clients(self, all_creds):
         user_creds = self._build_user_creds(all_creds)
-        (keystone, nova, swift, glance) = self.user_manager.new_connection(
-            **user_creds)
-        return {
-            "keystone": keystone,
-            "nova": nova,
-            "swift": swift
-        }
+        (keystone, nova, swift,
+         glance) = self.user_manager.new_connection(**user_creds)
+        return {"keystone": keystone, "nova": nova, "swift": swift}
+
     def get_openstack_sdk_client(self, all_creds):
         sdk_creds = self._build_sdk_creds(all_creds)
         openstack_sdk = _connect_to_openstack_sdk(**sdk_creds)
         return openstack_sdk
 
-    def _get_openstack_credentials(self, username,
-                                   password=None, tenant_name=None):
+    def _get_openstack_credentials(
+        self, username, password=None, tenant_name=None
+    ):
         if not tenant_name:
             tenant_name = self.get_project_name_for(username)
         if not password:
@@ -1231,25 +1418,38 @@ class AccountDriver(BaseAccountDriver):
         version = self.user_manager.keystone_version()
         if version == 2:
             ex_version = '2.0_password'
-            keystone_auth_url = self.credentials['auth_url'].replace('/tokens','')
-            keystone_admin_url = self.credentials['admin_url'].replace('/tokens','')
+            keystone_auth_url = self.credentials['auth_url'].replace(
+                '/tokens', ''
+            )
+            keystone_admin_url = self.credentials['admin_url'].replace(
+                '/tokens', ''
+            )
         elif version == 3:
             ex_version = '3.x_password'
             keystone_auth_url = self.user_manager.keystone.session.get_endpoint(
-                service_type='identity', interface='publicURL')
+                service_type='identity', interface='publicURL'
+            )
             keystone_admin_url = self.user_manager.keystone.session.get_endpoint(
-                service_type='identity', interface='admin')
+                service_type='identity', interface='admin'
+            )
         region_name = self.user_manager.nova.client.region_name
         if not region_name:
             region_name = self.credentials['region_name']
         osdk_creds = {
-            "auth_url": keystone_auth_url.replace('/v2.0','').replace('/v3',''),
-            "admin_url": keystone_admin_url.replace('/v2.0','').replace('/v3',''),
-            "ex_force_auth_version": ex_version,
-            "region_name": region_name,
-            "username": username,
-            "password": password,
-            "tenant_name": tenant_name
+            "auth_url":
+                keystone_auth_url.replace('/v2.0', '').replace('/v3', ''),
+            "admin_url":
+                keystone_admin_url.replace('/v2.0', '').replace('/v3', ''),
+            "ex_force_auth_version":
+                ex_version,
+            "region_name":
+                region_name,
+            "username":
+                username,
+            "password":
+                password,
+            "tenant_name":
+                tenant_name
         }
         return osdk_creds
 
@@ -1320,7 +1520,10 @@ class AccountDriver(BaseAccountDriver):
         elif self.identity_version == 2:
             auth_prefix = '/v2.0'
 
-        net_args["auth_url"] = auth_url.replace("/v2.0", "").replace('/v3', '').replace("/tokens", "")
+        net_args["auth_url"] = auth_url.replace("/v2.0",
+                                                "").replace('/v3', '').replace(
+                                                    "/tokens", ""
+                                                )
         if auth_prefix not in net_args['auth_url']:
             net_args["auth_url"] += auth_prefix
         return net_args
@@ -1341,27 +1544,30 @@ class AccountDriver(BaseAccountDriver):
 
         # Required:
         for required_arg in [
-                "username",
-                "password",
-                "project_name",
-                "domain_name",
-                "auth_url",
-                "region_name"]:
+            "username", "password", "project_name", "domain_name", "auth_url",
+            "region_name"
+        ]:
             if required_arg not in img_args or not img_args[required_arg]:
                 raise ValueError(
                     "ImageManager is missing a Required Argument: %s" %
-                    required_arg)
+                    required_arg
+                )
         ex_auth_version = img_args.get("ex_force_auth_version", '2.0_password')
         # Supports v2.0 or v3 Identity
         if ex_auth_version.startswith('2'):
             auth_url_prefix = "/v2.0/tokens"
-            img_args["auth_url"] = img_args.get('auth_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','') + auth_url_prefix
+            img_args["auth_url"] = img_args.get('auth_url', '').replace(
+                "/v2.0", ""
+            ).replace("/tokens", "").replace('/v3', '') + auth_url_prefix
             auth_version = 'v2.0'
         elif ex_auth_version.startswith('3'):
-            img_args["auth_url"] = img_args.get('auth_url','').replace("/v2.0","").replace("/tokens", "").replace('/v3','')  # hostname:port (no routes!)
+            img_args["auth_url"] = img_args.get('auth_url', '').replace(
+                "/v2.0", ""
+            ).replace("/tokens",
+                      "").replace('/v3', '')    # hostname:port (no routes!)
             auth_version = 'v3'
         img_args['version'] = auth_version
-        img_args.pop('admin_url',None)
+        img_args.pop('admin_url', None)
         return img_args
 
     def _build_user_creds(self, credentials):
@@ -1390,7 +1596,8 @@ class AccountDriver(BaseAccountDriver):
             auth_version = 'v3'
 
         auth_url = user_args.get('auth_url')
-        user_args["auth_url"] = auth_url.replace("/v2.0", "").replace("/tokens", "")
+        user_args["auth_url"] = auth_url.replace("/v2.0",
+                                                 "").replace("/tokens", "")
         if auth_url_prefix not in user_args['auth_url']:
             user_args["auth_url"] += auth_url_prefix
         user_args.get("region_name")
@@ -1436,7 +1643,9 @@ class AccountDriver(BaseAccountDriver):
         if 'user_domain_name' not in os_args:
             os_args['user_domain_name'] = 'default'
         if 'identity_api_version' not in os_args:
-            os_args['identity_api_version'] = 3 #NOTE: this is what we use to determine whether or not to make openstack_sdk
+            os_args[
+                'identity_api_version'
+            ] = 3    #NOTE: this is what we use to determine whether or not to make openstack_sdk
         # Removable args:
         os_args.pop("ex_force_auth_version", None)
         os_args.pop("admin_url", None)

@@ -18,8 +18,9 @@ from core.models import AtmosphereUser as DjangoUser
 @atmo_login_required
 def emulate_request(request, username=None):
     try:
-        logger.info("Emulate attempt: %s wants to be %s"
-                    % (request.user, username))
+        logger.info(
+            "Emulate attempt: %s wants to be %s" % (request.user, username)
+        )
         logger.info(request.session.__dict__)
         if not username and 'emulator' in request.session:
             logger.info("Clearing emulation attributes from user")
@@ -30,16 +31,19 @@ def emulate_request(request, username=None):
             del request.session['emulator']
             del request.session['emulator_token']
             # Allow user to fall through on line below
-            return HttpResponseRedirect(settings.REDIRECT_URL + "/api/v1/profile")
+            return HttpResponseRedirect(
+                settings.REDIRECT_URL + "/api/v1/profile"
+            )
 
         try:
             user = DjangoUser.objects.get(username=username)
         except DjangoUser.DoesNotExist:
-            logger.info("Emulate attempt failed. User <%s> does not exist"
-                        % username)
+            logger.info(
+                "Emulate attempt failed. User <%s> does not exist" % username
+            )
             return HttpResponseRedirect(
-                settings.REDIRECT_URL +
-                "/api/v1/profile")
+                settings.REDIRECT_URL + "/api/v1/profile"
+            )
 
         logger.info("Emulate success, creating tokens for %s" % username)
         token = AuthToken(
@@ -54,8 +58,10 @@ def emulate_request(request, username=None):
         if 'emulator' not in request.session:
             original_emulator = request.session['username']
             request.session['emulator'] = original_emulator
-            logger.info("Returning user %s - Emulated as user %s - to api profile "
-                        % (original_emulator, username))
+            logger.info(
+                "Returning user %s - Emulated as user %s - to api profile " %
+                (original_emulator, username)
+            )
         if 'emulator_token' not in request.session:
             original_token = request.session['token']
             request.session['emulator_token'] = original_token

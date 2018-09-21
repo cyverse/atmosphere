@@ -22,6 +22,7 @@ class ExportRequest(models.Model):
     # Request start to image exported
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
+
     # TODO: Perhaps a field for the MD5 Hash?
 
     def complete_export(self, export_file_path):
@@ -50,11 +51,11 @@ class ExportRequest(models.Model):
         # Openstack snapshots are saved as a QCOW2
         ext = "qcow2"
         download_location = os.path.join(
-            download_dir,
-            self.export_owner.username)
+            download_dir, self.export_owner.username
+        )
         download_location = os.path.join(
-            download_location, '%s.%s' %
-            (self.export_name, ext))
+            download_location, '%s.%s' % (self.export_name, ext)
+        )
         return download_location
 
     def prepare_manager(self):
@@ -78,18 +79,29 @@ class ExportRequest(models.Model):
 
     def get_export_args(self):
         default_kwargs = {
-            'image_name': self.export_name,
-            'format_type': self.export_format,
-            'clean_image': True,
-            'keep_image': True,
-            # TODO: Upload support for S3/Swift.. some day ?
-            'upload': False,
-            'download_dir': settings.LOCAL_STORAGE,
-            'download_location': self._extract_os_file_location(settings.LOCAL_STORAGE),
-            'snapshot_id': None,
-            'image_id': None,
-            'volume_id': None,
-            'instance_id': None,
+            'image_name':
+                self.export_name,
+            'format_type':
+                self.export_format,
+            'clean_image':
+                True,
+            'keep_image':
+                True,
+        # TODO: Upload support for S3/Swift.. some day ?
+            'upload':
+                False,
+            'download_dir':
+                settings.LOCAL_STORAGE,
+            'download_location':
+                self._extract_os_file_location(settings.LOCAL_STORAGE),
+            'snapshot_id':
+                None,
+            'image_id':
+                None,
+            'volume_id':
+                None,
+            'instance_id':
+                None,
         }
         source = self.source
         if source.is_volume():

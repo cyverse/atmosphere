@@ -2,7 +2,6 @@ from rest_framework import serializers
 
 
 class NewThresholdField(serializers.Field):
-
     def to_representation(self, threshold_dict):
         return threshold_dict
 
@@ -15,7 +14,4 @@ class NewThresholdField(serializers.Field):
         machine_request = self.root.object
         machine_request.new_machine_memory_min = memory
         machine_request.new_machine_storage_min = disk
-        return {
-            'memory': memory,
-            'disk': disk
-        }
+        return {'memory': memory, 'disk': disk}

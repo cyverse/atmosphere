@@ -18,21 +18,23 @@ from core.models import AtmosphereUser, Group
 
 
 class MinLengthRequiredSearchFilter(SearchFilter):
-
     def filter_queryset(self, request, queryset, view):
         search_fields = getattr(view, 'search_fields', None)
         min_length = getattr(view, 'min_search_length', 1)
         if not search_fields:
             return queryset
-        orm_lookups = [self.construct_search(six.text_type(search_field))
-                       for search_field in search_fields]
+        orm_lookups = [
+            self.construct_search(six.text_type(search_field))
+            for search_field in search_fields
+        ]
         for search_term in self.get_search_terms(request):
             # Skip 'search_term' if its  too small to evaluate.
             if len(search_term) < min_length:
                 # Forces 0 results if below the requirement.
                 queryset = queryset.none()
-            or_queries = [Q(**{orm_lookup: search_term})
-                          for orm_lookup in orm_lookups]
+            or_queries = [
+                Q(**{orm_lookup: search_term}) for orm_lookup in orm_lookups
+            ]
             reduced_query = reduce(operator.or_, or_queries)
             queryset = queryset.filter(reduced_query).distinct()
         return queryset
@@ -43,9 +45,16 @@ class MinLengthRequiredSearchFilter(SearchFilter):
 
 
 class GroupFilter(filters.FilterSet):
-    identity_id = django_filters.CharFilter('identity_memberships__identity__id')
-    identity_uuid = django_filters.CharFilter('identity_memberships__identity__uuid')
-    name = django_filters.CharFilter('name', lookup_expr=['contains', 'startswith'])
+    identity_id = django_filters.CharFilter(
+        'identity_memberships__identity__id'
+    )
+    identity_uuid = django_filters.CharFilter(
+        'identity_memberships__identity__uuid'
+    )
+    name = django_filters.CharFilter(
+        'name', lookup_expr=['contains', 'startswith']
+    )
+
     #is_private = django_filters.FilterMethod(method='is_private')
 
     def is_private(self):
@@ -60,8 +69,8 @@ class GroupFilter(filters.FilterSet):
         model = Group
         fields = ["identity_id", "identity_uuid", "name"]
 
-class GroupViewSet(MultipleFieldLookup, AuthModelViewSet):
 
+class GroupViewSet(MultipleFieldLookup, AuthModelViewSet):
     """
     API endpoint that allows groups to be viewed or edited.
     """
@@ -74,7 +83,7 @@ class GroupViewSet(MultipleFieldLookup, AuthModelViewSet):
     filter_backends = (DjangoFilterBackend, MinLengthRequiredSearchFilter)
     filter_class = GroupFilter
     http_method_names = ['get', 'post', 'patch', 'head', 'options', 'trace']
-    search_fields = ('^name',)  # NOTE: ^ == Startswith searching
+    search_fields = ('^name', )    # NOTE: ^ == Startswith searching
 
     def lookup_group(self, key):
         """
@@ -95,10 +104,16 @@ class GroupViewSet(MultipleFieldLookup, AuthModelViewSet):
         add_user = data.pop('username')
         user = AtmosphereUser.objects.filter(username=add_user)
         if not user.count():
-            return failure_response(409, "Username %s does not exist" % add_user)
+            return failure_response(
+                409, "Username %s does not exist" % add_user
+            )
         user = user[0]
         group.user_set.add(user)
-        serialized_data = GroupSerializer(group, context={'request': request}).data
+        serialized_data = GroupSerializer(
+            group, context={
+                'request': request
+            }
+        ).data
         return Response(serialized_data)
 
     @detail_route(methods=['post'])
@@ -108,10 +123,16 @@ class GroupViewSet(MultipleFieldLookup, AuthModelViewSet):
         del_user = data.pop('username')
         user = AtmosphereUser.objects.filter(username=del_user)
         if not user.count():
-            return failure_response(409, "Username %s does not exist" % del_user)
+            return failure_response(
+                409, "Username %s does not exist" % del_user
+            )
         user = user[0]
         group.user_set.remove(user)
-        serialized_data = GroupSerializer(group, context={'request': request}).data
+        serialized_data = GroupSerializer(
+            group, context={
+                'request': request
+            }
+        ).data
         return Response(serialized_data)
 
     def get_queryset(self):
@@ -121,9 +142,9 @@ class GroupViewSet(MultipleFieldLookup, AuthModelViewSet):
         # Staff users are allowed to manipulate groups they are not in,
         #  To make it easier to distinguish GET calls need to include ?admin=true
         if self.request.user.is_staff and (
-                'admin' in self.request.query_params or
-                self.request._request.method != 'GET'
-                ):
+            'admin' in self.request.query_params
+            or self.request._request.method != 'GET'
+        ):
             return Group.objects.all()
         # Allow non-staff users to search the group API, useful for GUI experience
         # NOTE: In the project-sharing, user-group-mapping future,

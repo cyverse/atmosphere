@@ -17,14 +17,15 @@ UPDATE_METHODS = ["PUT", "PATCH"]
 
 
 class MinLengthRequiredSearchFilter(SearchFilter):
-
     def filter_queryset(self, request, queryset, view):
         search_fields = getattr(view, 'search_fields', None)
         min_length = getattr(view, 'min_search_length', 1)
         if not search_fields:
             return queryset
-        orm_lookups = [self.construct_search(six.text_type(search_field))
-                       for search_field in search_fields]
+        orm_lookups = [
+            self.construct_search(six.text_type(search_field))
+            for search_field in search_fields
+        ]
         # NOTE: Moving up 'orm_lookups' to use outside of 'search='
         for idx, _search_field in enumerate(search_fields):
             # Replace "^", "~", and other special characters
@@ -40,8 +41,9 @@ class MinLengthRequiredSearchFilter(SearchFilter):
             if len(search_term) < min_length:
                 # Forces 0 results if below the requirement.
                 queryset = queryset.none()
-            or_queries = [Q(**{orm_lookup: search_term})
-                          for orm_lookup in orm_lookups]
+            or_queries = [
+                Q(**{orm_lookup: search_term}) for orm_lookup in orm_lookups
+            ]
             reduced_query = reduce(operator.or_, or_queries)
             queryset = queryset.filter(reduced_query).distinct()
 
@@ -53,7 +55,6 @@ class MinLengthRequiredSearchFilter(SearchFilter):
 
 
 class UserViewSet(MultipleFieldLookup, AuthModelViewSet):
-
     """
     API endpoint that allows users to be viewed or edited.
     """
@@ -62,10 +63,9 @@ class UserViewSet(MultipleFieldLookup, AuthModelViewSet):
     max_page_size_query_param = 1000
     queryset = AtmosphereUser.objects.all()
     serializer_class = UserSerializer
-    filter_backends = (MinLengthRequiredSearchFilter,)
-    http_method_names = ['get', 'put', 'patch',
-                         'head', 'options', 'trace']
-    search_fields = ('^username',)  # NOTE: ^ == Startswith searching
+    filter_backends = (MinLengthRequiredSearchFilter, )
+    http_method_names = ['get', 'put', 'patch', 'head', 'options', 'trace']
+    search_fields = ('^username', )    # NOTE: ^ == Startswith searching
 
     def get_serializer_class(self):
         if self.request.method in UPDATE_METHODS or \
@@ -76,10 +76,14 @@ class UserViewSet(MultipleFieldLookup, AuthModelViewSet):
     def get_permissions(self):
         # Read-only for authenticated users
         if self.request.method is "":
-            self.permission_classes = (ApiAuthRequired,
-                                       InMaintenance,)
+            self.permission_classes = (
+                ApiAuthRequired,
+                InMaintenance,
+            )
         # CloudAdmin required for PUT/PATCH
         if self.request.method in UPDATE_METHODS:
-            self.permission_classes = (CloudAdminRequired,
-                                       InMaintenance,)
+            self.permission_classes = (
+                CloudAdminRequired,
+                InMaintenance,
+            )
         return super(UserViewSet, self).get_permissions()

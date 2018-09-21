@@ -5,9 +5,7 @@ from hashlib import md5
 from datetime import datetime, timedelta
 
 from django.db import models
-from django.db.models import (
-    Q, ObjectDoesNotExist
-)
+from django.db.models import (Q, ObjectDoesNotExist)
 from django.utils import timezone
 
 import pytz
@@ -24,9 +22,7 @@ from core.models.machine import (
     convert_esh_machine, get_or_create_provider_machine
 )
 from core.models.volume import convert_esh_volume
-from core.models.size import (
-    convert_esh_size, Size
-)
+from core.models.size import (convert_esh_size, Size)
 from core.models.tag import Tag
 from core.models.managers import ActiveInstancesManager
 from service.mock import MockInstance
@@ -44,7 +40,13 @@ class Instance(models.Model):
     """
     esh = None
     name = models.CharField(max_length=256)
-    project = models.ForeignKey("Project", models.SET_NULL, null=True, blank=True, related_name='instances')
+    project = models.ForeignKey(
+        "Project",
+        models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='instances'
+    )
     # TODO: CreateUUIDfield that is *not* provider_alias?
     # token is used to help instance 'phone home' to server post-deployment.
     token = models.CharField(max_length=36, blank=True, null=True)
@@ -65,7 +67,7 @@ class Instance(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
 
     # Model Managers
-    objects = models.Manager()  # The default manager.
+    objects = models.Manager()    # The default manager.
     active_instances = ActiveInstancesManager()
 
     @property
@@ -95,7 +97,9 @@ class Instance(models.Model):
         if is_leader is not None:
             project_query &= Q(project__owner__memberships__is_leader=is_leader)
         membership_query = Q(created_by__memberships__group__user=user)
-        return Instance.objects.filter(membership_query | project_query | ownership_query).distinct()
+        return Instance.objects.filter(
+            membership_query | project_query | ownership_query
+        ).distinct()
 
     def get_first_history(self):
         """
@@ -105,8 +109,7 @@ class Instance(models.Model):
         # except InstanceStatusHistory.DoesNotExist:
         # TODO: Profile current choice
         try:
-            return self.instancestatushistory_set.order_by(
-                'start_date').first()
+            return self.instancestatushistory_set.order_by('start_date').first()
         except ObjectDoesNotExist:
             return None
 
@@ -115,7 +118,8 @@ class Instance(models.Model):
         Returns the newest InstanceStatusHistory
         """
         has_history = self.instancestatushistory_set.order_by(
-            '-start_date').filter(status__name=status_name).first()
+            '-start_date'
+        ).filter(status__name=status_name).first()
         if has_history:
             return has_history
         else:
@@ -132,13 +136,18 @@ class Instance(models.Model):
                 break
             if str_builder != "":
                 str_builder += " -> "
-            str_builder += "%s on %s" % (next_history.status.name, next_history.start_date.strftime("%m/%d/%Y %H:%M:%S"))
+            str_builder += "%s on %s" % (
+                next_history.status.name,
+                next_history.start_date.strftime("%m/%d/%Y %H:%M:%S")
+            )
             try:
                 next_history = next_history.next()
             except (LookupError, ValueError):
                 next_history = None
         if self.end_date:
-            str_builder += " -> destroyed on %s" % (self.end_date.strftime("%m/%d/%Y %H:%M:%S"))
+            str_builder += " -> destroyed on %s" % (
+                self.end_date.strftime("%m/%d/%Y %H:%M:%S")
+            )
         return str_builder
 
     def get_last_history(self):
@@ -150,48 +159,73 @@ class Instance(models.Model):
         # except InstanceStatusHistory.DoesNotExist:
         # TODO: Profile current choice
         # FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
-        last_history = self.instancestatushistory_set.order_by(
-            '-start_date').first()
+        last_history = self.instancestatushistory_set.order_by('-start_date'
+                                                              ).first()
         if last_history:
             return last_history
         else:
             unknown_size, _ = Size.objects.get_or_create(
-                name='Unknown Size', alias='N/A', provider=self.provider,
-                cpu=-1, mem=-1, root=-1, disk=-1)
+                name='Unknown Size',
+                alias='N/A',
+                provider=self.provider,
+                cpu=-1,
+                mem=-1,
+                root=-1,
+                disk=-1
+            )
             last_history = self._build_first_history(
-                'Unknown', unknown_size, self.start_date, self.end_date, True)
-            logger.warn("No history existed for %s until now. "
-                        "An 'Unknown' history was created" % self)
+                'Unknown', unknown_size, self.start_date, self.end_date, True
+            )
+            logger.warn(
+                "No history existed for %s until now. "
+                "An 'Unknown' history was created" % self
+            )
             return last_history
 
-    def _build_first_history(self, status_name, size,
-                             start_date, end_date=None, first_update=False, activity=None):
+    def _build_first_history(
+        self,
+        status_name,
+        size,
+        start_date,
+        end_date=None,
+        first_update=False,
+        activity=None
+    ):
         # FIXME: Move this call so that it happens inside InstanceStatusHistory to avoid circ.dep.
         from core.models import InstanceStatusHistory
         if not first_update and status_name not in [
-                'build',
-                'pending',
-                'running']:
-            logger.info("First Update Unknown - Status name on instance %s: %s", self.provider_alias, status_name)
+            'build', 'pending', 'running'
+        ]:
+            logger.info(
+                "First Update Unknown - Status name on instance %s: %s",
+                self.provider_alias, status_name
+            )
             # Instance state is 'unknown' from start of instance until now
             # NOTE: This is needed to prevent over-charging accounts
             status_name = 'unknown'
             activity = None
         first_history = InstanceStatusHistory.create_history(
-            status_name, self, size, start_date=start_date, end_date=end_date, activity=activity)
+            status_name,
+            self,
+            size,
+            start_date=start_date,
+            end_date=end_date,
+            activity=activity
+        )
         first_history.save()
         return first_history
 
     def update_history(
-            self,
-            status_name,
-            size,
-            task=None,
-            tmp_status=None,
-            fault=None,
-            deploy_fault_message=None,
-            deploy_fault_trace=None,
-            first_update=False):
+        self,
+        status_name,
+        size,
+        task=None,
+        tmp_status=None,
+        fault=None,
+        deploy_fault_message=None,
+        deploy_fault_trace=None,
+        first_update=False
+    ):
         """
         Given the status name and size, look up the previous history object
         If nothing has changed: return (False, last_history)
@@ -203,35 +237,39 @@ class Instance(models.Model):
         import traceback
         # 1. Get status name
         status_name = _get_status_name_for_provider(
-            self.source.provider,
-            status_name,
-            task,
-            tmp_status)
+            self.source.provider, status_name, task, tmp_status
+        )
         activity = self.esh_activity()
         status = self.esh_status()
         extra = InstanceStatusHistory._build_extra(
             status_name=status_name,
             fault=fault,
             deploy_fault_message=deploy_fault_message,
-            deploy_fault_trace=deploy_fault_trace)
+            deploy_fault_trace=deploy_fault_trace
+        )
 
         # 2. Get the last history (or Build a new one if no other exists)
         has_history = self.instancestatushistory_set.all().count()
         if not has_history:
             last_history = InstanceStatusHistory.create_history(
-                status_name, self, size,
+                status_name,
+                self,
+                size,
                 start_date=self.start_date,
                 activity=activity,
-                extra=extra)
+                extra=extra
+            )
             last_history.save()
-            logger.debug("STATUSUPDATE - FIRST - Instance:%s Old Status: %s - %s New\
-                Status: %s Tmp Status: %s" % (self.provider_alias,
-                                              status,
-                                              activity,
-                                              status_name,
-                                              tmp_status))
-            logger.debug("STATUSUPDATE - Traceback: %s"
-                         % traceback.format_stack())
+            logger.debug(
+                "STATUSUPDATE - FIRST - Instance:%s Old Status: %s - %s New\
+                Status: %s Tmp Status: %s" % (
+                    self.provider_alias, status, activity, status_name,
+                    tmp_status
+                )
+            )
+            logger.debug(
+                "STATUSUPDATE - Traceback: %s" % traceback.format_stack()
+            )
         last_history = self.get_last_history()
         # 2. Size and name must match to continue using last history
         if last_history.status.name == status_name \
@@ -239,22 +277,25 @@ class Instance(models.Model):
             # logger.info("status_name matches last history:%s " %
             #        last_history.status.name)
             return (False, last_history)
-        logger.debug("STATUSUPDATE - Instance:%s Old Status: %s - %s New Status: %s\
-            Tmp Status: %s" % (self.provider_alias,
-                               status,
-                               activity,
-                               status_name,
-                               tmp_status))
+        logger.debug(
+            "STATUSUPDATE - Instance:%s Old Status: %s - %s New Status: %s\
+            Tmp Status: %s" %
+            (self.provider_alias, status, activity, status_name, tmp_status)
+        )
         logger.debug("STATUSUPDATE - Traceback: %s" % traceback.format_stack())
         # 3. ASSERT: A new history item is required due to a State or Size
         # Change
         now_time = timezone.now()
         try:
             new_history = InstanceStatusHistory.transaction(
-                status_name, activity, self, size,
+                status_name,
+                activity,
+                self,
+                size,
                 extra=extra,
                 start_time=now_time,
-                last_history=last_history)
+                last_history=last_history
+            )
             return (True, new_history)
         except ValueError:
             logger.exception("Bad transaction")
@@ -270,8 +311,9 @@ class Instance(models.Model):
             Q(end_date=None) | Q(end_date__gt=past_time)
         ).order_by('start_date')
         total_time = timedelta()
-        inst_prefix = "HISTORY,%s,%s" % (self.created_by.username,
-                                         self.provider_alias[:5])
+        inst_prefix = "HISTORY,%s,%s" % (
+            self.created_by.username, self.provider_alias[:5]
+        )
         for idx, state in enumerate(recent_history):
             # Can't start counting any earlier than 'delta'
             if state.start_date < past_time:
@@ -292,11 +334,14 @@ class Instance(models.Model):
                 active_time = timedelta()
             # multiply by CPU count of size.
             cpu_time = active_time * state.size.cpu
-            logger.debug("%s,%s,%s,%s CPU,%s,%s,%s,%s"
-                         % (inst_prefix, state.status.name,
-                            state.size.name, state.size.cpu,
-                            strfdate(start_count), strfdate(final_count),
-                            strfdelta(active_time), strfdelta(cpu_time)))
+            logger.debug(
+                "%s,%s,%s,%s CPU,%s,%s,%s,%s" % (
+                    inst_prefix, state.status.name,
+                    state.size.name, state.size.cpu, strfdate(start_count),
+                    strfdate(final_count), strfdelta(active_time),
+                    strfdelta(cpu_time)
+                )
+            )
             total_time += cpu_time
         return total_time
 
@@ -325,7 +370,7 @@ class Instance(models.Model):
           Terminated after: now() - delta (ex:7 days, 1 month, etc.)
         """
         active_history = self.instancestatushistory_set.filter(
-            # Collect history that is Current or has 'countable' time..
+        # Collect history that is Current or has 'countable' time..
             Q(end_date=None) | Q(end_date__gt=earliest_time)
         ).order_by('start_date')
         return active_history
@@ -345,8 +390,8 @@ class Instance(models.Model):
         active_history = self.recent_history(earliest_time, latest_time)
 
         for state in active_history:
-            (active_time, start_count, end_count) = state.get_active_time(
-                earliest_time, latest_time)
+            (active_time, start_count,
+             end_count) = state.get_active_time(earliest_time, latest_time)
             state.active_time = active_time
             state.start_count = start_count
             state.end_count = end_count
@@ -365,11 +410,15 @@ class Instance(models.Model):
         for ish in ish_list:
             # logger.info('Saving history:%s' % ish)
             if not ish.end_date:
-                logger.info("END DATING instance history %s: %s" % (ish, end_date))
+                logger.info(
+                    "END DATING instance history %s: %s" % (ish, end_date)
+                )
                 ish.end_date = end_date
                 ish.save()
         if not self.end_date:
-            logger.info("END DATING instance %s: %s" % (self.provider_alias, end_date))
+            logger.info(
+                "END DATING instance %s: %s" % (self.provider_alias, end_date)
+            )
             self.end_date = end_date
             self.save()
 
@@ -393,7 +442,8 @@ class Instance(models.Model):
             except InstanceSource.DoesNotExist:
                 logger.exception(
                     "Unable to find provider_machine for %s." %
-                    self.provider_alias)
+                    self.provider_alias
+                )
         return 'Unknown'
 
     def esh_fault(self):
@@ -409,7 +459,7 @@ class Instance(models.Model):
         status_name = last_history.status.name
         #NOTE: This handles the two 'atmosphere created' special-case status types, networking/deploying.
         # If the last history is one of these states, return active
-        if status_name in ["networking","deploy_error","deploying"]:
+        if status_name in ["networking", "deploy_error", "deploying"]:
             return "active"
         return status_name
 
@@ -420,7 +470,7 @@ class Instance(models.Model):
             return ""
         status_name = last_history.status.name
         #FIXME: Using this, for now, in place of a better solution.descripted in core/models/instance_history.py:InstanceStatus
-        if status_name not in ["networking","deploy_error","deploying"]:
+        if status_name not in ["networking", "deploy_error", "deploying"]:
             return ""
         return status_name
 
@@ -437,14 +487,16 @@ class Instance(models.Model):
         activity = None
         if self.esh:
             try:
-                activity = " ".join(self.esh.get_status().split(' - ')[1:]).strip()
+                activity = " ".join(self.esh.get_status().split(' - ')[1:]
+                                   ).strip()
             except:
                 activity = None
             return activity
         last_history = self.get_last_history()
         if last_history:
             try:
-                activity = " ".join(last_history.status.split(' - ')[1:]).strip()
+                activity = " ".join(last_history.status.split(' - ')[1:]
+                                   ).strip()
             except:
                 activity = None
             return activity
@@ -544,13 +596,12 @@ class Instance(models.Model):
         if not allocation_source:
             raise Exception("Allocation source must not be null")
         payload = {
-                'allocation_source_name': allocation_source.name,
-                'instance_id': self.provider_alias
+            'allocation_source_name': allocation_source.name,
+            'instance_id': self.provider_alias
         }
         return EventTable.create_event(
-            "instance_allocation_source_changed",
-            payload,
-            user.username)
+            "instance_allocation_source_changed", payload, user.username
+        )
 
     def json(self):
         return {
@@ -604,10 +655,8 @@ OPENSTACK_INACTIVE_STATES = ['build', 'suspended', 'shutoff', 'Unknown']
 
 
 def _get_status_name_for_provider(
-        provider,
-        status_name,
-        task_name=None,
-        tmp_status=None):
+    provider, status_name, task_name=None, tmp_status=None
+):
     """
     Purpose: to be used in lookups/saves
     Return the appropriate InstanceStatus
@@ -616,8 +665,8 @@ def _get_status_name_for_provider(
     if provider_type == 'openstack':
         return _get_openstack_name_map(status_name, task_name, tmp_status)
     logger.warn(
-        "Could not find a strategy for provider type:%s" %
-        provider_type)
+        "Could not find a strategy for provider type:%s" % provider_type
+    )
     return status_name
 
 
@@ -627,16 +676,18 @@ def _get_openstack_name_map(status_name, task_name, tmp_status):
         new_status = OPENSTACK_TASK_STATUS_MAP.get(task_name)
 
     if new_status:
-        logger.debug("Task provided:%s, Status maps to %s"
-                     % (task_name, new_status))
+        logger.debug(
+            "Task provided:%s, Status maps to %s" % (task_name, new_status)
+        )
     elif tmp_status:
         # ASSERT: task_name = None
         if 'running_boot_script' in tmp_status:
-            tmp_status = 'running_boot_script' # Avoid problems due to keeping track of scripts executed 1/2, 2/3, etc.
+            tmp_status = 'running_boot_script'    # Avoid problems due to keeping track of scripts executed 1/2, 2/3, etc.
         new_status = OPENSTACK_TASK_STATUS_MAP.get(tmp_status)
         logger.debug(
             "Tmp_status provided:%s, Status maps to %s" %
-            (tmp_status, new_status))
+            (tmp_status, new_status)
+        )
     if not new_status:
         # ASSERT: tmp_status = None
         return status_name
@@ -678,8 +729,6 @@ def strfdate(datetime_o, fmt=None):
     return datetime_o.strftime(fmt)
 
 
-
-
 def find_instance(instance_id):
     if type(instance_id) == int:
         core_instance = Instance.objects.filter(id=instance_id)
@@ -687,8 +736,8 @@ def find_instance(instance_id):
         core_instance = Instance.objects.filter(provider_alias=instance_id)
     if len(core_instance) > 1:
         logger.warn(
-            "Multiple instances returned for instance_id - %s" %
-            instance_id)
+            "Multiple instances returned for instance_id - %s" % instance_id
+        )
     if core_instance:
         return core_instance[0]
     return None
@@ -701,8 +750,9 @@ def _find_esh_ip(esh_instance):
     ip_address = "0.0.0.0"
     try:
         ips = esh_instance.extra["addresses"].values()
-        ip_address = [ip for ip in ips[0]
-                      if ip["OS-EXT-IPS:type"] == "floating"][0]["addr"]
+        ip_address = [
+            ip for ip in ips[0] if ip["OS-EXT-IPS:type"] == "floating"
+        ][0]["addr"]
     except Exception:
         pass
     return ip_address
@@ -713,8 +763,10 @@ def _update_core_instance(core_instance, ip_address, password):
     if password:
         core_instance.password = password
     if core_instance.end_date:
-        logger.warn("ERROR - Instance %s prematurley 'end-dated'."
-                    % core_instance.provider_alias)
+        logger.warn(
+            "ERROR - Instance %s prematurley 'end-dated'." %
+            core_instance.provider_alias
+        )
         core_instance.end_date = None
     core_instance.save()
 
@@ -730,7 +782,8 @@ def _find_esh_start_date(esh_instance):
         raise Exception(
             "Instance does not have a created timestamp.  This"
             "should never happen. Don't cheat and assume it was created just "
-            "now. Get the real launch time, bra.")
+            "now. Get the real launch time, bra."
+        )
     start_date = _convert_timestamp(create_stamp)
     logger.debug("Launched At: %s" % create_stamp)
     logger.debug("Started At: %s" % start_date)
@@ -743,29 +796,26 @@ def _convert_timestamp(iso_8601_stamp):
 
     try:
         datetime_obj = datetime.strptime(
-            iso_8601_stamp,
-            '%Y-%m-%dT%H:%M:%S.%fZ')
+            iso_8601_stamp, '%Y-%m-%dT%H:%M:%S.%fZ'
+        )
     except ValueError:
         try:
             datetime_obj = datetime.strptime(
-                iso_8601_stamp,
-                '%Y-%m-%dT%H:%M:%SZ')
+                iso_8601_stamp, '%Y-%m-%dT%H:%M:%SZ'
+            )
         except ValueError:
             raise ValueError(
                 "Expected ISO8601 Timestamp in Format: "
-                "YYYY-MM-DDTHH:MM:SS[.ssss][Z]")
+                "YYYY-MM-DDTHH:MM:SS[.ssss][Z]"
+            )
     # All Dates are UTC relative
     datetime_obj = datetime_obj.replace(tzinfo=pytz.utc)
     return datetime_obj
 
 
 def convert_instance_source(
-        esh_driver,
-        esh_instance,
-        esh_source,
-        provider_uuid,
-        identity_uuid,
-        user):
+    esh_driver, esh_instance, esh_source, provider_uuid, identity_uuid, user
+):
     """
     Given the instance source, create the appropriate core REPR and return
     """
@@ -775,10 +825,8 @@ def convert_instance_source(
     new_source = None
     if isinstance(esh_source, BaseVolume):
         core_source = convert_esh_volume(
-            esh_source,
-            provider_uuid,
-            identity_uuid,
-            user)
+            esh_source, provider_uuid, identity_uuid, user
+        )
     elif isinstance(esh_source, BaseMachine):
         if isinstance(esh_source, MockMachine):
             # MockMachine includes only the Alias/ID information
@@ -788,25 +836,27 @@ def convert_instance_source(
         if not new_source:
             core_source = get_or_create_provider_machine(
                 esh_source.id,
-                "Inactive Machine for Instance %s" %
-                esh_instance.id,
-                provider_uuid)
+                "Inactive Machine for Instance %s" % esh_instance.id,
+                provider_uuid
+            )
         else:
-            core_source = convert_esh_machine(esh_driver, new_source,
-                                              provider_uuid, user)
+            core_source = convert_esh_machine(
+                esh_driver, new_source, provider_uuid, user
+            )
     elif not isinstance(esh_source, BaseMachine):
         raise Exception("Encountered unknown source %s" % esh_source)
     return core_source
 
 
 def convert_esh_instance(
-        esh_driver,
-        esh_instance,
-        provider_uuid,
-        identity_uuid,
-        user,
-        token=None,
-        password=None):
+    esh_driver,
+    esh_instance,
+    provider_uuid,
+    identity_uuid,
+    user,
+    token=None,
+    password=None
+):
     """
     """
     instance_id = esh_instance.id
@@ -819,30 +869,22 @@ def convert_esh_instance(
         start_date = _find_esh_start_date(esh_instance)
         logger.debug("Creating new CoreInstance: %s" % instance_id)
         core_source = convert_instance_source(
-            esh_driver,
-            esh_instance,
-            source_obj,
-            provider_uuid,
-            identity_uuid,
-            user)
+            esh_driver, esh_instance, source_obj, provider_uuid, identity_uuid,
+            user
+        )
         logger.debug("CoreSource: %s" % core_source)
         # Use New/Existing core Machine to create core Instance
         core_instance = create_instance(
-            provider_uuid,
-            identity_uuid,
-            instance_id,
-            core_source.instance_source,
-            ip_address,
-            esh_instance.name,
-            user,
-            start_date,
-            token,
-            password)
+            provider_uuid, identity_uuid, instance_id,
+            core_source.instance_source, ip_address, esh_instance.name, user,
+            start_date, token, password
+        )
     # Add 'esh' object
     core_instance.esh = esh_instance
     # Update the InstanceStatusHistory
-    core_size = _esh_instance_size_to_core(esh_driver,
-                                           esh_instance, provider_uuid)
+    core_size = _esh_instance_size_to_core(
+        esh_driver, esh_instance, provider_uuid
+    )
     metadata = esh_instance.extra.get('metadata', {})
     core_instance.update_history(
         esh_instance.extra['status'],
@@ -850,9 +892,9 @@ def convert_esh_instance(
         esh_instance.extra.get('task'),
         metadata.get('tmp_status', "MISSING"),
         fault=esh_instance.extra.get('fault', None),
-        deploy_fault_message=metadata.get('fault_message',None),
-        deploy_fault_trace=metadata.get('fault_trace',None))
-
+        deploy_fault_message=metadata.get('fault_message', None),
+        deploy_fault_trace=metadata.get('fault_trace', None)
+    )
 
     # Update values in core with those found in metadata.
     # core_instance = set_instance_from_metadata(esh_driver, core_instance)
@@ -894,8 +936,10 @@ def set_instance_from_metadata(esh_driver, core_instance):
             return core_instance
         metadata = esh_driver._connection.ex_get_metadata(esh_instance)
     except Exception:
-        logger.exception("Exception retrieving instance metadata for %s" %
-                         core_instance.provider_alias)
+        logger.exception(
+            "Exception retrieving instance metadata for %s" %
+            core_instance.provider_alias
+        )
         return core_instance
 
     # TODO: Match with actual instance launch metadata in service/instance.py
@@ -903,11 +947,11 @@ def set_instance_from_metadata(esh_driver, core_instance):
     # TODO: Define a creator and their identity by the METADATA instead of
     # assuming its the person who 'found' the instance
 
-    serializer = InstanceSerializer(core_instance, data=metadata,
-                                    partial=True)
+    serializer = InstanceSerializer(core_instance, data=metadata, partial=True)
     if not serializer.is_valid():
-        logger.warn("Encountered errors serializing metadata:%s"
-                    % serializer.errors)
+        logger.warn(
+            "Encountered errors serializing metadata:%s" % serializer.errors
+        )
         return core_instance
     core_instance = serializer.save()
     core_instance.esh = esh_instance
@@ -915,35 +959,42 @@ def set_instance_from_metadata(esh_driver, core_instance):
 
 
 def create_instance(
-        provider_uuid,
-        identity_uuid,
-        provider_alias,
-        instance_source,
-        ip_address,
-        name,
-        creator,
-        create_stamp,
-        token=None,
-        password=None):
+    provider_uuid,
+    identity_uuid,
+    provider_alias,
+    instance_source,
+    ip_address,
+    name,
+    creator,
+    create_stamp,
+    token=None,
+    password=None
+):
     # TODO: Define a creator and their identity by the METADATA instead of
     # assuming its the person who 'found' the instance
     identity = Identity.objects.get(uuid=identity_uuid)
-    new_inst = Instance.objects.create(name=name,
-                                       provider_alias=provider_alias,
-                                       source=instance_source,
-                                       ip_address=ip_address,
-                                       created_by=creator,
-                                       created_by_identity=identity,
-                                       token=token,
-                                       password=password,
-                                       shell=False,
-                                       start_date=create_stamp)
+    new_inst = Instance.objects.create(
+        name=name,
+        provider_alias=provider_alias,
+        source=instance_source,
+        ip_address=ip_address,
+        created_by=creator,
+        created_by_identity=identity,
+        token=token,
+        password=password,
+        shell=False,
+        start_date=create_stamp
+    )
     new_inst.save()
     if token:
-        logger.debug("New instance created - %s<%s> (Token = %s)" %
-                     (name, provider_alias, token))
+        logger.debug(
+            "New instance created - %s<%s> (Token = %s)" %
+            (name, provider_alias, token)
+        )
     else:
-        logger.debug("New instance object - %s<%s>" %
-                     (name, provider_alias,))
+        logger.debug("New instance object - %s<%s>" % (
+            name,
+            provider_alias,
+        ))
     # FIXME: create instance_status_history here, pass in size & status to help
     return new_inst

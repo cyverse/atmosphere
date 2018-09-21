@@ -15,7 +15,10 @@ class AccessToken(models.Model):
         db_table = "access_token"
         app_label = "core"
 
-def create_access_token(user, token_name=None, token_expire=None, remote_ip=None, issuer=None):
+
+def create_access_token(
+    user, token_name=None, token_expire=None, remote_ip=None, issuer=None
+):
     token = Token.objects.create(user=user, issuer=issuer)
     access_token = AccessToken.objects.create(token=token, name=token_name)
     return access_token

@@ -11,10 +11,8 @@ from atmosphere.version import git_version_lookup
 from api.permissions import InMaintenance
 
 
-class VersionViewSet(mixins.ListModelMixin,
-                     viewsets.GenericViewSet):
-    permission_classes = (IsAuthenticatedOrReadOnly,
-                          InMaintenance)
+class VersionViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = (IsAuthenticatedOrReadOnly, InMaintenance)
 
     git_directory = join(settings.PROJECT_ROOT, ".git")
 

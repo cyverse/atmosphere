@@ -23,27 +23,29 @@ class InstanceSource(models.Model):
     provider = models.ForeignKey(Provider)
     identifier = models.CharField(max_length=256)
     size_bytes = models.DecimalField(max_digits=14, decimal_places=0, default=0)
-    created_by = models.ForeignKey(User, blank=True, null=True,
-                                   related_name="source_set")
+    created_by = models.ForeignKey(
+        User, blank=True, null=True, related_name="source_set"
+    )
     created_by_identity = models.ForeignKey(Identity, blank=True, null=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
 
     def __unicode__(self):
         return "%s Provider:%s Created_by:%s" % (
-            self.identifier, self.provider, self.created_by)
+            self.identifier, self.provider, self.created_by
+        )
 
     @classmethod
     def _current_source_query_args(cls):
         now_time = timezone.now()
         query_args = (
-            # 1. Provider non-end-dated
-            Q(provider__end_date=None)
-            | Q(provider__end_date__gt=now_time),
-            # 2. Source non-end-dated
+        # 1. Provider non-end-dated
+            Q(provider__end_date=None) | Q(provider__end_date__gt=now_time),
+        # 2. Source non-end-dated
             only_current(now_time),
-            # 3. (Seperately) Provider is active
-            Q(provider__active=True))
+        # 3. (Seperately) Provider is active
+            Q(provider__active=True)
+        )
         return query_args
 
     @classmethod
@@ -58,8 +60,9 @@ class InstanceSource(models.Model):
         except MultipleObjectsReturned:
             raise Exception(
                 "Multiple sources use the identifier '%s' -- "
-                "pass a refined queryset to select the appropriate source"
-                % source_alias)
+                "pass a refined queryset to select the appropriate source" %
+                source_alias
+            )
         except ObjectDoesNotExist:
             return None
 
@@ -72,25 +75,20 @@ class InstanceSource(models.Model):
         3. Provider NOT End dated (Or end dated later than NOW)
         """
         return InstanceSource.objects.filter(
-            *InstanceSource._current_source_query_args())
+            *InstanceSource._current_source_query_args()
+        )
 
     @property
     def size_mb(self):
-        return self.size_bytes/1024**2
+        return self.size_bytes / 1024**2
 
     @property
     def size_gb(self):
-        return self.size_bytes/1024**3
+        return self.size_bytes / 1024**3
 
     @property
     def current_source(self):
-        source = getattr(
-            self,
-            "volume",
-            getattr(
-                self,
-                "providermachine",
-                None))
+        source = getattr(self, "volume", getattr(self, "providermachine", None))
         if not source:
             raise SourceNotFound("A source could not be found for %s." % self)
         return source
@@ -148,8 +146,10 @@ class InstanceSource(models.Model):
             return True
 
     def is_owner(self, atmo_user):
-        return (self.created_by == atmo_user |
-                self.application.created_by == atmo_user)
+        return (
+            self.created_by == atmo_user | self.application.created_by ==
+            atmo_user
+        )
 
     def change_owner(self, identity, user=None):
         if not user:

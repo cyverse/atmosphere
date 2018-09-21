@@ -3,7 +3,7 @@ import uuid
 from datetime import timedelta
 
 # noinspection PyUnresolvedReferences
-from behave import * # noqa
+from behave import *    # noqa
 from behave import when, then, given
 from django.db.models import Sum
 from django.conf import settings
@@ -11,24 +11,26 @@ from django.utils import timezone
 
 from api.tests.factories import (
     UserFactory, InstanceFactory, IdentityFactory, InstanceStatusFactory,
-    ProviderFactory, ProviderMachineFactory, InstanceHistoryFactory)
+    ProviderFactory, ProviderMachineFactory, InstanceHistoryFactory
+)
 from core.models.allocation_source import total_usage
 from jetstream.exceptions import TASPluginException
 from core.models import (
-    AllocationSource, UserAllocationSource, EventTable,
-    InstanceStatusHistory, ProviderMachine, Size,
-    AtmosphereUser
+    AllocationSource, UserAllocationSource, EventTable, InstanceStatusHistory,
+    ProviderMachine, Size, AtmosphereUser
 )
 from jetstream.models import TASAllocationReport
 
-
 logger = logging.getLogger(__name__)
+
 
 @given('a test Allocation Source')
 def a_test_allocation_source(context):
     context.current_time = timezone.now()
     name, compute_allowed = "testSource", 1000
-    context.allocation_source = AllocationSource.objects.create(name=name, compute_allowed=compute_allowed)
+    context.allocation_source = AllocationSource.objects.create(
+        name=name, compute_allowed=compute_allowed
+    )
     # source = AllocationSource.objects.filter(name=name)
     assert (len(AllocationSource.objects.filter(name=name)) > 0)
 
@@ -37,18 +39,29 @@ def a_test_allocation_source(context):
 def allocation_source_is_assigned_to_users(context):
     context.users = []
     for row in context.table:
-        number_of_users = int(row['number of users assigned to allocation source'])
+        number_of_users = int(
+            row['number of users assigned to allocation source']
+        )
         context.number_of_users = number_of_users
 
     for i in range(number_of_users):
         user = UserFactory.create(date_joined=context.current_time)
         context.users.append(user)
-        UserAllocationSource.objects.create(allocation_source=context.allocation_source, user=user)
-        assert (len(UserAllocationSource.objects.filter(user=user, allocation_source=context.allocation_source)) > 0)
+        UserAllocationSource.objects.create(
+            allocation_source=context.allocation_source, user=user
+        )
+        assert (
+            len(
+                UserAllocationSource.objects.
+                filter(user=user, allocation_source=context.allocation_source)
+            ) > 0
+        )
 
 
 @when('All Users run an instance on Allocation Source for indefinite duration')
-def all_users_run_an_instance_on_allocation_source_for_indefinite_duration(context):
+def all_users_run_an_instance_on_allocation_source_for_indefinite_duration(
+    context
+):
     for row in context.table:
         cpu_size = int(row['cpu size of instance'])
         context.cpu_size = cpu_size
@@ -59,12 +72,18 @@ def all_users_run_an_instance_on_allocation_source_for_indefinite_duration(conte
         payload["instance_id"] = str(alias)
         payload["allocation_source_name"] = context.allocation_source.name
 
-        EventTable.objects.create(name="instance_allocation_source_changed",
-                                  payload=payload,
-                                  entity_id=user.username,
-                                  timestamp=context.current_time)
+        EventTable.objects.create(
+            name="instance_allocation_source_changed",
+            payload=payload,
+            entity_id=user.username,
+            timestamp=context.current_time
+        )
 
-        assert (len(InstanceStatusHistory.objects.filter(instance__created_by=user)) == 1)
+        assert (
+            len(
+                InstanceStatusHistory.objects.filter(instance__created_by=user)
+            ) == 1
+        )
 
 
 @when('create_reports task is run for the first time')
@@ -79,23 +98,35 @@ def create_reports_task_is_run_for_the_first_time(context):
 
     assert (len(TASAllocationReport.objects.all()) > 0)
     assert (TASAllocationReport.objects.last().end_date == report_end_date)
-    assert (TASAllocationReport.objects.last().start_date == context.current_time)
+    assert (
+        TASAllocationReport.objects.last().start_date == context.current_time
+    )
 
     expected_initial_usage = context.cpu_size * context.interval_time * context.number_of_users
     calculated_initial_usage = float(
-        TASAllocationReport.objects.filter(project_name=context.allocation_source.name).aggregate(Sum('compute_used'))[
-            'compute_used__sum']) * 60
+        TASAllocationReport.objects.filter(
+            project_name=context.allocation_source.name
+        ).aggregate(Sum('compute_used'))['compute_used__sum']
+    ) * 60
 
     assert (round(calculated_initial_usage, 2) == expected_initial_usage)
 
-    context.current_time = context.current_time + timedelta(minutes=interval_time)
+    context.current_time = context.current_time + timedelta(
+        minutes=interval_time
+    )
 
 
 @when('Users are deleted from Allocation Source after first create_reports run')
-def users_are_deleted_from_allocation_source_after_first_create_reports_run(context):
+def users_are_deleted_from_allocation_source_after_first_create_reports_run(
+    context
+):
     for row in context.table:
-        users_deleted = int(row['number of users deleted from allocation source'])
-        users_deleted_after_time = int(row['users deleted x minutes after the first create_reports run'])
+        users_deleted = int(
+            row['number of users deleted from allocation source']
+        )
+        users_deleted_after_time = int(
+            row['users deleted x minutes after the first create_reports run']
+        )
 
     for i in range(users_deleted):
         user = context.users[i]
@@ -105,27 +136,52 @@ def users_are_deleted_from_allocation_source_after_first_create_reports_run(cont
             payload=payload,
             name="user_allocation_source_deleted",
             entity_id=user.username,
-            timestamp=context.current_time + timedelta(minutes=users_deleted_after_time))
+            timestamp=context.current_time +
+            timedelta(minutes=users_deleted_after_time)
+        )
 
-        assert (len(UserAllocationSource.objects.filter(user=user, allocation_source=context.allocation_source)) == 0)
+        assert (
+            len(
+                UserAllocationSource.objects.filter(
+                    user=user, allocation_source=context.allocation_source
+                )
+            ) == 0
+        )
 
 
-@then('Total expected allocation usage for allocation source matches calculated allocation usage from reports after next create_reports run')
-def total_expected_allocation_usage_for_allocation_source_matches_calculated_allocation_usage_from_reports_after_next_create_reports_run(context):
+@then(
+    'Total expected allocation usage for allocation source matches calculated allocation usage from reports after next create_reports run'
+)
+def total_expected_allocation_usage_for_allocation_source_matches_calculated_allocation_usage_from_reports_after_next_create_reports_run(
+    context
+):
     for row in context.table:
-        total_expected_usage = int(row['total expected allocation usage in minutes'])
+        total_expected_usage = int(
+            row['total expected allocation usage in minutes']
+        )
 
-    report_end_date = context.current_time + timedelta(minutes=context.interval_time)
+    report_end_date = context.current_time + timedelta(
+        minutes=context.interval_time
+    )
     create_reports(end_date=report_end_date)
 
-    assert (len(TASAllocationReport.objects.all()) == 2 * context.number_of_users)
-    assert (TASAllocationReport.objects.last().start_date == context.current_time)
+    assert (
+        len(TASAllocationReport.objects.all()) == 2 * context.number_of_users
+    )
+    assert (
+        TASAllocationReport.objects.last().start_date == context.current_time
+    )
 
     calculated_initial_usage = float(
-        TASAllocationReport.objects.filter(project_name=context.allocation_source.name).aggregate(Sum('compute_used'))[
-            'compute_used__sum']) * 60
+        TASAllocationReport.objects.filter(
+            project_name=context.allocation_source.name
+        ).aggregate(Sum('compute_used'))['compute_used__sum']
+    ) * 60
 
-    logging.info("\n\n expected:%s  actual:%s \n\n" % (total_expected_usage, int(calculated_initial_usage)))
+    logging.info(
+        "\n\n expected:%s  actual:%s \n\n" %
+        (total_expected_usage, int(calculated_initial_usage))
+    )
 
     # just for the purpose of these test cases, we require time in minutes
     # conversion from microseconds to hours and then hours to minutes with rounding results in loss of time
@@ -136,6 +192,7 @@ def total_expected_allocation_usage_for_allocation_source_matches_calculated_all
 
 #### Helpers ####
 
+
 def launch_instance(user, time_created, cpu):
     # context.user is admin and regular user
     provider = ProviderFactory.create()
@@ -143,13 +200,15 @@ def launch_instance(user, time_created, cpu):
     user_group = IdentityMembership.objects.filter(member__name=user.username)
     if not user_group:
         user_identity = IdentityFactory.create_identity(
-            created_by=user,
-            provider=provider)
+            created_by=user, provider=provider
+        )
     else:
         user_identity = Identity.objects.all().last()
     provider_machine = ProviderMachine.objects.all()
     if not provider_machine:
-        machine = ProviderMachineFactory.create_provider_machine(user, user_identity)
+        machine = ProviderMachineFactory.create_provider_machine(
+            user, user_identity
+        )
     else:
         machine = ProviderMachine.objects.all().last()
 
@@ -160,9 +219,18 @@ def launch_instance(user, time_created, cpu):
         source=machine.instance_source,
         created_by=user,
         created_by_identity=user_identity,
-        start_date=time_created)
+        start_date=time_created
+    )
 
-    size = Size(alias=uuid.uuid4(), name='small', provider=provider, cpu=cpu, disk=1, root=1, mem=1)
+    size = Size(
+        alias=uuid.uuid4(),
+        name='small',
+        provider=provider,
+        cpu=cpu,
+        disk=1,
+        root=1,
+        mem=1
+    )
     size.save()
     InstanceHistoryFactory.create(
         status=status,
@@ -197,7 +265,9 @@ def create_reports(end_date=False):
     for item in user_allocation_list:
         allocation_name = item.allocation_source.name
         # CHANGED LINE
-        project_report = _create_reports_for(item.user, allocation_name, end_date)
+        project_report = _create_reports_for(
+            item.user, allocation_name, end_date
+        )
         if project_report:
             all_reports.append(project_report)
 
@@ -205,7 +275,9 @@ def create_reports(end_date=False):
 
     # filter user_allocation_source_removed events which are created after the last report date
 
-    for event in EventTable.objects.filter(name="user_allocation_source_deleted", timestamp__gte=last_report_date).order_by('timestamp'):
+    for event in EventTable.objects.filter(
+        name="user_allocation_source_deleted", timestamp__gte=last_report_date
+    ).order_by('timestamp'):
 
         user = AtmosphereUser.objects.get(username=event.entity_id)
         allocation_name = event.payload['allocation_source_name']
@@ -219,16 +291,16 @@ def create_reports(end_date=False):
 def _create_reports_for(user, allocation_name, end_date):
     tacc_username = user.username
     if not tacc_username:
-        logger.error("No TACC username for user: '{}' which came from allocation id: {}".format(user,
-                                                                                                allocation_name))
+        logger.error(
+            "No TACC username for user: '{}' which came from allocation id: {}".
+            format(user, allocation_name)
+        )
         return
     project_name = allocation_name
     try:
         project_report = _create_tas_report_for(
-            user,
-            tacc_username,
-            project_name,
-            end_date)
+            user, tacc_username, project_name, end_date
+        )
         return project_report
     except TASPluginException:
         logger.exception(
@@ -251,8 +323,7 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
         raise TASPluginException("OpenStack/TACC Project missing")
 
     last_report = TASAllocationReport.objects.filter(
-        project_name=tacc_project_name,
-        user=user
+        project_name=tacc_project_name, user=user
     ).order_by('end_date').last()
     if not last_report:
         start_date = user.date_joined
@@ -260,14 +331,17 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
         start_date = last_report.end_date
 
     compute_used = total_usage(
-        user.username, start_date,
+        user.username,
+        start_date,
         allocation_source_name=tacc_project_name,
-        end_date=end_date)
+        end_date=end_date
+    )
 
     if compute_used < 0:
         raise TASPluginException(
             "Compute usage was not accurately calculated for user:%s for start_date:%s and end_date:%s"
-            % (user, start_date, end_date))
+            % (user, start_date, end_date)
+        )
 
     new_report = TASAllocationReport.objects.create(
         user=user,
@@ -276,6 +350,7 @@ def _create_tas_report_for(user, tacc_username, tacc_project_name, end_date):
         compute_used=compute_used,
         start_date=start_date,
         end_date=end_date,
-        tacc_api=settings.TACC_API_URL)
+        tacc_api=settings.TACC_API_URL
+    )
     logger.info("Created New Report:%s" % new_report)
     return new_report

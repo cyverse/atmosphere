@@ -8,7 +8,6 @@ from api.v2.views.base import AuthModelViewSet
 
 
 class AccessTokenViewSet(AuthModelViewSet):
-
     """
     API endpoint that allows AccessTokens to be viewed or edited.
     """
@@ -25,7 +24,9 @@ class AccessTokenViewSet(AuthModelViewSet):
         serializer.is_valid(raise_exception=True)
         name = request.data.get('name', None)
         user = request.user
-        access_token = create_access_token(user, name, issuer="Personal-Access-Token")
+        access_token = create_access_token(
+            user, name, issuer="Personal-Access-Token"
+        )
 
         json_response = {
             'token': access_token.token_id,

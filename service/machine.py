@@ -14,16 +14,17 @@ from service.driver import get_account_driver
 from core.models.application import create_application, update_application
 from core.models.application_version import create_app_version
 from core.models.machine import (
-    create_provider_machine,
-    provider_machine_write_hook,
+    create_provider_machine, provider_machine_write_hook,
     update_provider_machine
 )
 from django.db.models import Q
 
+
 def _get_owner(new_provider, user):
     try:
-        return models.Identity.objects.get(provider=new_provider,
-                                           created_by=user)
+        return models.Identity.objects.get(
+            provider=new_provider, created_by=user
+        )
     except models.Identity.DoesNotExist:
         return new_provider.admin
 
@@ -82,35 +83,43 @@ def process_machine_request(machine_request, new_image_id, update_cloud=True):
             description=machine_request.new_application_description,
             private=not machine_request.is_public(),
             tags=tags,
-            access_list=machine_request.new_application_access_list.all())
+            access_list=machine_request.new_application_access_list.all()
+        )
     else:
         application = update_application(
-            parent_version.application,
-            machine_request.new_application_name,
-            tags,
-            machine_request.new_application_access_list.all(),
-            machine_request.new_application_description)
+            parent_version.application, machine_request.new_application_name,
+            tags, machine_request.new_application_access_list.all(),
+            machine_request.new_application_description
+        )
     #FIXME: Either *add* system_files here, or *remove* the entire field.
     app_version = create_app_version(
-        application, machine_request.new_version_name,
-        new_owner, owner_identity, machine_request.new_version_change_log,
+        application,
+        machine_request.new_version_name,
+        new_owner,
+        owner_identity,
+        machine_request.new_version_change_log,
         machine_request.new_version_allow_imaging,
-        provider_machine_id=new_image_id)
+        provider_machine_id=new_image_id
+    )
 
     # 2. Create the new InstanceSource and appropriate Object, relations,
     # Memberships..
     if models.ProviderMachine.test_existence(new_provider, new_image_id):
         pm = models.ProviderMachine.objects.get(
             instance_source__identifier=new_image_id,
-            instance_source__provider=new_provider)
+            instance_source__provider=new_provider
+        )
         pm = update_provider_machine(
             pm,
             new_created_by_identity=owner_identity,
             new_created_by=machine_request.new_machine_owner,
-            new_application_version=app_version)
+            new_application_version=app_version
+        )
     else:
-        pm = create_provider_machine(new_image_id, new_provider.uuid,
-                                     application, owner_identity, app_version)
+        pm = create_provider_machine(
+            new_image_id, new_provider.uuid, application, owner_identity,
+            app_version
+        )
         provider_machine_write_hook(pm)
 
     # Must be set in order to ask for threshold information
@@ -155,7 +164,8 @@ def _update_machine_metadata(esh_driver, esh_machine, data={}):
     if not hasattr(esh_driver._connection, 'ex_set_image_metadata'):
         logger.info(
             "EshDriver %s does not have function 'ex_set_image_metadata'" %
-            esh_driver._connection.__class__)
+            esh_driver._connection.__class__
+        )
         return {}
     try:
         # Possible metadata that could be in 'data'
@@ -165,8 +175,8 @@ def _update_machine_metadata(esh_driver, esh_machine, data={}):
         # TAGS must be converted from list --> String
         logger.info("New metadata:%s" % data)
         meta_response = esh_driver._connection.ex_set_image_metadata(
-            esh_machine,
-            data)
+            esh_machine, data
+        )
         esh_machine.invalidate_machine_cache(esh_driver.provider, esh_machine)
         return meta_response
     except Exception as e:
@@ -185,15 +195,17 @@ def share_with_admins(private_userlist, provider_uuid):
     list.
     """
     if not isinstance(private_userlist, list):
-        raise Exception("Expected private_userlist to be list, got %s: %s"
-                        % (type(private_userlist), private_userlist))
+        raise Exception(
+            "Expected private_userlist to be list, got %s: %s" %
+            (type(private_userlist), private_userlist)
+        )
 
     from django_cyverse_auth.protocol.ldap import get_core_services
     core_services = get_core_services()
     admin_users = [
-        ap.identity.created_by.username
-        for ap in models.AccountProvider.objects.filter(
-            provider__uuid=provider_uuid)]
+        ap.identity.created_by.username for ap in models.AccountProvider.
+        objects.filter(provider__uuid=provider_uuid)
+    ]
     private_userlist.extend(core_services)
     private_userlist.extend(admin_users)
     return private_userlist
@@ -211,17 +223,17 @@ def upload_privacy_data(machine_request, new_machine):
             "for Provider %s" % prov
         return
     img = accounts.get_image(new_machine.identifier)
-    if hasattr(img, 'visibility'):  # Treated as an obj.
+    if hasattr(img, 'visibility'):    # Treated as an obj.
         is_public = img.visibility == 'public'
-    elif hasattr(img, 'items'):  # Treated as a dict.
-        is_public = img.get('visibility','N/A') == 'public'
+    elif hasattr(img, 'items'):    # Treated as a dict.
+        is_public = img.get('visibility', 'N/A') == 'public'
 
     if is_public:
         print "Marking image %s private" % img.id
         accounts.image_manager.update_image(img, visibility='shared')
 
     accounts.clear_cache()
-    admin_driver = accounts.admin_driver  # cache has been cleared
+    admin_driver = accounts.admin_driver    # cache has been cleared
     if not admin_driver:
         print "Aborting import: Could not retrieve admin_driver "\
             "for Provider %s" % prov
@@ -235,14 +247,19 @@ def upload_privacy_data(machine_request, new_machine):
 
 def list_membership(accounts, glance_image_id):
     members = []
-    for image_share in accounts.image_manager.shared_images_for(image_id=glance_image_id):
+    for image_share in accounts.image_manager.shared_images_for(
+        image_id=glance_image_id
+    ):
         member_id = image_share['member_id']
         keystone_project = accounts.user_manager.get_project_by_id(member_id)
         if not keystone_project:
             logger.warn("No project returned for member ID %s" % member_id)
             continue
         if not hasattr(keystone_project, 'name'):
-            logger.warn("Unexpected value. No attribute 'name' for Project:%s" % keystone_project)
+            logger.warn(
+                "Unexpected value. No attribute 'name' for Project:%s" %
+                keystone_project
+            )
             continue
         members.append(keystone_project.name)
     return members
@@ -254,7 +271,9 @@ def add_membership(image_version, group):
     to *all* providers/machines using this image_version
     O(N^2)
     """
-    for provider_machine in image_version.machines.filter(only_current_source()):
+    for provider_machine in image_version.machines.filter(
+        only_current_source()
+    ):
         add_machine_membership(provider_machine, group)
 
 
@@ -272,19 +291,26 @@ def update_cloud_membership_for_machine(provider_machine, group):
     prov = provider_machine.instance_source.provider
     accounts = get_account_driver(prov)
     if not accounts:
-        raise NotImplemented("Account Driver could not be created for %s" % prov)
+        raise NotImplemented(
+            "Account Driver could not be created for %s" % prov
+        )
     accounts.clear_cache()
-    admin_driver = accounts.admin_driver  # cache has been cleared
+    admin_driver = accounts.admin_driver    # cache has been cleared
     if not admin_driver:
         raise NotImplemented("Admin Driver could not be created for %s" % prov)
     img = accounts.get_image(provider_machine.identifier)
     if img.get('visibility') != 'shared':
-       logger.debug("Skipped updates for image %s -- visibility (%s) is not 'shared'", img.id, img.get('visibility'))
-       return
+        logger.debug(
+            "Skipped updates for image %s -- visibility (%s) is not 'shared'",
+            img.id, img.get('visibility')
+        )
+        return
     approved_projects = accounts.get_image_members(img.id)
     for identity_membership in group.identitymembership_set.all():
         if identity_membership.identity.provider != prov:
-            logger.debug("Skipped %s -- Wrong provider" % identity_membership.identity)
+            logger.debug(
+                "Skipped %s -- Wrong provider" % identity_membership.identity
+            )
             continue
         # Get project name from the identity's credential-list
         identity = identity_membership.identity
@@ -302,20 +328,20 @@ def update_cloud_membership_for_machine(provider_machine, group):
 def update_db_membership_for_group(provider_machine, group):
     # Share with the *database* first!
     obj, created = models.ApplicationMembership.objects.get_or_create(
-        group=group,
-        application=provider_machine.application)
+        group=group, application=provider_machine.application
+    )
     if created:
         logger.info("Created new ApplicationMembership: %s" \
             % (obj,))
     obj, created = models.ApplicationVersionMembership.objects.get_or_create(
-        group=group,
-        image_version=provider_machine.application_version)
+        group=group, image_version=provider_machine.application_version
+    )
     if created:
         logger.info("Created new ApplicationVersionMembership: %s" \
             % (obj,))
     obj, created = models.ProviderMachineMembership.objects.get_or_create(
-        group=group,
-        provider_machine=provider_machine)
+        group=group, provider_machine=provider_machine
+    )
     if created:
         logger.info("Created new ProviderMachineMembership: %s" \
             % (obj,))
@@ -326,24 +352,33 @@ def remove_membership(image_version, group, accounts=None):
     This function will remove *all* users in the group
     to *all* providers/machines using this image_version
     """
-    for provider_machine in image_version.machines.filter(only_current_source()):
+    for provider_machine in image_version.machines.filter(
+        only_current_source()
+    ):
         prov = provider_machine.instance_source.provider
         if not accounts:
             accounts = get_account_driver(prov)
         if not accounts:
-            raise NotImplemented("Account Driver could not be created for %s" % prov)
+            raise NotImplemented(
+                "Account Driver could not be created for %s" % prov
+            )
         accounts.clear_cache()
-        admin_driver = accounts.admin_driver  # cache has been cleared
+        admin_driver = accounts.admin_driver    # cache has been cleared
         if not admin_driver:
-            raise NotImplemented("Admin Driver could not be created for %s" % prov)
+            raise NotImplemented(
+                "Admin Driver could not be created for %s" % prov
+            )
         img = accounts.get_image(provider_machine.identifier)
         approved_projects = accounts.get_image_members(img.id)
-        for identity_membership in group.identitymembership_set.order_by('identity__created_by__username'):
+        for identity_membership in group.identitymembership_set.order_by(
+            'identity__created_by__username'
+        ):
             if identity_membership.identity.provider != prov:
                 continue
             # Get project name from the identity's credential-list
             project_name = identity_membership.identity.get_credential(
-                    'ex_project_name')
+                'ex_project_name'
+            )
             project = accounts.get_project(project_name)
             if project and project not in approved_projects:
                 continue
@@ -351,53 +386,67 @@ def remove_membership(image_version, group, accounts=None):
             application = provider_machine.application
             application_version = provider_machine.application_version
             models.ApplicationMembership.objects.filter(
-                group=group,
-                application=application).delete()
-            logger.info("Removed ApplicationMembership: %s-%s"
-                        % (application, group))
+                group=group, application=application
+            ).delete()
+            logger.info(
+                "Removed ApplicationMembership: %s-%s" % (application, group)
+            )
             models.ApplicationVersionMembership.objects.filter(
-                group=group,
-                image_version=application_version).delete()
-            logger.info("Removed ApplicationVersionMembership: %s-%s"
-                        % (application_version, group))
+                group=group, image_version=application_version
+            ).delete()
+            logger.info(
+                "Removed ApplicationVersionMembership: %s-%s" %
+                (application_version, group)
+            )
             models.ProviderMachineMembership.objects.filter(
-                group=group,
-                provider_machine=provider_machine).delete()
-            logger.info("Removed ProviderMachineMembership: %s-%s"
-                        % (provider_machine, group))
+                group=group, provider_machine=provider_machine
+            ).delete()
+            logger.info(
+                "Removed ProviderMachineMembership: %s-%s" %
+                (provider_machine, group)
+            )
             # Perform a *CLOUD* remove last.
             try:
                 accounts.image_manager.unshare_image(img, project_name)
             except Exception as exc:
-                logger.exception("Exception occurred while removing user from cloud: %s", exc)
-            logger.info("Removed Cloud Access: %s-%s"
-                        % (img, project_name))
+                logger.exception(
+                    "Exception occurred while removing user from cloud: %s", exc
+                )
+            logger.info("Removed Cloud Access: %s-%s" % (img, project_name))
     return
+
 
 def sync_machine_membership(accounts, glance_image, new_machine, tenant_list):
     """
     This function will check that *all* tenants in 'tenant_list'
      have been added to OpenStack and DB-level access controls
     """
-    tenant_list = sync_cloud_access(accounts, glance_image, project_names=tenant_list)
+    tenant_list = sync_cloud_access(
+        accounts, glance_image, project_names=tenant_list
+    )
     # Make private on the DB level
-    return make_private(accounts.image_manager,
-                 glance_image, new_machine, tenant_list)
+    return make_private(
+        accounts.image_manager, glance_image, new_machine, tenant_list
+    )
 
 
 def sync_membership(accounts, glance_image, new_machine, tenant_list):
-    return sync_machine_membership(accounts, glance_image, new_machine, tenant_list)
+    return sync_machine_membership(
+        accounts, glance_image, new_machine, tenant_list
+    )
 
 
 def share_with_self(private_userlist, username):
     if not isinstance(private_userlist, list):
         raise Exception(
             "Expected type(private_userlist) to be list, got %s: %s" %
-            (type(private_userlist), private_userlist))
+            (type(private_userlist), private_userlist)
+        )
 
     # TODO: Optionally, Lookup username and get the Projectname
     private_userlist.append(str(username))
     return private_userlist
+
 
 def sync_cloud_access(accounts, img, project_names=None):
     domain_id = accounts.credentials.get('domain_name', 'default')
@@ -406,14 +455,18 @@ def sync_cloud_access(accounts, img, project_names=None):
     # Find names who are marked as 'sharing' on DB but not on OpenStack
     for project_name in project_names:
         # FIXME: Remove .strip() when 'bug' has been fixed
-        group_name = project_name.strip()  # FIXME: This code should be changed when user-group-project associations change.
+        group_name = project_name.strip(
+        )    # FIXME: This code should be changed when user-group-project associations change.
         try:
             group = models.Group.objects.get(name=group_name)
         except:
             raise Exception("Invalid group name: %s" % group_name)
         for identity_membership in group.identitymembership_set.all():
             if identity_membership.identity.provider != accounts.core_provider:
-                logger.debug("Skipped %s -- Wrong provider" % identity_membership.identity)
+                logger.debug(
+                    "Skipped %s -- Wrong provider" %
+                    identity_membership.identity
+                )
                 continue
             # Get project name from the identity's credential-list
             identity = identity_membership.identity
@@ -437,7 +490,9 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
     membership_list = owner.memberships.select_related('group')
     if tenant_list:
         # ASSERT: Groupnames == Usernames
-        tenant_list.extend([membership.group.name for membership in membership_list])
+        tenant_list.extend(
+            [membership.group.name for membership in membership_list]
+        )
     else:
         tenant_list = [membership.group.name for membership in membership_list]
     for tenant in tenant_list:
@@ -452,14 +507,14 @@ def make_private(image_manager, image, provider_machine, tenant_list=[]):
             pass
 
         obj, created = models.ApplicationMembership.objects.get_or_create(
-            group=group,
-            application=provider_machine.application)
+            group=group, application=provider_machine.application
+        )
         if created:
             print "Created new ApplicationMembership: %s" \
                 % (obj,)
         obj, created = models.ProviderMachineMembership.objects.get_or_create(
-            group=group,
-            provider_machine=provider_machine)
+            group=group, provider_machine=provider_machine
+        )
         if created:
             print "Created new ProviderMachineMembership: %s" \
                 % (obj,)

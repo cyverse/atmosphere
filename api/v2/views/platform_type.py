@@ -5,7 +5,6 @@ from api.v2.views.base import AuthModelViewSet
 
 
 class PlatformTypeViewSet(AuthModelViewSet):
-
     """
     API endpoint that allows instance actions to be viewed or edited.
     """

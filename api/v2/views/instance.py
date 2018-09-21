@@ -18,28 +18,34 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 
 from service.tasks.driver import destroy_instance
-from service.instance import (launch_instance, run_instance_action,
-                              update_instance_metadata)
+from service.instance import (
+    launch_instance, run_instance_action, update_instance_metadata
+)
 from threepio import logger
 # Things that go bump
 from api.v2.exceptions import (
-    failure_response, invalid_creds, connection_failure)
+    failure_response, invalid_creds, connection_failure
+)
 from api.exceptions import (
-    over_quota, under_threshold, size_not_available,
-    over_capacity, mount_failed, inactive_provider)
+    over_quota, under_threshold, size_not_available, over_capacity,
+    mount_failed, inactive_provider
+)
 from rtwo.exceptions import LibcloudInvalidCredsError
 from service.exceptions import (
     ActionNotAllowed, AllocationBlacklistedError, OverAllocationError,
     OverQuotaError, SizeNotAvailable, HypervisorCapacityError,
     SecurityGroupNotCreated, UnderThresholdError, VolumeAttachConflict,
-    VolumeMountConflict, InstanceDoesNotExist)
+    VolumeMountConflict, InstanceDoesNotExist
+)
 from socket import error as socket_error
 from rtwo.exceptions import ConnectionFailure
 from service.cache import invalidate_cached_instances
 
 
 class InstanceFilter(filters.FilterSet):
-    provider_id = django_filters.NumberFilter(name="created_by_identity__provider__id")
+    provider_id = django_filters.NumberFilter(
+        name="created_by_identity__provider__id"
+    )
 
     class Meta:
         model = Instance
@@ -47,7 +53,6 @@ class InstanceFilter(filters.FilterSet):
 
 
 class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
-
     """
     API endpoint that allows providers to be viewed or edited.
     """
@@ -57,8 +62,9 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
     filter_class = InstanceFilter
     filter_fields = ('created_by__id', 'project')
     lookup_fields = ("id", "provider_alias")
-    http_method_names = ['get', 'put', 'patch', 'post',
-                         'delete', 'head', 'options', 'trace']
+    http_method_names = [
+        'get', 'put', 'patch', 'post', 'delete', 'head', 'options', 'trace'
+    ]
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -113,8 +119,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         valid_actions = InstanceAction.filter_by_instance(pk)
         serializer_class = self.get_serializer_class()
         serialized_data = serializer_class(
-            valid_actions, many=True,
-            context={'request': request}).data
+            valid_actions, many=True, context={
+                'request': request
+            }
+        ).data
         return Response(serialized_data)
 
     def post_instance_action(self, request, pk=None):
@@ -127,10 +135,15 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         if type(action) == list:
             action = action[0]
         try:
-            run_instance_action(user, identity, instance_id, action, action_params)
+            run_instance_action(
+                user, identity, instance_id, action, action_params
+            )
             api_response = {
-                'result': 'success',
-                'message': 'The requested action <%s> was run successfully' % (action,),
+                'result':
+                    'success',
+                'message':
+                    'The requested action <%s> was run successfully' %
+                    (action, ),
             }
             response = Response(api_response, status=status.HTTP_200_OK)
             return response
@@ -139,7 +152,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         except InstanceDoesNotExist as dne:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                'Instance %s no longer exists' % (dne.message,))
+                'Instance %s no longer exists' % (dne.message, )
+            )
         except LibcloudInvalidCredsError:
             return invalid_creds(identity)
         except HypervisorCapacityError as hce:
@@ -149,9 +163,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         except (OverQuotaError, OverAllocationError) as oqe:
             return over_quota(oqe)
         except AllocationBlacklistedError as e:
-            return failure_response(
-                status.HTTP_403_FORBIDDEN,
-                e.message)
+            return failure_response(status.HTTP_403_FORBIDDEN, e.message)
         except SizeNotAvailable as snae:
             return size_not_available(snae)
         except (socket_error, ConnectionFailure):
@@ -161,46 +173,50 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         except NotImplemented:
             return failure_response(
                 status.HTTP_409_CONFLICT,
-                "The requested action %s is not available on this provider."
-                % action)
+                "The requested action %s is not available on this provider." %
+                action
+            )
         except ActionNotAllowed:
             return failure_response(
                 status.HTTP_409_CONFLICT,
                 "The requested action %s has been explicitly "
-                "disabled on this provider." % action)
+                "disabled on this provider." % action
+            )
         except Exception as exc:
             logger.exception("Exception occurred processing InstanceAction")
             message = exc.message
             if message.startswith('409 Conflict'):
-                return failure_response(
-                    status.HTTP_409_CONFLICT,
-                    message)
+                return failure_response(status.HTTP_409_CONFLICT, message)
             return failure_response(
                 status.HTTP_403_FORBIDDEN,
                 "The requested action %s encountered "
-                "an irrecoverable exception: %s"
-                % (action, message))
+                "an irrecoverable exception: %s" % (action, message)
+            )
 
     def destroy(self, request, pk=None):
         user = self.request.user
         try:
             instance = Instance.objects.get(
-                Q(id=pk) if isinstance(pk, int) else Q(provider_alias=pk))
+                Q(id=pk) if isinstance(pk, int) else Q(provider_alias=pk)
+            )
             identity_uuid = str(instance.created_by_identity.uuid)
             identity = Identity.objects.get(uuid=identity_uuid)
             provider_uuid = str(identity.provider.uuid)
-            destroy_instance.delay(
-                instance.provider_alias, user, identity_uuid)
+            destroy_instance.delay(instance.provider_alias, user, identity_uuid)
 
             # We must invalidate the cache while we still depend on api.v1.instance
             invalidate_cached_instances(identity=identity)
             serializer = InstanceSerializer(
-                instance, context={
-                    'request': self.request},
-                data={}, partial=True)
+                instance,
+                context={'request': self.request},
+                data={},
+                partial=True
+            )
             if not serializer.is_valid():
-                return Response("Errors encountered during delete: %s" % serializer.errors,
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    "Errors encountered during delete: %s" % serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return Response(status=status.HTTP_204_NO_CONTENT)
         except VolumeAttachConflict as exc:
             message = exc.message
@@ -212,12 +228,14 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         except InstanceDoesNotExist as dne:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                'Instance %s no longer exists' % (dne.message,))
+                'Instance %s no longer exists' % (dne.message, )
+            )
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
     def validate_input(self, user, data):
         error_map = {}
@@ -235,7 +253,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             try:
                 user.all_projects().filter(uuid=project_uuid)
             except ValueError:
-                error_map['project'] = "Properly formed hexadecimal UUID string required."
+                error_map['project'
+                         ] = "Properly formed hexadecimal UUID string required."
         if not identity_uuid:
             error_map['identity'] = "This field is required."
         if not source_alias:
@@ -252,7 +271,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             identity = Identity.objects.get(uuid=identity_uuid)
             # Staff or owner ONLY
             if not user.is_staff and identity.created_by != user:
-                logger.error("User %s does not have permission to use identity %s" % (user, identity))
+                logger.error(
+                    "User %s does not have permission to use identity %s" %
+                    (user, identity)
+                )
                 raise Identity.DoesNotExist("You are not the owner")
         except Identity.DoesNotExist:
             error_map["identity"] = "The uuid (%s) is invalid." % identity_uuid
@@ -262,8 +284,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
     # Caveat: update only accepts updates for the allocation_source field
     def update(self, request, pk=None, partial=False):
         if not pk:
-            return Response("Missing instance primary key",
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                "Missing instance primary key",
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         data = request.data
         instance = Instance.objects.get(id=pk)
@@ -272,21 +296,27 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 "id" in data["allocation_source"]:
             allocation_id = data["allocation_source"]["id"]
             try:
-                user_source = UserAllocationSource.objects.get(user=request.user,
-                        allocation_source_id=allocation_id)
+                user_source = UserAllocationSource.objects.get(
+                    user=request.user, allocation_source_id=allocation_id
+                )
             except UserAllocationSource.DoesNotExist:
-                return Response("Invalid allocation_source",
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    "Invalid allocation_source",
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             instance.change_allocation_source(user_source.allocation_source)
         serializer = InstanceSerializer(
-                instance, data=data,
-                partial=partial, context={'request': self.request})
+            instance,
+            data=data,
+            partial=partial,
+            context={'request': self.request}
+        )
         if not serializer.is_valid():
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
         instance = serializer.save()
-        return Response(serializer.data,
-                status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request):
         user = request.user
@@ -294,9 +324,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         try:
             self.validate_input(user, data)
         except Exception as exc:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                exc.message)
+            return failure_response(status.HTTP_400_BAD_REQUEST, exc.message)
 
         # Create a mutable dict and start modifying.
         data = data.copy()
@@ -311,18 +339,31 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         extra = data.get('extra', {})
         try:
             identity = Identity.objects.get(uuid=identity_uuid)
-            allocation_source = AllocationSource.objects.get(uuid=allocation_source_id)
+            allocation_source = AllocationSource.objects.get(
+                uuid=allocation_source_id
+            )
             core_instance = launch_instance(
-                user, identity_uuid, size_alias, source_alias, name, deploy,
+                user,
+                identity_uuid,
+                size_alias,
+                source_alias,
+                name,
+                deploy,
                 allocation_source=allocation_source,
-                **extra)
+                **extra
+            )
             # Faking a 'partial update of nothing' to allow call to 'is_valid'
             serialized_instance = InstanceSerializer(
-                core_instance, context={'request': self.request},
-                data={}, partial=True)
+                core_instance,
+                context={'request': self.request},
+                data={},
+                partial=True
+            )
             if not serialized_instance.is_valid():
-                return Response(serialized_instance.errors,
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    serialized_instance.errors,
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             instance = serialized_instance.save()
             project = Project.objects.get(uuid=project_uuid)
             instance.project = project
@@ -331,15 +372,14 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 _save_scripts_to_instance(instance, boot_scripts)
             instance.change_allocation_source(allocation_source)
             return Response(
-                serialized_instance.data, status=status.HTTP_201_CREATED)
+                serialized_instance.data, status=status.HTTP_201_CREATED
+            )
         except UnderThresholdError as ute:
             return under_threshold(ute)
         except (OverQuotaError, OverAllocationError) as oqe:
             return over_quota(oqe)
         except AllocationBlacklistedError as e:
-            return failure_response(
-                status.HTTP_403_FORBIDDEN,
-                e.message)
+            return failure_response(status.HTTP_403_FORBIDDEN, e.message)
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except SizeNotAvailable as snae:
@@ -353,7 +393,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         except LibcloudInvalidCredsError:
             return invalid_creds(identity)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))

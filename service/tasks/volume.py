@@ -11,16 +11,27 @@ from rtwo.driver import EucaDriver, OSDriver
 from service.driver import get_driver
 from service.deploy import (
     deploy_check_volume, deploy_mount_volume, deploy_unmount_volume,
-    execution_has_failures, execution_has_unreachable)
+    execution_has_failures, execution_has_unreachable
+)
 from service.exceptions import DeviceBusyException
 
 
-@task(name="check_volume_task",
-      max_retries=0,
-      default_retry_delay=20,
-      ignore_result=False)
-def check_volume_task(driverCls, provider, identity,
-                      instance_id, volume_id, device_type='ext4', *args, **kwargs):
+@task(
+    name="check_volume_task",
+    max_retries=0,
+    default_retry_delay=20,
+    ignore_result=False
+)
+def check_volume_task(
+    driverCls,
+    provider,
+    identity,
+    instance_id,
+    volume_id,
+    device_type='ext4',
+    *args,
+    **kwargs
+):
     try:
         celery_logger.debug("check_volume task started at %s." % timezone.now())
         driver = get_driver(driverCls, provider, identity)
@@ -36,12 +47,20 @@ def check_volume_task(driverCls, provider, identity,
         # 2. Volume has a filesystem
         #    (If not, create one of type 'device_type')
         playbook_results = deploy_check_volume(
-            instance.ip, username, instance.id,
-            device_location, device_type=device_type)
-        success = not (execution_has_failures(playbook_results) or execution_has_unreachable(playbook_results))
+            instance.ip,
+            username,
+            instance.id,
+            device_location,
+            device_type=device_type
+        )
+        success = not (
+            execution_has_failures(playbook_results)
+            or execution_has_unreachable(playbook_results)
+        )
         if not success:
             raise Exception(
-                "Error encountered while checking volume for filesystem: instance_id: {}, volume_id: {}".format(instance_id, volume_id)
+                "Error encountered while checking volume for filesystem: instance_id: {}, volume_id: {}"
+                .format(instance_id, volume_id)
             )
         return success
     except Exception as exc:
@@ -49,12 +68,15 @@ def check_volume_task(driverCls, provider, identity,
         check_volume_task.retry(exc=exc)
 
 
-@task(name="unmount_volume_task",
-      max_retries=0,
-      default_retry_delay=20,
-      ignore_result=False)
-def unmount_volume_task(driverCls, provider, identity, instance_id, volume_id,
-               *args, **kwargs):
+@task(
+    name="unmount_volume_task",
+    max_retries=0,
+    default_retry_delay=20,
+    ignore_result=False
+)
+def unmount_volume_task(
+    driverCls, provider, identity, instance_id, volume_id, *args, **kwargs
+):
     try:
         celery_logger.debug("unmount task started at %s." % timezone.now())
         driver = get_driver(driverCls, provider, identity)
@@ -67,19 +89,26 @@ def unmount_volume_task(driverCls, provider, identity, instance_id, volume_id,
             attach_data = volume.extra['attachments'][0]
             device_location = attach_data['device']
         except (KeyError, IndexError):
-            celery_logger.warn("Volume %s missing attachments in Extra"
-                               % (volume,))
+            celery_logger.warn(
+                "Volume %s missing attachments in Extra" % (volume, )
+            )
         if not device_location:
-            raise Exception("No device_location found or inferred by volume %s" % volume)
+            raise Exception(
+                "No device_location found or inferred by volume %s" % volume
+            )
         try:
             playbook_results = deploy_unmount_volume(
-                instance.ip, username, instance.id, device_location)
+                instance.ip, username, instance.id, device_location
+            )
         except DeviceBusyException:
             # Future-Fixme: Update VolumeStatusHistory.extra, set status to 'unmount_failed'
             raise
-        if execution_has_failures(playbook_results) or execution_has_unreachable(playbook_results):
+        if execution_has_failures(
+            playbook_results
+        ) or execution_has_unreachable(playbook_results):
             raise Exception(
-                "Error encountered while unmounting volume: instance_id: {}, volume_id: {}".format(instance_id, volume_id)
+                "Error encountered while unmounting volume: instance_id: {}, volume_id: {}"
+                .format(instance_id, volume_id)
             )
         return device_location
     except Exception as exc:
@@ -87,13 +116,25 @@ def unmount_volume_task(driverCls, provider, identity, instance_id, volume_id,
         unmount_volume_task.retry(exc=exc)
 
 
-@task(name="mount_volume_task",
-      max_retries=0,
-      default_retry_delay=20,
-      ignore_result=False)
-def mount_volume_task(driverCls, provider, identity, instance_id, volume_id,
-               device_location, mount_location, device_type,
-               mount_prefix=None, *args, **kwargs):
+@task(
+    name="mount_volume_task",
+    max_retries=0,
+    default_retry_delay=20,
+    ignore_result=False
+)
+def mount_volume_task(
+    driverCls,
+    provider,
+    identity,
+    instance_id,
+    volume_id,
+    device_location,
+    mount_location,
+    device_type,
+    mount_prefix=None,
+    *args,
+    **kwargs
+):
     try:
         celery_logger.debug("mount task started at %s." % timezone.now())
         celery_logger.debug("mount_location: %s" % (mount_location, ))
@@ -107,24 +148,35 @@ def mount_volume_task(driverCls, provider, identity, instance_id, volume_id,
             if not device_location:
                 device_location = attach_data['device']
         except (KeyError, IndexError):
-            celery_logger.warn("Volume %s missing attachments in Extra"
-                               % (volume,))
+            celery_logger.warn(
+                "Volume %s missing attachments in Extra" % (volume, )
+            )
         if not device_location:
-            raise Exception("No device_location found or inferred by volume %s" % volume)
+            raise Exception(
+                "No device_location found or inferred by volume %s" % volume
+            )
         if not mount_prefix:
             mount_prefix = "/vol_"
 
-        last_char = device_location[-1]  # /dev/sdb --> b
+        last_char = device_location[-1]    # /dev/sdb --> b
         if not mount_location:
             mount_location = mount_prefix + last_char
 
         playbook_results = deploy_mount_volume(
-            instance.ip, username, instance.id,
-            device_location, mount_location=mount_location, device_type=device_type)
+            instance.ip,
+            username,
+            instance.id,
+            device_location,
+            mount_location=mount_location,
+            device_type=device_type
+        )
         celery_logger.info(playbook_results)
-        if execution_has_failures(playbook_results) or execution_has_unreachable(playbook_results):
+        if execution_has_failures(
+            playbook_results
+        ) or execution_has_unreachable(playbook_results):
             raise Exception(
-                "Error encountered while mounting volume: instance_id: {}, volume_id: {}".format(instance_id, volume_id)
+                "Error encountered while mounting volume: instance_id: {}, volume_id: {}"
+                .format(instance_id, volume_id)
             )
         return mount_location
     except Exception as exc:
@@ -136,14 +188,16 @@ def mount_volume_task(driverCls, provider, identity, instance_id, volume_id,
 
 
 @task(name="attach_task")
-def attach_task(driverCls,
-                provider,
-                identity,
-                instance_id,
-                volume_id,
-                device_choice=None,
-                *args,
-                **kwargs):
+def attach_task(
+    driverCls,
+    provider,
+    identity,
+    instance_id,
+    volume_id,
+    device_choice=None,
+    *args,
+    **kwargs
+):
     celery_logger.debug("attach_task started at %s." % timezone.now())
     driver = get_driver(driverCls, provider, identity)
     from service.volume import attach_volume
@@ -160,12 +214,15 @@ def attach_task(driverCls,
 
         if attempts > 4:
             raise Exception(
-                "Attach task timed out for volume {} and instance {}, volume status: {}".
-                format(volume_id, instance_id, volume_status))
+                "Attach task timed out for volume {} and instance {}, volume status: {}"
+                .format(volume_id, instance_id, volume_status)
+            )
 
         celery_logger.debug(
             "Volume {} is not ready. Expected 'in-use', got '{}'".format(
-                volume_id, volume_status))
+                volume_id, volume_status
+            )
+        )
         time.sleep(10)
         attempts += 1
 
@@ -173,19 +230,23 @@ def attach_task(driverCls,
         attach_data = volume.extra['attachments'][0]
         device = attach_data['device']
     except (IndexError, KeyError):
-        raise Exception("Could not find 'device' in volume.extra {}".format(
-            volume.extra))
+        raise Exception(
+            "Could not find 'device' in volume.extra {}".format(volume.extra)
+        )
 
     celery_logger.debug("attach_task finished at %s." % timezone.now())
     return device
 
 
-@task(name="detach_task",
-      max_retries=1,
-      default_retry_delay=20,
-      ignore_result=False)
-def detach_task(driverCls, provider, identity,
-                instance_id, volume_id, *args, **kwargs):
+@task(
+    name="detach_task",
+    max_retries=1,
+    default_retry_delay=20,
+    ignore_result=False
+)
+def detach_task(
+    driverCls, provider, identity, instance_id, volume_id, *args, **kwargs
+):
     try:
         celery_logger.debug("detach_task started at %s." % timezone.now())
         driver = get_driver(driverCls, provider, identity)
@@ -198,7 +259,7 @@ def detach_task(driverCls, provider, identity,
         attempts = 0
         while True:
             volume = driver.get_volume(volume_id)
-            if attempts > 6:  # After 6 attempts (~1min)
+            if attempts > 6:    # After 6 attempts (~1min)
                 break
             # The Openstack way
             if isinstance(driver, OSDriver)\
@@ -212,13 +273,17 @@ def detach_task(driverCls, provider, identity,
             # Exponential backoff..
             attempts += 1
             sleep_time = 2**attempts
-            celery_logger.debug("Volume %s is not ready (%s). Sleep for %s"
-                         % (volume.id, volume.extra['status'], sleep_time))
+            celery_logger.debug(
+                "Volume %s is not ready (%s). Sleep for %s" %
+                (volume.id, volume.extra['status'], sleep_time)
+            )
             time.sleep(sleep_time)
 
         if 'in-use' in volume.extra['status']:
-            raise Exception("Failed to detach Volume %s to instance %s"
-                            % (volume, instance))
+            raise Exception(
+                "Failed to detach Volume %s to instance %s" %
+                (volume, instance)
+            )
 
         celery_logger.debug("detach_task finished at %s." % timezone.now())
     except DeviceBusyException:
@@ -231,20 +296,21 @@ def detach_task(driverCls, provider, identity,
         celery_logger.exception(exc)
         detach_task.retry(exc=exc)
 
+
 # Volume metadata tasks
 
 
 @task(name="update_mount_location", max_retries=2, default_retry_delay=15)
-def update_mount_location(new_mount_location,
-                          driverCls, provider, identity,
-                          volume_alias):
+def update_mount_location(
+    new_mount_location, driverCls, provider, identity, volume_alias
+):
     """
     """
     from service import volume as volume_service
     try:
         celery_logger.debug(
-            "update_mount_location task started at %s." %
-            timezone.now())
+            "update_mount_location task started at %s." % timezone.now()
+        )
         driver = get_driver(driverCls, provider, identity)
         volume = driver.get_volume(volume_alias)
         if not volume:
@@ -253,45 +319,51 @@ def update_mount_location(new_mount_location,
             return
         #volume_metadata = volume.extra['metadata']
         return volume_service._update_volume_metadata(
-            driver, volume,
-            metadata={'mount_location': new_mount_location})
+            driver, volume, metadata={'mount_location': new_mount_location}
+        )
     except Exception as exc:
         celery_logger.exception(exc)
         update_mount_location.retry(exc=exc)
 
 
 @task(name="update_volume_metadata", max_retries=2, default_retry_delay=15)
-def update_volume_metadata(driverCls, provider,
-                           identity, volume_alias,
-                           metadata):
+def update_volume_metadata(
+    driverCls, provider, identity, volume_alias, metadata
+):
     """
     """
     from service import volume as volume_service
     try:
         celery_logger.debug(
-            "update_volume_metadata task started at %s." %
-            timezone.now())
+            "update_volume_metadata task started at %s." % timezone.now()
+        )
         driver = get_driver(driverCls, provider, identity)
         volume = driver.get_volume(volume_alias)
         if not volume:
             return
         return volume_service._update_volume_metadata(
-            driver, volume,
-            metadata=metadata)
+            driver, volume, metadata=metadata
+        )
     except Exception as exc:
         celery_logger.exception(exc)
         update_volume_metadata.retry(exc=exc)
+
 
 # Exception handling tasks
 
 
 @task(name="mount_failed")
 def mount_failed(
-        context,
-        exception_msg,
-        traceback,
-        driverCls, provider, identity, volume_id,
-        unmount=False, **celery_task_args):
+    context,
+    exception_msg,
+    traceback,
+    driverCls,
+    provider,
+    identity,
+    volume_id,
+    unmount=False,
+    **celery_task_args
+):
     from service import volume as volume_service
     try:
         celery_logger.debug("mount_failed task started at %s." % timezone.now())
@@ -305,8 +377,8 @@ def mount_failed(
         else:
             tmp_status = 'mount_error'
         return volume_service._update_volume_metadata(
-            driver, volume,
-            metadata={'tmp_status': tmp_status})
+            driver, volume, metadata={'tmp_status': tmp_status}
+        )
     except Exception as exc:
         celery_logger.warn(exc)
         mount_failed.retry(exc=exc)

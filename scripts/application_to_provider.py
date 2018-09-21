@@ -12,7 +12,8 @@ import OpenSSL.SSL
 
 from irods.session import iRODSSession
 import glanceclient.exc
-import django; django.setup()
+import django
+django.setup()
 import core.models
 import service.driver
 from chromogenic.clean import mount_and_clean
@@ -72,74 +73,116 @@ Considerations when using iRODS transfer:
   https://bugs.launchpad.net/glance/+bug/1551498
 """
 
-max_tries = 3  # Maximum number of times to attempt downloading and uploading image data
+max_tries = 3    # Maximum number of times to attempt downloading and uploading image data
 
 
 def _parse_args():
-    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("application_id", type=int, help="Application ID to be migrated")
-    parser.add_argument("destination_provider_id", type=int, help="Destination provider ID")
-    parser.add_argument("--source-provider-id",
-                        type=int,
-                        help="Migrate image from source provider with this ID (else a source provider will be chosen "
-                             "automatically")
-    parser.add_argument("--metadata-only",
-                        action="store_true",
-                        help="Only migrate/update image metadata, not image data")
-    parser.add_argument("--ignore-missing-owner",
-                        action="store_true",
-                        help="Transfer image if application owner has no identity on destination provider (owner will "
-                             "be set to Atmosphere admin role")
-    parser.add_argument("--ignore-missing-members",
-                        action="store_true",
-                        help="Transfer image if application is private and member(s) have no identity on destination "
-                             "provider")
-    parser.add_argument("--migrate-end-dated-versions",
-                        action="store_true",
-                        help="Migrate all ApplicationVersions, even those that have been end dated")
-    parser.add_argument("--clean",
-                        action="store_true",
-                        help="Use Chromogenic library to remove undesired state from images which were created from "
-                             "Atmosphere(1) instances (cannot be used with iRODS transfer)")
-    parser.add_argument("--persist-local-cache",
-                        action="store_true",
-                        help="If image download succeeds but upload fails, keep local cached copy for subsequent "
-                             "attempt. (Local cache is always deleted after successful upload). "
-                             "May consume a lot of disk space.")
-    parser.add_argument("--src-glance-client-version",
-                        type=float,
-                        help="Glance client version to use for source provider")
-    parser.add_argument("--dst-glance-client-version",
-                        type=float,
-                        help="Glance client version to use for destination provider")
-    parser.add_argument("--irods-conn",
-                        type=str, metavar="irods://user:password@host:port/zone",
-                        help="iRODS connection string in the form of irods://user:password@host:port/zone")
-    parser.add_argument("--irods-src-coll",
-                        type=str, metavar="/myzone/foo",
-                        help="Path to collection for iRODS images on source provider")
-    parser.add_argument("--irods-dst-coll",
-                        type=str, metavar="/myzone/bar",
-                        help="Path to collection for iRODS images on destination provider")
+    parser = argparse.ArgumentParser(
+        description=description,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "application_id", type=int, help="Application ID to be migrated"
+    )
+    parser.add_argument(
+        "destination_provider_id", type=int, help="Destination provider ID"
+    )
+    parser.add_argument(
+        "--source-provider-id",
+        type=int,
+        help=
+        "Migrate image from source provider with this ID (else a source provider will be chosen "
+        "automatically"
+    )
+    parser.add_argument(
+        "--metadata-only",
+        action="store_true",
+        help="Only migrate/update image metadata, not image data"
+    )
+    parser.add_argument(
+        "--ignore-missing-owner",
+        action="store_true",
+        help=
+        "Transfer image if application owner has no identity on destination provider (owner will "
+        "be set to Atmosphere admin role"
+    )
+    parser.add_argument(
+        "--ignore-missing-members",
+        action="store_true",
+        help=
+        "Transfer image if application is private and member(s) have no identity on destination "
+        "provider"
+    )
+    parser.add_argument(
+        "--migrate-end-dated-versions",
+        action="store_true",
+        help=
+        "Migrate all ApplicationVersions, even those that have been end dated"
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help=
+        "Use Chromogenic library to remove undesired state from images which were created from "
+        "Atmosphere(1) instances (cannot be used with iRODS transfer)"
+    )
+    parser.add_argument(
+        "--persist-local-cache",
+        action="store_true",
+        help=
+        "If image download succeeds but upload fails, keep local cached copy for subsequent "
+        "attempt. (Local cache is always deleted after successful upload). "
+        "May consume a lot of disk space."
+    )
+    parser.add_argument(
+        "--src-glance-client-version",
+        type=float,
+        help="Glance client version to use for source provider"
+    )
+    parser.add_argument(
+        "--dst-glance-client-version",
+        type=float,
+        help="Glance client version to use for destination provider"
+    )
+    parser.add_argument(
+        "--irods-conn",
+        type=str,
+        metavar="irods://user:password@host:port/zone",
+        help=
+        "iRODS connection string in the form of irods://user:password@host:port/zone"
+    )
+    parser.add_argument(
+        "--irods-src-coll",
+        type=str,
+        metavar="/myzone/foo",
+        help="Path to collection for iRODS images on source provider"
+    )
+    parser.add_argument(
+        "--irods-dst-coll",
+        type=str,
+        metavar="/myzone/bar",
+        help="Path to collection for iRODS images on destination provider"
+    )
     args = parser.parse_args()
     return args
 
 
-def main(application_id,
-         destination_provider_id,
-         source_provider_id=None,
-         metadata_only=False,
-         ignore_missing_owner=False,
-         ignore_missing_members=False,
-         migrate_end_dated_versions=False,
-         clean=False,
-         persist_local_cache=False,
-         src_glance_client_version=None,
-         dst_glance_client_version=None,
-         irods_conn_str=None,
-         irods_src_coll=None,
-         irods_dst_coll=None,
-         ):
+def main(
+    application_id,
+    destination_provider_id,
+    source_provider_id=None,
+    metadata_only=False,
+    ignore_missing_owner=False,
+    ignore_missing_members=False,
+    migrate_end_dated_versions=False,
+    clean=False,
+    persist_local_cache=False,
+    src_glance_client_version=None,
+    dst_glance_client_version=None,
+    irods_conn_str=None,
+    irods_src_coll=None,
+    irods_dst_coll=None,
+):
 
     irods_args = (irods_conn_str, irods_src_coll, irods_dst_coll)
     if clean and any(irods_args):
@@ -149,14 +192,18 @@ def main(application_id,
         if all(irods_args) and source_provider_id:
             irods_conn = _parse_irods_conn(irods_conn_str)
         else:
-            raise Exception("If using iRODS transfer then --source-provider-id, --irods-conn, --irods-src-coll, and "
-                            "--irods-dst-coll must all be defined")
+            raise Exception(
+                "If using iRODS transfer then --source-provider-id, --irods-conn, --irods-src-coll, and "
+                "--irods-dst-coll must all be defined"
+            )
     else:
         irods = False
         irods_conn = irods_src_coll = irods_dst_coll = None
 
     if source_provider_id == destination_provider_id:
-        raise Exception("Source provider cannot be the same as destination provider")
+        raise Exception(
+            "Source provider cannot be the same as destination provider"
+        )
     app = core.models.Application.objects.get(id=application_id)
     dprov = core.models.Provider.objects.get(id=destination_provider_id)
     if source_provider_id:
@@ -164,35 +211,50 @@ def main(application_id,
     else:
         sprov = None
 
-    dprov_acct_driver = service.driver.get_account_driver(dprov, raise_exception=True)
+    dprov_acct_driver = service.driver.get_account_driver(
+        dprov, raise_exception=True
+    )
     if dst_glance_client_version:
         dprov_keystone_client = dprov_acct_driver.image_manager.keystone
-        dprov_glance_client = _connect_to_glance(dprov_keystone_client, version=dst_glance_client_version)
+        dprov_glance_client = _connect_to_glance(
+            dprov_keystone_client, version=dst_glance_client_version
+        )
     else:
         dprov_glance_client = dprov_acct_driver.image_manager.glance
 
     dprov_atmo_admin_uname = dprov.admin.project_name()
-    dprov_atmo_admin_uuid = dprov_acct_driver.get_project(dprov_atmo_admin_uname).id
+    dprov_atmo_admin_uuid = dprov_acct_driver.get_project(
+        dprov_atmo_admin_uname
+    ).id
 
     # Get application-specific metadata from Atmosphere(2) and resolve identifiers on destination provider
 
     # Get application owner UUID in destination provider
     app_creator_uname = app.created_by_identity.project_name()
     try:
-        dprov_app_owner_uuid = dprov_acct_driver.get_project(app_creator_uname, raise_exception=True).id
+        dprov_app_owner_uuid = dprov_acct_driver.get_project(
+            app_creator_uname, raise_exception=True
+        ).id
     except AttributeError:
         if ignore_missing_owner:
             dprov_app_owner_uuid = dprov_atmo_admin_uuid
         else:
-            raise Exception("Application owner missing from destination provider, run with "
-                            "--ignore-missing-owner to suppress this error (owner will "
-                            "default to Atmosphere administrator")
-    logging.debug("Application owner UUID in destination provider: {0}".format(dprov_app_owner_uuid))
+            raise Exception(
+                "Application owner missing from destination provider, run with "
+                "--ignore-missing-owner to suppress this error (owner will "
+                "default to Atmosphere administrator"
+            )
+    logging.debug(
+        "Application owner UUID in destination provider: {0}".
+        format(dprov_app_owner_uuid)
+    )
 
     # If private application, get app member UUIDs in destination provider
     dprov_app_members_uuids = []
     if app.private is True:
-        dprov_app_members_uuids.append(dprov_atmo_admin_uuid)  # Atmosphere administrator is always a member
+        dprov_app_members_uuids.append(
+            dprov_atmo_admin_uuid
+        )    # Atmosphere administrator is always a member
         for membership in app.get_members():
             member_name = membership.group.name
             try:
@@ -202,12 +264,20 @@ def main(application_id,
                     dprov_app_members_uuids.append(member_proj_uuid)
             except AttributeError:
                 if not ignore_missing_members:
-                    raise Exception("Application member missing from destination provider, run with "
-                                    "--ignore-missing-members to suppress this error")
-        logging.debug("Private app member UUIDs on destination provider: {0}".format(str(dprov_app_members_uuids)))
+                    raise Exception(
+                        "Application member missing from destination provider, run with "
+                        "--ignore-missing-members to suppress this error"
+                    )
+        logging.debug(
+            "Private app member UUIDs on destination provider: {0}".format(
+                str(dprov_app_members_uuids)
+            )
+        )
 
     # Get application tags
-    app_tags = [tag.name for tag in core.models.Tag.objects.filter(application=app)]
+    app_tags = [
+        tag.name for tag in core.models.Tag.objects.filter(application=app)
+    ]
     logging.info("Application tags: {0}".format(str(app_tags)))
 
     # Loop for each ApplicationVersion of the specified Application
@@ -216,10 +286,14 @@ def main(application_id,
     else:
         versions = app.active_versions()
     for app_version in versions:
-        logging.info("Processing ApplicationVersion {0}".format(str(app_version)))
+        logging.info(
+            "Processing ApplicationVersion {0}".format(str(app_version))
+        )
 
         # Choose/verify source provider
-        existing_prov_machines = core.models.ProviderMachine.objects.filter(application_version=app_version)
+        existing_prov_machines = core.models.ProviderMachine.objects.filter(
+            application_version=app_version
+        )
         if sprov is not None:
             # Confirm given source provider has valid ProviderMachine+InstanceSource for current ApplicationVersion
             valid_sprov = False
@@ -229,7 +303,9 @@ def main(application_id,
                     valid_sprov = True
                     break
             if not valid_sprov:
-                raise Exception("Source provider not valid for at least one version of given application")
+                raise Exception(
+                    "Source provider not valid for at least one version of given application"
+                )
         else:
             # Find a source provider that is not the destination provider
             for provider_machine in existing_prov_machines:
@@ -238,37 +314,58 @@ def main(application_id,
                     sprov = sprov_instance_source.provider
                     break
             if sprov is None:
-                raise Exception("Could not find a source provider for at least one version of given application")
+                raise Exception(
+                    "Could not find a source provider for at least one version of given application"
+                )
         logging.debug("Using source provider: {0}".format(sprov))
 
         # Get access to source provider
         sprov_img_uuid = sprov_instance_source.identifier
 
-        sprov_acct_driver = service.driver.get_account_driver(sprov, raise_exception=True)
+        sprov_acct_driver = service.driver.get_account_driver(
+            sprov, raise_exception=True
+        )
         if src_glance_client_version == 1:
-            sprov_keystone_client = service.driver.get_account_driver(sprov, raise_exception=True)
-            sprov_glance_client = _connect_to_glance(sprov_keystone_client, version=src_glance_client_version)
+            sprov_keystone_client = service.driver.get_account_driver(
+                sprov, raise_exception=True
+            )
+            sprov_glance_client = _connect_to_glance(
+                sprov_keystone_client, version=src_glance_client_version
+            )
         else:
             sprov_glance_client = sprov_acct_driver.image_manager.glance
 
         # Get source image metadata from Glance, and determine if image is AMI-based
         sprov_glance_image = sprov_glance_client.images.get(sprov_img_uuid)
-        if sprov_glance_image.get("kernel_id") or sprov_glance_image.get("ramdisk_id"):
-            if sprov_glance_image.get("kernel_id") and sprov_glance_image.get("ramdisk_id"):
+        if sprov_glance_image.get("kernel_id"
+                                 ) or sprov_glance_image.get("ramdisk_id"):
+            if sprov_glance_image.get("kernel_id") and sprov_glance_image.get(
+                "ramdisk_id"
+            ):
                 ami = True
             else:
-                raise Exception("AMI-based image must have both a kernel_id and ramdisk_id defined")
+                raise Exception(
+                    "AMI-based image must have both a kernel_id and ramdisk_id defined"
+                )
         else:
             ami = False
         # If AMI-based image, verify that AKI and ARI images actually exist in source provider
         if ami:
             try:
-                sprov_aki_glance_image = sprov_glance_client.images.get(sprov_glance_image.get("kernel_id"))
-                sprov_ari_glance_image = sprov_glance_client.images.get(sprov_glance_image.get("ramdisk_id"))
+                sprov_aki_glance_image = sprov_glance_client.images.get(
+                    sprov_glance_image.get("kernel_id")
+                )
+                sprov_ari_glance_image = sprov_glance_client.images.get(
+                    sprov_glance_image.get("ramdisk_id")
+                )
             except glanceclient.exc.HTTPNotFound:
-                logging.critical("Could not retrieve the AKI or ARI image on source provider, for an AMI-based image")
+                logging.critical(
+                    "Could not retrieve the AKI or ARI image on source provider, for an AMI-based image"
+                )
 
-        logging.debug("Source image metadata: {0}".format(str(sprov_glance_image)))
+        logging.debug(
+            "Source image metadata: {0}".format(str(sprov_glance_image))
+        )
 
         # Check for existing ProviderMachine + InstanceSource for ApplicationVersion on destination provider
         dprov_machine = dprov_instance_source = None
@@ -276,10 +373,14 @@ def main(application_id,
             if provider_machine.instance_source.provider == dprov:
                 dprov_machine = provider_machine
                 dprov_instance_source = dprov_machine.instance_source
-                logging.info("Found existing ProviderMachine and InstanceSource for image on destination provider")
+                logging.info(
+                    "Found existing ProviderMachine and InstanceSource for image on destination provider"
+                )
         if not dprov_machine:
-            logging.info("Could not find existing ProviderMachine and InstanceSource for image on destination provider"
-                         ", new objects will be created")
+            logging.info(
+                "Could not find existing ProviderMachine and InstanceSource for image on destination provider"
+                ", new objects will be created"
+            )
 
         # Get or create Glance image
         """
@@ -287,33 +388,41 @@ def main(application_id,
         Do we correct it later (good) or end up creating a duplicate (maybe bad)?
         this logic may also need refactor
         """
-        dprov_glance_image = get_or_create_glance_image(dprov_glance_client, sprov_img_uuid)
+        dprov_glance_image = get_or_create_glance_image(
+            dprov_glance_client, sprov_img_uuid
+        )
 
         # Get or create AKI+ARI Glance images for AMI-based image
         if ami:
-            get_or_create_glance_image(dprov_glance_client,
-                                       sprov_glance_image.get("kernel_id"))
-            get_or_create_glance_image(dprov_glance_client,
-                                       sprov_glance_image.get("ramdisk_id"))
+            get_or_create_glance_image(
+                dprov_glance_client, sprov_glance_image.get("kernel_id")
+            )
+            get_or_create_glance_image(
+                dprov_glance_client, sprov_glance_image.get("ramdisk_id")
+            )
 
         # Create models in database
         if not (dprov_machine or dprov_instance_source):
             logging.info("Creating new ProviderMachine and InstanceSource")
-            dprov_instance_source = core.models.InstanceSource(provider=dprov,
-                                                               identifier=dprov_glance_image.id,
-                                                               created_by=app.created_by,
-                                                               end_date=sprov_instance_source.end_date
-                                                               )
+            dprov_instance_source = core.models.InstanceSource(
+                provider=dprov,
+                identifier=dprov_glance_image.id,
+                created_by=app.created_by,
+                end_date=sprov_instance_source.end_date
+            )
             dprov_instance_source.save()
-            dprov_machine = core.models.ProviderMachine(application_version=app_version,
-                                                        instance_source=dprov_instance_source)
+            dprov_machine = core.models.ProviderMachine(
+                application_version=app_version,
+                instance_source=dprov_instance_source
+            )
             dprov_machine.save()
 
         # Build image metadata (this is always done)
         metadata = dict(
             name=app.name,
             owner=dprov_app_owner_uuid,
-            container_format="ami" if ami else sprov_glance_image.container_format,
+            container_format="ami"
+            if ami else sprov_glance_image.container_format,
             disk_format="ami" if ami else sprov_glance_image.disk_format
         )
         if dst_glance_client_version == 1:
@@ -325,7 +434,8 @@ def main(application_id,
 
         # Glance v1 client throws exception on line breaks
         if dst_glance_client_version == 1:
-            app_description = app.description.replace('\r', '').replace('\n', ' -- ')
+            app_description = app.description.replace('\r',
+                                                      '').replace('\n', ' -- ')
         else:
             app_description = app.description
         atmo_metadata = dict(
@@ -343,37 +453,15 @@ def main(application_id,
 
         # Gather custom metadata on image in source provider
         custom_metadata = dict(sprov_glance_image)
-        filter_out_keys = ['application_description',
-                           'application_name',
-                           'application_owner',
-                           'application_tags',
-                           'application_uuid',
-                           'application_version',
-                           'checksum',
-                           'container_format',
-                           'created_at',
-                           'direct_url',
-                           'disk_format',
-                           'file',
-                           'id',
-                           'instance_uuid',
-                           'is_public',
-                           'kernel_id',
-                           'locations',
-                           'min_disk',
-                           'min_ram',
-                           'name',
-                           'owner',
-                           'protected',
-                           'ramdisk_id',
-                           'schema',
-                           'self',
-                           'size',
-                           'status',
-                           'tags',
-                           'updated_at',
-                           'virtual_size',
-                           'visibility']
+        filter_out_keys = [
+            'application_description', 'application_name', 'application_owner',
+            'application_tags', 'application_uuid', 'application_version',
+            'checksum', 'container_format', 'created_at', 'direct_url',
+            'disk_format', 'file', 'id', 'instance_uuid', 'is_public',
+            'kernel_id', 'locations', 'min_disk', 'min_ram', 'name', 'owner',
+            'protected', 'ramdisk_id', 'schema', 'self', 'size', 'status',
+            'tags', 'updated_at', 'virtual_size', 'visibility'
+        ]
 
         for key in filter_out_keys:
             if key in custom_metadata:
@@ -388,55 +476,96 @@ def main(application_id,
             metadata.update(atmo_metadata)
             dprov_glance_client.images.update(dprov_glance_image.id, **metadata)
 
-        logging.info("Populated Glance image metadata: {0}"
-                     .format(str(dprov_glance_client.images.get(dprov_glance_image.id))))
+        logging.info(
+            "Populated Glance image metadata: {0}".format(
+                str(dprov_glance_client.images.get(dprov_glance_image.id))
+            )
+        )
 
         if app.private:
             # Turning generator into list so it can be searched
-            dprov_img_prior_members = [m.member_id for m in dprov_glance_client.image_members.list(dprov_glance_image.id)]
+            dprov_img_prior_members = [
+                m.member_id for m in dprov_glance_client.image_members.
+                list(dprov_glance_image.id)
+            ]
             for add_member_uuid in dprov_app_members_uuids:
                 if add_member_uuid not in dprov_img_prior_members:
-                    dprov_glance_client.image_members.create(dprov_glance_image.id, add_member_uuid)
+                    dprov_glance_client.image_members.create(
+                        dprov_glance_image.id, add_member_uuid
+                    )
                 else:
                     dprov_img_prior_members.remove(add_member_uuid)
             for del_member_uuid in dprov_img_prior_members:
-                dprov_glance_client.image_members.delete(dprov_glance_image.id, del_member_uuid)
+                dprov_glance_client.image_members.delete(
+                    dprov_glance_image.id, del_member_uuid
+                )
             logging.info("Private image updated with member UUIDs")
 
         # If AMI-based image, set metadata for AKI and ARI images
         if ami:
-            dprov_glance_client.images.update(sprov_aki_glance_image.id,
-                                              container_format="aki",
-                                              disk_format="aki",
-                                              visibility="public",
-                                              name=sprov_aki_glance_image.name,
-                                              owner=dprov_atmo_admin_uuid,
-                                              )
-            dprov_glance_client.images.update(sprov_ari_glance_image.id,
-                                              container_format="ari",
-                                              disk_format="ari",
-                                              visibility="public",
-                                              name=sprov_ari_glance_image.name,
-                                              owner=dprov_atmo_admin_uuid,
-                                              )
+            dprov_glance_client.images.update(
+                sprov_aki_glance_image.id,
+                container_format="aki",
+                disk_format="aki",
+                visibility="public",
+                name=sprov_aki_glance_image.name,
+                owner=dprov_atmo_admin_uuid,
+            )
+            dprov_glance_client.images.update(
+                sprov_ari_glance_image.id,
+                container_format="ari",
+                disk_format="ari",
+                visibility="public",
+                name=sprov_ari_glance_image.name,
+                owner=dprov_atmo_admin_uuid,
+            )
 
         if not metadata_only:
-            local_storage_dir = secrets.LOCAL_STORAGE if os.path.exists(secrets.LOCAL_STORAGE) else "/tmp"
+            local_storage_dir = secrets.LOCAL_STORAGE if os.path.exists(
+                secrets.LOCAL_STORAGE
+            ) else "/tmp"
             local_path = os.path.join(local_storage_dir, sprov_img_uuid)
 
             # Populate image data in destination provider if needed
-            migrate_or_verify_image_data(sprov_img_uuid, sprov_glance_client, dprov_glance_client, local_path,
-                                         persist_local_cache, irods, irods_conn, irods_src_coll, irods_dst_coll,
-                                         clean=True if clean else False,
-                                         dst_glance_client_version=dst_glance_client_version)
+            migrate_or_verify_image_data(
+                sprov_img_uuid,
+                sprov_glance_client,
+                dprov_glance_client,
+                local_path,
+                persist_local_cache,
+                irods,
+                irods_conn,
+                irods_src_coll,
+                irods_dst_coll,
+                clean=True if clean else False,
+                dst_glance_client_version=dst_glance_client_version
+            )
             # If AMI-based image, populate image data in destination provider if needed
             if ami:
-                migrate_or_verify_image_data(sprov_aki_glance_image.id, sprov_glance_client, dprov_glance_client,
-                                             local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
-                                             irods_dst_coll, dst_glance_client_version=dst_glance_client_version)
-                migrate_or_verify_image_data(sprov_ari_glance_image.id, sprov_glance_client, dprov_glance_client,
-                                             local_path, persist_local_cache, irods, irods_conn, irods_src_coll,
-                                             irods_dst_coll, dst_glance_client_version=dst_glance_client_version)
+                migrate_or_verify_image_data(
+                    sprov_aki_glance_image.id,
+                    sprov_glance_client,
+                    dprov_glance_client,
+                    local_path,
+                    persist_local_cache,
+                    irods,
+                    irods_conn,
+                    irods_src_coll,
+                    irods_dst_coll,
+                    dst_glance_client_version=dst_glance_client_version
+                )
+                migrate_or_verify_image_data(
+                    sprov_ari_glance_image.id,
+                    sprov_glance_client,
+                    dprov_glance_client,
+                    local_path,
+                    persist_local_cache,
+                    irods,
+                    irods_conn,
+                    irods_src_coll,
+                    irods_dst_coll,
+                    dst_glance_client_version=dst_glance_client_version
+                )
 
 
 def file_md5(path):
@@ -456,23 +585,38 @@ def get_or_create_glance_image(glance_client, img_uuid):
     try:
         glance_image = glance_client.images.get(img_uuid)
     except glanceclient.exc.HTTPConflict:
-        raise Exception("Could not create Glance image with specified UUID, possibly because there is already a "
-                        "deleted image with the same UUID stored in the destination provider. If this is the case "
-                        "(look in Glance database on destination provider), then run a `glance-manage db purge` to "
-                        "free up the UUID.")
+        raise Exception(
+            "Could not create Glance image with specified UUID, possibly because there is already a "
+            "deleted image with the same UUID stored in the destination provider. If this is the case "
+            "(look in Glance database on destination provider), then run a `glance-manage db purge` to "
+            "free up the UUID."
+        )
     except glanceclient.exc.HTTPNotFound:
         logging.debug("Could not locate glance image in specified provider")
         logging.info("Creating new Glance image")
         return glance_client.images.create(id=img_uuid)
     else:
         if glance_image is not None:
-            logging.info("Found Glance image matching specified UUID {0}, re-using it".format(img_uuid))
+            logging.info(
+                "Found Glance image matching specified UUID {0}, re-using it".
+                format(img_uuid)
+            )
             return glance_image
 
 
-def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client, local_path, persist_local_cache, irods,
-                                 irods_conn, irods_src_coll, irods_dst_coll, clean=False,
-                                 dst_glance_client_version=None):
+def migrate_or_verify_image_data(
+    img_uuid,
+    src_glance_client,
+    dst_glance_client,
+    local_path,
+    persist_local_cache,
+    irods,
+    irods_conn,
+    irods_src_coll,
+    irods_dst_coll,
+    clean=False,
+    dst_glance_client_version=None
+):
     """
     Migrates or verifies Glance image data between a source and destination provider, depending on image status
     in destination provider.
@@ -503,30 +647,56 @@ def migrate_or_verify_image_data(img_uuid, src_glance_client, dst_glance_client,
 
     if dst_img.status == "queued":
         if irods:
-            migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid, dst_glance_client_version)
+            migrate_image_data_irods(
+                dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll,
+                img_uuid, dst_glance_client_version
+            )
         else:
-            migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache,
-                                      clean=clean, dst_glance_client_version=dst_glance_client_version)
+            migrate_image_data_glance(
+                src_glance_client,
+                dst_glance_client,
+                img_uuid,
+                local_path,
+                persist_local_cache,
+                clean=clean,
+                dst_glance_client_version=dst_glance_client_version
+            )
     elif dst_img.status == "active":
         if irods:
             if src_img.size != dst_img.size:
-                logging.warn("Warning: image data already present on destination provider but size does not match; "
-                             "this may be OK if image was previously migrated with --clean")
+                logging.warn(
+                    "Warning: image data already present on destination provider but size does not match; "
+                    "this may be OK if image was previously migrated with --clean"
+                )
         else:
             try:
                 if src_img.checksum != dst_img.checksum:
-                    logging.warn("Warning: image data already present on destination provider but checksum does not "
-                                 "match; this may be OK if image was previously migrated with --clean, or if iRODS "
-                                 "transfer was previously used to migrate image")
+                    logging.warn(
+                        "Warning: image data already present on destination provider but checksum does not "
+                        "match; this may be OK if image was previously migrated with --clean, or if iRODS "
+                        "transfer was previously used to migrate image"
+                    )
             except AttributeError:
-                logging.warn("Warning: either source or destination image missing a checksum")
+                logging.warn(
+                    "Warning: either source or destination image missing a checksum"
+                )
     else:
-        raise Exception("Glance image on destination provider is not in an uploadable or usable status")
+        raise Exception(
+            "Glance image on destination provider is not in an uploadable or usable status"
+        )
     return True
 
 
-def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, local_path, persist_local_cache=True,
-                              max_tries=3, clean=False, dst_glance_client_version=None):
+def migrate_image_data_glance(
+    src_glance_client,
+    dst_glance_client,
+    img_uuid,
+    local_path,
+    persist_local_cache=True,
+    max_tries=3,
+    clean=False,
+    dst_glance_client_version=None
+):
     """
     Migrates image data using Glance API. Assumes that:
     - The Glance image object has already been created in the source provider
@@ -554,12 +724,15 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
         tries = 0
         while tries < max_tries:
             tries += 1
-            logging.debug("Attempting to download image data from source provider")
+            logging.debug(
+                "Attempting to download image data from source provider"
+            )
             image_data = src_glance_client.images.data(img_uuid)
             with open(local_path, 'wb') as img_file:
                 for chunk in image_data:
                     img_file.write(chunk)
-            if os.path.exists(local_path) and file_md5(local_path) == src_img.checksum:
+            if os.path.exists(local_path
+                             ) and file_md5(local_path) == src_img.checksum:
                 logging.debug("Image data download succeeded")
                 break
             else:
@@ -567,7 +740,9 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
         if file_md5(local_path) != src_img.checksum:
             if not persist_local_cache:
                 os.remove(local_path)
-            raise Exception("Could not download Glance image from source provider")
+            raise Exception(
+                "Could not download Glance image from source provider"
+            )
 
     if clean:
         # TODO is this a reasonable mount point or should we create one in /tmp?
@@ -587,8 +762,12 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
                     dst_glance_client.images.update(img_uuid, data=img_file)
                 else:
                     dst_glance_client.images.upload(img_uuid, img_file)
-                if local_img_checksum == dst_glance_client.images.get(img_uuid).checksum:
-                    logging.info("Successfully uploaded image data to destination provider")
+                if local_img_checksum == dst_glance_client.images.get(
+                    img_uuid
+                ).checksum:
+                    logging.info(
+                        "Successfully uploaded image data to destination provider"
+                    )
                     break
                 else:
                     logging.warning("Image data upload attempt failed")
@@ -602,8 +781,14 @@ def migrate_image_data_glance(src_glance_client, dst_glance_client, img_uuid, lo
         return True
 
 
-def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irods_dst_coll, img_uuid,
-                             dst_glance_client_version=None):
+def migrate_image_data_irods(
+    dst_glance_client,
+    irods_conn,
+    irods_src_coll,
+    irods_dst_coll,
+    img_uuid,
+    dst_glance_client_version=None
+):
     """
     Migrates image data using iRODS and then sets image location using Glance API.
 
@@ -617,34 +802,41 @@ def migrate_image_data_irods(dst_glance_client, irods_conn, irods_src_coll, irod
 
     Returns: True if successful, else raises exception
     """
-    sess = iRODSSession(host=irods_conn.get('host'),
-                        port=irods_conn.get('port'),
-                        zone=irods_conn.get('zone'),
-                        user=irods_conn.get('username'),
-                        password=irods_conn.get('password'))
+    sess = iRODSSession(
+        host=irods_conn.get('host'),
+        port=irods_conn.get('port'),
+        zone=irods_conn.get('zone'),
+        user=irods_conn.get('username'),
+        password=irods_conn.get('password')
+    )
     src_data_obj_path = os.path.join(irods_src_coll, img_uuid)
     dst_data_obj_path = os.path.join(irods_dst_coll, img_uuid)
     sess.data_objects.copy(src_data_obj_path, dst_data_obj_path)
     logging.info("Copied image data to destination collection in iRODS")
     dst_img_location = "irods://{0}:{1}@{2}:{3}{4}".format(
-        irods_conn.get('username'),
-        irods_conn.get('password'),
-        irods_conn.get('host'),
-        irods_conn.get('port'),
-        dst_data_obj_path
+        irods_conn.get('username'), irods_conn.get('password'),
+        irods_conn.get('host'), irods_conn.get('port'), dst_data_obj_path
     )
     # Assumption that iRODS copy will always be correct+complete, not inspecting checksums afterward?
     if dst_glance_client_version == 1:
         dst_glance_client.images.update(img_uuid, location=dst_img_location)
     else:
-        dst_glance_client.images.add_location(img_uuid, dst_img_location, dict())
+        dst_glance_client.images.add_location(
+            img_uuid, dst_img_location, dict()
+        )
     logging.info("Set image location in Glance")
     return True
 
 
 def _parse_irods_conn(irods_conn_str):
     u = urlparse.urlparse(irods_conn_str)
-    irods_conn = {"username": u.username, "password": u.password, "host": u.hostname, "port": u.port, "zone": u.path[1:]}
+    irods_conn = {
+        "username": u.username,
+        "password": u.password,
+        "host": u.hostname,
+        "port": u.port,
+        "zone": u.path[1:]
+    }
     return irods_conn
 
 
@@ -652,26 +844,33 @@ if __name__ == "__main__":
     # Spit log messages to stdout
     output = logging.StreamHandler(sys.stdout)
     output.setLevel(logging.DEBUG)
-    output.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    output.setFormatter(
+        logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    )
     logging.getLogger().addHandler(output)
     # Todo should we use a particular logger?
     try:
         args = _parse_args()
-        logging.info("Running application_to_provider with the following arguments:\n{0}".format(str(args)))
-        main(args.application_id,
-             args.destination_provider_id,
-             source_provider_id=args.source_provider_id,
-             metadata_only=args.metadata_only,
-             ignore_missing_owner=args.ignore_missing_owner,
-             ignore_missing_members=args.ignore_missing_members,
-             migrate_end_dated_versions=args.migrate_end_dated_versions,
-             clean=args.clean,
-             persist_local_cache=args.persist_local_cache,
-             src_glance_client_version=args.src_glance_client_version,
-             dst_glance_client_version=args.dst_glance_client_version,
-             irods_conn_str=args.irods_conn,
-             irods_src_coll=args.irods_src_coll,
-             irods_dst_coll=args.irods_dst_coll)
+        logging.info(
+            "Running application_to_provider with the following arguments:\n{0}"
+            .format(str(args))
+        )
+        main(
+            args.application_id,
+            args.destination_provider_id,
+            source_provider_id=args.source_provider_id,
+            metadata_only=args.metadata_only,
+            ignore_missing_owner=args.ignore_missing_owner,
+            ignore_missing_members=args.ignore_missing_members,
+            migrate_end_dated_versions=args.migrate_end_dated_versions,
+            clean=args.clean,
+            persist_local_cache=args.persist_local_cache,
+            src_glance_client_version=args.src_glance_client_version,
+            dst_glance_client_version=args.dst_glance_client_version,
+            irods_conn_str=args.irods_conn,
+            irods_src_coll=args.irods_src_coll,
+            irods_dst_coll=args.irods_dst_coll
+        )
     except Exception as e:
         logging.exception(e)
         raise

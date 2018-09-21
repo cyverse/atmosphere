@@ -36,13 +36,16 @@ if not logger:
     logger = logging.getLogger(__name__)
 
 if settings.NEW_RELIC_CONFIGURED:
-    logger.info("[A]Plugin: New Relic setup started because NEW_RELIC_ENVIRONMENT is defined in local.py")
+    logger.info(
+        "[A]Plugin: New Relic setup started because NEW_RELIC_ENVIRONMENT is defined in local.py"
+    )
     try:
         import newrelic.agent
         from atmosphere.settings import new_relic as new_relic_settings
         newrelic.agent.initialize(
             os.path.join(root_dir, "extras/newrelic/atmosphere_newrelic.ini"),
-            new_relic_settings.NEW_RELIC_ENVIRONMENT)
+            new_relic_settings.NEW_RELIC_ENVIRONMENT
+        )
         logger.info("[A]Plugin: New Relic initialized!")
     except ImportError as bad_import:
         logger.warn("[A]Warning: newrelic not installed..")

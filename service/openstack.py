@@ -34,33 +34,43 @@ def glance_write_machine(provider_machine):
     else:
         raise Exception(
             "The method for 'introspecting an image' has changed!"
-            " Ask a programmer to fix this!")
+            " Ask a programmer to fix this!"
+        )
     # Do any updating that makes sense... Name. Metadata..
-    blacklist_metadata_key = getattr(settings, "BLACKLIST_METADATA_KEY", "atmo_image_exclude")
-    whitelist_metadata_key = getattr(settings, "WHITELIST_METADATA_KEY", "atmo_image_include")
+    blacklist_metadata_key = getattr(
+        settings, "BLACKLIST_METADATA_KEY", "atmo_image_exclude"
+    )
+    whitelist_metadata_key = getattr(
+        settings, "WHITELIST_METADATA_KEY", "atmo_image_include"
+    )
     overrides = {
-        "application_uuid": str(base_app.uuid),
-        "application_name": _make_safe(base_app.name),
-        "application_owner": base_app.created_by.username,
-        "application_tags": json.dumps(
-            [_make_safe(tag.name) for tag in base_app.tags.all()]),
-        "application_description": _make_safe(base_app.description),
-        "version_name": str(version.name),
-        "version_changelog": str(version.change_log),
-        whitelist_metadata_key: "true",
-        blacklist_metadata_key: "false"
+        "application_uuid":
+            str(base_app.uuid),
+        "application_name":
+            _make_safe(base_app.name),
+        "application_owner":
+            base_app.created_by.username,
+        "application_tags":
+            json.dumps([_make_safe(tag.name) for tag in base_app.tags.all()]),
+        "application_description":
+            _make_safe(base_app.description),
+        "version_name":
+            str(version.name),
+        "version_changelog":
+            str(version.change_log),
+        whitelist_metadata_key:
+            "true",
+        blacklist_metadata_key:
+            "false"
     }
     if update_method == 'v2':
-        extras = {
-            'properties': overrides
-        }
+        extras = {'properties': overrides}
         extras['name'] = app_version_bundle_name
         props.update(extras)
         g_image.update(props)
     else:
         overrides['name'] = app_version_bundle_name
-        accounts.image_manager.glance.images.update(
-            g_image.id, **overrides)
+        accounts.image_manager.glance.images.update(g_image.id, **overrides)
     return True
 
 
@@ -70,6 +80,7 @@ def _make_safe(unsafe_str):
 
 def _make_unsafe(safe_str):
     return safe_str.replace("_LINE_BREAK_", "\n")
+
 
 def glance_update_machine_metadata(provider_machine, metadata={}):
     update_method = ""
@@ -91,29 +102,35 @@ def glance_update_machine_metadata(provider_machine, metadata={}):
     else:
         raise Exception(
             "The method for 'introspecting an image' has changed!"
-            " Ask a programmer to fix this!")
+            " Ask a programmer to fix this!"
+        )
     overrides = {
-        "application_version": str(version.name),
-        "application_uuid": str(base_app.uuid),
-        "application_name": _make_safe(base_app.name),
-        "application_owner": base_app.created_by.username,
-        "application_tags": json.dumps(
-            [_make_safe(tag.name) for tag in base_app.tags.all()]),
-        "application_description": _make_safe(base_app.description),
-        "version_name": str(version.name),
-        "version_changelog": str(version.change_log)
+        "application_version":
+            str(version.name),
+        "application_uuid":
+            str(base_app.uuid),
+        "application_name":
+            _make_safe(base_app.name),
+        "application_owner":
+            base_app.created_by.username,
+        "application_tags":
+            json.dumps([_make_safe(tag.name) for tag in base_app.tags.all()]),
+        "application_description":
+            _make_safe(base_app.description),
+        "version_name":
+            str(version.name),
+        "version_changelog":
+            str(version.change_log)
     }
     overrides.update(metadata)
 
     if update_method == 'v2':
-        extras = { 'properties': overrides }
+        extras = {'properties': overrides}
         props.update(extras)
         g_image.update(name=base_app.name, properties=extras)
     else:
-        accounts.image_manager.glance.images.update(
-            g_image.id, **overrides)
+        accounts.image_manager.glance.images.update(g_image.id, **overrides)
     return True
-
 
 
 def glance_read_machine(new_machine):
@@ -142,7 +159,7 @@ def glance_read_machine(new_machine):
         base_source.save()
 
     logger.debug("Found glance image for %s" % new_machine)
-    if g_image.get('visibility','public') != 'public':
+    if g_image.get('visibility', 'public') != 'public':
         new_app.private = True
 
     if new_app.first_machine() is new_machine:
@@ -154,7 +171,10 @@ def glance_read_machine(new_machine):
     g_end_date = glance_timestamp(g_image.get('deleted'))
 
     if not g_start_date:
-        logger.warn("Could not parse timestamp of 'created_at': %s" % g_image['created_at'])
+        logger.warn(
+            "Could not parse timestamp of 'created_at': %s" %
+            g_image['created_at']
+        )
         g_start_date = now()
 
     new_app.start_date = g_start_date
@@ -185,7 +205,9 @@ def glance_image_owner(provider_uuid, identifier, glance_image=None):
         if not glance_image:
             accounts.clear_cache()
             glance_image = accounts.get_image(identifier)
-        project = accounts.user_manager.get_project_by_id(glance_image.get('owner'))
+        project = accounts.user_manager.get_project_by_id(
+            glance_image.get('owner')
+        )
     except Exception as e:
         logger.exception(e)
         project = None
@@ -194,34 +216,37 @@ def glance_image_owner(provider_uuid, identifier, glance_image=None):
         return None
     try:
         image_owner = Identity.objects.get(
-            provider__uuid=provider_uuid,
-            created_by__username=project.name)
+            provider__uuid=provider_uuid, created_by__username=project.name
+        )
     except Identity.DoesNotExist:
         logger.warn(
             "Could not find a username %s on Provider %s" %
-            (project.name, provider_uuid))
+            (project.name, provider_uuid)
+        )
         image_owner = None
     return image_owner
 
+
 def glance_timestamp(iso_8601_stamp):
-    if not isinstance(iso_8601_stamp,basestring):
+    if not isinstance(iso_8601_stamp, basestring):
         if iso_8601_stamp:
             logger.debug("Stamp %s could not be parsed" % iso_8601_stamp)
         return None
     append_char = "Z" if iso_8601_stamp.endswith("Z") else ""
     try:
         datetime_obj = datetime.strptime(
-            iso_8601_stamp,
-            '%Y-%m-%dT%H:%M:%S.%f'+append_char)
+            iso_8601_stamp, '%Y-%m-%dT%H:%M:%S.%f' + append_char
+        )
     except ValueError:
         try:
             datetime_obj = datetime.strptime(
-                iso_8601_stamp,
-                '%Y-%m-%dT%H:%M:%S'+append_char)
+                iso_8601_stamp, '%Y-%m-%dT%H:%M:%S' + append_char
+            )
         except ValueError:
             raise ValueError(
                 "Expected ISO8601 Timestamp in Format:"
-                " YYYY-MM-DDTHH:MM:SS[.sssss][Z]")
+                " YYYY-MM-DDTHH:MM:SS[.sssss][Z]"
+            )
     # All Dates are UTC relative
     datetime_obj = datetime_obj.replace(tzinfo=pytz.utc)
     return datetime_obj

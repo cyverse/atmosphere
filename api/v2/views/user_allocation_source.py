@@ -6,7 +6,8 @@ from api.v2.exceptions import failure_response
 from api.v2.serializers.details import UserAllocationSourceSerializer
 from api.v2.views.base import AuthModelViewSet
 from core.models import (
-    AllocationSource, UserAllocationSource, AtmosphereUser, EventTable)
+    AllocationSource, UserAllocationSource, AtmosphereUser, EventTable
+)
 
 
 class UserAllocationSourceViewSet(AuthModelViewSet):
@@ -25,62 +26,67 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         Get user allocation source relationship
         """
         # user = self.get_object()
-        return UserAllocationSource.objects.all()  # filter(user__uuid=user)
+        return UserAllocationSource.objects.all()    # filter(user__uuid=user)
 
     def create(self, request):
         request_user = request.user
         request_data = request.data
 
         if not request_data.items():
-            return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Reuquest Data is missing")
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST, "Reuquest Data is missing"
+            )
 
         try:
             self._validate_data(request_user, request_data)
         except Exception as exc:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                exc.message)
+            return failure_response(status.HTTP_400_BAD_REQUEST, exc.message)
 
         try:
-            user_allocation_source = self._create_user_allocation_source(request_data)
+            user_allocation_source = self._create_user_allocation_source(
+                request_data
+            )
             serialized_user_allocation_source = UserAllocationSourceSerializer(
-                user_allocation_source, context={'request': self.request})
+                user_allocation_source, context={'request': self.request}
+            )
             return Response(
                 serialized_user_allocation_source.data,
-                status=status.HTTP_201_CREATED)
+                status=status.HTTP_201_CREATED
+            )
 
         except Exception as exc:
             logger.exception(
                 "Encountered exception while assigning Allocation source %s to User %s"
-                % (request_data['allocation_source_name'], request_data['username']))
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+                % (
+                    request_data['allocation_source_name'],
+                    request_data['username']
+                )
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
     def delete(self, request):
         request_user = request.user
         request_data = request.data
         if not request_data.items():
-            return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Reuquest Data is missing")
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST, "Reuquest Data is missing"
+            )
 
         try:
             self._validate_data(request_user, request_data, delete=True)
         except Exception as exc:
-            return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                exc.message)
+            return failure_response(status.HTTP_400_BAD_REQUEST, exc.message)
 
         try:
             self._delete_user_allocation_source(request_data)
-            return Response(
-                status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_200_OK)
 
         except Exception as exc:
-            logger.exception('Encountered exception while removing User %s from Allocation source %s',
-                             request_data['username'], request_data['allocation_source_name'])
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                'Encountered exception while removing User %s from Allocation source %s',
+                request_data['username'], request_data['allocation_source_name']
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
     # helper methods
     def _create_user_allocation_source(self, request_data):
@@ -93,7 +99,8 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         creation_event = EventTable(
             name='user_allocation_source_created',
             entity_id=username,
-            payload=payload)
+            payload=payload
+        )
 
         creation_event.save()
 
@@ -101,18 +108,22 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
 
         return UserAllocationSource.objects.filter(
             allocation_source__name=allocation_source_name,
-            user__username=username).last()
+            user__username=username
+        ).last()
 
     def _delete_user_allocation_source(self, request_data):
 
         username = request_data.get('username')
         payload = {}
-        payload['allocation_source_name'] = request_data.get('allocation_source_name')
+        payload['allocation_source_name'] = request_data.get(
+            'allocation_source_name'
+        )
 
         delete_event = EventTable(
             name='user_allocation_source_deleted',
             entity_id=username,
-            payload=payload)
+            payload=payload
+        )
 
         delete_event.save()
 
@@ -131,16 +142,34 @@ class UserAllocationSourceViewSet(AuthModelViewSet):
         self._for_validate_userallocationsource(request_data, delete)
 
     def _for_validate_userallocationsource(self, request_data, delete=False):
-        user = AtmosphereUser.objects.filter(username=request_data['username']).last()
-        allocation_source = AllocationSource.objects.filter(name=request_data['allocation_source_name']).last()
+        user = AtmosphereUser.objects.filter(username=request_data['username']
+                                            ).last()
+        allocation_source = AllocationSource.objects.filter(
+            name=request_data['allocation_source_name']
+        ).last()
 
         if not allocation_source:
-            raise Exception('Allocation Source %s does not exist' % (request_data['allocation_source_name']))
+            raise Exception(
+                'Allocation Source %s does not exist' %
+                (request_data['allocation_source_name'])
+            )
 
-        if UserAllocationSource.objects.filter(user=user, allocation_source=allocation_source) and not delete:
-            raise Exception('User %s is already assigned to Allocation Source %s' % (
-            request_data['username'], request_data['allocation_source_name']))
+        if UserAllocationSource.objects.filter(
+            user=user, allocation_source=allocation_source
+        ) and not delete:
+            raise Exception(
+                'User %s is already assigned to Allocation Source %s' % (
+                    request_data['username'],
+                    request_data['allocation_source_name']
+                )
+            )
 
-        if not UserAllocationSource.objects.filter(user=user, allocation_source=allocation_source) and delete:
-            raise Exception('User %s is not assigned to Allocation Source %s' % (
-                request_data['username'], request_data['allocation_source_name']))
+        if not UserAllocationSource.objects.filter(
+            user=user, allocation_source=allocation_source
+        ) and delete:
+            raise Exception(
+                'User %s is not assigned to Allocation Source %s' % (
+                    request_data['username'],
+                    request_data['allocation_source_name']
+                )
+            )

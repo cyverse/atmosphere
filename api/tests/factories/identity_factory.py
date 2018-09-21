@@ -9,7 +9,6 @@ from .identity_membership_factory import IdentityMembershipFactory
 
 
 class IdentityFactory(factory.DjangoModelFactory):
-
     @staticmethod
     def create_identity(created_by, group=None, provider=None, quota=None):
         if not created_by:
@@ -18,21 +17,16 @@ class IdentityFactory(factory.DjangoModelFactory):
             group = GroupFactory.create(name=created_by.username)
         group.user_set.add(created_by)
         GroupMembershipFactory.create(
-            user=created_by,
-            group=group,
-            is_leader=True)
+            user=created_by, group=group, is_leader=True
+        )
         if not provider:
             provider = ProviderFactory.create()
         if not quota:
             quota = QuotaFactory.create()
         identity = IdentityFactory.create(
-            provider=provider,
-            quota=quota,
-            created_by=created_by)
-        IdentityMembershipFactory.create(
-            member=group,
-            identity=identity
+            provider=provider, quota=quota, created_by=created_by
         )
+        IdentityMembershipFactory.create(member=group, identity=identity)
         return identity
 
     class Meta:

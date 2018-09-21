@@ -11,4 +11,6 @@ router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'celery', views.CeleryViewSet, base_name='celery')
 
 api_status_urls = router.urls
-urlpatterns = [url(r'^', include(api_status_urls)), ]
+urlpatterns = [
+    url(r'^', include(api_status_urls)),
+]

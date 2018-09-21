@@ -22,12 +22,17 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         _('username'),
         max_length=256,
         unique=True,
-        help_text=_('Required. 256 characters or fewer. Letters, digits and @/./+/-/_ only.'),
+        help_text=_(
+            'Required. 256 characters or fewer. Letters, digits and @/./+/-/_ only.'
+        ),
         validators=[
             validators.RegexValidator(
                 r'^[\w.@+-]+$',
-                _('Enter a valid username. This value may contain only '
-                  'letters, numbers ' 'and @/./+/-/_ characters.')
+                _(
+                    'Enter a valid username. This value may contain only '
+                    'letters, numbers '
+                    'and @/./+/-/_ characters.'
+                )
             ),
         ],
         error_messages={
@@ -41,7 +46,9 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,
-        help_text=_('Designates whether the user can log into this admin site.'),
+        help_text=_(
+            'Designates whether the user can log into this admin site.'
+        ),
     )
     is_active = models.BooleanField(
         _('active'),
@@ -65,7 +72,8 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         """
         """
         from core.models.profile import UserProfile
-        return UserProfile.objects.filter(user__username=self.username).distinct().get()
+        return UserProfile.objects.filter(user__username=self.username
+                                         ).distinct().get()
 
     def get_full_name(self):
         """
@@ -83,6 +91,7 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         Sends an email to this User.
         """
         send_mail(subject, message, from_email, [self.email], **kwargs)
+
     # END-rip.
 
     @staticmethod
@@ -90,7 +99,9 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         """
         is_leader: Explicitly filter out instances if `is_leader` is True/False, if None(default) do not test for project leadership.
         """
-        instance_query = Q(memberships__group__projects__instances__provider_alias=instance_id)
+        instance_query = Q(
+            memberships__group__projects__instances__provider_alias=instance_id
+        )
         if is_leader is not None:
             instance_query &= Q(memberships__is_leader=is_leader)
         return AtmosphereUser.objects.filter(instance_query).distinct()
@@ -145,7 +156,9 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         all_identities = Identity.objects.none()
         for membership in self.memberships.select_related('group'):
             group = membership.group
-            all_identities |= Identity.objects.filter(id__in=group.current_identities.values_list('id', flat=True))
+            all_identities |= Identity.objects.filter(
+                id__in=group.current_identities.values_list('id', flat=True)
+            )
         all_identities |= Identity.objects.filter(created_by=self).distinct()
         return all_identities
 
@@ -155,20 +168,29 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         all_providers = Provider.objects.none()
         for membership in self.memberships.select_related('group'):
             group = membership.group
-            all_providers |= Provider.objects.filter(id__in=group.current_identities.values_list('provider', flat=True))
+            all_providers |= Provider.objects.filter(
+                id__in=group.current_identities.
+                values_list('provider', flat=True)
+            )
         all_providers |= Provider.objects.filter(cloud_admin=self)
         return all_providers
 
     @classmethod
     def for_allocation_source(cls, allocation_source_id):
         from core.models import UserAllocationSource
-        user_ids = UserAllocationSource.objects.filter(allocation_source__source_id=allocation_source_id).values_list('user',flat=True)
+        user_ids = UserAllocationSource.objects.filter(
+            allocation_source__source_id=allocation_source_id
+        ).values_list(
+            'user', flat=True
+        )
         return AtmosphereUser.objects.filter(id__in=user_ids)
 
     def volume_set(self):
         from core.models import Volume
-        volume_db_ids = [source.volume.id for source in
-                         self.source_set.filter(volume__isnull=False)]
+        volume_db_ids = [
+            source.volume.id
+            for source in self.source_set.filter(volume__isnull=False)
+        ]
         return Volume.objects.filter(id__in=volume_db_ids)
 
     def email_hash(self):
@@ -180,7 +202,9 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
 def _get_providers(username, selected_provider=None):
     from core.models import Provider
     user = AtmosphereUser.objects.get(username=username)
-    public_providers = Provider.objects.filter(only_current(), active=True, public=True)
+    public_providers = Provider.objects.filter(
+        only_current(), active=True, public=True
+    )
 
     providers = user.current_providers.filter(only_current(), active=True)
     if not providers:
@@ -188,7 +212,10 @@ def _get_providers(username, selected_provider=None):
     else:
         providers |= public_providers
     if selected_provider and providers and selected_provider not in providers:
-        logger.error("The provider %s is NOT in the list of currently active providers. Account will not be created" % selected_provider)
+        logger.error(
+            "The provider %s is NOT in the list of currently active providers. Account will not be created"
+            % selected_provider
+        )
         return (user, providers.none())
 
     return (user, providers)
@@ -199,7 +226,9 @@ def create_new_accounts(username, selected_provider=None):
     (user, providers) = _get_providers(username, selected_provider)
     for provider in providers:
         try:
-            new_identities = AccountCreationPluginManager.create_accounts(provider, username)
+            new_identities = AccountCreationPluginManager.create_accounts(
+                provider, username
+            )
             if new_identities:
                 identities.extend(new_identities)
         except ValueError as err:
@@ -210,26 +239,39 @@ def create_new_accounts(username, selected_provider=None):
 def create_new_account_for(provider, user):
     from service.exceptions import AccountCreationConflict
     from service.driver import get_account_driver
-    existing_user_list = provider.identity_set.values_list('created_by__username', flat=True)
+    existing_user_list = provider.identity_set.values_list(
+        'created_by__username', flat=True
+    )
     if user.username in existing_user_list:
-        logger.info("Accounts already exists on %s for %s" % (provider.location, user.username))
+        logger.info(
+            "Accounts already exists on %s for %s" %
+            (provider.location, user.username)
+        )
         return None
     try:
         accounts = get_account_driver(provider)
         logger.info("Create NEW account for %s" % user.username)
-        default_quota = DefaultQuotaPluginManager.default_quota(user=user, provider=provider)
-        new_identity = accounts.create_account(user.username, quota=default_quota)
+        default_quota = DefaultQuotaPluginManager.default_quota(
+            user=user, provider=provider
+        )
+        new_identity = accounts.create_account(
+            user.username, quota=default_quota
+        )
         return new_identity
     except AccountCreationConflict:
-        raise  # TODO: Ideally, have sentry handle these events, rather than force an Unhandled 500 to bubble up.
+        raise    # TODO: Ideally, have sentry handle these events, rather than force an Unhandled 500 to bubble up.
     except:
-        logger.exception("Could *NOT* Create NEW account for %s" % user.username)
+        logger.exception(
+            "Could *NOT* Create NEW account for %s" % user.username
+        )
         return None
 
 
 def get_available_providers():
     from core.models.provider import Provider
-    available_providers = Provider.objects.filter(only_current(), public=True, active=True).order_by('id')
+    available_providers = Provider.objects.filter(
+        only_current(), public=True, active=True
+    ).order_by('id')
     return available_providers
 
 

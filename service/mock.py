@@ -45,8 +45,7 @@ class AtmosphereMockNetworkManager(NetworkManager):
 
     @staticmethod
     def create_manager(core_identity):
-        return AtmosphereMockNetworkManager(
-            core_identity)
+        return AtmosphereMockNetworkManager(core_identity)
 
     def tenant_networks(self, tenant_id=None):
         return []
@@ -58,10 +57,7 @@ class AtmosphereMockNetworkManager(NetworkManager):
         """
         Return the user_id and tenant_id of the network manager
         """
-        return {
-                'user_id': 1,
-                'tenant_id': 1
-            }
+        return {'user_id': 1, 'tenant_id': 1}
 
     def disassociate_floating_ip(self, server_id):
         return '0.0.0.0'
@@ -140,9 +136,16 @@ class AtmosphereMockNetworkManager(NetworkManager):
     def validate_cidr(self, cidr):
         return True
 
-    def create_subnet(self, neutron, subnet_name,
-                      network_id, ip_version=4, cidr=None,
-                      dns_nameservers=[], subnet_pool_id=None):
+    def create_subnet(
+        self,
+        neutron,
+        subnet_name,
+        network_id,
+        ip_version=4,
+        cidr=None,
+        dns_nameservers=[],
+        subnet_pool_id=None
+    ):
         subnet = {
             'name': subnet_name,
             'network_id': network_id,
@@ -172,8 +175,9 @@ class AtmosphereMockNetworkManager(NetworkManager):
         interface_obj = {"name": interface_name}
         return interface_obj
 
-    def set_router_gateway(self, neutron, router_name,
-                           external_network_name='ext_net'):
+    def set_router_gateway(
+        self, neutron, router_name, external_network_name='ext_net'
+    ):
         """
         Must be run as admin
         """
@@ -200,7 +204,17 @@ class AtmosphereMockNetworkManager(NetworkManager):
 
 
 class MockInstance(Instance):
-    def __init__(self, id=None, provider=None, source=None, ip=None, size=None, extra={}, *args, **kwargs):
+    def __init__(
+        self,
+        id=None,
+        provider=None,
+        source=None,
+        ip=None,
+        size=None,
+        extra={},
+        *args,
+        **kwargs
+    ):
         identifier = id
         if not identifier:
             identifier = kwargs.get('uuid', uuid.uuid4())
@@ -271,7 +285,8 @@ class AtmosphereMockDriver(MockDriver):
             id=str(core_instance.provider_alias),
             ip=core_instance.ip_address,
             name=core_instance.name,
-            extra=extra)
+            extra=extra
+        )
         return esh_instance
 
     def list_instances(self, **kwargs):
@@ -345,8 +360,10 @@ class AtmosphereMockDriver(MockDriver):
         volume_args.pop('max_attempts', None)
         volume_args['id'] = volume_args.get('id', str(uuid.uuid4()))
         volume_args['extra'] = volume_args.get('extra', {})
-        MockESHVolume = collections.namedtuple('MockESHVolume',
-                                               ['id', 'name', 'image', 'snapshot', 'metadata', 'size', 'extra'])
+        MockESHVolume = collections.namedtuple(
+            'MockESHVolume',
+            ['id', 'name', 'image', 'snapshot', 'metadata', 'size', 'extra']
+        )
         mock_volume = MockESHVolume(**volume_args)
         self.all_volumes.append(mock_volume)
         return True, mock_volume
@@ -362,7 +379,6 @@ class AtmosphereMockDriver(MockDriver):
 
 
 class MockAccountDriver(BaseAccountDriver):
-
     def __init__(self):
         self.glance_images = ALL_GLANCE_IMAGES
         self.project_name = "admin"
@@ -370,7 +386,14 @@ class MockAccountDriver(BaseAccountDriver):
         return
 
     def get_project_by_id(self, project_id):
-        PROJECT_SCHEMA = {'name': {'type': ['null', 'string'], 'description': 'name of the project/tenant', 'maxLength': 255}}
+        PROJECT_SCHEMA = {
+            'name':
+                {
+                    'type': ['null', 'string'],
+                    'description': 'name of the project/tenant',
+                    'maxLength': 255
+                }
+        }
         MockProject = warlock.model_factory(PROJECT_SCHEMA)
         if not project_id:
             return None
@@ -391,7 +414,7 @@ class MockAccountDriver(BaseAccountDriver):
             'size': int(random.uniform(10, 20)) * 1024**3,
             'container_format': 'bare',
             'disk_format': 'qcow2',
-            'file':  "/v2/images/%s/file" % identifier,
+            'file': "/v2/images/%s/file" % identifier,
             'schema': '/v2/schemas/image',
             'status': 'active',
             'visibility': 'public',
@@ -400,7 +423,7 @@ class MockAccountDriver(BaseAccountDriver):
             'name': "Mock glance image",
             'protected': False,
             'tags': [],
-            # Extra properties
+        # Extra properties
             'application_description': u'New application description',
             'application_name': u'Test Application',
             'application_owner': u'admin',
@@ -413,7 +436,7 @@ class MockAccountDriver(BaseAccountDriver):
         return self.GlanceImage(**defaults)
 
     def generate_images(self, count=10, **generate_with_kwargs):
-        for x in xrange(1, count+1):
+        for x in xrange(1, count + 1):
             overrides = {
                 "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
                 "name": "Test glance image %04d" % x,

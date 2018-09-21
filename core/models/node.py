@@ -8,7 +8,6 @@ from core.models.provider import Provider
 
 
 class NodeController(models.Model):
-
     """
     NodeControllers are specific to a provider
     They have a dedicated, static IP address and a human readable name
@@ -24,6 +23,7 @@ class NodeController(models.Model):
 
     def ssh_key_added(self):
         return len(self.private_ssh_key) > 0
+
     ssh_key_added.boolean = True
 
     def __unicode__(self):

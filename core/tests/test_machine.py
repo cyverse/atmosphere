@@ -11,9 +11,9 @@ from service.mock import MockAccountDriver
 
 @override_settings(
     BLACKLIST_METADATA_KEY="atmo_image_exclude",
-    WHITELIST_METADATA_KEY="atmo_image_include")
+    WHITELIST_METADATA_KEY="atmo_image_include"
+)
 class TestMachineMonitoring(TestCase):
-
     def tearDown(self):
         if getattr(self, 'account_driver', None):
             self.account_driver.clear_images()
@@ -29,7 +29,9 @@ class TestMachineMonitoring(TestCase):
             "version_name": "v%d.0-test" % x,
             settings.BLACKLIST_METADATA_KEY: "yes"
         }
-        skip_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
+        skip_atmosphere_image = self.account_driver._generate_glance_image(
+            **overrides
+        )
         x = 12
         overrides = {
             "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
@@ -38,7 +40,9 @@ class TestMachineMonitoring(TestCase):
             "version_name": "v%d.0-test" % x,
             settings.WHITELIST_METADATA_KEY: "yes"
         }
-        allow_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
+        allow_atmosphere_image = self.account_driver._generate_glance_image(
+            **overrides
+        )
         x = 13
         overrides = {
             "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
@@ -47,7 +51,9 @@ class TestMachineMonitoring(TestCase):
             "version_name": "v%d.0-test" % x,
             settings.WHITELIST_METADATA_KEY: "no"
         }
-        no_allow_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
+        no_allow_atmosphere_image = self.account_driver._generate_glance_image(
+            **overrides
+        )
         x = 14
         overrides = {
             "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
@@ -56,7 +62,9 @@ class TestMachineMonitoring(TestCase):
             "version_name": "v%d.0-test" % x,
             settings.BLACKLIST_METADATA_KEY: "no"
         }
-        no_skip_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
+        no_skip_atmosphere_image = self.account_driver._generate_glance_image(
+            **overrides
+        )
         x = 14
         overrides = {
             "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
@@ -65,7 +73,9 @@ class TestMachineMonitoring(TestCase):
             "version_name": "v%d.0-test" % x,
             settings.BLACKLIST_METADATA_KEY: "nopers"
         }
-        invalid_skip_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
+        invalid_skip_atmosphere_image = self.account_driver._generate_glance_image(
+            **overrides
+        )
         x = 15
         overrides = {
             "id": "deadbeef-dead-dead-beef-deadbeef%04d" % x,
@@ -74,7 +84,9 @@ class TestMachineMonitoring(TestCase):
             "version_name": "v%d.0-test" % x,
             settings.WHITELIST_METADATA_KEY: "Yeppers"
         }
-        invalid_allow_atmosphere_image = self.account_driver._generate_glance_image(**overrides)
+        invalid_allow_atmosphere_image = self.account_driver._generate_glance_image(
+            **overrides
+        )
         self.account_driver.glance_images.append(skip_atmosphere_image)
         self.account_driver.glance_images.append(allow_atmosphere_image)
         self.account_driver.glance_images.append(no_skip_atmosphere_image)
@@ -83,13 +95,16 @@ class TestMachineMonitoring(TestCase):
         self.account_driver.glance_images.append(invalid_allow_atmosphere_image)
         self.basic_validation = MachineValidationPluginManager.get_validator(
             self.account_driver,
-            "atmosphere.plugins.machine_validation.BasicValidation")
+            "atmosphere.plugins.machine_validation.BasicValidation"
+        )
         self.cyverse_validation = MachineValidationPluginManager.get_validator(
             self.account_driver,
-            "atmosphere.plugins.machine_validation.CyverseValidation")
+            "atmosphere.plugins.machine_validation.CyverseValidation"
+        )
         self.whitelist_validation = MachineValidationPluginManager.get_validator(
             self.account_driver,
-            "atmosphere.plugins.machine_validation.WhitelistValidation")
+            "atmosphere.plugins.machine_validation.WhitelistValidation"
+        )
 
     def test_monitoring_with_basic_validation(self):
         """
@@ -114,13 +129,17 @@ class TestMachineMonitoring(TestCase):
                 validated_machines.append(glance_image)
         # All images _except_ 0011 should be included in validated machines...
         self.assertTrue(
-            len(validated_machines) == len(images)-1,
-            "Invalid # of machines validated(%s) -- Expected %s" % (
-                len(validated_machines), len(images)-1)
+            len(validated_machines) == len(images) - 1,
+            "Invalid # of machines validated(%s) -- Expected %s" %
+            (len(validated_machines), len(images) - 1)
         )
         # 0011 should NOT be in the list of validated machines, due to the 'skip_atmosphere' metadata on the image.
         self.assertEquals(
-            [img for img in validated_machines if img.id == "deadbeef-dead-dead-beef-deadbeef0011"], [])
+            [
+                img for img in validated_machines
+                if img.id == "deadbeef-dead-dead-beef-deadbeef0011"
+            ], []
+        )
         return
 
     def test_monitoring_with_whitelist_validation(self):
@@ -133,9 +152,17 @@ class TestMachineMonitoring(TestCase):
             if self.whitelist_validation.machine_is_valid(glance_image):
                 validated_machines.append(glance_image)
         # All images should be skipped _except_ 0012
-        self.assertTrue(len(validated_machines) == 1, "Expected validated_machines(%s) to contain 1 element" % validated_machines)
+        self.assertTrue(
+            len(validated_machines) == 1,
+            "Expected validated_machines(%s) to contain 1 element" %
+            validated_machines
+        )
         # 0012 should be in the list of validated machines,
         # due to the settings.BLACKLIST_METADATA_KEY metadata on the image.
         self.assertEquals(
-            [img for img in validated_machines if img.id == "deadbeef-dead-dead-beef-deadbeef0011"], [])
+            [
+                img for img in validated_machines
+                if img.id == "deadbeef-dead-dead-beef-deadbeef0011"
+            ], []
+        )
         return

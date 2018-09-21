@@ -4,7 +4,6 @@ from .license_serializer import LicenseSerializer
 
 
 class LicenseRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return License.objects.all()
 
@@ -12,4 +11,3 @@ class LicenseRelatedField(serializers.PrimaryKeyRelatedField):
         license = License.objects.get(pk=value.pk)
         serializer = LicenseSerializer(license, context=self.context)
         return serializer.data
-

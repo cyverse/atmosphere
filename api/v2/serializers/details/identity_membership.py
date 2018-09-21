@@ -23,11 +23,7 @@ class IdentityMembershipSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = IdentityMembership
-        fields = ('id',
-                  'url',
-                  'quota',
-                  'end_date',
-                  'provider',
-                  'identity',
-                  'identity_key',
-                  'user')
+        fields = (
+            'id', 'url', 'quota', 'end_date', 'provider', 'identity',
+            'identity_key', 'user'
+        )

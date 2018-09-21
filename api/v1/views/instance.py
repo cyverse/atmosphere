@@ -23,23 +23,31 @@ from service.cache import get_cached_instances,\
     invalidate_cached_instances
 from service.driver import prepare_driver
 from service.exceptions import (
-    OverAllocationError, AllocationBlacklistedError, OverQuotaError,
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
-    VolumeAttachConflict, VolumeMountConflict, InstanceDoesNotExist,
-    UnderThresholdError, ActionNotAllowed, Unauthorized,
-    )
-from service.instance import (
-    run_instance_action,
-    launch_instance)
+    OverAllocationError,
+    AllocationBlacklistedError,
+    OverQuotaError,
+    SizeNotAvailable,
+    HypervisorCapacityError,
+    SecurityGroupNotCreated,
+    VolumeAttachConflict,
+    VolumeMountConflict,
+    InstanceDoesNotExist,
+    UnderThresholdError,
+    ActionNotAllowed,
+    Unauthorized,
+)
+from service.instance import (run_instance_action, launch_instance)
 from service.tasks.driver import update_metadata
 
 from api.exceptions import (
-    failure_response, member_action_forbidden,
-    invalid_creds, connection_failure, malformed_response)
+    failure_response, member_action_forbidden, invalid_creds,
+    connection_failure, malformed_response
+)
 from api.decorators import emulate_user
 from api.exceptions import (
     inactive_provider, size_not_available, mount_failed, over_quota,
-    under_threshold, over_capacity, instance_not_found)
+    under_threshold, over_capacity, instance_not_found
+)
 from api.pagination import OptionalPagination
 from api.v1.serializers import InstanceStatusHistorySerializer,\
     InstanceSerializer, InstanceHistorySerializer, VolumeSerializer,\
@@ -50,10 +58,12 @@ from api.v1.views.base import AuthAPIView, AuthListAPIView
 def get_core_instance(request, provider_uuid, identity_uuid, instance_id):
     user = request.user
     esh_driver = prepare_driver(request, provider_uuid, identity_uuid)
-    esh_instance = get_esh_instance(request, provider_uuid, identity_uuid,
-                                    instance_id)
-    core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                         provider_uuid, identity_uuid, user)
+    esh_instance = get_esh_instance(
+        request, provider_uuid, identity_uuid, instance_id
+    )
+    core_instance = convert_esh_instance(
+        esh_driver, esh_instance, provider_uuid, identity_uuid, user
+    )
     return core_instance
 
 
@@ -62,7 +72,8 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
     if not esh_driver:
         raise LibcloudInvalidCredsError(
             "Provider_uuid && identity_uuid "
-            "did not produce a valid combination")
+            "did not produce a valid combination"
+        )
     esh_instance = None
     try:
         esh_instance = esh_driver.get_instance(instance_id)
@@ -71,10 +82,11 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
     except LibcloudInvalidCredsError:
         return invalid_creds(provider_uuid, identity_uuid)
     except Exception as exc:
-        logger.exception("Encountered a generic exception. "
-                         "Returning 409-CONFLICT")
-        return failure_response(status.HTTP_409_CONFLICT,
-                                str(exc.message))
+        logger.exception(
+            "Encountered a generic exception. "
+            "Returning 409-CONFLICT"
+        )
+        return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
     if not esh_instance:
         # End date everything
@@ -82,7 +94,8 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
             core_inst = CoreInstance.objects.get(
                 provider_alias=instance_id,
                 source__provider__uuid=provider_uuid,
-                created_by_identity__uuid=identity_uuid)
+                created_by_identity__uuid=identity_uuid
+            )
             core_inst.end_date_all()
         except CoreInstance.DoesNotExist:
             pass
@@ -90,7 +103,6 @@ def get_esh_instance(request, provider_uuid, identity_uuid, instance_id):
 
 
 class InstanceList(AuthAPIView):
-
     """
     Instances are the objects created when you launch a machine. They are
     represented by a unique ID, randomly generated on launch, important
@@ -107,9 +119,7 @@ class InstanceList(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         identity = Identity.shared_with_user(user).get(uuid=identity_uuid)
@@ -122,16 +132,17 @@ class InstanceList(AuthAPIView):
             return connection_failure(provider_uuid, identity_uuid)
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
-        core_instance_list = [convert_esh_instance(esh_driver,
-                                                   inst,
-                                                   provider_uuid,
-                                                   identity_uuid,
-                                                   user)
-                              for inst in esh_instance_list]
+        core_instance_list = [
+            convert_esh_instance(
+                esh_driver, inst, provider_uuid, identity_uuid, user
+            ) for inst in esh_instance_list
+        ]
         # TODO: Core/Auth checks for shared instances
-        serialized_data = InstanceSerializer(core_instance_list,
-                                             context={"request": request},
-                                             many=True).data
+        serialized_data = InstanceSerializer(
+            core_instance_list, context={
+                "request": request
+            }, many=True
+        ).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -154,13 +165,17 @@ class InstanceList(AuthAPIView):
         missing_keys = valid_post_data(data)
         if missing_keys:
             return keys_not_found(missing_keys)
-        identity = Identity.shared_with_user(user, is_leader=True).filter(uuid=identity_uuid).first()
+        identity = Identity.shared_with_user(
+            user, is_leader=True
+        ).filter(uuid=identity_uuid).first()
         if not identity:
-            failure_msg = "User %s does not have permission to POST with this identity. Promote user to leader or use a different Identity." % (user,)
+            failure_msg = "User %s does not have permission to POST with this identity. Promote user to leader or use a different Identity." % (
+                user,
+            )
             return failure_response(status.HTTP_403_FORBIDDEN, failure_msg)
         # Pass these as args
         size_alias = data.pop("size_alias")
-        allocation_source_uuid = data.pop("allocation_source_uuid",None)
+        allocation_source_uuid = data.pop("allocation_source_uuid", None)
         machine_alias = data.pop("machine_alias")
         hypervisor_name = data.pop("hypervisor", None)
         if hypervisor_name:
@@ -176,13 +191,17 @@ class InstanceList(AuthAPIView):
         try:
             logger.debug(data)
             allocation_source = AllocationSource.objects.get(
-                uuid=allocation_source_uuid)
+                uuid=allocation_source_uuid
+            )
             core_instance = launch_instance(
-                user, identity_uuid,
-                size_alias, machine_alias,
+                user,
+                identity_uuid,
+                size_alias,
+                machine_alias,
                 deploy=deploy,
                 allocation_source=allocation_source,
-                **data)
+                **data
+            )
         except UnderThresholdError as ute:
             return under_threshold(ute)
         except OverQuotaError as oqe:
@@ -190,9 +209,7 @@ class InstanceList(AuthAPIView):
         except OverAllocationError as oae:
             return over_quota(oae)
         except AllocationBlacklistedError as e:
-            return failure_response(
-                status.HTTP_403_FORBIDDEN,
-                e.message)
+            return failure_response(status.HTTP_403_FORBIDDEN, e.message)
         except Unauthorized:
             return invalid_creds(provider_uuid, identity_uuid)
         except SizeNotAvailable as snae:
@@ -204,36 +221,45 @@ class InstanceList(AuthAPIView):
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
-        serializer = InstanceSerializer(core_instance,
-                                        context={"request": request},
-                                        data=data)
+        serializer = InstanceSerializer(
+            core_instance, context={"request": request}, data=data
+        )
         if serializer.is_valid():
             instance = serializer.save()
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
             instance.change_allocation_source(allocation_source)
-            logger.info("DEBUG- Instance launch completed - Returning instance %s (%s) to user %s" % (instance, instance.created_by_identity, request.user))
+            logger.info(
+                "DEBUG- Instance launch completed - Returning instance %s (%s) to user %s"
+                % (instance, instance.created_by_identity, request.user)
+            )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 def _sort_instance_history(history_instance_list, sort_by, descending=False):
     # Using the 'sort_by' variable, sort the list:
     if not sort_by or 'end_date' in sort_by:
-        return sorted(history_instance_list, key=lambda ish:
-                      ish.end_date if ish.end_date else timezone.now(),
-                      reverse=descending)
+        return sorted(
+            history_instance_list,
+            key=lambda ish: ish.end_date if ish.end_date else timezone.now(),
+            reverse=descending
+        )
     elif 'start_date' in sort_by:
-        return sorted(history_instance_list, key=lambda ish:
-                      ish.start_date if ish.start_date else timezone.now(),
-                      reverse=descending)
+        return sorted(
+            history_instance_list,
+            key=lambda ish: ish.start_date if ish.start_date else timezone.now(),
+            reverse=descending
+        )
 
 
 def _filter_instance_history(history_instance_list, params):
@@ -241,22 +267,24 @@ def _filter_instance_history(history_instance_list, params):
     for filter_key, value in params.items():
         if 'start_date' == filter_key:
             history_instance_list = history_instance_list.filter(
-                start_date__gt=value)
+                start_date__gt=value
+            )
         elif 'end_date' == filter_key:
             history_instance_list = history_instance_list.filter(
-                Q(end_date=None) |
-                Q(end_date__lt=value))
+                Q(end_date=None) | Q(end_date__lt=value)
+            )
         elif 'ip_address' == filter_key:
             history_instance_list = history_instance_list.filter(
-                ip_address__contains=value)
+                ip_address__contains=value
+            )
         elif 'alias' == filter_key:
             history_instance_list = history_instance_list.filter(
-                provider_alias__contains=value)
+                provider_alias__contains=value
+            )
     return history_instance_list
 
 
 class InstanceHistory(AuthListAPIView):
-
     """Instance history for a specific user."""
     pagination_class = OptionalPagination
 
@@ -272,16 +300,18 @@ class InstanceHistory(AuthListAPIView):
         sort_by = self.request.query_params.get('sort_by', '')
         order_by = self.request.query_params.get('order_by', 'desc')
         history_instance_list = CoreInstance.objects.filter(
-            created_by=self.request.user).order_by("-start_date")
+            created_by=self.request.user
+        ).order_by("-start_date")
         history_instance_list = _filter_instance_history(
-            history_instance_list, self.request.query_params)
+            history_instance_list, self.request.query_params
+        )
         history_instance_list = _sort_instance_history(
-            history_instance_list, sort_by, 'desc' in order_by.lower())
+            history_instance_list, sort_by, 'desc' in order_by.lower()
+        )
         return history_instance_list
 
 
 class InstanceHistoryDetail(AuthAPIView):
-
     """
     Instance history for specific instance.
     """
@@ -296,20 +326,21 @@ class InstanceHistoryDetail(AuthAPIView):
         if user and len(user) > 0:
             user = user[0]
         else:
-            return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                    'Request User %s not found' %
-                                    user)
+            return failure_response(
+                status.HTTP_401_UNAUTHORIZED, 'Request User %s not found' % user
+            )
         emulate_name = params.pop('username', None)
         # Support for staff users to emulate a specific user history
         if user.is_staff and emulate_name:
-            emulate_name = emulate_name[0]  # Querystring conversion
+            emulate_name = emulate_name[0]    # Querystring conversion
             user = User.objects.filter(username=emulate_name)
             if user and len(user) > 0:
                 user = user[0]
             else:
-                return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                        'Emulated User %s not found' %
-                                        emulate_name)
+                return failure_response(
+                    status.HTTP_401_UNAUTHORIZED,
+                    'Emulated User %s not found' % emulate_name
+                )
         # List of all instances matching user, instance_id
         core_instance =\
             CoreInstance.objects.filter(
@@ -318,20 +349,21 @@ class InstanceHistoryDetail(AuthAPIView):
         if core_instance and len(core_instance) > 0:
             core_instance = core_instance[0]
         else:
-            return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                    'Instance %s not found' %
-                                    instance_id)
+            return failure_response(
+                status.HTTP_401_UNAUTHORIZED,
+                'Instance %s not found' % instance_id
+            )
         serialized_data = InstanceHistorySerializer(
-            core_instance,
-            context={"request": request},
-            many=True).data
+            core_instance, context={
+                "request": request
+            }, many=True
+        ).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
 
 
 class InstanceStatusHistoryDetail(AuthAPIView):
-
     """
     List of instance status history for specific instance.
     """
@@ -346,39 +378,40 @@ class InstanceStatusHistoryDetail(AuthAPIView):
         if user and len(user) > 0:
             user = user[0]
         else:
-            return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                    'Request User %s not found' %
-                                    user)
+            return failure_response(
+                status.HTTP_401_UNAUTHORIZED, 'Request User %s not found' % user
+            )
         emulate_name = params.pop('username', None)
         # Support for staff users to emulate a specific user history
         if user.is_staff and emulate_name:
-            emulate_name = emulate_name[0]  # Querystring conversion
+            emulate_name = emulate_name[0]    # Querystring conversion
             user = User.objects.filter(username=emulate_name)
             if user and len(user) > 0:
                 user = user[0]
             else:
-                return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                        'Emulated User %s not found' %
-                                        emulate_name)
+                return failure_response(
+                    status.HTTP_401_UNAUTHORIZED,
+                    'Emulated User %s not found' % emulate_name
+                )
         # List of all instances matching user, instance_id
         core_instance = CoreInstance.objects.filter(
-            created_by=user,
-            provider_alias=instance_id).order_by("-start_date")
+            created_by=user, provider_alias=instance_id
+        ).order_by("-start_date")
         if core_instance and len(core_instance) > 0:
             core_instance = core_instance[0]
         else:
-            return failure_response(status.HTTP_401_UNAUTHORIZED,
-                                    'Instance %s not found' %
-                                    instance_id)
+            return failure_response(
+                status.HTTP_401_UNAUTHORIZED,
+                'Instance %s not found' % instance_id
+            )
         status_history = core_instance\
             .instancestatushistory_set.order_by('start_date')
         serialized_data = InstanceStatusHistorySerializer(
-            status_history, many=True).data
+            status_history, many=True
+        ).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
-
-
 
 
 def _further_process_result(request, action, result):
@@ -387,14 +420,12 @@ def _further_process_result(request, action, result):
     `result` requiring processing.
     """
     if 'volume' in action:
-        return VolumeSerializer(result,
-                                context={"request": request}).data
+        return VolumeSerializer(result, context={"request": request}).data
     else:
         return result
 
 
 class InstanceAction(AuthAPIView):
-
     """
     This endpoint will allow you to run a specific action on an instance.
     The GET method will retrieve all available actions and any parameters
@@ -419,44 +450,78 @@ class InstanceAction(AuthAPIView):
         including necessary parameters.
         """
         actions = [
-            {"action": "attach_volume",
-             "action_params": {
-                 "volume_id": "required",
-                 "device": "optional",
-                 "mount_location": "optional"},
-             "description": "Attaches the volume <id> to instance"},
-            {"action": "mount_volume",
-             "action_params": {
-                 "volume_id": "required",
-                 "device": "optional",
-                 "mount_location": "optional"},
-             "description": "Unmount the volume <id> from instance"},
-            {"action": "unmount_volume",
-             "action_params": {"volume_id": "required"},
-             "description": "Mount the volume <id> to instance"},
-            {"action": "detach_volume",
-             "action_params": {"volume_id": "required"},
-             "description": "Detaches the volume <id> to instance"},
-            {"action": "resize",
-             "action_params": {"size": "required"},
-             "description": "Resize instance to size <id>"},
-            {"action": "confirm_resize",
-             "description": "Confirm the instance works after resize."},
-            {"action": "revert_resize",
-             "description": "Revert the instance if resize fails."},
-            {"action": "suspend",
-             "description": "Suspend the instance."},
-            {"action": "resume",
-             "description": "Resume the instance."},
-            {"action": "start",
-             "description": "Start the instance."},
-            {"action": "stop",
-             "description": "Stop the instance."},
-            {"action": "reboot",
-             "action_params": {"reboot_type (optional)": "SOFT/HARD"},
-             "description": "Stop the instance."},
-            {"action": "console",
-             "description": "Get noVNC Console."}]
+            {
+                "action": "attach_volume",
+                "action_params":
+                    {
+                        "volume_id": "required",
+                        "device": "optional",
+                        "mount_location": "optional"
+                    },
+                "description": "Attaches the volume <id> to instance"
+            },
+            {
+                "action": "mount_volume",
+                "action_params":
+                    {
+                        "volume_id": "required",
+                        "device": "optional",
+                        "mount_location": "optional"
+                    },
+                "description": "Unmount the volume <id> from instance"
+            },
+            {
+                "action": "unmount_volume",
+                "action_params": {
+                    "volume_id": "required"
+                },
+                "description": "Mount the volume <id> to instance"
+            },
+            {
+                "action": "detach_volume",
+                "action_params": {
+                    "volume_id": "required"
+                },
+                "description": "Detaches the volume <id> to instance"
+            },
+            {
+                "action": "resize",
+                "action_params": {
+                    "size": "required"
+                },
+                "description": "Resize instance to size <id>"
+            },
+            {
+                "action": "confirm_resize",
+                "description": "Confirm the instance works after resize."
+            },
+            {
+                "action": "revert_resize",
+                "description": "Revert the instance if resize fails."
+            }, {
+                "action": "suspend",
+                "description": "Suspend the instance."
+            }, {
+                "action": "resume",
+                "description": "Resume the instance."
+            }, {
+                "action": "start",
+                "description": "Start the instance."
+            }, {
+                "action": "stop",
+                "description": "Stop the instance."
+            },
+            {
+                "action": "reboot",
+                "action_params": {
+                    "reboot_type (optional)": "SOFT/HARD"
+                },
+                "description": "Stop the instance."
+            }, {
+                "action": "console",
+                "description": "Get noVNC Console."
+            }
+        ]
         response = Response(actions, status=status.HTTP_200_OK)
         return response
 
@@ -469,21 +534,30 @@ class InstanceAction(AuthAPIView):
         if not action_params.get('action', None):
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
-                'POST request to /action require a BODY with \'action\'.')
+                'POST request to /action require a BODY with \'action\'.'
+            )
         result_obj = None
         user = request.user
         identity = Identity.objects.get(uuid=identity_uuid)
         action = action_params['action']
         try:
             if not can_use_instance(user, instance_id, leader_required=True):
-                return member_action_forbidden(user.username, "Instance", instance_id)
+                return member_action_forbidden(
+                    user.username, "Instance", instance_id
+                )
 
-            result_obj = run_instance_action(user, identity, instance_id, action, action_params)
+            result_obj = run_instance_action(
+                user, identity, instance_id, action, action_params
+            )
             result_obj = _further_process_result(request, action, result_obj)
             api_response = {
-                'result': 'success',
-                'message': 'The requested action <%s> was run successfully' % (action_params['action'],),
-                'object': result_obj,
+                'result':
+                    'success',
+                'message':
+                    'The requested action <%s> was run successfully' %
+                    (action_params['action'], ),
+                'object':
+                    result_obj,
             }
             response = Response(api_response, status=status.HTTP_200_OK)
             return response
@@ -494,7 +568,8 @@ class InstanceAction(AuthAPIView):
         except InstanceDoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                'Instance %s no longer exists' % (instance_id,))
+                'Instance %s no longer exists' % (instance_id, )
+            )
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except HypervisorCapacityError as hce:
@@ -504,9 +579,7 @@ class InstanceAction(AuthAPIView):
         except OverAllocationError as oae:
             return over_quota(oae)
         except AllocationBlacklistedError as e:
-            return failure_response(
-                status.HTTP_403_FORBIDDEN,
-                e.message)
+            return failure_response(status.HTTP_403_FORBIDDEN, e.message)
         except SizeNotAvailable as snae:
             return size_not_available(snae)
         except (socket_error, ConnectionFailure):
@@ -516,29 +589,29 @@ class InstanceAction(AuthAPIView):
         except NotImplemented:
             return failure_response(
                 status.HTTP_409_CONFLICT,
-                "The requested action %s is not available on this provider."
-                % action_params['action'])
+                "The requested action %s is not available on this provider." %
+                action_params['action']
+            )
         except ActionNotAllowed:
             return failure_response(
                 status.HTTP_409_CONFLICT,
                 "The requested action %s has been explicitly "
-                "disabled on this provider." % action_params['action'])
+                "disabled on this provider." % action_params['action']
+            )
         except Exception as exc:
             logger.exception("Exception occurred processing InstanceAction")
             message = exc.message
             if message.startswith('409 Conflict'):
-                return failure_response(
-                    status.HTTP_409_CONFLICT,
-                    message)
+                return failure_response(status.HTTP_409_CONFLICT, message)
             return failure_response(
                 status.HTTP_403_FORBIDDEN,
                 "The requested action %s encountered "
-                "an irrecoverable exception: %s"
-                % (action_params['action'], message))
+                "an irrecoverable exception: %s" %
+                (action_params['action'], message)
+            )
 
 
 class Instance(AuthAPIView):
-
     """
     Instances are the objects created when you launch a machine. They are
     represented by a unique ID, randomly generated on launch, important
@@ -579,10 +652,11 @@ class Instance(AuthAPIView):
             logger.exception("Invalid credentialsprevented InstanceQuery")
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
         # NOTE: Especially THIS part below, where you end date all the
         #       things that are 'inactive'
@@ -591,18 +665,21 @@ class Instance(AuthAPIView):
                 core_inst = CoreInstance.objects.get(
                     provider_alias=instance_id,
                     source__provider__uuid=provider_uuid,
-                    created_by_identity__uuid=identity_uuid)
+                    created_by_identity__uuid=identity_uuid
+                )
                 core_inst.end_date_all()
             except CoreInstance.DoesNotExist:
                 pass
             return instance_not_found(instance_id)
 
-        core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             provider_uuid, identity_uuid,
-                                             user)
+        core_instance = convert_esh_instance(
+            esh_driver, esh_instance, provider_uuid, identity_uuid, user
+        )
         serialized_data = InstanceSerializer(
-            core_instance,
-            context={"request": request}).data
+            core_instance, context={
+                "request": request
+            }
+        ).data
         response = Response(serialized_data)
         response['Cache-Control'] = 'no-cache'
         return response
@@ -623,19 +700,23 @@ class Instance(AuthAPIView):
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
         if not esh_instance:
             return instance_not_found(instance_id)
         # Gather the DB related item and update
-        core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             provider_uuid, identity_uuid,
-                                             user)
+        core_instance = convert_esh_instance(
+            esh_driver, esh_instance, provider_uuid, identity_uuid, user
+        )
         serializer = InstanceSerializer(
-            core_instance, data=data,
-            context={"request": request}, partial=True)
+            core_instance,
+            data=data,
+            context={"request": request},
+            partial=True
+        )
         identity = Identity.objects.get(uuid=identity_uuid)
         provider = identity.provider
 
@@ -643,8 +724,14 @@ class Instance(AuthAPIView):
             logger.info('metadata = %s' % data)
 
             driver_class = esh_driver.__class__
-            update_metadata.s(driver_class, provider, identity, esh_instance.id,
-                              data, replace_metadata=False).apply()
+            update_metadata.s(
+                driver_class,
+                provider,
+                identity,
+                esh_instance.id,
+                data,
+                replace_metadata=False
+            ).apply()
             instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:
@@ -656,8 +743,8 @@ class Instance(AuthAPIView):
             return response
         else:
             return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST)
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
 
     def put(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, update metadata about the instance"""
@@ -676,41 +763,51 @@ class Instance(AuthAPIView):
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
         if not esh_instance:
             return instance_not_found(instance_id)
         # Gather the DB related item and update
-        core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                             provider_uuid, identity_uuid,
-                                             user)
-        serializer = InstanceSerializer(core_instance, data=data,
-                                        context={"request": request})
+        core_instance = convert_esh_instance(
+            esh_driver, esh_instance, provider_uuid, identity_uuid, user
+        )
+        serializer = InstanceSerializer(
+            core_instance, data=data, context={"request": request}
+        )
         identity = Identity.objects.get(uuid=identity_uuid)
         if serializer.is_valid():
             logger.info('metadata = %s' % data)
             #NOTE: We shouldn't allow 'full replacement' of metadata..
             # We should also validate against potentional updating of 'atmo-used metadata'
-            update_metadata.s(esh_driver.__class__, esh_driver.provider, esh_driver.identity, esh_instance.id,
-                              data, replace_metadata=False).apply()
+            update_metadata.s(
+                esh_driver.__class__,
+                esh_driver.provider,
+                esh_driver.identity,
+                esh_instance.id,
+                data,
+                replace_metadata=False
+            ).apply()
             new_instance = serializer.save()
             boot_scripts = data.pop('boot_scripts', [])
             if boot_scripts:
-                new_instance = _save_scripts_to_instance(new_instance,
-                                                         boot_scripts)
+                new_instance = _save_scripts_to_instance(
+                    new_instance, boot_scripts
+                )
                 serializer = InstanceSerializer(
-                    new_instance,
-                    context={"request": request})
+                    new_instance, context={"request": request}
+                )
             invalidate_cached_instances(identity=identity)
             response = Response(serializer.data)
             logger.info('data = %s' % serializer.data)
             response['Cache-Control'] = 'no-cache'
             return response
         else:
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
 
     def delete(self, request, provider_uuid, identity_uuid, instance_id):
         """Authentication Required, TERMINATE the instance.
@@ -732,16 +829,18 @@ class Instance(AuthAPIView):
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
         try:
             # Test that there is not an attached volume BEFORE we destroy
             task.destroy_instance_task(user, esh_instance, identity_uuid)
 
             invalidate_cached_instances(
-                identity=Identity.objects.get(uuid=identity_uuid))
+                identity=Identity.objects.get(uuid=identity_uuid)
+            )
 
             existing_instance = esh_driver.get_instance(instance_id)
         except VolumeAttachConflict as exc:
@@ -754,12 +853,14 @@ class Instance(AuthAPIView):
         except InstanceDoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                "Instance %s does not exist" % instance_id)
+                "Instance %s does not exist" % instance_id
+            )
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
         try:
             core_instance = None
@@ -769,22 +870,27 @@ class Instance(AuthAPIView):
                 if esh_instance.extra\
                    and 'task' not in esh_instance.extra:
                     esh_instance.extra['task'] = 'queueing delete'
-                core_instance = convert_esh_instance(esh_driver, esh_instance,
-                                                     provider_uuid, identity_uuid,
-                                                     user)
+                core_instance = convert_esh_instance(
+                    esh_driver, esh_instance, provider_uuid, identity_uuid, user
+                )
             if not core_instance:
                 logger.warn("Unable to find core instance %s." % (instance_id))
                 core_instance = CoreInstance.objects.filter(
-                    provider_alias=instance_id).first()
+                    provider_alias=instance_id
+                ).first()
             serialized_data = InstanceSerializer(
-                core_instance,
-                context={"request": request}).data
+                core_instance, context={
+                    "request": request
+                }
+            ).data
             response = Response(serialized_data, status=status.HTTP_200_OK)
             response['Cache-Control'] = 'no-cache'
             return response
         except (Identity.DoesNotExist) as exc:
-            return failure_response(status.HTTP_400_BAD_REQUEST,
-                                    "Invalid provider_uuid or identity_uuid.")
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Invalid provider_uuid or identity_uuid."
+            )
         except (socket_error, ConnectionFailure):
             return connection_failure(provider_uuid, identity_uuid)
         except LibcloudInvalidCredsError:
@@ -792,27 +898,31 @@ class Instance(AuthAPIView):
 
 
 class InstanceTagList(AuthAPIView):
-
     """
     Tags are a easy way to allow users to group several images as similar
     based on a feature/program of the application.
     """
 
-    def get(self, request, provider_uuid, identity_uuid, instance_id,
-            *args, **kwargs):
+    def get(
+        self, request, provider_uuid, identity_uuid, instance_id, *args,
+        **kwargs
+    ):
         """
         List all public tags.
         """
-        core_instance = get_core_instance(request, provider_uuid,
-                                          identity_uuid, instance_id)
+        core_instance = get_core_instance(
+            request, provider_uuid, identity_uuid, instance_id
+        )
         if not core_instance:
             instance_not_found(instance_id)
         tags = core_instance.tags.all()
         serializer = TagSerializer(tags, many=True)
         return Response(serializer.data)
 
-    def post(self, request, provider_uuid, identity_uuid, instance_id,
-             *args, **kwargs):
+    def post(
+        self, request, provider_uuid, identity_uuid, instance_id, *args,
+        **kwargs
+    ):
         """Create a new tag resource
         Params:name -- Name of the new Tag
         Returns:
@@ -822,13 +932,14 @@ class InstanceTagList(AuthAPIView):
         user = request.user
         data = request.data.copy()
         if 'name' not in data:
-            return Response("Missing 'name' in POST data",
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                "Missing 'name' in POST data",
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        core_instance = get_core_instance(request,
-                                          provider_uuid,
-                                          identity_uuid,
-                                          instance_id)
+        core_instance = get_core_instance(
+            request, provider_uuid, identity_uuid, instance_id
+        )
         if not core_instance:
             instance_not_found(instance_id)
 
@@ -841,14 +952,14 @@ class InstanceTagList(AuthAPIView):
             serializer = TagSerializer(data=data)
             if not serializer.is_valid():
                 return Response(
-                    serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                )
             add_tag = serializer.save()
         core_instance.tags.add(add_tag)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class InstanceTagDetail(AuthAPIView):
-
     """
     Tags are a easy way to allow users to group several images as similar
     based on a feature/program of the application.
@@ -856,13 +967,16 @@ class InstanceTagDetail(AuthAPIView):
     This API resource allows you to Retrieve, Update, or Delete your Tag.
     """
 
-    def delete(self, request, provider_uuid, identity_uuid, instance_id,
-               tag_slug, *args, **kwargs):
+    def delete(
+        self, request, provider_uuid, identity_uuid, instance_id, tag_slug,
+        *args, **kwargs
+    ):
         """
         Remove the tag, if it is no longer in use.
         """
-        core_instance = get_core_instance(request, provider_uuid,
-                                          identity_uuid, instance_id)
+        core_instance = get_core_instance(
+            request, provider_uuid, identity_uuid, instance_id
+        )
         if not core_instance:
             instance_not_found(instance_id)
         try:
@@ -870,32 +984,35 @@ class InstanceTagDetail(AuthAPIView):
         except CoreTag.DoesNotExist:
             return failure_response(
                 status.HTTP_404_NOT_FOUND,
-                'Tag %s not found on instance' % tag_slug)
+                'Tag %s not found on instance' % tag_slug
+            )
         core_instance.tags.remove(tag)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get(self, request, provider_uuid, identity_uuid, instance_id,
-            tag_slug, *args, **kwargs):
+    def get(
+        self, request, provider_uuid, identity_uuid, instance_id, tag_slug,
+        *args, **kwargs
+    ):
         """
         Return the credential information for this tag
         """
         try:
-            core_instance = get_core_instance(request, provider_uuid,
-                                              identity_uuid, instance_id)
+            core_instance = get_core_instance(
+                request, provider_uuid, identity_uuid, instance_id
+            )
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
 
         if not core_instance:
             instance_not_found(instance_id)
         try:
             tag = core_instance.tags.get(name__iexact=tag_slug)
         except CoreTag.DoesNotExist:
-            return Response(['Tag does not exist'],
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                ['Tag does not exist'], status=status.HTTP_404_NOT_FOUND
+            )
         serializer = TagSerializer(tag)
         return Response(serializer.data)
 
@@ -905,9 +1022,10 @@ def valid_post_data(data):
     Return any missing required post key names.
     """
     required = ['machine_alias', 'size_alias', 'name']
-    return [key for key in required
-            if key not in data or
-            (isinstance(data[key], str) and len(data[key]) > 0)]
+    return [
+        key for key in required if key not in data or
+        (isinstance(data[key], str) and len(data[key]) > 0)
+    ]
 
 
 def can_use_instance(user, instance_id, leader_required=False):
@@ -925,4 +1043,5 @@ def can_use_instance(user, instance_id, leader_required=False):
 def keys_not_found(missing_keys):
     return failure_response(
         status.HTTP_400_BAD_REQUEST,
-        'Missing data for variable(s): %s' % missing_keys)
+        'Missing data for variable(s): %s' % missing_keys
+    )

@@ -11,7 +11,6 @@ from core.query import only_current_source
 
 
 class ActiveVolumesManager(models.Manager):
-
     def get_queryset(self):
         return super(ActiveVolumesManager, self)\
             .get_queryset().filter(only_current_source())
@@ -21,9 +20,15 @@ class Volume(BaseSource):
     size = models.IntegerField()
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
-    project = models.ForeignKey("Project", models.SET_NULL, null=True, blank=True, related_name='volumes')
+    project = models.ForeignKey(
+        "Project",
+        models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='volumes'
+    )
 
-    objects = models.Manager()  # The default manager.
+    objects = models.Manager()    # The default manager.
     active_volumes = ActiveVolumesManager()
 
     class Meta:
@@ -59,14 +64,18 @@ class Volume(BaseSource):
         project_query = Q(project__owner__memberships__user=user)
         if is_leader is not None:
             project_query &= Q(project__owner__memberships__is_leader=is_leader)
-        membership_query = Q(instance_source__created_by__memberships__group__user=user)
-        return Volume.objects.filter(membership_query | project_query | ownership_query).distinct()
+        membership_query = Q(
+            instance_source__created_by__memberships__group__user=user
+        )
+        return Volume.objects.filter(
+            membership_query | project_query | ownership_query
+        ).distinct()
 
     def __unicode__(self):
         return "%s - %s" % (self.instance_source.identifier, self.name)
 
     def get_status(self):
-        if hasattr(self,'esh') and self.esh.extra:
+        if hasattr(self, 'esh') and self.esh.extra:
             status = self.esh.extra["status"]
             tmp_status = self.esh.extra.get('tmp_status', '')
             if tmp_status:
@@ -89,7 +98,7 @@ class Volume(BaseSource):
             return attach_data["instance_alias"]
 
     def get_attach_data(self):
-        if hasattr(self,'esh') and self.esh.extra:
+        if hasattr(self, 'esh') and self.esh.extra:
             attach_data = self.esh.extra.get('attachments', {})
         else:
             attach_data = {}
@@ -112,7 +121,7 @@ class Volume(BaseSource):
         TODO: Refactor and use get_metadata.
         """
         metadata = {}
-        if hasattr(self,'esh') and self.esh.extra:
+        if hasattr(self, 'esh') and self.esh.extra:
             metadata = self.esh.extra.get('metadata', {})
         return metadata.get('mount_location', None)
 
@@ -163,7 +172,9 @@ class Volume(BaseSource):
                         # FIXME: Handle this for jetstream/atmosphere in future release
                         # if not self._has_history():
                         #     start_date = self.instance_source.start_date
-                        new_history = VolumeStatusHistory.factory(self, start_date=start_date)
+                        new_history = VolumeStatusHistory.factory(
+                            self, start_date=start_date
+                        )
                         if last_history:
                             last_history.end_date = new_history.start_date
                             last_history.save()
@@ -171,10 +182,13 @@ class Volume(BaseSource):
                     except DatabaseError:
                         logger.exception(
                             "volume_status_history: Lock is already acquired by"
-                            "another transaction.")
+                            "another transaction."
+                        )
 
 
-def convert_esh_volume(esh_volume, provider_uuid, identity_uuid=None, user=None):
+def convert_esh_volume(
+    esh_volume, provider_uuid, identity_uuid=None, user=None
+):
     """
     Get or create the core representation of esh_volume
     Attach esh_volume to the object for further introspection..
@@ -188,10 +202,12 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid=None, user=None)
     description = esh_volume.extra.get('description')
     try:
         source = InstanceSource.objects.get(
-            identifier=identifier, provider__uuid=provider_uuid)
+            identifier=identifier, provider__uuid=provider_uuid
+        )
         if not source.is_volume():
             raise InstanceSource.DoesNotExist(
-                "InstanceSource exists, but does not have associated volume")
+                "InstanceSource exists, but does not have associated volume"
+            )
         volume = source.volume
     except InstanceSource.DoesNotExist:
         if not identity_uuid:
@@ -205,15 +221,23 @@ def convert_esh_volume(esh_volume, provider_uuid, identity_uuid=None, user=None)
             identity_uuid,
             user,
             description=description,
-            created_on=created_on)
+            created_on=created_on
+        )
     volume.esh = esh_volume
     volume._update_history()
     return volume
 
 
-def create_volume(name, identifier, size,
-                  provider_uuid, identity_uuid, creator,
-                  description=None, created_on=None):
+def create_volume(
+    name,
+    identifier,
+    size,
+    provider_uuid,
+    identity_uuid,
+    creator,
+    description=None,
+    created_on=None
+):
     provider = Provider.objects.get(uuid=provider_uuid)
     identity = Identity.objects.get(uuid=identity_uuid)
 
@@ -222,18 +246,21 @@ def create_volume(name, identifier, size,
     # if created_on:
     #     defaults['start_date'] = created_on
     source, _ = InstanceSource.objects.update_or_create(
-        identifier=identifier, provider=provider,
-        created_by=creator, created_by_identity=identity,
-        defaults=defaults)
+        identifier=identifier,
+        provider=provider,
+        created_by=creator,
+        created_by_identity=identity,
+        defaults=defaults
+    )
 
     volume = Volume.objects.create(
-        name=name, description=description, size=size, instance_source=source)
+        name=name, description=description, size=size, instance_source=source
+    )
 
     return volume
 
 
 class VolumeStatus(models.Model):
-
     """
     Used to enumerate the types of actions
     (I.e. available, in-use, attaching, detaching)
@@ -254,7 +281,6 @@ class VolumeStatus(models.Model):
 
 
 class VolumeStatusHistory(models.Model):
-
     """
     Used to keep track of each change in volume status.
     """
@@ -272,11 +298,13 @@ class VolumeStatusHistory(models.Model):
         end = self.end_date or ""
         attachment = "N/A"
         if self.instance_alias:
-            attachment = "Attached to %s(%s)" % (self.instance_alias,
-                                                 self.device)
+            attachment = "Attached to %s(%s)" % (
+                self.instance_alias, self.device
+            )
 
         return "Volume:%s Status:%s Attachment:%s Start:%s End:%s" % (
-            volume, status, attachment, start, end)
+            volume, status, attachment, start, end
+        )
 
     @classmethod
     def factory(cls, volume, start_date=None):
@@ -285,15 +313,15 @@ class VolumeStatusHistory(models.Model):
 
         NOTE: Unsaved!
         """
-        status, _ = VolumeStatus.objects.get_or_create(
-            name=volume.get_status())
+        status, _ = VolumeStatus.objects.get_or_create(name=volume.get_status())
         device = volume.get_device()
         instance_alias = volume.get_instance_alias()
         new_history = VolumeStatusHistory(
             volume=volume,
             device=device,
             instance_alias=instance_alias,
-            status=status)
+            status=status
+        )
         if start_date:
             new_history.start_date = start_date
         logger.debug("Created new history object: %s " % (new_history))
@@ -303,9 +331,11 @@ class VolumeStatusHistory(models.Model):
         """
         Get attach_data from this VolumeStatusHistory.
         """
-        return {"device": self.device,
-                "id": self.volume.instance_source.identifier,
-                "instance_alias": self.instance_alias}
+        return {
+            "device": self.device,
+            "id": self.volume.instance_source.identifier,
+            "instance_alias": self.instance_alias
+        }
 
     class Meta:
         db_table = "volume_status_history"
@@ -318,9 +348,7 @@ def find_volume(volume_id):
     else:
         core_volume = Volume.objects.filter(source__identifier=volume_id)
     if len(core_volume) > 1:
-        logger.warn(
-            "Multiple volumes returned for volume_id - %s" %
-            volume_id)
+        logger.warn("Multiple volumes returned for volume_id - %s" % volume_id)
     if core_volume:
         return core_volume[0]
     return None

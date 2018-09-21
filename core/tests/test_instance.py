@@ -7,13 +7,13 @@ from django.utils.timezone import datetime
 import pytz
 
 from core.tests.helpers import CoreStatusHistoryHelper, CoreInstanceHelper
+
 # Create an instance
 # build identical instance status history timings and try to add them
 # It should fail and force you to do 'the right thing only'
 
 
 class CoreInstanceTestCase(unittest.TestCase):
-
     def _get_history_manager(self, instance, *query_args, **query_kwargs):
         """
         Return instance history list
@@ -21,9 +21,8 @@ class CoreInstanceTestCase(unittest.TestCase):
         if not query_args and not query_kwargs:
             return instance.instancestatushistory_set.all()
         return instance.instancestatushistory_set.filter(
-            *
-            query_args,
-            **query_kwargs)
+            *query_args, **query_kwargs
+        )
 
     def assertZeroHistory(self, instance):
         """
@@ -51,17 +50,15 @@ class CoreInstanceTestCase(unittest.TestCase):
 
 
 class TestInstanceStatusHistory(CoreInstanceTestCase):
-
     def setUp(self):
         self.history_swap_every = relativedelta(minutes=30)
         self.start_time = self.begin_history = datetime(
-            2015,
-            1,
-            1,
-            tzinfo=pytz.utc)
+            2015, 1, 1, tzinfo=pytz.utc
+        )
         self.terminate_time = datetime(2015, 1, 8, tzinfo=pytz.utc)
         self.instance_helper = CoreInstanceHelper(
-            "test_instance", uuid.uuid4(), self.start_time)
+            "test_instance", uuid.uuid4(), self.start_time
+        )
 
     def test_growing_history(self):
         """
@@ -75,8 +72,8 @@ class TestInstanceStatusHistory(CoreInstanceTestCase):
         self.instance_1 = self.instance_helper.to_core_instance()
         self.assertZeroHistory(self.instance_1)
         self.history_helper = CoreStatusHistoryHelper(
-            self.instance_1,
-            self.begin_history)
+            self.instance_1, self.begin_history
+        )
         # Create first history for instance
         self.history_helper.first_transaction()
         self.assertOneActiveHistory(self.instance_1)

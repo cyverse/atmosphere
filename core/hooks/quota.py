@@ -45,9 +45,7 @@ def listen_for_quota_assigned(sender, instance, created, **kwargs):
     identity = Identity.objects.get(uuid=identity_uuid)
 
     created = False
-    quota = Quota.objects.filter(
-        **quota_values
-    ).order_by('pk').first()
+    quota = Quota.objects.filter(**quota_values).order_by('pk').first()
     if not quota:
         quota = Quota.objects.create(**quota_values)
         created = True

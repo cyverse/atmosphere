@@ -10,7 +10,11 @@ class AbstractAdminPanel(admin.ModelAdmin):
         info = self.model._meta.app_label, self.model._meta.model_name
         changelist_url_name = '%s_%s_changelist' % info
         urls = [
-            url(r'^$', self.admin_site.admin_view(self.changelist_view), name=changelist_url_name),
+            url(
+                r'^$',
+                self.admin_site.admin_view(self.changelist_view),
+                name=changelist_url_name
+            ),
         ]
         return urls
 

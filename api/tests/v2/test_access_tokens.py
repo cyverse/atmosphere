@@ -12,23 +12,42 @@ class AccessTokenTests(APITestCase, APISanityTestCase):
     def setUp(self):
         self.anonymous_user = AnonymousUserFactory()
         self.user = UserFactory.create()
-        self.access_token = create_access_token(self.user, "Test Token 1", issuer="Testing")
+        self.access_token = create_access_token(
+            self.user, "Test Token 1", issuer="Testing"
+        )
 
         factory = APIRequestFactory()
 
         self.create_view = AccessTokenViewSet.as_view({'post': 'create'})
-        self.create_request = factory.post(self.url_route, {'name': 'Test Token Creation'})
-        self.invalid_create_request = factory.post(self.url_route, {'name': {'Not': 'A String'}}, format='json')
+        self.create_request = factory.post(
+            self.url_route, {'name': 'Test Token Creation'}
+        )
+        self.invalid_create_request = factory.post(
+            self.url_route, {'name': {
+                'Not': 'A String'
+            }}, format='json'
+        )
 
         self.list_view = AccessTokenViewSet.as_view({'get': 'list'})
         self.list_request = factory.get(self.url_route)
 
         self.delete_view = AccessTokenViewSet.as_view({'delete': 'destroy'})
-        self.delete_request = factory.delete('{}/{}'.format(self.url_route, self.access_token.id))
+        self.delete_request = factory.delete(
+            '{}/{}'.format(self.url_route, self.access_token.id)
+        )
 
         self.edit_view = AccessTokenViewSet.as_view({'put': 'update'})
-        self.edit_request = factory.put('{}/{}'.format(self.url_route, self.access_token.id), {'name': 'Test Token New Name'})
-        self.invalid_edit_request = factory.put('{}/{}'.format(self.url_route, self.access_token.id), {'name': {'Not': 'A String'}}, format='json')
+        self.edit_request = factory.put(
+            '{}/{}'.format(self.url_route, self.access_token.id),
+            {'name': 'Test Token New Name'}
+        )
+        self.invalid_edit_request = factory.put(
+            '{}/{}'.format(self.url_route, self.access_token.id),
+            {'name': {
+                'Not': 'A String'
+            }},
+            format='json'
+        )
 
     def test_list(self):
         force_authenticate(self.list_request, user=self.user)
@@ -74,7 +93,9 @@ class AccessTokenTests(APITestCase, APISanityTestCase):
 
     def test_edit(self):
         force_authenticate(self.edit_request, user=self.user)
-        edit_response = self.edit_view(self.edit_request, pk=self.access_token.id)
+        edit_response = self.edit_view(
+            self.edit_request, pk=self.access_token.id
+        )
         # Get edited token using list_request and finding token by id
         force_authenticate(self.list_request, user=self.user)
         list_response = self.list_view(self.list_request)
@@ -102,7 +123,9 @@ class AccessTokenTests(APITestCase, APISanityTestCase):
 
     def test_delete_not_public(self):
         force_authenticate(self.delete_request, user=self.anonymous_user)
-        response = self.delete_view(self.delete_request, pk=self.access_token.id)
+        response = self.delete_view(
+            self.delete_request, pk=self.access_token.id
+        )
         self.assertEquals(response.status_code, 403)
 
     def test_invalid_create(self):
@@ -113,6 +136,8 @@ class AccessTokenTests(APITestCase, APISanityTestCase):
 
     def test_invalid_edit(self):
         force_authenticate(self.invalid_edit_request, user=self.user)
-        response = self.edit_view(self.invalid_edit_request, pk=self.access_token.id)
+        response = self.edit_view(
+            self.invalid_edit_request, pk=self.access_token.id
+        )
         self.assertEquals(response.status_code, 400)
         self.assertEquals(response.data['name'], ["Not a valid string."])

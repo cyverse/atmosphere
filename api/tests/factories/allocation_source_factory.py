@@ -19,5 +19,6 @@ class AllocationSourceFactory(factory.DjangoModelFactory):
 class UserAllocationSourceFactory(factory.DjangoModelFactory):
     allocation_source = factory.SubFactory(AllocationSourceFactory)
     user = factory.SubFactory(UserFactory)
+
     class Meta:
         model = UserAllocationSource

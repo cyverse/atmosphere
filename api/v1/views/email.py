@@ -17,7 +17,6 @@ from api.v1.views.base import AuthAPIView
 
 
 class Feedback(AuthAPIView):
-
     """
     Post feedback via RESTful API
     """
@@ -30,10 +29,10 @@ class Feedback(AuthAPIView):
         missing_keys = check_missing_keys(request.data, required)
         if missing_keys:
             return keys_not_found(missing_keys)
-        result = self._email(request,
-                             request.user.username,
-                             lookupEmail(request.user.username),
-                             request.data["message"])
+        result = self._email(
+            request, request.user.username, lookupEmail(request.user.username),
+            request.data["message"]
+        )
         return Response(result, status=status.HTTP_201_CREATED)
 
     def _email(self, request, username, user_email, message):
@@ -44,30 +43,39 @@ class Feedback(AuthAPIView):
         """
         user = User.objects.get(username=username)
         subject = 'Subject: Atmosphere Client Feedback from %s' % username
-        context = {
-            "user": user,
-            "feedback": message
-        }
-        body = render_to_string("core/email/feedback.html",
-                                context=context)
-        email_success = email_admin(request, subject, body, request_tracker=True)
+        context = {"user": user, "feedback": message}
+        body = render_to_string("core/email/feedback.html", context=context)
+        email_success = email_admin(
+            request, subject, body, request_tracker=True
+        )
         if email_success:
-            resp = {'result':
-                    {'code': 'success',
-                        'meta': '',
-                        'value': (
-                            'Thank you for your feedback! '
-                            'Support has been notified.')}}
+            resp = {
+                'result':
+                    {
+                        'code':
+                            'success',
+                        'meta':
+                            '',
+                        'value':
+                            (
+                                'Thank you for your feedback! '
+                                'Support has been notified.'
+                            )
+                    }
+            }
         else:
-            resp = {'result':
-                    {'code': 'failed',
-                     'meta': '',
-                     'value': 'Failed to send feedback!'}}
+            resp = {
+                'result':
+                    {
+                        'code': 'failed',
+                        'meta': '',
+                        'value': 'Failed to send feedback!'
+                    }
+            }
         return resp
 
 
 class QuotaEmail(AuthAPIView):
-
     """
     Post Quota Email via RESTful API.
     """
@@ -81,10 +89,10 @@ class QuotaEmail(AuthAPIView):
         if missing_keys:
             return keys_not_found(missing_keys)
         logger.debug("request.data = %s" % (str(request.data)))
-        result = self._email(request,
-                             request.user.username,
-                             request.data["quota"],
-                             request.data["reason"])
+        result = self._email(
+            request, request.user.username, request.data["quota"],
+            request.data["reason"]
+        )
         return Response(result, status=status.HTTP_201_CREATED)
 
     def _email(self, request, username, new_resource, reason):
@@ -97,20 +105,19 @@ class QuotaEmail(AuthAPIView):
 
 
 class SupportEmail(AuthAPIView):
-
     def post(self, request):
         """
         Creates a new support email and sends it to admins.
 
         Post Support Email via RESTful API
         """
-        required = ["message", "subject","user-interface"]
+        required = ["message", "subject", "user-interface"]
         missing_keys = check_missing_keys(request.data, required)
         if missing_keys:
             return keys_not_found(missing_keys)
-        result = self._email(request,
-                             request.data["subject"],
-                             request.data["message"])
+        result = self._email(
+            request, request.data["subject"], request.data["message"]
+        )
         return Response(result, status=status.HTTP_201_CREATED)
 
     def _email(self, request, subject, message):
@@ -124,7 +131,9 @@ class SupportEmail(AuthAPIView):
 
         Returns a response.
         """
-        email_success = email_admin(request, subject, message, request_tracker=True)
+        email_success = email_admin(
+            request, subject, message, request_tracker=True
+        )
         return {"email_sent": email_success}
 
 
@@ -132,13 +141,16 @@ def check_missing_keys(data, required_keys):
     """
     Return any missing required post key names.
     """
-    return [key for key in required_keys
-            # Key must exist and have a non-empty value.
-            if key not in data or
-            (isinstance(data[key], str) and len(data[key]) > 0)]
+    return [
+        key for key in required_keys
+    # Key must exist and have a non-empty value.
+        if key not in data or
+        (isinstance(data[key], str) and len(data[key]) > 0)
+    ]
 
 
 def keys_not_found(missing_keys):
     return failure_response(
         status.HTTP_400_BAD_REQUEST,
-        "Missing required POST data variables : %s" % missing_keys)
+        "Missing required POST data variables : %s" % missing_keys
+    )

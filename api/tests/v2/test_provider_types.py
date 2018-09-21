@@ -23,10 +23,8 @@ class ProviderTypeTests(APITestCase, APISanityTestCase):
         self.list_view = ViewSet.as_view({'get': 'list'})
 
         detail_url = reverse(
-            self.url_route + '-detail',
-            args=(
-                self.provider_type.id,
-            ))
+            self.url_route + '-detail', args=(self.provider_type.id, )
+        )
         list_url = reverse(self.url_route + '-list')
 
         self.detail_request = factory.get(detail_url)
@@ -56,17 +54,23 @@ class ProviderTypeTests(APITestCase, APISanityTestCase):
 
     def test_detail_is_not_public(self):
         force_authenticate(self.detail_request, user=self.anonymous_user)
-        response = self.detail_view(self.detail_request, pk=self.provider_type.id)
+        response = self.detail_view(
+            self.detail_request, pk=self.provider_type.id
+        )
         self.assertEquals(response.status_code, 403)
 
     def test_detail_is_visible_to_authenticated_user(self):
         force_authenticate(self.detail_request, user=self.user)
-        response = self.detail_view(self.detail_request, pk=self.provider_type.id)
+        response = self.detail_view(
+            self.detail_request, pk=self.provider_type.id
+        )
         self.assertEquals(response.status_code, 200)
 
     def test_detail_response_contains_expected_fields(self):
         force_authenticate(self.detail_request, user=self.user)
-        response = self.detail_view(self.detail_request, pk=self.provider_type.id)
+        response = self.detail_view(
+            self.detail_request, pk=self.provider_type.id
+        )
         data = response.data
 
         self.assertEquals(len(data), 5)

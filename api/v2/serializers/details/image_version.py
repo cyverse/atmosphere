@@ -6,16 +6,15 @@ from rest_framework import serializers
 from core.models import ApplicationVersion as ImageVersion
 from core.models import Application as Image
 from core.models import (
-    License, BootScript, ApplicationThreshold,
+    License,
+    BootScript,
+    ApplicationThreshold,
 )
 
 from api.v2.serializers.summaries import (
-    BootScriptSummarySerializer,
-    ImageSummarySerializer,
-    ImageVersionSummarySerializer,
-    IdentitySummarySerializer,
-    LicenseSummarySerializer,
-    ProviderMachineSummarySerializer,
+    BootScriptSummarySerializer, ImageSummarySerializer,
+    ImageVersionSummarySerializer, IdentitySummarySerializer,
+    LicenseSummarySerializer, ProviderMachineSummarySerializer,
     UserSummarySerializer
 )
 from core.serializers.fields import ModelRelatedField
@@ -31,17 +30,21 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
     parent = ImageVersionSummarySerializer()
     # name, change_log, allow_imaging
     licenses = ModelRelatedField(
-        many=True, queryset=License.objects.all(),
+        many=True,
+        queryset=License.objects.all(),
         serializer_class=LicenseSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
     scripts = ModelRelatedField(
-        source='boot_scripts', many=True,
+        source='boot_scripts',
+        many=True,
         queryset=BootScript.objects.all(),
         serializer_class=BootScriptSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
     membership = serializers.SlugRelatedField(
-        slug_field='name',
-        read_only=True, many=True)
+        slug_field='name', read_only=True, many=True
+    )
     user = UserSummarySerializer(source='created_by')
     identity = IdentitySummarySerializer(source='created_by_identity')
     machines = serializers.SerializerMethodField('get_machines_for_user')
@@ -49,14 +52,14 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         source='application',
         queryset=Image.objects.all(),
         serializer_class=ImageSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
     start_date = serializers.DateTimeField()
     min_mem = serializers.IntegerField(source='threshold.memory_min')
     min_cpu = serializers.IntegerField(source='threshold.cpu_min')
     end_date = serializers.DateTimeField(allow_null=True)
     url = UUIDHyperlinkedIdentityField(
-        view_name='api:v2:imageversion-detail',
-        uuid_field='id'
+        view_name='api:v2:imageversion-detail', uuid_field='id'
     )
 
     def get_machines_for_user(self, obj):
@@ -65,42 +68,50 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
         """
         user = self.context['request'].user
 
-        filtered = obj.machines.filter(Q(instance_source__provider__active=True))
+        filtered = obj.machines.filter(
+            Q(instance_source__provider__active=True)
+        )
         if isinstance(user, AnonymousUser):
-            filtered = filtered.filter(Q(instance_source__provider__public=True))
+            filtered = filtered.filter(
+                Q(instance_source__provider__public=True)
+            )
         elif not user.is_staff:
-            filtered = filtered.filter(Q(instance_source__provider_id__in=user.provider_ids()))
+            filtered = filtered.filter(
+                Q(instance_source__provider_id__in=user.provider_ids())
+            )
         serializer = ProviderMachineSummarySerializer(
-           filtered,
-           context=self.context,
-           many=True)
+            filtered, context=self.context, many=True
+        )
         return serializer.data
 
     class Meta:
         model = ImageVersion
-        fields = ('id', 'url', 'parent', 'name', 'change_log',
-                  'image', 'machines', 'allow_imaging', 'doc_object_id',
-                  'licenses', 'membership', 'min_mem', 'min_cpu', 'scripts',
-                  'user', 'identity',
-                  'start_date', 'end_date')
+        fields = (
+            'id', 'url', 'parent', 'name', 'change_log', 'image', 'machines',
+            'allow_imaging', 'doc_object_id', 'licenses', 'membership',
+            'min_mem', 'min_cpu', 'scripts', 'user', 'identity', 'start_date',
+            'end_date'
+        )
 
     def update(self, instance, validated_data):
         if 'min_cpu' in self.initial_data or 'min_mem' in self.initial_data:
             self.update_threshold(instance, validated_data)
-        return super(ImageVersionSerializer, self).update(instance, validated_data)
+        return super(ImageVersionSerializer,
+                     self).update(instance, validated_data)
 
     def validate_min_cpu(self, value):
         if value < 0 or value > 16:
             raise serializers.ValidationError(
-                "Value of CPU must be between 1 & 16")
+                "Value of CPU must be between 1 & 16"
+            )
         return value
 
     def validate_min_mem(self, value):
         if value < 0 or value > 32 * 1024:
             raise serializers.ValidationError(
-                "Value of mem must be between 1 & 32 GB")
+                "Value of mem must be between 1 & 32 GB"
+            )
         return value
-
 
     def update_threshold(self, instance, validated_data):
         current_threshold = instance.get_threshold()
@@ -129,9 +140,12 @@ class ImageVersionSerializer(serializers.HyperlinkedModelSerializer):
             new_threshold = ApplicationThreshold.objects.create(
                 application_version=instance,
                 memory_min=new_mem_min,
-                cpu_min=new_cpu_min)
+                cpu_min=new_cpu_min
+            )
         else:
-            new_threshold = ApplicationThreshold.objects.get(application_version=instance)
+            new_threshold = ApplicationThreshold.objects.get(
+                application_version=instance
+            )
             new_threshold.memory_min = new_mem_min
             new_threshold.cpu_min = new_cpu_min
             new_threshold.save()

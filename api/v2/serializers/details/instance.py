@@ -6,13 +6,9 @@ from rest_framework import serializers
 from core.serializers.fields import ModelRelatedField
 from api.v2.serializers.details import AllocationSourceSerializer
 from api.v2.serializers.summaries import (
-    IdentitySummarySerializer,
-    UserSummarySerializer,
-    ProviderSummarySerializer,
-    SizeSummarySerializer,
-    ProjectSummarySerializer,
-    ImageVersionSummarySerializer,
-    BootScriptSummarySerializer
+    IdentitySummarySerializer, UserSummarySerializer, ProviderSummarySerializer,
+    SizeSummarySerializer, ProjectSummarySerializer,
+    ImageVersionSummarySerializer, BootScriptSummarySerializer
 )
 from api.v2.serializers.summaries.image import ImageSuperSummarySerializer
 from api.v2.serializers.fields.base import UUIDHyperlinkedIdentityField
@@ -27,13 +23,16 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
     project = ModelRelatedField(
         queryset=Project.objects.all(),
         serializer_class=ProjectSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
 
     scripts = ModelRelatedField(
-        many=True, required=False,
+        many=True,
+        required=False,
         queryset=BootScript.objects.all(),
         serializer_class=BootScriptSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
     size = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     ip_address = serializers.SerializerMethodField()
@@ -49,12 +48,14 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_allocation_source(self, instance):
         snapshot = InstanceAllocationSourceSnapshot.objects.filter(
-            instance=instance).first()
+            instance=instance
+        ).first()
         if not snapshot:
             return None
-        serializer = AllocationSourceSerializer(snapshot.allocation_source, context=self.context)
+        serializer = AllocationSourceSerializer(
+            snapshot.allocation_source, context=self.context
+        )
         return serializer.data
-
 
     def get_usage(self, instance):
         if not instance.allocation_source\
@@ -86,8 +87,8 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             return {}
         version = obj.source.providermachine.application_version
         serializer = ImageVersionSummarySerializer(
-            version,
-            context=self.context)
+            version, context=self.context
+        )
         return serializer.data
 
     class Meta:
@@ -108,7 +109,7 @@ class InstanceSerializer(serializers.HyperlinkedModelSerializer):
             'user',
             'provider',
             'image',
-            'version',  # NOTE:Should replace image?
+            'version',    # NOTE:Should replace image?
             'usage',
             'scripts',
             'project',

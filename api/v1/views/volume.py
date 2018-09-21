@@ -38,7 +38,6 @@ from api.v1.views.base import AuthAPIView
 
 
 class VolumeSnapshot(AuthAPIView):
-
     """
     Initialize and view volume snapshots.
     """
@@ -51,9 +50,7 @@ class VolumeSnapshot(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
@@ -64,14 +61,17 @@ class VolumeSnapshot(AuthAPIView):
             return invalid_creds(provider_uuid, identity_uuid)
         snapshot_data = []
         for ss in esh_snapshots:
-            snapshot_data.append({
-                'id': ss.id,
-                'name': ss.extra['name'],
-                'size': ss.size,
-                'description': ss.extra['description'],
-                'created': ss.extra['created'],
-                'status': ss.extra['status'],
-                'volume_id': ss.extra['volume_id'], })
+            snapshot_data.append(
+                {
+                    'id': ss.id,
+                    'name': ss.extra['name'],
+                    'size': ss.size,
+                    'description': ss.extra['description'],
+                    'created': ss.extra['created'],
+                    'status': ss.extra['status'],
+                    'volume_id': ss.extra['volume_id'],
+                }
+            )
 
         response = Response(snapshot_data)
         return response
@@ -100,9 +100,7 @@ class VolumeSnapshot(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         try:
@@ -112,10 +110,11 @@ class VolumeSnapshot(AuthAPIView):
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
         # TODO: Put quota tests at the TOP so we dont over-create resources!
         # STEP 1 - Reuse/Create snapshot
         if snapshot_id:
@@ -123,8 +122,8 @@ class VolumeSnapshot(AuthAPIView):
             if not snapshot:
                 return failure_response(
                     status.HTTP_400_BAD_REQUEST,
-                    "Snapshot %s not found. Process aborted."
-                    % snapshot_id)
+                    "Snapshot %s not found. Process aborted." % snapshot_id
+                )
         else:
             # Normal flow, create a snapshot from the volume
             if not esh_volume:
@@ -133,30 +132,42 @@ class VolumeSnapshot(AuthAPIView):
                 return failure_response(
                     status.HTTP_400_BAD_REQUEST,
                     "Volume status must be 'available'. "
-                    "Did you detach the volume?")
+                    "Did you detach the volume?"
+                )
 
             snapshot = esh_driver._connection.ex_create_snapshot(
-                esh_volume, display_name, description)
+                esh_volume, display_name, description
+            )
             if not snapshot:
                 return failure_response(
                     status.HTTP_400_BAD_REQUEST,
-                    "Snapshot not created. Process aborted.")
+                    "Snapshot not created. Process aborted."
+                )
         # STEP 2 - Create volume from snapshot
         try:
-            success, esh_volume = create_esh_volume(esh_driver, identity_uuid,
-                                                display_name, size,
-                                                description, metadata,
-                                                snapshot=snapshot)
+            success, esh_volume = create_esh_volume(
+                esh_driver,
+                identity_uuid,
+                display_name,
+                size,
+                description,
+                metadata,
+                snapshot=snapshot
+            )
             if not success:
                 return failure_response(
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    'Volume creation failed. Contact support')
+                    'Volume creation failed. Contact support'
+                )
             # Volume creation succeeded
-            core_volume = convert_esh_volume(esh_volume, provider_uuid,
-                                             identity_uuid, user)
+            core_volume = convert_esh_volume(
+                esh_volume, provider_uuid, identity_uuid, user
+            )
             serialized_data = VolumeSerializer(
-                core_volume,
-                context={'request': request}).data
+                core_volume, context={
+                    'request': request
+                }
+            ).data
             return Response(serialized_data, status=status.HTTP_201_CREATED)
         except OverQuotaError as oqe:
             return over_quota(oqe)
@@ -167,7 +178,6 @@ class VolumeSnapshot(AuthAPIView):
 
 
 class VolumeSnapshotDetail(AuthAPIView):
-
     """
     Details of specific volume on Identity.
     """
@@ -180,9 +190,7 @@ class VolumeSnapshotDetail(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         snapshot = esh_driver._connection.get_snapshot(snapshot_id)
@@ -202,13 +210,13 @@ class VolumeSnapshotDetail(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         if not can_use_snapshot(user, snapshot_id, leader_required=True):
-            return member_action_forbidden(user.username, "Snapshot", snapshot_id)
+            return member_action_forbidden(
+                user.username, "Snapshot", snapshot_id
+            )
         snapshot = esh_driver._connection.get_snapshot(snapshot_id)
         if not snapshot:
             return snapshot_not_found(snapshot_id)
@@ -221,7 +229,6 @@ class VolumeSnapshotDetail(AuthAPIView):
 
 
 class VolumeList(AuthAPIView):
-
     """
     List all volumes on Identity.
     """
@@ -236,9 +243,7 @@ class VolumeList(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
         volume_list_method = esh_driver.list_volumes
@@ -258,13 +263,16 @@ class VolumeList(AuthAPIView):
             logger.exception("Uncaught Exception in Volume list method")
             return failure_response(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
-                'Volume list method failed. Contact support')
+                'Volume list method failed. Contact support'
+            )
 
-        core_volume_list = [convert_esh_volume(volume, provider_uuid,
-                                               identity_uuid, user)
-                            for volume in esh_volume_list]
-        serializer = VolumeSerializer(core_volume_list,
-                                      context={'request': request}, many=True)
+        core_volume_list = [
+            convert_esh_volume(volume, provider_uuid, identity_uuid, user)
+            for volume in esh_volume_list
+        ]
+        serializer = VolumeSerializer(
+            core_volume_list, context={'request': request}, many=True
+        )
         response = Response(serializer.data)
         return response
 
@@ -275,20 +283,20 @@ class VolumeList(AuthAPIView):
         user = request.user
         try:
             IdentityMembership.objects.get(
-                identity__uuid=identity_uuid,
-                member__memberships__user=user)
+                identity__uuid=identity_uuid, member__memberships__user=user
+            )
         except:
             return failure_response(
                 status.HTTP_409_CONFLICT,
-                "Identity %s is invalid -OR- User %s does not have the appropriate IdentityMembership." % (identity_uuid, user))
+                "Identity %s is invalid -OR- User %s does not have the appropriate IdentityMembership."
+                % (identity_uuid, user)
+            )
         try:
             driver = prepare_driver(request, provider_uuid, identity_uuid)
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
         if not driver:
             return invalid_creds(provider_uuid, identity_uuid)
         data = request.data
@@ -309,7 +317,8 @@ class VolumeList(AuthAPIView):
                     status.HTTP_400_BAD_REQUEST,
                     "Volumes created from images cannot exceed "
                     "more than 4GB greater than the size of "
-                    "the image: %s GB" % image_size)
+                    "the image: %s GB" % image_size
+                )
         else:
             image = None
         snapshot_id = data.get('snapshot')
@@ -318,13 +327,22 @@ class VolumeList(AuthAPIView):
         else:
             snapshot = None
         try:
-            success, esh_volume = create_esh_volume(driver, user.username, identity_uuid,
-                                                name, size, description,
-                                                snapshot=snapshot, image=image)
+            success, esh_volume = create_esh_volume(
+                driver,
+                user.username,
+                identity_uuid,
+                name,
+                size,
+                description,
+                snapshot=snapshot,
+                image=image
+            )
         except BaseHTTPError as http_error:
             if 'Requested volume or snapshot exceed' in http_error.message:
                 return over_quota(http_error)
-            return failure_response(status.HTTP_400_BAD_REQUEST, http_error.message)
+            return failure_response(
+                status.HTTP_400_BAD_REQUEST, http_error.message
+            )
         except OverQuotaError as oqe:
             return over_quota(oqe)
         except ConnectionFailure:
@@ -336,17 +354,21 @@ class VolumeList(AuthAPIView):
         if not success:
             return failure_response(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
-                'Volume creation failed. Contact support')
+                'Volume creation failed. Contact support'
+            )
         # Volume creation succeeded
-        core_volume = convert_esh_volume(esh_volume, provider_uuid,
-                                         identity_uuid, user)
-        serialized_data = VolumeSerializer(core_volume,
-                                           context={'request': request}).data
+        core_volume = convert_esh_volume(
+            esh_volume, provider_uuid, identity_uuid, user
+        )
+        serialized_data = VolumeSerializer(
+            core_volume, context={
+                'request': request
+            }
+        ).data
         return Response(serialized_data, status=status.HTTP_201_CREATED)
 
 
 class Volume(AuthAPIView):
-
     """
     Details of specific volume on Identity.
     """
@@ -360,9 +382,7 @@ class Volume(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -373,24 +393,29 @@ class Volume(AuthAPIView):
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
         if not esh_volume:
             try:
                 source = InstanceSource.objects.get(
-                    identifier=volume_id,
-                    provider__uuid=provider_uuid)
+                    identifier=volume_id, provider__uuid=provider_uuid
+                )
                 source.end_date = datetime.now()
                 source.save()
             except (InstanceSource.DoesNotExist, CoreVolume.DoesNotExist):
                 pass
             return volume_not_found(volume_id)
-        core_volume = convert_esh_volume(esh_volume, provider_uuid,
-                                         identity_uuid, user)
-        serialized_data = VolumeSerializer(core_volume,
-                                           context={'request': request}).data
+        core_volume = convert_esh_volume(
+            esh_volume, provider_uuid, identity_uuid, user
+        )
+        serialized_data = VolumeSerializer(
+            core_volume, context={
+                'request': request
+            }
+        ).data
         response = Response(serialized_data)
         return response
 
@@ -406,9 +431,7 @@ class Volume(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -421,27 +444,28 @@ class Volume(AuthAPIView):
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
         if not esh_volume:
             return volume_not_found(volume_id)
-        core_volume = convert_esh_volume(esh_volume, provider_uuid,
-                                         identity_uuid, user)
-        serializer = VolumeSerializer(core_volume, data=data,
-                                      context={'request': request},
-                                      partial=True)
+        core_volume = convert_esh_volume(
+            esh_volume, provider_uuid, identity_uuid, user
+        )
+        serializer = VolumeSerializer(
+            core_volume, data=data, context={'request': request}, partial=True
+        )
         if serializer.is_valid():
             serializer.save()
-            _update_volume_metadata(
-                esh_driver, esh_volume, data)
+            _update_volume_metadata(esh_driver, esh_volume, data)
             response = Response(serializer.data)
             return response
         else:
             return failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                serializer.errors)
+                status.HTTP_400_BAD_REQUEST, serializer.errors
+            )
 
     def put(self, request, provider_uuid, identity_uuid, volume_id):
         """
@@ -456,9 +480,7 @@ class Volume(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -471,26 +493,26 @@ class Volume(AuthAPIView):
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
         if not esh_volume:
             return volume_not_found(volume_id)
-        core_volume = convert_esh_volume(esh_volume, provider_uuid,
-                                         identity_uuid, user)
-        serializer = VolumeSerializer(core_volume, data=data,
-                                      context={'request': request})
+        core_volume = convert_esh_volume(
+            esh_volume, provider_uuid, identity_uuid, user
+        )
+        serializer = VolumeSerializer(
+            core_volume, data=data, context={'request': request}
+        )
         if serializer.is_valid():
             serializer.save()
-            _update_volume_metadata(
-                esh_driver, esh_volume, data)
+            _update_volume_metadata(esh_driver, esh_volume, data)
             response = Response(serializer.data)
             return response
         else:
-            failure_response(
-                status.HTTP_400_BAD_REQUEST,
-                serializer.errors)
+            failure_response(status.HTTP_400_BAD_REQUEST, serializer.errors)
 
     def delete(self, request, provider_uuid, identity_uuid, volume_id):
         """
@@ -503,9 +525,7 @@ class Volume(AuthAPIView):
         except ProviderNotActive as pna:
             return inactive_provider(pna)
         except Exception as e:
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                e.message)
+            return failure_response(status.HTTP_409_CONFLICT, e.message)
 
         if not esh_driver:
             return invalid_creds(provider_uuid, identity_uuid)
@@ -516,27 +536,31 @@ class Volume(AuthAPIView):
         except LibcloudInvalidCredsError:
             return invalid_creds(provider_uuid, identity_uuid)
         except Exception as exc:
-            logger.exception("Encountered a generic exception. "
-                             "Returning 409-CONFLICT")
-            return failure_response(status.HTTP_409_CONFLICT,
-                                    str(exc.message))
+            logger.exception(
+                "Encountered a generic exception. "
+                "Returning 409-CONFLICT"
+            )
+            return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
         if not esh_volume:
             return volume_not_found(volume_id)
-        core_volume = convert_esh_volume(esh_volume, provider_uuid,
-                                         identity_uuid, user)
+        core_volume = convert_esh_volume(
+            esh_volume, provider_uuid, identity_uuid, user
+        )
         # Delete the object, update the DB
         esh_driver.destroy_volume(esh_volume)
         core_volume.end_date = now()
         core_volume.save()
         # Return the object
-        serialized_data = VolumeSerializer(core_volume,
-                                           context={'request': request}).data
+        serialized_data = VolumeSerializer(
+            core_volume, context={
+                'request': request
+            }
+        ).data
         response = Response(serialized_data)
         return response
 
 
 class BootVolume(AuthAPIView):
-
     """
     Launch an instance using this volume as the source
     """
@@ -564,20 +588,28 @@ class BootVolume(AuthAPIView):
             return failure_response(
                 status.HTTP_400_BAD_REQUEST,
                 'Source could not be acquired. Did you send: ['
-                'snapshot_id/volume_id/image_id] ?')
+                'snapshot_id/volume_id/image_id] ?'
+            )
         try:
             core_instance = create_bootable_volume(
-                request.user, provider_uuid, identity_uuid,
-                name, size_id, volume_id, source_hint=key_name,
-                **data)
+                request.user,
+                provider_uuid,
+                identity_uuid,
+                name,
+                size_id,
+                volume_id,
+                source_hint=key_name,
+                **data
+            )
         except Exception as exc:
             message = exc.message
-            return failure_response(
-                status.HTTP_409_CONFLICT,
-                message)
+            return failure_response(status.HTTP_409_CONFLICT, message)
 
-        serialized_data = InstanceSerializer(core_instance,
-                                             context={'request': request}).data
+        serialized_data = InstanceSerializer(
+            core_instance, context={
+                'request': request
+            }
+        ).data
         response = Response(serialized_data)
         return response
 
@@ -587,10 +619,12 @@ def valid_launch_data(data):
     Return any missing required post key names.
     """
     required = ['name', 'size']
-    return [key for key in required
-            # Key must exist and have a non-empty value.
-            if key not in data or
-            (isinstance(data[key], str) and len(data[key]) > 0)]
+    return [
+        key for key in required
+    # Key must exist and have a non-empty value.
+        if key not in data or
+        (isinstance(data[key], str) and len(data[key]) > 0)
+    ]
 
 
 def valid_snapshot_post_data(data):
@@ -598,10 +632,12 @@ def valid_snapshot_post_data(data):
     Return any missing required post key names.
     """
     required = ['display_name', 'volume_id', 'size']
-    return [key for key in required
-            # Key must exist and have a non-empty value.
-            if key not in data or
-            (isinstance(data[key], str) and len(data[key]) > 0)]
+    return [
+        key for key in required
+    # Key must exist and have a non-empty value.
+        if key not in data or
+        (isinstance(data[key], str) and len(data[key]) > 0)
+    ]
 
 
 def valid_volume_post_data(data):
@@ -609,34 +645,37 @@ def valid_volume_post_data(data):
     Return any missing required post key names.
     """
     required = ['name', 'size']
-    return [key for key in required
-            # Key must exist and have a non-empty value.
-            if key not in data or
-            (isinstance(data[key], str) and len(data[key]) > 0)]
+    return [
+        key for key in required
+    # Key must exist and have a non-empty value.
+        if key not in data or
+        (isinstance(data[key], str) and len(data[key]) > 0)
+    ]
 
 
 def keys_not_found(missing_keys):
     return failure_response(
         status.HTTP_400_BAD_REQUEST,
-        'Missing required POST datavariables : %s' % missing_keys)
+        'Missing required POST datavariables : %s' % missing_keys
+    )
 
 
 def snapshot_not_found(snapshot_id):
     return failure_response(
-        status.HTTP_404_NOT_FOUND,
-        'Snapshot %s does not exist' % snapshot_id)
+        status.HTTP_404_NOT_FOUND, 'Snapshot %s does not exist' % snapshot_id
+    )
 
 
 def volume_not_found(volume_id):
     return failure_response(
-        status.HTTP_404_NOT_FOUND,
-        'Volume %s does not exist' % volume_id)
+        status.HTTP_404_NOT_FOUND, 'Volume %s does not exist' % volume_id
+    )
 
 
 def over_quota(quota_exception):
     return failure_response(
-        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-        quota_exception.message)
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, quota_exception.message
+    )
 
 
 def can_use_volume(user, volume_id, leader_required=False):

@@ -15,8 +15,23 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ActiveAllocations',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('resource', models.CharField(default=b'Jetstream', max_length=255, verbose_name=b'Resource')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'resource',
+                    models.CharField(
+                        default=b'Jetstream',
+                        max_length=255,
+                        verbose_name=b'Resource'
+                    )
+                ),
             ],
             options={
                 'verbose_name': 'Active Allocations',
@@ -26,8 +41,23 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProjectsForUser',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('tacc_username', models.CharField(default=b'jlf599', max_length=255, verbose_name=b'TACC Username')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'tacc_username',
+                    models.CharField(
+                        default=b'jlf599',
+                        max_length=255,
+                        verbose_name=b'TACC Username'
+                    )
+                ),
             ],
             options={
                 'verbose_name': 'Projects for User',
@@ -37,8 +67,23 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ProjectsWithActiveAllocation',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('resource', models.CharField(default=b'Jetstream', max_length=255, verbose_name=b'Resource')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'resource',
+                    models.CharField(
+                        default=b'Jetstream',
+                        max_length=255,
+                        verbose_name=b'Resource'
+                    )
+                ),
             ],
             options={
                 'verbose_name': 'Projects with Active Allocation',
@@ -48,8 +93,21 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='TACCUserForXSEDEUsername',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('xsede_username', models.CharField(max_length=255, verbose_name=b'XSEDE Username')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'xsede_username',
+                    models.CharField(
+                        max_length=255, verbose_name=b'XSEDE Username'
+                    )
+                ),
             ],
             options={
                 'verbose_name': 'TACC User for XSEDE Username',
@@ -59,8 +117,23 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='UsersForProject',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('project_charge_code', models.CharField(default=b'TG-TRA160003', max_length=255, verbose_name=b'Project Charge Code')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID'
+                    )
+                ),
+                (
+                    'project_charge_code',
+                    models.CharField(
+                        default=b'TG-TRA160003',
+                        max_length=255,
+                        verbose_name=b'Project Charge Code'
+                    )
+                ),
             ],
             options={
                 'verbose_name': 'Users for Project',

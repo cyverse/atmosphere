@@ -7,7 +7,6 @@ from .user_factory import UserFactory
 
 
 class ProjectFactory(factory.DjangoModelFactory):
-
     class Meta:
         model = Project
 

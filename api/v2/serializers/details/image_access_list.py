@@ -6,7 +6,6 @@ from api.v2.serializers.fields import filter_current_user_queryset
 
 
 class ImageRelatedField(serializers.PrimaryKeyRelatedField):
-
     def get_queryset(self):
         return Image.objects.all()
 
@@ -18,22 +17,18 @@ class ImageRelatedField(serializers.PrimaryKeyRelatedField):
 
 class ImageAccessListSerializer(serializers.HyperlinkedModelSerializer):
     image = ImageRelatedField(
-        source='application',
-        queryset=Image.objects.none())
+        source='application', queryset=Image.objects.none()
+    )
     match = ModelRelatedField(
         source='patternmatch',
         queryset=filter_current_user_queryset,
         serializer_class=PatternMatchSummarySerializer,
-        style={'base_template': 'input.html'})
+        style={'base_template': 'input.html'}
+    )
     url = serializers.HyperlinkedIdentityField(
         view_name='api:v2:applicationaccesslist-detail',
     )
 
     class Meta:
         model = ApplicationPatternMatch
-        fields = (
-            'id',
-            'url',
-            'image',
-            'match'
-        )
+        fields = ('id', 'url', 'image', 'match')

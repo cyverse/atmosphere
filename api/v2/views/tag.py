@@ -10,7 +10,6 @@ from api.v2.views.mixins import MultipleFieldLookup
 
 
 class TagViewSet(MultipleFieldLookup, AuthOptionalViewSet):
-
     """
     API endpoint that allows tags to be viewed or edited.
     """
@@ -20,17 +19,24 @@ class TagViewSet(MultipleFieldLookup, AuthOptionalViewSet):
 
     def perform_create(self, serializer):
         same_name_tags = Tag.objects.filter(
-            name__iexact=serializer.validated_data.get("name"))
+            name__iexact=serializer.validated_data.get("name")
+        )
         if same_name_tags:
-            raise ValidationError("A tag with this name already exists: %s" %
-                                  same_name_tags.first().name)
+            raise ValidationError(
+                "A tag with this name already exists: %s" %
+                same_name_tags.first().name
+            )
         serializer.save(user=self.request.user)
 
     def get_permissions(self):
         if self.request.method is "":
-            self.permission_classes = (ApiAuthRequired,
-                                       InMaintenance,)
+            self.permission_classes = (
+                ApiAuthRequired,
+                InMaintenance,
+            )
         if self.request.method in ["PUT", "PATCH", "DELETE"]:
-            self.permission_classes = (CloudAdminRequired,
-                                       InMaintenance,)
+            self.permission_classes = (
+                CloudAdminRequired,
+                InMaintenance,
+            )
         return super(TagViewSet, self).get_permissions()

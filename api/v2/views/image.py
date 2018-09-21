@@ -8,7 +8,6 @@ from api.v2.views.mixins import MultipleFieldLookup
 
 from core.models import Application as Image
 
-
 #
 # The following imports and method and monkey patch are a quick fix for a big
 # problem.  The patch should be removed when the equivalent drf method does
@@ -17,7 +16,11 @@ from core.models import Application as Image
 #
 #   https://code.djangoproject.com/ticket/27303#comment:26
 #
-from django.utils import six; from django.db import models; import operator
+from django.utils import six
+from django.db import models
+import operator
+
+
 def filter_queryset(self, request, queryset, view):
     search_fields = getattr(view, 'search_fields', None)
     search_terms = self.get_search_terms(request)
@@ -33,14 +36,15 @@ def filter_queryset(self, request, queryset, view):
     conditions = []
     for search_term in search_terms:
         queries = [
-            models.Q(**{orm_lookup: search_term})
-            for orm_lookup in orm_lookups
+            models.Q(**{orm_lookup: search_term}) for orm_lookup in orm_lookups
         ]
         conditions.append(reduce(operator.or_, queries))
 
     return queryset.filter(reduce(operator.and_, conditions)).distinct()
 
+
 filters.SearchFilter.filter_queryset = filter_queryset
+
 
 class ImageFilter(filters.FilterSet):
     created_by = django_filters.CharFilter('created_by__username')
@@ -53,13 +57,17 @@ class ImageFilter(filters.FilterSet):
 
     class Meta:
         model = Image
-        fields = ['tag_name', 'project_id', 'created_by',
-                  'created_by__username', 'tags__name', 'projects__id']
+        fields = [
+            'tag_name', 'project_id', 'created_by', 'created_by__username',
+            'tags__name', 'projects__id'
+        ]
+
 
 class BookmarkedFilterBackend(filters.BaseFilterBackend):
     """
     Filter bookmarks when 'favorited' is set
     """
+
     def filter_queryset(self, request, queryset, view):
         request_user = request.user
         request_params = request.query_params
@@ -75,6 +83,7 @@ class FeaturedFilterBackend(filters.BaseFilterBackend):
     """
     Filter bookmarks when 'favorited' is set
     """
+
     def filter_queryset(self, request, queryset, view):
         request_params = request.query_params
         featured = request_params.get('featured')
@@ -86,24 +95,28 @@ class FeaturedFilterBackend(filters.BaseFilterBackend):
 
 
 class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
-
     """
     API endpoint that allows images to be viewed or edited.
     """
     lookup_fields = ("id", "uuid")
     http_method_names = ['get', 'put', 'patch', 'head', 'options', 'trace']
-    permission_classes = (permissions.InMaintenance,
-                          permissions.ApiAuthOptional,
-                          permissions.CanEditOrReadOnly,
-                          permissions.ApplicationMemberOrReadOnly)
+    permission_classes = (
+        permissions.InMaintenance, permissions.ApiAuthOptional,
+        permissions.CanEditOrReadOnly, permissions.ApplicationMemberOrReadOnly
+    )
 
     serializer_class = ImageSerializer
-    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend, filters.SearchFilter, FeaturedFilterBackend, BookmarkedFilterBackend)
+    filter_backends = (
+        filters.OrderingFilter, filters.DjangoFilterBackend,
+        filters.SearchFilter, FeaturedFilterBackend, BookmarkedFilterBackend
+    )
     filter_class = ImageFilter
-    search_fields = ('id', 'name', 'versions__change_log', 'tags__name',
-                     'tags__description', 'created_by__username',
-                     'versions__machines__instance_source__identifier',
-                     'versions__machines__instance_source__provider__location')
+    search_fields = (
+        'id', 'name', 'versions__change_log', 'tags__name', 'tags__description',
+        'created_by__username',
+        'versions__machines__instance_source__identifier',
+        'versions__machines__instance_source__provider__location'
+    )
     ordering = ('-end_date', '-start_date')
 
     def get_queryset(self):

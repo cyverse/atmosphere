@@ -13,7 +13,6 @@ from api.v1.views.base import AuthAPIView
 
 
 class GroupList(AuthAPIView):
-
     """
     Every User is assigned to a Group of their own name initially. This
     'usergroup' is then in charge of all the identities, providers, instances,
@@ -45,7 +44,9 @@ class GroupList(AuthAPIView):
         Authentication Required, A list of all the user's groups.
         """
         user = request.user
-        all_memberships = user.memberships.select_related('group').order_by('group__name')
+        all_memberships = user.memberships.select_related('group').order_by(
+            'group__name'
+        )
         all_groups = [member.group for member in all_memberships]
         serialized_data = GroupSerializer(all_groups).data
         response = Response(serialized_data)
@@ -53,7 +54,6 @@ class GroupList(AuthAPIView):
 
 
 class Group(AuthAPIView):
-
     """
     Every User is assigned to a Group of their own name initially. This
     'usergroup' is then in charge of all the identities, providers, instances,
