@@ -24,7 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-1...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-2...HEAD) - YYYY-MM-DD
+## [v34-2](https://github.com/cyverse/atmosphere/compare/v34-1...v34-2) - 2018-09-21
 ### Fixed
   - Several issues in the TACC_API_TIMEOUT implementation prevented the
     desired behavior of offline (no access to tas) user validation
