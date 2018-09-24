@@ -25,6 +25,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-2...HEAD) - YYYY-MM-DD
+### Changed
+  - Upgrade to rtwo version 0.5.24 to get more defensive pagination logic
+    ([#680](https://github.com/cyverse/atmosphere/pull/680))
+
 ## [v34-2](https://github.com/cyverse/atmosphere/compare/v34-1...v34-2) - 2018-09-21
 ### Fixed
   - Several issues in the TACC_API_TIMEOUT implementation prevented the
