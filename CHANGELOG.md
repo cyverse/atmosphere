@@ -25,6 +25,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-3...HEAD) - YYYY-MM-DD
+### Fixed
+  - Fix un-registered service tasks
+    ([#683](https://github.com/cyverse/atmosphere/pull/683))
+
 ## [v34-3](https://github.com/cyverse/atmosphere/compare/v34-2...v34-3) - 2018-09-24
 ### Changed
   - Upgrade to rtwo version 0.5.24 to get more defensive pagination logic
