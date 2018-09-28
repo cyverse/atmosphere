@@ -451,29 +451,6 @@ def restore_ip_chain(
     return init_task
 
 
-def admin_capacity_check(provider_uuid, instance_id):
-    from service.driver import get_admin_driver
-    from core.models import Provider
-    p = Provider.objects.get(uuid=provider_uuid)
-    admin_driver = get_admin_driver(p)
-    instance = admin_driver.get_instance(instance_id)
-    if not instance:
-        logger.warn("ERROR - Could not find instance id=%s" % (instance_id, ))
-        return
-    hypervisor_hostname = instance.extra['object']\
-        .get('OS-EXT-SRV-ATTR:hypervisor_hostname')
-    if not hypervisor_hostname:
-        logger.warn(
-            "ERROR - Server Attribute hypervisor_hostname missing!"
-            "Assumed to be under capacity"
-        )
-        return
-    hypervisor_stats = admin_driver._connection.ex_detail_hypervisor_node(
-        hypervisor_hostname
-    )
-    return test_capacity(hypervisor_hostname, instance, hypervisor_stats)
-
-
 def test_capacity(hypervisor_hostname, instance, hypervisor_stats):
     """
     Test that the hypervisor has the capacity to bring an inactive instance
