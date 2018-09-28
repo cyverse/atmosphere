@@ -1,5 +1,4 @@
 import requests
-from requests.exceptions import ReadTimeout
 
 from django.conf import settings
 from memoize import memoize
@@ -9,37 +8,29 @@ from .exceptions import TASAPIException
 from threepio import logger
 
 
-def tacc_api_post(url, post_data, username=None, password=None):
+def tacc_api_post(url, post_data, username=None, password=None, timeout=None):
     if not username:
         username = settings.TACC_API_USER
     if not password:
         password = settings.TACC_API_PASS
     logger.debug('url: %s', url)
     # logger.debug("REQ BODY: %s" % post_data)
-    resp = requests.post(url, post_data, auth=(username, password))
+    resp = requests.post(
+        url, post_data, auth=(username, password), timeout=timeout
+    )
     logger.debug('resp.status_code: %s', resp.status_code)
     # logger.debug('resp.__dict__: %s', resp.__dict__)
     return resp
 
 
 @memoize(timeout=300)
-def tacc_api_get(url, username=None, password=None):
+def tacc_api_get(url, username=None, password=None, timeout=None):
     if not username:
         username = settings.TACC_API_USER
     if not password:
         password = settings.TACC_API_PASS
     logger.debug('url: %s', url)
-    try:
-        resp = requests.get(
-            url,
-            auth=(username, password),
-            timeout=settings.TACC_READ_API_TIMEOUT
-        )
-    except ReadTimeout:
-        raise TASAPIException(
-            "TAS API is taking too long to respond, we're timing out ({})".
-            format(url)
-        )
+    resp = requests.get(url, auth=(username, password), timeout=timeout)
     logger.debug('resp.status_code: %s', resp.status_code)
     # logger.debug('resp.__dict__: %s', resp.__dict__)
     if resp.status_code != 200:

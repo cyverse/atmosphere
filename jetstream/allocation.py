@@ -17,6 +17,7 @@ class TASAPIDriver(object):
     tacc_api = None
     tacc_username = None
     tacc_password = None
+    timeout = None
     allocation_list = []
     project_list = []
     user_project_list = []
@@ -27,7 +28,8 @@ class TASAPIDriver(object):
         tacc_api=None,
         tacc_username=None,
         tacc_password=None,
-        resource_name='Jetstream'
+        resource_name='Jetstream',
+        timeout=None
     ):
         if not tacc_api:
             tacc_api = settings.TACC_API_URL
@@ -39,6 +41,21 @@ class TASAPIDriver(object):
         self.tacc_username = tacc_username
         self.tacc_password = tacc_password
         self.resource_name = resource_name
+        self.timeout = timeout
+
+    def _tacc_api_get(self, url):
+        return tacc_api_get(
+            url, self.tacc_username, self.tacc_password, timeout=self.timeout
+        )
+
+    def _tacc_api_post(self, url, data):
+        return tacc_api_post(
+            url,
+            data,
+            self.tacc_username,
+            self.tacc_password,
+            timeout=self.timeout
+        )
 
     def clear_cache(self):
         self.user_project_list = []
@@ -113,9 +130,7 @@ class TASAPIDriver(object):
     def _xsede_to_tacc_username(self, xsede_username):
         path = '/v1/users/xsede/%s' % xsede_username
         url_match = self.tacc_api + path
-        resp, data = tacc_api_get(
-            url_match, self.tacc_username, self.tacc_password
-        )
+        resp, data = self._tacc_api_get(url_match)
         try:
             status = data.get('status')
             message = data.get('message')
@@ -159,9 +174,7 @@ class TASAPIDriver(object):
         path = '/v1/jobs'
         url_match = self.tacc_api + path
         # logger.debug("TAS_REQ: %s - POST - %s" % (url_match, post_data))
-        resp = tacc_api_post(
-            url_match, post_data, self.tacc_username, self.tacc_password
-        )
+        resp = self._tacc_api_post(url_match, post_data)
         # logger.debug("TAS_RESP: %s" % resp.__dict__)  # Overkill?
         try:
             data = resp.json()
@@ -223,9 +236,7 @@ class TASAPIDriver(object):
         path = '/v1/allocations/resource/%s' % self.resource_name
         allocations = {}
         url_match = self.tacc_api + path
-        resp, data = tacc_api_get(
-            url_match, self.tacc_username, self.tacc_password
-        )
+        resp, data = self._tacc_api_get(url_match)
         try:
             _validate_tas_data(data)
             allocations = data['result']
@@ -238,9 +249,7 @@ class TASAPIDriver(object):
         """
         path = '/v1/projects/resource/%s' % self.resource_name
         url_match = self.tacc_api + path
-        resp, data = tacc_api_get(
-            url_match, self.tacc_username, self.tacc_password
-        )
+        resp, data = self._tacc_api_get(url_match)
         try:
             _validate_tas_data(data)
             projects = data['result']
@@ -251,9 +260,7 @@ class TASAPIDriver(object):
     def get_project_users(self, project_id, raise_exception=True):
         path = '/v1/projects/%s/users' % project_id
         url_match = self.tacc_api + path
-        resp, data = tacc_api_get(
-            url_match, self.tacc_username, self.tacc_password
-        )
+        resp, data = self._tacc_api_get(url_match, )
         user_names = []
         try:
             _validate_tas_data(data)
@@ -277,9 +284,8 @@ class TASAPIDriver(object):
     ):
         path = '/v1/projects/username/%s' % username
         url_match = self.tacc_api + path
-        resp, data = tacc_api_get(
-            url_match, self.tacc_username, self.tacc_password
-        )
+
+        resp, data = self._tacc_api_get(url_match)
         user_allocations = []
         try:
             _validate_tas_data(data)
