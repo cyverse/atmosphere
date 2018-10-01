@@ -51,9 +51,9 @@ from service.licensing import _test_license
 from service.networking import get_topology_cls
 from service.exceptions import (
     OverAllocationError, AllocationBlacklistedError, OverQuotaError,
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
-    VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError,
-    ActionNotAllowed, InstanceDoesNotExist, InstanceLaunchConflict, Unauthorized
+    SizeNotAvailable, SecurityGroupNotCreated, VolumeAttachConflict,
+    VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
+    InstanceDoesNotExist, InstanceLaunchConflict, Unauthorized
 )
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
@@ -449,47 +449,6 @@ def restore_ip_chain(
         )
         fixed_ip_task.link(floating_ip_task)
     return init_task
-
-
-def test_capacity(hypervisor_hostname, instance, hypervisor_stats):
-    """
-    Test that the hypervisor has the capacity to bring an inactive instance
-    back online on the compute node
-    """
-    # CPU tests first (Most likely bottleneck)
-    cpu_total = hypervisor_stats['vcpus']
-    cpu_used = hypervisor_stats['vcpus_used']
-    cpu_needed = instance.size.cpu
-    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
-        % ("cpu", cpu_used, cpu_needed, cpu_total)
-    logger.debug(log_str)
-    if cpu_used + cpu_needed > cpu_total:
-        raise HypervisorCapacityError(
-            hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str
-        )
-
-    # ALL MEMORY VALUES IN MB
-    mem_total = hypervisor_stats['memory_mb']
-    mem_used = hypervisor_stats['memory_mb_used']
-    mem_needed = instance.size.ram
-    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
-        % ("mem", mem_used, mem_needed, mem_total)
-    logger.debug(log_str)
-    if mem_used + mem_needed > mem_total:
-        raise HypervisorCapacityError(
-            hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str
-        )
-
-    # ALL DISK VALUES IN GB
-    disk_total = hypervisor_stats['local_gb']
-    disk_used = hypervisor_stats['local_gb_used']
-    disk_needed = instance.size.disk + instance.size.ephemeral
-    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
-        % ("disk", disk_used, disk_needed, disk_total)
-    if disk_used + disk_needed > disk_total:
-        raise HypervisorCapacityError(
-            hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str
-        )
 
 
 def resume_instance(
