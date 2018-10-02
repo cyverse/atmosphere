@@ -35,6 +35,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Refactored email to make variables and methods used for sending emails
     easier to understand and use
     ([#665](https://github.com/cyverse/atmosphere/pull/665))
+  - Move tas timeout into driver, only apply timeout to an instance of a
+    driver ([#687](https://github.com/cyverse/atmosphere/pull/687))
 
 ### Removed
   - Removed dead code ([#689](https://github.com/cyverse/atmosphere/pull/689))
