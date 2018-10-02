@@ -51,9 +51,9 @@ from service.licensing import _test_license
 from service.networking import get_topology_cls
 from service.exceptions import (
     OverAllocationError, AllocationBlacklistedError, OverQuotaError,
-    SizeNotAvailable, HypervisorCapacityError, SecurityGroupNotCreated,
-    VolumeAttachConflict, VolumeDetachConflict, UnderThresholdError,
-    ActionNotAllowed, InstanceDoesNotExist, InstanceLaunchConflict, Unauthorized
+    SizeNotAvailable, SecurityGroupNotCreated, VolumeAttachConflict,
+    VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
+    InstanceDoesNotExist, InstanceLaunchConflict, Unauthorized
 )
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
@@ -451,70 +451,6 @@ def restore_ip_chain(
     return init_task
 
 
-def admin_capacity_check(provider_uuid, instance_id):
-    from service.driver import get_admin_driver
-    from core.models import Provider
-    p = Provider.objects.get(uuid=provider_uuid)
-    admin_driver = get_admin_driver(p)
-    instance = admin_driver.get_instance(instance_id)
-    if not instance:
-        logger.warn("ERROR - Could not find instance id=%s" % (instance_id, ))
-        return
-    hypervisor_hostname = instance.extra['object']\
-        .get('OS-EXT-SRV-ATTR:hypervisor_hostname')
-    if not hypervisor_hostname:
-        logger.warn(
-            "ERROR - Server Attribute hypervisor_hostname missing!"
-            "Assumed to be under capacity"
-        )
-        return
-    hypervisor_stats = admin_driver._connection.ex_detail_hypervisor_node(
-        hypervisor_hostname
-    )
-    return test_capacity(hypervisor_hostname, instance, hypervisor_stats)
-
-
-def test_capacity(hypervisor_hostname, instance, hypervisor_stats):
-    """
-    Test that the hypervisor has the capacity to bring an inactive instance
-    back online on the compute node
-    """
-    # CPU tests first (Most likely bottleneck)
-    cpu_total = hypervisor_stats['vcpus']
-    cpu_used = hypervisor_stats['vcpus_used']
-    cpu_needed = instance.size.cpu
-    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
-        % ("cpu", cpu_used, cpu_needed, cpu_total)
-    logger.debug(log_str)
-    if cpu_used + cpu_needed > cpu_total:
-        raise HypervisorCapacityError(
-            hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str
-        )
-
-    # ALL MEMORY VALUES IN MB
-    mem_total = hypervisor_stats['memory_mb']
-    mem_used = hypervisor_stats['memory_mb_used']
-    mem_needed = instance.size.ram
-    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
-        % ("mem", mem_used, mem_needed, mem_total)
-    logger.debug(log_str)
-    if mem_used + mem_needed > mem_total:
-        raise HypervisorCapacityError(
-            hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str
-        )
-
-    # ALL DISK VALUES IN GB
-    disk_total = hypervisor_stats['local_gb']
-    disk_used = hypervisor_stats['local_gb_used']
-    disk_needed = instance.size.disk + instance.size.ephemeral
-    log_str = "Resource:%s Used:%s Additional:%s Total:%s"\
-        % ("disk", disk_used, disk_needed, disk_total)
-    if disk_used + disk_needed > disk_total:
-        raise HypervisorCapacityError(
-            hypervisor_hostname, "Hypervisor is over-capacity. %s" % log_str
-        )
-
-
 def resume_instance(
     esh_driver,
     esh_instance,
@@ -598,7 +534,6 @@ def unshelve_instance(
     from service.tasks.driver import _update_status_log
     _permission_to_act(identity_uuid, "Unshelve")
     _update_status_log(esh_instance, "Unshelving Instance")
-    admin_capacity_check(provider_uuid, esh_instance.id)
     if restore_ip:
         restore_network(esh_driver, esh_instance, identity_uuid)
         deploy_task = restore_ip_chain(
