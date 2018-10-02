@@ -36,6 +36,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     easier to understand and use
     ([#665](https://github.com/cyverse/atmosphere/pull/665))
 
+### Removed
+  - Removed dead code ([#689](https://github.com/cyverse/atmosphere/pull/689))
+
 ### Fixed
   - Fix nginx gateway timeout on unshelve
     ([#686](https://github.com/cyverse/atmosphere/pull/686))
