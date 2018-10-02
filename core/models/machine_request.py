@@ -11,13 +11,12 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from core.models.user import AtmosphereUser as User
 
-from core.models.application import create_application, ApplicationThreshold
+from core.models.application import ApplicationThreshold
 from core.models.license import License
 from core.models.boot_script import BootScript
 from core.models.machine import ProviderMachine
 from core.models.node import NodeController
 from core.models.provider import Provider
-from core.models.identity import Identity
 from core.models.application_version import ApplicationVersion
 
 from atmosphere.settings import secrets
@@ -229,39 +228,6 @@ class MachineRequest(BaseRequest):
              self.start_date.strftime('%m%d%Y_%H%M%S'))
         return meta_name
 
-    def fix_metadata(self, im):
-        if not self.new_machine:
-            raise Exception(
-                "New machine missing from machine request. Cannot Fix."
-            )
-        (orig_managerCls, orig_creds, dest_managerCls,
-         dest_creds) = self.prepare_manager()
-        im = dest_managerCls(**dest_creds)
-        old_mach_id = self.instance.source.identifier
-        new_mach_id = self.new_machine.identifier
-        old_mach = im.get_image(old_mach_id)
-        if not old_mach:
-            raise Exception("Could not find old machine.. Cannot Fix.")
-        new_mach = im.get_image(new_mach_id)
-        if not old_mach:
-            raise Exception("Could not find new machine.. Cannot Fix.")
-        properties = new_mach.properties
-        previous_kernel = old_mach.properties.get('kernel_id')
-        previous_ramdisk = old_mach.properties.get('ramdisk_id')
-        if not previous_kernel or previous_ramdisk:
-            raise Exception(
-                "Kernel/Ramdisk information MISSING "
-                "from previous machine. "
-                "Fix NOT required"
-            )
-        properties.update(
-            {
-                'kernel_id': previous_kernel,
-                'ramdisk_id': previous_ramdisk
-            }
-        )
-        im.update_image(new_mach, properties=properties)
-
     def old_provider(self):
         return self.instance.source.provider
 
@@ -337,11 +303,6 @@ class MachineRequest(BaseRequest):
             new_creds['domain_name'] = 'default'
 
         return (old_creds, new_creds)
-
-    def on_update_status(self, latest_update):
-        self.old_status = "(imaging) %s" % latest_update
-        logger.info("Status update: %s" % self.old_status)
-        self.save()
 
     def prepare_manager(self):
         """
@@ -535,50 +496,3 @@ def _match_membership_to_access(access_list, membership):
     query_list = reduce(lambda qry1, qry2: qry1 | qry2, query_list)
     members = Group.objects.filter(query_list)
     return members | membership.all()
-
-
-def _create_new_application(machine_request, new_image_id, tags=[]):
-    new_provider = machine_request.new_machine_provider
-    user = machine_request.new_machine_owner
-    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
-    # This is a brand new app and a brand new providermachine
-    new_app = create_application(
-        new_provider.id,
-        new_image_id,
-        machine_request.new_application_name,
-        owner_ident,
-    # new_app.Private = False when machine_request.is_public = True
-        not machine_request.is_public(),
-        machine_request.new_machine_version,
-        machine_request.new_machine_description,
-        tags
-    )
-    return new_app
-
-
-def _update_parent_application(machine_request, new_image_id, tags=[]):
-    parent_app = machine_request.instance.source.providermachine.application
-    return _update_application(parent_app, machine_request, tags=tags)
-
-
-def _update_application(application, machine_request, tags=[]):
-    if application.name is not machine_request.new_application_name:
-        application.name = machine_request.new_application_name
-    if machine_request.new_machine_description:
-        application.description = machine_request.new_machine_description
-    application.private = not machine_request.is_public()
-    application.tags = tags
-    application.save()
-    return application
-
-
-def _update_existing_machine(machine_request, application, provider_machine):
-    new_provider = machine_request.new_machine_provider
-    user = machine_request.new_machine_owner
-    owner_ident = Identity.objects.get(created_by=user, provider=new_provider)
-
-    provider_machine.application = application
-    provider_machine.version = machine_request.new_machine_version
-    provider_machine.created_by = user
-    provider_machine.created_by_identity = owner_ident
-    provider_machine.save()

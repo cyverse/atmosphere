@@ -4,7 +4,6 @@ from core.exceptions import ProviderNotActive
 from core.models import AtmosphereUser as User
 from core.models.identity import Identity as CoreIdentity
 from core.models.provider import Provider as CoreProvider
-from core.models.size import convert_esh_size
 
 from threepio import logger
 
@@ -17,7 +16,6 @@ from rtwo.driver import AWSDriver, EucaDriver, OSDriver
 from rtwo.drivers.openstack_network import NetworkManager
 from rtwo.drivers.common import _connect_to_keystone_v3, _token_to_keystone_scoped_project
 from service.mock import AtmosphereMockDriver
-from service.exceptions import ServiceException
 
 
 class AtmosphereNetworkManager(NetworkManager):
@@ -65,41 +63,12 @@ EucaProvider.set_meta()
 AWSProvider.set_meta()
 OSProvider.set_meta()
 
-from libcloud.compute.types import Provider
-from libcloud.compute.providers import get_driver as fetch_driver
-
 PROVIDER_DEFAULTS = {
     "openstack": {
         "secure": False,
         "ex_force_auth_version": "2.0_password"
     }
 }
-
-
-def create_libcloud_driver(identity, provider_type=Provider.OPENSTACK):
-    provider = identity.provider
-    # Fetch classes to construct driver and default options
-    driver_class = fetch_driver(provider_type)
-    options = PROVIDER_DEFAULTS[provider_type]
-
-    # check that the provider is active
-    if not provider.is_active():
-        raise ServiceException(
-            "Provider %s is NOT active. Driver not created." % (provider, )
-        )
-
-    creds = provider.get_credentials()
-    # TODO: The auth_url and region region_name key should be updated to
-    # map directly.
-    if provider_type == Provider.OPENSTACK:
-        creds['ex_force_auth_url'] = creds.get('auth_url')
-        creds['ex_force_service_region'] = creds.get('region_name')
-
-    options.update(identity.get_credentials())
-    options.update(creds)
-
-    # Build driver
-    return driver_class(**options)
 
 
 def get_hypervisor_statistics(admin_driver):
@@ -295,15 +264,3 @@ def _retrieve_source(esh_driver, new_source_alias, source_hint=None):
         )
     else:
         raise Exception("No Source found for Identifier %s" % (source_hint, ))
-
-
-def get_occupancy(core_provider):
-    admin_driver = get_admin_driver(core_provider)
-    if not admin_driver:
-        raise Exception("The driver cannot be retrieved for this provider.")
-    meta_driver = admin_driver.meta(admin_driver=admin_driver)
-    esh_size_list = meta_driver.occupancy()
-    core_size_list = [
-        convert_esh_size(size, core_provider.uuid) for size in esh_size_list
-    ]
-    return core_size_list

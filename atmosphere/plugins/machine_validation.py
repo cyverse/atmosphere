@@ -115,36 +115,6 @@ class MachineValidationPlugin(object):
             return False
         return True
 
-    def _machine_in_same_domain(self, cloud_machine):
-        """
-        If we wanted to support 'domain-restrictions' *inside* of atmosphere,
-        we could verify the domain of the image owner. If their domain does not match, skip.
-        """
-        project_id = cloud_machine.get('owner')
-        owner_project = self.account_driver.get_project_by_id(project_id)
-        if not owner_project:
-            logger.info(
-                "Skipping cloud machine %s, No owner listed.", cloud_machine
-            )
-            return False
-        domain_id = owner_project.domain_id
-        config_domain = self.account_driver.get_config(
-            'user', 'domain', 'default'
-        )
-        owner_domain = self.account_driver.openstack_sdk.identity.get_domain(
-            domain_id
-        )
-        account_domain = self.account_driver.openstack_sdk.identity.get_domain(
-            config_domain
-        )
-        if owner_domain.id != account_domain.id:
-            logger.info(
-                "Cloud machine %s - owner domain (%s) does not match %s",
-                cloud_machine, owner_domain, account_domain
-            )
-            return False
-        return True
-
 
 class BasicValidation(MachineValidationPlugin):
     """

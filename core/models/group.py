@@ -87,12 +87,6 @@ class Group(DjangoGroup):
     def current_identity_memberships(self):
         return self.identity_memberships.filter(only_active_memberships())
 
-    @staticmethod
-    def for_identity(identity_uuid):
-        return Group.objects.filter(
-            identity_memberships__identity__uuid=identity_uuid
-        )
-
     @property
     def current_identities(self):
         return Identity.shared_with_group(self).filter(only_current_provider())
@@ -101,20 +95,6 @@ class Group(DjangoGroup):
     def current_providers(self):
         return Provider.shared_with_group(self).filter(
             only_current(), active=True
-        )
-
-    @classmethod
-    def check_membership(cls, test_user, membership_groups):
-        """
-        PARAMS:
-          test_user - DjangoUser to be tested
-          membership_groups - List of groups allowed membership to... Something.
-        RETURNS:
-          True/False - If any of the users groups grants membership access.
-        """
-        return any(
-            membership.group for membership in test_user.memberships.all()
-            if membership.group in membership_groups
         )
 
     @classmethod
@@ -180,14 +160,6 @@ class IdentityMembership(models.Model):
     identity = models.ForeignKey(Identity, related_name='identity_memberships')
     member = models.ForeignKey(Group, related_name='identity_memberships')
     end_date = models.DateTimeField(null=True, blank=True)
-
-    @classmethod
-    def get_membership_for(cls, groupname):
-        try:
-            group = Group.objects.get(name=groupname)
-        except Group.DoesNotExist:
-            logger.warn("Group %s does not exist" % groupname)
-        return IdentityMembership.objects.filter(member=group)
 
     @property
     def quota(self):

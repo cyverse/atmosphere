@@ -540,25 +540,6 @@ class AccountDriver(BaseAccountDriver):
             username, password, project.name, security_group_name, rules_list
         )
 
-    def add_rules_to_security_groups(
-        self, core_identity_list, security_group_name, rules_list
-    ):
-        for identity in core_identity_list:
-            creds = self.parse_identity(identity)
-            sec_group = self.user_manager.find_security_group(
-                creds["username"], creds["password"], creds["tenant_name"],
-                security_group_name
-            )
-            if not sec_group:
-                raise Exception(
-                    "No security gruop found matching name %s" %
-                    security_group_name
-                )
-            self.user_manager.add_security_group_rules(
-                creds["username"], creds["password"], creds["tenant_name"],
-                security_group_name, rules_list
-            )
-
     def get_or_create_keypair(
         self, username, password, project_name, keyname, public_key
     ):
@@ -669,21 +650,6 @@ class AccountDriver(BaseAccountDriver):
         logger.info("Added Cloud Access: %s-%s" % (glance_image, project_name))
         return project
 
-    def rebuild_security_groups(self, core_identity, rules_list=None):
-        creds = self.parse_identity(core_identity)
-        if not rules_list:
-            rules_list = self.get_config(
-                'network', 'default_security_rules', DEFAULT_RULES
-            )
-        return self.user_manager.build_security_group(
-            creds["username"],
-            creds["password"],
-            creds["tenant_name"],
-            creds["tenant_name"],
-            rules_list,
-            rebuild=True
-        )
-
     def parse_identity(self, core_identity):
         identity_creds = self._libcloud_to_openstack(
             core_identity.get_credentials()
@@ -747,10 +713,6 @@ class AccountDriver(BaseAccountDriver):
         # Return the identity
         return identity
 
-    def rebuild_project_network(self, identity, delete_options={}):
-        self.delete_user_network(identity, delete_options)
-        return self.create_user_network(identity)
-
     def delete_security_group(self, identity):
         identity_creds = self.parse_identity(identity)
         project_name = identity_creds["tenant_name"]
@@ -812,36 +774,6 @@ class AccountDriver(BaseAccountDriver):
         )
         skip_network = options.get("skip_network", False)
         return network_strategy.delete(skip_network=skip_network)
-
-    def find_user_network(self, identity):
-        """
-        1. Look at the provider for network topology hints
-        2. If no network topology exists, use the "Default network" settings.
-        3. Create network based on topology
-        """
-        # Prepare args
-
-        identity_creds = self.parse_identity(identity)
-        project_name = identity_creds["tenant_name"]
-        network = self.network_manager.find_network("%s-net" % project_name)
-        # Use `network.name` from here
-        subnet = self.network_manager.find_subnet("%s-subnet" % project_name)
-        router = self.network_manager.find_router("%s-router" % project_name)
-        # gateway = self.network_manager.find_router_gateway(
-        #     "%s-router" % project_name)
-        interface = None
-        if router and subnet:
-            interface = self.network_manager.find_router_interface(
-                router[0], subnet[0]
-            )
-        network_resources = {
-            'network': network,
-            'subnet': subnet,
-            'router': router,
-        #'gateway': gateway,
-            'interface': interface,
-        }
-        return network_resources
 
     def create_user_network(self, identity):
         """
@@ -1057,12 +989,6 @@ class AccountDriver(BaseAccountDriver):
         all_images = self.image_manager.list_images(**kwargs)
         return all_images
 
-    def list_all_snapshots(self, **kwargs):
-        return [
-            img for img in self.list_all_images(**kwargs)
-            if 'snapshot' in img.get('image_type', 'image').lower()
-        ]
-
     def get_project_by_id(self, project_id):
         return self.user_manager.get_project_by_id(project_id)
 
@@ -1070,11 +996,6 @@ class AccountDriver(BaseAccountDriver):
         if self.identity_version > 2:
             kwargs = self._parse_domain_kwargs(kwargs)
         return self.user_manager.get_project(project_name, **kwargs)
-
-    def _make_tenant_id_map(self):
-        all_projects = self.list_projects()
-        tenant_id_map = {project.id: project.name for project in all_projects}
-        return tenant_id_map
 
     def create_trust(
         self,
@@ -1139,13 +1060,6 @@ class AccountDriver(BaseAccountDriver):
         )
         return new_trust
 
-    def list_trusts(self):
-        return [t for t in self.openstack_sdk.identity.trusts()]
-
-    def clear_local_cache(self):
-        logger.info("Clearing the cached project-list")
-        self.project_list = []
-
     def list_projects(self, force=False, **kwargs):
         """
         Cached to save time on repeat queries.. Otherwise its a pass-through to user_manager
@@ -1159,29 +1073,6 @@ class AccountDriver(BaseAccountDriver):
 
         logger.info("Returning cached copy of project list")
         return self.project_list
-
-    def list_roles(self, **kwargs):
-        """
-        Keystone already accepts 'domain_name' to restrict what roles to return
-        """
-        return self.user_manager.keystone.roles.list(**kwargs)
-
-    def get_role(self, role_name_or_id, **list_kwargs):
-        if self.identity_version > 2:
-            list_kwargs = self._parse_domain_kwargs(list_kwargs)
-        role_list = self.list_roles(**list_kwargs)
-        found_roles = [
-            role for role in role_list
-            if role.id == role_name_or_id or role.name == role_name_or_id
-        ]
-        if not found_roles:
-            return None
-        if len(found_roles) > 1:
-            raise Exception(
-                "role name/id %s matched more than one value -- Fix the code" %
-                (role_name_or_id, )
-            )
-        return found_roles[0]
 
     def get_user(self, user_name_or_id, **list_kwargs):
         user_list = self.list_users(**list_kwargs)
@@ -1297,26 +1188,6 @@ class AccountDriver(BaseAccountDriver):
         )
         quota_obj = server_resp.object
         return quota_obj
-
-    def list_usergroup_names(self):
-        return [user.name for (user, project) in self.list_usergroups()]
-
-    def list_usergroups(self):
-        """
-        TODO: This function is AWFUL just scrap it.
-        """
-        users = self.list_users()
-        groups = self.list_projects()
-        usergroups = []
-        admin_usernames = self.core_provider.list_admin_names()
-        for group in groups:
-            for user in users:
-                if user.name in admin_usernames:
-                    continue
-                if user.name in group.name:
-                    usergroups.append((user, group))
-                    break
-        return usergroups
 
     def _get_horizon_url(self, tenant_id):
         parsed_url = urlparse(self.provider_creds["auth_url"])
@@ -1469,26 +1340,6 @@ class AccountDriver(BaseAccountDriver):
         credentials["password"] = credentials.pop("secret")
         credentials["tenant_name"] = self.get_tenant_name(credentials)
         return credentials
-
-    def _base_network_creds(self):
-        """
-        These credentials should be used when another user/pass/tenant
-        combination will be used
-        NOTE: JETSTREAM auth_url to be '/v3'
-        """
-        net_args = self.provider_creds.copy()
-        # NOTE: The neutron 'auth_url' is the ADMIN_URL
-        net_args['tenant_name'] = self.get_tenant_name(self.credentials)
-        net_args["auth_url"] = net_args.pop("admin_url")\
-            .replace("/tokens", "").replace('/v2.0', '').replace('/v3', '')
-        if self.identity_version == 3:
-            auth_prefix = '/v3'
-        elif self.identity_version == 2:
-            auth_prefix = '/v2.0'
-
-        if auth_prefix not in net_args['auth_url']:
-            net_args['auth_url'] += auth_prefix
-        return net_args
 
     def _build_network_creds(self, credentials):
         """

@@ -23,11 +23,6 @@ class AllocationSource(models.Model):
         )
         return AllocationSource.objects.filter(id__in=source_ids)
 
-    def get_instance_ids(self):
-        return self.instanceallocationsourcesnapshot_set.all().values_list(
-            'instance__provider_alias', flat=True
-        )
-
     def is_over_allocation(self, user=None):
         """Return whether the allocation source `compute_used` is over the `compute_allowed`.
 

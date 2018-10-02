@@ -113,17 +113,3 @@ def _create_from_cloud_size(esh_size, provider):
         mem=esh_size.ram,
     )
     return core_size
-
-
-def create_size(name, alias, cpu, mem, disk, root, provider_uuid):
-    provider = Provider.objects.get(uuid=provider_uuid)
-    size = Size.objects.create(
-        name=name,
-        alias=alias,
-        cpu=cpu,
-        mem=mem,
-        disk=disk,
-        root=root,
-        provider=provider
-    )
-    return size

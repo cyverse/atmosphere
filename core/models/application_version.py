@@ -239,19 +239,6 @@ def get_version_for_machine(provider_uuid, identifier, fuzzy=False):
         return None
 
 
-def get_app_version(app, version, created_by=None, created_by_identity=None):
-    try:
-        app_version = ApplicationVersion.objects.get(
-            name=version, application=app
-        )
-        return app_version
-    except ApplicationVersion.DoesNotExist:
-        app_version = create_app_version(
-            app, version, created_by, created_by_identity
-        )
-        return app_version
-
-
 def test_machine_in_version(app, version_name, new_machine_id):
     """
     Returns 'app_version' IF:
@@ -291,26 +278,6 @@ def create_unique_version(app, version, created_by, created_by_identity):
             if not version:
                 version = "1"
             version += ".0"
-
-
-def merge_duplicated_app_versions(
-    master_version, copy_versions=[], delete_copies=True
-):
-    """
-    This function will merge together versions
-    that were created by the 'convert_esh_machine' process.
-    """
-    for version in copy_versions:
-        if master_version.name not in version.name:
-            continue
-        for machine in version.machines.all():
-            machine.application_version = master_version
-            machine.save()
-    if delete_copies:
-        for version in copy_versions:
-            if master_version.name not in version.name:
-                continue
-            version.delete()
 
 
 def create_app_version(

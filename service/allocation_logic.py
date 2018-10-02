@@ -334,20 +334,3 @@ def write_csv(data):
                     row['duration'], row['applicable_duration']
                 )
             )
-
-
-def get_instance_burn_rate_from_row(row):
-    burn_rate = 0
-    is_active = row['instance_status'] == 'active'
-    if is_active:
-        no_end_date = not row['instance_status_end_date']
-        ends_after_report_end = row['instance_status_end_date'] >= row[
-            'report_end_date']
-        starts_before_report_end = row['instance_status_start_date'] < row[
-            'report_end_date']
-        is_running_at_report_end = no_end_date or (
-            starts_before_report_end and ends_after_report_end
-        )
-        if is_running_at_report_end:
-            burn_rate = row['cpu']
-    return burn_rate

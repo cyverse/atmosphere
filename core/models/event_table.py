@@ -51,16 +51,6 @@ class EventTable(models.Model):
         app_label = "core"
 
 
-# Save hooks
-def listen_for_changes(sender, instance, created, **kwargs):
-    """
-    Ideally, this would be the master listener. On each save, it could contact all listeners and send them the payload.
-
-    For now, it will do nothing.
-    """
-    return None
-
-
 # Instantiate the hooks:
 post_save.connect(listen_for_allocation_threshold_met, sender=EventTable)
 post_save.connect(listen_for_instance_allocation_changes, sender=EventTable)

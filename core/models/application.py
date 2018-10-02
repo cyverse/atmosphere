@@ -1,6 +1,4 @@
 from uuid import uuid4, uuid5
-from hashlib import md5
-
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import AnonymousUser
@@ -116,13 +114,6 @@ class Application(models.Model):
             ]
 
     @classmethod
-    def public_apps(cls):
-        public_images = Application.objects.filter(
-            query.only_current_apps(), private=False
-        )
-        return public_images
-
-    @classmethod
     def shared_with(cls, user):
         group_ids = user.group_ids()
         shared_images = Application.objects.filter(
@@ -148,18 +139,6 @@ class Application(models.Model):
         return Application.objects.filter(
             membership_query | project_query | ownership_query
         ).distinct()
-
-    @classmethod
-    def admin_apps(cls, user):
-        """
-        Just give staff the ability to launch everything that isn't end-dated.
-        """
-        provider_ids = user.provider_ids()
-        admin_images = Application.objects.filter(
-            query.only_current(),
-            versions__machines__instance_source__provider__id__in=provider_ids
-        )
-        return admin_images
 
     @classmethod
     def images_for_user(cls, user=None):
@@ -199,16 +178,6 @@ class Application(models.Model):
             )
         return queryset.distinct()
 
-    def _current_versions(self):
-        """
-        Return a list of current application versions.
-        NOTE: Defined as:
-                * The ApplicationVersion has not exceeded its end_date
-        """
-        version_set = self.all_versions
-        active_versions = version_set.filter(query.only_current())
-        return active_versions
-
     def _current_machines(self, request_user=None):
         """
         Return a list of current provider machines.
@@ -240,14 +209,6 @@ class Application(models.Model):
         ).order_by('instance_source__start_date').first()
         return first
 
-    def last_machine(self):
-        providermachine_set = self.all_machines
-        # Out of all non-end dated machines in this application
-        last = providermachine_set.filter(
-            query.only_current_source()
-        ).order_by('instance_source__start_date').last()
-        return last
-
     def get_projects(self, user):
         projects = self.projects.filter(query.only_current(), owner=user)
         return projects
@@ -256,36 +217,8 @@ class Application(models.Model):
         for pm in self._current_machines():
             pm.update_image(**updates)
 
-    def update_owners(self, owners_list):
-        """
-        Update the list of people allowed to view the image
-        """
-        pass
-
-    def update_privacy(self, is_private):
-        """
-        Applications deal with 'private' as being true,
-        NOTE: Images commonly use the 'is_public' field,
-        so the value must be flipped internally.
-        """
-        is_public = not is_private
-        self.update_images(visibility='public' if is_public else 'shared')
-        self.private = is_private
-        self.save()
-
     def featured(self):
         return True if self.tags.filter(name__iexact='featured') else False
-
-    def is_bookmarked(self, request_user):
-        from core.models import AtmosphereUser
-        if isinstance(request_user, str):
-            request_user = AtmosphereUser.objects.get(username=request_user)
-        if isinstance(request_user, AnonymousUser):
-            return False
-        user_bookmarks = [
-            bookmark.application for bookmark in request_user.bookmarks.all()
-        ]
-        return self in user_bookmarks
 
     def get_members(self):
         members = list(self.applicationmembership_set.all())
@@ -293,22 +226,8 @@ class Application(models.Model):
             members.extend(provider_machine.providermachinemembership_set.all())
         return members
 
-    def get_scores(self):
-        (ups, downs, total) = ApplicationScore.get_scores(self)
-        return {"up": ups, "down": downs, "total": total}
-
     def icon_url(self):
         return self.icon.url if self.icon else None
-
-    def hash_uuid(self):
-        """
-        MD5 hash for icons
-        """
-        return md5(self.uuid).hexdigest()
-
-    def get_provider_machines(self):
-        pms = self._current_machines()
-        return [pm.to_dict() for pm in pms]
 
     def save(self, *args, **kwargs):
         """
@@ -562,87 +481,6 @@ def create_application(
         for pattern_match in access_list:
             application.access_list.add(pattern_match)
     return application
-
-
-#FIXME: This class marked for removal
-class ApplicationScore(models.Model):
-    """
-    Users can Cast their "Score" -1/0/+1 on a specific Application.
-    -1 = Vote Down
-     0 = Vote Removed
-    +1 = Vote Up
-    """
-    application = models.ForeignKey(Application, related_name="scores")
-    score = models.IntegerField(default=0)
-    user = models.ForeignKey('AtmosphereUser')
-    start_date = models.DateTimeField(default=timezone.now)
-    end_date = models.DateTimeField(null=True, blank=True)
-
-    def get_vote_name(self):
-        if self.score > 0:
-            return "Up"
-        elif self.score < 0:
-            return "Down"
-        else:
-            return ""
-
-    class Meta:
-        db_table = 'application_score'
-        app_label = 'core'
-
-    @classmethod
-    def last_vote(cls, application, user):
-        votes_cast = ApplicationScore.objects.filter(
-            Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            application=application,
-            user=user
-        )
-        return votes_cast[0] if votes_cast else None
-
-    @classmethod
-    def get_scores(cls, application):
-        scores = ApplicationScore.objects.filter(
-            Q(end_date=None) | Q(end_date__gt=timezone.now()),
-            application=application
-        )
-        ups = downs = 0
-        for app_score in scores:
-            if app_score.score > 0:
-                ups += 1
-            elif app_score.score < 0:
-                downs += 1
-        total = len(scores)
-        return (ups, downs, total)
-
-    @classmethod
-    def downvote(cls, application, user):
-        prev_vote = cls.last_vote(application, user)
-        if prev_vote:
-            prev_vote.end_date = timezone.now()
-            prev_vote.save()
-        return ApplicationScore.objects.create(
-            application=application, user=user, score=-1
-        )
-
-    @classmethod
-    def novote(cls, application, user):
-        prev_vote = cls.last_vote(application, user)
-        if prev_vote:
-            prev_vote.end_date = timezone.now()
-            prev_vote.save()
-        return ApplicationScore.objects.create(
-            application=application, user=user, score=0
-        )
-
-    @classmethod
-    def upvote(cls, application, user):
-        prev_vote = cls.last_vote(application, user)
-        if prev_vote:
-            prev_vote.end_date = timezone.now()
-            prev_vote.save()
-        return ApplicationScore.objects.create(
-            application=application, user=user, score=1
-        )
 
 
 class ApplicationBookmark(models.Model):

@@ -26,7 +26,6 @@ ALL_NETWORKS = []
 ALL_SUBNETS = []
 ALL_ROUTERS = []
 ALL_PORTS = []
-ALL_IPS = []
 
 
 class AtmosphereMockNetworkManager(NetworkManager):
@@ -65,25 +64,11 @@ class AtmosphereMockNetworkManager(NetworkManager):
     def associate_floating_ip(self, server_id):
         return '0.0.0.0'
 
-    def create_port(self, server_id, network_id, **kwargs):
-        port = kwargs
-        self.all_ports.append(port)
-        return port
-
-    def find_server_ports(self, server_id):
-        return self.all_ports
-
     def list_floating_ips(self):
         return ['0.0.0.0']
 
     def rename_security_group(self, project, security_group_name=None):
         return True
-
-    def lc_list_networks(self, *args, **kwargs):
-        """
-        Call neutron list networks and convert to libcloud objects
-        """
-        return []
 
     def get_network(self, network_id):
         for net in self.all_networks:
@@ -95,15 +80,6 @@ class AtmosphereMockNetworkManager(NetworkManager):
         for subnet in self.all_subnets:
             if subnet_id == subnet['id']:
                 return subnet
-        return None
-
-    def get_port(self, port_id):
-        ports = self.all_ports
-        if not ports:
-            return []
-        for port in ports:
-            if port['id'] == port_id:
-                return port
         return None
 
     def list_networks(self, *args, **kwargs):
@@ -306,9 +282,6 @@ class AtmosphereMockDriver(MockDriver):
         Return the SizeClass representation of a libcloud NodeSize
         """
         return self.all_sizes
-
-    def list_locations(self, *args, **kwargs):
-        return []
 
     def create_instance(self, *args, **kwargs):
         """

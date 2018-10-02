@@ -68,24 +68,3 @@ class Credential(models.Model):
     class Meta:
         db_table = 'credential'
         app_label = 'core'
-
-
-def get_groups_using_credential(cred_key, cred_value, provider):
-    from threepio import logger
-    credentials_found = Credential.objects.filter(
-        key=cred_key, value=cred_value, identity__provider=provider
-    )
-    if not credentials_found:
-        print "No credentials found in the DB for provider %s with %s=%s"\
-              % (provider, cred_key, cred_value)
-        logger.debug(
-            "No credentials found in the DB for provider %s with %s=%s" %
-            (provider, cred_key, cred_value)
-        )
-        return []
-    all_affected_members = []
-    for cred in credentials_found:
-        affected_identity = cred.identity
-        affected_membership = affected_identity.identity_memberships.all()
-        all_affected_members.extend(affected_membership)
-    return all_affected_members

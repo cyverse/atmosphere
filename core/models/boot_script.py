@@ -119,22 +119,6 @@ def get_scripts_for_user(username):
     return BootScript.objects.filter(created_by__username=username)
 
 
-def get_scripts_for_application(application_uuid):
-    return BootScript.objects.filter(applications__uuid=application_uuid)
-
-
-def _save_scripts_to_application(application, boot_script_list):
-    # Empty when new, otherwise over-write all changes
-    old_scripts = application.scripts.all()
-    if old_scripts:
-        for old_script in old_scripts:
-            application.scripts.remove(old_script)
-    # Add all new scripts
-    for script_id in boot_script_list:
-        script = BootScript.objects.get(id=script_id)
-        script.applications.add(application)
-
-
 def _save_scripts_to_instance(instance, boot_script_list):
     # Empty when new, otherwise over-write all changes
     old_scripts = instance.scripts.all()

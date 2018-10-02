@@ -134,21 +134,6 @@ def wait_for_instance(
         wait_for_instance.retry(exc=exc)
 
 
-def _eager_override(task_class, run_method, args, kwargs):
-    attempts = 0
-    delay = task_class.default_retry_delay or 30    # Seconds
-    while attempts < task_class.max_retries:
-        try:
-            result = run_method(*args, **kwargs)
-            return result
-        except Exception:
-            celery_logger.exception("Encountered error while running eager")
-        attempts += 1
-        celery_logger.info("Waiting %d seconds" % delay)
-        time.sleep(delay)
-    return None
-
-
 def _is_instance_ready(
     instance,
     status_query,
@@ -1737,15 +1722,3 @@ def _select_port_id(network_driver, driver, instance):
         )
     port_id = active_fixed_ip_ports[0]['id']
     return port_id
-
-
-def _cleanup_traceback(err_str):
-    """
-    Given a Traceback message, return the 'human readable' response.
-    If unknown, return the full traceback to help staff trace down the error quickly.
-    """
-    if 'AnsibleDeployException' in err_str and 'inject_ssh_keys' in err_str:
-        err_str = "One or more SSH Keys could not be deployed to the instance. Please verify the public-key is correct."
-    elif 'NonZeroDeploymentException' in err_str:
-        err_str = err_str.partition("NonZeroDeploymentException:")[2].strip()
-    return err_str

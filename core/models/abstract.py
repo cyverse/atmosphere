@@ -8,7 +8,6 @@ from django.db import models
 from django.utils import timezone
 
 from core.exceptions import InvalidMembership, ProviderLimitExceeded
-from core.query import only_current
 from core.models.instance_source import InstanceSource
 from core.models.status_type import StatusType
 from core.models.user import AtmosphereUser as User
@@ -62,13 +61,6 @@ class BaseRequest(models.Model):
         super(BaseRequest, self).save(*args, **kwargs)
 
     @classmethod
-    def has_current_requests(cls, identity_membership):
-        """
-        Return if the object currently has non end-dated objects
-        """
-        return cls.objects.filter(only_current()).count() > 0
-
-    @classmethod
     def is_active(cls, identity_membership):
         """
         Return if a request is active for the identity_membership
@@ -76,13 +68,6 @@ class BaseRequest(models.Model):
         return cls.objects.filter(
             membership=identity_membership, status__name__in=UNRESOLVED_STATES
         ).count() > 0
-
-    @classmethod
-    def get_unresolved(cls):
-        """
-        Returns all requests that are currently in an unresolved state
-        """
-        return cls.objects.filter(status__name__in=UNRESOLVED_STATES)
 
     def is_closed(self):
         return self.status.name not in UNRESOLVED_STATES
@@ -147,32 +132,6 @@ class BaseSource(models.Model):
             "identifier": self.identifier,
             "provider_uuid": self.provider.uuid
         }
-
-
-class BaseHistory(models.Model):
-    """
-    Base model which is used to track changes in another model
-    """
-    CREATE = "CREATE"
-    UPDATE = "UPDATE"
-    DELETE = "DELETED"
-
-    OPERATIONS = (
-        (CREATE, "The field has been created."),
-        (UPDATE, "The field has been updated."),
-        (DELETE, "The field has been deleted."),
-    )
-
-    field_name = models.CharField(max_length=255)
-    operation = models.CharField(
-        max_length=255, choices=OPERATIONS, default=UPDATE
-    )
-    current_value = models.TextField()
-    previous_value = models.TextField()
-    timestamp = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        abstract = True
 
 
 class SingletonModel(models.Model):

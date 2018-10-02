@@ -408,26 +408,6 @@ def send_preemptive_deploy_failed_email(core_instance, message):
     return email_admin(subject, body, email_address_str(user_name, user_email))
 
 
-def send_deploy_failed_email(core_instance, exception_str):
-    """
-    Sends an email to the admins, who will verify the reason for the error.
-    """
-    user = core_instance.created_by
-    username, user_email, user_name = user_email_info(user.username)
-    context = {
-        "alias": core_instance.provider_alias,
-        "owner": user,
-        "user": user_name,
-        "email": user_email,
-        "ip": core_instance.ip_address,
-        "identifier": core_instance.source.providermachine.identifier,
-        "error": exception_str
-    }
-    body = render_to_string("core/email/deploy_failed.html", context=context)
-    subject = '(%s) Deploy Failed' % username
-    return email_admin(subject, body, email_address_str(user_name, user_email))
-
-
 def send_image_request_failed_email(machine_request, exception_str):
     """
     Sends an email to the admins, who will verify the reason for the error,
@@ -473,29 +453,6 @@ def send_image_request_email(user, new_machine, name):
     body = render_to_string("core/email/imaging_success.html", context=context)
     subject = 'Your Atmosphere Image is Complete'
     return email_from_admin(user.username, subject, body)
-
-
-def send_new_provider_email(username, identity):
-    if not identity:
-        raise Exception("Identity missing -- E-mail will not be sent")
-    provider_name = identity.provider.location
-    credential_list = identity.credential_set.all()
-    email_template = get_email_template()
-    subject = (
-        "Your %s Atmosphere account has been granted access "
-        "to the %s provider" % (settings.SITE_NAME, provider_name)
-    )
-    context = {
-        "new_provider_link": email_template.link_new_provider,
-        "support_email": email_template.email_address,
-        "support_email_header": email_template.email_header,
-        "support_email_footer": email_template.email_footer,
-        "user": username,
-        "provider": provider_name,
-        "credentials": credential_list,
-    }
-    body = render_to_string("core/email/provider_email.html", context=context)
-    return email_from_admin(username, subject, body, html=True)
 
 
 def requestImaging(request, machine_request_id, auto_approve=False):

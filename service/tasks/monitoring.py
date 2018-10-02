@@ -22,7 +22,6 @@ from core.models.machine_request import MachineRequest
 from core.models.application import Application, ApplicationMembership
 from core.models.allocation_source import AllocationSource
 from core.models.application_version import ApplicationVersion
-from core.models import Credential
 
 from service.machine import (
     update_db_membership_for_group, update_cloud_membership_for_machine,
@@ -431,52 +430,6 @@ def remove_machine(db_machine, now_time=None, dry_run=False):
     return True
 
 
-def make_machines_private(
-    application,
-    identities,
-    account_drivers={},
-    provider_tenant_mapping={},
-    image_maps={},
-    dry_run=False
-):
-    """
-    This method is called when the DB has marked the Machine/Application as PUBLIC
-    But the CLOUD states that the machine is really private.
-    GOAL: All versions and machines will be listed as PRIVATE on the cloud and include AS MANY identities as exist.
-    """
-    for version in application.active_versions():
-        for machine in version.active_machines():
-            # For each *active* machine in app/version..
-            # Loop over each identity and check the list of 'current tenants' as viewed by keystone.
-            account_driver = memoized_driver(machine, account_drivers)
-            tenant_name_mapping = memoized_tenant_name_map(
-                account_driver, provider_tenant_mapping
-            )
-            current_tenants = get_current_members(
-                account_driver, machine, tenant_name_mapping
-            )
-            provider = machine.instance_source.provider
-            cloud_machine = memoized_image(account_driver, machine, image_maps)
-            for identity in identities:
-                if identity.provider == provider:
-                    _share_image(
-                        account_driver,
-                        cloud_machine,
-                        identity,
-                        current_tenants,
-                        dry_run=dry_run
-                    )
-                    add_application_membership(
-                        application, identity, dry_run=dry_run
-                    )
-    # All the cloud work has been completed, so "lock down" the application.
-    if not application.private:
-        application.private = True
-        celery_logger.info("Making Application %s private" % application.name)
-        if not dry_run:
-            application.save()
-
-
 def memoized_image(account_driver, db_machine, image_maps={}):
     provider = db_machine.instance_source.provider
     identifier = db_machine.instance_source.identifier
@@ -544,86 +497,6 @@ def add_application_membership(application, identity, dry_run=False):
         else:
             #celery_logger.debug("SKIPPED _ Group %s already ApplicationMember for %s" % (group.name, application.name))
             pass
-
-
-def get_shared_identities(account_driver, cloud_machine, tenant_id_name_map):
-    """
-    INPUT: Provider, Cloud Machine (private), mapping of tenant_id to tenant_name
-    OUTPUT: List of identities that *include* the 'tenant name' credential matched to 'a shared user' in openstack.
-    """
-    from core.models import Identity
-    if hasattr(cloud_machine, 'id'):
-        image_id = cloud_machine.id
-    elif type(cloud_machine) == dict:
-        image_id = cloud_machine.get('id')
-    else:
-        raise ValueError("Unexpected cloud_machine: %s" % cloud_machine)
-
-    cloud_membership = account_driver.image_manager.shared_images_for(
-        image_id=image_id
-    )
-    # NOTE: the START type of 'all_identities' is list (in case no ValueListQuerySet is ever found)
-    all_identities = []
-    for cloud_machine_membership in cloud_membership:
-        tenant_id = cloud_machine_membership.member_id
-        tenant_name = tenant_id_name_map.get(tenant_id)
-        if not tenant_name:
-            celery_logger.warn(
-                "TENANT ID: %s NOT FOUND - %s" %
-                (tenant_id, cloud_machine_membership)
-            )
-            continue
-        # Find matching 'tenantName' credential and add all matching identities w/ that tenantName.
-        matching_creds = Credential.objects.filter(
-            key=
-            'ex_tenant_name',    # TODO: ex_project_name on next OStack update.
-            value=tenant_name,
-        # NOTE: re-add this line when not replicating clouds!
-        #identity__provider=account_driver.core_provider)
-        )
-        identity_ids = matching_creds.values_list('identity', flat=True)
-        if not all_identities:
-            all_identities = identity_ids
-        else:
-            all_identities = all_identities | identity_ids
-    identity_list = Identity.objects.filter(id__in=all_identities)
-    return identity_list
-
-
-def make_machines_public(application, account_drivers={}, dry_run=False):
-    """
-    This method is called when the DB has marked the Machine/Application as PRIVATE
-    But the CLOUD states that the machine is really public.
-    """
-    for version in application.active_versions():
-        for machine in version.active_machines():
-            account_driver = memoized_driver(machine, account_drivers)
-            try:
-                image = account_driver.image_manager.get_image(
-                    image_id=machine.identifier
-                )
-            except:    # Image not found
-                celery_logger.info(
-                    "Image not found on this provider: %s" % (machine)
-                )
-                continue
-
-            image_is_public = image.is_public if hasattr(
-                image, 'is_public'
-            ) else image.get('visibility', '') == 'public'
-            if image and not image_is_public:
-                celery_logger.info("Making Machine %s public" % image.id)
-                if not dry_run:
-                    account_driver.image_manager.glance.images.update(
-                        image.id, visibility='public'
-                    )
-    # Set top-level application to public (This will make all versions and PMs public too!)
-    application.private = False
-    celery_logger.info(
-        "Making Application %s:%s public" % (application.id, application.name)
-    )
-    if not dry_run:
-        application.save()
 
 
 @task(name="monitor_resources")

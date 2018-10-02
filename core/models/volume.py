@@ -270,7 +270,6 @@ class VolumeStatus(models.Model):
     UNKNOWN = "Unknown"
     INUSE = "in-use"
     ATTACHING = "attaching"
-    DETACHING = "detaching"
 
     def __unicode__(self):
         return "%s" % self.name

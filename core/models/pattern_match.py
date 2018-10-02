@@ -72,16 +72,3 @@ class PatternMatch(models.Model):
                 query = ~query
             queries.append(query)
         return AtmosphereUser.objects.filter(*queries)
-
-
-def create_pattern_match(pattern, pattern_type, created_by):
-    pattern_type = pattern_type.lower()
-    if "email" in pattern_type:
-        match_type = MatchType.objects.get(name="Email")
-    elif "user" in pattern_type:
-        match_type = MatchType.objects.get(name="Username")
-    else:
-        raise ValueError("Received invalid pattern_type: %s" % pattern_type)
-    pattern = PatternMatch(pattern=pattern, type=match_type)
-    pattern.save()
-    return pattern

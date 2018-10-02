@@ -125,31 +125,6 @@ class Instance(models.Model):
         else:
             return None
 
-    def show_history(self):
-        """
-        Starting from first known history, create a chain of known changes to the instance. Helpful for debugging/triage.
-        """
-        str_builder = ""
-        next_history = self.get_first_history()
-        while True:
-            if not next_history:
-                break
-            if str_builder != "":
-                str_builder += " -> "
-            str_builder += "%s on %s" % (
-                next_history.status.name,
-                next_history.start_date.strftime("%m/%d/%Y %H:%M:%S")
-            )
-            try:
-                next_history = next_history.next()
-            except (LookupError, ValueError):
-                next_history = None
-        if self.end_date:
-            str_builder += " -> destroyed on %s" % (
-                self.end_date.strftime("%m/%d/%Y %H:%M:%S")
-            )
-        return str_builder
-
     def get_last_history(self):
         """
         Returns the newest InstanceStatusHistory
@@ -300,56 +275,6 @@ class Instance(models.Model):
         except ValueError:
             logger.exception("Bad transaction")
             return (False, last_history)
-
-    def _calculate_active_time(self, delta=None):
-        if not delta:
-            # Default delta == Time since instance created.
-            delta = timezone.now() - self.start_date
-
-        past_time = timezone.now() - delta
-        recent_history = self.instancestatushistory_set.filter(
-            Q(end_date=None) | Q(end_date__gt=past_time)
-        ).order_by('start_date')
-        total_time = timedelta()
-        inst_prefix = "HISTORY,%s,%s" % (
-            self.created_by.username, self.provider_alias[:5]
-        )
-        for idx, state in enumerate(recent_history):
-            # Can't start counting any earlier than 'delta'
-            if state.start_date < past_time:
-                start_count = past_time
-            else:
-                start_count = state.start_date
-            # If date is current, stop counting 'right now'
-            if not state.end_date:
-                final_count = timezone.now()
-            else:
-                final_count = state.end_date
-
-            if state.is_active():
-                # Active time is easy
-                active_time = final_count - start_count
-            else:
-                # Inactive states are NOT counted against the user
-                active_time = timedelta()
-            # multiply by CPU count of size.
-            cpu_time = active_time * state.size.cpu
-            logger.debug(
-                "%s,%s,%s,%s CPU,%s,%s,%s,%s" % (
-                    inst_prefix, state.status.name,
-                    state.size.name, state.size.cpu, strfdate(start_count),
-                    strfdate(final_count), strfdelta(active_time),
-                    strfdelta(cpu_time)
-                )
-            )
-            total_time += cpu_time
-        return total_time
-
-    def get_active_hours(self, delta):
-        # Don't move it up. Circular reference.
-        from service.monitoring import delta_to_hours
-        total_time = self._calculate_active_time(delta)
-        return delta_to_hours(total_time)
 
     def get_active_time(self, earliest_time=None, latest_time=None):
         """
@@ -651,7 +576,6 @@ OPENSTACK_TASK_STATUS_MAP = {
     'boot_script_error': 'deploy_error',
 }
 OPENSTACK_ACTIVE_STATES = ['active']
-OPENSTACK_INACTIVE_STATES = ['build', 'suspended', 'shutoff', 'Unknown']
 
 
 def _get_status_name_for_provider(
