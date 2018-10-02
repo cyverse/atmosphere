@@ -2,8 +2,6 @@
 Atmosphere service machine rest api.
 
 """
-import os
-
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 
@@ -302,7 +300,6 @@ class MachineIcon(AuthAPIView):
         if not core_machine.application_version.application.icon:
             return None
         app_icon = core_machine.application_version.application.icon
-        image_name, image_ext = os.path.splitext(app_icon.name)
         return Response(app_icon.file)
 
 
