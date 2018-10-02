@@ -64,13 +64,15 @@ class TestApplicationAccessList(CoreApplicationTestCase):
         atmosphere_user = self.app_helper.user
         email_type = MatchType.objects.get_or_create(name='Email')[0]
         user_type = MatchType.objects.get_or_create(name='Username')[0]
-        self.deny_wildcard_usernames = PatternMatch.objects.get_or_create(
+        # Deny wildcard usernames
+        PatternMatch.objects.get_or_create(
             pattern="s*",
             type=user_type,
             created_by=atmosphere_user,
             allow_access=False
         )[0]
-        self.deny_specific_usernames = PatternMatch.objects.get_or_create(
+        # Deny specific usernames
+        PatternMatch.objects.get_or_create(
             pattern="sgregory,steve",
             type=user_type,
             created_by=atmosphere_user,
