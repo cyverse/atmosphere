@@ -209,15 +209,13 @@ def email_from_admin(username, subject, body, html=False):
         Atmosphere admin email from admins to a user.
         Returns True on success and False on failure.
     """
+    user_email, user_name = user_email_info(username)[1:]
     sender = email_address_str(*settings.ATMO_DAEMON)
-    user_email = lookupEmail(username)
-    if not user_email:
-        user_email = "%s@%s" % (username, settings.DEFAULT_EMAIL_DOMAIN)
     celery_task = send_email.si(
         subject,
         body,
         from_email=sender,
-        to=[email_address_str(username, user_email)],
+        to=[email_address_str(user_name, user_email)],
         cc=[sender],
         html=html
     )
