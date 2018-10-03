@@ -35,14 +35,13 @@ def send_email_template(
     context=None,
     cc=None,
     html=True,
-    silent=False
 ):
     """
     Return task to send an email using the template provided
     """
     body = render_to_string(template, context=context)
     args = (subject, body, sender, recipients)
-    kwargs = {"cc": cc, "fail_silently": silent, "html": html}
+    kwargs = {"cc": cc, "html": html}
     return send_email.delay(*args, **kwargs)
 
 
