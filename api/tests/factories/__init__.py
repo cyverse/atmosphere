@@ -18,6 +18,7 @@ from .size_factory import SizeFactory
 from .allocation_source_factory import AllocationSourceFactory, UserAllocationSourceFactory
 from .boot_script_factory import BootScriptRawTextFactory
 from .instance_source_factory import InstanceSourceFactory
+from .volume_factory import VolumeFactory
 
 __all__ = [
     "TagFactory", "UserFactory", "AnonymousUserFactory", "ProviderFactory",
@@ -27,5 +28,6 @@ __all__ = [
     "ApplicationVersionFactory", "QuotaFactory", "ProviderTypeFactory",
     "ProviderMachineFactory", "PlatformTypeFactory", "SizeFactory",
     "AllocationSourceFactory", "UserAllocationSourceFactory",
-    "BootScriptRawTextFactory", "BootScriptURLFactory", "InstanceSourceFactory"
+    "BootScriptRawTextFactory", "BootScriptURLFactory", "InstanceSourceFactory",
+    "VolumeFactory"
 ]

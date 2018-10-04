@@ -38,16 +38,6 @@ REDIRECT_URL = ''
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = [unicode(SERVER_URL.replace('https://', ''))]
 
-# NOTE: first admin will be sender of atmo emails.
-ADMINS = (('AT LEAST ONE ADMIN REQUIRED', 'sends-email@if-debug-false.com'), )
-
-# Set this value to be different if you want to separate where 'support' related email is sent.
-ATMO_SUPPORT = ADMINS
-ATMO_DAEMON = (("Atmosphere Daemon", "atmo-alerts@iplantcollaborative.org"), )
-
-# Django uses this one..
-MANAGERS = ADMINS
-
 DATABASES = {
     'default':
         {
