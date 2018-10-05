@@ -11,9 +11,7 @@ from core.models.status_type import get_status_type
 
 
 @task(name="send_email")
-def send_email(
-    subject, body, from_email, to, cc=None, fail_silently=False, html=False
-):
+def send_email(subject, body, from_email, to, cc=None, html=False):
     """
     Use django.core.mail.EmailMessage to send and log an Atmosphere email.
     """
@@ -29,7 +27,7 @@ def send_email(
             from_email, to, cc, subject, body
         )
         if getattr(settings, "SEND_EMAILS", True):
-            msg.send(fail_silently=fail_silently)
+            msg.send()
             email_logger.info("NOTE: Above message sent successfully")
             celery_logger.info("NOTE: Above message sent successfully")
         else:
