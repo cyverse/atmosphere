@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
   - Format codebase with `yapf` require code to be formatted in travis build
     ([#677](https://github.com/cyverse/atmosphere/pull/677))
+  - Add support for CAS 5
+    ([#692](https://github.com/cyverse/atmosphere/pull/692))
 
 ### Changed
   - Refactored email to make variables and methods used for sending emails
