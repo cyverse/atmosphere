@@ -189,12 +189,6 @@ class TASAPIDriver(object):
 
         return data
 
-    def get_allocation_project_id(self, allocation_name):
-        allocation = self.get_allocation(allocation_name)
-        if not allocation:
-            return
-        return allocation['projectId']
-
     def get_allocation_project_name(self, allocation_name):
         allocation = self.get_allocation(allocation_name)
         if not allocation:
@@ -379,35 +373,6 @@ def find_user_allocation_source_for(driver, user):
     allocations = [pa[1] for pa in project_allocations
                   ]    # 2-tuples: (project, allocation)
     return allocations
-
-
-def fill_allocation_sources():
-    driver = TASAPIDriver()
-    allocations = driver.get_all_allocations()
-    create_list = []
-    for api_allocation in allocations:
-        obj = get_or_create_allocation_source(api_allocation)
-        create_list.append(obj)
-    return len(create_list)
-
-
-def collect_users_without_allocation(driver):
-    """
-    Should be able to refactor this to make faster...
-    """
-    from core.models import AtmosphereUser
-    missing = []
-    for user in AtmosphereUser.objects.order_by('username'):
-        tacc_user = driver.get_tacc_username(user)
-        if not tacc_user:
-            missing.append(user)
-            continue
-        user_allocations = driver.get_user_allocations(
-            tacc_user, raise_exception=False
-        )
-        if not user_allocations:
-            missing.append(user)
-    return missing
 
 
 def fill_user_allocation_sources():

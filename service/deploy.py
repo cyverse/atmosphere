@@ -11,7 +11,7 @@ from atmosphere.settings import secrets
 from core.core_logging import create_instance_logger
 from core.models import Provider, Identity, Instance, SSHKey, AtmosphereUser
 
-from service.exceptions import AnsibleDeployException, DeviceBusyException
+from service.exceptions import AnsibleDeployException
 
 
 def ansible_deployment(
@@ -157,23 +157,6 @@ def deploy_unmount_volume(instance_ip, username, instance_id, device):
         raise_exception=False
     )
     return playbook_results
-
-
-def _raise_lsof_playbook_failure(device, lsof_rc, lsof_stdout):
-    """
-    - Scrape the stdout from 'lsof' call
-    - Collect a list of pids currently in use
-    - raise a DeviceBusyException
-    """
-    regex = re.compile("(?P<name>[\w]+)\s*(?P<pid>[\d]+)")
-    offending_processes = []
-    for line in lsof_stdout.split('\n'):
-        match = regex.search(line)
-        if not match:
-            continue
-        search_dict = match.groupdict()
-        offending_processes.append((search_dict['name'], search_dict['pid']))
-    raise DeviceBusyException(device, offending_processes)
 
 
 def deploy_prepare_snapshot(instance_ip, username, instance_id, extra_vars={}):
@@ -474,17 +457,6 @@ def raw_hostname(ip):
     For now, return raw IP
     """
     return ip
-
-
-def get_playbook_filename(filename):
-    rel = os.path.relpath(
-        os.path.dirname(filename), settings.ANSIBLE_PLAYBOOKS_DIR
-    )
-    basename = os.path.basename(filename)
-    if rel != ".":
-        return os.path.join(rel, basename)
-    else:
-        return basename
 
 
 def execution_has_unreachable(playbook_results):

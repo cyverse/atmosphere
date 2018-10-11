@@ -2,10 +2,6 @@ from django.db.models import Q
 from django.utils import timezone
 
 
-def provider_contains_credential(key, value):
-    return (Q(providercredential__key=key) & Q(providercredential__value=value))
-
-
 def contains_credential(key, value):
     return (Q(credential__key=key) & Q(credential__value=value))
 
@@ -136,21 +132,6 @@ def only_current_apps(now_time=None):
         return (Q(versions__machines__instance_source__end_date__isnull=True) | \
                 Q(versions__machines__instance_source__end_date__gt=now_time)) & \
             Q(versions__machines__instance_source__start_date__lt=now_time)
-
-    def _active_machines():
-        """
-        This method should eliminate any application such-that:
-        * ALL machines (in all versions) of the app are end dated OR
-        * ALL machines (in all versions) of the app have an inactive provider
-        """
-        pass
-
-    def _active_versions():
-        """
-        This method should eliminate any application such-that:
-        * ALL versions of this application have been end dated.
-        """
-        pass
 
     if not now_time:
         now_time = timezone.now()
@@ -283,16 +264,6 @@ def in_provider_list(provider_list, key_override=None):
     if not key_override.endswith("__in"):
         key_override += "__in"
     return Q(**{key_override: provider_list})
-
-
-def _query_membership_for_user(user):
-    """
-    All *Memberhsips use 'group' as the keyname, this will check
-    that the memberships returned are only those that the user is in.
-    """
-    if not user:
-        return None
-    return Q(group__id__in=user.group_ids())
 
 
 def images_shared_with_user(user):

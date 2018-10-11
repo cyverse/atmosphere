@@ -78,10 +78,6 @@ def _make_safe(unsafe_str):
     return unsafe_str.replace("\r\n", "\n").replace("\n", "_LINE_BREAK_")
 
 
-def _make_unsafe(safe_str):
-    return safe_str.replace("_LINE_BREAK_", "\n")
-
-
 def glance_update_machine_metadata(provider_machine, metadata={}):
     update_method = ""
     base_source = provider_machine.instance_source

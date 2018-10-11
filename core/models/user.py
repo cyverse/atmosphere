@@ -3,7 +3,6 @@ from hashlib import md5
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager
 from django.core import validators
-from django.core.mail import send_mail
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
@@ -68,29 +67,12 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
         db_table = 'atmosphere_user'
         app_label = 'core'
 
-    def get_profile(self):
-        """
-        """
-        from core.models.profile import UserProfile
-        return UserProfile.objects.filter(user__username=self.username
-                                         ).distinct().get()
-
     def get_full_name(self):
         """
         Returns the first_name plus the last_name, with a space in between.
         """
         full_name = '%s %s' % (self.first_name, self.last_name)
         return full_name.strip()
-
-    def get_short_name(self):
-        "Returns the short name for the user."
-        return self.first_name
-
-    def email_user(self, subject, message, from_email=None, **kwargs):
-        """
-        Sends an email to this User.
-        """
-        send_mail(subject, message, from_email, [self.email], **kwargs)
 
     # END-rip.
 
@@ -265,14 +247,6 @@ def create_new_account_for(provider, user):
             "Could *NOT* Create NEW account for %s" % user.username
         )
         return None
-
-
-def get_available_providers():
-    from core.models.provider import Provider
-    available_providers = Provider.objects.filter(
-        only_current(), public=True, active=True
-    ).order_by('id')
-    return available_providers
 
 
 def get_or_create_user_profile(sender, instance, created, **kwargs):

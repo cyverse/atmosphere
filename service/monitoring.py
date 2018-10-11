@@ -1,6 +1,5 @@
 import random
 import time
-from datetime import timedelta
 from django.core.exceptions import ObjectDoesNotExist
 import pytz
 from django.db.models import Q
@@ -286,31 +285,6 @@ def _get_instance_owner_map(provider, users=None):
 
 
 # Used in OLD allocation
-
-
-def get_delta(allocation, time_period, end_date=None):
-    # Monthly Time Allocation
-    if time_period and time_period.months == 1:
-        now = end_date if end_date else timezone.now()
-        if time_period.day <= now.day:
-            allocation_time = timezone.datetime(
-                year=now.year,
-                month=now.month,
-                day=time_period.day,
-                tzinfo=timezone.utc
-            )
-        else:
-            prev = now - time_period
-            allocation_time = timezone.datetime(
-                year=prev.year,
-                month=prev.month,
-                day=time_period.day,
-                tzinfo=timezone.utc
-            )
-        return now - allocation_time
-    else:
-        # Use allocation's delta value because no time period is set.
-        return timedelta(minutes=allocation.delta)
 
 
 def filter_allocation_source_instances(allocation_source, user, esh_instances):

@@ -264,24 +264,6 @@ class InstanceStatusHistory(models.Model):
         active_time = final_time - start_time
         return (active_time, start_time, final_time)
 
-    @classmethod
-    def intervals(cls, instance, start_date=None, end_date=None):
-        all_history = cls.objects.filter(instance=instance)
-        if start_date and end_date:
-            all_history = all_history.filter(
-                start_date__range=[start_date, end_date]
-            )
-        elif start_date:
-            all_history = all_history.filter(start_date__gt=start_date)
-        elif end_date:
-            all_history = all_history.filter(end_date__lt=end_date)
-        return all_history
-
-    def force_end_date(self, now_time=None):
-        if not now_time:
-            now_time = timezone.now()
-        return self.end_date if self.end_date else now_time
-
     def __unicode__(self):
         return "%s (FROM:%s TO:%s)" % (
             self.status, self.start_date, self.end_date if self.end_date else ''

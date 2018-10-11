@@ -7,7 +7,6 @@ from datetime import timedelta
 from uuid import UUID
 import logging
 
-from dateutil.relativedelta import relativedelta
 from celery.schedules import crontab
 import os
 import os.path
@@ -94,9 +93,6 @@ ORG_NAME = "CyVerse"
 USE_I18N = True
 
 USE_TZ = True
-
-# Atmosphere Time Allocation settings
-FIXED_WINDOW = relativedelta(day=1, months=1)
 
 # To load images for 404 page
 MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'resources/')
@@ -409,10 +405,6 @@ PROXY_CALLBACK_URL = SERVER_URL + '/CAS_proxyCallback'
 
 # Chromogenic
 LOCAL_STORAGE = "/storage"
-
-# pyes secrets
-ELASTICSEARCH_HOST = SERVER_URL
-ELASTICSEARCH_PORT = 9200
 
 # Django-Celery secrets
 CELERY_BROKER_URL = 'redis://localhost:6379/0'

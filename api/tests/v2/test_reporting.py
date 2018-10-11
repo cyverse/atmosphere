@@ -5,18 +5,6 @@ from rest_framework.test import APITestCase, APIRequestFactory, force_authentica
 
 from api.tests.factories import UserFactory, AnonymousUserFactory
 from api.v2.views import ReportingViewSet
-from core.models import AtmosphereUser
-
-
-def contains_user(username):
-    """
-    Test if the username exists
-    """
-    try:
-        AtmosphereUser.objects.get_by_natural_key(username=username)
-        return True
-    except AtmosphereUser.DoesNotExist:
-        return False
 
 
 class ReportingTests(APITestCase):

@@ -431,15 +431,6 @@ class AccountProvider(models.Model):
     provider = models.ForeignKey(Provider)
     identity = models.ForeignKey('Identity')
 
-    @classmethod
-    def make_superuser(cls, core_group, quota=None):
-        from core.models import Quota
-        if not quota:
-            quota = Quota.max_quota()
-        account_providers = AccountProvider.objects.distinct('provider')
-        for acct in account_providers:
-            acct.share_with(core_group)
-
     def share_with(self, core_group, quota=None):
         prov_member = self.provider.share(core_group)
         id_member = self.identity.share(core_group, quota=quota)

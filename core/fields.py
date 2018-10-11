@@ -2,10 +2,6 @@
 For custom field types -- Related to the Django ORM
 """
 
-import struct
-
-from django.db import models
-
 
 class VersionNumber(object):
     @classmethod
@@ -43,47 +39,3 @@ class VersionNumber(object):
 
     def __repr__(self):
         return "<VersionNumber(%d, %d, %d, %d)>" % self.number
-
-
-class VersionNumberField(models.Field):
-    """
-    A version number. Stored as a integer. Retrieved as a VersionNumber. Like
-    magic. Major, minor, patch, build must not exceed 255
-    """
-    __metaclass__ = models.SubfieldBase
-
-    def get_internal_type(self):
-        return 'IntegerField'
-
-    def to_python(self, value):
-        """
-        Convert a int to a VersionNumber
-        """
-        if value is None:
-            return None
-        if isinstance(value, VersionNumber):
-            return value
-        if isinstance(value, tuple):
-            return VersionNumber(*value)
-        if isinstance(value, str)\
-                or isinstance(value, unicode):
-            return VersionNumber.string_to_version(value)
-
-        part_bytes = struct.pack(">I", value + 2**31)
-        part_ints = [ord(i) for i in part_bytes]
-        return VersionNumber(*part_ints)
-
-    def get_prep_value(self, value):
-        """
-        Convert a VersionNumber or tuple to an int
-        """
-        if isinstance(value, tuple):
-            value = VersionNumber(*value)
-        if isinstance(value, int):
-            return value
-
-        return int(value)
-
-    def value_to_string(self, obj):
-        value = self._get_val_from_obj(obj)
-        return self.get_prep_value(value)

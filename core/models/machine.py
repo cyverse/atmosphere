@@ -2,7 +2,7 @@
   Machine models for atmosphere.
 """
 from hashlib import md5
-import json, ast
+import ast
 
 from django.conf import settings
 from django.db import models
@@ -12,7 +12,7 @@ from threepio import logger
 
 from core.models.abstract import BaseSource
 from core.models.instance_source import InstanceSource, update_instance_source_size
-from core.models.application import create_application, get_application, Application
+from core.models.application import create_application, get_application
 from core.models.application_version import (
     ApplicationVersion, create_app_version, get_version_for_machine
 )
@@ -55,29 +55,6 @@ class ProviderMachine(BaseSource):
             instance_source__identifier=identifier,
             instance_source__provider=provider
         ).count()
-
-    @classmethod
-    def _split_cloud_name(cls, machine_name):
-        version_sep = settings.APPLICATION_VERSION_SEPARATOR
-        if version_sep in machine_name:
-            split_list = [s.strip() for s in machine_name.split(version_sep)]
-
-        if len(split_list) == 1:
-            logger.warn(
-                "Version separator(%s) was not found: %s" %
-                (version_sep, machine_name)
-            )
-            split_list = [split_list[0], '']
-        elif len(split_list) > 2:
-            logger.warn(
-                "Version separator(%s) is ambiguous: %s" %
-                (version_sep, machine_name)
-            )
-            version_parts = [
-                s.strip() for s in machine_name.rpartition(version_sep)
-            ]
-            split_list = [version_parts[0], version_parts[2]]
-        return split_list
 
     def generated_name(self):
         application = self.application
@@ -130,10 +107,6 @@ class ProviderMachine(BaseSource):
                 (self.identifier, self.instance_source.provider)
             )
 
-    def update_version(self, app_version):
-        self.application_version = app_version
-        self.save()
-
     def is_end_dated(self):
         return (
             self.end_date or self.application_version.end_date
@@ -156,11 +129,6 @@ class ProviderMachine(BaseSource):
 
     def hash_alias(self):
         return md5(self.instance_source.identifier).hexdigest()
-
-    def find_machine_owner(self):
-        if self.provider.location == 'EUCALYPTUS':
-            pass    # Parse the XML manifest
-        return ""
 
     def esh_architecture(self):
         if self.esh and self.esh._image\
@@ -222,53 +190,6 @@ def build_cached_machines():
         machine_dict[(cm.provider.id, cm.identifier)] = cm
     ProviderMachine.cached_machines = machine_dict
     return machine_dict
-
-
-"""
-Useful utility methods for the Core Model..
-"""
-
-
-def get_cached_machine(provider_alias, provider_id):
-    if not ProviderMachine.cached_machines:
-        build_cached_machines()
-    cached_mach = ProviderMachine.cached_machines.get(
-        (int(provider_id), provider_alias)
-    )
-    if not cached_mach:
-        logger.warn(
-            "Cache does not have machine %s on provider %s" %
-            (provider_alias, provider_id)
-        )
-    return cached_mach
-
-
-def is_replicated_version(image_id):
-    if not getattr(settings, "REPLICATION_PROVIDER_LOCATION"):
-        return False
-    if ProviderMachine.objects.filter(instance_source__identifier=image_id
-                                     ).count() > 0:
-        return True
-
-
-def replicate_app_kwargs(image_id):
-    """
-    Copy the latest kwargs from the current app
-    """
-    try:
-        app = Application.objects.get(
-            versions__machines__instance_source__identifier=image_id
-        )
-        tag_list = list(app.tags.values_list('name', flat=True))
-        json_tags = json.dumps(tag_list)
-        return {
-            'uuid': app.uuid,
-            'description': app.description,
-            'tags': json_tags
-        }
-    except Exception as exc:
-        logger.exception("Could not replicate application kwargs: %s" % exc)
-        return {}
 
 
 def _lookup_image_owner_identity(account_driver, glance_image):
@@ -547,15 +468,6 @@ def create_provider_machine(
     return provider_machine
 
 
-def _username_lookup(provider_uuid, username):
-    try:
-        return Identity.objects.get(
-            provider__uuid=provider_uuid, created_by__username=username
-        )
-    except Identity.DoesNotExist:
-        return None
-
-
 def update_provider_machine(
     provider_machine,
     new_created_by_identity=None,
@@ -678,16 +590,6 @@ def convert_esh_machine(
 
     provider_machine.esh = esh_machine
     return provider_machine
-
-
-def _check_project(core_application, user):
-    """
-    Select a/multiple projects the application belongs to.
-    NOTE: User (NOT Identity!!) Specific
-          Applications do NOT require auto-assigned, default project
-    """
-    core_projects = core_application.get_projects(user)
-    return core_projects
 
 
 def _convert_from_instance(esh_driver, provider_uuid, image_id):

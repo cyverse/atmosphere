@@ -1458,44 +1458,6 @@ def find_security_group(security_group_name, user_neutron):
         raise Exception('Could not find any existing security group')
 
 
-def libcloud_set_security_group_rules(lc_driver, security_group, rules):
-    """
-    DEPRECATED: This legacy method was used to define security group rules as a 3/4-tuple
-    For a more up-to-date method using neutron instead of libcloud, see neutron_set_security_group_rules.
-    """
-    for rule_tuple in rules:
-        if len(rule_tuple) == 3:
-            (ip_protocol, from_port, to_port) = rule_tuple
-            cidr = None
-        elif len(rule_tuple) == 4:
-            (ip_protocol, from_port, to_port, cidr) = rule_tuple
-        else:
-            raise Exception(
-                "Invalid DEFAULT_RULES contain a rule, %s, which does not match the expected format"
-                % rule_tuple
-            )
-
-        try:
-            # attempt to find
-            rule_found = any(
-                sg_rule for sg_rule in security_group.rules
-                if sg_rule.ip_protocol == ip_protocol.lower() and sg_rule.
-                from_port == from_port and sg_rule.to_port == to_port and
-                (not cidr or sg_rule.ip_range == cidr)
-            )
-            if rule_found:
-                continue
-            # Attempt to create
-            lc_driver.ex_create_security_group_rule(
-                security_group, ip_protocol, from_port, to_port, cidr
-            )
-        except BaseHTTPError as exc:
-            if "Security group rule already exists" in exc.message:
-                continue
-            raise
-    return security_group
-
-
 def get_or_create_security_group(security_group_name, user_neutron):
     security_group_list = user_neutron.list_security_groups(
     )[u'security_groups']
@@ -1910,32 +1872,6 @@ def _create_and_attach_port(provider, driver, instance, core_identity):
     return attached_intf
 
 
-def _get_next_fixed_ip(ports):
-    """
-    Expects the output from user-specific neutron port-list. will determine the
-    next available fixed IP by 'counting' the highest allocated IP address and
-    adding one to it.
-    """
-    try:
-        from iptools.ipv4 import ip2long, long2ip
-    except ImportError:
-        raise Exception("For this script, we need iptools. pip install iptools")
-    max_ip = -1
-    for port in ports:
-        fixed_ip = port['fixed_ips']
-        if not fixed_ip:
-            continue
-        fixed_ip = fixed_ip[0]['ip_address']
-        max_ip = max(max_ip, ip2long(fixed_ip))
-    if max_ip <= 0:
-        raise Exception(
-            "Next IP address could not be determined"
-            " (You have no existing Fixed IPs!)"
-        )
-    new_fixed_ip = long2ip(max_ip + 1)
-    return new_fixed_ip
-
-
 def _repair_instance_networking(
     esh_driver, esh_instance, provider_uuid, identity_uuid
 ):
@@ -2000,26 +1936,6 @@ def _repair_instance_networking(
     init_task.link(deploy_task)
     init_task.apply_async()
     return
-
-
-def _check_volume_attachment(driver, instance):
-    try:
-        volumes = driver.list_volumes()
-    except Exception as exc:
-        # Ignore 'safe' errors related to
-        # no floating IP
-        # or no Volume capabilities.
-        if ("500 Internal Server Error" in exc.message):
-            return True
-        raise
-    for vol in volumes:
-        attachment_set = vol.extra.get('attachments', [])
-        if not attachment_set:
-            continue
-        for attachment in attachment_set:
-            if instance.alias == attachment['serverId']:
-                raise VolumeAttachConflict(instance.alias, vol.alias)
-    return False
 
 
 def run_instance_volume_action(

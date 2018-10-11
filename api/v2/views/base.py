@@ -6,7 +6,7 @@ from rest_framework import exceptions, status
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, ViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from core import exceptions as core_exceptions
 from core.models import IdentityMembership, CloudAdministrator
@@ -14,7 +14,7 @@ from core.models.status_type import StatusType
 
 from api.permissions import (
     ApiAuthOptional, ApiAuthRequired, EnabledUserRequired, InMaintenance,
-    CloudAdminRequired, ProjectLeaderRequired, UserListAdminQueryable
+    CloudAdminRequired, UserListAdminQueryable
 )
 from api.v2.views.mixins import MultipleFieldLookup
 
@@ -56,31 +56,12 @@ def unresolved_requests_only(fn):
     return wrapper
 
 
-class AuthViewSet(ViewSet):
-    http_method_names = [
-        'get', 'put', 'patch', 'post', 'delete', 'head', 'options', 'trace'
-    ]
-    permission_classes = (
-        InMaintenance, EnabledUserRequired, ApiAuthRequired,
-        ProjectLeaderRequired
-    )
-
-
 class AuthModelViewSet(ModelViewSet):
     http_method_names = [
         'get', 'put', 'patch', 'post', 'delete', 'head', 'options', 'trace'
     ]
     permission_classes = (
         InMaintenance,
-        EnabledUserRequired,
-        ApiAuthRequired,
-    )
-
-
-class AdminViewSet(AuthViewSet):
-    permission_classes = (
-        InMaintenance,
-        CloudAdminRequired,
         EnabledUserRequired,
         ApiAuthRequired,
     )

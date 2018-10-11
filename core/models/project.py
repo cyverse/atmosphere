@@ -131,15 +131,6 @@ class Project(models.Model):
             return True
         raise Exception("User:%s does NOT belong to Group:%s" % (user, group))
 
-    def copy_objects(self, to_project):
-        """
-        Use this function to move ALL objects
-        from Project X to Project Y
-        """
-        [to_project.add_object(app) for app in self.applications.all()]
-        [to_project.add_object(inst) for inst in self.instances.all()]
-        [to_project.add_object(vol) for vol in self.volumes.all()]
-
     def delete_project(self):
         """
         Use this function to remove Project X
