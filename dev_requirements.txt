@@ -22,7 +22,7 @@ behaving==1.5.6
 billiard==3.5.0.3
 boto==2.39.0
 business-rules==1.0.1
-caslib.py==2.2.2
+caslib.py==2.3.0
 celery==4.0.2
 certifi==2017.7.27.1
 cffi==1.10.0
@@ -42,7 +42,7 @@ defusedxml==0.5.0
 deprecation==1.0.1
 django-celery-beat==1.0.1
 django-cors-headers==2.1.0
-django-cyverse-auth==1.1.7
+django-cyverse-auth==1.2.0
 django-debug-toolbar==1.8
 django-filter==1.0.4
 django-jenkins==0.110.0

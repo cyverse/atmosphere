@@ -16,7 +16,7 @@ bcrypt==3.1.3             # via paramiko
 billiard==3.5.0.3
 boto==2.39.0              # via chromogenic
 business-rules==1.0.1
-caslib.py==2.2.2          # via django-cyverse-auth
+caslib.py==2.3.0          # via django-cyverse-auth
 celery==4.0.2
 certifi==2017.7.27.1      # via requests, tornado
 cffi==1.10.0              # via bcrypt, cryptography, pynacl
@@ -32,7 +32,7 @@ defusedxml==0.5.0         # via djangorestframework-xml
 deprecation==1.0.1        # via openstacksdk
 django-celery-beat==1.0.1
 django-cors-headers==2.1.0
-django-cyverse-auth==1.1.7
+django-cyverse-auth==1.2.0
 django-filter==1.0.4
 django-memoize==2.1.0
 django-redis-cache==1.7.1
