@@ -5,7 +5,6 @@ from datetime import timedelta
 from behave import * # noqa
 from behave import when, then, given
 from dateutil.parser import parse
-from dateutil.rrule import rrule, HOURLY
 from django.test import modify_settings
 from django.test.client import Client
 from django.utils import timezone
@@ -45,6 +44,15 @@ def create_admin_and_two_regular_users(context):
 def admin_create_allocation_source(context):
     context.allocation_sources = {}
     context.allocation_sources_name = {}
+    if context.persona and 'password' in context.persona:
+        context.client = Client()
+        with modify_settings(AUTHENTICATION_BACKENDS={
+            'prepend': 'django.contrib.auth.backends.ModelBackend',
+            'remove': ['django_cyverse_auth.authBackends.MockLoginBackend']
+        }):
+
+            login_result = context.client.login(username=context.admin_user.username, password=context.persona['password'])
+            assert login_result is True
     context.current_time = timezone.now()
     for row in context.table:
         response = context.client.post('/api/v2/allocation_sources',
@@ -95,7 +103,8 @@ def launch_instance_for_user(context):
                 str(row['start_date']))
         except Exception as e:
             raise Exception('Parsing the start date caused an error %s' % (e))
-        provider_alias = launch_instance(user, time_created, int(row["cpu"]))
+        initial_state = row.get('initial_state', 'active')
+        provider_alias = launch_instance(user, time_created, int(row["cpu"]), initial_state=initial_state)
         assert provider_alias is not None
         context.instance[row['instance_id']] = provider_alias
 
@@ -111,12 +120,13 @@ def add_allocation_instance(context):
                                        {"instance_id": provider_alias,
                                         "allocation_source_name": name})
         context.test.assertEqual(response.status_code, 201)
-    unemulate_response = context.client.get('/api/v2/emulate_session/lenards')
+    unemulate_response = context.client.get('/api/v2/emulate_session/%s' % (context.admin_user.username))
     context.test.assertEqual(unemulate_response.status_code, 201)
 
 
 @when('User instance runs for some days')
 def instance_runs_for_some_days(context):
+    # BEWARE: This function does not behave as expected.
     for row in context.table:
         user = AtmosphereUser.objects.filter(username=row['username']).last()
         provider_alias = context.instance[row['instance_id']]
@@ -124,7 +134,7 @@ def instance_runs_for_some_days(context):
         last_history = InstanceStatusHistory.objects.filter(instance__provider_alias=provider_alias).order_by(
             'start_date').last()
         if str(row['status']) == 'active':
-            time_stopped = last_history.start_date + timedelta(days=int(row['days']))
+            time_stopped = last_history.start_date + timedelta(days=float(row['days']))
             change_instance_status(user, provider_alias, time_stopped, 'suspended')
         else:
             change_instance_status(user, provider_alias, last_history.start_date, row['status'])
@@ -140,33 +150,17 @@ def calculate_allocations_used_by_allocation_source_after_certain_number_of_days
 
         start_date = current_time if str(row['report start date']) == 'current' else parse(
             str(row['report start date']))
-        end_date = start_date + timedelta(days=int(row['number of days']))
-        celery_iterator = list(rrule(HOURLY, interval=12, dtstart=start_date, until=end_date))
+        end_date = start_date + timedelta(days=float(row['number of days']))
 
-        prev_time = ''
-
-        for current_time in celery_iterator:
-            # update AllocationSourceSnapshot with the current compute_used
-            if prev_time:
-                update_snapshot_cyverse(end_date=current_time)
-            prev_time = current_time
+        # update AllocationSourceSnapshot with the current compute_used
+        update_snapshot_cyverse(end_date=end_date)
 
         context.time_at_the_end_of_calculation_check = current_time
 
-        compute_used_total = 0
-        for user in allocation_source.all_users:
-            compute_used_total += total_usage(user.username, start_date=start_date,
-                                              end_date=end_date, allocation_source_name=context.allocation_sources_name[
-                    row['allocation_source_id']])
-
-        compute_allowed = AllocationSourceSnapshot.objects.filter(
-            allocation_source=allocation_source).last().compute_allowed
-        compute_used_from_snapshot = AllocationSourceSnapshot.objects.filter(
-            allocation_source=allocation_source).last().compute_used
-        assert float(row['total compute used']) == float(compute_used_from_snapshot)
-        assert float(row['current compute used']) == float(compute_used_from_snapshot)
-        assert float(row['current compute allowed']) == float(compute_allowed)
-        # assert (float(compute_allowed) - float(compute_used_from_snapshot)) == float(row['compute remaining'])
+        compute_used_from_snapshot = AllocationSourceSnapshot.objects.get(
+            allocation_source=allocation_source).compute_used
+        context.test.assertEqual(float(row['total compute used']), float(compute_used_from_snapshot))
+        context.test.assertEqual(float(row['current compute allowed']), allocation_source.compute_allowed)
 
 
 # Alternate Story Step Implementation
@@ -254,7 +248,7 @@ def one_off_renewal_task_is_run_without_rules_engine(context):
         assert float(allocation_source.snapshot.compute_allowed) == float(row['current compute allowed'])
 
 
-def launch_instance(user, time_created, cpu, before=False):
+def launch_instance(user, time_created, cpu, before=False, initial_state='active'):
     # context.user is admin and regular user
     provider = ProviderFactory.create()
     from core.models import IdentityMembership, Identity
@@ -271,7 +265,7 @@ def launch_instance(user, time_created, cpu, before=False):
     else:
         machine = ProviderMachine.objects.all().last()
 
-    status = InstanceStatusFactory.create(name='active')
+    status = InstanceStatusFactory.create(name=initial_state)
 
     instance_state = InstanceFactory.create(
         provider_alias=uuid.uuid4(),
@@ -300,13 +294,13 @@ def launch_instance_history(instance_state, cpu, provider, status, time_created)
     return instance_state.provider_alias
 
 
-def change_instance_status(user, provider_alias, time_stopped, new_status):
+def change_instance_status(user, provider_alias, change_time, new_status):
     active_instance = Instance.objects.filter(provider_alias=provider_alias).last()
 
     size = Size.objects.all().last()
 
     status_history = InstanceStatusHistory.objects.filter(instance=active_instance).last()
-    status_history.end_date = time_stopped
+    status_history.end_date = change_time
     status_history.save()
 
     status = get_instance_state_from_factory(new_status)
@@ -314,7 +308,7 @@ def change_instance_status(user, provider_alias, time_stopped, new_status):
         status=status,
         activity="",
         instance=active_instance,
-        start_date=time_stopped,
+        start_date=change_time,
         size=size
     )
 
@@ -337,3 +331,9 @@ def get_instance_state_from_factory(status):
         return InstanceStatusFactory.create(name='networking')
     if str(status) == 'suspended':
         return InstanceStatusFactory.create(name='suspended')
+    if str(status) == 'shutoff':
+        return InstanceStatusFactory.create(name='shutoff')
+    if str(status) == 'shelved':
+        return InstanceStatusFactory.create(name='shelved')
+    if str(status) == 'shelved_offloaded':
+        return InstanceStatusFactory.create(name='shelved_offloaded')

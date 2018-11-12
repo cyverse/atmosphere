@@ -211,6 +211,7 @@ LOGGING_LEVEL = {{ LOGGING_LEVEL | default("logging.INFO") }}
 # Logging level for dependencies.
 DEP_LOGGING_LEVEL = {{ LOGGING_DEP_LEVEL | default("logging.WARN") }}
 
+INSTANCE_STATUS_RATES = {{ INSTANCE_STATUS_RATES | default("[{'effective_date': '1970-01-01T00:00:00Z', 'rates': {'active': '1.0', 'suspended': '0.0', 'shutoff': '0.0'}}]") }}
 
 PROJECT_ROOT = os.path.abspath(
     os.path.join(

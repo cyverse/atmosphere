@@ -46,6 +46,7 @@ def create_new_admin_user(context):
     user.set_password(context.persona['password'])
     user.save()
     context.persona['user'] = user
+    context.admin_user = user
 
 
 @step('I log in')

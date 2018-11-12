@@ -190,11 +190,11 @@ def total_usage(username, start_date, allocation_source_name=None,end_date=None,
     user_allocation = create_report(start_date,end_date,user_id=username,allocation_source_name=allocation_source_name)
     if email:
         return user_allocation
-    total_allocation = 0.0
+    total_allocation = decimal.Decimal(0)
     for data in user_allocation:
         if not data['allocation_source']=='N/A':
             total_allocation += data['applicable_duration']
-    compute_used_total = round(total_allocation/3600.0,2)
+    compute_used_total = round(total_allocation/decimal.Decimal(3600), 2)
     if compute_used_total > 0:
         logger.info("Total usage for User %s with AllocationSource %s from %s-%s = %s"
                     % (username, allocation_source_name, start_date, end_date, compute_used_total))

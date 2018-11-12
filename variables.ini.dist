@@ -92,6 +92,7 @@ ACCOUNT_CREATION_PLUGINS = ["atmosphere.plugins.accounts.creation.UserGroup"] # 
 MACHINE_VALIDATION_PLUGIN = "atmosphere.plugins.machine_validation.BasicValidation" # plugin
 ALLOCATION_OVERRIDES_NEVER_ENFORCE = []
 ALLOCATION_OVERRIDES_ALWAYS_ENFORCE = []
+INSTANCE_STATUS_RATES = [{'effective_date': '1970-01-01T00:00:00Z', 'rates': {'active': '1.0', 'suspended': '0.0', 'shutoff': '0.0'}}]
 
 BLACKLIST_METADATA_KEY = # default: 'atmo_image_exclude'
 WHITELIST_METADATA_KEY = # default: 'atmo_image_include'

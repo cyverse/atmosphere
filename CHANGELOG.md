@@ -24,7 +24,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-4...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-5...HEAD) - YYYY-MM-DD
+## [v34-5](https://github.com/cyverse/atmosphere/compare/v34-4...v34-5) - 2018-09-25
+### Changed
+  - Fractional charge rates
+    ([#693](https://github.com/cyverse/atmosphere/pull/693))
+    
 ## [v34-4](https://github.com/cyverse/atmosphere/compare/v34-3...v34-4) - 2018-09-25
 ### Fixed
   - Fix un-registered service tasks
