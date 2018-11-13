@@ -142,10 +142,10 @@ def _validate_rate(rate_to_validate, previous_rate):
     _check_true('rates' in rate_to_validate, 'No rates in rate: {}'.format(rate_to_validate))
     status_rates = rate_to_validate['rates']
     for status_name, status_rate in status_rates.iteritems():
-        _check_true(isinstance(status_name, str), 'status_name is not a string, but is a: {}'.format(
+        _check_true(isinstance(status_name, basestring), 'status_name is not a string, but is a: {}'.format(
             type(status_name)))
         _check_true(len(status_name) > 0, 'There is an empty status_name in rate: {}'.format(rate_to_validate))
-        _check_true(isinstance(status_rate, str), 'status_rate is not a string, but is a: {}'.format(
+        _check_true(isinstance(status_rate, basestring), 'status_rate is not a string, but is a: {}'.format(
             type(status_rate)))
         try:
             decimal_status_rate = decimal.Decimal(status_rate)
