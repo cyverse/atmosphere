@@ -11,6 +11,8 @@ systemctl stop <service_name>
 systemctl restart <service_name>
 ```
 
+Note: When using `EnvironmentFile=` to load environment files, substitution is not performed (`PATH=/usr/bin:$PATH` will literally be that) so many of these files use `. /etc/default/celeryd` to get correct variables
+
 #### `atmosphere-full.service`
 This service starts all of Atmosphere, including `uwsgi`, `nignx`, `celeryd`, `celerybeat`, `flower`, and `redis`.
 
