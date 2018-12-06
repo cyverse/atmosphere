@@ -202,7 +202,7 @@ SERVER_NAME = SERVER_URL.replace('https://','')
 EMAIL_SUBJECT_PREFIX = "[Django - %s] " % (SERVER_NAME,)
 
 # Sends all emails
-ATMO_DAEMON = ("Atmosphere Admin", "<atmo-notify@{}>".format(SERVER_NAME))
+ATMO_DAEMON = ("Atmosphere Admin", "atmo-notify@{}".format(DEFAULT_EMAIL_DOMAIN))
 
 # Prevents warnings
 ADDITIONAL_ALLOWED_HOSTNAMES = {{ ADDITIONAL_ALLOWED_HOSTNAMES }}
