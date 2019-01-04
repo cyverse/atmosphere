@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#686](https://github.com/cyverse/atmosphere/pull/686))
   - Fix exception handling preventing instance destroy
     ([#690](https://github.com/cyverse/atmosphere/pull/690))
+  - Fix systemd files for compatibility with Ubuntu 16+
+    ([#696](https://github.com/cyverse/atmosphere/pull/696))
 
 
 ## [v34-4](https://github.com/cyverse/atmosphere/compare/v34-3...v34-4) - 2018-09-25
