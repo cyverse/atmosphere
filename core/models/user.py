@@ -77,6 +77,7 @@ class AtmosphereUser(AbstractBaseUser, PermissionsMixin):
     def get_short_name(self):
         """
         Returns the first initial of first_name and last_name, with a space in betweem.
+        E.g. J. Smith
         """
         short_name = '%s. %s' % (self.first_name[0], self.last_name)
         return short_name
