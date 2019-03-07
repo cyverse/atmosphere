@@ -130,7 +130,7 @@ positional==1.2.1
 prettytable==0.7.2
 prompt-toolkit==1.0.15    # via ipython
 prospector==0.12.7
-psycopg2==2.7.3
+psycopg2==2.7.3.1
 ptyprocess==0.5.2         # via pexpect
 pyasn1-modules==0.2.4
 pyasn1==0.4.5

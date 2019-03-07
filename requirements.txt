@@ -11,7 +11,7 @@ appdirs==1.4.3            # via os-client-config
 asn1crypto==0.22.0        # via cryptography
 babel==2.5.1              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-heatclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
 backports-abc==0.5        # via tornado
-backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud, tornado
+backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud
 bcrypt==3.1.3             # via paramiko
 billiard==3.5.0.3
 boto==2.39.0              # via chromogenic
@@ -89,7 +89,7 @@ pbr==3.1.1                # via cliff, debtcollector, keystoneauth1, openstacksd
 pillow==4.2.1
 positional==1.2.1         # via keystoneauth1, oslo.context, python-keystoneclient
 prettytable==0.7.2        # via cliff, python-cinderclient, python-glanceclient, python-heatclient, python-irodsclient, python-novaclient
-psycopg2==2.7.3
+psycopg2==2.7.3.1
 pyasn1-modules==0.2.4     # via oauth2client, python-ldap
 pyasn1==0.4.5             # via oauth2client, paramiko, pyasn1-modules, python-ldap, rsa
 pycparser==2.18           # via cffi
