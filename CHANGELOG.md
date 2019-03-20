@@ -44,7 +44,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#686](https://github.com/cyverse/atmosphere/pull/686))
   - Fix exception handling preventing instance destroy
     ([#690](https://github.com/cyverse/atmosphere/pull/690))
-
+  - Filter out system-y metadata keys introduced in Rocky which we aren't currently using and make Glance client confused ([#701](https://github.com/cyverse/atmosphere/pull/701))
 
 ## [v34-4](https://github.com/cyverse/atmosphere/compare/v34-3...v34-4) - 2018-09-25
 ### Fixed
