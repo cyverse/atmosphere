@@ -1,0 +1,12 @@
+---
+- name: Enable ssh access from guac_server host into user vm
+  hosts: atmosphere
+  vars:
+    EXTERNAL_HOST_KEY_DIR: "/etc/guacamole/keys/{{ ATMOUSERNAME }}"
+    EXTERNAL_HOST_KEY_OWNER: "root"
+    EXTERNAL_HOST_KEY_GROUP: "root"
+    EXTERNAL_HOST_KEY_NAME: "id_rsa_guac"
+    EXTERNAL_HOST: "localhost"
+    USERNAME: "{{ ATMOUSERNAME }}"
+  roles:
+    - { role: "sshkey-host-access", when: (SETUP_GUACAMOLE | default(false)) == true }
