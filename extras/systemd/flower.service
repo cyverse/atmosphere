@@ -9,20 +9,9 @@ User=root
 Group=root
 EnvironmentFile=/etc/default/celeryd
 WorkingDirectory=/opt/dev/atmosphere
-ExecStart=/bin/sh -c '${FLOWER_BIN}          \
-  --certfile=${TLS_CERT_FILE}                  \
-  --keyfile=${TLS_KEY_FILE}                    \
-  --port=8443                                  \
-  --log_file_prefix=${FLOWER_LOG_FILE}         \
-  --logging=warn                               \
-  --url_prefix=flower                          \
-  --app=${CELERY_APP}                          \
-  --auth="${OAUTH2_ACCESS_LIST}"               \
-  --oauth2_key=${OAUTH2_CLIENT_ID}             \
-  --oauth2_secret=${OAUTH2_CLIENT_SECRET}      \
-  --oauth2_redirect_uri=${OAUTH2_REDIRECT_URI} \
-  --auth_provider=flower.views.auth.GoogleAuth2LoginHandler &'
-ExecStop=/bin/sh -c "/bin/kill -2 `ps aux | grep [f]lower | awk '{print $2}'`"
+ExecStart=/bin/sh -c '. /etc/default/celeryd; \
+  ${FLOWER_BIN} ${CELERY_FLOWER_OPTS} &'
+ExecStop=/usr/bin/pkill flower
 
 [Install]
 WantedBy=multi-user.target
