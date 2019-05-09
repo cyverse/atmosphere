@@ -32,6 +32,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#692](https://github.com/cyverse/atmosphere/pull/692))
   - Add 'description' to image search fields
     ([#700](https://github.com/cyverse/atmosphere/pull/700))
+  - Added Dockerfile and related files to enable automated Dockerhub build/test
+    ([#702](https://github.com/cyverse/atmosphere/pull/702))
 
 ### Changed
   - Refactored email to make variables and methods used for sending emails

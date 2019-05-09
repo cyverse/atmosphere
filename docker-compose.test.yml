@@ -1,0 +1,17 @@
+---
+
+version: '3'
+
+services:
+
+  postgres:
+    image: 'postgres:9.6'
+    environment:
+      POSTGRES_USER: 'atmosphere_db_user'
+      POSTGRES_PASSWORD: 'atmosphere_db_pass'
+
+  sut:
+    build: .
+    entrypoint: '/root/test.sh'
+    depends_on:
+      - 'postgres'

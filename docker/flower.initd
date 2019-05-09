@@ -1,0 +1,205 @@
+#!/bin/bash
+#
+# Templated by Clank
+#
+
+# =========================================================
+# flower - the Celery task monitoring web service.
+# =========================================================
+#
+# :Usage: /etc/init.d/flower {start|stop|status|restart}"
+#
+# See http://docs.celeryproject.org/en/latest/tutorials/daemonizing.html#generic-init-scripts
+
+### BEGIN INIT INFO
+# Provides:          celerybeat
+# Required-Start:    $network $local_fs $remote_fs
+# Required-Stop:     $network $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: celery periodic task scheduler
+### END INIT INFO
+
+# Init script must be run as root
+if [ $(id -u) -ne 0 ]; then
+    echo "Error: This program can only be used by the root user"
+    exit 1
+fi
+
+# App instance to use
+CELERY_APP="atmosphere"
+
+FLOWER_USER="www-data"
+FLOWER_GROUP="www-data"
+
+# The module that defines your Celery app instance
+CELERY_APP_DIR="/opt/dev/atmosphere"
+
+FLOWER_PID_FILE="/var/run/celery/flower.pid"
+FLOWER_LOG_FILE="/var/log/celery/flower.log"
+
+# Environment location
+VIRTUALENV="/opt/env/atmo"
+
+FLOWER_OPTS="\
+--app=$CELERY_APP \
+--port=5555  \
+--log_file_prefix=$FLOWER_LOG_FILE \
+--logging=warn \
+--url_prefix=flower"
+
+FLOWER_OPTS="${FLOWER_OPTS} --basic_auth=flower_admin:flower_pass"
+
+SCRIPT_NAME="$(basename "$0")";
+
+usage() {
+    echo "Usage: /etc/init.d/${SCRIPT_NAME} {start|stop|status|restart}";
+}
+
+start() {
+    # Ensure existence/permissions of log/pid dir
+    local log_dir="$(dirname  "$FLOWER_LOG_FILE")" \
+          pid_dir="$(dirname "$FLOWER_PID_FILE")" \
+          pid;
+    for dir in "$log_dir" "$pid_dir"; do
+
+        # Create dir if it doesn't exist
+        mkdir -p "$dir";
+
+        # Set proper dir permissions
+        chmod 2755 "$dir";
+
+        # Set proper owner/group for dir/files
+        chown -R "$FLOWER_USER":"$FLOWER_GROUP" "$dir";
+
+    done;
+
+    # If pid file already exists
+    if [ -e "$FLOWER_PID_FILE" ]; then
+        read pid < "$FLOWER_PID_FILE";
+
+        # And pid is in process table
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "${SCRIPT_NAME} is already running";
+            return 0;
+        fi;
+
+        # Remove stale pid
+        rm "$FLOWER_PID_FILE";
+    fi;
+
+    # Start flower service
+    sudo -u "$FLOWER_USER" \
+        PATH="$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PATH" \
+        PYTHONPATH="$CELERY_APP_DIR:$PYTHONPATH" \
+        DJANGO_SETTINGS_MODULE=atmosphere.settings \
+        "$VIRTUALENV/bin/celery" flower $FLOWER_OPTS &
+
+    # If it failed to start
+    if [ $? -ne 0 ]; then
+        echo "$SCRIPT_NAME failed to start" >&2;
+        return 1;
+    fi;
+
+    echo "$SCRIPT_NAME started";
+
+    # Update the pid file
+    echo $! > "$FLOWER_PID_FILE";
+}
+
+stop() {
+    local pid return_code=0;
+
+    # If missing pid file
+    if [ ! -e "$FLOWER_PID_FILE" ]; then
+        echo "$SCRIPT_NAME was not running";
+        return 0;
+    fi;
+
+    # Capture the pid
+    read pid < "$FLOWER_PID_FILE";
+
+    # This is a faux while loop, it just provides a context where "break" is
+    # possible, after the loop the pid file is always removed
+    while true; do
+
+        # If pid not in process table, return
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "$SCRIPT_NAME was not running";
+            break;
+        fi;
+
+        # Perform graceful shutdown
+        kill -TERM "$pid";
+
+        # Allow time for exit
+        sleep 1;
+
+        # If pid not in process table, return
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "$SCRIPT_NAME stopped";
+            break;
+        fi;
+
+        # Allow even more time for exit
+        sleep 1;
+
+        # If pid not in process table, return
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "$SCRIPT_NAME stopped";
+            break;
+        fi;
+
+        # Force shutdown
+        kill -KILL $pid;
+        echo "$SCRIPT_NAME was forcefully stopped" >&2;
+        return_code=1;
+
+        break;
+    done;
+
+
+    # Remove the pid file
+    rm "$FLOWER_PID_FILE";
+
+    return $return_code;
+}
+
+status() {
+    local pid;
+
+    # If missing pid file
+    if [ ! -e "$FLOWER_PID_FILE" ]; then
+        echo "$SCRIPT_NAME is stopped";
+        return 0;
+    fi;
+
+    # Capture the pid
+    read pid < "$FLOWER_PID_FILE";
+
+    # If pid not in process table, return
+    if ! kill -0 "$pid" 2>/dev/null; then
+
+        # Remove the stale pid file
+        rm "$FLOWER_PID_FILE";
+
+        echo "$SCRIPT_NAME is stopped";
+        return 0;
+    fi;
+
+    echo "$SCRIPT_NAME is running";
+}
+
+case "$1" in
+    start) start; ;;
+
+    stop) stop; ;;
+
+    status) status; ;;
+
+    restart) stop; start; ;;
+
+    *) usage; ;;
+esac
+
+exit $?;
