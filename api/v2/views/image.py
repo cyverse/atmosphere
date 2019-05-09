@@ -112,8 +112,8 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     )
     filter_class = ImageFilter
     search_fields = (
-        'id', 'name', 'versions__change_log', 'tags__name', 'tags__description',
-        'created_by__username',
+        'id', 'description', 'name', 'versions__change_log', 'tags__name',
+        'tags__description', 'created_by__username',
         'versions__machines__instance_source__identifier',
         'versions__machines__instance_source__provider__location'
     )
