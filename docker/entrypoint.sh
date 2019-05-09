@@ -18,6 +18,16 @@ check_for_repo atmosphere-docker-secrets || exit 1
 
 MANAGE_CMD="/opt/env/atmo/bin/python /opt/dev/atmosphere/manage.py"
 
+# Get user_id variable if used
+user_id=$1
+
+if [ -z $user_id ]; then
+  user_id=1000
+else
+  usermod -u $user_id user
+  groupmod -g $user_id user
+fi
+
 # Setup Atmosphere
 source /opt/env/atmo/bin/activate && \
 pip install -r /opt/dev/atmosphere/requirements.txt
@@ -45,11 +55,11 @@ source /opt/dev/atmosphere-docker-secrets/env
 
 if [[ $env_type = "dev" ]]
 then
-  chown -R 1000:1000 /opt/dev/atmosphere
+  chown -R $user_id:$user_id /opt/dev/atmosphere
   sed -i "s/^CELERYD_USER=\"www-data\"$/CELERYD_USER=\"user\"/" /etc/init.d/celeryd
-  sed -i "s/^CELERYD_GROUP=\"www-data\"$/CELERYD_GROUP=\"1000\"/" /etc/init.d/celeryd
+  sed -i "s/^CELERYD_GROUP=\"www-data\"$/CELERYD_GROUP=\"$user_id\"/" /etc/init.d/celeryd
   sed -i "s/^CELERY_USER=\"www-data\"$/CELERY_USER=\"user\"/" /etc/init.d/celerybeat
-  sed -i "s/^CELERY_GROUP=\"www-data\"$/CELERY_GROUP=\"1000\"/" /etc/init.d/celerybeat
+  sed -i "s/^CELERY_GROUP=\"www-data\"$/CELERY_GROUP=\"$user_id\"/" /etc/init.d/celerybeat
 else
   chown -R www-data:www-data /opt/dev/atmosphere
 fi
@@ -78,7 +88,7 @@ chmod 600 /opt/dev/atmosphere/extras/ssh/id_rsa
 if [[ $env_type = "dev" ]]
 then
   cp /opt/web_shell_no_gateone.yml /opt/dev/atmosphere-ansible/ansible/playbooks/instance_deploy/41_shell_access.yml
-  chown -R 1000:1000 /opt/dev/atmosphere
+  chown -R $user_id:$user_id /opt/dev/atmosphere
   echo "Starting Django Python..."
   sudo su -l user -s /bin/bash -c "/opt/env/atmo/bin/python /opt/dev/atmosphere/manage.py runserver 0.0.0.0:8000"
 else
