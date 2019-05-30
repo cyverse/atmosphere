@@ -207,7 +207,7 @@ renewal_strategies = {
     'default':
         {
             'id': 1,
-            'compute_allowed': 168,
+            'compute_allowed': 336,
             'period_type': 'on_calendar_day',
             'period_param': 1
         },
