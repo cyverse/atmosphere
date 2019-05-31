@@ -4,6 +4,7 @@ from business_rules.variables import BaseVariables, boolean_rule_variable, numer
 
 from core.models.allocation_source import AllocationSource
 from core.models.event_table import EventTable
+from django.conf import settings
 
 
 class CyverseTestRenewalVariables(BaseVariables):
@@ -207,7 +208,7 @@ renewal_strategies = {
     'default':
         {
             'id': 1,
-            'compute_allowed': 336,
+            'compute_allowed': getattr(settings, 'ALLOCATION_SOURCE_COMPUTER_ALLOWED', 336),
             'period_type': 'on_calendar_day',
             'period_param': 1
         },
