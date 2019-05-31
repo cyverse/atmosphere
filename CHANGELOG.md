@@ -35,6 +35,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Refactored email to make variables and methods used for sending emails
     easier to understand and use
     ([#665](https://github.com/cyverse/atmosphere/pull/665))
+  - Increased default renewal Allocation Units to 336
+    ([#703](https://github.com/cyverse/atmosphere/pull/703))
 
 ### Removed
   - Removed dead code ([#689](https://github.com/cyverse/atmosphere/pull/689))
