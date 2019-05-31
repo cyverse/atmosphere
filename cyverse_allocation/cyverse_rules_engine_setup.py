@@ -207,10 +207,14 @@ def _create_actions_for(strategy_name, strategy_config):
 renewal_strategies = {
     'default':
         {
-            'id': 1,
-            'compute_allowed': getattr(settings, 'ALLOCATION_SOURCE_COMPUTER_ALLOWED', 336),
-            'period_type': 'on_calendar_day',
-            'period_param': 1
+            'id':
+                1,
+            'compute_allowed':
+                getattr(settings, 'ALLOCATION_SOURCE_COMPUTER_ALLOWED', 336),
+            'period_type':
+                'on_calendar_day',
+            'period_param':
+                1
         },
     'bi-weekly':
         {
