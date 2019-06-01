@@ -16,8 +16,8 @@ Feature: Testing an Alternate story
 
     When admin creates allocation source
     |  name     |  compute allowed   |  renewal strategy   |   allocation_source_id | date_created |
-    |  amitj    |  168               |  default            |   1                    | current      |
-    |  julianp  |  168               |  default            |   2                    | current      |
+    |  amitj    |  336               |  default            |   1                    | current      |
+    |  julianp  |  336               |  default            |   2                    | current      |
 
     And Users are added to allocation source
     |  username    | allocation_source_id    |
@@ -49,8 +49,8 @@ Feature: Testing an Alternate story
 
     Then calculate allocations used by allocation source after certain number of days
     |  report start date                  | number of days   | total compute used   | current compute used | current compute allowed | allocation_source_id |
-    |      current                        |  1               |     24               | 24                   | 168                     | 1                    |
-    |      current                        |  1               |     24               | 24                   | 168                     | 2                    |
+    |      current                        |  1               |     24               | 24                   | 336                     | 1                    |
+    |      current                        |  1               |     24               | 24                   | 336                     | 2                    |
 
     And Compute Allowed is increased for Allocation Source
     | allocation_source_id | new_compute_allowed |
@@ -60,4 +60,4 @@ Feature: Testing an Alternate story
     And One off Renewal task is run without rules engine
     | current compute used | current compute allowed | allocation_source_id |
     | 0                    | 400                     | 1                    |
-    | 0                    | 168                     | 2                    |
+    | 0                    | 336                     | 2                    |

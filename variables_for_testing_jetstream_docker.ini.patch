@@ -1,0 +1,29 @@
+--- variables.ini.dist	2019-05-31 20:42:48.909010495 +0000
++++ variables.ini	2019-05-31 21:30:15.025187633 +0000
+@@ -40,7 +40,7 @@
+ DATABASE_ENGINE = django.db.backends.postgresql_psycopg2 # postgres only (for now)
+ DATABASE_USER = atmosphere_db_user # psql_user
+ DATABASE_PASSWORD = atmosphere_db_pass # psql_password
+-DATABASE_HOST = localhost # remote.postgres-server.com
++DATABASE_HOST = postgres # remote.postgres-server.com
+ DATABASE_PORT = 5432
+ DATABASE_CONN_MAX_AGE = 60 # in seconds
+ DEBUG =  True # Boolean required
+@@ -58,12 +58,15 @@
+ LOGSTASH_PORT = # 8000
+ METRIC_SERVER = # atmosphere-metrics.server.com
+ SELF_SIGNED_CERT =  False # Boolean required
+-TESTING =  False # Boolean required
++TESTING =  True # Boolean required
++TEST_RUNNER_USER = # Nothing
++TEST_RUNNER_PASS = # Nothing
++DJANGO_JENKINS = False
+ #local.py - site configuration
+ AUTO_CREATE_NEW_ACCOUNTS =  False # Boolean required
+ AUTO_CREATE_NEW_PROJECTS =  False # Boolean required
+ ALLOCATION_SOURCE_COMPUTE_ALLOWED =  168 # Boolean required
+-USE_JETSTREAM_PLUGIN =  False # Boolean required
++USE_JETSTREAM_PLUGIN =  True # Boolean required
+ TIME_ZONE = # America/Phoenix
+ SITE_NAME = # CyVerse
+ ORG_NAME = # CyVerse
