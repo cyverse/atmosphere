@@ -41,6 +41,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#665](https://github.com/cyverse/atmosphere/pull/665))
   - Increased default renewal Allocation Units to 336
     ([#703](https://github.com/cyverse/atmosphere/pull/703))
+  - Upgrade Chromogenic to 0.5.0 and update Dockerfile to be compatible
+    ([#704](https://github.com/cyverse/atmosphere/pull/704))
 
 ### Removed
   - Removed dead code ([#689](https://github.com/cyverse/atmosphere/pull/689))
