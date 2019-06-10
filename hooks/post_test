@@ -1,0 +1,4 @@
+#!/bin/bash
+
+docker tag $IMAGE_NAME $DOCKER_REPO:${SOURCE_BRANCH}_${SOURCE_COMMIT:0:7}
+docker push $DOCKER_REPO:${SOURCE_BRANCH}_${SOURCE_COMMIT:0:7}
