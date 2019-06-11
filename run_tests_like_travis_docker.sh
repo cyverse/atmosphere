@@ -42,13 +42,17 @@ echo "CREATE USER atmosphere_db_user WITH PASSWORD 'atmosphere_db_pass' CREATEDB
 echo "CREATE DATABASE atmosphere_db WITH OWNER atmosphere_db_user;" | ./manage.py dbshell
 
 
-mv ./variables.ini ./variables.ini.bak
+rm variables.ini
 cp ./variables.ini.dist ./variables.ini
 patch variables.ini variables_for_testing_${DISTRIBUTION}_docker.ini.patch
 ./configure
 # ./travis/check_properly_generated_requirements.sh
 
-# python manage.py test --keepdb
+python manage.py test --keepdb
 rm -f rerun_failing.features
 python manage.py behave --keepdb --tags ~@skip-if-${DISTRIBUTION}
-mv ./variables.ini.bak ./variables.ini
+
+# Restore previous variables.ini
+rm variables.ini
+ln -s ../atmosphere-docker-secrets/inis/atmosphere.ini variables.ini
+./configure
