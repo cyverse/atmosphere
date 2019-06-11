@@ -11,6 +11,7 @@ source /opt/env/atmosphere/bin/activate
 apt-get update && apt-get install -y postgresql
 pip install -U pip==9.0.3 setuptools
 pip install pip-tools==1.11.0
+sed -i "s/^bind 127.0.0.1 ::1$/bind 127.0.0.1/" /etc/redis/redis.conf
 service redis-server start
 
 # Wait for DB to be active

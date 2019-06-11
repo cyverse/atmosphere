@@ -1,7 +1,4 @@
 #!/bin/bash
-#
-# Templated by Clank
-#
 
 # =========================================================
 # flower - the Celery task monitoring web service.
