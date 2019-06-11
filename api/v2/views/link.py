@@ -1,15 +1,14 @@
 from django.contrib.auth.models import AnonymousUser
-from rest_framework import filters
-import django_filters
+from django_filters import rest_framework as filters
 
 from core.models import ExternalLink as ExternalLink
 from api.v2.views.base import AuthOptionalViewSet
 from api.v2.serializers.details import ExternalLinkSerializer
 
 
-class LinkFilter(django_filters.FilterSet):
-    image_id = django_filters.CharFilter('application__id')
-    created_by = django_filters.CharFilter('application__created_by__username')
+class LinkFilter(filters.FilterSet):
+    image_id = filters.CharFilter('application__id')
+    created_by = filters.CharFilter('application__created_by__username')
 
     class Meta:
         model = ExternalLink

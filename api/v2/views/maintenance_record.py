@@ -1,4 +1,5 @@
-from rest_framework import filters
+from rest_framework.filters import BaseFilterBackend, SearchFilter
+from django_filters import rest_framework as filters
 
 from core.models import MaintenanceRecord
 from api.permissions import CanEditOrReadOnly
@@ -6,7 +7,7 @@ from api.v2.serializers.details import MaintenanceRecordSerializer
 from api.v2.views.base import AuthOptionalViewSet
 
 
-class MaintenanceRecordFilterBackend(filters.BaseFilterBackend):
+class MaintenanceRecordFilterBackend(BaseFilterBackend):
     """
     Filter MaintenanceRecords using the request_user and 'query_params'
     """
@@ -31,6 +32,6 @@ class MaintenanceRecordViewSet(AuthOptionalViewSet):
     permission_classes = (CanEditOrReadOnly, )
     serializer_class = MaintenanceRecordSerializer
     filter_backends = (
-        filters.DjangoFilterBackend, filters.SearchFilter,
+        filters.DjangoFilterBackend, SearchFilter,
         MaintenanceRecordFilterBackend
     )

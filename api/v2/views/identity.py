@@ -1,9 +1,8 @@
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework import filters
+from django_filters import rest_framework as filters
 from rest_framework.viewsets import ModelViewSet
-import django_filters
 
 from core.models import Identity, AtmosphereUser
 from core.query import only_current_provider
@@ -14,13 +13,13 @@ from api.v2.views.mixins import MultipleFieldLookup
 
 
 class IdentityFilter(filters.FilterSet):
-    project_id = django_filters.CharFilter(
+    project_id = filters.CharFilter(
         'identity_memberships__member__projects__id'
     )
-    project_uuid = django_filters.CharFilter(
+    project_uuid = filters.CharFilter(
         'identity_memberships__member__projects__uuid'
     )
-    group_id = django_filters.CharFilter('identity_memberships__member__id')
+    group_id = filters.CharFilter('identity_memberships__member__id')
 
     class Meta:
         model = Identity
