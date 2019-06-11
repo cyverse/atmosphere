@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#700](https://github.com/cyverse/atmosphere/pull/700))
   - Added Dockerfile and related files to enable automated Dockerhub build/test
     ([#702](https://github.com/cyverse/atmosphere/pull/702))
+  - Added Dockerhub hook to create branch/commit-named tags for PRs
+    ([#707](https://github.com/cyverse/atmosphere/pull/707))
 
 ### Changed
   - Refactored email to make variables and methods used for sending emails
