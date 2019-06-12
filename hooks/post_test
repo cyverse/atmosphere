@@ -13,6 +13,6 @@ echo $DOCKER_REPO:${SOURCE_BRANCH}_${SOURCE_COMMIT:0:7}
 
 export NEW_IMAGE_NAME=${SOURCE_BRANCH}_${SOURCE_COMMIT:0:7}
 
-docker tag $IMAGE_NAME $DOCKER_REPO:$NEW_IMAGE_NAME
+docker tag $IMAGE_NAME cyverse/atmosphere:$NEW_IMAGE_NAME
 docker image ls
-docker push $DOCKER_REPO:$NEW_IMAGE_NAME
+docker push cyverse/atmosphere:$NEW_IMAGE_NAME
