@@ -49,6 +49,7 @@ RUN mkdir /opt/env && \
     pip install --upgrade pip==9.0.3 virtualenv &&\
     virtualenv /opt/env/atmosphere &&\
     ln -s /opt/env/atmosphere/ /opt/env/atmo
+RUN git clone --depth 1 https://github.com/cyverse/atmosphere-ansible.git /opt/dev/atmosphere-ansible
 
 COPY . /opt/dev/atmosphere
 WORKDIR /opt/dev/atmosphere
