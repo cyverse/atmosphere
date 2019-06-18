@@ -24,7 +24,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-4...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-0...HEAD) - YYYY-MM-DD
+
+
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-4...v36-0) - 2019-06-18
 ### Added
   - Format codebase with `yapf` require code to be formatted in travis build
     ([#677](https://github.com/cyverse/atmosphere/pull/677))
