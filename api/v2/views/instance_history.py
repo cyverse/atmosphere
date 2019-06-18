@@ -1,4 +1,5 @@
 from django.db.models import Q
+from rest_framework.filters import OrderingFilter
 
 from django_filters import rest_framework as filters
 
@@ -38,7 +39,7 @@ class InstanceStatusHistoryViewSet(MultipleFieldLookup, AuthReadOnlyViewSet):
     ordering_fields = ('-instance__start_date', '-start_date', 'instance__id')
     lookup_fields = ("id", "uuid")
     filter_class = InstanceStatusHistoryFilter
-    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
+    filter_backends = (OrderingFilter, filters.DjangoFilterBackend)
 
     def get_queryset(self):
         """

@@ -1,3 +1,4 @@
+from rest_framework.filters import OrderingFilter
 from django_filters import rest_framework as filters
 
 from core.models import ApplicationVersion as ImageVersion
@@ -24,7 +25,7 @@ class ImageVersionViewSet(AuthOptionalViewSet):
     ordering_fields = ('start_date', )
     ordering = ('start_date', )
     filter_class = ImageVersionFilter
-    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
+    filter_backends = (OrderingFilter, filters.DjangoFilterBackend)
 
     def get_queryset(self):
         request_user = self.request.user

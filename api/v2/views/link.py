@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
 from django_filters import rest_framework as filters
+from rest_framework.filters import OrderingFilter
 
 from core.models import ExternalLink as ExternalLink
 from api.v2.views.base import AuthOptionalViewSet
@@ -23,7 +24,7 @@ class ExternalLinkViewSet(AuthOptionalViewSet):
     serializer_class = ExternalLinkSerializer
     search_fields = ('created_by__username')
     filter_class = LinkFilter
-    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
+    filter_backends = (OrderingFilter, filters.DjangoFilterBackend)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
