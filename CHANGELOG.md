@@ -24,7 +24,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-0...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-1...HEAD) - YYYY-MM-DD
+
+
+## [v36-1](https://github.com/cyverse/atmosphere/compare/v36-0...v36-1) - 2019-06-19
 ### Changed
   - Downgrade python-ldap and install/start sendmail in Docker
     ([#709](https://github.com/cyverse/atmosphere/pull/709))
