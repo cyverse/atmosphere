@@ -25,9 +25,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-0...HEAD) - YYYY-MM-DD
+### Changed
+  - Downgrade python-ldap and install/start sendmail in Docker
+    ([#709](https://github.com/cyverse/atmosphere/pull/709))
 
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-4...v36-0) - 2019-06-18
+## [v36-0](https://github.com/cyverse/atmosphere/compare/v34-4...v36-0) - 2019-06-18
 ### Added
   - Format codebase with `yapf` require code to be formatted in travis build
     ([#677](https://github.com/cyverse/atmosphere/pull/677))
