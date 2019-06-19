@@ -30,6 +30,7 @@ RUN apt-get update && \
       python-setuptools \
       python-tk \
       redis-server \
+      sendmail \
       ssh \
       sudo \
       swig \
