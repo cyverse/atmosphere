@@ -114,7 +114,7 @@ python-openstackclient==3.3.0  # via python-saharaclient, rtwo
 python-saharaclient==1.2.0  # via rtwo
 python-swiftclient==3.3.0  # via python-heatclient, rtwo
 pytz==2017.2
-pyyaml==3.12              # via ansible, cliff, djangorestframework-yaml, os-client-config, oslo.config, python-heatclient
+pyyaml==5.1.1
 raven==6.1.0
 redis==2.10.5
 requests[security]==2.18.3

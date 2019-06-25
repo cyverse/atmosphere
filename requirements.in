@@ -24,6 +24,7 @@ django-celery-beat
 celery==4.0.2
 billiard
 flower
+pyyaml>=4.2b1
 
 gevent
 

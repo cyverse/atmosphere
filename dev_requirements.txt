@@ -166,7 +166,7 @@ python-openstackclient==3.3.0
 python-saharaclient==1.2.0
 python-swiftclient==3.3.0
 pytz==2017.2
-pyyaml==3.12
+pyyaml==5.1.1
 raven==6.1.0
 redis==2.10.5
 requests[security]==2.18.3
