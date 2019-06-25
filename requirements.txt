@@ -58,7 +58,7 @@ idna==2.5                 # via cryptography, requests
 ipaddress==1.0.18         # via cryptography
 iso8601==0.1.12           # via keystoneauth1, oslo.utils, python-heatclient, python-neutronclient, python-novaclient
 itsdangerous==0.24
-jinja2==2.9.6
+jinja2==2.10.1
 jsonpatch==1.16           # via openstacksdk, warlock
 jsonpointer==1.10         # via jsonpatch
 jsonschema==2.6.0         # via warlock

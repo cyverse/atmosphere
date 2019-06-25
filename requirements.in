@@ -19,7 +19,7 @@ redis
 eventlet
 enum34
 
-Jinja2
+Jinja2>=2.10.1
 django-celery-beat
 celery==4.0.2
 billiard
