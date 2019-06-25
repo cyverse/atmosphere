@@ -5,13 +5,13 @@
 #    pip-compile --output-file=requirements.txt requirements.in
 #
 amqp==2.2.2               # via kombu
-ansible==2.6.1
+ansible==2.8.1
 apache-libcloud==0.20.1
 appdirs==1.4.3            # via os-client-config
 asn1crypto==0.22.0        # via cryptography
 babel==2.5.1              # via flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-heatclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
 backports-abc==0.5        # via tornado
-backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud, tornado
+backports.ssl-match-hostname==3.5.0.1  # via apache-libcloud
 bcrypt==3.1.3             # via paramiko
 billiard==3.5.0.3
 boto==2.39.0              # via chromogenic
@@ -84,7 +84,7 @@ oslo.log==3.30.0          # via python-saharaclient
 oslo.serialization==2.20.0  # via oslo.log, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-saharaclient
 oslo.utils==3.28.0        # via osc-lib, oslo.log, oslo.serialization, python-cinderclient, python-glanceclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
 pandas==0.20.3
-paramiko==2.2.1           # via ansible, fabric
+paramiko==2.2.1           # via fabric
 pbr==3.1.1                # via cliff, debtcollector, keystoneauth1, openstacksdk, osc-lib, oslo.context, oslo.i18n, oslo.log, oslo.serialization, oslo.utils, positional, python-cinderclient, python-glanceclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient, stevedore
 pillow==4.2.1
 positional==1.2.1         # via keystoneauth1, oslo.context, python-keystoneclient
@@ -138,4 +138,4 @@ wrapt==1.10.10            # via debtcollector, positional
 xlsxwriter==0.9.8
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools==41.0.1        # via ansible, django-sslserver
+# setuptools==41.0.1        # via django-sslserver
