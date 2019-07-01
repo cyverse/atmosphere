@@ -130,7 +130,7 @@ stevedore==1.25.0         # via cliff, keystoneauth1, openstacksdk, osc-lib, osl
 threepio==0.2.0
 tornado==4.5.2            # via flower
 unicodecsv==0.14.1        # via cliff, djangorestframework-csv
-urllib3==1.22             # via requests
+urllib3==1.25.3
 uwsgi==2.0.15
 vine==1.1.4               # via amqp
 warlock==1.2.0            # via python-glanceclient
