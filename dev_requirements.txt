@@ -35,7 +35,7 @@ configparser==3.5.0       # via flake8, pylint
 contextlib2==0.5.5
 coverage==4.4.1
 coveralls==1.2.0
-cryptography==2.0.3
+cryptography==2.7
 debtcollector==1.17.0
 decorator==4.1.2          # via ipython, traitlets
 defusedxml==0.5.0
@@ -149,7 +149,7 @@ pylint-flask==0.5         # via prospector
 pylint-plugin-utils==0.2.6  # via prospector, pylint-celery, pylint-common, pylint-django, pylint-flask
 pylint==1.7.2             # via prospector, pylint-celery, pylint-common, pylint-django, pylint-flask, pylint-plugin-utils
 pynacl==1.1.2
-pyopenssl==17.2.0
+pyopenssl==19.0.0
 pyparsing==2.2.0
 pyperclip==1.5.27
 python-cinderclient==1.9.0

@@ -26,7 +26,7 @@ cliff==2.8.0              # via osc-lib, python-heatclient, python-neutronclient
 cmd2==0.7.5               # via cliff
 colorama==0.3.9
 contextlib2==0.5.5        # via raven
-cryptography==2.0.3       # via ansible, paramiko, pyopenssl, requests
+cryptography==2.7         # via ansible, paramiko, pyopenssl, requests
 debtcollector==1.17.0     # via oslo.config, oslo.context, oslo.log, oslo.utils, python-keystoneclient, python-neutronclient
 defusedxml==0.5.0         # via djangorestframework-xml
 deprecation==1.0.1        # via openstacksdk
@@ -54,7 +54,7 @@ futures==3.1.1            # via flower, python-swiftclient
 gevent==1.2.2
 greenlet==0.4.12          # via eventlet, gevent
 httplib2==0.10.3          # via oauth2client
-idna==2.5                 # via cryptography, requests
+idna==2.5                 # via requests
 ipaddress==1.0.18         # via cryptography
 iso8601==0.1.12           # via keystoneauth1, oslo.utils, python-heatclient, python-neutronclient, python-novaclient
 itsdangerous==0.24
@@ -97,7 +97,7 @@ pycrypto==2.6.1           # via jwt.py
 pyinotify==0.9.6          # via oslo.log
 pyjwt==1.5.2
 pynacl==1.1.2             # via paramiko
-pyopenssl==17.2.0         # via requests
+pyopenssl==19.0.0
 pyparsing==2.2.0          # via cliff, cmd2, oslo.utils
 pyperclip==1.5.27         # via cmd2
 python-cinderclient==1.9.0  # via python-openstackclient, rtwo
