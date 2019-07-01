@@ -115,7 +115,7 @@ oslo.log==3.30.0
 oslo.serialization==2.20.0
 oslo.utils==3.28.0
 pandas==0.20.3
-paramiko==2.2.1
+paramiko==2.6.0
 parse-type==0.3.4         # via behave
 parse==1.8.2              # via behave, behaving, parse-type
 pathlib2==2.3.0           # via ipython, pickleshare

@@ -84,14 +84,14 @@ oslo.log==3.30.0          # via python-saharaclient
 oslo.serialization==2.20.0  # via oslo.log, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-saharaclient
 oslo.utils==3.28.0        # via osc-lib, oslo.log, oslo.serialization, python-cinderclient, python-glanceclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
 pandas==0.20.3
-paramiko==2.2.1           # via fabric
+paramiko==2.6.0
 pbr==3.1.1                # via cliff, debtcollector, keystoneauth1, openstacksdk, osc-lib, oslo.context, oslo.i18n, oslo.log, oslo.serialization, oslo.utils, positional, python-cinderclient, python-glanceclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient, stevedore
 pillow==4.2.1
 positional==1.2.1         # via keystoneauth1, oslo.context, python-keystoneclient
 prettytable==0.7.2        # via cliff, python-cinderclient, python-glanceclient, python-heatclient, python-irodsclient, python-novaclient
 psycopg2==2.7.3.1
 pyasn1-modules==0.2.4     # via oauth2client, python-ldap
-pyasn1==0.4.5             # via oauth2client, paramiko, pyasn1-modules, python-ldap, rsa
+pyasn1==0.4.5             # via oauth2client, pyasn1-modules, python-ldap, rsa
 pycparser==2.18           # via cffi
 pycrypto==2.6.1           # via jwt.py
 pyinotify==0.9.6          # via oslo.log
