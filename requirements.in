@@ -1,7 +1,7 @@
 ansible>=2.6.14
 business_rules
 colorama # used by ./configure
-django
+django>=1.11.21
 django-cors-headers
 django-sslserver #NOTE: Debugs requests real-time.
 djangorestframework>=3.9.1
