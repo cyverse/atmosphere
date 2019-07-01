@@ -29,7 +29,7 @@ pyyaml>=4.2b1
 gevent
 
 apache-libcloud
-requests[security]
+requests>=2.20.0[security]
 python-dateutil
 pytz
 Pillow
