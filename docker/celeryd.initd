@@ -1,7 +1,4 @@
 #!/bin/bash
-#
-# Templated by Clank
-#
 
 # ============================================
 #  atmosphere celeryd - Starts the Celery worker daemon.

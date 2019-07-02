@@ -1,17 +1,18 @@
 # Docker Container for Atmosphere
-FROM ubuntu:14.04
+FROM ubuntu:18.04
 
 # Set environment
 SHELL ["/bin/bash", "-c"]
 
 # Install dependencies with apt
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y  \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y  \
       apt-transport-https \
       build-essential \
       git \
       g++ \
       libffi-dev \
+      libguestfs-tools \
       libldap2-dev \
       libpq-dev \
       libsasl2-dev \
@@ -19,6 +20,7 @@ RUN apt-get update && \
       libxml2-dev \
       libxslt1-dev \
       make \
+      netcat \
       openssl \
       python \
       python-dev \
@@ -28,6 +30,7 @@ RUN apt-get update && \
       python-setuptools \
       python-tk \
       redis-server \
+      sendmail \
       ssh \
       sudo \
       swig \
@@ -47,6 +50,7 @@ RUN mkdir /opt/env && \
     pip install --upgrade pip==9.0.3 virtualenv &&\
     virtualenv /opt/env/atmosphere &&\
     ln -s /opt/env/atmosphere/ /opt/env/atmo
+RUN git clone --depth 1 https://github.com/cyverse/atmosphere-ansible.git /opt/dev/atmosphere-ansible
 
 COPY . /opt/dev/atmosphere
 WORKDIR /opt/dev/atmosphere

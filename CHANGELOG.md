@@ -24,7 +24,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-4...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-1...HEAD) - YYYY-MM-DD
+
+
+## [v36-1](https://github.com/cyverse/atmosphere/compare/v36-0...v36-1) - 2019-06-19
+### Changed
+  - Downgrade python-ldap and install/start sendmail in Docker
+    ([#709](https://github.com/cyverse/atmosphere/pull/709))
+
+
+## [v36-0](https://github.com/cyverse/atmosphere/compare/v34-4...v36-0) - 2019-06-18
 ### Added
   - Format codebase with `yapf` require code to be formatted in travis build
     ([#677](https://github.com/cyverse/atmosphere/pull/677))
@@ -34,6 +43,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#700](https://github.com/cyverse/atmosphere/pull/700))
   - Added Dockerfile and related files to enable automated Dockerhub build/test
     ([#702](https://github.com/cyverse/atmosphere/pull/702))
+  - Added atmosphere-ansible to Dockerfile
+    ([#706](https://github.com/cyverse/atmosphere/pull/706))
 
 ### Changed
   - Refactored email to make variables and methods used for sending emails
@@ -41,6 +52,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#665](https://github.com/cyverse/atmosphere/pull/665))
   - Increased default renewal Allocation Units to 336
     ([#703](https://github.com/cyverse/atmosphere/pull/703))
+  - Upgrade Chromogenic to 0.5.0 and update Dockerfile to be compatible
+    ([#704](https://github.com/cyverse/atmosphere/pull/704))
 
 ### Removed
   - Removed dead code ([#689](https://github.com/cyverse/atmosphere/pull/689))
