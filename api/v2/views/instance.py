@@ -7,7 +7,7 @@ from api.v2.views.base import AuthModelViewSet
 from api.v2.views.mixins import MultipleFieldLookup
 
 from core.exceptions import ProviderNotActive
-from core.models import Instance, Identity, UserAllocationSource, Project, AllocationSource
+from core.models import GroupMembership, Instance, Identity, UserAllocationSource, Project, AllocationSource
 from core.models.boot_script import _save_scripts_to_instance
 from core.models.instance import find_instance
 from core.models.instance_action import InstanceAction
@@ -338,6 +338,15 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         project_uuid = data.get('project')
         extra = data.get('extra', {})
         try:
+            # User can only create an Instance in this Project if the Project's
+            # owner_id is present in one of the User's GroupMemberships
+            project = Project.objects.get(
+                uuid=project_uuid,
+                owner_id__in=map(
+                    lambda g: g.group_id,
+                    GroupMembership.objects.filter(user_id=user.id)
+                )
+            )
             identity = Identity.objects.get(uuid=identity_uuid)
             allocation_source = AllocationSource.objects.get(
                 uuid=allocation_source_id
@@ -365,7 +374,6 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             instance = serialized_instance.save()
-            project = Project.objects.get(uuid=project_uuid)
             instance.project = project
             instance.save()
             if boot_scripts:
