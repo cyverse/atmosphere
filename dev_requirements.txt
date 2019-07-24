@@ -5,7 +5,7 @@
 #    pip-compile --output-file=dev_requirements.txt dev_requirements.in requirements.txt
 #
 amqp==2.2.2
-ansible==2.8.1
+ansible==2.7.12
 apache-libcloud==0.20.1
 appdirs==1.4.3
 asn1crypto==0.22.0
