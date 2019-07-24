@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
-from rest_framework import filters
+from django_filters import rest_framework as filters
+from rest_framework.filters import OrderingFilter
 from core.models import Application as Application
 from api.v2.views.base import AuthOptionalViewSet
 from api.v2.views.mixins import MultipleFieldLookup
@@ -13,7 +14,7 @@ class ImageMetricViewSet(MultipleFieldLookup, AuthOptionalViewSet):
     lookup_fields = ("id", "uuid")
     queryset = Application.objects.all()
     serializer_class = ImageMetricSerializer
-    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
+    filter_backends = (OrderingFilter, filters.DjangoFilterBackend)
 
     def get_queryset(self):
         request_user = self.request.user

@@ -1,5 +1,5 @@
-from rest_framework import filters
-import django_filters
+from django_filters import rest_framework as filters
+from rest_framework.filters import SearchFilter, BaseFilterBackend, OrderingFilter
 
 from api import permissions
 from api.v2.serializers.details import ImageSerializer
@@ -43,17 +43,17 @@ def filter_queryset(self, request, queryset, view):
     return queryset.filter(reduce(operator.and_, conditions)).distinct()
 
 
-filters.SearchFilter.filter_queryset = filter_queryset
+SearchFilter.filter_queryset = filter_queryset
 
 
 class ImageFilter(filters.FilterSet):
-    created_by = django_filters.CharFilter('created_by__username')
-    project_id = django_filters.CharFilter('projects__uuid')
-    tag_name = django_filters.CharFilter('tags__name')
+    created_by = filters.CharFilter('created_by__username')
+    project_id = filters.CharFilter('projects__uuid')
+    tag_name = filters.CharFilter('tags__name')
     # Legacy filters
-    created_by__username = django_filters.CharFilter('created_by__username')
-    projects__id = django_filters.CharFilter('projects__id')
-    tags__name = django_filters.CharFilter('tags__name')
+    created_by__username = filters.CharFilter('created_by__username')
+    projects__id = filters.CharFilter('projects__id')
+    tags__name = filters.CharFilter('tags__name')
 
     class Meta:
         model = Image
@@ -63,7 +63,7 @@ class ImageFilter(filters.FilterSet):
         ]
 
 
-class BookmarkedFilterBackend(filters.BaseFilterBackend):
+class BookmarkedFilterBackend(BaseFilterBackend):
     """
     Filter bookmarks when 'favorited' is set
     """
@@ -79,7 +79,7 @@ class BookmarkedFilterBackend(filters.BaseFilterBackend):
         return queryset
 
 
-class FeaturedFilterBackend(filters.BaseFilterBackend):
+class FeaturedFilterBackend(BaseFilterBackend):
     """
     Filter bookmarks when 'favorited' is set
     """
@@ -107,8 +107,8 @@ class ImageViewSet(MultipleFieldLookup, AuthOptionalViewSet):
 
     serializer_class = ImageSerializer
     filter_backends = (
-        filters.OrderingFilter, filters.DjangoFilterBackend,
-        filters.SearchFilter, FeaturedFilterBackend, BookmarkedFilterBackend
+        OrderingFilter, filters.DjangoFilterBackend, SearchFilter,
+        FeaturedFilterBackend, BookmarkedFilterBackend
     )
     filter_class = ImageFilter
     search_fields = (

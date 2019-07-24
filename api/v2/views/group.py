@@ -4,11 +4,10 @@ from functools import reduce
 from django.utils import six
 from django.db.models import Q
 
-from rest_framework.filters import SearchFilter, DjangoFilterBackend
+from rest_framework.filters import SearchFilter
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
-from rest_framework import filters
-import django_filters
+from django_filters import rest_framework as filters
 
 from api.v2.serializers.details import GroupSerializer
 from api.v2.views.base import AuthModelViewSet
@@ -45,15 +44,9 @@ class MinLengthRequiredSearchFilter(SearchFilter):
 
 
 class GroupFilter(filters.FilterSet):
-    identity_id = django_filters.CharFilter(
-        'identity_memberships__identity__id'
-    )
-    identity_uuid = django_filters.CharFilter(
-        'identity_memberships__identity__uuid'
-    )
-    name = django_filters.CharFilter(
-        'name', lookup_expr=['contains', 'startswith']
-    )
+    identity_id = filters.CharFilter('identity_memberships__identity__id')
+    identity_uuid = filters.CharFilter('identity_memberships__identity__uuid')
+    name = filters.CharFilter('name', lookup_expr=['contains', 'startswith'])
 
     #is_private = django_filters.FilterMethod(method='is_private')
 
@@ -80,7 +73,9 @@ class GroupViewSet(MultipleFieldLookup, AuthModelViewSet):
     max_page_size_query_param = 1000
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    filter_backends = (DjangoFilterBackend, MinLengthRequiredSearchFilter)
+    filter_backends = (
+        filters.DjangoFilterBackend, MinLengthRequiredSearchFilter
+    )
     filter_class = GroupFilter
     http_method_names = ['get', 'post', 'patch', 'head', 'options', 'trace']
     search_fields = ('^name', )    # NOTE: ^ == Startswith searching

@@ -1,5 +1,4 @@
-import django_filters
-from rest_framework import filters
+from django_filters import rest_framework as filters
 
 from api.v2.serializers.details import InstanceActionSerializer
 from api.v2.views.base import AuthReadOnlyViewSet
@@ -7,8 +6,8 @@ from core.models import InstanceAction
 
 
 class InstanceActionFilter(filters.FilterSet):
-    provider_id = django_filters.CharFilter(method='filter_by_provider')
-    instance_id = django_filters.CharFilter(method='filter_by_instance')
+    provider_id = filters.CharFilter(method='filter_by_provider')
+    instance_id = filters.CharFilter(method='filter_by_instance')
 
     def filter_by_instance(self, queryset, name, value):
         """

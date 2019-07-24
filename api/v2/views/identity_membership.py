@@ -1,5 +1,5 @@
-from rest_framework import filters
-import django_filters
+from django_filters import rest_framework as filters
+from rest_framework.filters import OrderingFilter
 
 from core.models.cloud_admin import admin_provider_list
 from core.models import IdentityMembership
@@ -9,9 +9,9 @@ from api.v2.serializers.details import IdentityMembershipSerializer
 from api.v2.views.base import AdminModelViewSet
 
 
-class IdentityMembershipFilter(django_filters.FilterSet):
-    provider_id = django_filters.CharFilter('identity__provider__id')
-    username = django_filters.CharFilter(
+class IdentityMembershipFilter(filters.FilterSet):
+    provider_id = filters.CharFilter('identity__provider__id')
+    username = filters.CharFilter(
         'identity__created_by__username', lookup_expr='icontains'
     )
 
@@ -27,7 +27,7 @@ class IdentityMembershipViewSet(AdminModelViewSet):
     queryset = IdentityMembership.objects.all()
     serializer_class = IdentityMembershipSerializer
     filter_class = IdentityMembershipFilter
-    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
+    filter_backends = (OrderingFilter, filters.DjangoFilterBackend)
     http_method_names = ['get', 'patch', 'put' 'head', 'options', 'trace']
 
     def get_queryset(self):

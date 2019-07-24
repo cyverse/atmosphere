@@ -13,7 +13,8 @@ from core.models.instance import find_instance
 from core.models.instance_action import InstanceAction
 from core.query import only_current_instances
 
-from rest_framework import filters, status
+from rest_framework import status
+from django_filters import rest_framework as filters
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 
