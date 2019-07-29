@@ -89,7 +89,7 @@ json-delta==2.0
 jsonpatch==1.16
 jsonpointer==1.10
 jsonschema==2.6.0
-jwt.py==0.1.0
+jwt.py==0.1.1
 keystoneauth1==3.1.0
 kombu==4.1.0
 lazy-object-proxy==1.3.1  # via astroid
@@ -136,7 +136,7 @@ pyasn1-modules==0.2.4
 pyasn1==0.4.5
 pycodestyle==2.0.0        # via flake8, prospector
 pycparser==2.18
-pycrypto==2.6.1
+pycryptodome==3.8.2
 pydocstyle==2.0.0         # via prospector
 pyflakes==1.5.0           # via flake8, prospector
 pygments==2.2.0           # via ipython

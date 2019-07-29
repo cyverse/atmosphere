@@ -62,7 +62,7 @@ jinja2==2.10.1
 jsonpatch==1.16           # via openstacksdk, warlock
 jsonpointer==1.10         # via jsonpatch
 jsonschema==2.6.0         # via warlock
-jwt.py==0.1.0             # via django-cyverse-auth
+jwt.py==0.1.1             # via django-cyverse-auth
 keystoneauth1==3.1.0      # via django-cyverse-auth, openstacksdk, os-client-config, osc-lib, python-cinderclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
 kombu==4.1.0              # via celery
 markupsafe==1.0           # via jinja2
@@ -93,7 +93,7 @@ psycopg2==2.7.3.1
 pyasn1-modules==0.2.4     # via oauth2client, python-ldap
 pyasn1==0.4.5             # via oauth2client, pyasn1-modules, python-ldap, rsa
 pycparser==2.18           # via cffi
-pycrypto==2.6.1           # via jwt.py
+pycryptodome==3.8.2       # via jwt.py
 pyinotify==0.9.6          # via oslo.log
 pyjwt==1.5.2
 pynacl==1.1.2             # via paramiko
