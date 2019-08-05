@@ -16,19 +16,18 @@ service redis-server start
 
 # Wait for DB to be active
 echo "Waiting for postgres..."
-while ! nc -z postgres 5432; do sleep 5; done
+while ! nc -z localhost 5432; do sleep 5; done
 
 # Configure password for connecting to postgres
-echo "postgres:5432:postgres:atmosphere_db_user:atmosphere_db_pass" > ~/.pgpass
+echo "localhost:5432:postgres:atmosphere_db_user:atmosphere_db_pass" > ~/.pgpass
 chmod 600 ~/.pgpass
 
 function run_tests_for_distribution() {
   echo "----- RUNNING TESTS FOR $1 -----"
-  psql -c "CREATE DATABASE atmosphere_db WITH OWNER atmosphere_db_user;" -h postgres -U atmosphere_db_user -d postgres
+  psql -c "CREATE DATABASE atmosphere_db WITH OWNER atmosphere_db_user;" -h localhost -U atmosphere_db_user -d postgres
   ./travis/check_properly_generated_requirements.sh
   pip uninstall -y backports.ssl-match-hostname
   pip-sync requirements.txt
-  sed -i 's/DATABASE_HOST = localhost/DATABASE_HOST = postgres/' variables.ini.dist
   cp ./variables.ini.dist ./variables.ini
   ./configure
   python manage.py check
@@ -46,6 +45,6 @@ function run_tests_for_distribution() {
 }
 
 run_tests_for_distribution cyverse
-psql -c "DROP DATABASE atmosphere_db" -h postgres -U atmosphere_db_user -d postgres
-psql -c "DROP DATABASE test_atmosphere_db" -h postgres -U atmosphere_db_user -d postgres
+psql -c "DROP DATABASE atmosphere_db" -h localhost -U atmosphere_db_user -d postgres
+psql -c "DROP DATABASE test_atmosphere_db" -h localhost -U atmosphere_db_user -d postgres
 run_tests_for_distribution jetstream

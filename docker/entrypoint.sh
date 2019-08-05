@@ -73,7 +73,7 @@ service sendmail start
 
 # Wait for DB to be active
 echo "Waiting for postgres..."
-while ! nc -z postgres 5432; do sleep 5; done
+while ! nc -z localhost 5432; do sleep 5; done
 
 # Finish Django DB setup
 mkdir -p /opt/dev/atmosphere/static
@@ -92,7 +92,7 @@ then
   cp /opt/web_shell_no_gateone.yml /opt/dev/atmosphere-ansible/ansible/playbooks/instance_deploy/41_shell_access.yml
   chown -R $user_id:$user_id /opt/dev/atmosphere
   echo "Starting Django Python..."
-  sudo su -l user -s /bin/bash -c "/opt/env/atmo/bin/python /opt/dev/atmosphere/manage.py runserver 0.0.0.0:8000"
+  sudo su -l user -s /bin/bash -c "/opt/env/atmo/bin/python /opt/dev/atmosphere/manage.py runserver 127.0.0.1:8000"
 else
   sudo su -l www-data -s /bin/bash -c "UWSGI_DEB_CONFNAMESPACE=app UWSGI_DEB_CONFNAME=atmosphere /opt/env/atmo/bin/uwsgi --ini /usr/share/uwsgi/conf/default.ini --ini /etc/uwsgi/apps-enabled/atmosphere.ini"
 fi

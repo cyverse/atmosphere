@@ -6,6 +6,7 @@ services:
 
   postgres:
     image: 'postgres:9.6'
+    network_mode: 'host'
     environment:
       POSTGRES_USER: 'atmosphere_db_user'
       POSTGRES_PASSWORD: 'atmosphere_db_pass'
@@ -13,5 +14,6 @@ services:
   sut:
     build: .
     entrypoint: '/root/test.sh'
+    network_mode: 'host'
     depends_on:
       - 'postgres'
