@@ -24,10 +24,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-1...HEAD) - YYYY-MM-DD
+## [v36-2](https://github.com/cyverse/atmosphere/compare/v36-1...HEAD) - 2019-08-06
+### Security
+  - Update dependencies
+    ([#711](https://github.com/cyverse/atmosphere/pull/711))
 ### Fixed
   - Don't allow users to create Instances in Projects they do not own
     ([#712](https://github.com/cyverse/atmosphere/pull/712))
+### Security
+  - Update jwt.py dependency from django-cyverse-auth
+    ([#714](https://github.com/cyverse/atmosphere/pull/714))
 
 
 ## [v36-1](https://github.com/cyverse/atmosphere/compare/v36-0...v36-1) - 2019-06-19
