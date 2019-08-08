@@ -24,7 +24,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [v36-2](https://github.com/cyverse/atmosphere/compare/v36-1...HEAD) - 2019-08-06
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-2...HEAD) - YYYY-MM-DD
+### Fixed
+  - Fix uncommon bug with `machine_request.get_access_list()`
+    ([#713](https://github.com/cyverse/atmosphere/pull/713))
+
+
+## [v36-2](https://github.com/cyverse/atmosphere/compare/v36-1...v36-2) - 2019-08-06
 ### Security
   - Update dependencies
     ([#711](https://github.com/cyverse/atmosphere/pull/711))
@@ -34,7 +40,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Security
   - Update jwt.py dependency from django-cyverse-auth
     ([#714](https://github.com/cyverse/atmosphere/pull/714))
-
 
 ## [v36-1](https://github.com/cyverse/atmosphere/compare/v36-0...v36-1) - 2019-06-19
 ### Changed
