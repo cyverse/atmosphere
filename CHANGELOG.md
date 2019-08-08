@@ -24,10 +24,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-2...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-3...HEAD) - YYYY-MM-DD
+
+
+## [v36-3](https://github.com/cyverse/atmosphere/compare/v36-2...HEAD) - 2019-08-08
 ### Fixed
   - Fix uncommon bug with `machine_request.get_access_list()`
     ([#713](https://github.com/cyverse/atmosphere/pull/713))
+  - Fix admin page error from missing `get_short_name()` method
+    ([#699](https://github.com/cyverse/atmosphere/pull/699))
 
 
 ## [v36-2](https://github.com/cyverse/atmosphere/compare/v36-1...v36-2) - 2019-08-06
