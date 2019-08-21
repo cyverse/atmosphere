@@ -1,6 +1,7 @@
 import cPickle as pickle
 import redis
 from threepio import logger
+from django.conf import settings
 
 from service.driver import get_esh_driver, get_admin_driver
 
@@ -33,7 +34,7 @@ def _get_cached_driver(provider=None, identity=None, force=True):
 def redis_connection():
     global connection
     if not connection:
-        connection = redis.StrictRedis()
+        connection = redis.StrictRedis(host=settings.REDIS_HOST)
     return connection
 
 

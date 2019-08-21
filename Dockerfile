@@ -29,7 +29,6 @@ RUN apt-get update && \
       python-psycopg2 \
       python-setuptools \
       python-tk \
-      redis-server \
       sendmail \
       ssh \
       sudo \

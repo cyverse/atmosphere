@@ -65,10 +65,6 @@ else
 fi
 
 # Start services
-sed -i "s/^bind 127.0.0.1 ::1$/bind 127.0.0.1/" /etc/redis/redis.conf
-service redis-server start
-service celerybeat start
-service celeryd start
 service sendmail start
 
 # Wait for DB to be active

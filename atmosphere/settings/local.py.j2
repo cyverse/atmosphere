@@ -8,9 +8,9 @@ from datetime import timedelta
 from celery.schedules import crontab
 
 from atmosphere.settings import (
-    secrets, TEMPLATES,
-    CELERYBEAT_SCHEDULE, REDIRECT_URL,
-    REST_FRAMEWORK, INSTALLED_APPS
+    secrets, TEMPLATES, CELERY_BROKER_URL,
+    CELERY_RESULT_BACKEND, CELERYBEAT_SCHEDULE,
+    REDIRECT_URL, REST_FRAMEWORK, INSTALLED_APPS
 )
 
 # This is used by dependencies (ex: chromogenic)
@@ -111,6 +111,11 @@ AUTO_CREATE_NEW_PROJECTS = True
 {%- else %}
 AUTO_CREATE_NEW_PROJECTS = False
 {%- endif %}
+
+REDIS_HOST = '{{REDIS_HOST}}'
+CELERY_BROKER_URL = 'redis://{{REDIS_HOST}}:6379/0'
+CELERY_RESULT_BACKEND = 'redis://{{REDIS_HOST}}:6379/0'
+
 {%- if CELERYBEAT_SCHEDULE %}
 #CELERYBEAT_SCHEDULE OVERRIDES:
   {%- for task_key, schedule in CELERYBEAT_SCHEDULE.items() %}

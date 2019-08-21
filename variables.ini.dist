@@ -92,6 +92,8 @@ ALLOCATION_OVERRIDES_ALWAYS_ENFORCE = []
 BLACKLIST_METADATA_KEY = # default: 'atmo_image_exclude'
 WHITELIST_METADATA_KEY = # default: 'atmo_image_include'
 
+REDIS_HOST = localhost
+
 SENTRY_ENABLED =  True # Boolean required or False
 SENTRY_DSN = # https://...@sentry.io/....
 
