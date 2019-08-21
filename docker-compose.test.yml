@@ -4,6 +4,9 @@ version: '3'
 
 services:
 
+  redis:
+    image: 'redis:latest'
+
   postgres:
     image: 'postgres:9.6'
     environment:
@@ -15,3 +18,4 @@ services:
     entrypoint: '/root/test.sh'
     depends_on:
       - 'postgres'
+      - 'redis'
