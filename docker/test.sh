@@ -27,6 +27,7 @@ function run_tests_for_distribution() {
   pip uninstall -y backports.ssl-match-hostname
   pip-sync requirements.txt
   sed -i 's/DATABASE_HOST = localhost/DATABASE_HOST = postgres/' variables.ini.dist
+  sed -i 's/REDIS_HOST = localhost/REDIS_HOST = redis/' variables.ini.dist
   cp ./variables.ini.dist ./variables.ini
   ./configure
   python manage.py check
