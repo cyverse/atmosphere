@@ -19,9 +19,7 @@ my_vcr = vcr.VCR(
 @modify_settings(INSTALLED_APPS={
     'append': 'jetstream',
 })
-@override_settings(
-    TACC_API_URL='https://localhost/api-test', TACC_READ_API_TIMEOUT=5
-)
+@override_settings(TACC_API_URL='https://localhost/api-test')
 class TestJetstream(TestCase):
     """Tests for Jetstream allocation source API"""
 

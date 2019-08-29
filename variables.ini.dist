@@ -117,7 +117,6 @@ GROUPER_SEARCH_USER = ; ""
 TACC_API_USER = # "tas-username"
 TACC_API_PASS = # "tas-password"
 TACC_API_URL  = # "/path to api/"
-TACC_READ_API_TIMEOUT = 5
 
 #NOTE: Their are *REQUIRED* quotations around 'timedelta(..)'!
 CELERYBEAT_SCHEDULE = {} # {"monitor_instances": {"schedule": 'timedelta(minutes=5)',}}
