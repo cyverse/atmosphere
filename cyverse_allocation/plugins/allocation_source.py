@@ -115,7 +115,7 @@ def _ensure_user_allocation_source(user):
 
 def _create_allocation_source(name):
     default_compute_allowed = getattr(
-        settings, 'ALLOCATION_SOURCE_COMPUTE_ALLOWED', 168
+        settings, 'ALLOCATION_SOURCE_COMPUTE_ALLOWED', 336
     )
     payload = {
         'uuid': str(uuid.uuid4()),

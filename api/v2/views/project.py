@@ -1,7 +1,7 @@
 from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ValidationError
 from core.models import Project
-from rest_framework import filters
+from django_filters import rest_framework as filters
 
 from core.query import only_current
 

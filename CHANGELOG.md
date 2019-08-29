@@ -24,17 +24,64 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v34-4...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-3...HEAD) - YYYY-MM-DD
+### Security
+  - Update to Django 1.11.23
+    ([#718](https://github.com/cyverse/atmosphere/pull/718))
+
+### Fixed
+  - Filter out system-y metadata keys introduced in Rocky which we aren't currently using and make Glance client confused 
+    ([#701](https://github.com/cyverse/atmosphere/pull/701))
+  - Move tas timeout into driver, only apply timeout to an instance of a driver 
+    ([#687](https://github.com/cyverse/atmosphere/pull/687))
+
+
+## [v36-3](https://github.com/cyverse/atmosphere/compare/v36-2...HEAD) - 2019-08-08
+### Fixed
+  - Fix uncommon bug with `machine_request.get_access_list()`
+    ([#713](https://github.com/cyverse/atmosphere/pull/713))
+  - Fix admin page error from missing `get_short_name()` method
+    ([#699](https://github.com/cyverse/atmosphere/pull/699))
+
+
+## [v36-2](https://github.com/cyverse/atmosphere/compare/v36-1...v36-2) - 2019-08-06
+### Security
+  - Update dependencies
+    ([#711](https://github.com/cyverse/atmosphere/pull/711))
+### Fixed
+  - Don't allow users to create Instances in Projects they do not own
+    ([#712](https://github.com/cyverse/atmosphere/pull/712))
+### Security
+  - Update jwt.py dependency from django-cyverse-auth
+    ([#714](https://github.com/cyverse/atmosphere/pull/714))
+
+## [v36-1](https://github.com/cyverse/atmosphere/compare/v36-0...v36-1) - 2019-06-19
+### Changed
+  - Downgrade python-ldap and install/start sendmail in Docker
+    ([#709](https://github.com/cyverse/atmosphere/pull/709))
+
+
+## [v36-0](https://github.com/cyverse/atmosphere/compare/v34-4...v36-0) - 2019-06-18
 ### Added
   - Format codebase with `yapf` require code to be formatted in travis build
     ([#677](https://github.com/cyverse/atmosphere/pull/677))
   - Add support for CAS 5
     ([#692](https://github.com/cyverse/atmosphere/pull/692))
+  - Add 'description' to image search fields
+    ([#700](https://github.com/cyverse/atmosphere/pull/700))
+  - Added Dockerfile and related files to enable automated Dockerhub build/test
+    ([#702](https://github.com/cyverse/atmosphere/pull/702))
+  - Added atmosphere-ansible to Dockerfile
+    ([#706](https://github.com/cyverse/atmosphere/pull/706))
 
 ### Changed
   - Refactored email to make variables and methods used for sending emails
     easier to understand and use
     ([#665](https://github.com/cyverse/atmosphere/pull/665))
+  - Increased default renewal Allocation Units to 336
+    ([#703](https://github.com/cyverse/atmosphere/pull/703))
+  - Upgrade Chromogenic to 0.5.0 and update Dockerfile to be compatible
+    ([#704](https://github.com/cyverse/atmosphere/pull/704))
 
 ### Removed
   - Removed dead code ([#689](https://github.com/cyverse/atmosphere/pull/689))
@@ -44,7 +91,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#686](https://github.com/cyverse/atmosphere/pull/686))
   - Fix exception handling preventing instance destroy
     ([#690](https://github.com/cyverse/atmosphere/pull/690))
-  - Filter out system-y metadata keys introduced in Rocky which we aren't currently using and make Glance client confused ([#701](https://github.com/cyverse/atmosphere/pull/701))
+  - Fix systemd files for compatibility with Ubuntu 16+
+    ([#696](https://github.com/cyverse/atmosphere/pull/696))
 
 ## [v34-4](https://github.com/cyverse/atmosphere/compare/v34-3...v34-4) - 2018-09-25
 ### Fixed

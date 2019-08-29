@@ -36,10 +36,6 @@ C_FORCE_ROOT="True"
 # set a default value for DJANGO_SETTINGS_MODULE
 CELERYD_CHDIR="{{ ATMOSPHERE_LOCATION }}"
 
-# TLS certificate files
-TLS_CERT_FILE="{{ CELERYD_TLS_CERT_DEST }}"
-TLS_KEY_FILE="{{ CELERYD_TLS_PRIVKEY_DEST }}"
-
 # Safe list of serializers used by celery
 CELERY_ACCEPT_CONTENT="['pickle', 'json', 'msgpack']"
 

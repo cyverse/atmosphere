@@ -1,10 +1,10 @@
-ansible
+ansible<2.8
 business_rules
 colorama # used by ./configure
-django
+django>=1.11.23
 django-cors-headers
 django-sslserver #NOTE: Debugs requests real-time.
-djangorestframework
+djangorestframework>=3.9.1
 djangorestframework-jsonp
 djangorestframework-xml
 djangorestframework-yaml
@@ -19,17 +19,21 @@ redis
 eventlet
 enum34
 
-Jinja2
+Jinja2>=2.10.1
 django-celery-beat
 celery==4.0.2
 billiard
 flower
+pyyaml>=4.2b1
 
 gevent
 
 apache-libcloud
-requests[security]
+requests>=2.20.0[security]
+urllib3>=1.24.2
+pyopenssl>=17.5.0
 python-dateutil
+paramiko>=2.2.4
 pytz
 Pillow
 PyJWT
@@ -37,7 +41,7 @@ PyJWT
 python-logstash
 django-memoize
 #Theirs
-psycopg2
+psycopg2==2.7.3.1
 python-ldap
 uWSGI
 

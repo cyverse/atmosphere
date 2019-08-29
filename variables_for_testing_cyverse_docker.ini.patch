@@ -1,0 +1,11 @@
+43c43
+< DATABASE_HOST = localhost # remote.postgres-server.com
+---
+> DATABASE_HOST = postgres # remote.postgres-server.com
+61c61,64
+< TESTING =  False # Boolean required
+---
+> TESTING =  True # Boolean required
+> TEST_RUNNER_USER = # Nothing
+> TEST_RUNNER_PASS = # Nothing
+> DJANGO_JENKINS = False

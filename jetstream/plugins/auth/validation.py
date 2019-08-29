@@ -1,5 +1,6 @@
 from django.db.models import Q
 from threepio import logger
+from requests.exceptions import Timeout
 
 from jetstream.allocation import TASAPIDriver, fill_user_allocation_source_for
 from jetstream.exceptions import TASAPIException, NoTaccUserForXsedeException, NoAccountForUsernameException
@@ -16,7 +17,10 @@ class XsedeProjectRequired(ValidationPlugin):
         * Accounts are *ONLY* valid if they have 1+ 'jetstream' allocations.
         * All other allocations are ignored.
         """
-        driver = TASAPIDriver()
+
+        # We are passing a timeout here so that user validation doesn't
+        # indefinitely block, which would block api/v1/profile
+        driver = TASAPIDriver(timeout=5)
         try:
             project_allocations = fill_user_allocation_source_for(driver, user)
             if not project_allocations:
@@ -25,7 +29,7 @@ class XsedeProjectRequired(ValidationPlugin):
         except (NoTaccUserForXsedeException, NoAccountForUsernameException):
             logger.exception('User is invalid: %s', user)
             return False
-        except TASAPIException:
+        except (TASAPIException, Timeout):
             logger.exception(
                 'Some other error happened while trying to validate user: %s',
                 user

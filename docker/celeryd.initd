@@ -1,0 +1,263 @@
+#!/bin/bash
+
+# ============================================
+#  atmosphere celeryd - Starts the Celery worker daemon.
+# ============================================
+#
+# :Usage: /etc/init.d/celeryd {start|stop|status|restart}"
+# :Configuration file: /etc/default/celeryd
+#
+# See http://docs.celeryproject.org/en/latest/tutorials/daemonizing.html#generic-init-scripts
+
+### BEGIN INIT INFO
+# Provides:          celeryd
+# Required-Start:    $network $local_fs $remote_fs
+# Required-Stop:     $network $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: atmosphere celery task worker daemon
+### END INIT INFO
+
+# Init script must be run as root
+if [ $(id -u) -ne 0 ]; then
+    echo "Error: This program can only be used by the root user"
+    exit 1
+fi
+
+# App instance to use
+CELERY_APP="atmosphere"
+
+# By default, Celery assumes the user and group of uwsgi (imaging is an exception)
+CELERYD_USER="www-data"
+CELERYD_GROUP="www-data"
+
+# Set the log verbosity (DEBUG is another option)
+CELERYD_LOG_LEVEL="INFO"
+
+# %n will be replaced with the nodename.
+CELERYD_LOG_FILE="/var/log/celery/%n.log"
+CELERYD_PID_FILE="/var/run/celery/%n.pid"
+
+# Where to chdir at start, also the module that defines your Celery app
+# instance
+CELERYD_CHDIR="/opt/dev/atmosphere"
+
+# Max tasks per concurrent process
+CELERYD_MAX_TASKS_PER_CHILD="150"
+
+# Environment location
+VIRTUALENV="/opt/env/atmo"
+
+# Abs path to the 'celery' command
+CELERY_BIN="$VIRTUALENV/bin/celery"
+
+# Atmosphere Queues/Workers (unprivileged)
+CELERYD_NODES="\
+atmosphere-node_1 atmosphere-node_2 atmosphere-node_3 atmosphere-node_4 \
+atmosphere-fast_1 atmosphere-fast_2 \
+celery_periodic \
+email \
+"
+CELERYD_WORKER_OPTS="\
+-Q:atmosphere-node_1 default -c:atmosphere-node_1 5 -O:atmosphere-node_1 fair \
+-Q:atmosphere-node_2 default -c:atmosphere-node_2 5 -O:atmosphere-node_2 fair \
+-Q:atmosphere-node_3 default -c:atmosphere-node_3 5 -O:atmosphere-node_3 fair \
+-Q:atmosphere-node_4 default -c:atmosphere-node_4 5 -O:atmosphere-node_4 fair \
+-Q:atmosphere-fast_1 fast_deploy -c:atmosphere-fast_1 5 -O:atmosphere-fast_1 fair \
+-Q:atmosphere-fast_2 fast_deploy -c:atmosphere-fast_2 5 -O:atmosphere-fast_2 fair \
+-Q:email email -c:email 3  -O:email fair \
+-Q:celery_periodic periodic -c:celery_periodic 3 -O:celery_periodic fair \
+-Q:email email -c:email 1 -O:email fair \
+"
+
+# Atmosphere Queues/Workers (privileged)
+CELERYD_PRIVILEGED_NODES="\
+imaging \
+atmosphere-deploy_1 atmosphere-deploy_2 atmosphere-deploy_3 atmosphere-deploy_4 \
+atmosphere-deploy_5 atmosphere-deploy_6 atmosphere-deploy_7 \
+"
+CELERYD_PRIVILEGED_WORKER_OPTS="\
+-Q:imaging imaging -c:imaging 1 -O:imaging fair \
+-Q:atmosphere-deploy_1 ssh_deploy -c:atmosphere-deploy_1 2 -O:atmosphere-deploy_1 fair \
+-Q:atmosphere-deploy_2 ssh_deploy -c:atmosphere-deploy_2 2 -O:atmosphere-deploy_2 fair \
+-Q:atmosphere-deploy_3 ssh_deploy -c:atmosphere-deploy_3 2 -O:atmosphere-deploy_3 fair \
+-Q:atmosphere-deploy_4 ssh_deploy -c:atmosphere-deploy_4 2 -O:atmosphere-deploy_4 fair \
+-Q:atmosphere-deploy_5 ssh_deploy -c:atmosphere-deploy_5 2 -O:atmosphere-deploy_5 fair \
+-Q:atmosphere-deploy_6 ssh_deploy -c:atmosphere-deploy_6 2 -O:atmosphere-deploy_6 fair \
+-Q:atmosphere-deploy_7 ssh_deploy -c:atmosphere-deploy_7 2 -O:atmosphere-deploy_7 fair \
+"
+
+CELERYD_OPTS="\
+--app=$CELERY_APP
+--workdir=$CELERYD_CHDIR \
+--pidfile=$CELERYD_PID_FILE \
+--logfile=$CELERYD_LOG_FILE \
+--loglevel=$CELERYD_LOG_LEVEL \
+--maxtasksperchild=$CELERYD_MAX_TASKS_PER_CHILD \
+--detach"
+
+SCRIPT_NAME="$(basename "$0")";
+
+usage() {
+    echo "Usage: /etc/init.d/${SCRIPT_NAME} {start|stop|status|restart}";
+}
+
+start() {
+    # Set upper bound on # of open files
+    ulimit -n 65536;
+
+    # Ensure existence/permissions of log/pid dir
+    local log_dir="$(dirname  "$CELERYD_LOG_FILE")" \
+          pid_dir="$(dirname "$CELERYD_PID_FILE")";
+    for dir in "$log_dir" "$pid_dir"; do
+
+        # Create dir if it doesn't exist
+        mkdir -p "$dir";
+
+        # Set proper dir permissions
+        chmod 2755 "$dir";
+
+        # Set proper owner/group for dir
+        chown -R "$CELERYD_USER":"$CELERYD_GROUP" "$dir";
+
+    done;
+
+    # Start unprivileged workers
+    sudo -u "$CELERYD_USER" \
+        PATH="$CELERY_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PATH" \
+        PYTHONPATH="$CELERY_CHDIR:$PYTHONPATH" \
+        DJANGO_SETTINGS_MODULE="atmosphere.settings" \
+        "$CELERY_BIN" multi start \
+            $CELERYD_NODES \
+            $CELERYD_WORKER_OPTS \
+            $CELERYD_OPTS;
+
+    # Start privileged (root) workers
+    C_FORCE_ROOT=1 \
+    PATH="$CELERY_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PATH" \
+    PYTHONPATH="$CELERY_CHDIR:$PYTHONPATH" \
+    DJANGO_SETTINGS_MODULE="atmosphere.settings" \
+    "$CELERY_BIN" multi start \
+        $CELERYD_PRIVILEGED_NODES \
+        $CELERYD_PRIVILEGED_WORKER_OPTS \
+        $CELERYD_OPTS;
+}
+
+# `celeryd restart` sends a TERM signal, which will wait for running tasks to stop on
+# workers and restart them, if run a second time workers will forcefully restart
+restart() {
+
+    # Restart unprivileged workers
+    sudo -u "$CELERYD_USER" \
+        PATH="$CELERY_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PATH" \
+        PYTHONPATH="$CELERY_CHDIR:$PYTHONPATH" \
+        DJANGO_SETTINGS_MODULE="atmosphere.settings" \
+        "$CELERY_BIN" multi restart \
+            $CELERYD_NODES \
+            $CELERYD_WORKER_OPTS \
+            $CELERYD_OPTS;
+
+    # Start privileged (root) workers
+    C_FORCE_ROOT=1 \
+    PATH="$CELERY_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PATH" \
+    PYTHONPATH="$CELERY_CHDIR:$PYTHONPATH" \
+    DJANGO_SETTINGS_MODULE="atmosphere.settings" \
+    "$CELERY_BIN" multi restart \
+        $CELERYD_PRIVILEGED_NODES \
+        $CELERYD_PRIVILEGED_WORKER_OPTS \
+        $CELERYD_OPTS;
+}
+
+stop() {
+
+    local nodes="$CELERYD_NODES $CELERYD_PRIVILEGED_NODES" \
+          running \
+          pid_dir="$(dirname $CELERYD_PID_FILE)" \
+          pid_file \
+          pid;
+
+    # Send nodes a TERM signal
+    "$CELERY_BIN" multi stop $nodes \
+        --pidfile="$CELERYD_PID_FILE";
+
+    # Give nodes time to die
+    sleep 2;
+
+    # Gather the nodes that are still running
+    for node in $CELERYD_NODES $CELERYD_PRIVILEGED_NODES; do
+        pid_file="${pid_dir}/${node}.pid";
+
+        # If the pid file exists
+        if [ -e $pid_file ]; then
+
+            # Capture the pid
+            read pid < "$pid_file";
+
+            # And the process is still running
+            if kill -0 "$pid" 2>/dev/null; then
+                running="$running $node";
+            fi;
+        fi;
+    done;
+
+    # Send still running nodes a KILL signal
+    if [ -n "$running" ]; then
+        "$CELERY_BIN" multi kill $running \
+            --pidfile="$CELERYD_PID_FILE";
+    fi;
+}
+
+status() {
+    local pid_dir="$(dirname $CELERYD_PID_FILE)";
+    local stopped running;
+    local pid_file pid;
+    for node in $CELERYD_NODES $CELERYD_PRIVILEGED_NODES; do
+        pid_file="${pid_dir}/${node}.pid";
+
+        # If the pid file doesn't exist
+        if [ ! -e $pid_file ]; then
+            stopped="$stopped $node";
+            continue;
+        fi;
+
+        # Confirm that the process is running
+        pid="$(cat "$pid_file")";
+        if kill -0 "$pid" 2>/dev/null; then
+            # Add the running pid to our list
+            running="$running $node";
+        else
+            # Add the stopped pid to our list
+            stopped="$stopped $node";
+        fi;
+    done;
+
+    if [ -z "$running"  ]; then
+        echo "$SCRIPT_NAME is stopped";
+    elif [ -z "$stopped"  ]; then
+        echo "$SCRIPT_NAME is running";
+    else
+
+cat <<EOF >&2
+Some of the nodes are running, some are stopped
+Restart recommended
+Running: ${running}
+Stopped: ${stopped}
+EOF
+
+        return 1;
+    fi;
+}
+
+case "$1" in
+    start) start; ;;
+
+    stop) stop; ;;
+
+    status) status; ;;
+
+    restart) restart; ;;
+
+    *) usage; ;;
+esac
+
+exit $?;

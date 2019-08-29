@@ -1,0 +1,162 @@
+#!/bin/bash
+
+# =========================================================
+#  celerybeat - the Celery periodic task scheduler.
+# =========================================================
+#
+# :Usage: /etc/init.d/celerybeat {start|stop|status|restart}"
+#
+# See http://docs.celeryproject.org/en/latest/tutorials/daemonizing.html#generic-init-scripts
+
+### BEGIN INIT INFO
+# Provides:          celerybeat
+# Required-Start:    $network $local_fs $remote_fs
+# Required-Stop:     $network $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: celery periodic task scheduler
+### END INIT INFO
+
+# Init script must be run as root
+if [ $(id -u) -ne 0 ]; then
+    echo "Error: This program can only be used by the root user"
+    exit 1
+fi
+
+# App instance to use
+CELERY_APP="atmosphere"
+
+# By default, Celery assumes the user and group of uwsgi (imaging is an exception)
+CELERY_USER="www-data"
+CELERY_GROUP="www-data"
+
+# Set the log verbosity (DEBUG is another option)
+CELERY_LOG_LEVEL="INFO"
+
+CELERYBEAT_PID_FILE="/var/run/celery/beat.pid"
+CELERYBEAT_LOG_FILE="/var/log/celery/beat.log"
+
+# Where to chdir at start, also the module that defines your Celery app
+# instance
+CELERY_CHDIR="/opt/dev/atmosphere"
+
+# Environment location
+VIRTUALENV="/opt/env/atmo"
+
+# Abs path to the 'celery' command
+CELERY_BIN="$VIRTUALENV/bin/celery"
+
+CELERYBEAT_OPTS="\
+--app=$CELERY_APP
+--workdir=$CELERY_CHDIR \
+--pidfile=$CELERYBEAT_PID_FILE \
+--logfile=$CELERYBEAT_LOG_FILE \
+--loglevel=$CELERY_LOG_LEVEL \
+--schedule=django_celery_beat.schedulers.DatabaseScheduler \
+--detach"
+
+SCRIPT_NAME="$(basename "$0")";
+
+usage() {
+    echo "Usage: /etc/init.d/${SCRIPT_NAME} {start|stop|status|restart}";
+}
+
+start() {
+    # Ensure existence/permissions of log/pid dir
+    local log_dir="$(dirname  "$CELERYBEAT_LOG_FILE")" \
+          pid_dir="$(dirname "$CELERYBEAT_PID_FILE")";
+    for dir in "$log_dir" "$pid_dir"; do
+
+        # Create dir if it doesn't exist
+        mkdir -p "$dir";
+
+        # Set proper dir permissions
+        chmod 2755 "$dir";
+
+        # Set proper owner/group for dir/files
+        chown -R "$CELERY_USER":"$CELERY_GROUP" "$dir";
+
+    done;
+
+    # Start celerybeat service
+    sudo -u "$CELERY_USER" \
+        PATH="$CELERY_CHDIR:$VIRTUALENV/bin:$VIRTUALENV/lib/python2.7/site-packages:$PATH" \
+        PYTHONPATH="$CELERY_CHDIR:$PYTHONPATH" \
+        DJANGO_SETTINGS_MODULE="atmosphere.settings" \
+        "$CELERY_BIN" beat $CELERYBEAT_OPTS;
+
+    # Check for surccess
+    if [ $? -eq 0 ]; then
+        echo "$SCRIPT_NAME started";
+    else
+        echo "$SCRIPT_NAME failed to start" >&2;
+    fi;
+}
+
+stop() {
+    local pid;
+
+    # If missing pid file
+    if [ ! -e "$CELERYBEAT_PID_FILE" ]; then
+        echo "$SCRIPT_NAME was not running";
+        return 0;
+    fi;
+
+    # Capture the pid
+    read pid < $CELERYBEAT_PID_FILE;
+
+    # If pid not in process table, return
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "$SCRIPT_NAME was not running";
+        return 0;
+    fi;
+
+    # Perform graceful shutdown
+    kill -TERM "$pid"
+    sleep 1;
+
+    # If pid not in process table, return
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "$SCRIPT_NAME stopped";
+        return 0;
+    fi;
+
+    # Force shutdown
+    kill -KILL "$pid";
+    echo "$SCRIPT_NAME was forcefully stopped" >&2;
+}
+
+status() {
+    local pid;
+
+    # If missing pid file
+    if [ ! -e "$CELERYBEAT_PID_FILE" ]; then
+        echo "$SCRIPT_NAME is stopped";
+        return 0;
+    fi;
+
+    # Capture the pid
+    read pid < "$CELERYBEAT_PID_FILE";
+
+    # If pid not in process table, return
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "$SCRIPT_NAME is stopped";
+        return 0;
+    fi;
+
+    echo "$SCRIPT_NAME is running";
+}
+
+case "$1" in
+    start) start; ;;
+
+    stop) stop; ;;
+
+    status) status; ;;
+
+    restart) stop; start; ;;
+
+    *) usage; ;;
+esac
+
+exit $?;

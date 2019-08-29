@@ -10,6 +10,8 @@ Group=root
 PIDFile=/var/run/celerybeat.pid
 EnvironmentFile=/etc/default/celeryd
 WorkingDirectory=/opt/dev/atmosphere
+PermissionsStartOnly=true
+ExecStartPre=/bin/mkdir -p /var/log/celery
 ExecStart=/bin/sh -c '${CELERY_BIN} beat \
   --app=${CELERY_APP}                    \
   --schedule=django_celery_beat.schedulers.DatabaseScheduler \
@@ -17,7 +19,7 @@ ExecStart=/bin/sh -c '${CELERY_BIN} beat \
   --workdir=${CELERYBEAT_CHDIR}          \
   --detach                               \
   --pidfile=${CELERYBEAT_PID_FILE}'
-ExecStop=/usr/bin/pkill ${CELERYBEAT_PID_FILE}
+ExecStop=/usr/bin/pkill -F ${CELERYBEAT_PID_FILE}
 
 [Install]
 WantedBy=multi-user.target
