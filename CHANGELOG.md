@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-3...HEAD) - YYYY-MM-DD
+### Security
+  - Update to Django 1.11.23
+    ([#718](https://github.com/cyverse/atmosphere/pull/718))
 
 
 ## [v36-3](https://github.com/cyverse/atmosphere/compare/v36-2...HEAD) - 2019-08-08
