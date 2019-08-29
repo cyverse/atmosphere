@@ -39,7 +39,7 @@ class TokenUpdateTests(APITestCase):
         self.assertTrue(response.status_code == 400)
         self.assertTrue('provider' in response.data)
         self.assertTrue(
-            "not a valid UUID" in response.data['provider'][0],
+            "Must be a valid UUID" in response.data['provider'][0],
             "API returned unexpected error message %s" %
             response.data['provider'][0]
         )

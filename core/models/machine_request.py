@@ -249,7 +249,7 @@ class MachineRequest(BaseRequest):
             # New Format = "[u'test1', u'test2', u'test3']"
         else:
             json_loads_list = self.access_list
-        json_loads_list = json_loads_list.replace("'", '"').replace('u"', '"')
+        json_loads_list = json_loads_list.replace('u"', '"').replace("'", '"')
         user_list = json.loads(json_loads_list)
         return user_list
 

@@ -1,14 +1,14 @@
-from rest_framework import filters
-import django_filters
+from rest_framework.filters import OrderingFilter
+from django_filters import rest_framework as filters
 
 from core.models import ApplicationVersion as ImageVersion
 from api.v2.views.base import AuthOptionalViewSet
 from api.v2.serializers.details import ImageVersionSerializer
 
 
-class ImageVersionFilter(django_filters.FilterSet):
-    image_id = django_filters.CharFilter('application__id')
-    created_by = django_filters.CharFilter('application__created_by__username')
+class ImageVersionFilter(filters.FilterSet):
+    image_id = filters.CharFilter('application__id')
+    created_by = filters.CharFilter('application__created_by__username')
 
     class Meta:
         model = ImageVersion
@@ -25,7 +25,7 @@ class ImageVersionViewSet(AuthOptionalViewSet):
     ordering_fields = ('start_date', )
     ordering = ('start_date', )
     filter_class = ImageVersionFilter
-    filter_backends = (filters.OrderingFilter, filters.DjangoFilterBackend)
+    filter_backends = (OrderingFilter, filters.DjangoFilterBackend)
 
     def get_queryset(self):
         request_user = self.request.user

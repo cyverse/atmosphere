@@ -110,7 +110,6 @@ Feature: Create volume and add to projects
       "identity": {
         "created_by": "user607"
       },
-      "project": null,
       "status": "Unknown"
     }
     """
@@ -133,7 +132,6 @@ Feature: Create volume and add to projects
         "identity": {
           "created_by": "user607"
         },
-        "project": null,
         "status": "Unknown"
       }
     ]

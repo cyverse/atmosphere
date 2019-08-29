@@ -5,10 +5,16 @@
         ],
         "secrets.py": [
             "secrets.py"
+        ],
+        "celeryd.default": [
+            "celeryd.default"
+        ],
+        "uwsgi.service": [
+            "uwsgi.service"
         ]
     },
     "CONFIG_FILES": {
-        "celeryd.sysd.default": [
+        "celeryd.default": [
           "extras/systemd/celeryd.default.dist.j2",
           "extras/systemd/celeryd.default"
         ],
@@ -19,6 +25,10 @@
         "secrets.py": [
             "atmosphere/settings/secrets.py.j2",
             "atmosphere/settings/secrets.py"
+        ],
+        "uwsgi.service": [
+            "extras/systemd/uwsgi.service.j2",
+            "extras/systemd/uwsgi.service"
         ]
     }
 }
