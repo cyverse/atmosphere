@@ -31,6 +31,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Move tas timeout into driver, only apply timeout to an instance of a driver 
     ([#687](https://github.com/cyverse/atmosphere/pull/687))
 
+### Fixed
+  - Upgrade to rtwo 0.5.25 to fix errors caused by deleted source volume
+    ([#721](https://github.com/cyverse/atmosphere/pull/721))
+
 
 ## [v36-3](https://github.com/cyverse/atmosphere/compare/v36-2...HEAD) - 2019-08-08
 ### Fixed
