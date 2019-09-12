@@ -25,7 +25,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-4...HEAD) - YYYY-MM-DD
-
+### Fixed
+  - Filter out system-y metadata keys introduced in Rocky which we aren't currently using and make Glance client confused 
+    ([#701](https://github.com/cyverse/atmosphere/pull/701))
 
 ## [v36-4](https://github.com/cyverse/atmosphere/compare/v36-3...v36-4) - 2019-09-09
 ### Security
@@ -96,7 +98,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#690](https://github.com/cyverse/atmosphere/pull/690))
   - Fix systemd files for compatibility with Ubuntu 16+
     ([#696](https://github.com/cyverse/atmosphere/pull/696))
-
 
 ## [v34-4](https://github.com/cyverse/atmosphere/compare/v34-3...v34-4) - 2018-09-25
 ### Fixed

@@ -458,9 +458,10 @@ def main(
             'application_tags', 'application_uuid', 'application_version',
             'checksum', 'container_format', 'created_at', 'direct_url',
             'disk_format', 'file', 'id', 'instance_uuid', 'is_public',
-            'kernel_id', 'locations', 'min_disk', 'min_ram', 'name', 'owner',
-            'protected', 'ramdisk_id', 'schema', 'self', 'size', 'status',
-            'tags', 'updated_at', 'virtual_size', 'visibility'
+            'kernel_id', 'locations', 'min_disk', 'min_ram', 'name',
+            'os_hash_algo', 'os_hash_value', 'os_hidden', 'owner', 'protected',
+            'ramdisk_id', 'schema', 'self', 'size', 'status', 'tags',
+            'updated_at', 'virtual_size', 'visibility'
         ]
 
         for key in filter_out_keys:
