@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-4...HEAD) - YYYY-MM-DD
+### Added
+  - Jetstream specific scripts
+    ([#723](https://github.com/cyverse/atmosphere/pull/723))
 ### Fixed
   - Filter out system-y metadata keys introduced in Rocky which we aren't currently using and make Glance client confused 
     ([#701](https://github.com/cyverse/atmosphere/pull/701))
