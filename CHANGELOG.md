@@ -28,8 +28,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
   - Jetstream specific scripts
     ([#723](https://github.com/cyverse/atmosphere/pull/723))
+  - More Jetstream specific scripts
+    ([#724](https://github.com/cyverse/atmosphere/pull/724))
+
 ### Fixed
-  - Filter out system-y metadata keys introduced in Rocky which we aren't currently using and make Glance client confused 
+  - Filter out system-y metadata keys introduced in Rocky which we aren't currently using and make Glance client confused
     ([#701](https://github.com/cyverse/atmosphere/pull/701))
 
 ## [v36-4](https://github.com/cyverse/atmosphere/compare/v36-3...v36-4) - 2019-09-09
