@@ -1,0 +1,22 @@
+#!/bin/bash
+
+IMAGE_LOCATION='/Storage/'
+DAYS_TO_KEEP_IMAGES=7
+LOG=/var/log/atmo_chromo_purge_old_images.log
+
+# first grab any files that are older than DAYS_TO_KEEP_IMAGES
+old_files=`/usr/bin/find ${IMAGE_LOCATION} -maxdepth 1 -type f -mtime +${DAYS_TO_KEEP_IMAGES}`
+
+for f in $old_files; do
+
+	# as a precaution, make sure no process is currently accessing old image
+	`/bin/fuser $f >/dev/null 2>&1`
+	if [ $? -ne 0 ]; then
+		echo `date`" Deleting old chromogenic image $f"
+		echo `date`" Deleting old chromogenic image $f" >> $LOG
+		/bin/rm -f $f
+	else
+		echo `date`" Skipping delete of chromogenic image $f, it's being used"
+		echo `date`" Skipping delete of chromogenic image $f, it's being used" >>$LOG
+	fi
+done
