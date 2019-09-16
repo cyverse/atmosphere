@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
     ([#723](https://github.com/cyverse/atmosphere/pull/723))
   - More Jetstream specific scripts
     ([#724](https://github.com/cyverse/atmosphere/pull/724))
+  - Add purge_old_chromo_images script and install postgresql client
+    ([#725](https://github.com/cyverse/atmosphere/pull/725))
 
 ### Fixed
   - Filter out system-y metadata keys introduced in Rocky which we aren't currently using and make Glance client confused
