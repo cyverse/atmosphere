@@ -22,6 +22,7 @@ RUN apt-get update && \
       make \
       netcat \
       openssl \
+      postgresql-client \
       python \
       python-dev \
       python-m2crypto \
