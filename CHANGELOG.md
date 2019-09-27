@@ -33,6 +33,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - Add purge_old_chromo_images script and install postgresql client
     ([#725](https://github.com/cyverse/atmosphere/pull/725))
 
+### Changed
+  - Upgrade Chromogenic to `0.5.3`
+    ([#726](https://github.com/cyverse/atmosphere/pull/726))
+
 ### Fixed
   - Filter out system-y metadata keys introduced in Rocky which we aren't currently using and make Glance client confused
     ([#701](https://github.com/cyverse/atmosphere/pull/701))
