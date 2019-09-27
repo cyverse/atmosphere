@@ -15,19 +15,31 @@ def main():
     Reset quotas for users on a particular allocation source
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dry-run', action='store_true', help='Print output rather than perform operation')
-    parser.add_argument('--allocation-source', required=True,
-                        help='Allocation source name to reset quotas for, e.g. TG-ASC160018')
-    parser.add_argument('--quota-id', required=True, type=int,
-                        help='Quota ID to set')
-    parser.add_argument('--whitelist-quota-ids', type=lambda s: [int(item.strip()) for item in s.split(',')],
-                        help='Quota IDs that are acceptable and won\'t be overwritten (comma separated)')
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Print output rather than perform operation'
+    )
+    parser.add_argument(
+        '--allocation-source',
+        required=True,
+        help='Allocation source name to reset quotas for, e.g. TG-ASC160018'
+    )
+    parser.add_argument(
+        '--quota-id', required=True, type=int, help='Quota ID to set'
+    )
+    parser.add_argument(
+        '--whitelist-quota-ids',
+        type=lambda s: [int(item.strip()) for item in s.split(',')],
+        help=
+        'Quota IDs that are acceptable and won\'t be overwritten (comma separated)'
+    )
     parser.set_defaults(dry_run=False)
     args = parser.parse_args()
-    return run_command(args.dry_run,
-                       args.allocation_source,
-                       args.quota_id,
-                       args.whitelist_quota_ids)
+    return run_command(
+        args.dry_run, args.allocation_source, args.quota_id,
+        args.whitelist_quota_ids
+    )
 
 
 def run_command(dry_run, allocation_source, quota_id, whitelist_quota_ids):
@@ -70,7 +82,9 @@ WHERE
             print('DRY-RUN: Not changing quota to {}'.format(quota_id))
         else:
             print('Changing provider quota to {}...'.format(quota_id))
-            updated_provider_quota = set_provider_quota(identity.uuid, quota=quota_to_set)
+            updated_provider_quota = set_provider_quota(
+                identity.uuid, quota=quota_to_set
+            )
             print('Updated provider quota: {}'.format(updated_provider_quota))
             print('Changing DB quota to {}...'.format(quota_id))
             identity.quota = quota_to_set
