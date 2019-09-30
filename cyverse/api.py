@@ -7,7 +7,7 @@ from django.conf import settings
 def grouper_api_get(path, query_params=None, search_user=None):
     url = settings.GROUPER_API + path
     if not search_user:
-        search_user = settings.GROUPER_SEARCH_USER
+        search_user = settings.GROUP_SEARCH_USER
     if not query_params:
         query_params = "?user=%s" % search_user
     else:
