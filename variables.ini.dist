@@ -63,6 +63,7 @@ TESTING =  False # Boolean required
 AUTO_CREATE_NEW_ACCOUNTS =  False # Boolean required
 AUTO_CREATE_NEW_PROJECTS =  False # Boolean required
 ALLOCATION_SOURCE_COMPUTE_ALLOWED =  168 # Boolean required
+ALLOC_SNAPSHOT_SIZE = 1000
 USE_JETSTREAM_PLUGIN =  False # Boolean required
 TIME_ZONE = UTC
 SITE_NAME = # CyVerse

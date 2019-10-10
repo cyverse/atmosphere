@@ -16,12 +16,34 @@ from cyverse_allocation.cyverse_rules_engine_setup import CyverseTestRenewalVari
 
 @task(name="update_snapshot_cyverse")
 def update_snapshot_cyverse(start_date=None, end_date=None):
+    all_sources = AllocationSource.objects.order_by('name')
+    n = settings.ALLOC_SNAPSHOT_SIZE
+    if len(all_sources) > n:
+        for i in range(0, len(all_sources), n):
+            update_snapshot_cyverse_for.apply_async(
+                args=(all_sources[i:i + n], ),
+                kwargs={
+                    'start_date': start_date,
+                    'end_date': end_date
+                },
+                expires=15 * 60
+            )
+    else:
+        update_snapshot_cyverse_for(
+            all_sources, start_date=start_date, end_date=end_date
+        )
+
+
+@task(name="update_snapshot_cyverse_for")
+def update_snapshot_cyverse_for(
+    allocation_sources, start_date=None, end_date=None
+):
     logger.debug("update_snapshot_cyverse task started at %s." % datetime.now())
     end_date = timezone.now().replace(
         microsecond=0
     ) if not end_date else end_date
 
-    for allocation_source in AllocationSource.objects.order_by('name'):
+    for allocation_source in allocation_sources:
         # calculate and save snapshots here
         allocation_source_name = allocation_source.name
         last_renewal_event = EventTable.objects.filter(
