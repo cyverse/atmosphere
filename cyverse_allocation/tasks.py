@@ -21,7 +21,9 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
     num_sources = len(all_sources)
     if num_sources > n:
         for i in range(0, len(all_sources), n):
-            logger.debug("Updating {} of {} allocation sources ".format(n, num_sources))
+            logger.debug(
+                "Updating {} of {} allocation sources ".format(n, num_sources)
+            )
             update_snapshot_cyverse_for.apply_async(
                 args=(all_sources[i:i + n], ),
                 kwargs={
@@ -31,7 +33,11 @@ def update_snapshot_cyverse(start_date=None, end_date=None):
                 expires=15 * 60
             )
     else:
-        logger.debug("Updating all {} allocation sources (snapshot size is {})".format(num_sources, n))
+        logger.debug(
+            "Updating all {} allocation sources (snapshot size is {})".format(
+                num_sources, n
+            )
+        )
         update_snapshot_cyverse_for(
             all_sources, start_date=start_date, end_date=end_date
         )
