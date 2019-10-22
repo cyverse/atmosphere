@@ -24,7 +24,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-5...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-6...HEAD) - YYYY-MM-DD
+
+## [v36-6](https://github.com/cyverse/atmosphere/compare/v36-5...v36-6) - 2019-10-22
 ### Changed
   - Update Chromogenic to latest version
     ([#730](https://github.com/cyverse/atmosphere/pull/730))
