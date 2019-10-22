@@ -75,6 +75,7 @@ PERIODIC_TASKS = [
     "monitor_jetstream_allocation_sources",
     #ALLOCATION SOURCES - PERIODIC TASKS
     "update_snapshot_cyverse",
+    "update_snapshot_cyverse_for",
     "allocation_threshold_check",
 ]
 SHORT_TASKS = [
