@@ -32,7 +32,7 @@ upgrading packages in Atmosphere.
 ## Running scripts
 
 There are several utility scripts in `./scripts`. To run these:
-```
+```bash
 cd <path to atmosphere>
 export DJANGO_SETTINGS_MODULE='atmosphere.settings'
 export PYTHONPATH="$PWD:$PYTHONPATH"
@@ -46,8 +46,7 @@ See [HACKING.md](./HACKING.md).
 ### Coding Style
 We rely on a tool to format the codebase. If you install from
 `dev_requirements.txt`, the `yapf` binary will be in your environment.
-
-```
+```bash
 yapf --in-place --parallel   -- $(git ls-files | grep '\.py$')
 ```
 
