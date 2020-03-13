@@ -899,12 +899,22 @@ def launch_machine_instance(
         driver, user, identity, size, name, **kwargs
     )
     kwargs.update(prep_kwargs)
-    instance, token, password = _launch_machine(
-        driver, identity, machine, size, name, userdata, network, **kwargs
-    )
-    return _complete_launch_instance(
-        driver, identity, instance, user, token, password, deploy=deploy
-    )
+
+    core_instances = []
+
+    # launch specified number of instances
+    for i in range(kwargs.get('instance_count')):
+        instance, token, password = _launch_machine(
+            driver, identity, machine, size, name, userdata, network, **kwargs
+        )
+        core_instance = _complete_launch_instance(
+            driver, identity, instance, user, token, password, deploy=deploy
+        )
+        core_instances.append(core_instance)
+
+    # currently only return the 1st instance
+    # FIXME should return all
+    return core_instances[0]
 
 
 def _boot_volume(
