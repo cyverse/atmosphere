@@ -742,6 +742,7 @@ def launch_instance(
     Initialization point --> launch_*_instance --> ..
     Required arguments will launch the instance, extras will do
     provider-specific modifications.
+    pass in number of instance to launch_kwargs['instance_count'].
 
     1. Test for available Size (on specific driver!)
     2. Test user has Quota/Allocation (on our DB)
