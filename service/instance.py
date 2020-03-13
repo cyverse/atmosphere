@@ -704,7 +704,7 @@ def update_status(esh_driver, instance_id, provider_uuid, identity_uuid, user):
 
 
 def _pre_launch_validation(
-    username, esh_driver, identity_uuid, boot_source, size, allocation_source
+    username, esh_driver, identity_uuid, boot_source, size, allocation_source, instance_count=1
 ):
     """
     Used BEFORE launching a volume/instance .. Raise exceptions here to be dealt with by the caller.
@@ -712,7 +712,7 @@ def _pre_launch_validation(
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
 
     # May raise OverQuotaError
-    check_quota(username, identity_uuid, size, include_networking=True)
+    check_quota(username, identity_uuid, size, include_networking=True, instance_count=instance_count)
 
     # May raise OverAllocationError, AllocationBlacklistedError
     check_allocation(username, allocation_source)
@@ -771,7 +771,7 @@ def launch_instance(
     # Raise any other exceptions before launching here
     _pre_launch_validation(
         user.username, esh_driver, identity_uuid, boot_source, size,
-        launch_kwargs.get('allocation_source')
+        launch_kwargs.get('allocation_source'), instance_count=launch_kwargs.get('instance_count')
     )
 
     core_instance = _select_and_launch_source(
@@ -1318,14 +1318,15 @@ def check_allocation(username, allocation_source):
         )
 
 
-def check_quota(username, identity_uuid, esh_size, include_networking=False):
+def check_quota(username, identity_uuid, esh_size, include_networking=False, instance_count=1):
     from service.quota import check_over_instance_quota
     try:
         check_over_instance_quota(
             username,
             identity_uuid,
             esh_size,
-            include_networking=include_networking
+            include_networking=include_networking,
+            instance_count=instance_count
         )
     except ValidationError as bad_quota:
         raise OverQuotaError(message=bad_quota.message)
