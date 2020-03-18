@@ -709,6 +709,11 @@ def _pre_launch_validation(
     """
     Used BEFORE launching a volume/instance .. Raise exceptions here to be dealt with by the caller.
     """
+    # Raise Validation Error if bad instance_count
+    # FIXME use a more specific Exception type
+    if not isinstance(instance_count, int) or instance_count < 1:
+        raise ValidationError("Bad instance count: {}".format(instance_count))
+
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
 
     # May raise OverQuotaError
@@ -719,11 +724,6 @@ def _pre_launch_validation(
 
     # May raise UnderThresholdError
     check_application_threshold(username, identity_uuid, size, boot_source)
-
-    # Raise Validation Error if bad instance_count
-    # FIXME use a more specific Exception type
-    if not isinstance(instance_count, int) or instance_count < 1:
-        raise ValidationError("Bad instance count: {}".format(instance_count))
 
     if boot_source.is_machine():
         machine = _retrieve_source(
