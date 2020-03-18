@@ -211,3 +211,6 @@ class NonZeroDeploymentException(Exception):
 
 class TimeoutError(Exception):
     pass
+
+class BadInstanceCount(ServiceException):
+    pass

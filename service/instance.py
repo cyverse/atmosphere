@@ -53,7 +53,8 @@ from service.exceptions import (
     OverAllocationError, AllocationBlacklistedError, OverQuotaError,
     SizeNotAvailable, SecurityGroupNotCreated, VolumeAttachConflict,
     VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
-    InstanceDoesNotExist, InstanceLaunchConflict, Unauthorized
+    InstanceDoesNotExist, InstanceLaunchConflict, Unauthorized,
+    BadInstanceCount
 )
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
@@ -709,10 +710,9 @@ def _pre_launch_validation(
     """
     Used BEFORE launching a volume/instance .. Raise exceptions here to be dealt with by the caller.
     """
-    # Raise Validation Error if bad instance_count
-    # FIXME use a more specific Exception type
+    # Raise BadInstanceCount Error if not int or non-positive
     if not isinstance(instance_count, int) or instance_count < 1:
-        raise ValidationError("Bad instance count: {}".format(instance_count))
+        raise BadInstanceCount("Bad instance count: %s" % instance_count)
 
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
 
