@@ -352,6 +352,13 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             allocation_source = AllocationSource.objects.get(
                 uuid=allocation_source_id
             )
+
+            if 'instance_count' in extra:
+                return self._multi_create(
+                    user, identity_uuid, size_alias, source_alias, name,
+                    deploy, allocation_source, project, boot_scripts, extra
+                    )
+
             core_instance = launch_instance(
                 user,
                 identity_uuid,
@@ -407,3 +414,46 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 "Returning 409-CONFLICT"
             )
             return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
+
+    def _multi_create(self, user, identity_uuid, size_alias, source_alias, name, deploy, allocation_source, project, boot_scripts, extra):
+        """
+        1. Launch multiple instances
+        2. Serialize the launched instances
+        3. FIXME
+        """
+
+        core_instances = launch_instance(
+            user,
+            identity_uuid,
+            size_alias,
+            source_alias,
+            name,
+            deploy,
+            allocation_source=allocation_source,
+            **extra
+        )
+
+        # Serialize all instances launched
+        for core_instance in core_instances:
+            # Faking a 'partial update of nothing' to allow call to 'is_valid'
+            serialized_instance = InstanceSerializer(
+                core_instance,
+                context={'request': self.request},
+                data={},
+                partial=True
+            )
+            if not serialized_instance.is_valid():
+                return Response(
+                    serialized_instance.errors,
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            instance = serialized_instance.save()
+            instance.project = project
+            instance.save()
+            if boot_scripts:
+                _save_scripts_to_instance(instance, boot_scripts)
+            instance.change_allocation_source(allocation_source)
+        # FIXME currently return last instance launched
+        return Response(
+            serialized_instance.data, status=status.HTTP_201_CREATED
+        )

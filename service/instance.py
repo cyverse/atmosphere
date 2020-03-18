@@ -752,8 +752,10 @@ def launch_instance(
     1. Test for available Size (on specific driver!)
     2. Test user has Quota/Allocation (on our DB)
     3. Test user is launching appropriate size (Not below Thresholds)
-    4. Perform an 'Instance launch' depending on Boot Source
-    5. Return CORE Instance with new 'esh' objects attached.
+    4. Perform an 'Instance launch' depending on Boot Source OR Perform
+    multiple instance launch from machine source if instance_count is passed in via launch_kwargs
+    5. Return CORE Instance with new 'esh' objects attached OR a list of
+    CORE instances if instance_count is passed in via launch_kwargs
     """
     now_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     status_logger.debug(
@@ -774,10 +776,71 @@ def launch_instance(
     # May raise Exception("Size not available")
     size = check_size(esh_driver, size_alias, provider, boot_source)
 
+    # Checking if instance_count is passed as an arg
+    if 'instance_count' in launch_kwargs:
+        instance_count = launch_kwargs['instance_count']
+        del launch_kwargs['instance_count']
+        logger.debug(launch_kwargs)
+
+        return _launch_multiple_instances(
+            user, esh_driver, identity_uuid, boot_source, size, name, deploy,
+            instance_count, launch_kwargs
+            )
+    else:
+        return _launch_one_instance(
+            user, esh_driver, identity_uuid, boot_source, size, name, deploy,
+            launch_kwargs
+            )
+
+def _launch_multiple_instances(
+    user, esh_driver, identity_uuid, boot_source, size, name, deploy,
+    instance_count, launch_kwargs
+    ):
+    """
+    Launching multiple instances, all from the same machine,
+    can NOT boot from volume
+    """
     # Raise any other exceptions before launching here
     _pre_launch_validation(
         user.username, esh_driver, identity_uuid, boot_source, size,
-        launch_kwargs.get('allocation_source'), instance_count=launch_kwargs.get('instance_count')
+        launch_kwargs.get('allocation_source'), instance_count=instance_count
+    )
+
+    # checking boot source
+    if boot_source.is_volume():
+        raise Exception("Multi instance launch does not support volume as boot source")
+    elif not boot_source.is_machine():
+        raise Exception("Boot source is of an unknown type")
+
+    identity = CoreIdentity.objects.get(uuid=identity_uuid)
+
+    machine = _retrieve_source(
+        esh_driver, boot_source.identifier, "machine"
+    )
+    core_instances = launch_multiple_machine_instances(
+        esh_driver,
+        user,
+        identity,
+        machine,
+        size,
+        name,
+        deploy=deploy,
+        instance_count=instance_count,
+        **launch_kwargs
+    )
+    return core_instances
+
+def _launch_one_instance(
+    user, esh_driver, identity_uuid, boot_source, size, name,
+    deploy, launch_kwargs
+    ):
+    """
+    Launching just a single instance
+    """
+    # Raise any other exceptions before launching here
+    _pre_launch_validation(
+        user.username, esh_driver, identity_uuid, boot_source, size,
+        launch_kwargs.get('allocation_source')
     )
 
     core_instance = _select_and_launch_source(
@@ -790,8 +853,8 @@ def launch_instance(
         deploy=deploy,
         **launch_kwargs
     )
-    return core_instance
 
+    return core_instance
 
 # NOTE: Harmonizing these four methods below would be nice..
 """
@@ -905,11 +968,29 @@ def launch_machine_instance(
         driver, user, identity, size, name, **kwargs
     )
     kwargs.update(prep_kwargs)
+    instance, token, password = _launch_machine(
+        driver, identity, machine, size, name, userdata, network, **kwargs
+    )
+    return _complete_launch_instance(
+        driver, identity, instance, user, token, password, deploy=deploy
+    )
+
+def launch_multiple_machine_instances(
+    driver, user, identity, machine, size, name, deploy=True, instance_count=1, **kwargs
+):
+    """
+    Launch multiple instances off an existing machine
+    """
+    prep_kwargs, userdata, network = _pre_launch_instance(
+        driver, user, identity, size, name, **kwargs
+    )
+    kwargs.update(prep_kwargs)
 
     core_instances = []
 
+    logger.debug("multi-instance-launch, launching {} instances".format(instance_count))
     # launch specified number of instances
-    for i in range(kwargs.get('instance_count')):
+    for i in range(instance_count):
         instance, token, password = _launch_machine(
             driver, identity, machine, size, name, userdata, network, **kwargs
         )
@@ -917,10 +998,12 @@ def launch_machine_instance(
             driver, identity, instance, user, token, password, deploy=deploy
         )
         core_instances.append(core_instance)
+        logger.debug("multi-instance-launch, #{}, {}".format(i, core_instance))
 
-    # currently only return the 1st instance
-    # FIXME should return all
-    return core_instances[0]
+    logger.debug("multi-instance-launch, result {}".format(core_instances))
+
+    # return all instances
+    return core_instances
 
 
 def _boot_volume(
