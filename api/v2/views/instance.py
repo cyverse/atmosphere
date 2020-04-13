@@ -419,7 +419,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
         """
         1. Launch multiple instances
         2. Serialize the launched instances
-        3. FIXME
+        3. Return a list of serialized instances
         """
 
         core_instances = launch_instance(
@@ -432,6 +432,8 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             allocation_source=allocation_source,
             **extra
         )
+
+        serialized_data = []
 
         # Serialize all instances launched
         for core_instance in core_instances:
@@ -453,7 +455,11 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             if boot_scripts:
                 _save_scripts_to_instance(instance, boot_scripts)
             instance.change_allocation_source(allocation_source)
-        # FIXME currently return last instance launched
+
+            # append to result
+            serialized_data.append(serialized_instance.data)
+
+        # return a list of instances in the response
         return Response(
-            serialized_instance.data, status=status.HTTP_201_CREATED
+            serialized_data, status=status.HTTP_201_CREATED
         )
