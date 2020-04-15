@@ -445,10 +445,7 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 partial=True
             )
             if not serialized_instance.is_valid():
-                return Response(
-                    serialized_instance.errors,
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                logger.error("multi-instance-launch, serialized instance is invalid, {}".format(serialized_instance))
             instance = serialized_instance.save()
             instance.project = project
             instance.save()
