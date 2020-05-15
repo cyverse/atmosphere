@@ -53,8 +53,7 @@ from service.exceptions import (
     OverAllocationError, AllocationBlacklistedError, OverQuotaError,
     SizeNotAvailable, SecurityGroupNotCreated, VolumeAttachConflict,
     VolumeDetachConflict, UnderThresholdError, ActionNotAllowed,
-    InstanceDoesNotExist, InstanceLaunchConflict, Unauthorized,
-    BadInstanceCount
+    InstanceDoesNotExist, InstanceLaunchConflict, Unauthorized, BadInstanceCount
 )
 
 from service.accounts.openstack_manager import AccountDriver as OSAccountDriver
@@ -705,7 +704,13 @@ def update_status(esh_driver, instance_id, provider_uuid, identity_uuid, user):
 
 
 def _pre_launch_validation(
-    username, esh_driver, identity_uuid, boot_source, size, allocation_source, instance_count=1
+    username,
+    esh_driver,
+    identity_uuid,
+    boot_source,
+    size,
+    allocation_source,
+    instance_count=1
 ):
     """
     Used BEFORE launching a volume/instance .. Raise exceptions here to be dealt with by the caller.
@@ -717,7 +722,13 @@ def _pre_launch_validation(
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
 
     # May raise OverQuotaError
-    check_quota(username, identity_uuid, size, include_networking=True, instance_count=instance_count)
+    check_quota(
+        username,
+        identity_uuid,
+        size,
+        include_networking=True,
+        instance_count=instance_count
+    )
 
     # May raise OverAllocationError, AllocationBlacklistedError
     check_allocation(username, allocation_source)
@@ -785,38 +796,44 @@ def launch_instance(
         return _launch_multiple_instances(
             user, esh_driver, identity_uuid, boot_source, size, name, deploy,
             instance_count, launch_kwargs
-            )
+        )
     else:
         return _launch_one_instance(
             user, esh_driver, identity_uuid, boot_source, size, name, deploy,
             launch_kwargs
-            )
+        )
+
 
 def _launch_multiple_instances(
     user, esh_driver, identity_uuid, boot_source, size, name, deploy,
     instance_count, launch_kwargs
-    ):
+):
     """
     Launching multiple instances, all from the same machine,
     can NOT boot from volume
     """
     # Raise any other exceptions before launching here
     _pre_launch_validation(
-        user.username, esh_driver, identity_uuid, boot_source, size,
-        launch_kwargs.get('allocation_source'), instance_count=instance_count
+        user.username,
+        esh_driver,
+        identity_uuid,
+        boot_source,
+        size,
+        launch_kwargs.get('allocation_source'),
+        instance_count=instance_count
     )
 
     # checking boot source
     if boot_source.is_volume():
-        raise Exception("Multi instance launch does not support volume as boot source")
+        raise Exception(
+            "Multi instance launch does not support volume as boot source"
+        )
     elif not boot_source.is_machine():
         raise Exception("Boot source is of an unknown type")
 
     identity = CoreIdentity.objects.get(uuid=identity_uuid)
 
-    machine = _retrieve_source(
-        esh_driver, boot_source.identifier, "machine"
-    )
+    machine = _retrieve_source(esh_driver, boot_source.identifier, "machine")
     core_instances = launch_multiple_machine_instances(
         esh_driver,
         user,
@@ -830,10 +847,11 @@ def _launch_multiple_instances(
     )
     return core_instances
 
+
 def _launch_one_instance(
-    user, esh_driver, identity_uuid, boot_source, size, name,
-    deploy, launch_kwargs
-    ):
+    user, esh_driver, identity_uuid, boot_source, size, name, deploy,
+    launch_kwargs
+):
     """
     Launching just a single instance
     """
@@ -855,6 +873,7 @@ def _launch_one_instance(
     )
 
     return core_instance
+
 
 # NOTE: Harmonizing these four methods below would be nice..
 """
@@ -975,8 +994,17 @@ def launch_machine_instance(
         driver, identity, instance, user, token, password, deploy=deploy
     )
 
+
 def launch_multiple_machine_instances(
-    driver, user, identity, machine, size, name, deploy=True, instance_count=1, **kwargs
+    driver,
+    user,
+    identity,
+    machine,
+    size,
+    name,
+    deploy=True,
+    instance_count=1,
+    **kwargs
 ):
     """
     Launch multiple instances off an existing machine
@@ -988,7 +1016,9 @@ def launch_multiple_machine_instances(
 
     core_instances = []
 
-    logger.debug("multi-instance-launch, launching {} instances".format(instance_count))
+    logger.debug(
+        "multi-instance-launch, launching {} instances".format(instance_count)
+    )
     # launch specified number of instances
     for i in range(instance_count):
         instance, token, password = _launch_machine(
@@ -1407,7 +1437,13 @@ def check_allocation(username, allocation_source):
         )
 
 
-def check_quota(username, identity_uuid, esh_size, include_networking=False, instance_count=1):
+def check_quota(
+    username,
+    identity_uuid,
+    esh_size,
+    include_networking=False,
+    instance_count=1
+):
     from service.quota import check_over_instance_quota
     try:
         check_over_instance_quota(
@@ -1504,8 +1540,7 @@ def _get_default_rules():
         }, {
             "direction": "ingress",
             "ethertype": "IPv6",
-        },
-        {
+        }, {
             "direction": "ingress",
             "port_range_min": 22,
             "port_range_max": 22,

@@ -355,9 +355,9 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
 
             if 'instance_count' in extra:
                 return self._multi_create(
-                    user, identity_uuid, size_alias, source_alias, name,
-                    deploy, allocation_source, project, boot_scripts, extra
-                    )
+                    user, identity_uuid, size_alias, source_alias, name, deploy,
+                    allocation_source, project, boot_scripts, extra
+                )
 
             core_instance = launch_instance(
                 user,
@@ -415,7 +415,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             )
             return failure_response(status.HTTP_409_CONFLICT, str(exc.message))
 
-    def _multi_create(self, user, identity_uuid, size_alias, source_alias, name, deploy, allocation_source, project, boot_scripts, extra):
+    def _multi_create(
+        self, user, identity_uuid, size_alias, source_alias, name, deploy,
+        allocation_source, project, boot_scripts, extra
+    ):
         """
         1. Launch multiple instances
         2. Serialize the launched instances
@@ -445,7 +448,10 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
                 partial=True
             )
             if not serialized_instance.is_valid():
-                logger.error("multi-instance-launch, serialized instance is invalid, {}".format(serialized_instance))
+                logger.error(
+                    "multi-instance-launch, serialized instance is invalid, {}".
+                    format(serialized_instance)
+                )
             instance = serialized_instance.save()
             instance.project = project
             instance.save()
@@ -457,6 +463,4 @@ class InstanceViewSet(MultipleFieldLookup, AuthModelViewSet):
             serialized_data.append(serialized_instance.data)
 
         # return a list of instances in the response
-        return Response(
-            serialized_data, status=status.HTTP_201_CREATED
-        )
+        return Response(serialized_data, status=status.HTTP_201_CREATED)
