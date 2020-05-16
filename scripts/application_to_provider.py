@@ -472,8 +472,7 @@ def main(
 
                     # Added to change member status to accepted
                     dprov_glance_client.image_members.update(
-                        dprov_glance_image.id, add_member_uuid,
-                        'accepted'
+                        dprov_glance_image.id, add_member_uuid, 'accepted'
                     )
 
                 else:
@@ -797,9 +796,7 @@ def migrate_image_data_irods(
         irods_conn.get('host'), irods_conn.get('port'), dst_data_obj_path
     )
 
-    dst_glance_client.images.add_location(
-        img_uuid, dst_img_location, dict()
-    )
+    dst_glance_client.images.add_location(img_uuid, dst_img_location, dict())
     logging.info("Set image location in Glance")
     return True
 
