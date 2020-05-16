@@ -3,12 +3,9 @@ import argparse
 import django
 django.setup()
 
-from core.models import Volume, Provider
-from core.query import only_current_source
+from core.models import Volume
 from django.db import connection
-from django.conf import settings
 from django.db.models.functions import Now
-from service.driver import get_account_driver
 
 def main():
     '''
