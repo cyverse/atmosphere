@@ -116,8 +116,8 @@ def main():
                 print 'no driver'
             '''
 
-            if inst.last_status == 'active' or inst.last_status == 'shutoff' or 
-                inst.last_status == 'deploy_error' or inst.last_status == 'deploying' or 
+            if inst.last_status == 'active' or inst.last_status == 'shutoff' or \
+                inst.last_status == 'deploy_error' or inst.last_status == 'deploying' or \
                 inst.last_status == 'suspended':
                 shelve_instance(
                     driver, esh_instance, identity.provider.uuid, identity.uuid,
