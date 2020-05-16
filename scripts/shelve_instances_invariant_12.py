@@ -83,7 +83,7 @@ def main():
     for instance in query_instances:
         if instance.created_by.username != 'atmoadmin' and instance.allocation_source.name not in whitelist:
             active_instances_to_shelve.append(instance)
-    
+
     # Here they are, set them to shelved
     for inst in active_instances_to_shelve:
         reclaim_ip = True
@@ -92,17 +92,15 @@ def main():
         provider = Provider.objects.get(pk=provider_id)
 
         if not provider:
-            print 'Provider not found, skipping'   # output to log in service
+            print 'Provider not found, skipping'  # output to log in service
             continue
 
         identity = Identity.objects.get(
-            created_by__username=inst.username, provider=provider
-        )
+            created_by__username=inst.username, provider=provider)
 
         try:
             driver = get_cached_driver(identity=identity)
             esh_instance = driver.get_instance(inst.provider_alias)
-            
             '''if driver:
                 print 'got driver'
                 print inst.name
@@ -117,26 +115,20 @@ def main():
                 print 'no driver'
             '''
 
-            if inst.last_status == 'active' or inst.last_status == 'shutoff' or \
-                inst.last_status == 'deploy_error' or inst.last_status == 'deploying' or \
-                inst.last_status == 'suspended':
-                shelve_instance(
-                    driver, esh_instance, identity.provider.uuid, identity.uuid,
-                    identity.created_by, reclaim_ip
-                )
+            if inst.last_status == 'active' or inst.last_status == 'shutoff' or inst.last_status == 'deploy_error' or inst.last_status == 'deploying' or inst.last_status == 'suspended':
+                shelve_instance(driver, esh_instance, identity.provider.uuid,
+                                identity.uuid, identity.created_by, reclaim_ip)
                 print "Shelved instance %s (%s) on allocation %s for user %s" % (
-                    inst.id, inst.name, inst.allocation_source.name, 
-                    inst.created_by.username
-                )
+                    inst.id, inst.name, inst.allocation_source.name,
+                    inst.created_by.username)
             if inst.last_status == 'error':
                 raise Exception('Did not shelve instance due to ERROR status')
         except Exception as e:
             print "Could not shelve Instance %s (%s) on allocation %s for user %s - Exception: %s" % (
-                inst.id, inst.name, inst.allocation_source.name, 
-                inst.created_by.username, e
-            )
+                inst.id, inst.name, inst.allocation_source.name,
+                inst.created_by.username, e)
         continue
-        
-        
+
+
 if __name__ == "__main__":
     main()
