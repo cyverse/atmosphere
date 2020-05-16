@@ -1540,7 +1540,8 @@ def _get_default_rules():
         }, {
             "direction": "ingress",
             "ethertype": "IPv6",
-        }, {
+        },
+        {
             "direction": "ingress",
             "port_range_min": 22,
             "port_range_max": 22,
