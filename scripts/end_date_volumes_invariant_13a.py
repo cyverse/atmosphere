@@ -158,7 +158,7 @@ def main():
             print 'End-dated %s' % vol
         print '----'
 
-        
+
 # Helper function to get query results as a dictionary
 def dictfetchall(cursor):
     columns = [col[0] for col in cursor.description]
