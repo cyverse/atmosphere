@@ -17,7 +17,6 @@ django.setup()
 import core.models
 import service.driver
 from chromogenic.clean import mount_and_clean
-from rtwo.drivers.common import _connect_to_glance
 from atmosphere.settings import secrets
 
 description = """
