@@ -7,6 +7,7 @@ from core.models import Provider, Instance, Identity
 from service.instance import shelve_instance
 from service.cache import get_cached_driver
 
+
 def main():
     '''
     This script will set active instances that come up for Invariant #12 on 
@@ -88,10 +89,10 @@ def main():
         reclaim_ip = True
 
         provider_id = inst.source.provider_id
-        provider = Provider.objects.get(pk=provider_id) 
+        provider = Provider.objects.get(pk=provider_id)
 
         if not provider:
-            print 'Provider not found, skipping' # output to log in service
+            print 'Provider not found, skipping'   # output to log in service
             continue
 
         identity = Identity.objects.get(
@@ -101,7 +102,7 @@ def main():
         try:
             driver = get_cached_driver(identity=identity)
             esh_instance = driver.get_instance(inst.provider_alias)
-
+            
             '''if driver:
                 print 'got driver'
                 print inst.name
@@ -124,15 +125,18 @@ def main():
                     identity.created_by, reclaim_ip
                 )
                 print "Shelved instance %s (%s) on allocation %s for user %s" % (
-                        inst.id, inst.name, inst.allocation_source.name, inst.created_by.username
+                    inst.id, inst.name, inst.allocation_source.name, 
+                    inst.created_by.username
                 )
             if inst.last_status == 'error':
                 raise Exception('Did not shelve instance due to ERROR status')
         except Exception as e:
             print "Could not shelve Instance %s (%s) on allocation %s for user %s - Exception: %s" % (
-                    inst.id, inst.name, inst.allocation_source.name, inst.created_by.username, e
+                inst.id, inst.name, inst.allocation_source.name, 
+                inst.created_by.username, e
             )
         continue
+        
         
 if __name__ == "__main__":
     main()
