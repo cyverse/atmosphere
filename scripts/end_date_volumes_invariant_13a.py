@@ -7,6 +7,7 @@ from core.models import Volume
 from django.db import connection
 from django.db.models.functions import Now
 
+
 def main():
     '''
     This script will end date volumes that come up for Invariant #13a on 
@@ -156,7 +157,6 @@ def main():
             vol.save()
             print 'End-dated %s' % vol
         print '----'
-        
 
 # Helper function to get query results as a dictionary
 def dictfetchall(cursor):
