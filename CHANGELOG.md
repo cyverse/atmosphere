@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-6...HEAD) - YYYY-MM-DD
+### Added
+  - Add support for multi-instance-launch, 1 request can launch multiple instances by passing `instance_count` as an extra parameter
+    ([#736](https://github.com/cyverse/atmosphere/pull/736))
 
 ## [v36-6](https://github.com/cyverse/atmosphere/compare/v36-5...v36-6) - 2019-10-22
 ### Changed
