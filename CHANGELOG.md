@@ -24,11 +24,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-6...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-7...HEAD) - YYYY-MM-DD
+  
+## [v36-7](https://github.com/cyverse/atmosphere/compare/v36-6...v36-7) - 2020-05-20
 ### Added
   - Add support for multi-instance-launch, 1 request can launch multiple instances by passing `instance_count` as an extra parameter
     ([#736](https://github.com/cyverse/atmosphere/pull/736))
-    
+
 ### Changed
   - Update and add Jetstream scripts
   ([#735](https://github.com/cyverse/atmosphere/pull/735))
