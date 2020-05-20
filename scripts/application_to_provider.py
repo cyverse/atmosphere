@@ -17,7 +17,6 @@ django.setup()
 import core.models
 import service.driver
 from chromogenic.clean import mount_and_clean
-from rtwo.drivers.common import _connect_to_glance
 from atmosphere.settings import secrets
 
 description = """
@@ -214,23 +213,17 @@ def main(
     dprov_acct_driver = service.driver.get_account_driver(
         dprov, raise_exception=True
     )
-    if dst_glance_client_version:
-        dprov_keystone_client = dprov_acct_driver.image_manager.keystone
-        dprov_glance_client = _connect_to_glance(
-            dprov_keystone_client, version=dst_glance_client_version
-        )
-    else:
-        dprov_glance_client = dprov_acct_driver.image_manager.glance
+
+    dprov_glance_client = dprov_acct_driver.image_manager.glance
 
     dprov_atmo_admin_uname = dprov.admin.project_name()
     dprov_atmo_admin_uuid = dprov_acct_driver.get_project(
         dprov_atmo_admin_uname
     ).id
 
-    # Get application-specific metadata from Atmosphere(2) and resolve identifiers on destination provider
-
     # Get application owner UUID in destination provider
     app_creator_uname = app.created_by_identity.project_name()
+
     try:
         dprov_app_owner_uuid = dprov_acct_driver.get_project(
             app_creator_uname, raise_exception=True
@@ -325,15 +318,8 @@ def main(
         sprov_acct_driver = service.driver.get_account_driver(
             sprov, raise_exception=True
         )
-        if src_glance_client_version == 1:
-            sprov_keystone_client = service.driver.get_account_driver(
-                sprov, raise_exception=True
-            )
-            sprov_glance_client = _connect_to_glance(
-                sprov_keystone_client, version=src_glance_client_version
-            )
-        else:
-            sprov_glance_client = sprov_acct_driver.image_manager.glance
+
+        sprov_glance_client = sprov_acct_driver.image_manager.glance
 
         # Get source image metadata from Glance, and determine if image is AMI-based
         sprov_glance_image = sprov_glance_client.images.get(sprov_img_uuid)
@@ -425,19 +411,13 @@ def main(
             if ami else sprov_glance_image.container_format,
             disk_format="ami" if ami else sprov_glance_image.disk_format
         )
-        if dst_glance_client_version == 1:
-            metadata['is_public'] = False if app.private else True
-        elif dst_glance_client_version >= 2.5:
-            metadata['visibility'] = "shared" if app.private else "public"
-        else:
-            metadata['visibility'] = "private" if app.private else "public"
 
-        # Glance v1 client throws exception on line breaks
-        if dst_glance_client_version == 1:
-            app_description = app.description.replace('\r',
-                                                      '').replace('\n', ' -- ')
+        if app.private:
+            metadata['visibility'] = "shared"
         else:
-            app_description = app.description
+            metadata['visibility'] = "public"
+
+        app_description = app.description
         atmo_metadata = dict(
             tags=app_tags,
             application_name=app.name,
@@ -469,13 +449,8 @@ def main(
                 del custom_metadata[key]
         atmo_metadata.update(custom_metadata)
 
-        # Set image metadata (this is always done)
-        if dst_glance_client_version == 1:
-            metadata['properties'] = atmo_metadata
-            dprov_glance_client.images.update(dprov_glance_image.id, **metadata)
-        else:
-            metadata.update(atmo_metadata)
-            dprov_glance_client.images.update(dprov_glance_image.id, **metadata)
+        metadata.update(atmo_metadata)
+        dprov_glance_client.images.update(dprov_glance_image.id, **metadata)
 
         logging.info(
             "Populated Glance image metadata: {0}".format(
@@ -494,6 +469,12 @@ def main(
                     dprov_glance_client.image_members.create(
                         dprov_glance_image.id, add_member_uuid
                     )
+
+                    # Added to change member status to accepted
+                    dprov_glance_client.image_members.update(
+                        dprov_glance_image.id, add_member_uuid, 'accepted'
+                    )
+
                 else:
                     dprov_img_prior_members.remove(add_member_uuid)
             for del_member_uuid in dprov_img_prior_members:
@@ -758,11 +739,7 @@ def migrate_image_data_glance(
         logging.debug("Attempting to upload image data to destination provider")
         with open(local_path, 'rb') as img_file:
             try:
-                # "Upload" method is different for Glance client v1, than for v2
-                if dst_glance_client_version == 1:
-                    dst_glance_client.images.update(img_uuid, data=img_file)
-                else:
-                    dst_glance_client.images.upload(img_uuid, img_file)
+                dst_glance_client.images.upload(img_uuid, img_file)
                 if local_img_checksum == dst_glance_client.images.get(
                     img_uuid
                 ).checksum:
@@ -818,13 +795,8 @@ def migrate_image_data_irods(
         irods_conn.get('username'), irods_conn.get('password'),
         irods_conn.get('host'), irods_conn.get('port'), dst_data_obj_path
     )
-    # Assumption that iRODS copy will always be correct+complete, not inspecting checksums afterward?
-    if dst_glance_client_version == 1:
-        dst_glance_client.images.update(img_uuid, location=dst_img_location)
-    else:
-        dst_glance_client.images.add_location(
-            img_uuid, dst_img_location, dict()
-        )
+
+    dst_glance_client.images.add_location(img_uuid, dst_img_location, dict())
     logging.info("Set image location in Glance")
     return True
 
