@@ -17,13 +17,15 @@ def check_over_instance_quota(
     identity_uuid,
     esh_size=None,
     include_networking=False,
-    raise_exc=True
+    raise_exc=True,
+    instance_count=1
 ):
     """
     Checks quota based on current limits (and an instance of size, if passed).
     param - esh_size - if included, update the CPU and Memory totals & increase instance_count
     param - launch_networking - if True, increase floating_ip_count
     param - raise_exc - if True, raise ValidationError, otherwise return False
+    param - instance_count - number of instance to be launched with the same size, default to 1
 
     return True if passing
     return False if ValidationError occurs and raise_exc=False
@@ -42,12 +44,12 @@ def check_over_instance_quota(
     driver = get_cached_driver(identity=identity)
     new_port = new_floating_ip = new_instance = new_cpu = new_ram = 0
     if esh_size:
-        new_cpu += esh_size.cpu
-        new_ram += esh_size.ram
-        new_instance += 1
-        new_port += 1
+        new_cpu += esh_size.cpu * instance_count
+        new_ram += esh_size.ram * instance_count
+        new_instance += instance_count
+        new_port += instance_count
     if include_networking:
-        new_floating_ip += 1
+        new_floating_ip += instance_count
     # Will throw ValidationError if false.
     try:
         has_cpu_quota(driver, quota, new_cpu)
