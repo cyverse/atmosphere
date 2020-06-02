@@ -81,7 +81,8 @@ def main():
 
     # Only want ones that are not by 'atmoadmin'
     for instance in query_instances:
-        if instance.created_by.username != 'atmoadmin' and instance.allocation_source.name not in whitelist:
+        if instance.created_by.username != 'atmoadmin' and \
+            instance.allocation_source and instance.allocation_source.name not in whitelist:
             active_instances_to_shelve.append(instance)
 
     # Here they are, set them to shelved
