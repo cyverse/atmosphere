@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [v36-8](https://github.com/cyverse/atmosphere/compare/v36-7...v36-8) - 2020-06-02
 ### Fixed
-  - Added null check for script
+  - Added null check for script  
   
 ## [v36-7](https://github.com/cyverse/atmosphere/compare/v36-6...v36-7) - 2020-05-20
 ### Added
