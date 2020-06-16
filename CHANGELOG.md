@@ -23,7 +23,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Security
   - <in case of vulnerabilities>
 -->
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-8...HEAD) - YYYY-MM-DD
+
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-9...HEAD) - YYYY-MM-DD
+
+## [v36-9](https://github.com/cyverse/atmosphere/compare/v36-8...v36-9) - 2020-06-16
+### Fixed
+  - Aded NAT fix  
 
 ## [v36-8](https://github.com/cyverse/atmosphere/compare/v36-7...v36-8) - 2020-06-02
 ### Fixed
