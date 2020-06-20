@@ -1138,21 +1138,22 @@ def _deploy_instance(
     redeploy=False,
     **celery_task_args
 ):
+    from service.argo.instance_deploy import argo_deploy_instance
     try:
         celery_logger.debug(
-            "_deploy_instance task started at %s." % datetime.now()
+            "ARGO, _deploy_instance task started at %s." % datetime.now()
         )
         # Check if instance still exists
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
             celery_logger.debug(
-                "Instance has been teminated: %s." % instance_id
+                "ARGO, Instance has been teminated: %s." % instance_id
             )
             return
         if not instance.ip:
             celery_logger.debug(
-                "Instance IP address missing from : %s." % instance_id
+                "ARGO, Instance IP address missing from : %s." % instance_id
             )
             raise Exception("Instance IP Missing? %s" % instance_id)
         # NOTE: This is required to use ssh to connect.
@@ -1166,10 +1167,11 @@ def _deploy_instance(
         _deploy_instance.retry(exc=exc)
     try:
         username = identity.user.username
-        instance_deploy(instance.ip, username, instance_id)
-        _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
+        # Argo workflow instead of service.deploy.instance_deploy()
+        argo_deploy_instance("default", instance.ip, username)
+        _update_status_log(instance, "ARGO, Ansible Finished for %s." % instance.ip)
         celery_logger.debug(
-            "_deploy_instance task finished at %s." % datetime.now()
+            "ARGO, _deploy_instance task finished at %s." % datetime.now()
         )
     except AnsibleDeployException as exc:
         celery_logger.exception(exc)
