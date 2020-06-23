@@ -176,13 +176,14 @@ class ArgoWorkflow:
         """
         return self._wf_def
 
-def _find_provider_dir(base_directory, provider_uuid):
+def _find_provider_dir(base_directory, provider_name, default_provider="default"):
     """
     Check if the provider workflow directory exists
 
     Args:
         base_directory (str): base directory for workflow files
-        provider_uuid (str): provider uuid
+        provider_name (str): provider name
+        default_provider (str, optional): default provider name. unset if None or "". Defaults to "default".
 
     Raises:
         ProviderWorkflowDirNotExist: [description]
@@ -194,23 +195,27 @@ def _find_provider_dir(base_directory, provider_uuid):
     try:
         # find provider directory
         provider_dirs = [entry for entry in os.listdir(base_directory)
-                            if entry == provider_uuid]
+                            if entry == provider_name]
+        # try default provider if given provider dir does not exist
+        if not provider_dirs and default_provider:
+            provider_dirs = [entry for entry in os.listdir(base_directory)
+                             if entry == default_provider]
         if not provider_dirs:
-            raise ProviderWorkflowDirNotExist(provider_uuid)
+            raise ProviderWorkflowDirNotExist(provider_name)
 
         provider_dir = base_directory + "/" + provider_dirs[0]
         return provider_dir
     except OSError:
         raise BaseWorkflowDirNotExist(base_directory)
 
-def _find_workflow_file(provider_dir_path, filename, provider_uuid):
+def _find_workflow_file(provider_dir_path, filename, provider_name):
     """
     Find the path of the workflow file, and check if the file exists
 
     Args:
         provider_dir_path (str): path to the provider workflow directory
         filename (str): workflow definition filename
-        provider_uuid (str): provider uuid
+        provider_name (str): provider name
 
     Raises:
         WorkflowFileNotExist: [description]
@@ -224,22 +229,22 @@ def _find_workflow_file(provider_dir_path, filename, provider_uuid):
         wf_files = [entry for entry in os.listdir(provider_dir_path)
                     if entry == filename]
         if not wf_files:
-            raise WorkflowFileNotExist(provider_uuid, filename)
+            raise WorkflowFileNotExist(provider_name, filename)
 
         # construct path
         wf_file_path = provider_dir_path + "/" + wf_files[0]
         return wf_file_path
     except OSError:
-        raise ProviderWorkflowDirNotExist(provider_uuid)
+        raise ProviderWorkflowDirNotExist(provider_name)
 
-def argo_lookup_workflow(base_directory, filename, provider_uuid):
+def argo_lookup_workflow(base_directory, filename, provider_name):
     """
     Lookup workflow by name and cloud provider
 
     Args:
         base_directory (str): base directory for workflow files
         filename (str): workflow filename
-        provider_uuid (str): uuid of the provider
+        provider_name (str): the provider name
 
     Raises:
         WorkflowFileNotYAML: unable to parse workflow definition file as YAML
@@ -248,8 +253,8 @@ def argo_lookup_workflow(base_directory, filename, provider_uuid):
     Returns:
         ArgoWorkflow: a workflow object if found, None otherwise
     """
-    provider_dir_path = _find_provider_dir(base_directory, provider_uuid)
-    wf_file_path = _find_workflow_file(provider_dir_path, filename, provider_uuid)
+    provider_dir_path = _find_provider_dir(base_directory, provider_name)
+    wf_file_path = _find_workflow_file(provider_dir_path, filename, provider_name)
 
     try:
         # read workflow definition
@@ -290,7 +295,7 @@ def _read_argo_config(config_file_path=None):
     except yaml.YAMLError:
         raise ArgoConfigFileNotYAML(config_file_path)
 
-def argo_workflow_exec(workflow_filename, provider_uuid, workflow_data, config_file_path=None, wait=False):
+def argo_workflow_exec(workflow_filename, provider_name, workflow_data, config_file_path=None, wait=False):
     """
     Execute an specified Argo workflow.
     Find file based on provider.
@@ -298,7 +303,7 @@ def argo_workflow_exec(workflow_filename, provider_uuid, workflow_data, config_f
 
     Args:
         workflow_filename (str): filename of the workflow
-        provider_uuid (str): uuid of the provider
+        provider_name (str): uuid of the provider
         workflow_data (dict): data to be passed to workflow as arguments
         config_file_path (str, optional): path to the config file. will use the default one from the setting if None. Defaults to None.
         wait (bool, optional): wait for workflow to complete. Defaults to False.
@@ -311,7 +316,7 @@ def argo_workflow_exec(workflow_filename, provider_uuid, workflow_data, config_f
         config = _read_argo_config(config_file_path=config_file_path)
 
         # find the workflow definition & construct workflow
-        wf = argo_lookup_workflow(config["workflow_base_dir"], workflow_filename, provider_uuid)
+        wf = argo_lookup_workflow(config["workflow_base_dir"], workflow_filename, provider_name)
 
         # construct workflow context
         context = ArgoWorkflowExeContext(config=config)

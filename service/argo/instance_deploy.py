@@ -12,42 +12,45 @@ from django.conf import settings
 from threepio import celery_logger
 
 def argo_deploy_instance(
-    provider_uuid,
+    provider_name,
     server_ip,
     username,
+    timezone,
 ):
     """
     run Argo workflow to deploy an instance
 
     Args:
-        provider_uuid (str): provider uuid
+        provider_name (str): provider name
         server_ip (str): ip of the server instance
         username (str): username
+        timezone (str): timezone of the provider, e.g. America/Arizona
 
     Raises:
         exc: exception thrown
     """
     try:
-        wf_data = _get_workflow_data(server_ip, username)
+        wf_data = _get_workflow_data(server_ip, username, timezone)
 
         # TODO
         # put config file path in config
         config_file_path = "/opt/dev/atmosphere-docker-secrets/argo_config.yml"
 
-        status = argo_workflow_exec("instance_deploy.yml", provider_uuid, wf_data, config_file_path=config_file_path, wait=True)
+        status = argo_workflow_exec("instance_deploy.yml", provider_name, wf_data, config_file_path=config_file_path, wait=True)
         celery_logger.debug("ARGO, workflow complete")
         celery_logger.debug(status)
     except Exception as exc:
         celery_logger.debug("ARGO, argo_deploy_instance(), {}, {}".format(type(exc), exc))
         raise exc
 
-def _get_workflow_data(server_ip, username):
+def _get_workflow_data(server_ip, username, timezone):
     """
     Generate the data structure to be passed to the workflow
 
     Args:
         server_ip (str): ip of the server instance
         username (str): username of the owner of the instance
+        timezone (str): timezone of the provider
 
     Raises:
         WorkflowDataFileNotExist: private key file not exist
@@ -58,7 +61,7 @@ def _get_workflow_data(server_ip, username):
     wf_data = {"arguments": {"parameters": []}}
     wf_data["arguments"]["parameters"].append({"name": "server-ip", "value": server_ip})
     wf_data["arguments"]["parameters"].append({"name": "user", "value": username})
-    wf_data["arguments"]["parameters"].append({"name": "tz", "value": "America/Phoenix"})
+    wf_data["arguments"]["parameters"].append({"name": "tz", "value": timezone})
     wf_data["arguments"]["parameters"].append({"name": "zoneinfo", "value": "/usr/share/zoneinfo/US/Arizona"})
     try:
         private_key_file_path = settings.ATMOSPHERE_PRIVATE_KEYFILE
