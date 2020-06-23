@@ -61,7 +61,11 @@ def _get_workflow_data(server_ip, username, timezone):
     wf_data["arguments"]["parameters"].append({"name": "server-ip", "value": server_ip})
     wf_data["arguments"]["parameters"].append({"name": "user", "value": username})
     wf_data["arguments"]["parameters"].append({"name": "tz", "value": timezone})
-    wf_data["arguments"]["parameters"].append({"name": "zoneinfo", "value": "/usr/share/zoneinfo/US/Arizona"})
+
+    # read zoneinfo from argo config
+    with open(settings.ARGO_CONFIG_FILE_PATH) as config_file:
+        config = yaml.safe_load(config_file)
+        wf_data["arguments"]["parameters"].append({"name": "zoneinfo", "value": config["zoneinfo"]})
     try:
         private_key_file_path = settings.ATMOSPHERE_PRIVATE_KEYFILE
         with open(private_key_file_path) as private_key_file:
