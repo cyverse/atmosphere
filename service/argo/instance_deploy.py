@@ -32,11 +32,10 @@ def argo_deploy_instance(
     try:
         wf_data = _get_workflow_data(server_ip, username, timezone)
 
-        # TODO
-        # put config file path in config
-        config_file_path = "/opt/dev/atmosphere-docker-secrets/argo_config.yml"
-
-        status = argo_workflow_exec("instance_deploy.yml", provider_name, wf_data, config_file_path=config_file_path, wait=True)
+        status = argo_workflow_exec("instance_deploy.yml", provider_name,
+                                    wf_data,
+                                    config_file_path=settings.ARGO_CONFIG_FILE_PATH,
+                                    wait=True)
         celery_logger.debug("ARGO, workflow complete")
         celery_logger.debug(status)
     except Exception as exc:
