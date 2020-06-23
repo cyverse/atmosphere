@@ -64,10 +64,9 @@ def _get_workflow_data(server_ip, username, timezone):
     wf_data["arguments"]["parameters"].append({"name": "zoneinfo", "value": "/usr/share/zoneinfo/US/Arizona"})
     try:
         private_key_file_path = settings.ATMOSPHERE_PRIVATE_KEYFILE
-        private_key_file = open(private_key_file_path)
-        private_key = private_key_file.read()
-        private_key_file.close()
-        wf_data["arguments"]["parameters"].append({"name": "private-ssh-key", "value": private_key})
+        with open(private_key_file_path) as private_key_file:
+            private_key = private_key_file.read()
+            wf_data["arguments"]["parameters"].append({"name": "private-ssh-key", "value": private_key})
     except IOError as exc:
         celery_logger.debug("ARGO, private_key_file not found")
         raise WorkflowDataFileNotExist(private_key_file_path)

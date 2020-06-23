@@ -282,14 +282,11 @@ def _read_argo_config(config_file_path=None):
     try:
         if not config_file_path:
             # path from settings
-            config_file = open(settings.ARGO_CONFIG_FILE_PATH, "r")
-        else:
-            # path from function arguments
-            config_file = open(config_file_path, "r")
+            config_file_path = settings.ARGO_CONFIG_FILE_PATH
 
-        config = yaml.safe_load(config_file.read())
-        config_file.close()
-        return config
+        with open(settings.ARGO_CONFIG_FILE_PATH, "r") as config_file:
+            config = yaml.safe_load(config_file.read())
+            return config
     except IOError:
         raise ArgoConfigFileNotExist(config_file_path)
     except yaml.YAMLError:
