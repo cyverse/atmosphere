@@ -81,7 +81,7 @@ class ArgoWorkflow:
             wf_data (dict, optional): data to be passed to workflow. Defaults to {}.
 
         Returns:
-            dict: status of the workflow, {"complete": bool, "success": bool}
+            (str, dict): workflow name and status of the workflow {"complete": bool, "success": bool, "error": bool}
         """
         def polling(wf_name, interval, repeat_count):
             for _ in range(repeat_count):
@@ -97,13 +97,13 @@ class ArgoWorkflow:
         try:
             status = polling(wf_name, 10, 18)
             if status:
-                return status
+                return (wf_name, status)
             status = polling(wf_name, 60, 1440)
         except Exception as exc:
             logger.debug("ARGO, ArgoWorkflow.execute(), while polling {}".format(type(exc)))
             logger.debug("ARGO, ArgoWorkflow.execute(), while polling {}".format(exc))
             raise exc
-        return status
+        return (wf_name, status)
 
     def exec_no_wait(self, context, wf_data={}):
         """
@@ -132,12 +132,13 @@ class ArgoWorkflow:
             wf_name (str): the workflow name returned from Argo server
 
         Returns:
-            dict: {"complete": bool, "success": bool}
+            dict: {"complete": bool, "success": bool, "error": bool}
         """
         try:
             status = {
                 "complete": None,
                 "success": None,
+                "error": None,
             }
             # get workflow
             json_obj = context.client().get_workflow(wf_name)
@@ -160,6 +161,11 @@ class ArgoWorkflow:
             elif phase == "Failed":
                 status["complete"] = True
                 status["success"] = False
+
+            elif phase == "Error":
+                status["complete"] = True
+                status["success"] = False
+                status["error"] = True
 
             return status
         except Exception as exc:

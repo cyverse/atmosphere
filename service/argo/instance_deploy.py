@@ -5,7 +5,7 @@ Deploy instance.
 import yaml
 import json
 from service.argo.wf_call import argo_workflow_exec
-from service.argo.exception import WorkflowDataFileNotExist
+from service.argo.exception import WorkflowDataFileNotExist, WorkflowFailed, WorkflowErrored
 
 from django.conf import settings
 
@@ -32,12 +32,18 @@ def argo_deploy_instance(
     try:
         wf_data = _get_workflow_data(server_ip, username, timezone)
 
-        status = argo_workflow_exec("instance_deploy.yml", provider_name,
+        wf_name, status = argo_workflow_exec("instance_deploy.yml", provider_name,
                                     wf_data,
                                     config_file_path=settings.ARGO_CONFIG_FILE_PATH,
                                     wait=True)
         celery_logger.debug("ARGO, workflow complete")
         celery_logger.debug(status)
+
+        if not status["success"]:
+            if status["error"]:
+                raise WorkflowErrored(wf_name)
+            else:
+                raise WorkflowFailed(wf_name)
     except Exception as exc:
         celery_logger.debug("ARGO, argo_deploy_instance(), {}, {}".format(type(exc), exc))
         raise exc
