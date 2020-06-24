@@ -1139,6 +1139,7 @@ def _deploy_instance(
     **celery_task_args
 ):
     from service.argo.instance_deploy import argo_deploy_instance
+    from service.argo.exception import ArgoBaseException
     try:
         celery_logger.debug(
             "ARGO, _deploy_instance task started at %s." % datetime.now()
@@ -1175,7 +1176,8 @@ def _deploy_instance(
         celery_logger.debug(
             "ARGO, _deploy_instance task finished at %s." % datetime.now()
         )
-    except AnsibleDeployException as exc:
+    except ArgoBaseException as exc:
+        # retry if encounter any Argo specific exception
         celery_logger.exception(exc)
         _deploy_instance.retry(exc=exc)
     except (BaseException, Exception) as exc:

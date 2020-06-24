@@ -52,3 +52,15 @@ class WorkflowDataFileNotExist(ArgoBaseException):
     Data file does not exist
     """
     pass
+
+class WorkflowFailed(ArgoBaseException):
+    """
+    Workflow complete with "Failed"
+    """
+    pass
+
+class WorkflowErrored(ArgoBaseException):
+    """
+    Workflow complete with "Error"
+    """
+    pass
