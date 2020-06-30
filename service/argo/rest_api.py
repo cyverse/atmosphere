@@ -50,7 +50,7 @@ class ArgoAPIClient:
         api_url = "/api/v1/workflows/{}/{}"
         api_url = api_url.format(self._namespace, wf_name)
 
-        json_resp = self._get_req(api_url)
+        json_resp = self._req("get", api_url)
 
         return json_resp
 
@@ -63,7 +63,7 @@ class ArgoAPIClient:
         """
         api_url = "/api/v1/workflows/" + self._namespace
 
-        json_resp = self._get_req(api_url)
+        json_resp = self._req("get", api_url)
 
         return json_resp
 
@@ -84,15 +84,129 @@ class ArgoAPIClient:
         json_data["serverDryRun"] = False
         json_data["workflow"] = wf_json
 
-        json_resp = self._post_req(api_url, json_data=json_data)
+        json_resp = self._req("post", api_url, json_data=json_data)
 
         return json_resp
 
-    def _post_req(self, url, json_data=None, additional_header=None):
+    def get_workflow_template(self, wf_temp_name):
         """
-        send a POST request to the given url with optional json payload and additional headers
+        fetch a workflow template by its name
 
         Args:
+            wf_temp_name (str): name of the workflow template
+
+        Returns:
+            dict: response text as JSON object
+        """
+        api_url = "/api/v1/workflows-templates/{}/{}"
+        api_url = api_url.format(self._namespace, wf_temp_name)
+
+        json_resp = self._req("get", api_url)
+
+        return json_resp
+
+    def list_workflow_templates(self):
+        """
+        fetch a list of workflow templates
+
+        Returns:
+            dict: response text as JSON object
+        """
+        api_url = "/api/v1/workflows-templates/{}"
+        api_url = api_url.format(self._namespace)
+
+        json_resp = self._req("get", api_url)
+
+        return json_resp
+
+    def create_workflow_template(self, wf_temp_def_json):
+        """
+        create workflow template
+
+        Args:
+            wf_temp_def (dict): definition of the workflow template
+
+        Returns:
+            dict: response text as JSON object
+        """
+        api_url = "/api/v1/workflow-templates/" + self._namespace
+
+        json_data = {}
+        json_data["namespace"] = self._namespace
+        json_data["template"] = wf_temp_def_json
+
+        json_resp = self._req("post", api_url, json_data=json_data)
+
+        return json_resp
+
+    def update_workflow_template(self, wf_temp_name, wf_temp_def_json):
+        """
+        update workflow template with the given name
+
+        Args:
+            wf_temp_def (dict): definition of the workflow template
+
+        Returns:
+            dict: response text as JSON object
+        """
+        api_url = "/api/v1/workflow-templates/" + self._namespace
+
+        json_data = {}
+        json_data["namespace"] = self._namespace
+        json_data["template"] = wf_temp_def_json
+
+        json_resp = self._req("put", api_url, json_data=json_data)
+
+        return json_resp
+
+    def submit_workflow_template(self, wf_temp_name, wf_param=[]):
+        """
+        submit a workflow template for execution with parameters.
+        this will create a workflow.
+
+        Args:
+            wf_temp_name (str): name of the workflow template
+            wf_param ([str]): list of parameters, in the form of ["NAME1=VAL1", "NAME2=VAL2"]
+
+        Returns:
+            dict: response text as JSON object
+        """
+        api_url = "/api/v1/workflows/{}/submit".format(self._namespace)
+
+        json_data = {}
+        json_data["namespace"] = self._namespace
+        json_data["resourceKind"] = "WorkflowTemplate"
+        json_data["resourceName"] = wf_temp_name
+        json_data["submitOptions"] = {}
+        json_data["submitOptions"]["parameters"] = wf_param
+
+        json_resp = self._req("post", api_url, json_data=json_data)
+
+        return json_resp
+
+    def delete_workflow_template(self, wf_temp_name):
+        """
+        delete a workflow templates with given name
+
+        Args:
+            wf_temp_name (str): name of the workflow template
+
+        Returns:
+            dict: response text as JSON object
+        """
+        api_url = "/api/v1/workflow-templates/{}/{}"
+        api_url = api_url.format(self._namespace, wf_temp_name)
+
+        json_resp = self._req("delete", api_url)
+
+        return json_resp
+
+    def _req(self, method, url, json_data={}, additional_headers={}):
+        """
+        send a request with given method to the given url
+
+        Args:
+            method (str): HTTP method
             url (str): api url to send the request to
             json_data (dict, optional): JSON payload. Defaults to None.
             additional_header (dict, optional): additional headers. Defaults to None.
@@ -104,6 +218,7 @@ class ArgoAPIClient:
         Returns:
             dict: response text as JSON object
         """
+
         try:
             headers = {}
             headers["Host"] = self.host
@@ -112,44 +227,15 @@ class ArgoAPIClient:
             if self._token:
                 headers["Authorization"] = "Bearer " + self._token
 
-            full_url = self.base_url + url
-            resp = requests.post(full_url, headers=headers, json=json_data, verify=self.verify)
-            resp.raise_for_status()
-            json_obj = json.loads(resp.text)
-        except JSONDecodeError as exc:
-            msg = "ARGO - REST API, {}, {}".format(type(exc), resp.text)
-            logger.exception(msg)
-            raise ResponseNotJSON("ARGO, Fail to parse response body as JSON")
-        except requests.exceptions.HTTPError as exc:
-            msg = "ARGO - REST API, {}, {}".format(type(exc), resp.text)
-            logger.exception(msg)
-            raise exc
-        return json_obj
-
-    def _get_req(self, url):
-        """
-        send a GET request to the given url
-
-        Args:
-            url (str): api url to send the request to
-
-        Raises:
-            ResponseNotJSON: raised when the response is not JSON
-            HTTPError: requert failed
-
-        Returns:
-            dict: response text as JSON object
-        """
-        try:
-            headers = {}
-            headers["Host"] = self.host
-            headers["Accept"] = "application/json;q=0.9,*/*;q=0.8"
-            headers["Content-Type"] = "application/json"
-            if self._token:
-                headers["Authorization"] = "Bearer " + self._token
+            if additional_headers:
+                headers.update(additional_headers)
 
             full_url = self.base_url + url
-            resp = requests.get(full_url, headers=headers, verify=self.verify)
+            requests_func = _http_method(method)
+            if json_data:
+                resp = requests_func(full_url, headers=headers, json=json_data, verify=self.verify)
+            else:
+                resp = requests_func(full_url, headers=headers, verify=self.verify)
             resp.raise_for_status()
             json_obj = json.loads(resp.text)
         except JSONDecodeError as exc:
@@ -204,3 +290,25 @@ class ArgoAPIClient:
         """
         return self._verify
 
+def _http_method(method_str):
+        """
+        Return function for given HTTP Method from requests library
+
+        Args:
+            method_str (str): HTTP method, "get", "post", etc.
+
+        Returns:
+            function: requests.get, requests.post, etc. None if no match
+        """
+        if method_str == "get":
+            return requests.get
+        elif method_str == "post":
+            return requests.post
+        elif method_str == "delete":
+            return requests.delete
+        elif method_str == "put":
+            return requests.put
+        elif method_str == "options":
+            return requests.options
+        else:
+            return None
