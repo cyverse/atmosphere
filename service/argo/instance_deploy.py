@@ -39,8 +39,8 @@ def argo_deploy_instance(
         celery_logger.debug("ARGO, workflow complete")
         celery_logger.debug(status)
 
-        if not status["success"]:
-            if status["error"]:
+        if not status.success:
+            if status.error:
                 raise WorkflowErrored(wf_name)
             else:
                 raise WorkflowFailed(wf_name)

@@ -35,14 +35,14 @@ class ArgoWorkflow:
             wf_data (dict, optional): data to be passed to workflow. Defaults to {}.
 
         Returns:
-            (str, dict): workflow name and status of the workflow {"complete": bool, "success": bool, "error": bool}
+            (str, ArgoWorkflowStatus): workflow name and status of the workflow
         """
         json_resp = self.exec_no_wait(context, wf_data=wf_data)
         wf_name = json_resp["metadata"]["name"]
 
         try:
             status = ArgoWorkflow.polling(context, wf_name, 10, 18)
-            if status:
+            if status.complete:
                 return (wf_name, status)
             status = ArgoWorkflow.polling(context, wf_name, 60, 1440)
         except Exception as exc:
@@ -78,42 +78,31 @@ class ArgoWorkflow:
             wf_name (str): the workflow name returned from Argo server
 
         Returns:
-            dict: {"complete": bool, "success": bool, "error": bool}
+            ArgoWorkflowStatus: status of workflow
         """
         try:
-            status = {
-                "complete": None,
-                "success": None,
-                "error": None,
-            }
             # get workflow
             json_obj = context.client().get_workflow(wf_name)
 
             # unknown state
             if "status" not in json_obj or "phase" not in json_obj["status"]:
-                status["complete"] = False
-                return status
+                return ArgoWorkflowStatus(complete=False)
 
             phase = json_obj["status"]["phase"]
 
             if phase == "Running":
-                status["complete"] = False
-                return status
+                return ArgoWorkflowStatus(complete=False)
 
             elif phase == "Succeeded":
-                status["complete"] = True
-                status["success"] = True
+                return ArgoWorkflowStatus(complete=True, success=True)
 
             elif phase == "Failed":
-                status["complete"] = True
-                status["success"] = False
+                return ArgoWorkflowStatus(complete=True, success=False)
 
             elif phase == "Error":
-                status["complete"] = True
-                status["success"] = False
-                status["error"] = True
+                return ArgoWorkflowStatus(complete=True, success=False, error=True)
 
-            return status
+            return ArgoWorkflowStatus()
         except Exception as exc:
             # TODO
             raise exc
@@ -123,7 +112,7 @@ class ArgoWorkflow:
         """
         Polling the status of workflow, until the workflow is complete.
         This call will block as it is busy waiting.
-        After a specified number of queries, the call will abort and return None.
+        After a specified number of queries, the call will abort and return last status.
 
         Args:
             context (ArgoContext): context to perform the query
@@ -132,14 +121,14 @@ class ArgoWorkflow:
             repeat_count (int): number of query for status to perform before abort
 
         Returns:
-            dict: last status of the workflow, {"complete": bool, "success": bool, "error": bool}, or None if workflow didn't complete
+            ArgoWorkflowStatus: last status of the workflow
         """
         for _ in range(repeat_count):
             status = ArgoWorkflow.status(context, wf_name)
-            if status and "complete" in status and status["complete"]:
+            if status.complete:
                 return status
             time.sleep(interval)
-        return None
+        return status
 
     @property
     def wf_def(self):
@@ -150,6 +139,46 @@ class ArgoWorkflow:
             dict: workflow definition as JSON object
         """
         return self._wf_def
+
+class ArgoWorkflowStatus:
+    """
+    Status of a workflow
+    """
+    __slots__ = ["_complete", "_success", "_error"]
+    def __init__(self, complete=None, success=None, error=None):
+        """
+        Args:
+            complete (bool, optional): whether the workflow has completed
+            success (bool, optional): whether the workflow has succeed
+            error (bool, optional): whether the workflow has errored out
+        """
+        self._complete = complete
+        self._success = success
+        self._error = error
+
+    @property
+    def complete(self):
+        """
+        Returns:
+            bool: whether the workflow has completed
+        """
+        return self._complete
+
+    @property
+    def success(self):
+        """
+        Returns:
+            bool: whether the workflow has succeed
+        """
+        return self._success
+
+    @property
+    def error(self):
+        """
+        Returns:
+            bool: whether the workflow has errored out
+        """
+        return self._error
 
 def _find_provider_dir(base_directory, provider_name, default_provider="default"):
     """

@@ -7,7 +7,7 @@ import json
 import yaml
 import time
 from service.argo.common import ArgoContext, argo_lookup_yaml_file
-from service.argo.wf import ArgoWorkflow
+from service.argo.wf import ArgoWorkflow, ArgoWorkflowStatus
 from service.argo.wf_temp import ArgoWorkflowTemplate
 from service.argo.rest_api import ArgoAPIClient
 from service.argo.exception import *
@@ -54,7 +54,7 @@ def argo_workflow_exec(workflow_filename, provider_name, workflow_data, config_f
         wait (bool, optional): wait for workflow to complete. Defaults to False.
 
     Returns:
-        (str, dict): workflow name and status of the workflow {"complete": bool, "success": bool, "error": bool}
+        (str, ArgoWorkflowStatus): workflow name and status of the workflow
     """
     try:
         # read configuration from file
@@ -73,7 +73,7 @@ def argo_workflow_exec(workflow_filename, provider_name, workflow_data, config_f
             return result
         else:
             wf_name = wf.exec_no_wait(context, workflow_data)
-            return (wf_name, {"complete": None, "success": None, "error": None})
+            return (wf_name, ArgoWorkflowStatus)
     except Exception as exc:
         logger.exception("ARGO, argo_workflow_exec(), {} {}".format(type(exc), exc))
         raise exc
@@ -111,7 +111,7 @@ def argo_wf_template_exec(wf_template_filename, provider_name, workflow_data, co
         # polling if needed
         if wait:
             status = ArgoWorkflow.polling(context, wf_name, 10, 18)
-            if status:
+            if status.complete:
                 return (wf_name, status)
             status = ArgoWorkflow.polling(context, wf_name, 60, 1440)
             return (wf_name, status)
