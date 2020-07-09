@@ -132,15 +132,29 @@ class ArgoWorkflow:
 
     @staticmethod
     def dump_logs(context, wf_name):
+        import atmosphere, os
+
+        # ensure base dir for log dump exists
+        log_dump_dir = os.path.abspath(os.path.join(
+            os.path.dirname(atmosphere.__file__), "..", "logs", "argo"))
+        if not os.path.isdir(log_dump_dir):
+            os.makedirs(log_dump_dir)
+
+        # log dump file for the workflow
+        log_dump_file = os.path.join(log_dump_dir, wf_name + ".log")
+
         # find out what pods the workflow is consisted of
         json_resp = context.client().get_workflow(wf_name)
-        pod_names  = json_resp["status"]["nodes"].keys()
+        pod_names = json_resp["status"]["nodes"].keys()
 
-        # dump logs for each pods
-        for pod_name in pod_names:
-            logs_lines = context.client().get_log_for_pod_in_workflow(wf_name, pod_name, container_name="main")
-            logs = [line for line in logs_lines]
-            logger.debug(("ARGO, workflow {}, pod {} logs:\n").format(wf_name, pod_name) + '\n'.join(logs))
+        with open(log_dump_file, "a+") as dump_file:
+            dump_file.write("workflow {} has {} pods\n".format(wf_name, len(pod_names)))
+            # dump logs for each pods
+            for pod_name in pod_names:
+                logs_lines = context.client().get_log_for_pod_in_workflow(wf_name, pod_name, container_name="main")
+                dump_file.write("\n\pod {}:\n".format(pod_name))
+                dump_file.writelines(logs_lines)
+            logger.debug(("ARGO, log dump for workflow {} at: {}\n").format(wf_name, log_dump_file))
 
     @property
     def wf_def(self):
