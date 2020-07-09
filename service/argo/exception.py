@@ -47,6 +47,12 @@ class ArgoConfigFileNotYAML(ArgoBaseException):
     """
     pass
 
+class ArgoConfigFileError(ArgoBaseException):
+    """
+    Error in config file
+    """
+    pass
+
 class WorkflowDataFileNotExist(ArgoBaseException):
     """
     Data file does not exist

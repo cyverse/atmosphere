@@ -4,7 +4,8 @@ Deploy instance.
 
 import yaml
 import json
-from service.argo.wf_call import argo_workflow_exec, argo_context_from_config
+from service.argo.wf_call import argo_workflow_exec
+from service.argo.common import argo_context_from_config, read_argo_config
 from service.argo.wf import ArgoWorkflow
 from service.argo.exception import WorkflowDataFileNotExist, WorkflowFailed, WorkflowErrored
 
@@ -31,7 +32,7 @@ def argo_deploy_instance(
         exc: exception thrown
     """
     try:
-        wf_data = _get_workflow_data(server_ip, username, timezone)
+        wf_data = _get_workflow_data(provider_uuid, server_ip, username, timezone)
 
         wf_name, status = argo_workflow_exec("instance_deploy.yml", provider_uuid,
                                     wf_data,
@@ -53,7 +54,7 @@ def argo_deploy_instance(
         celery_logger.debug("ARGO, argo_deploy_instance(), {}, {}".format(type(exc), exc))
         raise exc
 
-def _get_workflow_data(server_ip, username, timezone):
+def _get_workflow_data(provider_uuid, server_ip, username, timezone):
     """
     Generate the data structure to be passed to the workflow
 
@@ -74,13 +75,12 @@ def _get_workflow_data(server_ip, username, timezone):
     wf_data["arguments"]["parameters"].append({"name": "tz", "value": timezone})
 
     # read zoneinfo from argo config
-    with open(settings.ARGO_CONFIG_FILE_PATH) as config_file:
-        config = yaml.safe_load(config_file)
-        wf_data["arguments"]["parameters"].append({"name": "zoneinfo", "value": config["zoneinfo"]})
+    config = read_argo_config(settings.ARGO_CONFIG_FILE_PATH, provider_uuid=provider_uuid)
+    wf_data["arguments"]["parameters"].append({"name": "zoneinfo", "value": config["zoneinfo"]})
 
     return wf_data
 
-def _get_workflow_data_for_temp(server_ip, username, timezone):
+def _get_workflow_data_for_temp(provider_uuid, server_ip, username, timezone):
     """
     Generate the data structure to be passed to the workflow.
     used with workflow template
@@ -102,9 +102,8 @@ def _get_workflow_data_for_temp(server_ip, username, timezone):
     wf_data.append("tz={}".format(timezone))
 
     # read zoneinfo from argo config
-    with open(settings.ARGO_CONFIG_FILE_PATH) as config_file:
-        config = yaml.safe_load(config_file)
-        wf_data.append("zoneinfo={}".format(config["zoneinfo"]))
+    config = read_argo_config(settings.ARGO_CONFIG_FILE_PATH, provider_uuid=provider_uuid)
+    wf_data.append("zoneinfo={}".format(config["zoneinfo"]))
 
     return wf_data
 

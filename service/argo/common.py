@@ -180,5 +180,59 @@ def argo_lookup_yaml_file(base_directory, filename, provider_uuid):
 
     return wf_def
 
+def read_argo_config(config_file_path=None, provider_uuid=None):
+    """
+    Read configuration for Argo.
+    Read from given path if specified, else read from path specified in the settings.
+    Only config specific to the provider is returned, if provider uuid is not given, then uses the default one from the config.
+    If there is no provider specific config, uses the default one.
 
+    Args:
+        config_file_path (str, optional): path to the config file. will use the default one from the setting if None. Defaults to None.
+        provider_uuid (str, optional): uuid of the provider. Defaults to None.
 
+    Raises:
+        ArgoConfigFileNotExist: config file missing
+        ArgoConfigFileNotYAML: config file not yaml
+    """
+
+    try:
+        if not config_file_path:
+            # path from settings
+            config_file_path = settings.ARGO_CONFIG_FILE_PATH
+
+        # read config file
+        with open(settings.ARGO_CONFIG_FILE_PATH, "r") as config_file:
+            all_config = yaml.safe_load(config_file.read())
+        
+        # validate config
+        if type(all_config) is not dict:
+            raise ArgoConfigFileError("config root not key-value")
+        if "default" not in all_config:
+            raise ArgoConfigFileError("default missing")
+        if all_config["default"] not in all_config:
+            raise ArgoConfigFileError("config for default provider missing")
+
+        # uses the default provider, when no provider is specified
+        if not provider_uuid:
+            default_provider_uuid = all_config["default"]
+            return all_config[default_provider_uuid]
+
+        # if no provider specific config, uses the default one
+        if provider_uuid not in all_config:
+            default_provider_uuid = all_config["default"]
+            return all_config[default_provider_uuid]
+
+        return all_config[provider_uuid]
+    except IOError:
+        raise ArgoConfigFileNotExist(config_file_path)
+    except yaml.YAMLError:
+        raise ArgoConfigFileNotYAML(config_file_path)
+
+def argo_context_from_config(config_file_path=None):
+    # read configuration from file
+    config = read_argo_config(config_file_path=config_file_path)
+
+    # construct workflow context
+    context = ArgoContext(config=config)
+    return context
