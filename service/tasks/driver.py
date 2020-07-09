@@ -1171,7 +1171,7 @@ def _deploy_instance(
         provider = Identity.find_instance(instance_id).provider
         # Argo workflow instead of service.deploy.instance_deploy()
         # TODO: use provider.location until there is short name for provider
-        argo_deploy_instance(provider.location, instance.ip, username, provider.timezone)
+        argo_deploy_instance(provider.uuid, instance.ip, username, provider.timezone)
         _update_status_log(instance, "ARGO, Ansible Finished for %s." % instance.ip)
         celery_logger.debug(
             "ARGO, _deploy_instance task finished at %s." % datetime.now()

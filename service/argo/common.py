@@ -59,13 +59,13 @@ class ArgoContext:
                             # Argo server currently has self-signed cert
                              verify=False)
 
-def _find_provider_dir(base_directory, provider_name, default_provider="default"):
+def _find_provider_dir(base_directory, provider_uuid, default_provider="default"):
     """
     Check if the provider workflow directory exists
 
     Args:
         base_directory (str): base directory for workflow files
-        provider_name (str): provider name
+        provider_uuid (str): provider uuid
         default_provider (str, optional): default provider name. unset if None or "". Defaults to "default".
 
     Raises:
@@ -78,27 +78,27 @@ def _find_provider_dir(base_directory, provider_name, default_provider="default"
     try:
         # find provider directory
         provider_dirs = [entry for entry in os.listdir(base_directory)
-                            if entry == provider_name]
+                            if entry == provider_uuid]
         # try default provider if given provider dir does not exist
         if not provider_dirs and default_provider:
             provider_dirs = [entry for entry in os.listdir(base_directory)
                              if entry == default_provider]
         if not provider_dirs:
-            raise ProviderWorkflowDirNotExist(provider_name)
+            raise ProviderWorkflowDirNotExist(provider_uuid)
 
         provider_dir = base_directory + "/" + provider_dirs[0]
         return provider_dir
     except OSError:
         raise BaseWorkflowDirNotExist(base_directory)
 
-def _find_workflow_file(provider_dir_path, filename, provider_name):
+def _find_workflow_file(provider_dir_path, filename, provider_uuid):
     """
     Find the path of the workflow file, and check if the file exists
 
     Args:
         provider_dir_path (str): path to the provider workflow directory
         filename (str): workflow definition filename
-        provider_name (str): provider name
+        provider_uuid (str): provider uuid
 
     Raises:
         WorkflowFileNotExist: [description]
@@ -112,22 +112,22 @@ def _find_workflow_file(provider_dir_path, filename, provider_name):
         wf_files = [entry for entry in os.listdir(provider_dir_path)
                     if entry == filename]
         if not wf_files:
-            raise WorkflowFileNotExist(provider_name, filename)
+            raise WorkflowFileNotExist(provider_uuid, filename)
 
         # construct path
         wf_file_path = provider_dir_path + "/" + wf_files[0]
         return wf_file_path
     except OSError:
-        raise ProviderWorkflowDirNotExist(provider_name)
+        raise ProviderWorkflowDirNotExist(provider_uuid)
 
-def argo_lookup_workflow(base_directory, filename, provider_name):
+def argo_lookup_workflow(base_directory, filename, provider_uuid):
     """
     Lookup workflow by name and cloud provider
 
     Args:
         base_directory (str): base directory for workflow files
         filename (str): workflow filename
-        provider_name (str): the provider name
+        provider_uuid (str): the provider uuid
 
     Raises:
         WorkflowFileNotYAML: unable to parse workflow definition file as YAML
@@ -136,8 +136,8 @@ def argo_lookup_workflow(base_directory, filename, provider_name):
     Returns:
         ArgoWorkflow: JSON object representing the workflow if found, None otherwise
     """
-    provider_dir_path = _find_provider_dir(base_directory, provider_name)
-    wf_file_path = _find_workflow_file(provider_dir_path, filename, provider_name)
+    provider_dir_path = _find_provider_dir(base_directory, provider_uuid)
+    wf_file_path = _find_workflow_file(provider_dir_path, filename, provider_uuid)
 
     try:
         # read workflow definition
@@ -150,14 +150,14 @@ def argo_lookup_workflow(base_directory, filename, provider_name):
 
     return wf_def
 
-def argo_lookup_yaml_file(base_directory, filename, provider_name):
+def argo_lookup_yaml_file(base_directory, filename, provider_uuid):
     """
     Lookup yaml file by filename and cloud provider and read the yaml file
 
     Args:
         base_directory (str): base directory for workflow files
         filename (str): yaml filename
-        provider_name (str): the provider name
+        provider_uuid (str): the provider uuid
 
     Raises:
         WorkflowFileNotYAML: unable to parse workflow definition file as YAML
@@ -166,8 +166,8 @@ def argo_lookup_yaml_file(base_directory, filename, provider_name):
     Returns:
         ArgoWorkflow: JSON object representing the workflow if found, None otherwise
     """
-    provider_dir_path = _find_provider_dir(base_directory, provider_name)
-    wf_file_path = _find_workflow_file(provider_dir_path, filename, provider_name)
+    provider_dir_path = _find_provider_dir(base_directory, provider_uuid)
+    wf_file_path = _find_workflow_file(provider_dir_path, filename, provider_uuid)
 
     try:
         # read workflow definition

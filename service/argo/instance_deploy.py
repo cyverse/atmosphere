@@ -13,7 +13,7 @@ from django.conf import settings
 from threepio import celery_logger
 
 def argo_deploy_instance(
-    provider_name,
+    provider_uuid,
     server_ip,
     username,
     timezone,
@@ -22,7 +22,7 @@ def argo_deploy_instance(
     run Argo workflow to deploy an instance
 
     Args:
-        provider_name (str): provider name
+        provider_uuid (str): provider uuid
         server_ip (str): ip of the server instance
         username (str): username
         timezone (str): timezone of the provider, e.g. America/Arizona
@@ -33,7 +33,7 @@ def argo_deploy_instance(
     try:
         wf_data = _get_workflow_data(server_ip, username, timezone)
 
-        wf_name, status = argo_workflow_exec("instance_deploy.yml", provider_name,
+        wf_name, status = argo_workflow_exec("instance_deploy.yml", provider_uuid,
                                     wf_data,
                                     config_file_path=settings.ARGO_CONFIG_FILE_PATH,
                                     wait=True)
