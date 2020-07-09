@@ -88,6 +88,38 @@ class ArgoAPIClient:
 
         return json_resp
 
+    def get_log_for_pod_in_workflow(self, wf_name, pod_name, container_name="main"):
+        """
+        Get the logs of a pod in a workflow
+
+        Args:
+            wf_name (str): name of the workflow
+            pod_name (str): name of the pod
+            container_name (str, optional): name of the container. Defaults to "main".
+
+        Returns:
+            list: a list of lines of logs
+        """
+        api_url = "/api/v1/workflows/{}/{}/{}/log?logOptions.timestamps=true&logOptions.container={}".format(
+            self._namespace, wf_name, pod_name, container_name)
+
+        resp = self._req("get", api_url, json_resp=False)
+
+        logs = []
+        # each line is a json obj
+        for line in resp.split("\n"):
+            try:
+                line = line.strip()
+                if not line:
+                    continue
+                log_json = json.loads(line)
+                if "result" not in log_json or "content" not in log_json["result"]:
+                    continue
+                logs.append(log_json["result"]["content"])
+            except Exception:
+                continue
+        return logs
+
     def get_workflow_template(self, wf_temp_name):
         """
         fetch a workflow template by its name
@@ -201,7 +233,7 @@ class ArgoAPIClient:
 
         return json_resp
 
-    def _req(self, method, url, json_data={}, additional_headers={}):
+    def _req(self, method, url, json_data={}, additional_headers={}, json_resp=True):
         """
         send a request with given method to the given url
 
@@ -210,6 +242,7 @@ class ArgoAPIClient:
             url (str): api url to send the request to
             json_data (dict, optional): JSON payload. Defaults to None.
             additional_header (dict, optional): additional headers. Defaults to None.
+            json_resp (bool, optional): if response is json. Defaults to True.
 
         Raises:
             ResponseNotJSON: raised when the response is not JSON
@@ -237,7 +270,10 @@ class ArgoAPIClient:
             else:
                 resp = requests_func(full_url, headers=headers, verify=self.verify)
             resp.raise_for_status()
-            json_obj = json.loads(resp.text)
+            if json_resp:
+                return json.loads(resp.text)
+            else:
+                return resp.text
         except JSONDecodeError as exc:
             msg = "ARGO - REST API, {}, {}".format(type(exc), resp.text)
             logger.exception(msg)
@@ -246,7 +282,6 @@ class ArgoAPIClient:
             msg = "ARGO - REST API, {}, {}".format(type(exc), resp.text)
             logger.exception(msg)
             raise exc
-        return json_obj
 
     @property
     def host(self):

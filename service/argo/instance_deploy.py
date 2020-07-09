@@ -4,7 +4,8 @@ Deploy instance.
 
 import yaml
 import json
-from service.argo.wf_call import argo_wf_template_exec
+from service.argo.wf_call import argo_workflow_exec, argo_context_from_config
+from service.argo.wf import ArgoWorkflow
 from service.argo.exception import WorkflowDataFileNotExist, WorkflowFailed, WorkflowErrored
 
 from django.conf import settings
@@ -30,12 +31,16 @@ def argo_deploy_instance(
         exc: exception thrown
     """
     try:
-        wf_data = _get_workflow_data_for_temp(server_ip, username, timezone)
+        wf_data = _get_workflow_data(server_ip, username, timezone)
 
-        wf_name, status = argo_wf_template_exec("instance_deploy.yml", provider_name,
+        wf_name, status = argo_workflow_exec("instance_deploy.yml", provider_name,
                                     wf_data,
                                     config_file_path=settings.ARGO_CONFIG_FILE_PATH,
                                     wait=True)
+        # dump logs
+        context = argo_context_from_config(settings.ARGO_CONFIG_FILE_PATH)
+        ArgoWorkflow.dump_logs(context, wf_name)
+
         celery_logger.debug("ARGO, workflow complete")
         celery_logger.debug(status)
 

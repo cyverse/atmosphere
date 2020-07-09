@@ -121,3 +121,11 @@ def argo_wf_template_exec(wf_template_filename, provider_name, workflow_data, co
     except Exception as exc:
         logger.exception("ARGO, argo_wf_template_exec(), {} {}".format(type(exc), exc))
         raise exc
+
+def argo_context_from_config(config_file_path=None):
+    # read configuration from file
+    config = _read_argo_config(config_file_path=config_file_path)
+
+    # construct workflow context
+    context = ArgoContext(config=config)
+    return context

@@ -130,6 +130,18 @@ class ArgoWorkflow:
             time.sleep(interval)
         return status
 
+    @staticmethod
+    def dump_logs(context, wf_name):
+        # find out what pods the workflow is consisted of
+        json_resp = context.client().get_workflow(wf_name)
+        pod_names  = json_resp["status"]["nodes"].keys()
+
+        # dump logs for each pods
+        for pod_name in pod_names:
+            logs_lines = context.client().get_log_for_pod_in_workflow(wf_name, pod_name, container_name="main")
+            logs = [line for line in logs_lines]
+            logger.debug(("ARGO, workflow {}, pod {} logs:\n").format(wf_name, pod_name) + '\n'.join(logs))
+
     @property
     def wf_def(self):
         """
