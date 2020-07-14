@@ -131,30 +131,32 @@ class ArgoWorkflow:
         return status
 
     @staticmethod
-    def dump_logs(context, wf_name):
-        import atmosphere, os
+    def dump_logs(context, wf_name, log_dir):
+        """
+        Dump logs of the workflow into the log directory provided.
+        Separate log file for each pods/steps in the workflow, each with the filename of {{pod_name}}.log
 
-        # ensure base dir for log dump exists
-        log_dump_dir = os.path.abspath(os.path.join(
-            os.path.dirname(atmosphere.__file__), "..", "logs", "argo"))
-        if not os.path.isdir(log_dump_dir):
-            os.makedirs(log_dump_dir)
-
-        # log dump file for the workflow
-        log_dump_file = os.path.join(log_dump_dir, wf_name + ".log")
-
+        Args:
+            context (ArgoContext): context used to fetch the logs
+            wf_name (str): name of the workflow
+            log_dir (str): directory to dump logs into
+        """
         # find out what pods the workflow is consisted of
         json_resp = context.client().get_workflow(wf_name)
         pod_names = json_resp["status"]["nodes"].keys()
 
-        with open(log_dump_file, "a+") as dump_file:
-            dump_file.write("workflow {} has {} pods\n".format(wf_name, len(pod_names)))
-            # dump logs for each pods
-            for pod_name in pod_names:
+        # dump logs in separate files for each pods
+        for pod_name in pod_names:
+
+            filename = "{}.log".format(pod_name)
+            log_file_path = os.path.join(log_dir, filename)
+
+            with open(log_file_path, "a+") as dump_file:
+                dump_file.write("workflow {} has {} pods\n".format(wf_name, len(pod_names)))
                 logs_lines = context.client().get_log_for_pod_in_workflow(wf_name, pod_name, container_name="main")
                 dump_file.write("\n\pod {}:\n".format(pod_name))
                 dump_file.writelines(logs_lines)
-            logger.debug(("ARGO, log dump for workflow {} at: {}\n").format(wf_name, log_dump_file))
+            logger.debug(("ARGO, log dump for workflow {}, pod {} at: {}\n").format(wf_name, pod_name, log_file_path))
 
     @property
     def wf_def(self):

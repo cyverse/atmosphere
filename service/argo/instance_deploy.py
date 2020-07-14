@@ -4,10 +4,13 @@ Deploy instance.
 
 import yaml
 import json
+import os
+import time
 from service.argo.wf_call import argo_workflow_exec
 from service.argo.common import argo_context_from_config, read_argo_config
 from service.argo.wf import ArgoWorkflow
 from service.argo.exception import WorkflowDataFileNotExist, WorkflowFailed, WorkflowErrored
+import atmosphere
 
 from django.conf import settings
 
@@ -15,6 +18,7 @@ from threepio import celery_logger
 
 def argo_deploy_instance(
     provider_uuid,
+    instance_uuid,
     server_ip,
     username,
     timezone,
@@ -38,9 +42,9 @@ def argo_deploy_instance(
                                     wf_data,
                                     config_file_path=settings.ARGO_CONFIG_FILE_PATH,
                                     wait=True)
+
         # dump logs
-        context = argo_context_from_config(settings.ARGO_CONFIG_FILE_PATH)
-        ArgoWorkflow.dump_logs(context, wf_name)
+        _dump_logs(wf_name, username, instance_uuid)
 
         celery_logger.debug("ARGO, workflow complete")
         celery_logger.debug(status)
@@ -108,4 +112,41 @@ def _get_workflow_data_for_temp(provider_uuid, server_ip, username, timezone):
     return wf_data
 
 
+def _create_deploy_log_dir(username, instance_uuid, timestamp):
+    """
+    Create directory to dump deploy workflow log, example path: base_dir/username/instance_uuid/timestamp/.
+    base directory is created if missing
 
+    Args:
+        username (str): username of the owner of the instance
+        instance_uuid (str): uuid of the instance
+        timestamp (str): timestamp of the deploy
+
+    Returns:
+        str: path to the directory to dump logs
+    """
+    base_dir = os.path.abspath(os.path.join(
+        os.path.dirname(atmosphere.__file__), "..", "logs", "atmosphere_deploy.d"))
+
+    # create base dir if missing
+    if not os.path.isdir(base_dir):
+        os.makedirs(base_dir)
+
+    # create deploy log directory if missing
+    dir = os.path.join(base_dir, username, instance_uuid, timestamp)
+    if not os.path.isdir(dir):
+        os.makedirs(dir)
+
+    return dir
+
+def _dump_logs(wf_name, username, instance_uuid):
+    try:
+        context = argo_context_from_config(settings.ARGO_CONFIG_FILE_PATH)
+
+        timestamp = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+
+        log_dir = _create_deploy_log_dir(username, instance_uuid, timestamp)
+        ArgoWorkflow.dump_logs(context, wf_name, log_dir)
+    except Exception as exc:
+        celery_logger.debug("ARGO, failed to dump logs for workflow {}, {}".format(wf_name, type(exc)))
+        celery_logger.debug(exc)
