@@ -38,22 +38,22 @@ def argo_deploy_instance(
     try:
         wf_data = _get_workflow_data(provider_uuid, server_ip, username, timezone)
 
-        wf_name, status = argo_workflow_exec("instance_deploy.yml", provider_uuid,
+        wf, status = argo_workflow_exec("instance_deploy.yml", provider_uuid,
                                     wf_data,
                                     config_file_path=settings.ARGO_CONFIG_FILE_PATH,
                                     wait=True)
 
         # dump logs
-        _dump_logs(wf_name, username, instance_uuid)
+        _dump_logs(wf, username, instance_uuid)
 
         celery_logger.debug("ARGO, workflow complete")
         celery_logger.debug(status)
 
         if not status.success:
             if status.error:
-                raise WorkflowErrored(wf_name)
+                raise WorkflowErrored(wf.wf_name)
             else:
-                raise WorkflowFailed(wf_name)
+                raise WorkflowFailed(wf.wf_name)
     except Exception as exc:
         celery_logger.debug("ARGO, argo_deploy_instance(), {}, {}".format(type(exc), exc))
         raise exc
@@ -139,14 +139,22 @@ def _create_deploy_log_dir(username, instance_uuid, timestamp):
 
     return dir
 
-def _dump_logs(wf_name, username, instance_uuid):
+def _dump_logs(wf, username, instance_uuid):
+    """
+    Dump workflow logs locally
+
+    Args:
+        wf (ArgoWorkflow): workflow to dump logs of
+        username (str): username of owner of the instance
+        instance_uuid (str): uuid of the instance
+    """
     try:
         context = argo_context_from_config(settings.ARGO_CONFIG_FILE_PATH)
 
         timestamp = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 
         log_dir = _create_deploy_log_dir(username, instance_uuid, timestamp)
-        ArgoWorkflow.dump_logs(context, wf_name, log_dir)
+        wf.dump_logs(context, log_dir)
     except Exception as exc:
-        celery_logger.debug("ARGO, failed to dump logs for workflow {}, {}".format(wf_name, type(exc)))
+        celery_logger.debug("ARGO, failed to dump logs for workflow {}, {}".format(wf.wf_name, type(exc)))
         celery_logger.debug(exc)

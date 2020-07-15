@@ -29,7 +29,7 @@ def argo_workflow_exec(workflow_filename, provider_uuid, workflow_data, config_f
         wait (bool, optional): wait for workflow to complete. Defaults to False.
 
     Returns:
-        (str, ArgoWorkflowStatus): workflow name and status of the workflow
+        (ArgoWorkflow, ArgoWorkflowStatus): workflow and status of the workflow
     """
     try:
         # read configuration from file
@@ -37,18 +37,17 @@ def argo_workflow_exec(workflow_filename, provider_uuid, workflow_data, config_f
 
         # find the workflow definition & construct workflow
         wf_def = argo_lookup_yaml_file(config["workflow_base_dir"], workflow_filename, provider_uuid)
-        wf = ArgoWorkflow(wf_def)
 
         # construct workflow context
         context = ArgoContext(config=config)
 
         # execute
         if wait:
-            result = wf.execute(context, workflow_data)
+            result = ArgoWorkflow.create_n_watch(context, wf_def, workflow_data)
             return result
         else:
-            wf_name = wf.exec_no_wait(context, workflow_data)
-            return (wf_name, ArgoWorkflowStatus)
+            wf = ArgoWorkflow.create(context, wf_def, workflow_data)
+            return (wf, ArgoWorkflowStatus())
     except Exception as exc:
         logger.exception("ARGO, argo_workflow_exec(), {} {}".format(type(exc), exc))
         raise exc
@@ -67,7 +66,7 @@ def argo_wf_template_exec(wf_template_filename, provider_uuid, workflow_data, co
         wait (bool, optional): wait for workflow to complete. Defaults to False.
 
     Returns:
-        (str, dict): workflow name and status of the workflow {"complete": bool, "success": bool, "error": bool}
+        (ArgoWorkflow, dict): workflow and status of the workflow {"complete": bool, "success": bool, "error": bool}
     """
     try:
         # read configuration from file
@@ -82,16 +81,17 @@ def argo_wf_template_exec(wf_template_filename, provider_uuid, workflow_data, co
         # submit workflow template
         wf_temp = ArgoWorkflowTemplate.create(context, wf_temp_def)
         wf_name = wf_temp.execute(context, wf_param=workflow_data)
+        wf = ArgoWorkflow(wf_name)
 
         # polling if needed
         if wait:
-            status = ArgoWorkflow.polling(context, wf_name, 10, 18)
+            status = wf.watch(context, wf_name, 10, 18)
             if status.complete:
                 return (wf_name, status)
-            status = ArgoWorkflow.polling(context, wf_name, 60, 1440)
-            return (wf_name, status)
+            status = wf.watch(context, wf_name, 60, 1440)
+            return (wf, status)
         else:
-            return (wf_name, {"complete": None, "success": None, "error": None})
+            return (wf, {"complete": None, "success": None, "error": None})
 
     except Exception as exc:
         logger.exception("ARGO, argo_wf_template_exec(), {} {}".format(type(exc), exc))
