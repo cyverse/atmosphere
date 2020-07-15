@@ -37,18 +37,21 @@ class ArgoAPIClient:
         self._namespace = wf_namespace
         self._verify = verify
 
-    def get_workflow(self, wf_name):
+    def get_workflow(self, wf_name, fields=""):
         """
         Endpoint for fetching a workflow
 
         Args:
             wf_name (str): name of the workflow
+            fields (str): fields to be included in the response
 
         Returns:
             dict: response text as JSON object
         """
         api_url = "/api/v1/workflows/{}/{}"
         api_url = api_url.format(self._namespace, wf_name)
+        if fields:
+            api_url = "{}?fields={}".format(api_url, fields)
 
         json_resp = self._req("get", api_url)
 

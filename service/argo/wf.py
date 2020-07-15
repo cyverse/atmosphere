@@ -86,7 +86,7 @@ class ArgoWorkflow:
         """
         try:
             # get workflow
-            json_obj = context.client().get_workflow(self._wf_name)
+            json_obj = context.client().get_workflow(self._wf_name, fields="status.phase")
 
             # unknown state
             if "status" not in json_obj or "phase" not in json_obj["status"]:
@@ -190,7 +190,7 @@ class ArgoWorkflow:
         """
         if self._wf_def and not fetch:
             return self._wf_def
-        self._wf_def = context.client().get_workflow(self._wf_name)
+        self._wf_def = context.client().get_workflow(self._wf_name, fields="-status")
         return self._wf_def
 
 class ArgoWorkflowStatus:
