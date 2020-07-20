@@ -151,7 +151,7 @@ def _dump_deploy_logs(wf, username, instance_uuid):
     try:
         context = argo_context_from_config(settings.ARGO_CONFIG_FILE_PATH)
 
-        timestamp = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+        timestamp = time.strftime("%Y-%m-%d_%H%M%S", time.localtime())
         log_dir = _create_deploy_log_dir(username, instance_uuid, timestamp)
 
         # fetch all info about pods in workflow
