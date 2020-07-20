@@ -137,6 +137,37 @@ class ArgoWorkflow:
             time.sleep(interval)
         return status
 
+    def get_nodes(self, context):
+        """
+        Get info (io.argoproj.workflow.v1alpha1.NodeStatus) about the nodes(including pods) that this workflow consist of.
+        Note: not all node has a corrsponding pod
+
+        Args:
+            context (ArgoContext): context used
+
+        Returns:
+            dict: a dict whose keys are node names, values are info of the corrsponding node
+        """
+        json_resp = context.client().get_workflow(self._wf_name, fields="status.nodes")
+        return json_resp["status"]["nodes"]
+
+    def dump_pod_logs(self, context, pod_name, log_file_path):
+        """
+        Dump logs of a pod in the workflow into a log file at the given path.
+        Technically, it is node_name, calling it the method dump_pod_logs & argument
+        pod_name is just to conform to the name in the url in swagger doc.
+
+        Args:
+            context (ArgoContext): context used to fetch the logs
+            pod_name (str): name of the pod
+            log_file_path (str): path to the log file
+        """
+        # find out what pods the workflow is consisted of
+        with open(log_file_path, "a+") as log_file:
+            logs_lines = context.client().get_log_for_pod_in_workflow(self.wf_name, pod_name, container_name="main")
+            log_file.write("\n".join(logs_lines))
+        logger.debug(("ARGO, log dump for workflow {}, pod {} at: {}\n").format(self.wf_name, pod_name, log_file_path))
+
     def dump_logs(self, context, log_dir):
         """
         Dump logs of the workflow into the log directory provided.
