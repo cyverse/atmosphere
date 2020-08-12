@@ -2,10 +2,6 @@
 WorkflowTemplate
 """
 
-import yaml
-import json
-from service.argo.common import ArgoContext
-
 class ArgoWorkflowTemplate:
     """
     Abstraction of the WorkflowTemplate in Argo
@@ -19,6 +15,7 @@ class ArgoWorkflowTemplate:
             wf_temp_name (str): name of the workflow template
         """
         self._name = wf_temp_name
+        self._wf_temp_def = None
 
     @classmethod
     def create(cls, context, wf_temp_def):
@@ -49,19 +46,6 @@ class ArgoWorkflowTemplate:
             self._wf_temp_def["apiVersion"] = "argoproj.io/v1alpha1"
         if "kind" not in self._wf_temp_def:
             self._wf_temp_def["kind"] = "WorkflowTemplate"
-
-    def update(self, context, wf_temp_def):
-        """
-        Update a WorkflowTemplate in Argo
-
-        Args:
-            context (ArgoContext): context of which the action should be executed in
-
-        Returns:
-            dict: json response
-        """
-        json_resp = context.client().create_workflow_template(self.wf_temp_def())
-        return json_resp
 
     def execute(self, context, wf_param):
         """
@@ -124,5 +108,3 @@ class ArgoWorkflowTemplate:
             str: name
         """
         return self._name
-
-

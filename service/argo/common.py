@@ -3,21 +3,27 @@ Common component for Argo
 """
 
 import os
-import json
 import yaml
-import time
-from service.argo.rest_api import ArgoAPIClient
-from service.argo.exception import *
 from django.conf import settings
 
-from threepio import celery_logger as logger
+from service.argo.rest_api import ArgoAPIClient
+from service.argo.exception import (BaseWorkflowDirNotExist,
+                                    ProviderWorkflowDirNotExist,
+                                    WorkflowFileNotExist,
+                                    WorkflowFileNotYAML,
+                                    ArgoConfigFileNotExist,
+                                    ArgoConfigFileNotYAML,
+                                    ArgoConfigFileError
+                                    )
+
 
 class ArgoContext:
     """
     Context that the Argo Workflow should be executing in
     """
 
-    def __init__(self, api_host=None, api_port=None, token=None, namespace=None, ssl_verify=None, config=None):
+    def __init__(self, api_host=None, api_port=None, token=None,
+                 namespace=None, ssl_verify=None, config=None):
         """
         Create a context to execute ArgoWorkflow
 
@@ -27,7 +33,8 @@ class ArgoContext:
             token (str, optional): k8s bearer token. Defaults to None.
             namespace (str, optional): k8s namespace for the workflow. Defaults to None.
             ssl_verify (bool, optional): whether to verify ssl cert or not. Defaults to None.
-            config (dict, optional): configuration, serve as a fallback if a config entry is not passed as a parameter. Defaults to None.
+            config (dict, optional): configuration, serve as a fallback if a
+                config entry is not passed as a parameter. Defaults to None.
         """
         if api_host:
             self._api_host = api_host
@@ -62,7 +69,6 @@ class ArgoContext:
             ArgoAPIClient: an API client with the config from this context
         """
         return ArgoAPIClient(self._api_host, self._api_port, self._token, self._namespace,
-                            # Argo server currently has self-signed cert
                              verify=self._ssl_verify)
 
 def _find_provider_dir(base_directory, provider_uuid, default_provider="default"):
@@ -72,7 +78,8 @@ def _find_provider_dir(base_directory, provider_uuid, default_provider="default"
     Args:
         base_directory (str): base directory for workflow files
         provider_uuid (str): provider uuid
-        default_provider (str, optional): default provider name. unset if None or "". Defaults to "default".
+        default_provider (str, optional): default provider name. unset if None
+            or "". Defaults to "default".
 
     Raises:
         ProviderWorkflowDirNotExist: provider workflow directory not exist
@@ -84,7 +91,7 @@ def _find_provider_dir(base_directory, provider_uuid, default_provider="default"
     try:
         # find provider directory
         provider_dirs = [entry for entry in os.listdir(base_directory)
-                            if entry == provider_uuid]
+                         if entry == provider_uuid]
         # try default provider if given provider dir does not exist
         if not provider_dirs and default_provider:
             provider_dirs = [entry for entry in os.listdir(base_directory)
@@ -190,11 +197,13 @@ def read_argo_config(config_file_path=None, provider_uuid=None):
     """
     Read configuration for Argo.
     Read from given path if specified, else read from path specified in the settings.
-    Only config specific to the provider is returned, if provider uuid is not given, then uses the default one from the config.
+    Only config specific to the provider is returned, if provider uuid is not
+    given, then uses the default one from the config.
     If there is no provider specific config, uses the default one.
 
     Args:
-        config_file_path (str, optional): path to the config file. will use the default one from the setting if None. Defaults to None.
+        config_file_path (str, optional): path to the config file. will use
+            the default one from the setting if None. Defaults to None.
         provider_uuid (str, optional): uuid of the provider. Defaults to None.
 
     Raises:
@@ -210,9 +219,9 @@ def read_argo_config(config_file_path=None, provider_uuid=None):
         # read config file
         with open(settings.ARGO_CONFIG_FILE_PATH, "r") as config_file:
             all_config = yaml.safe_load(config_file.read())
-        
+
         # validate config
-        if type(all_config) is not dict:
+        if isinstance(all_config, dict):
             raise ArgoConfigFileError("config root not key-value")
         if "default" not in all_config:
             raise ArgoConfigFileError("default missing")
@@ -236,6 +245,15 @@ def read_argo_config(config_file_path=None, provider_uuid=None):
         raise ArgoConfigFileNotYAML(config_file_path)
 
 def argo_context_from_config(config_file_path=None):
+    """
+    Construct an ArgoContext from a config file
+
+    Args:
+        config_file_path (str, optional): path to config file. Defaults to None.
+
+    Returns:
+        ArgoContext: argo context
+    """
     # read configuration from file
     config = read_argo_config(config_file_path=config_file_path)
 

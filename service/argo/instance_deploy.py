@@ -2,27 +2,24 @@
 Deploy instance.
 """
 
-import yaml
-import json
 import os
 import time
-from service.argo.wf_call import argo_workflow_exec
-from service.argo.common import argo_context_from_config, read_argo_config
-from service.argo.wf import ArgoWorkflow
-from service.argo.exception import WorkflowFailed, WorkflowErrored
+from django.conf import settings
+from threepio import celery_logger
 import atmosphere
 
-from django.conf import settings
+from service.argo.wf_call import argo_workflow_exec
+from service.argo.common import argo_context_from_config, read_argo_config
+from service.argo.exception import WorkflowFailed, WorkflowErrored
 
-from threepio import celery_logger
 
 def argo_deploy_instance(
-    provider_uuid,
-    instance_uuid,
-    server_ip,
-    username,
-    timezone,
-):
+        provider_uuid,
+        instance_uuid,
+        server_ip,
+        username,
+        timezone,
+    ):
     """
     run Argo workflow to deploy an instance
 
@@ -39,9 +36,9 @@ def argo_deploy_instance(
         wf_data = _get_workflow_data(provider_uuid, server_ip, username, timezone)
 
         wf, status = argo_workflow_exec("instance_deploy.yml", provider_uuid,
-                                    wf_data,
-                                    config_file_path=settings.ARGO_CONFIG_FILE_PATH,
-                                    wait=True)
+                                        wf_data,
+                                        config_file_path=settings.ARGO_CONFIG_FILE_PATH,
+                                        wait=True)
 
         # dump logs
         _dump_deploy_logs(wf, username, instance_uuid)
@@ -52,8 +49,7 @@ def argo_deploy_instance(
         if not status.success:
             if status.error:
                 raise WorkflowErrored(wf.wf_name)
-            else:
-                raise WorkflowFailed(wf.wf_name)
+            raise WorkflowFailed(wf.wf_name)
     except Exception as exc:
         celery_logger.debug("ARGO, argo_deploy_instance(), {}, {}".format(type(exc), exc))
         raise exc
@@ -108,7 +104,8 @@ def _get_workflow_data_for_temp(provider_uuid, server_ip, username, timezone):
 
 def _create_deploy_log_dir(username, instance_uuid, timestamp):
     """
-    Create directory to dump deploy workflow log, example path: base_dir/username/instance_uuid/timestamp/.
+    Create directory to dump deploy workflow log,
+    example path: base_dir/username/instance_uuid/timestamp/.
     base directory is created if missing
 
     Args:
@@ -127,11 +124,11 @@ def _create_deploy_log_dir(username, instance_uuid, timestamp):
         os.makedirs(base_dir)
 
     # create deploy log directory if missing
-    dir = os.path.join(base_dir, username, instance_uuid, timestamp)
-    if not os.path.isdir(dir):
-        os.makedirs(dir)
+    directory = os.path.join(base_dir, username, instance_uuid, timestamp)
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
 
-    return dir
+    return directory
 
 def _dump_deploy_logs(wf, username, instance_uuid):
     """
@@ -166,5 +163,6 @@ def _dump_deploy_logs(wf, username, instance_uuid):
                 log_filename = os.path.join(log_dir, node_name + ".log")
             wf.dump_pod_logs(context, node_name, log_filename)
     except Exception as exc:
-        celery_logger.debug("ARGO, failed to dump logs for workflow {}, {}".format(wf.wf_name, type(exc)))
+        celery_logger.debug("ARGO, failed to dump logs for workflow {}, {}"
+                            .format(wf.wf_name, type(exc)))
         celery_logger.debug(exc)

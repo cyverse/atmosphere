@@ -2,8 +2,8 @@
 Client to access Argo REST API
 """
 
-import requests
 import json
+import requests
 from threepio import celery_logger as logger
 from service.argo.exception import ResponseNotJSON
 
@@ -103,8 +103,8 @@ class ArgoAPIClient:
         Returns:
             list: a list of lines of logs
         """
-        api_url = "/api/v1/workflows/{}/{}/{}/log?logOptions.timestamps=true&logOptions.container={}".format(
-            self._namespace, wf_name, pod_name, container_name)
+        api_url = "/api/v1/workflows/{}/{}/{}/log?logOptions.timestamps=true&logOptions.container={}"
+        api_url = api_url.format(self._namespace, wf_name, pod_name, container_name)
 
         resp = self._req("get", api_url, json_resp=False)
 
@@ -184,7 +184,7 @@ class ArgoAPIClient:
         Returns:
             dict: response text as JSON object
         """
-        api_url = "/api/v1/workflow-templates/" + self._namespace
+        api_url = "/api/v1/workflow-templates/{}/{}".format(self._namespace, wf_temp_name)
 
         json_data = {}
         json_data["namespace"] = self._namespace
@@ -275,8 +275,7 @@ class ArgoAPIClient:
             resp.raise_for_status()
             if json_resp:
                 return json.loads(resp.text)
-            else:
-                return resp.text
+            return resp.text
         except JSONDecodeError as exc:
             msg = "ARGO - REST API, {}, {}".format(type(exc), resp.text)
             logger.exception(msg)
@@ -329,24 +328,23 @@ class ArgoAPIClient:
         return self._verify
 
 def _http_method(method_str):
-        """
-        Return function for given HTTP Method from requests library
+    """
+    Return function for given HTTP Method from requests library
 
-        Args:
-            method_str (str): HTTP method, "get", "post", etc.
+    Args:
+        method_str (str): HTTP method, "get", "post", etc.
 
-        Returns:
-            function: requests.get, requests.post, etc. None if no match
-        """
-        if method_str == "get":
-            return requests.get
-        elif method_str == "post":
-            return requests.post
-        elif method_str == "delete":
-            return requests.delete
-        elif method_str == "put":
-            return requests.put
-        elif method_str == "options":
-            return requests.options
-        else:
-            return None
+    Returns:
+        function: requests.get, requests.post, etc. None if no match
+    """
+    if method_str == "get":
+        return requests.get
+    if method_str == "post":
+        return requests.post
+    if method_str == "delete":
+        return requests.delete
+    if method_str == "put":
+        return requests.put
+    if method_str == "options":
+        return requests.options
+    return None

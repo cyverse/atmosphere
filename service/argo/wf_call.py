@@ -2,20 +2,16 @@
 Execute Argo Workflow
 """
 
-import os
-import json
-import yaml
-import time
+from threepio import celery_logger as logger
+
 from service.argo.common import ArgoContext, argo_lookup_yaml_file, read_argo_config
 from service.argo.wf import ArgoWorkflow, ArgoWorkflowStatus
 from service.argo.wf_temp import ArgoWorkflowTemplate
-from service.argo.rest_api import ArgoAPIClient
-from service.argo.exception import *
-from django.conf import settings
 
-from threepio import celery_logger as logger
 
-def argo_workflow_exec(workflow_filename, provider_uuid, workflow_data, config_file_path=None, wait=False):
+def argo_workflow_exec(
+        workflow_filename, provider_uuid, workflow_data, config_file_path=None, wait=False
+):
     """
     Execute an specified Argo workflow.
     Find file based on provider.
@@ -25,7 +21,8 @@ def argo_workflow_exec(workflow_filename, provider_uuid, workflow_data, config_f
         workflow_filename (str): filename of the workflow
         provider_uuid (str): uuid of the provider
         workflow_data (dict): data to be passed to workflow as arguments
-        config_file_path (str, optional): path to the config file. will use the default one from the setting if None. Defaults to None.
+        config_file_path (str, optional): path to the config file. will use the
+            default one from the setting if None. Defaults to None.
         wait (bool, optional): wait for workflow to complete. Defaults to False.
 
     Returns:
@@ -36,7 +33,8 @@ def argo_workflow_exec(workflow_filename, provider_uuid, workflow_data, config_f
         config = read_argo_config(config_file_path=config_file_path, provider_uuid=provider_uuid)
 
         # find the workflow definition & construct workflow
-        wf_def = argo_lookup_yaml_file(config["workflow_base_dir"], workflow_filename, provider_uuid)
+        wf_def = argo_lookup_yaml_file(config["workflow_base_dir"],
+                                       workflow_filename, provider_uuid)
 
         # construct workflow context
         context = ArgoContext(config=config)
@@ -45,14 +43,16 @@ def argo_workflow_exec(workflow_filename, provider_uuid, workflow_data, config_f
         if wait:
             result = ArgoWorkflow.create_n_watch(context, wf_def, workflow_data)
             return result
-        else:
-            wf = ArgoWorkflow.create(context, wf_def, workflow_data)
-            return (wf, ArgoWorkflowStatus())
+        wf = ArgoWorkflow.create(context, wf_def, workflow_data)
+        return (wf, ArgoWorkflowStatus())
     except Exception as exc:
         logger.exception("ARGO, argo_workflow_exec(), {} {}".format(type(exc), exc))
         raise exc
 
-def argo_wf_template_exec(wf_template_filename, provider_uuid, workflow_data, config_file_path=None, wait=False):
+
+def argo_wf_template_exec(
+        wf_template_filename, provider_uuid, workflow_data, config_file_path=None, wait=False
+):
     """
     Execute an specified Argo workflow.
     Find file based on provider.
@@ -62,11 +62,13 @@ def argo_wf_template_exec(wf_template_filename, provider_uuid, workflow_data, co
         wf_template_filename (str): filename of the workflow
         provider_uuid (str): uuid of the provider
         workflow_data (dict): data to be passed to workflow as arguments
-        config_file_path (str, optional): path to the config file. will use the default one from the setting if None. Defaults to None.
+        config_file_path (str, optional): path to the config file. will use the
+            default one from the setting if None. Defaults to None.
         wait (bool, optional): wait for workflow to complete. Defaults to False.
 
     Returns:
-        (ArgoWorkflow, dict): workflow and status of the workflow {"complete": bool, "success": bool, "error": bool}
+        (ArgoWorkflow, dict): workflow and status of the workflow,
+            e.g. {"complete": bool, "success": bool, "error": bool}
     """
     try:
         # read configuration from file
@@ -76,7 +78,8 @@ def argo_wf_template_exec(wf_template_filename, provider_uuid, workflow_data, co
         context = ArgoContext(config=config)
 
         # find the workflow definition
-        wf_temp_def = argo_lookup_yaml_file(config["workflow_base_dir"], wf_template_filename, provider_uuid)
+        wf_temp_def = argo_lookup_yaml_file(config["workflow_base_dir"],
+                                            wf_template_filename, provider_uuid)
 
         # submit workflow template
         wf_temp = ArgoWorkflowTemplate.create(context, wf_temp_def)
@@ -85,13 +88,12 @@ def argo_wf_template_exec(wf_template_filename, provider_uuid, workflow_data, co
 
         # polling if needed
         if wait:
-            status = wf.watch(context, wf_name, 10, 18)
+            status = wf.watch(context, 10, 18)
             if status.complete:
                 return (wf_name, status)
-            status = wf.watch(context, wf_name, 60, 1440)
+            status = wf.watch(context, 60, 1440)
             return (wf, status)
-        else:
-            return (wf, {"complete": None, "success": None, "error": None})
+        return (wf, {"complete": None, "success": None, "error": None})
 
     except Exception as exc:
         logger.exception("ARGO, argo_wf_template_exec(), {} {}".format(type(exc), exc))

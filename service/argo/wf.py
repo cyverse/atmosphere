@@ -3,15 +3,9 @@ Workflow
 """
 
 import os
-import json
-import yaml
 import time
-from service.argo.common import ArgoContext
-from service.argo.rest_api import ArgoAPIClient
-from service.argo.exception import *
-from django.conf import settings
-
 from threepio import celery_logger as logger
+
 
 class ArgoWorkflow:
     """
@@ -26,6 +20,7 @@ class ArgoWorkflow:
         """
         self._wf_name = wf_name
         self._last_status = None
+        self._wf_def = None
 
     @staticmethod
     def create(context, wf_def, wf_data={}, lint=False):
@@ -36,7 +31,8 @@ class ArgoWorkflow:
             context (ArgoContext): context to execute the workflow in
             wf_def (dict): workflow definition
             wf_data (dict, optional): workflow data to be pass along. Defaults to {}.
-            lint (bool, optional): Whether to submit workflow definition for linting first. Defaults to False.
+            lint (bool, optional): Whether to submit workflow definition for
+                linting first. Defaults to False.
 
         Returns:
             ArgoWorkflow: ArgoWorkflow object created based on the returned json
@@ -99,21 +95,20 @@ class ArgoWorkflow:
                 self._last_status = ArgoWorkflowStatus(complete=False)
                 return self._last_status
 
-            elif phase == "Succeeded":
+            if phase == "Succeeded":
                 self._last_status = ArgoWorkflowStatus(complete=True, success=True)
                 return self._last_status
 
-            elif phase == "Failed":
+            if phase == "Failed":
                 self._last_status = ArgoWorkflowStatus(complete=True, success=False)
                 return self._last_status
 
-            elif phase == "Error":
+            if phase == "Error":
                 self._last_status = ArgoWorkflowStatus(complete=True, success=False, error=True)
                 return self._last_status
 
             return ArgoWorkflowStatus()
         except Exception as exc:
-            # TODO
             raise exc
 
     def watch(self, context, interval, repeat_count):
@@ -139,7 +134,8 @@ class ArgoWorkflow:
 
     def get_nodes(self, context):
         """
-        Get info (io.argoproj.workflow.v1alpha1.NodeStatus) about the nodes(including pods) that this workflow consist of.
+        Get info (io.argoproj.workflow.v1alpha1.NodeStatus) about the nodes
+        (including pods) that this workflow consist of.
         Note: not all node has a corrsponding pod
 
         Args:
@@ -164,14 +160,18 @@ class ArgoWorkflow:
         """
         # find out what pods the workflow is consisted of
         with open(log_file_path, "a+") as log_file:
-            logs_lines = context.client().get_log_for_pod_in_workflow(self.wf_name, pod_name, container_name="main")
+            logs_lines = context.client().get_log_for_pod_in_workflow(
+                self.wf_name, pod_name, container_name="main"
+            )
             log_file.write("\n".join(logs_lines))
-        logger.debug(("ARGO, log dump for workflow {}, pod {} at: {}\n").format(self.wf_name, pod_name, log_file_path))
+        logger.debug(("ARGO, log dump for workflow {}, pod {} at: {}\n").format(
+            self.wf_name, pod_name, log_file_path))
 
     def dump_logs(self, context, log_dir):
         """
         Dump logs of the workflow into the log directory provided.
-        Separate log file for each pods/steps in the workflow, each with the filename of {{pod_name}}.log
+        Separate log file for each pods/steps in the workflow, each with the
+        filename of {{pod_name}}.log
 
         Args:
             context (ArgoContext): context used to fetch the logs
@@ -189,10 +189,12 @@ class ArgoWorkflow:
 
             with open(log_file_path, "a+") as dump_file:
                 dump_file.write("workflow {} has {} pods\n".format(self.wf_name, len(pod_names)))
-                logs_lines = context.client().get_log_for_pod_in_workflow(self.wf_name, pod_name, container_name="main")
-                dump_file.write("\n\pod {}:\n".format(pod_name))
+                logs_lines = context.client().get_log_for_pod_in_workflow(
+                    self.wf_name, pod_name, container_name="main")
+                dump_file.write("\npod {}:\n".format(pod_name))
                 dump_file.writelines(logs_lines)
-            logger.debug(("ARGO, log dump for workflow {}, pod {} at: {}\n").format(self.wf_name, pod_name, log_file_path))
+            logger.debug(("ARGO, log dump for workflow {}, pod {} at: {}\n").format(
+                self.wf_name, pod_name, log_file_path))
 
     @property
     def wf_name(self):
@@ -210,7 +212,6 @@ class ArgoWorkflow:
         """
         return self._last_status
 
-    @property
     def wf_def(self, context, fetch=True):
         """
         Definition of the workflow, will fetch if absent
