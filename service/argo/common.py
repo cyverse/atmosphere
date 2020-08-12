@@ -17,7 +17,7 @@ class ArgoContext:
     Context that the Argo Workflow should be executing in
     """
 
-    def __init__(self, api_host=None, api_port=None, token=None, namespace=None, config=None):
+    def __init__(self, api_host=None, api_port=None, token=None, namespace=None, ssl_verify=None, config=None):
         """
         Create a context to execute ArgoWorkflow
 
@@ -26,6 +26,7 @@ class ArgoContext:
             api_port (int, optional): port of the Argo API Server. Defaults to None.
             token (str, optional): k8s bearer token. Defaults to None.
             namespace (str, optional): k8s namespace for the workflow. Defaults to None.
+            ssl_verify (bool, optional): whether to verify ssl cert or not. Defaults to None.
             config (dict, optional): configuration, serve as a fallback if a config entry is not passed as a parameter. Defaults to None.
         """
         if api_host:
@@ -48,6 +49,11 @@ class ArgoContext:
         else:
             self._namespace = config["namespace"]
 
+        if ssl_verify:
+            self._ssl_verify = ssl_verify
+        else:
+            self._ssl_verify = config["ssl_verify"]
+
     def client(self):
         """
         Returns an ArgoAPIClient
@@ -57,7 +63,7 @@ class ArgoContext:
         """
         return ArgoAPIClient(self._api_host, self._api_port, self._token, self._namespace,
                             # Argo server currently has self-signed cert
-                             verify=False)
+                             verify=self._ssl_verify)
 
 def _find_provider_dir(base_directory, provider_uuid, default_provider="default"):
     """
