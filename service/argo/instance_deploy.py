@@ -9,7 +9,7 @@ import time
 from service.argo.wf_call import argo_workflow_exec
 from service.argo.common import argo_context_from_config, read_argo_config
 from service.argo.wf import ArgoWorkflow
-from service.argo.exception import WorkflowDataFileNotExist, WorkflowFailed, WorkflowErrored
+from service.argo.exception import WorkflowFailed, WorkflowErrored
 import atmosphere
 
 from django.conf import settings
@@ -67,9 +67,6 @@ def _get_workflow_data(provider_uuid, server_ip, username, timezone):
         username (str): username of the owner of the instance
         timezone (str): timezone of the provider
 
-    Raises:
-        WorkflowDataFileNotExist: private key file not exist
-
     Returns:
         dict: {"arguments": {"parameters": [{"name": "", "value": ""}]}}
     """
@@ -93,9 +90,6 @@ def _get_workflow_data_for_temp(provider_uuid, server_ip, username, timezone):
         server_ip (str): ip of the server instance
         username (str): username of the owner of the instance
         timezone (str): timezone of the provider
-
-    Raises:
-        WorkflowDataFileNotExist: private key file not exist
 
     Returns:
         [str]: a list of parameters to be passed to workflow in the form of "key=value"

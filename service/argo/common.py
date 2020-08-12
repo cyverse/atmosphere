@@ -75,11 +75,11 @@ def _find_provider_dir(base_directory, provider_uuid, default_provider="default"
         default_provider (str, optional): default provider name. unset if None or "". Defaults to "default".
 
     Raises:
-        ProviderWorkflowDirNotExist: [description]
-        BaseWorkflowDirNotExist: [description]
+        ProviderWorkflowDirNotExist: provider workflow directory not exist
+        BaseWorkflowDirNotExist: base workflow directory not exist
 
     Returns:
-        [type]: [description]
+        str: path to provider workflow directory
     """
     try:
         # find provider directory
@@ -107,8 +107,8 @@ def _find_workflow_file(provider_dir_path, filename, provider_uuid):
         provider_uuid (str): provider uuid
 
     Raises:
-        WorkflowFileNotExist: [description]
-        ProviderWorkflowDirNotExist: [description]
+        WorkflowFileNotExist: workflow definition file not exist
+        ProviderWorkflowDirNotExist: provider workflow directory not exist
 
     Returns:
         str: path to the workflow file

@@ -27,7 +27,7 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.deploy import (
-    instance_deploy, user_deploy, build_host_name, ready_to_deploy as
+    user_deploy, build_host_name, ready_to_deploy as
     ansible_ready_to_deploy, run_utility_playbooks, execution_has_failures,
     execution_has_unreachable
 )
