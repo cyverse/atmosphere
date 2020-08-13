@@ -121,6 +121,7 @@ TACC_API_URL  = # "/path to api/"
 
 #NOTE: Their are *REQUIRED* quotations around 'timedelta(..)'!
 CELERYBEAT_SCHEDULE = {} # {"monitor_instances": {"schedule": 'timedelta(minutes=5)',}}
+ARGO_CONFIG_FILE_PATH= # /path/to/argo/config/file.yml
 
 [secrets.py]
 IRODS_HOST = # irods.server.com

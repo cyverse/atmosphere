@@ -64,6 +64,11 @@ else
   chown -R www-data:www-data /opt/dev/atmosphere
 fi
 
+# Validate argo config
+cat $SECRETS_DIR/argo.config.yml | python -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin.read())));" | tee /tmp/argo_config.json
+jsonschema -i /tmp/argo_config.json argo_config.schema
+rm /tmp/argo_config.json
+
 # Start services
 sed -i "s/^bind 127.0.0.1 ::1$/bind 127.0.0.1/" /etc/redis/redis.conf
 service redis-server start

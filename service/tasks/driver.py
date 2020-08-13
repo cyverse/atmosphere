@@ -27,9 +27,8 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.deploy import (
-    instance_deploy, user_deploy, build_host_name, ready_to_deploy as
-    ansible_ready_to_deploy, run_utility_playbooks, execution_has_failures,
-    execution_has_unreachable
+    user_deploy, build_host_name, ready_to_deploy as ansible_ready_to_deploy,
+    run_utility_playbooks, execution_has_failures, execution_has_unreachable
 )
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
@@ -1138,21 +1137,23 @@ def _deploy_instance(
     redeploy=False,
     **celery_task_args
 ):
+    from service.argo.instance_deploy import argo_deploy_instance
+    from service.argo.exception import ArgoBaseException
     try:
         celery_logger.debug(
-            "_deploy_instance task started at %s." % datetime.now()
+            "ARGO, _deploy_instance task started at %s." % datetime.now()
         )
         # Check if instance still exists
         driver = get_driver(driverCls, provider, identity)
         instance = driver.get_instance(instance_id)
         if not instance:
             celery_logger.debug(
-                "Instance has been teminated: %s." % instance_id
+                "ARGO, Instance has been teminated: %s." % instance_id
             )
             return
         if not instance.ip:
             celery_logger.debug(
-                "Instance IP address missing from : %s." % instance_id
+                "ARGO, Instance IP address missing from : %s." % instance_id
             )
             raise Exception("Instance IP Missing? %s" % instance_id)
         # NOTE: This is required to use ssh to connect.
@@ -1166,12 +1167,20 @@ def _deploy_instance(
         _deploy_instance.retry(exc=exc)
     try:
         username = identity.user.username
-        instance_deploy(instance.ip, username, instance_id)
-        _update_status_log(instance, "Ansible Finished for %s." % instance.ip)
-        celery_logger.debug(
-            "_deploy_instance task finished at %s." % datetime.now()
+        provider = Identity.find_instance(instance_id).provider
+        # Argo workflow instead of service.deploy.instance_deploy()
+        # TODO: use provider.location until there is short name for provider
+        argo_deploy_instance(
+            provider.uuid, instance_id, instance.ip, username, provider.timezone
         )
-    except AnsibleDeployException as exc:
+        _update_status_log(
+            instance, "ARGO, Ansible Finished for %s." % instance.ip
+        )
+        celery_logger.debug(
+            "ARGO, _deploy_instance task finished at %s." % datetime.now()
+        )
+    except ArgoBaseException as exc:
+        # retry if encounter any Argo specific exception
         celery_logger.exception(exc)
         _deploy_instance.retry(exc=exc)
     except (BaseException, Exception) as exc:

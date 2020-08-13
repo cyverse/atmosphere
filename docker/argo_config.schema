@@ -1,0 +1,34 @@
+{
+    "type": "object",
+    "properties": {
+        "default": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        }
+    },
+    "patternProperties": {
+        "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$": {
+            "$ref": "#/definitions/provider"
+        }
+    },
+    "definitions" : {
+        "provider": {
+            "properties": {
+                "api_host": {"type": "string"},
+                "api_port": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535
+                },
+                "token": {"type": "string"},
+                "namespace": {"type": "string"},
+                "workflow_base_dir": {"type": "string"},
+                "zoneinfo": {"type": "string"},
+                "ssl_verify": {"type": "boolean"}
+            },
+            "required": ["api_host", "api_port", "token", "namespace", "workflow_base_dir", "zoneinfo", "ssl_verify"]
+        }
+    },
+    "required": ["default"],
+    "additionalProperties": false
+}

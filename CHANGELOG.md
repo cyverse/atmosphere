@@ -25,6 +25,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v36-9...HEAD) - YYYY-MM-DD
+### Added
+  - script to create access token for users
+
+### Changed
+  - Using argo workflow to run ansible playbooks to deploy instance
+
 
 ## [v36-9](https://github.com/cyverse/atmosphere/compare/v36-8...v36-9) - 2020-06-16
 ### Fixed

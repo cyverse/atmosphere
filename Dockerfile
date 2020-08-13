@@ -19,6 +19,7 @@ RUN apt-get update && \
       libssl-dev \
       libxml2-dev \
       libxslt1-dev \
+      locales \
       make \
       netcat \
       openssl \
@@ -39,7 +40,12 @@ RUN apt-get update && \
       uwsgi \
       uwsgi-plugin-python \
       zlib1g-dev && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    locale-gen en_US.UTF-8
+
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
 
 # Create PID and log directories for uWSGI
 RUN mkdir -p /run/uwsgi/app/atmosphere /var/log/uwsgi && \
