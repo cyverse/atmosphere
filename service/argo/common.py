@@ -247,7 +247,7 @@ def read_argo_config(config_file_path=None, provider_uuid=None):
             all_config = yaml.safe_load(config_file.read())
 
         # validate config
-        if isinstance(all_config, dict):
+        if not isinstance(all_config, dict):
             raise ArgoConfigFileError("config root not key-value")
         if "default" not in all_config:
             raise ArgoConfigFileError("default missing")

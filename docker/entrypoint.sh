@@ -65,8 +65,8 @@ else
 fi
 
 # Validate argo config
-cat $SECRETS_DIR/argo.config.yml | python -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin.read())));" | tee /tmp/argo_config.json
-jsonschema -i /tmp/argo_config.json argo_config.schema
+cat $SECRETS_DIR/argo/config.yml | python -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin.read())));" > /tmp/argo_config.json
+jsonschema -i /tmp/argo_config.json /opt/dev/atmosphere/docker/argo_config.schema
 rm /tmp/argo_config.json
 
 # Start services
