@@ -27,9 +27,8 @@ from core.models.identity import Identity
 from core.models.profile import UserProfile
 
 from service.deploy import (
-    user_deploy, build_host_name, ready_to_deploy as
-    ansible_ready_to_deploy, run_utility_playbooks, execution_has_failures,
-    execution_has_unreachable
+    user_deploy, build_host_name, ready_to_deploy as ansible_ready_to_deploy,
+    run_utility_playbooks, execution_has_failures, execution_has_unreachable
 )
 from service.driver import get_driver, get_account_driver
 from service.exceptions import AnsibleDeployException
@@ -1171,8 +1170,12 @@ def _deploy_instance(
         provider = Identity.find_instance(instance_id).provider
         # Argo workflow instead of service.deploy.instance_deploy()
         # TODO: use provider.location until there is short name for provider
-        argo_deploy_instance(provider.uuid, instance_id, instance.ip, username, provider.timezone)
-        _update_status_log(instance, "ARGO, Ansible Finished for %s." % instance.ip)
+        argo_deploy_instance(
+            provider.uuid, instance_id, instance.ip, username, provider.timezone
+        )
+        _update_status_log(
+            instance, "ARGO, Ansible Finished for %s." % instance.ip
+        )
         celery_logger.debug(
             "ARGO, _deploy_instance task finished at %s." % datetime.now()
         )

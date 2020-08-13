@@ -7,14 +7,11 @@ import yaml
 from django.conf import settings
 
 from service.argo.rest_api import ArgoAPIClient
-from service.argo.exception import (BaseWorkflowDirNotExist,
-                                    ProviderWorkflowDirNotExist,
-                                    WorkflowFileNotExist,
-                                    WorkflowFileNotYAML,
-                                    ArgoConfigFileNotExist,
-                                    ArgoConfigFileNotYAML,
-                                    ArgoConfigFileError
-                                    )
+from service.argo.exception import (
+    BaseWorkflowDirNotExist, ProviderWorkflowDirNotExist, WorkflowFileNotExist,
+    WorkflowFileNotYAML, ArgoConfigFileNotExist, ArgoConfigFileNotYAML,
+    ArgoConfigFileError
+)
 
 
 class ArgoContext:
@@ -22,8 +19,15 @@ class ArgoContext:
     Context that the Argo Workflow should be executing in
     """
 
-    def __init__(self, api_host=None, api_port=None, token=None,
-                 namespace=None, ssl_verify=None, config=None):
+    def __init__(
+        self,
+        api_host=None,
+        api_port=None,
+        token=None,
+        namespace=None,
+        ssl_verify=None,
+        config=None
+    ):
         """
         Create a context to execute ArgoWorkflow
 
@@ -68,10 +72,18 @@ class ArgoContext:
         Returns:
             ArgoAPIClient: an API client with the config from this context
         """
-        return ArgoAPIClient(self._api_host, self._api_port, self._token, self._namespace,
-                             verify=self._ssl_verify)
+        return ArgoAPIClient(
+            self._api_host,
+            self._api_port,
+            self._token,
+            self._namespace,
+            verify=self._ssl_verify
+        )
 
-def _find_provider_dir(base_directory, provider_uuid, default_provider="default"):
+
+def _find_provider_dir(
+    base_directory, provider_uuid, default_provider="default"
+):
     """
     Check if the provider workflow directory exists
 
@@ -90,12 +102,16 @@ def _find_provider_dir(base_directory, provider_uuid, default_provider="default"
     """
     try:
         # find provider directory
-        provider_dirs = [entry for entry in os.listdir(base_directory)
-                         if entry == provider_uuid]
+        provider_dirs = [
+            entry
+            for entry in os.listdir(base_directory) if entry == provider_uuid
+        ]
         # try default provider if given provider dir does not exist
         if not provider_dirs and default_provider:
-            provider_dirs = [entry for entry in os.listdir(base_directory)
-                             if entry == default_provider]
+            provider_dirs = [
+                entry for entry in os.listdir(base_directory)
+                if entry == default_provider
+            ]
         if not provider_dirs:
             raise ProviderWorkflowDirNotExist(provider_uuid)
 
@@ -103,6 +119,7 @@ def _find_provider_dir(base_directory, provider_uuid, default_provider="default"
         return provider_dir
     except OSError:
         raise BaseWorkflowDirNotExist(base_directory)
+
 
 def _find_workflow_file(provider_dir_path, filename, provider_uuid):
     """
@@ -122,8 +139,10 @@ def _find_workflow_file(provider_dir_path, filename, provider_uuid):
     """
     try:
         # find workflow file
-        wf_files = [entry for entry in os.listdir(provider_dir_path)
-                    if entry == filename]
+        wf_files = [
+            entry
+            for entry in os.listdir(provider_dir_path) if entry == filename
+        ]
         if not wf_files:
             raise WorkflowFileNotExist(provider_uuid, filename)
 
@@ -132,6 +151,7 @@ def _find_workflow_file(provider_dir_path, filename, provider_uuid):
         return wf_file_path
     except OSError:
         raise ProviderWorkflowDirNotExist(provider_uuid)
+
 
 def argo_lookup_workflow(base_directory, filename, provider_uuid):
     """
@@ -150,7 +170,9 @@ def argo_lookup_workflow(base_directory, filename, provider_uuid):
         ArgoWorkflow: JSON object representing the workflow if found, None otherwise
     """
     provider_dir_path = _find_provider_dir(base_directory, provider_uuid)
-    wf_file_path = _find_workflow_file(provider_dir_path, filename, provider_uuid)
+    wf_file_path = _find_workflow_file(
+        provider_dir_path, filename, provider_uuid
+    )
 
     try:
         # read workflow definition
@@ -162,6 +184,7 @@ def argo_lookup_workflow(base_directory, filename, provider_uuid):
         raise WorkflowFileNotExist(wf_file_path)
 
     return wf_def
+
 
 def argo_lookup_yaml_file(base_directory, filename, provider_uuid):
     """
@@ -180,7 +203,9 @@ def argo_lookup_yaml_file(base_directory, filename, provider_uuid):
         ArgoWorkflow: JSON object representing the workflow if found, None otherwise
     """
     provider_dir_path = _find_provider_dir(base_directory, provider_uuid)
-    wf_file_path = _find_workflow_file(provider_dir_path, filename, provider_uuid)
+    wf_file_path = _find_workflow_file(
+        provider_dir_path, filename, provider_uuid
+    )
 
     try:
         # read workflow definition
@@ -192,6 +217,7 @@ def argo_lookup_yaml_file(base_directory, filename, provider_uuid):
         raise WorkflowFileNotExist(wf_file_path)
 
     return wf_def
+
 
 def read_argo_config(config_file_path=None, provider_uuid=None):
     """
@@ -243,6 +269,7 @@ def read_argo_config(config_file_path=None, provider_uuid=None):
         raise ArgoConfigFileNotExist(config_file_path)
     except yaml.YAMLError:
         raise ArgoConfigFileNotYAML(config_file_path)
+
 
 def argo_context_from_config(config_file_path=None):
     """

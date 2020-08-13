@@ -10,7 +10,11 @@ from service.argo.wf_temp import ArgoWorkflowTemplate
 
 
 def argo_workflow_exec(
-        workflow_filename, provider_uuid, workflow_data, config_file_path=None, wait=False
+    workflow_filename,
+    provider_uuid,
+    workflow_data,
+    config_file_path=None,
+    wait=False
 ):
     """
     Execute an specified Argo workflow.
@@ -30,11 +34,14 @@ def argo_workflow_exec(
     """
     try:
         # read configuration from file
-        config = read_argo_config(config_file_path=config_file_path, provider_uuid=provider_uuid)
+        config = read_argo_config(
+            config_file_path=config_file_path, provider_uuid=provider_uuid
+        )
 
         # find the workflow definition & construct workflow
-        wf_def = argo_lookup_yaml_file(config["workflow_base_dir"],
-                                       workflow_filename, provider_uuid)
+        wf_def = argo_lookup_yaml_file(
+            config["workflow_base_dir"], workflow_filename, provider_uuid
+        )
 
         # construct workflow context
         context = ArgoContext(config=config)
@@ -46,12 +53,18 @@ def argo_workflow_exec(
         wf = ArgoWorkflow.create(context, wf_def, workflow_data)
         return (wf, ArgoWorkflowStatus())
     except Exception as exc:
-        logger.exception("ARGO, argo_workflow_exec(), {} {}".format(type(exc), exc))
+        logger.exception(
+            "ARGO, argo_workflow_exec(), {} {}".format(type(exc), exc)
+        )
         raise exc
 
 
 def argo_wf_template_exec(
-        wf_template_filename, provider_uuid, workflow_data, config_file_path=None, wait=False
+    wf_template_filename,
+    provider_uuid,
+    workflow_data,
+    config_file_path=None,
+    wait=False
 ):
     """
     Execute an specified Argo workflow.
@@ -78,8 +91,9 @@ def argo_wf_template_exec(
         context = ArgoContext(config=config)
 
         # find the workflow definition
-        wf_temp_def = argo_lookup_yaml_file(config["workflow_base_dir"],
-                                            wf_template_filename, provider_uuid)
+        wf_temp_def = argo_lookup_yaml_file(
+            config["workflow_base_dir"], wf_template_filename, provider_uuid
+        )
 
         # submit workflow template
         wf_temp = ArgoWorkflowTemplate.create(context, wf_temp_def)
@@ -96,5 +110,7 @@ def argo_wf_template_exec(
         return (wf, {"complete": None, "success": None, "error": None})
 
     except Exception as exc:
-        logger.exception("ARGO, argo_wf_template_exec(), {} {}".format(type(exc), exc))
+        logger.exception(
+            "ARGO, argo_wf_template_exec(), {} {}".format(type(exc), exc)
+        )
         raise exc

@@ -2,6 +2,7 @@
 WorkflowTemplate
 """
 
+
 class ArgoWorkflowTemplate:
     """
     Abstraction of the WorkflowTemplate in Argo
@@ -77,7 +78,9 @@ class ArgoWorkflowTemplate:
         Returns:
             dict: JSON response of the call
         """
-        json_resp = context.client().submit_workflow_template(self.name, wf_param=wf_param)
+        json_resp = context.client().submit_workflow_template(
+            self.name, wf_param=wf_param
+        )
         return json_resp
 
     def delete(self, context):

@@ -13,6 +13,7 @@ except ImportError:
     # python2 does not has JSONDecodeError
     JSONDecodeError = ValueError
 
+
 class ArgoAPIClient:
     """
     REST API Client for Argo.
@@ -91,7 +92,9 @@ class ArgoAPIClient:
 
         return json_resp
 
-    def get_log_for_pod_in_workflow(self, wf_name, pod_name, container_name="main"):
+    def get_log_for_pod_in_workflow(
+        self, wf_name, pod_name, container_name="main"
+    ):
         """
         Get the logs of a pod in a workflow
 
@@ -104,7 +107,9 @@ class ArgoAPIClient:
             list: a list of lines of logs
         """
         api_url = "/api/v1/workflows/{}/{}/{}/log?logOptions.timestamps=true&logOptions.container={}"
-        api_url = api_url.format(self._namespace, wf_name, pod_name, container_name)
+        api_url = api_url.format(
+            self._namespace, wf_name, pod_name, container_name
+        )
 
         resp = self._req("get", api_url, json_resp=False)
 
@@ -116,7 +121,8 @@ class ArgoAPIClient:
                 if not line:
                     continue
                 log_json = json.loads(line)
-                if "result" not in log_json or "content" not in log_json["result"]:
+                if "result" not in log_json or "content" not in log_json[
+                    "result"]:
                     continue
                 logs.append(log_json["result"]["content"])
             except Exception:
@@ -184,7 +190,9 @@ class ArgoAPIClient:
         Returns:
             dict: response text as JSON object
         """
-        api_url = "/api/v1/workflow-templates/{}/{}".format(self._namespace, wf_temp_name)
+        api_url = "/api/v1/workflow-templates/{}/{}".format(
+            self._namespace, wf_temp_name
+        )
 
         json_data = {}
         json_data["namespace"] = self._namespace
@@ -236,7 +244,9 @@ class ArgoAPIClient:
 
         return json_resp
 
-    def _req(self, method, url, json_data={}, additional_headers={}, json_resp=True):
+    def _req(
+        self, method, url, json_data={}, additional_headers={}, json_resp=True
+    ):
         """
         send a request with given method to the given url
 
@@ -269,9 +279,16 @@ class ArgoAPIClient:
             full_url = self.base_url + url
             requests_func = _http_method(method)
             if json_data:
-                resp = requests_func(full_url, headers=headers, json=json_data, verify=self.verify)
+                resp = requests_func(
+                    full_url,
+                    headers=headers,
+                    json=json_data,
+                    verify=self.verify
+                )
             else:
-                resp = requests_func(full_url, headers=headers, verify=self.verify)
+                resp = requests_func(
+                    full_url, headers=headers, verify=self.verify
+                )
             resp.raise_for_status()
             if json_resp:
                 return json.loads(resp.text)
@@ -326,6 +343,7 @@ class ArgoAPIClient:
             bool: whether to verify SSL/TLS cert of api host or not
         """
         return self._verify
+
 
 def _http_method(method_str):
     """

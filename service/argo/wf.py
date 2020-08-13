@@ -65,8 +65,15 @@ class ArgoWorkflow:
                 return (wf, wf.last_status)
             wf.watch(context, 60, 1440)
         except Exception as exc:
-            logger.debug("ARGO, ArgoWorkflow.create_n_watch(), while watching {}".format(type(exc)))
-            logger.debug("ARGO, ArgoWorkflow.create_n_watch(), while watching {}".format(exc))
+            logger.debug(
+                "ARGO, ArgoWorkflow.create_n_watch(), while watching {}".format(
+                    type(exc)
+                )
+            )
+            logger.debug(
+                "ARGO, ArgoWorkflow.create_n_watch(), while watching {}".
+                format(exc)
+            )
             raise exc
         return (wf, wf.last_status)
 
@@ -82,7 +89,9 @@ class ArgoWorkflow:
         """
         try:
             # get workflow
-            json_obj = context.client().get_workflow(self._wf_name, fields="status.phase")
+            json_obj = context.client().get_workflow(
+                self._wf_name, fields="status.phase"
+            )
 
             # unknown state
             if "status" not in json_obj or "phase" not in json_obj["status"]:
@@ -96,15 +105,21 @@ class ArgoWorkflow:
                 return self._last_status
 
             if phase == "Succeeded":
-                self._last_status = ArgoWorkflowStatus(complete=True, success=True)
+                self._last_status = ArgoWorkflowStatus(
+                    complete=True, success=True
+                )
                 return self._last_status
 
             if phase == "Failed":
-                self._last_status = ArgoWorkflowStatus(complete=True, success=False)
+                self._last_status = ArgoWorkflowStatus(
+                    complete=True, success=False
+                )
                 return self._last_status
 
             if phase == "Error":
-                self._last_status = ArgoWorkflowStatus(complete=True, success=False, error=True)
+                self._last_status = ArgoWorkflowStatus(
+                    complete=True, success=False, error=True
+                )
                 return self._last_status
 
             return ArgoWorkflowStatus()
@@ -144,7 +159,9 @@ class ArgoWorkflow:
         Returns:
             dict: a dict whose keys are node names, values are info of the corrsponding node
         """
-        json_resp = context.client().get_workflow(self._wf_name, fields="status.nodes")
+        json_resp = context.client().get_workflow(
+            self._wf_name, fields="status.nodes"
+        )
         return json_resp["status"]["nodes"]
 
     def dump_pod_logs(self, context, pod_name, log_file_path):
@@ -164,8 +181,10 @@ class ArgoWorkflow:
                 self.wf_name, pod_name, container_name="main"
             )
             log_file.write("\n".join(logs_lines))
-        logger.debug(("ARGO, log dump for workflow {}, pod {} at: {}\n").format(
-            self.wf_name, pod_name, log_file_path))
+        logger.debug(
+            ("ARGO, log dump for workflow {}, pod {} at: {}\n"
+            ).format(self.wf_name, pod_name, log_file_path)
+        )
 
     def dump_logs(self, context, log_dir):
         """
@@ -188,13 +207,20 @@ class ArgoWorkflow:
             log_file_path = os.path.join(log_dir, filename)
 
             with open(log_file_path, "a+") as dump_file:
-                dump_file.write("workflow {} has {} pods\n".format(self.wf_name, len(pod_names)))
+                dump_file.write(
+                    "workflow {} has {} pods\n".format(
+                        self.wf_name, len(pod_names)
+                    )
+                )
                 logs_lines = context.client().get_log_for_pod_in_workflow(
-                    self.wf_name, pod_name, container_name="main")
+                    self.wf_name, pod_name, container_name="main"
+                )
                 dump_file.write("\npod {}:\n".format(pod_name))
                 dump_file.writelines(logs_lines)
-            logger.debug(("ARGO, log dump for workflow {}, pod {} at: {}\n").format(
-                self.wf_name, pod_name, log_file_path))
+            logger.debug(
+                ("ARGO, log dump for workflow {}, pod {} at: {}\n"
+                ).format(self.wf_name, pod_name, log_file_path)
+            )
 
     @property
     def wf_name(self):
@@ -222,14 +248,18 @@ class ArgoWorkflow:
         """
         if self._wf_def and not fetch:
             return self._wf_def
-        self._wf_def = context.client().get_workflow(self._wf_name, fields="-status")
+        self._wf_def = context.client().get_workflow(
+            self._wf_name, fields="-status"
+        )
         return self._wf_def
+
 
 class ArgoWorkflowStatus:
     """
     Status of a workflow
     """
     __slots__ = ["_complete", "_success", "_error"]
+
     def __init__(self, complete=None, success=None, error=None):
         """
         Args:
@@ -265,6 +295,7 @@ class ArgoWorkflowStatus:
         """
         return self._error
 
+
 def _populate_wf_data(wf_def, wf_data):
     """
     Populate the workflow data in the workflow definition
@@ -282,8 +313,10 @@ def _populate_wf_data(wf_def, wf_data):
         wf_def["spec"]["arguments"] = {}
 
     if "parameters" in wf_data["arguments"]:
-        wf_def["spec"]["arguments"]["parameters"] = wf_data["arguments"]["parameters"]
+        wf_def["spec"]["arguments"]["parameters"] = wf_data["arguments"][
+            "parameters"]
     if "artifacts" in wf_data["arguments"]:
-        wf_def["spec"]["arguments"]["artifacts"] = wf_data["arguments"]["artifacts"]
+        wf_def["spec"]["arguments"]["artifacts"] = wf_data["arguments"][
+            "artifacts"]
 
     return wf_def
