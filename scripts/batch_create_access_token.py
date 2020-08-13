@@ -9,13 +9,10 @@ import django
 
 django.setup()
 
+import argparse
 from core.models import AccessToken
 from core.models.user import AtmosphereUser
 from core.models.access_token import create_access_token
-
-import argparse
-import csv
-import json
 
 
 def parse_arg():
