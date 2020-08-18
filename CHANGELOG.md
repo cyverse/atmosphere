@@ -24,11 +24,29 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-0...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-1...HEAD) - YYYY-MM-DD
+## [<exact release including patch>](<github compare url>) - <release date in YYYY-MM-DD>
+### Added
+  - <summary of new features>
+
+### Changed
+  - moved apt-get remove with other apt commands in Dockerfile
+
+### Deprecated
+  - <for soon-to-be removed features>
+
+### Removed
+  - removed atmosphere-ansible from Dockerfile
+
+### Fixed
+  - <for any bug fixes>
+
+### Security
+  - <in case of vulnerabilities>
 
 
 
-## [v37-0](https://github.com/cyverse/atmosphere/compare/v36-9...v37-0) - 2020-08-13
+## [v37-0](https://github.com/cyverse/atmosphere/compare/v36-9...v37-1) - 2020-08-13
 ### Added
   - script to create access token for users
     ([#744](https://github.com/cyverse/atmosphere/pull/744))
