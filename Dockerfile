@@ -40,7 +40,6 @@ RUN apt-get update && \
       uwsgi \
       uwsgi-plugin-python \
       zlib1g-dev && \
-      apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* && \
     locale-gen en_US.UTF-8
 
@@ -58,6 +57,7 @@ RUN mkdir /opt/env && \
     pip install --upgrade pip==9.0.3 virtualenv &&\
     virtualenv /opt/env/atmosphere &&\
     ln -s /opt/env/atmosphere/ /opt/env/atmo
+RUN git clone --depth 1 https://github.com/cyverse/atmosphere-ansible.git /opt/dev/atmosphere-ansible
 
 COPY . /opt/dev/atmosphere
 WORKDIR /opt/dev/atmosphere
@@ -74,6 +74,10 @@ RUN mkdir -p /etc/uwsgi/apps-available /etc/uwsgi/apps-enabled && \
     ln -s /etc/uwsgi/apps-available/atmosphere.ini /etc/uwsgi/apps-enabled/atmosphere.ini
 
 RUN source /opt/env/atmo/bin/activate && pip install -r requirements.txt
+
+# Cleanup
+RUN apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN useradd user
 
