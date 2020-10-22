@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-0...HEAD) - YYYY-MM-DD
 ### Changed
-  - <for changes in existing functionality>
+  - reduce the `max_retries` and timeout for the celery tasks that runs the deployment ansible
 
 ### Deprecated
   - <for soon-to-be removed features>
