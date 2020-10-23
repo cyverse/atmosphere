@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - script to switch user's quota to a different one
 
 ### Changed
-  - <for changes in existing functionality>
+  - reduce the `max_retries` and timeout for the celery tasks that runs the deployment ansible
 
 ### Deprecated
   - <for soon-to-be removed features>
