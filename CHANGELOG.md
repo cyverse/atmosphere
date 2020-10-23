@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-0...HEAD) - YYYY-MM-DD
 ### Added
+  - celery_watcher.sh script
   - script to switch user's quota to a different one
 
 ### Changed
