@@ -27,6 +27,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-0...HEAD) - YYYY-MM-DD
 ### Added
   - celery_watcher.sh script
+  - script to switch user's quota to a different one
+
+### Changed
+  - reduce the `max_retries` and timeout for the celery tasks that runs the deployment ansible
+
+### Deprecated
+  - <for soon-to-be removed features>
+
+### Removed
+  - <for now removed features>
+
+### Fixed
+  - updated fix-deb.sh to check for 0 byte file as well
+
+### Security
+  - <in case of vulnerabilities>
 
 
 ## [v37-0](https://github.com/cyverse/atmosphere/compare/v36-9...v37-0) - 2020-08-13

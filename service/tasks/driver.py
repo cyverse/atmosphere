@@ -1123,8 +1123,8 @@ def _deploy_instance_for_user(
 @task(
     name="_deploy_instance",
     default_retry_delay=124,
-    soft_time_limit=32 * 60,    # 32 minute hard-set time limit.
-    max_retries=10
+    soft_time_limit=25 * 60,    # 25 minute hard-set time limit.
+    max_retries=2
 )
 def _deploy_instance(
     driverCls,
