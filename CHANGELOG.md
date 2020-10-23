@@ -25,7 +25,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-0...HEAD) - YYYY-MM-DD
-
+### Added
+  - celery_watcher.sh script
 
 
 ## [v37-0](https://github.com/cyverse/atmosphere/compare/v36-9...v37-0) - 2020-08-13
