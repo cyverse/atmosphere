@@ -23,8 +23,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Security
   - <in case of vulnerabilities>
 -->
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-2...HEAD) - YYYY-MM-DD
 
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-0...HEAD) - YYYY-MM-DD
+## [v37-2](https://github.com/cyverse/atmosphere/compare/v37-0...v37-2) - 2020-10-26
 ### Added
   - celery_watcher.sh script
   - script to switch user's quota to a different one
