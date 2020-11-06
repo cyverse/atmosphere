@@ -25,6 +25,7 @@ def argo_deploy_instance(
 
     Args:
         provider_uuid (str): provider uuid
+        instance_uuid (str): instance uuid
         server_ip (str): ip of the server instance
         username (str): username
         timezone (str): timezone of the provider, e.g. America/Arizona
@@ -34,7 +35,7 @@ def argo_deploy_instance(
     """
     try:
         wf_data = _get_workflow_data(
-            provider_uuid, server_ip, username, timezone
+            provider_uuid, instance_uuid, server_ip, username, timezone
         )
 
         wf, status = argo_workflow_exec(
@@ -62,11 +63,15 @@ def argo_deploy_instance(
         raise exc
 
 
-def _get_workflow_data(provider_uuid, server_ip, username, timezone):
+def _get_workflow_data(
+    provider_uuid, instance_uuid, server_ip, username, timezone
+):
     """
     Generate the data structure to be passed to the workflow
 
     Args:
+        provider_uuid (str): provider uuid
+        instance_uuid (str): instance uuid
         server_ip (str): ip of the server instance
         username (str): username of the owner of the instance
         timezone (str): timezone of the provider
@@ -74,7 +79,12 @@ def _get_workflow_data(provider_uuid, server_ip, username, timezone):
     Returns:
         dict: {"arguments": {"parameters": [{"name": "", "value": ""}]}}
     """
-    wf_data = {"arguments": {"parameters": []}}
+    wf_data = {"metadata": {"labels": {}}, "arguments": {"parameters": []}}
+
+    # labels
+    wf_data["metadata"]["labels"]["instance_uuid"] = instance_uuid
+    wf_data["metadata"]["labels"]["username"] = username
+
     wf_data["arguments"]["parameters"].append(
         {
             "name": "server-ip",
