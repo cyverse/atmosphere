@@ -334,7 +334,7 @@ def execute_playbooks(
     if not logger:
         logger = deploy_logger
 
-    inventory_dir = os.path.join(settings.ANSIBLE_ROOT, "ansible")
+    inventory_dir = os.path.join(settings.ANSIBLE_ROOT, "ansible", "inventory")
 
     # Run playbooks
     results = []

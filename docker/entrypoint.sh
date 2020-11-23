@@ -40,8 +40,9 @@ cp $SECRETS_DIR/ssh/id_rsa.pub /opt/dev/atmosphere/extras/ssh/id_rsa.pub
 echo -e "Host *\n\tIdentityFile /opt/dev/atmosphere/extras/ssh/id_rsa\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null" >> ~/.ssh/config
 
 # Setup instance deploy automation
-cp $SECRETS_DIR/atmosphere-ansible/hosts /opt/dev/atmosphere-ansible/ansible/hosts
-cp -r $SECRETS_DIR/atmosphere-ansible/group_vars /opt/dev/atmosphere-ansible/ansible/group_vars
+mkdir -p /opt/dev/atmosphere-ansible/ansible/inventory
+cp $SECRETS_DIR/atmosphere-ansible/hosts /opt/dev/atmosphere-ansible/ansible/inventory/hosts
+cp -r $SECRETS_DIR/atmosphere-ansible/group_vars /opt/dev/atmosphere-ansible/ansible/inventory/group_vars
 
 # Link ini files
 ln -s $SECRETS_DIR/inis/atmosphere.ini /opt/dev/atmosphere/variables.ini
