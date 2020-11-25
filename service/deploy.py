@@ -4,6 +4,7 @@ Deploy methods for Atmosphere
 import os
 import re
 import json
+import subprocess
 from threepio import logger, deploy_logger
 from django.conf import settings
 from atmosphere.settings import secrets
@@ -329,28 +330,34 @@ def user_deploy_install(
 def execute_playbooks(
     playbook_dir, host_file, extra_vars, host, logger=None, limit_playbooks=[]
 ):
-    # Import PlaybookCLI here because if it is imported before reading ansible.cfg,
-    # ansible will try to create a tempdir that it does not have permission for.
-    from ansible.cli.playbook import PlaybookCLI
     # Force requirement of a logger for 2.0 playbook runs
     if not logger:
         logger = deploy_logger
 
-    inventory_dir = "%s/ansible" % settings.ANSIBLE_ROOT
+    inventory_dir = os.path.join(settings.ANSIBLE_ROOT, "ansible", "inventory")
 
     # Run playbooks
     results = []
     for pb in limit_playbooks:
-        logger.info("Executing playbook %s/%s" % (playbook_dir, pb))
+        pb_path = os.path.join(playbook_dir, pb)
+        logger.info("Executing playbook {}".format(pb_path))
+
         args = [
-            "--inventory=%s" % inventory_dir,
-            "--limit=%s" % host,
-            "--extra-vars=%s" % json.dumps(extra_vars),
-            "%s/%s" % (playbook_dir, pb)
+            "ansible-playbook", "--inventory={}".format(inventory_dir),
+            "--limit={}".format(host),
+            "--extra-vars={}".format(json.dumps(extra_vars)), pb_path
         ]
-        pb_runner = PlaybookCLI(args)
-        pb_runner.parse()
-        results.append(pb_runner.run())
+        logger.info("args to ansible-playbook: {}".format(args))
+
+        proc = subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+        ansible_output, _ = proc.communicate()    # capture output
+        logger.debug(ansible_output)
+
+        logger.info("playbook {} result {}".format(pb, proc.returncode))
+        results.append(proc.returncode)
+
         if results[-1] != 0:
             break
     return results
