@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-2...HEAD) - YYYY-MM-DD
+### Changed
+  - add `username` and `instance_uuid` label to the argo workflows launched
 
 ## [v37-2](https://github.com/cyverse/atmosphere/compare/v37-0...v37-2) - 2020-10-26
 ### Added
