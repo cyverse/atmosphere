@@ -42,6 +42,7 @@ class ArgoWorkflow:
 
         json_resp = context.client().run_workflow(wf_def)
         wf_name = json_resp["metadata"]["name"]
+        logger.debug("ARGO, workflow {} created".format(wf_name))
         return ArgoWorkflow(wf_name)
 
     @staticmethod
@@ -307,6 +308,9 @@ def _populate_wf_data(wf_def, wf_data):
     Returns:
         dict: workflow definition with the workflow data populated
     """
+    if "metadata" in wf_data and "labels" in wf_data["metadata"]:
+        wf_def["metadata"]["labels"] = wf_data["metadata"]["labels"]
+
     if not wf_data["arguments"]:
         return wf_def
     if not wf_def["spec"]["arguments"]:

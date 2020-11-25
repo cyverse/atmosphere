@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 -->
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-2...HEAD) - YYYY-MM-DD
 ### Changed
+  - add `username` and `instance_uuid` label to the argo workflows launched
   - bump ansible to 2.8
   - calls `ansible-playbook` executable directly to execute ansible playbooks
 
