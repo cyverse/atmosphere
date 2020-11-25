@@ -4,205 +4,205 @@
 #
 #    pip-compile --output-file=dev_requirements.txt dev_requirements.in requirements.txt
 #
-amqp==2.2.2
-ansible==2.7.12
-apache-libcloud==0.20.1
-appdirs==1.4.3
-asn1crypto==0.22.0
+amqp==2.2.2               # via -r requirements.txt, kombu
+ansible==2.8.15           # via -r requirements.txt
+apache-libcloud==0.20.1   # via -r requirements.txt, django-cyverse-auth, rtwo
+appdirs==1.4.3            # via -r requirements.txt, os-client-config
+asn1crypto==0.22.0        # via -r requirements.txt, cryptography
 astroid==1.5.3            # via pylint, pylint-celery, pylint-flask, pylint-plugin-utils, requirements-detector
-babel==2.5.1
-backports-abc==0.5
+babel==2.5.1              # via -r requirements.txt, flower, osc-lib, oslo.i18n, python-cinderclient, python-glanceclient, python-heatclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
+backports-abc==0.5        # via -r requirements.txt, tornado
 backports.functools-lru-cache==1.4  # via astroid, pylint
 backports.shutil-get-terminal-size==1.0.0  # via ipython
-backports.ssl-match-hostname==3.5.0.1
-bcrypt==3.1.3
-behave-django==0.5.0
-behave==1.2.5
-behaving==1.5.6
-billiard==3.5.0.3
-boto==2.39.0
-business-rules==1.0.1
-caslib.py==2.3.0
-celery==4.0.2
-certifi==2017.7.27.1
-cffi==1.10.0
-chardet==3.0.4
-chromogenic==0.5.4
-cliff==2.8.0
-cmd2==0.7.5
-colorama==0.3.9
+backports.ssl-match-hostname==3.5.0.1  # via -r requirements.txt, apache-libcloud
+bcrypt==3.1.3             # via -r requirements.txt, paramiko
+behave-django==0.5.0      # via -r dev_requirements.in
+behave==1.2.5             # via -r dev_requirements.in, behave-django, behaving
+behaving==1.5.6           # via -r dev_requirements.in
+billiard==3.5.0.3         # via -r requirements.txt, celery
+boto==2.39.0              # via -r requirements.txt, chromogenic
+business-rules==1.0.1     # via -r requirements.txt
+caslib.py==2.3.0          # via -r requirements.txt, django-cyverse-auth
+celery==4.0.2             # via -r requirements.txt, django-celery-beat, flower
+certifi==2017.7.27.1      # via -r requirements.txt, requests, tornado, urllib3
+cffi==1.10.0              # via -r requirements.txt, bcrypt, cryptography, pynacl
+chardet==3.0.4            # via -r requirements.txt, requests
+chromogenic==0.5.4        # via -r requirements.txt
+cliff==2.8.0              # via -r requirements.txt, osc-lib, python-heatclient, python-neutronclient, python-openstackclient
+cmd2==0.7.5               # via -r requirements.txt, cliff
+colorama==0.3.9           # via -r requirements.txt
 configparser==3.5.0       # via flake8, pylint
-contextlib2==0.5.5
-coverage==4.4.1
-coveralls==1.2.0
-cryptography==2.7
-debtcollector==1.17.0
+contextlib2==0.5.5        # via -r requirements.txt, raven, vcrpy
+coverage==4.4.1           # via -r dev_requirements.in, coveralls
+coveralls==1.2.0          # via -r dev_requirements.in
+cryptography==2.7         # via -r requirements.txt, ansible, paramiko, pyopenssl, requests, urllib3
+debtcollector==1.17.0     # via -r requirements.txt, oslo.config, oslo.context, oslo.log, oslo.utils, python-keystoneclient, python-neutronclient
 decorator==4.1.2          # via ipython, traitlets
-defusedxml==0.5.0
-deprecation==1.0.1
-django-celery-beat==1.0.1
-django-cors-headers==2.1.0
-django-cyverse-auth==1.2.0
-django-debug-toolbar==1.8
-django-filter==1.0.4
-django-jenkins==0.110.0
-django-memoize==2.1.0
-django-nose==1.4.4
-django-redis-cache==1.7.1
-django-sslserver==0.20
-django==1.11.23
-djangorestframework-csv==2.0.0
-djangorestframework-jsonp==1.0.2
-djangorestframework-xml==1.3.0
-djangorestframework-yaml==1.0.3
-djangorestframework==3.9.4
+defusedxml==0.5.0         # via -r requirements.txt, djangorestframework-xml
+deprecation==1.0.1        # via -r requirements.txt, openstacksdk
+django-celery-beat==1.0.1  # via -r requirements.txt
+django-cors-headers==2.1.0  # via -r requirements.txt
+django-cyverse-auth==1.2.0  # via -r requirements.txt
+django-debug-toolbar==1.8  # via -r dev_requirements.in
+django-filter==1.0.4      # via -r requirements.txt
+django-jenkins==0.110.0   # via -r dev_requirements.in
+django-memoize==2.1.0     # via -r requirements.txt
+django-nose==1.4.4        # via -r dev_requirements.in
+django-redis-cache==1.7.1  # via -r requirements.txt
+django-sslserver==0.20    # via -r requirements.txt
+django==1.11.23           # via -r requirements.txt, behave-django, django-debug-toolbar, django-jenkins, django-memoize, django-sslserver
+djangorestframework-csv==2.0.0  # via -r requirements.txt
+djangorestframework-jsonp==1.0.2  # via -r requirements.txt
+djangorestframework-xml==1.3.0  # via -r requirements.txt
+djangorestframework-yaml==1.0.3  # via -r requirements.txt
+djangorestframework==3.9.4  # via -r requirements.txt, django-cyverse-auth, djangorestframework-csv
 docopt==0.6.2             # via coveralls
 dodgy==0.1.9              # via prospector
-emoji==0.4.5
-enum-compat==0.0.2
-enum34==1.1.6
-eventlet==0.21.0
-fabric==1.10
-factory-boy==2.9.2
+emoji==0.4.5              # via -r dev_requirements.in
+enum-compat==0.0.2        # via -r requirements.txt, eventlet
+enum34==1.1.6             # via -r requirements.txt, astroid, cryptography, enum-compat, flake8, parse-type, traitlets
+eventlet==0.21.0          # via -r requirements.txt
+fabric==1.10              # via -r requirements.txt, rfive
+factory-boy==2.9.2        # via -r dev_requirements.in
 faker==0.7.18             # via factory-boy
-flake8==3.4.1
-flower==0.9.2
-freezegun==0.3.9
-funcsigs==1.0.2
-functools32==3.2.3.post2
-futures==3.1.1
-gevent==1.2.2
+flake8==3.4.1             # via -r dev_requirements.in
+flower==0.9.2             # via -r requirements.txt
+freezegun==0.3.9          # via -r dev_requirements.in
+funcsigs==1.0.2           # via -r requirements.txt, debtcollector, mock, oslo.utils
+functools32==3.2.3.post2  # via -r requirements.txt, jsonschema
+futures==3.1.1            # via -r requirements.txt, flower, python-swiftclient
+gevent==1.2.2             # via -r requirements.txt
 gitdb2==2.0.2             # via gitpython
-gitpython==2.1.5
-greenlet==0.4.12
-httplib2==0.10.3
-idna==2.5
-ipaddress==1.0.18
-ipdb==0.10.3
+gitpython==2.1.5          # via -r dev_requirements.in
+greenlet==0.4.12          # via -r requirements.txt, eventlet, gevent
+httplib2==0.10.3          # via -r requirements.txt, oauth2client
+idna==2.5                 # via -r requirements.txt, requests, urllib3
+ipaddress==1.0.18         # via -r requirements.txt, cryptography, faker, urllib3
+ipdb==0.10.3              # via -r dev_requirements.in
 ipython-genutils==0.2.0   # via traitlets
-ipython==5.4.1
-iso8601==0.1.12
+ipython==5.4.1            # via -r dev_requirements.in, ipdb
+iso8601==0.1.12           # via -r requirements.txt, keystoneauth1, oslo.utils, python-heatclient, python-neutronclient, python-novaclient
 isort==4.2.15             # via pylint
-itsdangerous==0.24
-jinja2==2.10.1
-json-delta==2.0
-jsonpatch==1.16
-jsonpointer==1.10
-jsonschema==2.6.0
-jwt.py==0.1.1
-keystoneauth1==3.1.0
-kombu==4.1.0
+itsdangerous==0.24        # via -r requirements.txt
+jinja2==2.10.1            # via -r requirements.txt, ansible
+json-delta==2.0           # via -r dev_requirements.in
+jsonpatch==1.16           # via -r requirements.txt, openstacksdk, warlock
+jsonpointer==1.10         # via -r requirements.txt, jsonpatch
+jsonschema==2.6.0         # via -r requirements.txt, warlock
+jwt.py==0.1.1             # via -r requirements.txt, django-cyverse-auth
+keystoneauth1==3.1.0      # via -r requirements.txt, django-cyverse-auth, openstacksdk, os-client-config, osc-lib, python-cinderclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
+kombu==4.1.0              # via -r requirements.txt, celery
 lazy-object-proxy==1.3.1  # via astroid
-markupsafe==1.0
+markupsafe==1.0           # via -r requirements.txt, jinja2
 mccabe==0.6.1             # via flake8, prospector, pylint
-mock==2.0.0
-monotonic==1.3
-msgpack-python==0.4.8
-netaddr==0.7.19
-netifaces==0.10.6
-newrelic==2.90.0.75
+mock==2.0.0               # via -r dev_requirements.in, vcrpy
+monotonic==1.3            # via -r requirements.txt, oslo.log, oslo.utils
+msgpack-python==0.4.8     # via -r requirements.txt, oslo.serialization
+netaddr==0.7.19           # via -r requirements.txt, oslo.config, oslo.utils, python-neutronclient
+netifaces==0.10.6         # via -r requirements.txt, oslo.utils
+newrelic==2.90.0.75       # via -r requirements.txt
 nose==1.3.7               # via django-nose
-numpy==1.13.1
-oauth2client==4.1.2
-olefile==0.44
-openstacksdk==0.9.17
-os-client-config==1.28.0
-osc-lib==1.7.0
-oslo.config==4.11.0
-oslo.context==2.17.0
-oslo.i18n==3.17.0
-oslo.log==3.30.0
-oslo.serialization==2.20.0
-oslo.utils==3.28.0
-pandas==0.20.3
-paramiko==2.6.0
+numpy==1.13.1             # via -r requirements.txt, pandas
+oauth2client==4.1.2       # via -r requirements.txt, django-cyverse-auth
+olefile==0.44             # via -r requirements.txt, pillow
+openstacksdk==0.9.17      # via -r requirements.txt, python-openstackclient
+os-client-config==1.28.0  # via -r requirements.txt, openstacksdk, osc-lib, python-neutronclient
+osc-lib==1.7.0            # via -r requirements.txt, python-heatclient, python-neutronclient, python-openstackclient, python-saharaclient
+oslo.config==4.11.0       # via -r requirements.txt, oslo.log, python-keystoneclient
+oslo.context==2.17.0      # via -r requirements.txt, oslo.log
+oslo.i18n==3.17.0         # via -r requirements.txt, osc-lib, oslo.config, oslo.log, oslo.utils, python-cinderclient, python-glanceclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
+oslo.log==3.30.0          # via -r requirements.txt, python-saharaclient
+oslo.serialization==2.20.0  # via -r requirements.txt, oslo.log, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-saharaclient
+oslo.utils==3.28.0        # via -r requirements.txt, osc-lib, oslo.log, oslo.serialization, python-cinderclient, python-glanceclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient
+pandas==0.20.3            # via -r requirements.txt
+paramiko==2.6.0           # via -r requirements.txt, fabric
 parse-type==0.3.4         # via behave
 parse==1.8.2              # via behave, behaving, parse-type
 pathlib2==2.3.0           # via ipython, pickleshare
-pathlib==1.0.1
-pbr==3.1.1
+pathlib==1.0.1            # via -r dev_requirements.in
+pbr==3.1.1                # via -r requirements.txt, cliff, debtcollector, keystoneauth1, mock, openstacksdk, osc-lib, oslo.context, oslo.i18n, oslo.log, oslo.serialization, oslo.utils, positional, python-cinderclient, python-glanceclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient, stevedore
 pep8-naming==0.4.1        # via prospector
-pep8==1.7.0
+pep8==1.7.0               # via -r dev_requirements.in
 pexpect==4.2.1            # via ipython
 pickleshare==0.7.4        # via ipython
-pillow==4.2.1
-positional==1.2.1
-prettytable==0.7.2
+pillow==4.2.1             # via -r requirements.txt
+positional==1.2.1         # via -r requirements.txt, keystoneauth1, oslo.context, python-keystoneclient
+prettytable==0.7.2        # via -r requirements.txt, cliff, python-cinderclient, python-glanceclient, python-heatclient, python-irodsclient, python-novaclient
 prompt-toolkit==1.0.15    # via ipython
-prospector==0.12.7
-psycopg2==2.7.3.1
+prospector==0.12.7        # via -r dev_requirements.in
+psycopg2==2.7.3.1         # via -r requirements.txt
 ptyprocess==0.5.2         # via pexpect
-pyasn1-modules==0.2.4
-pyasn1==0.4.5
+pyasn1-modules==0.2.4     # via -r requirements.txt, oauth2client, python-ldap
+pyasn1==0.4.5             # via -r requirements.txt, oauth2client, pyasn1-modules, python-ldap, rsa
 pycodestyle==2.0.0        # via flake8, prospector
-pycparser==2.18
-pycryptodome==3.8.2
+pycparser==2.18           # via -r requirements.txt, cffi
+pycryptodome==3.8.2       # via -r requirements.txt, jwt.py
 pydocstyle==2.0.0         # via prospector
 pyflakes==1.5.0           # via flake8, prospector
 pygments==2.2.0           # via ipython
-pyinotify==0.9.6
-pyjwt==1.5.2
+pyinotify==0.9.6          # via -r requirements.txt, oslo.log
+pyjwt==1.5.2              # via -r requirements.txt
 pylint-celery==0.3        # via prospector
 pylint-common==0.2.5      # via prospector
 pylint-django==0.7.2      # via prospector
 pylint-flask==0.5         # via prospector
 pylint-plugin-utils==0.2.6  # via prospector, pylint-celery, pylint-common, pylint-django, pylint-flask
 pylint==1.7.2             # via prospector, pylint-celery, pylint-common, pylint-django, pylint-flask, pylint-plugin-utils
-pynacl==1.1.2
-pyopenssl==19.0.0
-pyparsing==2.2.0
-pyperclip==1.5.27
-python-cinderclient==1.9.0
-python-dateutil==2.6.1
-python-glanceclient==2.5.0
-python-heatclient==1.11.0
-python-irodsclient==0.6.0
-python-keystoneclient==3.6.0
-python-ldap==3.0.0
-python-logstash==0.4.6
-python-neutronclient==6.0.0
-python-novaclient==6.0.0
-python-openstackclient==3.3.0
-python-saharaclient==1.2.0
-python-swiftclient==3.3.0
-pytz==2017.2
-pyyaml==5.1.1
-raven==6.1.0
-redis==2.10.5
-requests[security]==2.22.0
-requestsexceptions==1.3.0
+pynacl==1.1.2             # via -r requirements.txt, paramiko
+pyopenssl==19.0.0         # via -r requirements.txt, requests, urllib3
+pyparsing==2.2.0          # via -r requirements.txt, cliff, cmd2, oslo.utils
+pyperclip==1.5.27         # via -r requirements.txt, cmd2
+python-cinderclient==1.9.0  # via -r requirements.txt, python-openstackclient, rtwo
+python-dateutil==2.6.1    # via -r requirements.txt, faker, freezegun, oslo.log, pandas
+python-glanceclient==2.5.0  # via -r requirements.txt, python-openstackclient, rtwo
+python-heatclient==1.11.0  # via -r requirements.txt, rtwo
+python-irodsclient==0.6.0  # via -r requirements.txt, rtwo
+python-keystoneclient==3.6.0  # via -r requirements.txt, django-cyverse-auth, python-glanceclient, python-openstackclient, rtwo
+python-ldap==3.0.0        # via -r requirements.txt, django-cyverse-auth
+python-logstash==0.4.6    # via -r requirements.txt
+python-neutronclient==6.0.0  # via -r requirements.txt, rtwo
+python-novaclient==6.0.0  # via -r requirements.txt, python-openstackclient, rtwo
+python-openstackclient==3.3.0  # via -r requirements.txt, python-saharaclient, rtwo
+python-saharaclient==1.2.0  # via -r requirements.txt, rtwo
+python-swiftclient==3.3.0  # via -r requirements.txt, python-heatclient, rtwo
+pytz==2017.2              # via -r requirements.txt, babel, celery, django, flower, oslo.serialization, oslo.utils, pandas
+pyyaml==5.1.1             # via -r requirements.txt, ansible, cliff, djangorestframework-yaml, os-client-config, oslo.config, prospector, python-heatclient, vcrpy
+raven==6.1.0              # via -r requirements.txt
+redis==2.10.5             # via -r requirements.txt, django-redis-cache
+requests[security]==2.22.0  # via -r requirements.txt, caslib.py, coveralls, django-cyverse-auth, keystoneauth1, python-cinderclient, python-glanceclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-saharaclient, python-swiftclient, rtwo
+requestsexceptions==1.3.0  # via -r requirements.txt, os-client-config
 requirements-detector==0.5.2  # via prospector
-rfc3986==1.1.0
-rfive==0.2.0
-rsa==3.4.2
-rtwo==0.5.25
+rfc3986==1.1.0            # via -r requirements.txt, oslo.config
+rfive==0.2.0              # via -r requirements.txt, rtwo
+rsa==3.4.2                # via -r requirements.txt, oauth2client
+rtwo==0.5.25              # via -r requirements.txt, chromogenic
 scandir==1.5              # via pathlib2
 selenium==3.5.0           # via splinter
 setoptconf==0.2.0         # via prospector
 simplegeneric==0.8.1      # via ipython
-simplejson==3.11.1
-singledispatch==3.4.0.3
-six==1.11.0
+simplejson==3.11.1        # via -r requirements.txt, osc-lib, python-cinderclient, python-neutronclient, python-novaclient
+singledispatch==3.4.0.3   # via -r requirements.txt, astroid, pylint, tornado
+six==1.11.0               # via -r requirements.txt, astroid, bcrypt, behave, cliff, cmd2, cryptography, debtcollector, djangorestframework-csv, faker, freezegun, keystoneauth1, mock, oauth2client, openstacksdk, osc-lib, oslo.config, oslo.i18n, oslo.log, oslo.serialization, oslo.utils, parse-type, pathlib2, prompt-toolkit, pydocstyle, pylint, pynacl, pyopenssl, python-cinderclient, python-dateutil, python-glanceclient, python-heatclient, python-keystoneclient, python-neutronclient, python-novaclient, python-openstackclient, python-saharaclient, python-swiftclient, singledispatch, stevedore, traitlets, vcrpy, warlock
 smmap2==2.0.3             # via gitdb2
 snowballstemmer==1.2.1    # via pydocstyle
 splinter==0.7.6           # via behaving
 sqlparse==0.2.3           # via django-debug-toolbar
-stevedore==1.25.0
-threepio==0.2.0
-tornado==4.5.2
+stevedore==1.25.0         # via -r requirements.txt, cliff, keystoneauth1, openstacksdk, osc-lib, oslo.config, python-keystoneclient
+threepio==0.2.0           # via -r requirements.txt, chromogenic, django-cyverse-auth, rtwo
+tornado==4.5.2            # via -r requirements.txt, flower
 traitlets==4.3.2          # via ipython
-unicodecsv==0.14.1
-urllib3[secure]==1.25.3
-uwsgi==2.0.15
-vcrpy==1.11.1
-vine==1.1.4
-vulture==0.29
-warlock==1.2.0
+unicodecsv==0.14.1        # via -r requirements.txt, cliff, djangorestframework-csv
+urllib3[secure]==1.25.3   # via -r requirements.txt, coveralls, requests
+uwsgi==2.0.15             # via -r requirements.txt
+vcrpy==1.11.1             # via -r dev_requirements.in
+vine==1.1.4               # via -r requirements.txt, amqp
+vulture==0.29             # via -r dev_requirements.in
+warlock==1.2.0            # via -r requirements.txt, python-glanceclient
 wcwidth==0.1.7            # via prompt-toolkit
-wheel==0.29.0
-wrapt==1.10.10
-xlsxwriter==0.9.8
-yapf==0.24.0
+wheel==0.29.0             # via -r dev_requirements.in
+wrapt==1.10.10            # via -r requirements.txt, astroid, debtcollector, positional, vcrpy
+xlsxwriter==0.9.8         # via -r requirements.txt
+yapf==0.24.0              # via -r dev_requirements.in
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools==41.4.0        # via ansible, django-sslserver, ipdb, ipython
+# setuptools
