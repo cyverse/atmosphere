@@ -24,6 +24,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
   - <in case of vulnerabilities>
 -->
 ## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-2...HEAD) - YYYY-MM-DD
+### Changed
+  - bump ansible to 2.8
+  - calls `ansible-playbook` executable directly to execute ansible playbooks
 
 ## [v37-2](https://github.com/cyverse/atmosphere/compare/v37-0...v37-2) - 2020-10-26
 ### Added
