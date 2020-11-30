@@ -23,7 +23,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Security
   - <in case of vulnerabilities>
 -->
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-3...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-4...HEAD) - YYYY-MM-DD
+
+
+## [v37-4](https://github.com/cyverse/atmosphere/compare/v37-3...v37-4) - 2020-11-30
 ### Added
   - install wget in Docker image
 
