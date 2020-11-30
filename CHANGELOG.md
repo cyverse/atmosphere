@@ -23,7 +23,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Security
   - <in case of vulnerabilities>
 -->
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-2...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-3...HEAD) - YYYY-MM-DD
+### Added
+  - install wget in Docker image
+
+## [v37-3](https://github.com/cyverse/atmosphere/compare/v37-2...v37-3) - 2020-11-25
 ### Changed
   - add `username` and `instance_uuid` label to the argo workflows launched
   - bump ansible to 2.8
