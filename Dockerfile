@@ -39,6 +39,7 @@ RUN apt-get update && \
       ufw \
       uwsgi \
       uwsgi-plugin-python \
+      wget \
       zlib1g-dev && \
     rm -rf /var/lib/apt/lists/* && \
     locale-gen en_US.UTF-8
