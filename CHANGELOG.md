@@ -23,8 +23,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Security
   - <in case of vulnerabilities>
 -->
-## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-4...HEAD) - YYYY-MM-DD
+## [Unreleased](https://github.com/cyverse/atmosphere/compare/v37-5...HEAD) - YYYY-MM-DD
 
+## [v37-5](https://github.com/cyverse/atmosphere/compare/v37-4...v37-5) - 2022-02-14
+### Changed
+  - fix permission for scripts in `scripts/` ([#756](https://github.com/cyverse/atmosphere/pull/756))
 
 ## [v37-4](https://github.com/cyverse/atmosphere/compare/v37-3...v37-4) - 2020-11-30
 ### Added
