@@ -1,3 +1,5 @@
+# THIS REPOSITORY IS READONLY AND NO LONGER ACTIVE
+
 # atmosphere :cloud:
 
 [![Build Status](https://travis-ci.org/cyverse/atmosphere.svg?branch=master)](https://travis-ci.org/cyverse/atmosphere)
